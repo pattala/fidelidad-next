@@ -11,7 +11,7 @@ firebase-debug.log
 .env
 .env.local
 .env.*.local
-config.js
+
 service-account.json
 
 # OS generated files

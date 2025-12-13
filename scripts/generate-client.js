@@ -76,7 +76,7 @@ window.ADMIN_CONFIG = {
     platformName: "Admin - ${clientConfig.appName}",
     logoUrl: "${clientConfig.logoUrl}",
     apiUrl: "${clientConfig.apiUrl || 'https://fidelidad-api.vercel.app'}",
-    apiKey: "${clientConfig.apiSecret || ''}",
+    apiKey: "${process.env.API_SECRET_KEY || ''}",
     
     theme: ${JSON.stringify(clientConfig.theme, null, 4)},
 

@@ -6,7 +6,6 @@
     "companyName": "RAMPET",
     "logoUrl": "images/mi_logo.png",
     "apiUrl": "https://fidelidad-api.vercel.app",
-    "apiSecret": "Felipe01",
     "theme": {
         "primary": "#007bff",
         "secondary": "#333333",

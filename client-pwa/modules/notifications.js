@@ -679,8 +679,8 @@ export async function handlePermissionRequest() {
 
     if (current === 'granted') {
       if (ls === 'blocked') { showNotifOffBanner(true); refreshNotifUIFromPermission(); return; }
-      await obtenerYGuardarToken();
       showNotifOffBanner(false);
+      obtenerYGuardarToken().catch(() => { });
       refreshNotifUIFromPermission();
       return;
     }
@@ -698,7 +698,7 @@ export async function handlePermissionRequest() {
     if (status === 'granted') {
       let st = null; try { st = localStorage.getItem(LS_NOTIF_STATE) || null; } catch (e) { }
       if (st === 'blocked') { showNotifOffBanner(true); }
-      else { await obtenerYGuardarToken(); showNotifOffBanner(false); }
+      else { showNotifOffBanner(false); obtenerYGuardarToken().catch(() => { }); }
     } else if (status === 'denied') {
       try { localStorage.setItem(LS_NOTIF_STATE, 'blocked'); } catch (e) { }
       emit('rampet:consent:notif-opt-out', { source: 'prompt' });
@@ -762,13 +762,13 @@ export async function handlePermissionSwitch(e) {
   if (checked) {
     if (before === 'granted') {
       console.log('[Notif] Already granted. provisioning...');
-      try { showNotifOffBanner(false); await obtenerYGuardarToken(); } catch (err) { showNotifOffBanner(true); }
+      try { showNotifOffBanner(false); obtenerYGuardarToken().catch(() => { }); } catch (err) { showNotifOffBanner(true); }
     } else if (before === 'default') {
       console.log('[Notif] Requesting permission...');
       const status = await Notification.requestPermission();
       console.log('[Notif] Request result:', status);
       if (status === 'granted') {
-        try { showNotifOffBanner(false); await obtenerYGuardarToken(); } catch (err) { showNotifOffBanner(true); }
+        try { showNotifOffBanner(false); obtenerYGuardarToken().catch(() => { }); } catch (err) { showNotifOffBanner(true); }
       } else if (status === 'denied') {
         try { localStorage.setItem(LS_NOTIF_STATE, 'blocked'); } catch (e2) { }
         toast('Notificaciones bloqueadas en el navegador.', 'warning');

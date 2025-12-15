@@ -27,6 +27,7 @@ export function showToast(message, type = 'info', duration = 6000) {
 }
 
 export function showScreen(screenId) {
+  console.log('[UI] showScreen:', screenId);
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   const target = document.getElementById(screenId);
   if (target) target.classList.add('active');
@@ -37,10 +38,10 @@ function formatearFecha(iso) {
   if (!iso) return 'N/A';
   const parts = String(iso).split('T')[0].split('-');
   if (parts.length !== 3) return 'Fecha inválida';
-  const d = new Date(Date.UTC(parts[0], parts[1]-1, parts[2]));
+  const d = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
   if (isNaN(d)) return 'Fecha inválida';
-  const dd = String(d.getUTCDate()).padStart(2,'0');
-  const mm = String(d.getUTCMonth()+1).padStart(2,'0');
+  const dd = String(d.getUTCDate()).padStart(2, '0');
+  const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
   const yy = d.getUTCFullYear();
   return `${dd}/${mm}/${yy}`;
 }
@@ -48,8 +49,8 @@ function formatearFecha(iso) {
 // Fallback local para switches si aún no cargó Firestore
 function readConsentFallback() {
   let notif = false, geo = false;
-  try { notif = localStorage.getItem('notifState') === 'accepted'; } catch {}
-  try { geo   = localStorage.getItem('geoState')   === 'accepted'; } catch {}
+  try { notif = localStorage.getItem('notifState') === 'accepted'; } catch { }
+  try { geo = localStorage.getItem('geoState') === 'accepted'; } catch { }
   return { notif, geo };
 }
 
@@ -170,7 +171,7 @@ function renderCampanasCarousel(campanasData) {
       '';
 
     const titleText = campana.nombre || '';
-    const bodyText  = campana.cuerpo || '';
+    const bodyText = campana.cuerpo || '';
 
     if (banner) {
       const isMixed = (location.protocol === 'https:' && /^http:\/\//i.test(banner));
@@ -345,7 +346,7 @@ export function renderRecentHistory(cliente = {}) {
     const fecha = parseDateLike(i.fechaCanje);
     if (!fecha) return;
     const nombre = i?.nombrePremio || 'Premio';
-    const coste  = Number(i?.puntosCoste || 0);
+    const coste = Number(i?.puntosCoste || 0);
     items.push({
       ts: +fecha,
       texto: `Canje: ${nombre} (-${coste} pts)`,
@@ -353,7 +354,7 @@ export function renderRecentHistory(cliente = {}) {
     });
   });
 
-  items.sort((a,b) => b.ts - a.ts);
+  items.sort((a, b) => b.ts - a.ts);
   const top = items.slice(0, 5);
 
   const ul = document.getElementById('lista-historial');
@@ -366,13 +367,13 @@ export function renderRecentHistory(cliente = {}) {
 
 // Re-render cuando se actualiza el cliente desde data.js
 document.addEventListener('rampet:cliente-updated', (e) => {
-  try { renderRecentHistory(e.detail?.cliente || {}); } catch {}
+  try { renderRecentHistory(e.detail?.cliente || {}); } catch { }
 });
 
 // ===== Perfil (modal) =====
-function setVal(id, v){ const el = document.getElementById(id); if (el) el.value = v ?? ''; }
-function setChecked(id, v){ const el = document.getElementById(id); if (el) el.checked = !!v; }
-function setText(id, v){ const el = document.getElementById(id); if (el) el.textContent = v ?? '—'; }
+function setVal(id, v) { const el = document.getElementById(id); if (el) el.value = v ?? ''; }
+function setChecked(id, v) { const el = document.getElementById(id); if (el) el.checked = !!v; }
+function setText(id, v) { const el = document.getElementById(id); if (el) el.textContent = v ?? '—'; }
 
 // NUEVO: Reordenar secciones (Domicilio arriba, Preferencias al final)
 function reorderProfileSections() {
@@ -404,10 +405,10 @@ function reorderProfileSections() {
 }
 
 async function syncProfileTogglesFromRuntime() {
-  const c   = (window.clienteData) || {};
+  const c = (window.clienteData) || {};
   const cfg = c.config || {};
   const notifEl = document.getElementById('prof-consent-notif');
-  const geoEl   = document.getElementById('prof-consent-geo');
+  const geoEl = document.getElementById('prof-consent-geo');
 
   if (notifEl) {
     if (typeof cfg.notifEnabled === 'boolean') {
@@ -420,7 +421,7 @@ async function syncProfileTogglesFromRuntime() {
           ? 'Bloqueado en el navegador'
           : 'Recibir avisos de descuentos y novedades';
       }
-    } catch {}
+    } catch { }
   }
 
   if (geoEl) {
@@ -434,27 +435,27 @@ async function syncProfileTogglesFromRuntime() {
           ? 'Ubicación deshabilitada en el navegador'
           : 'Activar beneficios en mi zona';
       }
-    } catch {}
+    } catch { }
   }
 }
 
-export async function openProfileModal(){
+export async function openProfileModal() {
   const m = document.getElementById('profile-modal');
   if (!m) return;
 
   // Reordenar secciones
-  try { reorderProfileSections(); } catch {}
+  try { reorderProfileSections(); } catch { }
 
   // 1) Pintamos con lo que viene de Firestore
   const c = (window.clienteData) || {};
-  setVal('prof-nombre',   c.nombre || '');
+  setVal('prof-nombre', c.nombre || '');
   setVal('prof-telefono', c.telefono || '');
-  setVal('prof-fecha',    c.fechaNacimiento || '');
-  setVal('prof-dni',      c.dni || '');
-  setVal('prof-email',    c.email || '');
+  setVal('prof-fecha', c.fechaNacimiento || '');
+  setVal('prof-dni', c.dni || '');
+  setVal('prof-email', c.email || '');
   const fb = readConsentFallback();
   setChecked('prof-consent-notif', c?.config?.notifEnabled ?? fb.notif);
-  setChecked('prof-consent-geo',   c?.config?.geoEnabled   ?? fb.geo);
+  setChecked('prof-consent-geo', c?.config?.geoEnabled ?? fb.geo);
   const addr = c?.domicilio?.addressLine || '—';
   setText('prof-address-summary', addr);
 
@@ -472,7 +473,7 @@ document.getElementById('prof-cancel')?.addEventListener('click', () => {
 });
 document.getElementById('profile-close')?.addEventListener('click', closeProfileModal);
 
-async function onSaveProfilePrefs(){
+async function onSaveProfilePrefs() {
   const btn = document.getElementById('prof-save');
   if (btn) btn.disabled = true;
 
@@ -487,7 +488,7 @@ async function onSaveProfilePrefs(){
     // 2) Preferencias
     const m = document.getElementById('profile-modal');
     const notifEl = m?.querySelector('#prof-consent-notif');
-    const geoEl   = m?.querySelector('#prof-consent-geo');
+    const geoEl = m?.querySelector('#prof-consent-geo');
 
     // Debug inicial
     console.debug('[PROFILE/SAVE] wantNotif=', !!notifEl?.checked, ' wantGeo=', !!geoEl?.checked, ' perm=', window.Notification?.permission);
@@ -524,16 +525,16 @@ async function onSaveProfilePrefs(){
             const st = await navigator.permissions.query({ name: 'geolocation' });
             granted = (st.state === 'granted');
           }
-        } catch {}
+        } catch { }
         if (!granted && navigator.geolocation) {
           granted = await new Promise(res => {
             let done = false;
             navigator.geolocation.getCurrentPosition(
-              () => { if (!done){ done = true; res(true); } },
-              () => { if (!done){ done = true; res(false); } },
+              () => { if (!done) { done = true; res(true); } },
+              () => { if (!done) { done = true; res(false); } },
               { timeout: 7000, maximumAge: 0 }
             );
-            setTimeout(() => { if (!done){ done = true; res(false); } }, 7500);
+            setTimeout(() => { if (!done) { done = true; res(false); } }, 7500);
           });
         }
         if (granted) {
@@ -551,17 +552,17 @@ async function onSaveProfilePrefs(){
     // (3) Refresco OPTIMISTA + evento
     try {
       const notifChecked = !!document.getElementById('prof-consent-notif')?.checked;
-      const geoChecked   = !!document.getElementById('prof-consent-geo')?.checked;
+      const geoChecked = !!document.getElementById('prof-consent-geo')?.checked;
       console.debug('[PROFILE/SAVE] patchLocalConfig →', { notifEnabled: notifChecked, geoEnabled: geoChecked });
       await Data.patchLocalConfig({ notifEnabled: notifChecked, geoEnabled: geoChecked });
-    } catch {}
+    } catch { }
 
     // (4) Refresco REAL cuando el navegador esté libre
     await (window.requestIdleCallback
-      ? new Promise(resolve => requestIdleCallback(async () => { 
-          await syncProfileTogglesFromRuntime(); 
-          resolve(); 
-        }))
+      ? new Promise(resolve => requestIdleCallback(async () => {
+        await syncProfileTogglesFromRuntime();
+        resolve();
+      }))
       : syncProfileTogglesFromRuntime());
 
     closeProfileModal();
@@ -574,7 +575,7 @@ async function onSaveProfilePrefs(){
   }
 }
 
-export function closeProfileModal(){
+export function closeProfileModal() {
   const m = document.getElementById('profile-modal');
   if (m) m.style.display = 'none';
 }

@@ -393,7 +393,6 @@ function setupAuthScreenListeners() {
   on('register-btn', 'click', async () => {
     try {
       const r = await Auth.registerNewAccount();
-      try { localStorage.setItem('justSignedUp', '1'); } catch { }
       return r;
     } catch (e) {
       try { localStorage.removeItem('justSignedUp'); } catch { }

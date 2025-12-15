@@ -802,13 +802,16 @@ async function main() {
 
       // Si se acaba de registrar Y no tiene permisos otorgados
       // (Quitamos !notifState para forzar onboarding aunque haya basura vieja en LS, excepto si ya Granted)
-      if (justSignedUp && perm !== 'granted') {
+      // Si se acaba de registrar (forzamos onboarding siempre)
+      if (justSignedUp) {
 
         // Wiring exclusivo del onboarding
         const btnEnable = document.getElementById('btn-onboarding-enable');
         const btnSkip = document.getElementById('btn-onboarding-skip');
 
-        const finishOnboarding = () => {
+        const finishOnboarding = async () => {
+          // Intentar mostrar prompt domicilio si corresponde
+          try { await setupAddressSection(); } catch (e) { }
           localStorage.removeItem('justSignedUp');
           UI.showScreen('main-app-screen');
           // Ahora sí inicializamos cosas del home
@@ -833,8 +836,8 @@ async function main() {
 
       } else {
         // Flujo normal directo al home
-        if (justSignedUp) localStorage.removeItem('justSignedUp'); // limpieza por si acaso
         UI.showScreen('main-app-screen');
+        try { await setupAddressSection(); } catch (e) { }
         try { await initNotificationsOnce(); } catch (e) { console.warn('[PWA] initNotificationsOnce error:', e); }
       }
 
@@ -866,7 +869,7 @@ async function main() {
         installBtn.style.display = isStandalone ? 'none' : 'inline-block';
       }
 
-      await setupAddressSection();
+
       openInboxIfQuery();
 
       try {

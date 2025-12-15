@@ -787,6 +787,9 @@ async function main() {
     wireInboxModal();
 
     if (user) {
+      const justSignedUp = localStorage.getItem('justSignedUp') === '1';
+      console.log('[DEBUG-AUTH] User:', user.uid, 'justSignedUp:', justSignedUp, 'LS:', localStorage.getItem('justSignedUp'));
+
       if (bell) bell.style.display = 'inline-block';
       setupMainAppScreenListeners();
 

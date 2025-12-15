@@ -51,7 +51,7 @@ function computeUpcomingExpirations(cliente = {}, windowDays = null) {
   };
   const dayKey = (ms) => {
     const d = new Date(ms);
-    d.setHours(0,0,0,0);
+    d.setHours(0, 0, 0, 0);
     return d.getTime();
   };
   const inWindow = (ms) => ms >= todayStart && (untilMs ? ms <= untilMs : true);
@@ -61,13 +61,13 @@ function computeUpcomingExpirations(cliente = {}, windowDays = null) {
   const arrV = Array.isArray(cliente?.vencimientos) ? cliente.vencimientos : [];
   for (const x of arrV) {
     const pts = Number(x?.puntos || 0);
-    const ts  = parseTs(x?.venceAt);
+    const ts = parseTs(x?.venceAt);
     if (pts > 0 && ts && inWindow(ts)) {
       const dk = dayKey(ts);
       byDayV[dk] = (byDayV[dk] || 0) + pts;
     }
   }
-  const listV = Object.keys(byDayV).map(k => ({ ts: Number(k), puntos: byDayV[k] })).sort((a,b)=>a.ts-b.ts);
+  const listV = Object.keys(byDayV).map(k => ({ ts: Number(k), puntos: byDayV[k] })).sort((a, b) => a.ts - b.ts);
   if (listV.length) return listV;
 
   // (2) historialPuntos[]
@@ -80,7 +80,7 @@ function computeUpcomingExpirations(cliente = {}, windowDays = null) {
     if (!obt || isNaN(obt.getTime()) || dias <= 0 || disp <= 0) continue;
 
     const vence = new Date(obt);
-    vence.setHours(23,59,59,999);
+    vence.setHours(23, 59, 59, 999);
     vence.setDate(vence.getDate() + dias);
     const ms = vence.getTime();
     if (!inWindow(ms)) continue;
@@ -88,12 +88,12 @@ function computeUpcomingExpirations(cliente = {}, windowDays = null) {
     const dk = dayKey(ms);
     byDayH[dk] = (byDayH[dk] || 0) + disp;
   }
-  const listH = Object.keys(byDayH).map(k => ({ ts: Number(k), puntos: byDayH[k] })).sort((a,b)=>a.ts-b.ts);
+  const listH = Object.keys(byDayH).map(k => ({ ts: Number(k), puntos: byDayH[k] })).sort((a, b) => a.ts - b.ts);
   if (listH.length) return listH;
 
   // (3) directos (fallback)
   const directPts = Number(cliente?.puntosProximosAVencer ?? 0);
-  const directTs  = parseTs(cliente?.fechaProximoVencimiento);
+  const directTs = parseTs(cliente?.fechaProximoVencimiento);
   if (directPts > 0 && directTs && inWindow(directTs)) {
     return [{ ts: dayKey(directTs), puntos: directPts }];
   }
@@ -193,8 +193,8 @@ export function getPuntosEnProximoVencimiento(cliente = {}) {
 // === Puntos por vencer (tarjeta Home) ===
 export function updateVencimientoCard(cliente = {}) {
   try {
-    const card    = document.getElementById('vencimiento-card');
-    const ptsEl   = document.getElementById('cliente-puntos-vencimiento');
+    const card = document.getElementById('vencimiento-card');
+    const ptsEl = document.getElementById('cliente-puntos-vencimiento');
     const fechaEl = document.getElementById('cliente-fecha-vencimiento');
     if (!card || !ptsEl || !fechaEl) {
       console.warn('[PWA] Tarjeta de vencimiento no encontrada (IDs requeridos).');
@@ -241,7 +241,7 @@ export function updateVencimientoCard(cliente = {}) {
 }
 
 // === Render principal ===
-function renderizarPantallaPrincipal() {
+function renderizarPantallaPrincipal(opts = {}) {
   if (!clienteData) return;
 
   const hoy = new Date().toISOString().split('T')[0];
@@ -260,7 +260,7 @@ function renderizarPantallaPrincipal() {
     return true;
   });
 
-  UI.renderMainScreen(clienteData, premiosData, campanasVisibles);
+  UI.renderMainScreen(clienteData, premiosData, campanasVisibles, opts);
 
   // Extras visibles en home
   updateVencimientoCard(clienteData);
@@ -274,7 +274,7 @@ function renderizarPantallaPrincipal() {
         config: clienteData?.config || {}
       }
     }));
-  } catch {}
+  } catch { }
 }
 
 // ====== CONSENTIMIENTOS / CONFIG ======
@@ -308,10 +308,10 @@ async function mergeCliente(data) {
 export async function updateProfile(partial = {}) {
   if (!clienteRef) return;
   const allowed = {};
-  ['nombre','telefono','fechaNacimiento'].forEach(k=>{
+  ['nombre', 'telefono', 'fechaNacimiento'].forEach(k => {
     if (partial[k] != null) allowed[k] = partial[k];
   });
-  await clienteRef.set(allowed, { merge:true });
+  await clienteRef.set(allowed, { merge: true });
 }
 
 export async function updateConfig(partial = {}) {
@@ -367,7 +367,7 @@ function wireConsentEventBridges() {
   document.addEventListener('rampet:geo:disabled', async (e) => {
     await saveGeoConsent(false, { geoMethod: e?.detail?.method || 'toggle' });
   });
-    // 🔹 Nuevo: el usuario dijo "No gracias" al banner de domicilio
+  // 🔹 Nuevo: el usuario dijo "No gracias" al banner de domicilio
   document.addEventListener('rampet:address:dismissed', async () => {
     const now = new Date().toISOString();
     await updateConfig({
@@ -380,13 +380,16 @@ function wireConsentEventBridges() {
 
 // === Listeners / flujo principal ===
 // === Listeners / flujo principal ===
-export async function listenToClientData(user) {
-  UI.showScreen('loading-screen');
+export async function listenToClientData(user, opts = {}) {
+  // Solo mostramos loading si NO está suprimida la navegación
+  if (!opts.suppressNavigation) {
+    UI.showScreen('loading-screen');
+  }
 
   if (unsubscribeCliente) unsubscribeCliente();
   if (unsubscribeCampanas) unsubscribeCampanas();
 
-  try { wireConsentEventBridges(); } catch {}
+  try { wireConsentEventBridges(); } catch { }
 
   // Premios (carga inicial)
   if (premiosData.length === 0) {
@@ -403,7 +406,7 @@ export async function listenToClientData(user) {
     const campanasQuery = db.collection('campanas').where('estaActiva', '==', true);
     unsubscribeCampanas = campanasQuery.onSnapshot(snapshot => {
       campanasData = snapshot.docs.map(doc => doc.data());
-      renderizarPantallaPrincipal();
+      renderizarPantallaPrincipal(opts);
     }, error => {
       console.error("[PWA] Error escuchando campañas:", error);
     });
@@ -411,7 +414,7 @@ export async function listenToClientData(user) {
     console.error("[PWA] Error seteando listener de campañas:", e);
   }
 
-   // Cliente (tiempo real) — normalizamos config y elegimos una ficha canónica
+  // Cliente (tiempo real) — normalizamos config y elegimos una ficha canónica
   try {
     const clienteQuery = db.collection('clientes')
       .where("authUID", "==", user.uid); // ← SIN limit(1), queremos ver TODOS
@@ -490,9 +493,9 @@ export async function listenToClientData(user) {
 
       try {
         document.dispatchEvent(new CustomEvent('rampet:cliente-updated', { detail: { cliente: clienteData } }));
-      } catch {}
+      } catch { }
 
-      renderizarPantallaPrincipal();
+      renderizarPantallaPrincipal(opts);
     }, (error) => {
       console.error("[PWA] Error en listener de cliente:", error);
       Auth.logout();
@@ -511,7 +514,7 @@ if (typeof window !== 'undefined') {
   window.computeUpcomingExpirations = computeUpcomingExpirations;
   window.updateVencimientoCard = updateVencimientoCard;
   Object.defineProperty(window, 'clienteData', { get: () => clienteData });
-  Object.defineProperty(window, 'clienteRef',  { get: () => clienteRef  });
+  Object.defineProperty(window, 'clienteRef', { get: () => clienteRef });
 }
 
 // ⬇️ Fuera del if, a nivel superior del archivo

@@ -867,7 +867,10 @@ async function main() {
       // ⚡ escuchar mensajes del SW para badge (sin duplicar onMessage)
       wireSwMessageChannel();
 
-      Data.listenToClientData(user);
+      // Si estamos en onboarding, REPRIMIMOS que data.js cambie la pantalla (para que no pise el onboarding)
+      const suppressNav = !!justSignedUp;
+      Data.listenToClientData(user, { suppressNavigation: suppressNav });
+
       document.addEventListener('rampet:cliente-updated', (e) => {
         try { window.clienteData = e.detail?.cliente || window.clienteData || {}; } catch { }
       });

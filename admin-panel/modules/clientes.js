@@ -340,9 +340,11 @@ async function _assignNumeroSocio(docId, sendWelcome = false) {
     const API_KEY = (window.ADMIN_CONFIG && window.ADMIN_CONFIG.apiKey) || '';
 
     const body = { docId, sendWelcome };
-    console.log('[assign-socio-number] request body:', body);
+    const targetUrl = `${NOTIF_BASE}/api/assign-socio-number`;
+    console.warn('[assign-socio] 🚀 FETCH TARGET:', targetUrl);
+    console.log('[assign-socio] payload:', body);
 
-    const r = await fetch(`${NOTIF_BASE}/api/assign-socio-number`, {
+    const r = await fetch(targetUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
       body: JSON.stringify(body)

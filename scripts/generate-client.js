@@ -80,6 +80,8 @@ window.ADMIN_CONFIG = {
     
     theme: ${JSON.stringify(clientConfig.theme, null, 4)},
 
+    featureFlags: ${JSON.stringify(clientConfig.featureFlags || {}, null, 4)},
+
     // Configuración de Firebase compartida
     firebaseConfig: ${JSON.stringify(clientConfig.firebase, null, 4)}
 };

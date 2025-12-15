@@ -1,6 +1,34 @@
+// Configuración Global - Generada automáticamente
+// Cliente: Club RAMPET
+// Fecha: 2025-12-15T01:34:40.795Z
+
 window.APP_CONFIG = {
-    appName: "Club Demo",
+    appName: "Club RAMPET",
+    companyName: "RAMPET",
+    logoUrl: "images/mi_logo.png",
     apiUrl: "https://fidelidad-api.vercel.app",
-    platformName: "Club Demo",
-    featureFlags: {}
+    
+    theme: {
+    "primary": "#007bff",
+    "secondary": "#333333",
+    "background": "#f0f2f5"
+},
+    
+    features: {
+    "showPoweredBy": true,
+    "geoCooldownDays": 30
+},
+    
+    // VAPID para Web Push
+    vapidPublic: "BF-KoL99dP_eOzjYisObou-0jHHayo4QNKAcqRWDAPLYSspsNWvCSyY3H4gJd2hF3g8TRDchT0JrxM-4RGf7Lv4",
+
+    // Configuración de Firebase
+    firebaseConfig: {
+    "apiKey": "AIzaSyAvBw_Cc-t8lfip_FtQ1w_w3DrPDYpxINs",
+    "authDomain": "sistema-fidelizacion.firebaseapp.com",
+    "projectId": "sistema-fidelizacion",
+    "storageBucket": "sistema-fidelizacion.appspot.com",
+    "messagingSenderId": "357176214962",
+    "appId": "1:357176214962:web:6c1df9b74ff0f3779490ab"
+}
 };

@@ -21,3 +21,8 @@ Thumbs.db
 # Editor directories
 .vscode/
 .idea/
+
+# Generated Client Configs
+admin-panel/config.js
+client-pwa/config.js
+client-pwa/manifest.json

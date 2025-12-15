@@ -15,6 +15,9 @@
         "showPoweredBy": true,
         "geoCooldownDays": 30
     },
+    "featureFlags": {
+        "useCreateUserAPI": true
+    },
     "vapidPublic": "BF-KoL99dP_eOzjYisObou-0jHHayo4QNKAcqRWDAPLYSspsNWvCSyY3H4gJd2hF3g8TRDchT0JrxM-4RGf7Lv4",
     "firebase": {
         "apiKey": "AIzaSyAvBw_Cc-t8lfip_FtQ1w_w3DrPDYpxINs",

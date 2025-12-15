@@ -381,6 +381,7 @@ function wireConsentEventBridges() {
 // === Listeners / flujo principal ===
 // === Listeners / flujo principal ===
 export async function listenToClientData(user, opts = {}) {
+  console.log('[Data] listenToClientData opts:', opts);
   // Solo mostramos loading si NO está suprimida la navegación
   if (!opts.suppressNavigation) {
     UI.showScreen('loading-screen');

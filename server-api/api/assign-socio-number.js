@@ -1,4 +1,4 @@
-```javascript
+
 // api/assign-socio-number.js
 // Asigna número de socio correlativo y envía email (opcional).
 // Refactorizado para consistencia con create-user.js (CORS robusto, Auth check, Safe Parsing).
@@ -28,14 +28,16 @@ function getDb() {
 
 // ---------- CORS ----------
 function getAllowedOrigin(req) {
-  const allowed = (process.env.CORS_ALLOWED_ORIGINS || "")
-    .split(",")
-    .map(s => s.trim())
-    .filter(Boolean);
+  // Configuración más permisiva por defecto para evitar errores CORS en setups nuevos
+  const envAllowed = process.env.CORS_ALLOWED_ORIGINS;
+
+  // Si no hay variable definida, permitimos el origen de la petición (modo desarrollo/demo)
+  if (!envAllowed) return req.headers.origin || "*";
+
+  const allowed = envAllowed.split(",").map(s => s.trim()).filter(Boolean);
   const origin = req.headers.origin;
-  // Si origin coincide o si permitimos todo con *, devolvemos origin (para credenciales)
+
   if (origin && allowed.includes(origin)) return origin;
-  // Fallback a la primera o vacío
   return allowed[0] || "";
 }
 
@@ -52,7 +54,7 @@ async function readJsonBody(req) {
   // pero para standard raw function:
   if (req.body && typeof req.body === 'object') return req.body;
   if (req.body && typeof req.body === 'string') {
-      try { return JSON.parse(req.body); } catch { throw new Error("BAD_JSON"); }
+    try { return JSON.parse(req.body); } catch { throw new Error("BAD_JSON"); }
   }
   // Fallback stream reading (raro en Vercel Functions modernas pero util)
   try {
@@ -71,10 +73,10 @@ async function readJsonBody(req) {
 // ---------- Config Email ----------
 // URL para llamarse a sí mismo (email)
 function getSelfBaseUrl(req) {
-    if (process.env.PUBLIC_BASE_URL) return process.env.PUBLIC_BASE_URL;
-    const host = req.headers.host;
-    const proto = req.headers['x-forwarded-proto'] || 'https';
-    return `${ proto }://${host}`;
+  if (process.env.PUBLIC_BASE_URL) return process.env.PUBLIC_BASE_URL;
+  const host = req.headers.host;
+  const proto = req.headers['x-forwarded-proto'] || 'https';
+  return `${proto}://${host}`;
 }
 
 // ---------- Handler ----------
@@ -204,4 +206,3 @@ export default async function handler(req, res) {
     return res.status(500).json({ ok: false, error: error.message });
   }
 }
-```

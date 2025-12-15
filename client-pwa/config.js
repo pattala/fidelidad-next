@@ -1,6 +1,6 @@
 // Configuración Global - Generada automáticamente
 // Cliente: Club Demo
-// Fecha: 2025-12-15T02:03:37.098Z
+// Fecha: 2025-12-15T02:53:12.552Z
 
 window.APP_CONFIG = {
     appName: "Club Demo",

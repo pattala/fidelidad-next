@@ -5,7 +5,7 @@ window.ADMIN_CONFIG = {
     platformName: "Admin - Club Demo",
     logoUrl: "images/mi_logo.png",
     apiUrl: "https://fidelidad-api.vercel.app",
-    apiKey: "",
+    apiKey: "Felipe01",
     
     theme: {
     "primary": "#e11d48",

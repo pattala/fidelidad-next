@@ -595,9 +595,9 @@ function refreshNotifUIFromPermission() {
 
   // 5) granted
   if (perm === 'granted') {
-    if (switchEl) switchEl.checked = !!hasToken;
+    if (switchEl) switchEl.checked = !!hasToken || __tokenProvisionPending;
     if (!hasToken && !pending) show(cardSwitch, true);
-    showNotifOffBanner(!hasToken);
+    showNotifOffBanner(!hasToken && !__tokenProvisionPending);
     return;
   }
 

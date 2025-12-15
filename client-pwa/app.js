@@ -800,8 +800,10 @@ async function main() {
       const notifState = localStorage.getItem('notifState');
       const perm = ('Notification' in window) ? Notification.permission : 'denied';
 
-      // Si se acaba de registrar Y no tiene permisos definidos (ni granted ni blocked)
-      if (justSignedUp && perm === 'default' && !notifState) {
+      // Si se acaba de registrar Y no tiene permisos otorgados
+      // (Quitamos !notifState para forzar onboarding aunque haya basura vieja en LS, excepto si ya Granted)
+      if (justSignedUp && perm !== 'granted') {
+
         // Wiring exclusivo del onboarding
         const btnEnable = document.getElementById('btn-onboarding-enable');
         const btnSkip = document.getElementById('btn-onboarding-skip');

@@ -188,6 +188,7 @@ export async function registerNewAccount() {
     // 1) crear usuario
     // ⬇️ Sesión/cachés limpias ANTES del alta
     await ensureCleanAuthSession();
+    try { localStorage.setItem('justSignedUp', '1'); } catch { } // 🚩 FIX: Setear antes de que dispare onAuthStateChanged
     const cred = await auth.createUserWithEmailAndPassword(email, password);
     const uid = cred.user.uid;
 
@@ -271,9 +272,7 @@ export async function registerNewAccount() {
       await waitSocioNumberOnce(uid);
     } catch { }
 
-    // 5) UX flags locales
-    try { localStorage.setItem('justSignedUp', '1'); } catch { }
-    try { localStorage.setItem('addressProvidedAtSignup', hasAny ? '1' : '0'); } catch { }
+
 
     UI.showToast("¡Registro exitoso! Bienvenido/a al Club.", "success");
   } catch (error) {

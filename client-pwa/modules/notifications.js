@@ -754,15 +754,19 @@ export function dismissPermissionRequest() {
   show($('notif-card'), true); // switch OFF visible
 }
 export async function handlePermissionSwitch(e) {
+  console.log('[Notif] Switch click. Perm:', Notification.permission);
   const checked = !!(e && e.target && e.target.checked);
   if (!('Notification' in window)) { refreshNotifUIFromPermission(); return; }
   const before = Notification.permission;
 
   if (checked) {
     if (before === 'granted') {
+      console.log('[Notif] Already granted. provisioning...');
       try { showNotifOffBanner(false); await obtenerYGuardarToken(); } catch (err) { showNotifOffBanner(true); }
     } else if (before === 'default') {
+      console.log('[Notif] Requesting permission...');
       const status = await Notification.requestPermission();
+      console.log('[Notif] Request result:', status);
       if (status === 'granted') {
         try { showNotifOffBanner(false); await obtenerYGuardarToken(); } catch (err) { showNotifOffBanner(true); }
       } else if (status === 'denied') {
@@ -774,6 +778,7 @@ export async function handlePermissionSwitch(e) {
         const sw = $('notif-switch'); if (sw) sw.checked = false;
       }
     } else {
+      console.log('[Notif] Already denied/blocked.');
       toast('Tenés bloqueadas las notificaciones en el navegador.', 'warning');
       const sw = $('notif-switch'); if (sw) sw.checked = false;
       showNotifOffBanner(true);

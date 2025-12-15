@@ -100,7 +100,9 @@ export function renderMainScreen(clienteData, premiosData, campanasData = []) {
   // Carrusel de campañas
   renderCampanasCarousel(campanasData);
 
-  showScreen('main-app-screen');
+  if (!opts.suppressNavigation) {
+    showScreen('main-app-screen');
+  }
 }
 
 export function openTermsModal(showAcceptButton) {

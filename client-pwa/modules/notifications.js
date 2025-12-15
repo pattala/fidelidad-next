@@ -760,11 +760,11 @@ export async function handlePermissionSwitch(e) {
 
   if (checked) {
     if (before === 'granted') {
-      try { await obtenerYGuardarToken(); showNotifOffBanner(false); } catch (err) { }
+      try { showNotifOffBanner(false); await obtenerYGuardarToken(); } catch (err) { showNotifOffBanner(true); }
     } else if (before === 'default') {
       const status = await Notification.requestPermission();
       if (status === 'granted') {
-        try { await obtenerYGuardarToken(); showNotifOffBanner(false); } catch (err) { }
+        try { showNotifOffBanner(false); await obtenerYGuardarToken(); } catch (err) { showNotifOffBanner(true); }
       } else if (status === 'denied') {
         try { localStorage.setItem(LS_NOTIF_STATE, 'blocked'); } catch (e2) { }
         toast('Notificaciones bloqueadas en el navegador.', 'warning');

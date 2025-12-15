@@ -418,15 +418,43 @@ function setupMainAppScreenListeners() {
   // Perfil
   on('edit-profile-btn', 'click', () => { reorderProfileCards(); UI.openProfileModal(); });
   on('prof-edit-address-btn', 'click', () => {
-    UI.closeProfileModal();
+    // 🔽 NEW LOGIC: Move card INTO modal
     const card = document.getElementById('address-card');
-    const banner = document.getElementById('address-banner');
-    if (banner) banner.style.display = 'none';
-    if (card) {
+    const modalContent = document.querySelector('#profile-modal .modal-content');
+    const summaryBox = document.querySelector('.prefs-card');
+
+    if (card && modalContent && summaryBox) {
+      const summary = document.getElementById('prof-address-summary');
+      const editBtn = document.getElementById('prof-edit-address-btn');
+      if (summary) summary.style.display = 'none';
+      if (editBtn) editBtn.style.display = 'none';
+
+      // Move card into modal
+      summaryBox.appendChild(card);
       card.style.display = 'block';
-      try { window.scrollTo({ top: card.offsetTop - 12, behavior: 'smooth' }); } catch { }
+      card.classList.add('in-modal');
     }
   });
+
+  const restoreAddressCard = () => {
+    const card = document.getElementById('address-card');
+    const container = document.querySelector('.container') || document.body;
+    if (card && card.classList.contains('in-modal')) {
+      card.style.display = 'none';
+      card.classList.remove('in-modal');
+      container.appendChild(card);
+
+      const summary = document.getElementById('prof-address-summary');
+      const editBtn = document.getElementById('prof-edit-address-btn');
+      if (summary) summary.style.display = 'block';
+      if (editBtn) editBtn.style.display = 'inline-block';
+    }
+  };
+  on('profile-close', 'click', restoreAddressCard);
+  on('prof-cancel', 'click', restoreAddressCard);
+  on('address-cancel', 'click', restoreAddressCard);
+  on('address-save', 'click', async () => { setTimeout(restoreAddressCard, 500); });
+
 
   // Logout
   on('logout-btn', 'click', async () => {
@@ -794,12 +822,9 @@ async function main() {
       setupMainAppScreenListeners();
 
       // 🚀 ONBOARDING FLOW
-      const justSignedUp = localStorage.getItem('justSignedUp') === '1';
       const notifState = localStorage.getItem('notifState');
       const perm = ('Notification' in window) ? Notification.permission : 'denied';
 
-      // Si se acaba de registrar Y no tiene permisos otorgados
-      // (Quitamos !notifState para forzar onboarding aunque haya basura vieja en LS, excepto si ya Granted)
       // Si se acaba de registrar (forzamos onboarding siempre)
       if (justSignedUp) {
 

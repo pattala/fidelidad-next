@@ -227,33 +227,10 @@ async function openInboxModal() {
 }
 
 // ──────────────────────────────────────────────────────────────
-// Términos & Condiciones (helpers)
+// Términos & Condiciones (Legacy helpers removed)
+// La lógica ahora reside en terminos.js (window.openTermsModal)
 // ──────────────────────────────────────────────────────────────
-function termsModal() { return document.getElementById('terms-modal'); }
-function termsTextEl() { return document.getElementById('terms-text'); }
-function loadTermsContent() {
-  const el = termsTextEl();
-  if (!el) return;
-  el.innerHTML = `
-    <p><strong>1. Generalidades:</strong> El programa de fidelización "Club RAMPET" es un beneficio exclusivo para nuestros clientes. La participación en el programa es gratuita e implica la aceptación total de los presentes términos y condiciones.</p>
-    <p><strong>2. Consentimiento de comunicaciones y ofertas cercanas: </strong> Al registrarte y/o aceptar los términos, autorizás a RAMPET a enviarte comunicaciones transaccionales y promocionales (por ejemplo, avisos de puntos, canjes, promociones, vencimientos). Si activás la función “beneficios cerca tuyo”, la aplicación podrá usar los permisos del dispositivo y del navegador para detectar tu zona general con el único fin de mostrarte ofertas relevantes de comercios cercanos. Podés administrar o desactivar estas opciones desde los ajustes del navegador o del dispositivo cuando quieras.</p>   
-    <p><strong>3. Acumulación de Puntos:</strong> Los puntos se acumularán según la tasa de conversión vigente establecida por RAMPET. Los puntos no tienen valor monetario, no son transferibles a otras personas ni canjeables por dinero en efectivo.</p>
-    <p><strong>4. Canje de Premios:</strong> El canje de premios se realiza exclusivamente en el local físico y será procesado por un administrador del sistema. La PWA sirve como un catálogo para consultar los premios disponibles y los puntos necesarios. Para realizar un canje, el cliente debe presentar una identificación válida.</p>
-    <p><strong>5. Validez y Caducidad:</strong> Los puntos acumulados tienen una fecha de caducidad que se rige por las reglas definidas en el sistema. El cliente será notificado de los vencimientos próximos a través de los canales de comunicación aceptados para que pueda utilizarlos a tiempo.</p>
-    <p><strong>6. Modificaciones del Programa:</strong> RAMPET se reserva el derecho de modificar los términos y condiciones, la tasa de conversión, el catálogo de premios o cualquier otro aspecto del programa de fidelización, inclusive su finalización, en cualquier momento y sin previo aviso.</p>
-  `;
-}
-function openTermsModal() { const m = termsModal(); if (!m) return; loadTermsContent(); m.style.display = 'flex'; }
-function closeTermsModal() { const m = termsModal(); if (!m) return; m.style.display = 'none'; }
-function wireTermsModalBehavior() {
-  const m = termsModal(); if (!m || m._wired) return; m._wired = true;
-  const closeBtn = document.getElementById('close-terms-modal');
-  const acceptBtn = document.getElementById('accept-terms-btn-modal');
-  if (closeBtn) closeBtn.addEventListener('click', closeTermsModal);
-  if (acceptBtn) acceptBtn.addEventListener('click', closeTermsModal);
-  m.addEventListener('click', (e) => { if (e.target === m) closeTermsModal(); });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && m.style.display === 'flex') closeTermsModal(); });
-}
+
 
 // ──────────────────────────────────────────────────────────────
 // PERFIL: reordenar tarjetas (Domicilio arriba / Preferencias último)
@@ -402,7 +379,7 @@ function setupAuthScreenListeners() {
 
   on('show-terms-link', 'click', (e) => { e.preventDefault(); if (window.openTermsModal) window.openTermsModal(); });
   on('forgot-password-link', 'click', (e) => { e.preventDefault(); Auth.sendPasswordResetFromLogin(); });
-  on('close-terms-modal', 'click', closeTermsModal);
+  // on('close-terms-modal') removido (ahora local en terminos.js)
 
   // Preparar datalists del registro aunque aún no esté visible
   wireAddressDatalists('reg-');
@@ -515,9 +492,17 @@ function setupMainAppScreenListeners() {
   });
 
   // T&C
-  on('show-terms-link-banner', 'click', (e) => { e.preventDefault(); openTermsModal(); });
-  on('footer-terms-link', (e) => { e.preventDefault(); openTermsModal(); });
-  on('accept-terms-btn-modal', 'click', Data.acceptTerms);
+  on('show-terms-link-banner', 'click', (e) => { e.preventDefault(); if (window.openTermsModal) window.openTermsModal(true); });
+  on('footer-terms-link', 'click', (e) => { e.preventDefault(); if (window.openTermsModal) window.openTermsModal(); });
+
+  // Delegación de eventos para el botón dinámico de Aceptar
+  document.body.addEventListener('click', async (e) => {
+    if (e.target && e.target.id === 'accept-terms-btn-modal') {
+      await Data.acceptTerms();
+      const m = document.getElementById('terms-modal');
+      if (m) m.remove();
+    }
+  });
 
   // Instalación
   on('btn-install-pwa', 'click', handleInstallPrompt);

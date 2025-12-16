@@ -202,9 +202,13 @@ export async function registerNewAccount() {
 
   try {
     // 1) crear usuario
-    // ⬇️ Sesión/cachés limpias ANTES del alta
-    await ensureCleanAuthSession();
-    try { localStorage.setItem('justSignedUp', '1'); } catch { } // 🚩 FIX: Setear antes de que dispare onAuthStateChanged
+    // ⬇️ Desactivado hard-reset agresivo para evitar error "message channel closed" con SW habilitado
+    // await ensureCleanAuthSession(); 
+    try { if (auth.currentUser) await auth.signOut(); } catch { } // SignOut simple seguro
+
+    try { localStorage.setItem('justSignedUp', '1'); } catch { }
+    // 🚩 FIX: Setear antes de que dispare onAuthStateChanged
+
     const cred = await auth.createUserWithEmailAndPassword(email, password);
     const uid = cred.user.uid;
 

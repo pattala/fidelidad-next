@@ -14,63 +14,47 @@ const TERMS_CONTENT_HTML = `
 
 // Función global disponible inmediatmente
 window.openTermsModal = function (showAcceptButton = false) {
-  console.log('[T&C] Abriendo modal centralizado...');
+  console.log('[T&C] Request (Clean Force Rebuild)...');
 
-  // 1. Buscar o Crear modal
-  let m = document.getElementById('terms-modal');
-  if (!m) {
-    m = document.createElement('div');
-    m.id = 'terms-modal';
-    m.style.cssText = 'display:none; position:fixed; inset:0; z-index:2147483647; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;';
-    m.innerHTML = `
-      <div style="max-width:720px; width:90%; background:#fff; border-radius:12px; padding:16px; max-height:85vh; display:flex; flex-direction:column; box-shadow:0 4px 20px rgba(0,0,0,0.2);">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-shrink:0;">
-          <h3 style="margin:0; font-size:18px;">Términos y Condiciones</h3>
-          <button id="close-terms-modal-dynamic" class="secondary-btn" style="padding:4px 8px; font-size:18px; line-height:1; min-width:32px;" aria-label="Cerrar">✕</button>
-        </div>
-        <div id="terms-text" style="flex:1; overflow-y:auto; padding-right:4px;"></div>
-        <div style="margin-top:12px; text-align:right; flex-shrink:0;">
-           <button id="accept-terms-btn-modal" class="primary-btn" style="display:none; width:100%;">Aceptar y Continuar</button>
-        </div>
+  // 1. Limpieza total: Si existe, borrarlo para asegurar que se cree fresco y al final del body
+  const existing = document.getElementById('terms-modal');
+  if (existing) existing.remove();
+
+  // 2. Crear modal desde cero
+  const m = document.createElement('div');
+  m.id = 'terms-modal';
+  // Z-Index Supremo y Fixed
+  m.style.cssText = 'display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:2147483647; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;';
+
+  // HTML directo
+  m.innerHTML = `
+    <div style="width:90%; max-width:600px; background:#fff; border-radius:12px; padding:20px; max-height:80vh; display:flex; flex-direction:column; box-shadow:0 10px 40px rgba(0,0,0,0.5);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h3 style="margin:0; font-size:1.2rem;">Términos y Condiciones</h3>
+        <button id="close-terms-x" style="background:none; border:none; font-size:24px; cursor:pointer; padding:0 8px;">&times;</button>
       </div>
-    `;
-    document.body.appendChild(m);
+      <div id="terms-content-area" style="flex:1; overflow-y:auto; font-size:14px; line-height:1.5;"></div>
+      <div style="margin-top:16px; text-align:right;">
+         <button id="accept-terms-btn-modal" class="primary-btn" style="display:none; width:100%; padding:12px;">Aceptar y Continuar</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(m); // Siempre al final del body
 
-    // Listeners
-    m.addEventListener('click', (ev) => { if (ev.target === m) m.style.display = 'none'; });
-    const btnClose = m.querySelector('#close-terms-modal-dynamic');
-    if (btnClose) btnClose.onclick = () => m.style.display = 'none';
-  }
+  // Wiring Simple
+  m.addEventListener('click', (e) => { if (e.target === m) m.remove(); });
+  m.querySelector('#close-terms-x').onclick = () => m.remove();
 
-  // 2. Inyectar contenido (siempre fresco)
-  const contentEl = m.querySelector('#terms-text');
-  if (contentEl) {
-    contentEl.innerHTML = TERMS_CONTENT_HTML;
-  }
+  // 3. Inyectar contenido
+  m.querySelector('#terms-content-area').innerHTML = TERMS_CONTENT_HTML;
 
-  // 3. Mostrar botón "Aceptar" solo si se pide
-  const btnAccept = document.getElementById('accept-terms-btn-modal');
-  if (btnAccept) {
-    btnAccept.style.display = showAcceptButton ? 'inline-block' : 'none';
-  }
+  // 4. Botón Aceptar logic
+  const btn = document.getElementById('accept-terms-btn-modal');
+  if (btn) btn.style.display = showAcceptButton ? 'block' : 'none';
 
-  // 4. Mostrar modal (Force Z-Index always)
-  m.style.zIndex = "2147483647";
+  // 5. Mostrar
   m.style.display = 'flex';
 };
 
 // Alias de compatibilidad
 window.openTermsModalCatchAll = window.openTermsModal;
-
-// Listener global de respaldo (por si app.js falla)
-document.addEventListener('click', (e) => {
-  if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-  const trigger = e.target.closest('#show-terms-link, #show-terms-link-banner, #footer-terms-link');
-  if (!trigger) return;
-
-  // Si tiene onclick inline, dejamos que eso maneje. Si no, manejamos acá.
-  if (trigger.onclick) return;
-
-  e.preventDefault();
-  window.openTermsModal(false);
-}, true);

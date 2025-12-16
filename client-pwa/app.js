@@ -400,7 +400,7 @@ function setupAuthScreenListeners() {
     }
   });
 
-  on('show-terms-link', 'click', (e) => { e.preventDefault(); openTermsModalCatchAll(); });
+  on('show-terms-link', 'click', (e) => { e.preventDefault(); if (window.openTermsModal) window.openTermsModal(); });
   on('forgot-password-link', 'click', (e) => { e.preventDefault(); Auth.sendPasswordResetFromLogin(); });
   on('close-terms-modal', 'click', closeTermsModal);
 

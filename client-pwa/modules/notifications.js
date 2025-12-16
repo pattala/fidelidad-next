@@ -680,8 +680,14 @@ export async function handlePermissionRequest() {
     const current = Notification.permission;
 
     if (current === 'granted') {
-      if (ls === 'blocked') { showNotifOffBanner(true); refreshNotifUIFromPermission(); return; }
-      showNotifOffBanner(false);
+      // FIX: Si el navegador ya dio permiso, pero teníamos un bloqueo 'lógico' (blando),
+      // al llegar aquí significa que el componente externo (switch o lógica auto) quiere activar.
+      // Limpiamos el bloqueo lógico y procedemos.
+      if (ls === 'blocked' || ls === 'soft_blocked') {
+        try { localStorage.removeItem(LS_NOTIF_STATE); } catch (e) { }
+        showNotifOffBanner(false);
+      }
+
       obtenerYGuardarToken().catch(() => { });
       refreshNotifUIFromPermission();
       return;
@@ -792,11 +798,14 @@ export async function handlePermissionSwitch(e) {
       }
     } else {
       console.log('[Notif] Already denied/blocked.');
-      toast('Tenés bloqueadas las notificaciones en el navegador.', 'warning');
+      // FIX: Si el usuario intenta activar manualmente y el navegador dice denied,
+      // es un bloqueo real.
+      toast('⚠️ Permiso denegado por el navegador. Hacé click en el candado 🔒 de la barra de dirección para resetear.', 'warning', 7000);
       const sw = $('notif-switch'); if (sw) sw.checked = false;
       showNotifOffBanner(true);
     }
   } else {
+    // Switch OFF
     await borrarTokenYOptOut();
     showNotifOffBanner(true);
     toast('Notificaciones desactivadas.', 'info');

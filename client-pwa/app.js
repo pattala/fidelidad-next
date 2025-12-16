@@ -15,7 +15,7 @@ import {
 
 // === DEBUG / OBS ===
 window.__RAMPET_DEBUG = true;
-window.__BUILD_ID = 'pwa-1.10.1-restored';
+window.__BUILD_ID = 'pwa-1.10.2-flow-fix';
 function d(tag, ...args) { if (window.__RAMPET_DEBUG) console.log(`[DBG][${window.__BUILD_ID}] ${tag}`, ...args); }
 window.__reportState = async (where = '') => {
   const notifPerm = (window.Notification?.permission) || 'n/a';
@@ -930,44 +930,28 @@ async function main() {
 // ──────────────────────────────────────────────────────────────
 // T&C: interceptar links y abrir modal
 // ──────────────────────────────────────────────────────────────
-function ensureTermsModalPresent() {
-  let modal = document.getElementById('terms-modal');
-  if (modal) return modal;
-  console.warn('[T&C] #terms-modal no encontrado. Creando modal básico on-the-fly.');
-  modal = document.createElement('div');
-  modal.id = 'terms-modal';
-  modal.style.cssText = `
-    position:fixed; inset:0; display:none; align-items:center; justify-content:center;
-    background:rgba(0,0,0,.5); z-index:10000; padding:16px;
-  `;
-  modal.innerHTML = `
-    <div style="max-width:720px; width:100%; background:#fff; border-radius:12px; padding:16px; max-height:80vh; overflow:auto;">
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-        <h3 style="margin:0;">Términos y Condiciones</h3>
-        <button id="close-terms-modal" class="secondary-btn" aria-label="Cerrar">✕</button>
-      </div>
-      <div id="terms-text" style="margin-top:12px;">
-        <p>Cargando…</p>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(modal);
-
-  modal.addEventListener('click', (ev) => { if (ev.target === modal) modal.style.display = 'none'; });
-  document.getElementById('close-terms-modal')?.addEventListener('click', () => { modal.style.display = 'none'; });
-
-  try { loadTermsContent?.(); } catch { }
-  try { wireTermsModalBehavior?.(); } catch { }
-
-  return modal;
-}
+// ──────────────────────────────────────────────────────────────
+// T&C: interceptar links y abrir modal
+// ──────────────────────────────────────────────────────────────
 function openTermsModalCatchAll() {
-  const modal = ensureTermsModalPresent();
-  try { openTermsModal?.(); }
-  catch {
-    try { UI.openTermsModal?.(true); } catch { modal.style.display = 'flex'; }
+  const modal = document.getElementById('terms-modal');
+  if (!modal) {
+    console.warn('[T&C] #terms-modal no encontrado en index.html');
+    return;
   }
-  try { wireTermsModalBehavior?.(); } catch { }
+
+  // Cargar contenido si está vacío o tiene placeholder
+  const contentEl = document.getElementById('terms-text');
+  if (contentEl && (contentEl.children.length === 0 || contentEl.textContent.trim() === 'Cargando términos...')) {
+    try { loadTermsContent(); } catch { }
+  }
+
+  // Wiring (listeners) si no se hizo antes
+  if (!modal._wired) {
+    wireTermsModalBehavior();
+  }
+
+  modal.style.display = 'flex';
 }
 
 document.addEventListener('click', (e) => {

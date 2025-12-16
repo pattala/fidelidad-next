@@ -1,4 +1,10 @@
 {
     "buildCommand": "npm run build:demo",
-    "outputDirectory": "."
+    "outputDirectory": ".",
+    "rewrites": [
+        {
+            "source": "/",
+            "destination": "/client-pwa/index.html"
+        }
+    ]
 }

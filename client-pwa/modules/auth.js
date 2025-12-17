@@ -253,9 +253,13 @@ export async function registerNewAccount() {
       const token = await cred.user.getIdToken();
 
       // Llamada: asignar N° Socio
+      // Llamada: asignar N° Socio
       const rSocio = await fetch('/api/assign-socio-number', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': 'ADMIN_KEY_SI_NECESARIO_O_TOKEN' }, // PWA usa token internamente o API key si es pública
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` // Autenticación Real via Token
+        },
         body: JSON.stringify({ docId: uid, sendWelcome: true })
       });
       const dSocio = await rSocio.json();

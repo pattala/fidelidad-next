@@ -80,20 +80,41 @@ function getSelfBaseUrl(req) {
 }
 
 // ---------- Handler ----------
+// Helper auth
+function getAuth() {
+  initFirebaseAdmin();
+  return admin.auth();
+}
+
 export default async function handler(req, res) {
   const allowOrigin = getAllowedOrigin(req);
   setCors(res, allowOrigin);
 
   if (req.method === "OPTIONS") return res.status(204).end();
-
   if (req.method !== "POST") {
     return res.status(405).json({ ok: false, error: "Method Not Allowed" });
   }
 
-  // API key Check (Seguridad)
-  const clientKey = req.headers["x-api-key"];
-  if (process.env.API_SECRET_KEY && (!clientKey || clientKey !== process.env.API_SECRET_KEY)) {
-    console.warn("Unauthorized attempt to assign-socio-number");
+  // 1. Autenticación (DUAL MODE: API Key o Token)
+  let requestUid = null;
+  let isAdmin = false;
+
+  const apiKey = req.headers["x-api-key"];
+  const authHeader = req.headers["authorization"];
+
+  if (process.env.API_SECRET_KEY && apiKey === process.env.API_SECRET_KEY) {
+    isAdmin = true;
+  } else if (authHeader && authHeader.startsWith("Bearer ")) {
+    const token = authHeader.split("Bearer ")[1];
+    try {
+      const decoded = await getAuth().verifyIdToken(token);
+      requestUid = decoded.uid;
+    } catch (e) {
+      console.warn("Invalid Token:", e.message);
+      return res.status(401).json({ ok: false, error: "Invalid Token" });
+    }
+  } else {
+    console.warn("Unauthorized attempt to assign-socio-number (No Key/Token)");
     return res.status(401).json({ ok: false, error: "Unauthorized" });
   }
 

@@ -28,7 +28,7 @@ window.APP_CONFIG = {
     appName: "${clientConfig.appName}",
     companyName: "${clientConfig.companyName}",
     logoUrl: "${clientConfig.logoUrl}",
-    apiUrl: "${clientConfig.apiUrl || 'https://fidelidad-api.vercel.app'}",
+    apiUrl: "${clientConfig.apiUrl || 'https://fidelidad-pwa.vercel.app'}",
     apiKey: "${process.env.API_SECRET_KEY || ''}",
     
     theme: ${JSON.stringify(clientConfig.theme, null, 4)},
@@ -76,7 +76,7 @@ const adminConfigContent = `// Configuración Global Admin - Generada automátic
 window.ADMIN_CONFIG = {
     platformName: "Admin - ${clientConfig.appName}",
     logoUrl: "${clientConfig.logoUrl}",
-    apiUrl: "${clientConfig.apiUrl || 'https://fidelidad-api.vercel.app'}",
+    apiUrl: "${clientConfig.apiUrl || 'https://fidelidad-pwa.vercel.app'}",
     apiKey: "${process.env.API_SECRET_KEY || ''}",
     
     theme: ${JSON.stringify(clientConfig.theme, null, 4)},

@@ -258,7 +258,8 @@ export async function registerNewAccount() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` // Autenticación Real via Token
+          'Authorization': `Bearer ${token}`, // Autenticación Real via Token
+          'x-api-key': window.APP_CONFIG?.apiKey || '' // Fallback Legacy
         },
         body: JSON.stringify({ docId: uid, sendWelcome: true })
       });

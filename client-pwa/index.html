@@ -429,46 +429,45 @@
       </div>
 
       <!-- ✅ Card regular con switch (lo maneja notifications.js) -->
-      <div id="notif-card" class="card" style="display:none;">
-        <h3>Notificaciones</h3>
-        <div class="notif-setting">
-          <p>¡No te pierdas ofertas, descuentos y novedades! Activá los avisos.</p>
-          <label class="switch">
-            <input type="checkbox" id="notif-switch">
-            <span class="slider round"></span>
-          </label>
-        </div>
+      <h3 id="notif-card-title">Notificaciones</h3>
+      <div class="notif-setting">
+        <p id="notif-card-text">¡Validalo y ganás puntos! No te pierdas ofertas, descuentos y novedades.</p>
+        <label class="switch">
+          <input type="checkbox" id="notif-switch">
+          <span class="slider round"></span>
+        </label>
       </div>
-
-      <!-- Banner de ubicación (GEO) -->
-      <div id="geo-banner" class="card" style="display:none;">
-        <h3>Beneficios cerca tuyo</h3>
-        <p id="geo-banner-text" style="margin:8px 0 12px;"></p>
-        <div class="prompt-actions" style="display:flex; gap:8px; flex-wrap:wrap;">
-          <button id="geo-enable-btn" class="primary-btn" style="display:none;">Activar ahora</button>
-          <button id="geo-later-btn" class="secondary-btn" style="display:none;">Luego</button>
-          <button id="geo-disable-btn" class="secondary-btn" style="display:none;">Desactivar</button>
-          <button id="geo-help-btn" class="secondary-btn" style="display:none;">Cómo habilitarlo</button>
-        </div>
-      </div>
-
-      <div id="historial-container" class="card">
-        <h3>Historial Reciente</h3>
-        <ul id="lista-historial"></ul>
-      </div>
-
-      <div id="premios-container" class="card">
-        <h3>Catálogo de Premios</h3>
-        <p>Estos son los premios que puedes canjear en la tienda:</p>
-        <ul id="lista-premios-cliente"></ul>
-      </div>
-
-
-
-      <footer class="app-footer">
-        <p>Al usar esta app, aceptas nuestros <a href="#" id="footer-terms-link">Términos y Condiciones</a>.</p>
-      </footer>
     </div>
+
+    <!-- Banner de ubicación (GEO) -->
+    <div id="geo-banner" class="card" style="display:none;">
+      <h3>Beneficios cerca tuyo</h3>
+      <p id="geo-banner-text" style="margin:8px 0 12px;"></p>
+      <div class="prompt-actions" style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button id="geo-enable-btn" class="primary-btn" style="display:none;">Activar ahora</button>
+        <button id="geo-later-btn" class="secondary-btn" style="display:none;">Luego</button>
+        <button id="geo-disable-btn" class="secondary-btn" style="display:none;">Desactivar</button>
+        <button id="geo-help-btn" class="secondary-btn" style="display:none;">Cómo habilitarlo</button>
+      </div>
+    </div>
+
+    <div id="historial-container" class="card">
+      <h3>Historial Reciente</h3>
+      <ul id="lista-historial"></ul>
+    </div>
+
+    <div id="premios-container" class="card">
+      <h3>Catálogo de Premios</h3>
+      <p>Estos son los premios que puedes canjear en la tienda:</p>
+      <ul id="lista-premios-cliente"></ul>
+    </div>
+
+
+
+    <footer class="app-footer">
+      <p>Al usar esta app, aceptas nuestros <a href="#" id="footer-terms-link">Términos y Condiciones</a>.</p>
+    </footer>
+  </div>
   </div>
 
   <!-- Deep-link del INBOX -->

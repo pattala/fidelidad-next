@@ -83,7 +83,13 @@ service cloud.firestore {
     }
 
     // Configuración (usuarios logueados leen; admin escribe)
+    // Legacy: configuracion
     match /configuracion/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+    // New: config
+    match /config/{docId} {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
@@ -98,22 +104,21 @@ service cloud.firestore {
       // ✅ Permitir crear: el propio (PWA) o cualquiera si es admin (panel)
       allow create: if
         isAdmin() ||
-        (isSignedIn() && request.resource.data.authUID == request.auth.uid);
+        (isSignedIn() && request.auth.uid == clienteId);
 
       // Leer/actualizar/borrar: dueñ@ o admin
       allow read, update, delete: if
         isAdmin() ||
-        (isSignedIn() && resource.data.authUID == request.auth.uid) ||
-        isOwnerCliente(clienteId);
+        (isSignedIn() && request.auth.uid == clienteId);
 
       // Inbox
       match /inbox/{docId} {
-        allow read, write: if isOwnerCliente(clienteId) || isAdmin();
+        allow read, write: if isAdmin() || (isSignedIn() && request.auth.uid == clienteId);
       }
 
       // Otras subcolecciones
       match /{sub=**}/{doc} {
-        allow read, write: if isOwnerCliente(clienteId) || isAdmin();
+        allow read, write: if isAdmin() || (isSignedIn() && request.auth.uid == clienteId);
       }
     }
   }

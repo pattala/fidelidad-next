@@ -12,10 +12,7 @@ function initFirebaseAdmin() {
     if (!raw) throw new Error("GOOGLE_CREDENTIALS_JSON missing");
     let sa;
     try { sa = JSON.parse(raw); }
-    catch { throw new Error("Invalid GOOGLE_CREDENTIALS_JSON (JSON parse failed)"); }
-
-    if (!sa.project_id || !sa.private_key) throw new Error("GOOGLE_CREDENTIALS_JSON missing project_id or private_key");
-
+    catch { throw new Error("Invalid GOOGLE_CREDENTIALS_JSON"); }
     admin.initializeApp({ credential: admin.credential.cert(sa) });
 }
 

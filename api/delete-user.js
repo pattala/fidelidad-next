@@ -184,10 +184,37 @@ export default async function handler(req, res) {
     return res.status(405).json({ ok: false, error: "Method Not Allowed" });
   }
 
-  // API key
+  // 1. Validar Autorización (API Key O Token de Admin)
+  let authorized = false;
+  let authError = "Unauthorized";
+
+  // A) Chequeo por API Key (Legacy / Build-dependant)
   const clientKey = req.headers["x-api-key"];
-  if (!clientKey || clientKey !== process.env.API_SECRET_KEY) {
-    return res.status(401).json({ ok: false, error: "Unauthorized" });
+  if (clientKey && clientKey === process.env.API_SECRET_KEY) {
+    authorized = true;
+  }
+
+  // B) Chequeo por Token de Administrador (Bearer Token)
+  if (!authorized) {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const idToken = authHeader.split("Bearer ")[1];
+      try {
+        initFirebaseAdmin();
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        if (decodedToken.admin === true) {
+          authorized = true;
+        } else {
+          authError = "Token válido pero usuario NO es administrador";
+        }
+      } catch (e) {
+        authError = `Error verificando token: ${e.message}`;
+      }
+    }
+  }
+
+  if (!authorized) {
+    return res.status(401).json({ ok: false, error: authError });
   }
 
   // Body

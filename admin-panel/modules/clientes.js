@@ -962,9 +962,18 @@ export async function eliminarClienteHandler(clienteId) {
     const NOTIF_BASE = (window.ADMIN_CONFIG && window.ADMIN_CONFIG.apiUrl) || '';
     const API_KEY = (window.ADMIN_CONFIG && window.ADMIN_CONFIG.apiKey) || '';
 
+    // Obtener "Carnet de Identidad" (Token) del usuario logueado
+    const currentUser = firebase.auth().currentUser;
+    if (!currentUser) throw new Error("No hay sesión de usuario activa.");
+    const idToken = await currentUser.getIdToken();
+
     const response = await fetch(`${NOTIF_BASE}/api/delete-user`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': API_KEY,
+        'Authorization': `Bearer ${idToken}` // <--- La clave del éxito 🔑
+      },
       body: JSON.stringify({
         docId: cliente.id,      // server acepta docId | email | authUID | numeroSocio
         authUID: cliente.authUID

@@ -5,7 +5,7 @@ window.ADMIN_CONFIG = {
     platformName: "Admin - Club Demo",
     logoUrl: "images/mi_logo.png",
     apiUrl: "",
-    apiKey: "123456",
+    apiKey: "",
 
     theme: {
         "primary": "#e11d48",

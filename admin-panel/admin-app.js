@@ -52,11 +52,11 @@ async function handleAuthStateChange(user) {
 
         showAdminPanel();
 
-        // [FIX] Asegurar que la UI se renderice antes de iniciar listeners
-        requestAnimationFrame(() => {
+        // [FIX] Pequeña espera para asegurar que el Token de Auth se propague a Firestore
+        setTimeout(() => {
           initializeApp();
-          console.log("✅ Admin Panel inicializado. Conectando a Firebase...");
-        });
+          console.log("✅ Admin Panel inicializado. Listeners activos.");
+        }, 1000);
       } else {
         console.warn("Acceso denegado. El usuario no es administrador.");
         UI.showToast("No tienes permisos para acceder a este panel.", "error");

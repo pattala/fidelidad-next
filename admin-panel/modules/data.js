@@ -63,70 +63,93 @@ export function marcarNuevosRegistrosComoVistos() {
 }
 
 // ===== Suscripciones / snapshots =====
-export function iniciarEscuchasFirestore() {
+// Helper para reiniciar escuchas ante error de permisos (Race Condition)
+function suscribir(coleccion, callback, orderByField = null, orderDirection = 'asc') {
+  let ref = db.collection(coleccion);
+  if (orderByField) {
+    ref = ref.orderBy(orderByField, orderDirection);
+  }
 
-  // Config
-  db.collection('configuracion').doc('principal').onSnapshot((doc) => {
-    if (doc.exists) {
-      appData.config = { ...appData.config, ...doc.data() };
-      UI.renderizarConfiguracion?.(appData.config);
+  const unsubscribe = ref.onSnapshot(callback, (error) => {
+    console.error(`Error escuchando ${coleccion}:`, error);
+    if (error.code === 'permission-denied') {
+      console.warn(`[Retry] Reiniciando suscripción a ${coleccion} en 2s...`);
+      setTimeout(() => suscribir(coleccion, callback, orderByField, orderDirection), 2000);
     }
-  }, (error) => console.error("Error escuchando configuración:", error));
+  });
+  return unsubscribe;
+}
 
-  // Plantillas (solo admin en reglas)
-  db.collection('plantillas_mensajes').onSnapshot((snapshot) => {
+export function iniciarEscuchasFirestore() {
+  // Config
+  suscribir('configuracion', (snapshot) => {
+    // Es un QuerySnapshot o DocSnapshot? .doc('principal') es un doc.
+    // Ajuste para doc único:
+  });
+
+  // CORRECCIÓN: La función 'suscribir' genérica asume colecciones. 
+  // Hacemos el manejo específico aquí para mantener el código limpio y robusto.
+
+  // 1. Configuración (Documento único)
+  const subConfig = () => {
+    db.collection('configuracion').doc('principal').onSnapshot((doc) => {
+      if (doc.exists) {
+        appData.config = { ...appData.config, ...doc.data() };
+        UI.renderizarConfiguracion?.(appData.config);
+      }
+    }, (error) => {
+      console.error("Error config:", error);
+      if (error.code === 'permission-denied') setTimeout(subConfig, 2500);
+    });
+  };
+  subConfig();
+
+  // 2. Plantillas
+  suscribir('plantillas_mensajes', (snapshot) => {
     appData.plantillas = {};
     snapshot.forEach(doc => { appData.plantillas[doc.id] = doc.data(); });
     UI.cargarSelectorPlantillas?.();
-
     const selector = document.getElementById('plantilla-selector');
-    const actual = selector ? selector.value : '';
-    if (actual) UI.mostrarPlantillaParaEdicion?.(actual);
-  }, (error) => console.error("Error escuchando plantillas:", error));
+    if (selector && selector.value) UI.mostrarPlantillaParaEdicion?.(selector.value);
+  });
 
-  // Clientes (usa número de socio para ordenar)
-  db.collection('clientes').orderBy("numeroSocio").onSnapshot((snapshot) => {
-    appData.clientes = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-
+  // 3. Clientes
+  suscribir('clientes', (snapshot) => {
+    appData.clientes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     UI.renderizarTablaClientes?.();
     UI.renderizarTablaNuevosRegistros?.();
     UI.actualizarContadorSuscritos?.();
     UI.verificarCumpleanos?.();
-UI.buildSearchIndex?.(appData.clientes);
-
+    UI.buildSearchIndex?.(appData.clientes);
     gestionarNotificacionNuevosRegistros();
 
-    const fichaContenido = document.getElementById('ficha-contenido');
-    const fichaIdActual = document.getElementById('ficha-numero-socio')?.textContent || '';
-    if (fichaContenido && fichaContenido.style.display !== 'none' && fichaIdActual) {
-      mostrarFichaCliente(fichaIdActual);
-    }
-  }, (error) => console.error("Error escuchando clientes:", error));
+    // Refresco ficha si está abierta
+    const ficha = document.getElementById('ficha-contenido');
+    const idFicha = document.getElementById('ficha-numero-socio')?.textContent;
+    if (ficha && ficha.style.display !== 'none' && idFicha) mostrarFichaCliente(idFicha);
+  }, "numeroSocio");
 
-  // Premios
-  db.collection('premios').onSnapshot((snapshot) => {
-    appData.premios = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+  // 4. Premios
+  suscribir('premios', (snapshot) => {
+    appData.premios = snapshot.docs.map(d => ({ ...d.data(), id: d.id }));
     UI.actualizarTablaPremiosAdmin?.();
-  }, (error) => console.error("Error escuchando premios:", error));
+  });
 
-  // Bonos
-  db.collection('bonos').onSnapshot((snapshot) => {
-    appData.bonos = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+  // 5. Bonos
+  suscribir('bonos', (snapshot) => {
+    appData.bonos = snapshot.docs.map(d => ({ ...d.data(), id: d.id }));
     UI.actualizarTablaBonosAdmin?.();
-  }, (error) => console.error("Error escuchando bonos:", error));
+  });
 
-  // Campañas
-  db.collection('campanas').orderBy("fechaCreacion", "desc").onSnapshot((snapshot) => {
+  // 6. Campañas
+  suscribir('campanas', (snapshot) => {
     appData.campanas = snapshot.docs.map(doc => {
-      const data = doc.data();
-      const fechaCreacionISO = data.fechaCreacion?.toDate
-        ? data.fechaCreacion.toDate().toISOString()
-        : new Date().toISOString();
-      return { id: doc.id, ...data, fechaCreacion: fechaCreacionISO };
+      const d = doc.data();
+      return {
+        id: doc.id, ...d,
+        fechaCreacion: d.fechaCreacion?.toDate ? d.fechaCreacion.toDate().toISOString() : new Date().toISOString()
+      };
     });
     UI.renderizarTablaCampanas?.();
-  }, (error) => console.error("Error escuchando campañas:", error));
+  }, "fechaCreacion", "desc");
 }

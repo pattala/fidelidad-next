@@ -12,6 +12,18 @@
 
   <link rel="stylesheet" href="styles.css" />
 
+  <!-- Force Unregister Service Worker (Prevent PWA interference) -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function (registrations) {
+        for (let registration of registrations) {
+          console.log('Unregistering SW for Admin:', registration);
+          registration.unregister();
+        }
+      });
+    }
+  </script>
+
   <!-- Carga de Configuración (White Label) -->
   <script src="config.js?v=DEMO_FIX_1"></script>
   <script>

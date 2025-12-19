@@ -9,6 +9,18 @@ const clientId = clientArg ? clientArg.split('=')[1] : 'rampet';
 const clientsDir = path.join(__dirname, '../clients');
 const clientFile = path.join(clientsDir, `${clientId}.json`);
 
+// [DEBUG] Diagnóstico de Variables de Entorno en Vercel
+console.log("---------------------------------------------------");
+console.log(`🔍 [generate-client] Build Diagnostics for: ${clientId}`);
+console.log(`🔑 API_SECRET_KEY presente: ${process.env.API_SECRET_KEY ? "✅ SÍ" : "❌ NO"}`);
+if (process.env.API_SECRET_KEY) {
+    console.log(`🔑 API_SECRET_KEY length: ${process.env.API_SECRET_KEY.length}`);
+    console.log(`🔑 API_SECRET_KEY snippet: ${process.env.API_SECRET_KEY.substring(0, 3)}...`);
+} else {
+    console.log("⚠️  ADVERTENCIA: La API Key no está disponible en process.env. El borrado de usuarios fallará.");
+}
+console.log("---------------------------------------------------");
+
 if (!fs.existsSync(clientFile)) {
     console.error(`❌ Error: No se encontró la configuración para el cliente '${clientId}' en ${clientFile}`);
     process.exit(1);

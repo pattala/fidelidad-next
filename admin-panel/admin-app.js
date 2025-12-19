@@ -47,11 +47,16 @@ async function handleAuthStateChange(user) {
       const idTokenResult = await user.getIdTokenResult(true);
       if (idTokenResult.claims.admin === true) {
         console.log("Acceso concedido. El usuario es administrador.");
- 
+
         await user.getIdToken(true);
 
         showAdminPanel();
-        initializeApp();
+
+        // [FIX] Asegurar que la UI se renderice antes de iniciar listeners
+        requestAnimationFrame(() => {
+          initializeApp();
+          console.log("✅ Admin Panel inicializado. Conectando a Firebase...");
+        });
       } else {
         console.warn("Acceso denegado. El usuario no es administrador.");
         UI.showToast("No tienes permisos para acceder a este panel.", "error");
@@ -130,8 +135,8 @@ function setupEventListeners() {
       if (tabName === 'campanas') {
         Campanas.initCampanas?.();
       }
-        if (tabName === 'notificaciones') {
-      Notificaciones.initNotificaciones?.();
+      if (tabName === 'notificaciones') {
+        Notificaciones.initNotificaciones?.();
       }
     });
   });
@@ -182,9 +187,9 @@ function setupEventListeners() {
   document.getElementById('canjear-premio-btn')?.addEventListener('click', Transacciones.canjearPremio);
 
   // Notificaciones
- // document.getElementById('enviar-notificacion-btn')?.addEventListener('click', Notificaciones.enviarNotificacionHandler);
- // document.querySelectorAll('input[name="destinatario"]').forEach(radio => radio.addEventListener('change', UI.manejarSeleccionDestinatario));
- // document.getElementById('notificacion-btn-buscar')?.addEventListener('click', Notificaciones.buscarClienteParaNotificacionHandler);
+  // document.getElementById('enviar-notificacion-btn')?.addEventListener('click', Notificaciones.enviarNotificacionHandler);
+  // document.querySelectorAll('input[name="destinatario"]').forEach(radio => radio.addEventListener('change', UI.manejarSeleccionDestinatario));
+  // document.getElementById('notificacion-btn-buscar')?.addEventListener('click', Notificaciones.buscarClienteParaNotificacionHandler);
 
   // Config
   document.getElementById('guardar-config-btn')?.addEventListener('click', Config.guardarConfiguracionGeneral);
@@ -231,7 +236,7 @@ function setupEventListeners() {
   });
 
   // Navegación con Enter en formularios
-  document.addEventListener('keydown', function(event) {
+  document.addEventListener('keydown', function (event) {
     if (event.key === 'Enter') {
       const activeElement = document.activeElement;
       if (activeElement && activeElement.tagName === 'INPUT' && activeElement.type !== 'submit' && activeElement.type !== 'button') {
@@ -248,39 +253,39 @@ function setupEventListeners() {
     }
   });
 
-    // Plantillas
+  // Plantillas
   document.getElementById('plantilla-selector')?.addEventListener('change', e => UI.mostrarPlantillaParaEdicion(e.target.value));
   document.getElementById('btn-guardar-plantilla')?.addEventListener('click', Config.guardarPlantilla);
   document.getElementById('btn-crear-plantilla')?.addEventListener('click', Config.crearNuevaPlantilla);
 
- // ===== Autocomplete (con índice que arma data.js) =====
- UI.attachAutocomplete('busqueda', {
-   onPick: (it) => {
-     const i = document.getElementById('busqueda');
-     if (i) i.value = String(it.numeroSocio || it.dni || '');
-     UI.renderizarTablaClientes();
-   }
- });
- UI.attachAutocomplete('ficha-buscar-cliente', {
-   onPick: (it) => {
-     const v = String(it.numeroSocio || it.dni || '');
-     const i = document.getElementById('ficha-buscar-cliente');
-     if (i) i.value = v;
-     Clientes.mostrarFichaCliente(v);
-   }
- });
- UI.attachAutocomplete('notificacion-buscar-cliente', {
-   onPick: (it) => {
-     const v = String(it.numeroSocio || it.dni || '');
-     const i = document.getElementById('notificacion-buscar-cliente');
-     if (i) i.value = v;
-     const info = document.getElementById('cliente-encontrado-notificacion');
-     if (info) info.textContent = `Seleccionado: ${it.nombre} (Socio ${it.numeroSocio || '—'})`;
-   }
- });
- UI.attachAutocomplete('cliente-compra-buscar', { onPick: (it) => { const i = document.getElementById('cliente-compra-buscar'); if (i) i.value = String(it.numeroSocio || it.dni || ''); }});
- UI.attachAutocomplete('cliente-bono-buscar',   { onPick: (it) => { const i = document.getElementById('cliente-bono-buscar');   if (i) i.value = String(it.numeroSocio || it.dni || ''); }});
- UI.attachAutocomplete('cliente-premio',         { onPick: (it) => { const i = document.getElementById('cliente-premio');         if (i) i.value = String(it.numeroSocio || it.dni || ''); }});
+  // ===== Autocomplete (con índice que arma data.js) =====
+  UI.attachAutocomplete('busqueda', {
+    onPick: (it) => {
+      const i = document.getElementById('busqueda');
+      if (i) i.value = String(it.numeroSocio || it.dni || '');
+      UI.renderizarTablaClientes();
+    }
+  });
+  UI.attachAutocomplete('ficha-buscar-cliente', {
+    onPick: (it) => {
+      const v = String(it.numeroSocio || it.dni || '');
+      const i = document.getElementById('ficha-buscar-cliente');
+      if (i) i.value = v;
+      Clientes.mostrarFichaCliente(v);
+    }
+  });
+  UI.attachAutocomplete('notificacion-buscar-cliente', {
+    onPick: (it) => {
+      const v = String(it.numeroSocio || it.dni || '');
+      const i = document.getElementById('notificacion-buscar-cliente');
+      if (i) i.value = v;
+      const info = document.getElementById('cliente-encontrado-notificacion');
+      if (info) info.textContent = `Seleccionado: ${it.nombre} (Socio ${it.numeroSocio || '—'})`;
+    }
+  });
+  UI.attachAutocomplete('cliente-compra-buscar', { onPick: (it) => { const i = document.getElementById('cliente-compra-buscar'); if (i) i.value = String(it.numeroSocio || it.dni || ''); } });
+  UI.attachAutocomplete('cliente-bono-buscar', { onPick: (it) => { const i = document.getElementById('cliente-bono-buscar'); if (i) i.value = String(it.numeroSocio || it.dni || ''); } });
+  UI.attachAutocomplete('cliente-premio', { onPick: (it) => { const i = document.getElementById('cliente-premio'); if (i) i.value = String(it.numeroSocio || it.dni || ''); } });
 
 }
 

@@ -1,12 +1,12 @@
 // Configuración Global - Generada automáticamente
 // Cliente: Club Demo
-// Fecha: 2025-12-15T17:04:36.367Z
+// Fecha: 2025-12-19T04:12:25.993Z
 
 window.APP_CONFIG = {
     appName: "Club Demo",
     companyName: "Empresa Demo S.A.",
     logoUrl: "images/mi_logo.png",
-    apiUrl: "https://fidelidad-api.vercel.app",
+    apiUrl: "https://fidelidad-pwa.vercel.app",
     apiKey: "",
     
     theme: {

@@ -136,6 +136,7 @@ function initializeApp() {
 
   setupEventListeners();
   iniciarEscuchasFirestore();
+  Clientes.startRegistrosListener(); // Iniciar suscripción a registros solo post-login
   UI.actualizarUIPath?.();
 }
 

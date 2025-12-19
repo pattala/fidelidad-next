@@ -277,7 +277,7 @@ async function __subscribeRegistros() {
 }
 
 export function initRegistrosTab() {
-  console.log('[registros] initRegistrosTab()');
+  console.log('[registros] initRegistrosTab() - Bindings UI');
 
   // Filtros
   document.getElementById('reg-origin')?.addEventListener('change', __applyRegistrosFilters);
@@ -310,7 +310,10 @@ export function initRegistrosTab() {
   document.getElementById('reg-search')?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') __applyRegistrosFilters();
   });
+}
 
+export function startRegistrosListener() {
+  console.log('[registros] startRegistrosListener() - Iniciando espera de tabla...');
   // Esperar a que exista la tabla y el tbody antes de suscribir
   (function ensureTableThenSubscribe() {
     if (document.getElementById('tabla-registros') && document.getElementById('tabla-registros-body')) {

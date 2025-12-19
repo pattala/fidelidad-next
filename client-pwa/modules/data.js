@@ -414,51 +414,34 @@ export async function listenToClientData(user, opts = {}) {
     console.error("[PWA] Error seteando listener de campañas:", e);
   }
 
-  // Cliente (tiempo real) — normalizamos config y elegimos una ficha canónica
+  // Cliente (tiempo real)
   try {
-    const clienteQuery = db.collection('clientes')
-      .where("authUID", "==", user.uid); // ← SIN limit(1), queremos ver TODOS
+    // ⚡ FIX IMPORTANTE: Usar acceso directo por ID para cumplir reglas de seguridad
+    // Reglas dicen: allow read if request.auth.uid == clienteId
+    const docRef = db.collection('clientes').doc(user.uid);
 
-    unsubscribeCliente = clienteQuery.onSnapshot(snapshot => {
-      // (código de éxito igual)
-      if (snapshot.empty) {
-        UI.showToast("Error: Cuenta sin ficha de cliente.", "error");
-        Auth.logout();
+    unsubscribeCliente = docRef.onSnapshot(doc => {
+      // Si el documento no existe aún (race condition en registro), esperamos
+      if (!doc.exists) {
+        console.log('[PWA] El documento de cliente aún no existe (creando...).');
+        // No deslogueamos, el registro lo creará en breve. 
         return;
       }
-      const docs = snapshot.docs;
-      // ... (selección de ficha igual) ...
-      let chosen = docs;
-      const activos = chosen.filter(d => (d.data().estado || "activo") !== "baja");
-      if (activos.length > 0) chosen = activos;
-      const conNumero = chosen.filter(d => d.data().numeroSocio != null);
-      if (conNumero.length === 1) chosen = conNumero;
-      else if (conNumero.length > 1) chosen = conNumero;
-      const conDomicilio = chosen.filter(d => {
-        const dom = d.data().domicilio;
-        return dom && typeof dom.addressLine === "string" && dom.addressLine.trim().length > 0;
-      });
-      if (conDomicilio.length === 1) chosen = conDomicilio;
-      else if (conDomicilio.length > 1) chosen = conDomicilio;
 
-      // createdAt sort
-      const conCreatedAt = chosen.filter(d => !!d.data().createdAt);
-      if (conCreatedAt.length > 0) {
-        chosen = [conCreatedAt.reduce((best, d) => {
-          try { return d.data().createdAt.toMillis() < best.data().createdAt.toMillis() ? d : best; } catch { return best; }
-        }, conCreatedAt[0])];
-      }
-
-      const doc = chosen[0];
       clienteRef = doc.ref;
       const raw = doc.data() || {};
       const safeConfig = (raw.config && typeof raw.config === 'object') ? { ...raw.config } : {};
       clienteData = { ...raw, config: safeConfig };
-      try { document.dispatchEvent(new CustomEvent('rampet:cliente-updated', { detail: { cliente: clienteData } })); } catch { }
+
+      try {
+        document.dispatchEvent(new CustomEvent('rampet:cliente-updated', { detail: { cliente: clienteData } }));
+      } catch { }
+
       renderizarPantallaPrincipal(opts);
 
     }, (error) => {
       console.warn("[PWA] Error en listener de cliente:", error.code || error);
+      // Reintento inteligente para permisos o desconexiones
       if ((error.code === 'permission-denied' || error.message?.includes('permission')) && (!opts.retries || opts.retries < 3)) {
         console.log('[PWA] Reintentando suscripción en 2s...');
         setTimeout(() => {
@@ -471,7 +454,6 @@ export async function listenToClientData(user, opts = {}) {
     });
   } catch (e) {
     console.error("[PWA] Error seteando listener de cliente:", e);
-    // Don't logout instantly purely on setup error, retry once?
     setTimeout(() => { Auth.logout(); }, 1000);
   }
 }

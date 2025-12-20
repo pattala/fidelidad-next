@@ -32,7 +32,8 @@ const LS_NOTIF_MINI_SILENCE_UNTIL = 'notifMiniSilenceUntil';  // silencio (10 d�
 const LS_NOTIF_MINI_NOQUIERO_COUNT = 'notifMiniNoQuieroCount'; // contador de "No quiero"
 
 const NOTIF_MINI_INTERVAL_DAYS = 4;   // cada cuántos días se puede mostrar
-const NOTIF_MINI_SILENCE_DAYS = 10;  // silencio cuando cierra o dice No quiero
+const NOTIF_MINI_SILENCE_DAYS = (window.APP_CONFIG && window.APP_CONFIG.features && window.APP_CONFIG.features.notifSilenceDays != null)
+  ? window.APP_CONFIG.features.notifSilenceDays : 10;
 
 // GEO
 const LS_GEO_STATE = 'geoState';   // 'deferred' | 'accepted' | 'blocked' | null

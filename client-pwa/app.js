@@ -845,6 +845,30 @@ async function setupAddressSection() {
 // ──────────────────────────────────────────────────────────────
 async function main() {
   setupFirebase();
+
+  // ─────────────────────────────────────────────
+  // ⚙️ FETCH CONFIG (Global)
+  // ─────────────────────────────────────────────
+  try {
+    const db = firebase.firestore();
+    const cfgRef = db.collection('configuracion').doc('parametros');
+    const snap = await cfgRef.get();
+    if (snap.exists) {
+      const d = snap.data();
+      // Ensure structure exists
+      window.APP_CONFIG = window.APP_CONFIG || {};
+      window.APP_CONFIG.features = window.APP_CONFIG.features || {};
+
+      // Map Firestore fields to APP_CONFIG
+      if (d.notif_silence_days !== undefined) {
+        window.APP_CONFIG.features.notifSilenceDays = Number(d.notif_silence_days);
+      }
+      console.log('[Config] Loaded remote params:', d);
+    }
+  } catch (eConfig) {
+    console.warn('[Config] Error loading remote config, using defaults.', eConfig);
+  }
+
   // 🚫 FIX: No forzar persistencia aquí. Firebase Web usa LOCAL por defecto.
   // Forzarlo causa condiciones de carrera con Admin Panel (SESSION) en el mismo dominio.
   // try { await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL); console.log('[Auth] Persistent LOCAL set.'); } catch (e) { console.warn('Persistence error', e); }

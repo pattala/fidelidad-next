@@ -75,7 +75,16 @@ function normPayload(payload = {}) {
 /* ──────────────────────────────────────────────────────────────
    Background: mostrar notificación y avisar a pestañas
    ────────────────────────────────────────────────────────────── */
+function broadcastLog(msg, data) {
+  self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
+    clients.forEach(c => c.postMessage({ type: 'LOG', ctx: 'SW', msg, data }));
+  });
+}
+
 messaging.onBackgroundMessage(async (payload) => {
+  console.log('[SW] onBackgroundMessage:', payload);
+  broadcastLog('📩 Background Message received:', payload);
+
   const d = normPayload(payload);
 
   try {
@@ -97,6 +106,7 @@ messaging.onBackgroundMessage(async (payload) => {
     await self.registration.showNotification(d.title, opts);
   } catch (e) {
     console.warn('[SW] showNotification error:', e?.message || e);
+    broadcastLog('❌ Error showing notification:', e);
   }
 });
 

@@ -272,7 +272,10 @@ export async function registerNewAccount() {
       // ─────────────────────────────────────────────
       // GAMIFICATION: Welcome Bonus (Address provided)
       // ─────────────────────────────────────────────
-      if (hasAny) {
+      // Validar completitud REAL (Anti-Trampa)
+      const isComplete = dom.calle && dom.numero && dom.provincia && (dom.localidad || dom.barrio || dom.partido);
+
+      if (hasAny && isComplete) {
         try {
           const pointsAward = window.GAMIFICATION_CONFIG?.pointsForAddress || 50;
           await fetch('/api/assign-points', {

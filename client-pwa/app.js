@@ -787,14 +787,13 @@ async function setupAddressSection() {
         console.log('[ADDR DEBUG] data Firestore cliente:', data);
 
         const comp = data.domicilio?.components;
+        // VALIDACIÓN STRICTA (Anti-Trampa): Igual que en notifications.js
         hasAddress = !!(
-          comp && (
-            comp.calle ||
-            comp.localidad ||
-            comp.partido ||
-            comp.provincia ||
-            comp.codigoPostal
-          )
+          comp &&
+          comp.calle &&
+          comp.numero &&
+          comp.provincia &&
+          (comp.localidad || comp.barrio || comp.partido)
         );
 
         // 🔹 mirar si en config ya se marcó "no mostrar más el banner"

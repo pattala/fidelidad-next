@@ -1692,8 +1692,19 @@ export async function initNotificationsOnce() {
   bootstrapFirstSessionUX();
   startNotifPermissionWatcher();
 
+  // 🔄 FIX: Sincronizar estado real con el servidor para evitar banner si ya aceptó antes
+  let serverSaysYes = false;
+  try {
+    const enabled = await fetchServerNotifEnabled();
+    if (enabled) {
+      debugLog('Init', 'Servidor dice ENABLED. Restaurando consentimiento local.');
+      localStorage.setItem(LS_NOTIF_STATE, 'accepted');
+      serverSaysYes = true;
+    }
+  } catch (e) { debugLog('Init', 'Error chequeando server notif status', e); }
+
   if (AUTO_RESUBSCRIBE && ('Notification' in window) && Notification.permission === 'granted'
-    && hasPriorAppConsent() && !isNotifEnabledLocally() && (localStorage.getItem(LS_NOTIF_STATE) !== 'blocked')) {
+    && (hasPriorAppConsent() || serverSaysYes) && !isNotifEnabledLocally() && (localStorage.getItem(LS_NOTIF_STATE) !== 'blocked')) {
     try { await obtenerYGuardarTokenOneShot(); } catch (e) { }
   }
 
@@ -1723,6 +1734,8 @@ export async function handleSignOutCleanup() {
 }
 
 /* helpers menores */ function hasPriorAppConsent() { try { return localStorage.getItem(LS_NOTIF_STATE) === 'accepted'; } catch { return false; } }
+// 🆕 Exportado para depuración
+export { fetchServerNotifEnabled };
 
 
 

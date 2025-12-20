@@ -79,16 +79,30 @@ export default async function handler(req, res) {
         if (isAdmin && amountOverride) {
             points = Number(amountOverride); // Admin puede forzar monto
         } else {
-            // Modo Reglas de Negocio (Usuario o Admin sin override)
+            // MODO: Configuración Centralizada (Admin Panel)
+            // Path: configuracion/parametros
+            const cfgSnap = await db.collection('configuracion').doc('parametros').get();
+            const cfg = cfgSnap.exists ? cfgSnap.data() : {};
+
             if (reason === 'profile_address') {
-                // Leer config de Firestore
-                const cfgSnap = await db.collection('config').doc('gamification').get();
-                const cfg = cfgSnap.exists ? cfgSnap.data() : {};
-                points = Number(cfg.pointsForAddress) || 50; // Default 50
+                // Default: Activo, 50 puntos (si no está configurado)
+                const activo = (cfg.bono_domicilio_activo !== false); // default true
+                if (!activo) {
+                    return res.status(200).json({ ok: true, pointsAdded: 0, message: "Bono domicilio inactivo" });
+                }
+                points = Number(cfg.bono_domicilio_puntos);
+                if (isNaN(points)) points = 50;
+
             } else if (reason === 'welcome_signup') {
-                const cfgSnap = await db.collection('config').doc('gamification').get();
-                const cfg = cfgSnap.exists ? cfgSnap.data() : {};
-                points = Number(cfg.pointsForSignup) || 50;
+                // Bono Bienvenida
+                const activo = (cfg.bono_bienvenida_activo === true); // default false? Segun imagen estaba false.
+                // Si la imagen muestra false, y queremos probar, asumamos que el usuario lo activará.
+                // Pero el codigo debe respetar la flag.
+                if (!activo) {
+                    return res.status(200).json({ ok: true, pointsAdded: 0, message: "Bono bienvenida inactivo" });
+                }
+                points = Number(cfg.bono_bienvenida_puntos) || 0;
+
             } else {
                 return res.status(400).json({ ok: false, error: "Unknown reason or missing amount" });
             }

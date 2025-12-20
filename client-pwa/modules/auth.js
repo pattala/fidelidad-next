@@ -275,13 +275,17 @@ export async function registerNewAccount() {
       // GAMIFICATION: Welcome Bonus (Registro Simple)
       // ─────────────────────────────────────────────
       try {
-        const pointsSignup = window.GAMIFICATION_CONFIG?.pointsForSignup || 50;
-        await fetch('/api/assign-points', {
+        const rPts = await fetch('/api/assign-points', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ reason: 'welcome_signup' })
         });
-        UI.showToast(`¡Bienvenida! Ganaste +${pointsSignup} Puntos de regalo 🎁`, 'success');
+        const dPts = await rPts.json();
+        if (dPts.ok && dPts.pointsAdded > 0) {
+          UI.showToast(`¡Bienvenida! Ganaste +${dPts.pointsAdded} Puntos de regalo 🎁`, 'success');
+        } else {
+          console.log('[Signup] Welcome points not awarded (inactive or 0)', dPts);
+        }
       } catch (eSig) { console.warn('Error awarding signup points', eSig); }
 
       // ─────────────────────────────────────────────

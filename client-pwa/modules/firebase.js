@@ -23,6 +23,8 @@ export function setupFirebase() {
 
   db = firebase.firestore();
   auth = firebase.auth();
+  // 🛡️ FIX: Forzar persistencia LOCAL para evitar conflictos con SW/IndexedDB
+  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(e => console.warn('[Auth] Persistence error:', e));
 }
 
 export async function checkMessagingSupport() {

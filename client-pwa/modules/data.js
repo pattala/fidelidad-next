@@ -456,7 +456,8 @@ export async function listenToClientData(user, opts = {}) {
     });
   } catch (e) {
     console.error("[PWA] Error seteando listener de cliente:", e);
-    setTimeout(() => { Auth.logout(); }, 1000);
+    // 🚫 FIX: Retirado logout agresivo. Mejor mostrar error.
+    UI.showToast('Error de conexión con datos.', 'error');
   }
 }
 

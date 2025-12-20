@@ -269,8 +269,23 @@ export async function registerNewAccount() {
       const dSocio = await rSocio.json();
       console.log('[assign-socio-number][PWA]', rSocio.status, dSocio);
 
+      console.log('[assign-socio-number][PWA]', rSocio.status, dSocio);
+
       // ─────────────────────────────────────────────
-      // GAMIFICATION: Welcome Bonus (Address provided)
+      // GAMIFICATION: Welcome Bonus (Registro Simple)
+      // ─────────────────────────────────────────────
+      try {
+        const pointsSignup = window.GAMIFICATION_CONFIG?.pointsForSignup || 50;
+        await fetch('/api/assign-points', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason: 'welcome_signup' })
+        });
+        UI.showToast(`¡Bienvenida! Ganaste +${pointsSignup} Puntos de regalo 🎁`, 'success');
+      } catch (eSig) { console.warn('Error awarding signup points', eSig); }
+
+      // ─────────────────────────────────────────────
+      // GAMIFICATION: Address Bonus (Datos Completos)
       // ─────────────────────────────────────────────
       // Validar completitud REAL (Anti-Trampa)
       const isComplete = dom.calle && dom.numero && dom.provincia && (dom.localidad || dom.barrio || dom.partido);

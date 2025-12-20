@@ -122,14 +122,7 @@
       <img src="images/mi_logo.png" alt="Logo RAMPET" class="logo">
       <h1>Club RAMPET</h1>
 
-      <!-- 🔔 Notificaciones -->
-      <button id="btn-notifs" title="Notificaciones e historial" aria-label="Notificaciones">
-        🔔
-        <span id="notif-counter" aria-live="polite"></span>
-      </button>
 
-      <!-- 📲 Instalar PWA -->
-      <button id="install-entrypoint" class="secondary-btn" style="display:none;">Instalar app</button>
     </header>
 
     <div id="loading-screen" class="screen active">
@@ -395,34 +388,9 @@
         </div>
       </div>
 
-      <!-- ✅ Banner Marketing Notificaciones (Card Interruptiva / Drip) -->
-      <div id="notif-prompt-card" class="card highlight-card" style="display:none;">
-        <h3 style="margin-top:0;">Notificaciones</h3>
-        <p>¡Validalo y ganás puntos! No te pierdas ofertas, descuentos y novedades.</p>
 
-        <div style="display:flex; flex-direction:column; gap:8px; margin-top:12px;">
-          <button id="btn-enable-notifs" class="primary-btn" style="width:100%;">Activar</button>
-          <button id="btn-later-notifs" class="secondary-btn" style="width:100%;">Recordármelo más adelante</button>
-        </div>
 
-        <div style="text-align:center; margin-top:12px;">
-          <a href="#" id="btn-block-notifs" style="color:#999; font-size:0.85rem; text-decoration:underline;">No me
-            interesa</a>
-        </div>
-      </div>
 
-      <div id="mission-address-card" class="card mission-card"
-        style="display:none; border: 2px solid #ffc107; background: #fffbf0;">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <div>
-            <h3 style="margin:0; color:#d39e00;">🎯 Misión</h3>
-            <p style="margin:4px 0 0;">Completá tu dirección y ganá <strong id="mission-address-points">50</strong>
-              puntos.</p>
-          </div>
-          <button id="mission-address-btn" class="primary-btn"
-            style="font-size:13px; padding:6px 12px;">Completar</button>
-        </div>
-      </div>
 
       <!-- Slot para avisos chicos de notificaciones -->
       <div id="notif-off-slot"></div>

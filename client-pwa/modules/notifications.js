@@ -1579,6 +1579,7 @@ export async function initDomicilioForm() {
         const dom = snap.data()?.domicilio?.components;
         // Validar completitud
         const isComplete = dom && dom.calle && dom.numero && dom.provincia && (dom.localidad || dom.barrio || dom.partido);
+        console.log('[ADDR] Check:', { dom, isComplete, hadServerAddress: false }); // Debug
         if (dom && isComplete) {
           hadServerAddress = true;
           // Precargar campos
@@ -1897,6 +1898,8 @@ export async function gestionarPermisoNotificaciones() { refreshNotifUIFromPermi
 export function handleBellClick() { return Promise.resolve(); }
 export async function handleSignOutCleanup() {
   try { localStorage.removeItem('fcmToken'); } catch (e) { }
+  try { localStorage.removeItem(LS_ADDR_DISMISS); } catch (e) { } // Limpiar preferencia de banner
+  try { sessionStorage.removeItem(SS_ADDR_DEFER); } catch (e) { }
   try { sessionStorage.removeItem('rampet:firstSessionDone'); } catch (e2) { }
 }
 

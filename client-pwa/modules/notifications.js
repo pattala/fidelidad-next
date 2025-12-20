@@ -1577,7 +1577,9 @@ export async function initDomicilioForm() {
           .get();
 
         const dom = snap.data()?.domicilio?.components;
-        if (dom) {
+        // Validar completitud
+        const isComplete = dom && dom.calle && dom.numero && dom.provincia && (dom.localidad || dom.barrio || dom.partido);
+        if (dom && isComplete) {
           hadServerAddress = true;
           // Precargar campos
           if (q('#dom-calle')) q('#dom-calle').value = dom.calle || '';
@@ -1594,7 +1596,15 @@ export async function initDomicilioForm() {
           // Si ya tiene, ocultar el banner amarillo
           if (missionBanner) missionBanner.style.display = 'none';
         } else {
-          // No tiene domicilio -> Mostrar banner amarillo SI corresponde
+          // Precarga parcial si existe
+          if (dom) {
+            if (q('#dom-calle')) q('#dom-calle').value = dom.calle || '';
+            if (q('#dom-numero')) q('#dom-numero').value = dom.numero || '';
+            if (q('#dom-provincia')) q('#dom-provincia').value = dom.provincia || '';
+            if (q('#dom-localidad')) q('#dom-localidad').value = dom.localidad || (dom.barrio || '');
+          }
+
+          // No tiene domicilio (o incompleto) -> Mostrar banner
           if (shouldShowMissionBanner(false) && missionBanner) {
             missionBanner.style.display = 'block';
           }

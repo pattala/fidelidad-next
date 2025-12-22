@@ -863,6 +863,9 @@ async function main() {
       if (d.notif_silence_days !== undefined) {
         window.APP_CONFIG.features.notifSilenceDays = Number(d.notif_silence_days);
       }
+      if (d.geo_silence_days !== undefined) {
+        window.APP_CONFIG.features.geoCooldownDays = Number(d.geo_silence_days);
+      }
       console.log('[Config] Loaded remote params:', d);
     }
   } catch (eConfig) {

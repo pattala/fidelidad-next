@@ -130,19 +130,34 @@ export default async function handler(req, res) {
 
             const newPoints = (data.puntos || 0) + points;
 
+            // Caducidad (Configurable vs Default 365)
+            let diasCaducidad = 365;
+            if (reason === 'welcome_signup') diasCaducidad = Number(cfg.bono_bienvenida_dias) || 365;
+            if (reason === 'profile_address') diasCaducidad = Number(cfg.bono_domicilio_dias) || 365;
+
+            // Objeto para Arrays (PWA Logic) y Subcollection (Audit)
+            const historyEntry = {
+                puntos: points,
+                puntosDisponibles: points, // Logic de consumo debe restar de aquí
+                diasCaducidad: diasCaducidad,
+                fechaObtencion: admin.firestore.Timestamp.now(), // Timestamp real
+                reason: reason || 'manual'
+            };
+
             tx.update(doc.ref, {
                 puntos: newPoints,
-                [`rewards_awarded.${reason}`]: true, // Marcar como dado
-                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                [`rewards_awarded.${reason}`]: true,
+                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                // Agregamos al array historialPuntos para la PWA
+                historialPuntos: admin.firestore.FieldValue.arrayUnion(historyEntry)
             });
 
-            // Log Historial (Subcollection para no saturar doc principal)
+            // Log Historial (Subcollection Audit)
             const histRef = doc.ref.collection('historial').doc();
             tx.set(histRef, {
-                puntos: points,
-                reason: reason || 'manual',
-                createdAt: admin.firestore.FieldValue.serverTimestamp(),
-                balanceAfter: newPoints
+                ...historyEntry,
+                balanceAfter: newPoints,
+                createdAt: admin.firestore.FieldValue.serverTimestamp()
             });
 
             result = { ok: true, pointsAdded: points, newBalance: newPoints };

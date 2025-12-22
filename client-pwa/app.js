@@ -33,6 +33,14 @@ window.__reportState = async (where = '') => {
     'LS State': lsState,
     'SW Ready': swReady,
     'Geo Permission': geo,
+    'Conf Notif Days': window.APP_CONFIG?.features?.notifSilenceDays ?? 'default',
+    'Conf Geo Days': window.APP_CONFIG?.features?.geoCooldownDays ?? '60',
+    'LS Notif Blocked': localStorage.getItem('notifSuppressUntil')
+      ? new Date(+localStorage.getItem('notifSuppressUntil')).toLocaleString()
+      : 'none',
+    'LS Geo Blocked': localStorage.getItem('geoSuppressUntil')
+      ? new Date(+localStorage.getItem('geoSuppressUntil')).toLocaleString()
+      : 'none',
     'Timestamp': new Date().toISOString()
   });
   console.groupEnd();

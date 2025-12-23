@@ -172,6 +172,7 @@ async function createInboxSent({ db, clienteId, notifId, dataForDoc, token }) {
     campaignId: dataForDoc.campaignId || null,
     status: "sent",
     sentAt: admin.firestore.FieldValue.serverTimestamp(),
+    ts: Date.now(), // ⚡ FIX: PWA ordena por 'ts' (number)
     expireAt: admin.firestore.Timestamp.fromDate(
       new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)
     ),

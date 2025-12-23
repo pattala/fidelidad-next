@@ -72,7 +72,10 @@ export async function login() {
   const email = gv('login-email').toLowerCase();
   const password = gv('login-password');
   const boton = g('login-btn');
-  if (!email || !password) return UI.showToast("Ingresa tu email y contraseña.", "error");
+
+  if (!email && !password) return UI.showToast("Ingresa tu email y contraseña.", "error");
+  if (!email) return UI.showToast("Falta ingresar el email.", "error");
+  if (!password) return UI.showToast("Falta ingresar la contraseña.", "error");
 
   boton.disabled = true; boton.textContent = 'Ingresando...';
   try {
@@ -155,39 +158,43 @@ export async function registerNewAccount() {
   console.log('[Auth] registerNewAccount iniciado...');
 
   // ⬇️ Anti-doble envío
-  if (__signupLock) {
-    console.warn('[Auth] Registro bloqueado por signupLock activo');
-    return UI.showToast("Estamos creando tu cuenta…", "info");
-  }
-  __signupLock = true;
-  const nombre = gv('register-nombre');
-  const dni = gv('register-dni');
-  const email = (gv('register-email') || '').toLowerCase();
-  const telefono = gv('register-telefono');
-  const fechaNacimiento = gv('register-fecha-nacimiento');
-  const password = gv('register-password');
-  const termsAccepted = gc('register-terms');
+  // Validaciones Detalladas
+  const missing = [];
+  if (!nombre) missing.push("Nombre");
+  if (!dni) missing.push("DNI");
+  if (!email) missing.push("Email");
+  if (!password) missing.push("Contraseña");
+  if (!fechaNacimiento) missing.push("Fecha Nac.");
 
-  // Validaciones
-  if (!nombre || !dni || !email || !password || !fechaNacimiento) {
-    return UI.showToast("Completa todos los campos obligatorios.", "error");
+  if (missing.length > 0) {
+    return UI.showToast(`Faltan datos: ${missing.join(', ')}.`, "error");
   }
+
+  // Validaciones formato
   if (!/^[0-9]+$/.test(dni) || dni.length < 6) {
-    return UI.showToast("El DNI debe tener al menos 6 números y sin símbolos.", "error");
+    return UI.showToast("El DNI debe ser numérico y válido (mín 6 dígitos).", "error");
   }
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
-    return UI.showToast("Ingresa un email válido.", "error");
+    return UI.showToast("El email no tiene un formato válido.", "error");
   }
   if (telefono && (!/^[0-9]+$/.test(telefono) || telefono.length < 10)) {
-    return UI.showToast("El teléfono debe tener solo números y al menos 10 dígitos.", "error");
+    return UI.showToast("El teléfono debe tener código de área y número (mín 10 dígitos).", "error");
   }
   if (password.length < 6) {
-    return UI.showToast("La contraseña debe tener al menos 6 caracteres.", "error");
+    return UI.showToast("La contraseña es muy corta (mín 6 caracteres).", "error");
   }
   if (!termsAccepted) {
-    return UI.showToast("Debes aceptar los Términos y Condiciones.", "error");
+    return UI.showToast("Es necesario aceptar los Términos y Condiciones.", "error");
   }
+
+  // ⬇️ Anti-doble envío (MOVIDO DESPUÉS DE VALIDAR)
+  if (__signupLock) {
+    console.warn('[Auth] Registro bloqueado por signupLock activo');
+    return UI.showToast("Estamos creando tu cuenta… espere un momento.", "info");
+  }
+  __signupLock = true;
+
 
   // Domicilio del registro
   const dom = collectSignupAddress();
@@ -289,15 +296,20 @@ export async function registerNewAccount() {
       } catch (eSig) { console.warn('Error awarding signup points', eSig); }
 
       // ─────────────────────────────────────────────
-      // GAMIFICATION: Address Bonus (Datos Completos)
+      // GAMIFICATION: Address Bonus (Datos Completos v2)
       // ─────────────────────────────────────────────
       // Validar completitud REAL (Anti-Trampa)
       const isComplete = dom.calle && dom.numero && dom.provincia && (dom.localidad || dom.barrio || dom.partido);
 
+      if (hasAny && !isComplete) {
+        // El usuario intentó llenar pero le faltó algo clave
+        console.warn('[Gamification] Domicilio incompleto:', dom.components);
+        // Opcional: Avisar (si no usamos toast agresivo)
+      }
+
       if (hasAny && isComplete) {
         try {
-          const pointsAward = window.GAMIFICATION_CONFIG?.pointsForAddress || 50;
-          await fetch('/api/assign-points', {
+          const rPtsAddr = await fetch('/api/assign-points', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -305,9 +317,16 @@ export async function registerNewAccount() {
             },
             body: JSON.stringify({ reason: 'profile_address' })
           });
-          UI.showToast(`¡Bienvenida! Ganaste +${pointsAward} Puntos por tus datos 🎁`, 'success');
+          const dPtsAddr = await rPtsAddr.json();
+
+          if (rPtsAddr.ok && dPtsAddr.pointsAdded > 0) {
+            UI.showToast(`¡Bienvenida! Ganaste +${dPtsAddr.pointsAdded} Puntos por tus datos 🎁`, 'success');
+          } else {
+            // Ya los tenía o error silencioso
+            console.log('[Gamification] Address bonus skipped:', dPtsAddr);
+          }
         } catch (ePoints) {
-          console.warn('[Gamification] Welcome bonus error', ePoints);
+          console.warn('[Gamification] Address bonus error', ePoints);
         }
       }
 

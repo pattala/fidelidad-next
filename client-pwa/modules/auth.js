@@ -108,6 +108,7 @@ export async function sendPasswordResetFromLogin() {
     } catch (e) {
       if (e.code === 'auth/unauthorized-continue-uri') {
         console.warn('Dominio no autorizado para redirect. Enviando email básico.');
+        console.error(`⚠️ ACCIÓN REQUERIDA: Ve a Firebase Console -> Authentication -> Settings -> Authorized Domains y agrega: ${window.location.hostname}`);
         await auth.sendPasswordResetEmail(email);
       } else {
         throw e;

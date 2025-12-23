@@ -158,6 +158,15 @@ export async function registerNewAccount() {
   console.log('[Auth] registerNewAccount iniciado...');
 
   // ⬇️ Anti-doble envío
+  // ⬇️ Obtener valores del DOM
+  const nombre = gv('register-nombre');
+  const dni = gv('register-dni');
+  const email = (gv('register-email') || '').toLowerCase();
+  const telefono = gv('register-telefono');
+  const fechaNacimiento = gv('register-fecha-nacimiento');
+  const password = gv('register-password');
+  const termsAccepted = gc('register-terms');
+
   // Validaciones Detalladas
   const missing = [];
   if (!nombre) missing.push("Nombre");

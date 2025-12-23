@@ -1,15 +1,10 @@
 // /api/enviar-notificacion-campana.js
-// QStash-ONLY (firma requerida) + FCM data-only + SendGrid
+// QStash-ONLY (firma requerida) + FCM data-only + Nodemailer (Gmail)
 import { verifySignature } from "@upstash/qstash/nextjs";
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
-import sgMail from "@sendgrid/mail";
-
-// ---------- Init SendGrid ----------
-if (process.env.SENDGRID_API_KEY) {
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-}
+import nodemailer from "nodemailer";
 
 // ---------- Init Firebase Admin ----------
 if (!getApps().length) {
@@ -109,9 +104,17 @@ async function procesarNotificacionIndividual({ campaignId, tipoNotificacion, de
     console.log(`Push data-only campañas: OK=${pushResp.successCount} ERR=${pushResp.failureCount}`);
   }
 
-  // 6) EMAILS — SendGrid
+  // 6) EMAILS — Nodemailer (Gmail)
   let emailCount = 0;
-  if (process.env.SENDGRID_API_KEY && process.env.SENDGRID_FROM_EMAIL) {
+  if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+
     const emails = Array.from(new Set(clientes.map(c => c.email).filter(Boolean)));
     const jobs = emails.map(async (email) => {
       const cliente = clientes.find(c => c.email === email);
@@ -125,21 +128,21 @@ async function procesarNotificacionIndividual({ campaignId, tipoNotificacion, de
         </div>
       `.trim();
       try {
-        await sgMail.send({
+        await transporter.sendMail({
+          from: `\"Club RAMPET\" <${process.env.SMTP_USER}>`,
           to: email,
-          from: { email: process.env.SENDGRID_FROM_EMAIL, name: "Club RAMPET" },
           subject,
           html
         });
       } catch (e) {
-        console.error("SendGrid error ->", email, e?.response?.body || e);
+        console.error("Nodemailer error ->", email, e);
       }
     });
     const results = await Promise.allSettled(jobs);
     emailCount = results.length;
     console.log(`Emails procesados: ${emailCount}`);
   } else {
-    console.log("SendGrid no configurado; se omiten emails.");
+    console.log("SMTP_USER/PASS no configurado; se omiten emails.");
   }
 
   // 7) INBOX — crear entrada por campaña (campanita PWA)

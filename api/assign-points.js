@@ -75,14 +75,14 @@ export default async function handler(req, res) {
 
         // 3. Determinar Monto
         let points = 0;
+        let cfg = {}; // Fix: Scope global para que sea accesible abajo
 
         if (isAdmin && amountOverride) {
-            points = Number(amountOverride); // Admin puede forzar monto
+            points = Number(amountOverride);
         } else {
             // MODO: Configuración Centralizada (Admin Panel)
-            // Path: configuracion/parametros
             const cfgSnap = await db.collection('configuracion').doc('parametros').get();
-            const cfg = cfgSnap.exists ? cfgSnap.data() : {};
+            cfg = cfgSnap.exists ? cfgSnap.data() : {};
 
             if (reason === 'profile_address') {
                 // Default: Activo, 50 puntos (si no está configurado)

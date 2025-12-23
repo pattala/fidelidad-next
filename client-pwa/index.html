@@ -115,6 +115,34 @@
     </div>
   </div>
 
+  <!-- Modal cambiar clave (Fix: Agregado) -->
+  <div id="change-password-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width:400px;">
+      <span id="close-password-modal" class="modal-close-btn">×</span>
+      <h2>Cambiar Contraseña</h2>
+
+      <div class="form-group">
+        <div>
+          <label for="current-password">Contraseña actual</label>
+          <input id="current-password" type="password" placeholder="Tu contraseña actual">
+        </div>
+        <div>
+          <label for="new-password">Nueva contraseña</label>
+          <input id="new-password" type="password" placeholder="Mínimo 6 caracteres">
+        </div>
+        <div>
+          <label for="confirm-new-password">Confirmar nueva contraseña</label>
+          <input id="confirm-new-password" type="password" placeholder="Repite la nueva contraseña">
+        </div>
+      </div>
+
+      <div class="modal-actions" style="display:flex; gap:10px; justify-content:flex-end; margin-top:12px;">
+        <button id="cancel-change-password" class="secondary-btn" type="button">Cancelar</button>
+        <button id="save-change-password" class="primary-btn" type="button">Guardar</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast-container"></div>
 
   <div class="container">

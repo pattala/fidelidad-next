@@ -169,7 +169,10 @@ export default async function handler(req, res) {
     if (sendWelcome && datosClienteParaEmail) {
       try {
         const baseUrl = getSelfBaseUrl(req);
+        console.log(`[AssignSocio] Intentando enviar email. URL: ${baseUrl}/api/send-email`);
+
         // Llamada interna a la API de email
+        const startTime = Date.now();
         const r = await fetch(`${baseUrl}/api/send-email`, {
           method: 'POST',
           headers: {
@@ -187,11 +190,24 @@ export default async function handler(req, res) {
             }
           })
         });
-        mailResult = await r.json().catch(() => ({}));
+
+        const status = r.status;
+        const text = await r.text();
+        const duration = Date.now() - startTime;
+        console.log(`[AssignSocio] Respuesta email (${status}) en ${duration}ms:`, text.slice(0, 200));
+
+        try {
+          mailResult = JSON.parse(text);
+        } catch {
+          mailResult = { error: "Non-JSON response from send-email", body: text.slice(0, 100) };
+        }
+
       } catch (errEmail) {
         console.error("Error enviando email welcome:", errEmail);
-        mailResult = { error: "Failed to send email" };
+        mailResult = { error: "Failed to send email", details: errEmail.message };
       }
+    } else {
+      console.log('[AssignSocio] Skipping email. sendWelcome=', sendWelcome, ' datos=', !!datosClienteParaEmail);
     }
 
     return res.status(200).json({

@@ -5,7 +5,7 @@ window.ADMIN_CONFIG = {
     platformName: "Admin - Club Demo",
     logoUrl: "images/mi_logo.png",
     apiUrl: "",
-    apiKey: "",
+    apiKey: "", // Legacy
 
     theme: {
         "primary": "#e11d48",
@@ -26,4 +26,13 @@ window.ADMIN_CONFIG = {
         "messagingSenderId": "357176214962",
         "appId": "1:357176214962:web:6c1df9b74ff0f3779490ab"
     }
+};
+
+// Configuración adicional para módulos legacy/nuevos (Notificaciones)
+window.__RAMPET__ = {
+    // URL base de la API (usará la misma del dominio si está vacía)
+    NOTIF_BASE: window.location.origin,
+    // API Key para endpoints protegidos por x-api-key
+    API_KEY: "Felipe01",
+    URL_TYC: window.location.origin + "/tyc.html"
 };

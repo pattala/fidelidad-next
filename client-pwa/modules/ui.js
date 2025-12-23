@@ -588,6 +588,95 @@ export function closeProfileModal() {
   if (m) m.style.display = 'none';
 }
 
+// ─────────────────────────────────────────────────────────────
+// Inbox de Notificaciones (Modal)
+// ─────────────────────────────────────────────────────────────
+export async function openInboxModal() {
+  const modal = document.getElementById('inbox-modal');
+  const container = document.getElementById('inbox-items-container');
+  if (!modal || !container) return;
+
+  modal.style.display = 'flex';
+  container.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px;">Cargando mensajes...</p>';
+
+  try {
+    const uid = firebase.auth().currentUser?.uid;
+    if (!uid) {
+      container.innerHTML = '<p style="text-align:center; margin-top:20px;">Debes iniciar sesión.</p>';
+      return;
+    }
+
+    // Buscar ID de cliente real
+    let clienteId = uid;
+    try {
+      // Intentamos usar la función de Data si está disponible, o fallback manual
+      if (Data && Data.getClienteDocIdPorUID) {
+        clienteId = await Data.getClienteDocIdPorUID(uid) || uid;
+      }
+    } catch { }
+
+    const snap = await firebase.firestore()
+      .collection('clientes')
+      .doc(clienteId)
+      .collection('inbox')
+      .orderBy('ts', 'desc')
+      .limit(30)
+      .get();
+
+    if (snap.empty) {
+      container.innerHTML = `
+        <div style="text-align:center; padding:40px 20px; color:#888;">
+          <div style="font-size:40px; margin-bottom:10px;">📭</div>
+          <p>No tienes mensajes nuevos.</p>
+        </div>`;
+      return;
+    }
+
+    container.innerHTML = '';
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    snap.forEach(doc => {
+      const d = doc.data();
+      const date = d.ts ? new Date(d.ts) : new Date();
+      const isToday = date >= startOfToday;
+      const dateStr = isToday
+        ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        : date.toLocaleDateString([], { day: '2-digit', month: '2-digit' });
+
+      const item = document.createElement('div');
+      item.className = 'inbox-item';
+      item.style.cssText = 'padding:12px; border-bottom:1px solid #f0f0f0; display:flex; gap:10px; align-items:flex-start;';
+
+      const icon = d.tipo === 'push' || d.icon ? '📩' : '📢';
+
+      item.innerHTML = `
+        <div style="font-size:20px;">${icon}</div>
+        <div style="flex:1;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <strong style="font-size:0.95rem; color:#333;">${d.titulo || 'Mensaje'}</strong>
+            <span style="font-size:0.75rem; color:#999; white-space:nowrap; margin-left:8px;">${dateStr}</span>
+          </div>
+          <p style="margin:0; font-size:0.9rem; color:#555; line-height:1.4;">${d.cuerpo || ''}</p>
+        </div>
+      `;
+      container.appendChild(item);
+    });
+
+  } catch (err) {
+    console.warn('[Inbox] Error cargando mensajes:', err);
+    container.innerHTML = '<p style="text-align:center; color:#d33; margin-top:20px;">Error al cargar mensajes.</p>';
+  }
+}
+
+export function closeInboxModal() {
+  const modal = document.getElementById('inbox-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+document.getElementById('close-inbox-modal')?.addEventListener('click', closeInboxModal);
+document.getElementById('close-inbox-btn')?.addEventListener('click', closeInboxModal);
+
 // Si cambian config/consentimientos mientras el modal está abierto, refrescamos switches
 document.addEventListener('rampet:config-updated', () => {
   const m = document.getElementById('profile-modal');

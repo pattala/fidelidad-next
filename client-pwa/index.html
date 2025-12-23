@@ -147,6 +147,26 @@
     </div>
   </div>
 
+  <!-- Modal Inbox (Notificaciones Persistentes) -->
+  <div id="inbox-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width:400px; height:80vh; display:flex; flex-direction:column;">
+      <div class="inbox-header"
+        style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid #eee;">
+        <h2 style="margin:0; font-size:1.3rem;">Tus Mensajes</h2>
+        <span id="close-inbox-modal" class="modal-close-btn" style="position:static; margin:0;">×</span>
+      </div>
+
+      <!-- Lista scrollable -->
+      <div id="inbox-items-container" style="flex:1; overflow-y:auto;">
+        <p style="text-align:center; color:#999; margin-top:20px;">Cargando mensajes...</p>
+      </div>
+
+      <div class="modal-actions" style="margin-top:12px; text-align:right;">
+        <button id="close-inbox-btn" class="secondary-btn">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast-container"></div>
 
   <div class="container">

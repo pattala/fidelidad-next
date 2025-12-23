@@ -1915,7 +1915,11 @@ export async function initNotificationsOnce() {
   return true;
 }
 export async function gestionarPermisoNotificaciones() { refreshNotifUIFromPermission(); }
-export function handleBellClick() { return Promise.resolve(); }
+export async function handleBellClick() {
+  if (window.UI && window.UI.openInboxModal) {
+    window.UI.openInboxModal();
+  }
+}
 export async function handleSignOutCleanup() {
   try { localStorage.removeItem('fcmToken'); } catch (e) { }
   try { localStorage.removeItem(LS_ADDR_DISMISS); } catch (e) { } // Limpiar preferencia de banner

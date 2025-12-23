@@ -468,4 +468,6 @@ export async function logout() {
   }
 }
 
-
+export function getCurrentUser() {
+  return auth.currentUser;
+}

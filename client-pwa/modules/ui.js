@@ -591,6 +591,9 @@ export function closeProfileModal() {
 // ─────────────────────────────────────────────────────────────
 // Inbox de Notificaciones (Modal)
 // ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// Inbox de Notificaciones (Modal)
+// ─────────────────────────────────────────────────────────────
 export async function openInboxModal() {
   const modal = document.getElementById('inbox-modal');
   const container = document.getElementById('inbox-items-container');
@@ -599,6 +602,26 @@ export async function openInboxModal() {
   modal.style.display = 'flex';
   container.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px;">Cargando mensajes...</p>';
 
+  // Wiring botón "Limpiar todo"
+  const clearBtn = document.getElementById('clear-inbox-btn');
+  if (clearBtn) {
+    // Clonar para limpiar listeners previos
+    const newBtn = clearBtn.cloneNode(true);
+    clearBtn.parentNode.replaceChild(newBtn, clearBtn);
+    newBtn.addEventListener('click', async () => {
+      if (confirm('¿Borrar todos los mensajes?')) {
+        try {
+          await Data.clearInbox();
+          openInboxModal(); // recargar
+          showToast('Bandeja limpia', 'success');
+        } catch (e) {
+          console.error(e);
+          showToast('Error al limpiar bandeja', 'error');
+        }
+      }
+    });
+  }
+
   try {
     const uid = firebase.auth().currentUser?.uid;
     if (!uid) {
@@ -606,10 +629,8 @@ export async function openInboxModal() {
       return;
     }
 
-    // Buscar ID de cliente real
     let clienteId = uid;
     try {
-      // Intentamos usar la función de Data si está disponible, o fallback manual
       if (Data && Data.getClienteDocIdPorUID) {
         clienteId = await Data.getClienteDocIdPorUID(uid) || uid;
       }
@@ -638,28 +659,87 @@ export async function openInboxModal() {
 
     snap.forEach(doc => {
       const d = doc.data();
+      const id = doc.id;
       const date = d.ts ? new Date(d.ts) : new Date();
       const isToday = date >= startOfToday;
       const dateStr = isToday
         ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         : date.toLocaleDateString([], { day: '2-digit', month: '2-digit' });
 
+      // Clasificación de Tipo e Ícono
+      let icon = '📢';
+      let bgColor = '#fff';
+      let iconBg = '#f0f0f0';
+
+      const titleLower = (d.titulo || '').toLowerCase();
+      const bodyLower = (d.cuerpo || '').toLowerCase();
+
+      if (d.tipo === 'premio' || titleLower.includes('premio') || titleLower.includes('ganaste') || titleLower.includes('regalo')) {
+        icon = '🎁'; iconBg = '#f3e5f5'; // Violeta claro
+      } else if (titleLower.includes('puntos') || bodyLower.includes('puntos')) {
+        icon = '🛍️'; iconBg = '#e8f5e9'; // Verde claro
+      } else if (titleLower.includes('promo') || titleLower.includes('descuento')) {
+        icon = '🔥'; iconBg = '#fff3e0'; // Naranja claro
+      } else if (d.tipo === 'system' || titleLower.includes('sistema') || titleLower.includes('bienvenid')) {
+        icon = '⚙️'; iconBg = '#eceff1'; // Gris
+      }
+
       const item = document.createElement('div');
       item.className = 'inbox-item';
-      item.style.cssText = 'padding:12px; border-bottom:1px solid #f0f0f0; display:flex; gap:10px; align-items:flex-start;';
-
-      const icon = d.tipo === 'push' || d.icon ? '📩' : '📢';
+      item.style.cssText = `
+        padding: 12px; 
+        border-bottom: 1px solid #eee; 
+        display: flex; 
+        gap: 12px; 
+        align-items: flex-start; 
+        background-color: ${bgColor};
+        position: relative;
+      `;
 
       item.innerHTML = `
-        <div style="font-size:20px;">${icon}</div>
-        <div style="flex:1;">
+        <div style="
+          width: 40px; height: 40px; 
+          background: ${iconBg}; 
+          border-radius: 50%; 
+          display: flex; align-items: center; justify-content: center; 
+          font-size: 20px; flex-shrink: 0;">
+          ${icon}
+        </div>
+        <div style="flex:1; padding-right: 24px;"> <!-- padding para el delete btn -->
           <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
             <strong style="font-size:0.95rem; color:#333;">${d.titulo || 'Mensaje'}</strong>
             <span style="font-size:0.75rem; color:#999; white-space:nowrap; margin-left:8px;">${dateStr}</span>
           </div>
           <p style="margin:0; font-size:0.9rem; color:#555; line-height:1.4;">${d.cuerpo || ''}</p>
         </div>
+        <button class="delete-msg-btn" style="
+          position: absolute; right: 10px; top: 12px;
+          border: none; background: transparent; 
+          color: #bbb; cursor: pointer; padding: 4px;">
+          ✕
+        </button>
       `;
+
+      // Wire delete button
+      item.querySelector('.delete-msg-btn').addEventListener('click', async (e) => {
+        e.stopPropagation();
+        if (confirm('¿Eliminar mensaje?')) {
+          try {
+            item.style.opacity = '0.5';
+            await Data.deleteInboxItem(id);
+            item.remove();
+            // Si queda vacío
+            if (!container.querySelector('.inbox-item')) {
+              openInboxModal(); // refrescar empty state
+            }
+          } catch (err) {
+            console.error(err);
+            item.style.opacity = '1';
+            showToast('Error al eliminar', 'error');
+          }
+        }
+      });
+
       container.appendChild(item);
     });
 
@@ -682,3 +762,4 @@ document.addEventListener('rampet:config-updated', () => {
   const m = document.getElementById('profile-modal');
   if (m && m.style.display === 'flex') { syncProfileTogglesFromRuntime(); }
 });
+

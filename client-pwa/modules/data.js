@@ -478,3 +478,49 @@ export function getClienteData() {
 
 // Stubs
 export async function acceptTerms() { /* futuro: guardar aceptación */ }
+
+// --- Inbox Management ---
+export async function getClienteDocIdPorUID(uid) {
+  // Misma lógica que notifications.js, centralizada aquí
+  if (!uid) {
+    const current = Auth.getCurrentUser();
+    uid = current && current.uid;
+  }
+  if (!uid) return null;
+
+  // 1) Si ya tenemos referencia memoria
+  if (clienteRef && clienteRef.id) return clienteRef.id;
+
+  // 2) Consulta directa
+  try {
+    const snap = await db.collection('clientes').where('authUID', '==', uid).get();
+    if (!snap.empty) return snap.docs[0].id;
+  } catch (e) {
+    console.warn('[Data] Error resolviendo clienteID:', e);
+  }
+  return null;
+}
+
+export async function deleteInboxItem(notifId) {
+  const uid = Auth.getCurrentUser()?.uid;
+  if (!uid) return;
+  const clienteId = await getClienteDocIdPorUID(uid);
+  if (!clienteId) throw new Error("Cliente no identificado");
+
+  await db.collection('clientes').doc(clienteId).collection('inbox').doc(notifId).delete();
+}
+
+export async function clearInbox() {
+  const uid = Auth.getCurrentUser()?.uid;
+  if (!uid) return;
+  const clienteId = await getClienteDocIdPorUID(uid);
+  if (!clienteId) throw new Error("Cliente no identificado");
+
+  const col = db.collection('clientes').doc(clienteId).collection('inbox');
+  const snap = await col.get();
+
+  // Borrado en lotes
+  const batch = db.batch();
+  snap.docs.forEach(doc => batch.delete(doc.ref));
+  await batch.commit();
+}

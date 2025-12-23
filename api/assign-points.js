@@ -160,6 +160,33 @@ export default async function handler(req, res) {
                 createdAt: admin.firestore.FieldValue.serverTimestamp()
             });
 
+            // ⚡ FIX: Crear mensaje en Inbox para que salga en la campanita
+            const inboxRef = doc.ref.collection('inbox').doc();
+            let inboxTitle = "¡Sumaste Puntos!";
+            let inboxBody = `Tenés ${points} puntos nuevos.`;
+            let inboxType = "system";
+
+            if (reason === 'profile_address') {
+                inboxTitle = "🎁 Premio por Domicilio";
+                inboxBody = `¡Gracias por completar tu perfil! Ganaste ${points} puntos.`;
+                inboxType = "premio";
+            } else if (reason === 'welcome_signup') {
+                inboxTitle = "👋 ¡Bienvenido!";
+                inboxBody = `Regalo de bienvenida: ${points} puntos para empezar.`;
+                inboxType = "premio";
+            }
+
+            tx.set(inboxRef, {
+                title: inboxTitle,
+                body: inboxBody,
+                ts: Date.now(),
+                sentAt: admin.firestore.FieldValue.serverTimestamp(),
+                tipo: inboxType, // Para ícono en UI
+                read: false,
+                source: 'assign-points',
+                expireAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 90 * 24 * 60 * 60 * 1000))
+            });
+
             result = { ok: true, pointsAdded: points, newBalance: newPoints };
         });
 

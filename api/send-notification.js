@@ -269,6 +269,12 @@ export default async function handler(req, res) {
 
   // Config común a todos los lotes
   const baseMsg = {
+    notification: {
+      title,
+      body: msgBody,
+      // Si hay imagen/icono, ayuda
+      ...(data.icon ? { image: data.icon } : {})
+    },
     data,
     webpush: {
       fcmOptions: { link: data.url || "/notificaciones" },

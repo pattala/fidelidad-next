@@ -166,6 +166,8 @@ async function createInboxSent({ db, clienteId, notifId, dataForDoc, token }) {
   const base = {
     title: dataForDoc.title || "",
     body: dataForDoc.body || "",
+    titulo: dataForDoc.title || "", // ⚡ FIX: UI espera 'titulo'
+    cuerpo: dataForDoc.body || "",  // ⚡ FIX: UI espera 'cuerpo'
     url: dataForDoc.url || "/notificaciones",
     tag: dataForDoc.tag || null,
     source: dataForDoc.source || "simple",

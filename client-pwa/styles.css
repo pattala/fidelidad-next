@@ -147,6 +147,8 @@ header h1 {
 #btn-notifs.has-unread {
   background: #fff8f8;
   border-color: #ffcccc;
+  /* ⚡ FIX: Que parpadee también al tener unread, no solo blink momentáneo */
+  animation: bellBlink 2s ease-in-out infinite;
 }
 
 #btn-notifs.has-unread::after {

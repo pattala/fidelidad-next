@@ -100,7 +100,7 @@ header h1 {
   background: #fafafa;
 }
 
-#notif-counter {
+#notif-badge {
   display: none;
   position: absolute;
   top: -6px;
@@ -110,8 +110,10 @@ header h1 {
   border-radius: 999px;
   font-size: .72rem;
   line-height: 1;
-  padding: 2px 6px;
+  padding: 3px 6px;
   border: 2px solid #fff;
+  font-weight: bold;
+  z-index: 2;
 }
 
 @keyframes bellBlink {

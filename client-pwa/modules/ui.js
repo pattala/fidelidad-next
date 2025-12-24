@@ -636,19 +636,28 @@ export async function checkUnreadMessages() {
     let clienteId = uid;
     try { if (Data?.getClienteDocIdPorUID) clienteId = await Data.getClienteDocIdPorUID(uid) || uid; } catch { }
 
-    // Chequeo liviano: limit(1) solo para ver si "hay algo"
+    // Chequeo completo: contar cuántos hay
     const snap = await firebase.firestore()
       .collection('clientes')
       .doc(clienteId)
       .collection('inbox')
       .where('read', '==', false)
-      .limit(1)
+      .limit(50) // Límite razonable para contador
       .get();
 
-    if (!snap.empty) {
+    const count = snap.size;
+    const badge = document.getElementById('notif-badge');
+
+    if (count > 0) {
       btn.classList.add('has-unread');
+      // Activar contador si existe elemento visual
+      if (badge) {
+        badge.textContent = count > 9 ? '9+' : String(count);
+        badge.style.display = 'inline-block';
+      }
     } else {
       btn.classList.remove('has-unread');
+      if (badge) badge.style.display = 'none';
     }
   } catch (e) { console.warn('[UI] checkUnreadMessages error', e); }
 }

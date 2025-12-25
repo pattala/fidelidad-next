@@ -406,6 +406,8 @@ function wireConsentEventBridges() {
 
 // === Listeners / flujo principal ===
 export async function listenToClientData(user, opts = {}) {
+  _isDestructionPending = false; // ✅ Reset flag al iniciar
+
   // Solo mostramos loading si NO está suprimida la navegación
   if (!opts.suppressNavigation) {
     UI.showScreen('loading-screen');
@@ -416,7 +418,7 @@ export async function listenToClientData(user, opts = {}) {
 
   try { wireConsentEventBridges(); } catch { }
 
-  // Premios (carga inicial)
+  // ... (Premios loading logic unchanged) ...
   if (premiosData.length === 0) {
     try {
       const premiosSnapshot = await db.collection('premios').orderBy('puntos', 'asc').get();
@@ -430,6 +432,7 @@ export async function listenToClientData(user, opts = {}) {
   try {
     const campanasQuery = db.collection('campanas').where('estaActiva', '==', true);
     unsubscribeCampanas = campanasQuery.onSnapshot(snapshot => {
+      if (_isDestructionPending) return; // 🛑
       campanasData = snapshot.docs.map(doc => doc.data());
       renderizarPantallaPrincipal(opts);
     }, error => {
@@ -441,15 +444,12 @@ export async function listenToClientData(user, opts = {}) {
 
   // Cliente (tiempo real)
   try {
-    // ⚡ FIX IMPORTANTE: Usar acceso directo por ID para cumplir reglas de seguridad
-    // Reglas dicen: allow read if request.auth.uid == clienteId
     const docRef = db.collection('clientes').doc(user.uid);
 
     unsubscribeCliente = docRef.onSnapshot(doc => {
-      // Si el documento no existe aún (race condition en registro), esperamos
+      if (_isDestructionPending) return; // 🛑
       if (!doc.exists) {
         console.log('[PWA] El documento de cliente aún no existe (creando...).');
-        // No deslogueamos, el registro lo creará en breve. 
         return;
       }
 
@@ -465,23 +465,23 @@ export async function listenToClientData(user, opts = {}) {
       renderizarPantallaPrincipal(opts);
 
     }, (error) => {
+      if (_isDestructionPending) return; // 🛑
       console.warn("[PWA] Error en listener de cliente:", error.code || error);
-      // Reintento inteligente para permisos o desconexiones
+
       if ((error.code === 'permission-denied' || error.message?.includes('permission')) && (!opts.retries || opts.retries < 3)) {
+        if (_isDestructionPending) return;
         console.log('[PWA] Reintentando suscripción en 2s...');
         setTimeout(() => {
+          if (_isDestructionPending) return;
           listenToClientData(user, { ...opts, retries: (opts.retries || 0) + 1 });
         }, 2000);
       } else {
         console.error("[PWA] Error fatal en datos (Firestore).", error);
         UI.showToast("Error de conexión. Intenta recargar.", "error");
-        // 🚫 FIX: No desloguear automáticamente por errores de red/datos.
-        // Auth.logout();
       }
     });
   } catch (e) {
     console.error("[PWA] Error seteando listener de cliente:", e);
-    // 🚫 FIX: Retirado logout agresivo. Mejor mostrar error.
     UI.showToast('Error de conexión con datos.', 'error');
   }
 }

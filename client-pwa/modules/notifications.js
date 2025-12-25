@@ -925,23 +925,50 @@ async function hookOnMessage() {
   try {
     await ensureMessagingCompatLoaded();
     const messaging = firebase.messaging();
+
+    // Handler de mensajes en primer plano
     messaging.onMessage(async (payload) => {
       debugLog('Msg(FG)', 'Mensaje recibido en primer plano:', payload);
       const d = (payload && payload.data) || {};
+      const n = (payload && payload.notification) || {};
+
       try {
-        const reg = await navigator.serviceWorker.getRegistration(SW_PATH) || await navigator.serviceWorker.getRegistration();
+        // Intentar obtener registro activo
+        let reg = await navigator.serviceWorker.getRegistration(SW_PATH);
+        if (!reg) reg = await navigator.serviceWorker.getRegistration();
+        if (!reg) reg = await navigator.serviceWorker.ready;
+
         if (reg && reg.showNotification) {
           const defaultTitle = window.APP_CONFIG?.appName || 'Club de Fidelidad';
-          await reg.showNotification(d.title || defaultTitle, {
-            body: d.body || '',
-            icon: d.icon || '/images/mi_logo_192.png',
-            tag: d.tag || d.id || 'loyalty-app-fg',
-            data: { url: d.url || d.click_action || '/?inbox=1' }
+          const title = n.title || d.title || defaultTitle;
+          const body = n.body || d.body || '';
+          const icon = n.icon || d.icon || '/images/mi_logo_192.png';
+
+          await reg.showNotification(title, {
+            body: body,
+            icon: icon,
+            tag: d.tag || d.id || 'loyalty-app-fg', // Tag único para evitar duplicados si SW también lo recibe
+            requireInteraction: false, // Dejar que el SO decida
+            data: {
+              url: d.url || d.click_action || '/?inbox=1',
+              ...(d || {})
+            }
           });
+
+          // Emitir evento para actualizar badges/UI
+          emit('rampet:notification-received', payload);
+        } else {
+          console.warn('[onMessage] No SW registration found to show notification');
         }
-      } catch (e) { console.warn('[onMessage] error', (e && e.message) || e); }
+      } catch (e) {
+        console.warn('[onMessage] error showing notification:', (e && e.message) || e);
+      }
     });
-  } catch (e) { console.warn('[notifications] hookOnMessage error:', (e && e.message) || e); }
+
+    console.log('[Ignite] Foreground messaging listener hooked.');
+  } catch (e) {
+    console.warn('[notifications] hookOnMessage error:', (e && e.message) || e);
+  }
 }
 
 /* Cableado de botones del HTML (notifs) */

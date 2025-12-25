@@ -99,8 +99,9 @@ messaging.onBackgroundMessage(async (payload) => {
     data: { id: d.id, url: d.url, via: 'sw' }
   };
   if (d.badge) opts.badge = d.badge;
-  // renotify en false para que no "vibre" si llega otra con mismo tag
-  opts.renotify = false;
+  // renotify en true para forzar alerta visual/sonora aunque usemos el mismo tag
+  opts.renotify = true;
+  opts.requireInteraction = true; // Hace que el toast no desaparezca solo (opcional, ayuda en desktop)
 
   try {
     await self.registration.showNotification(d.title, opts);

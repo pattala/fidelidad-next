@@ -84,8 +84,9 @@ export default async function handler(req, res) {
               data: {
                 templateId,
                 uid: r.uid,
-                title: titulo,  // ✅ Moved to data
-                body: cuerpo,   // ✅ Moved to data
+                id: jobId, // ✅ Unique ID for distinct tags/renotify
+                title: titulo,
+                body: cuerpo,
                 icon: '/images/mi_logo_192.png'
               }
             });

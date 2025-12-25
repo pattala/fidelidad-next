@@ -15,7 +15,7 @@ import {
 
 // === DEBUG / OBS ===
 window.__RAMPET_DEBUG = true;
-window.__BUILD_ID = 'pwa-1.12.3-sync-fix';
+window.__BUILD_ID = 'pwa-1.12.4-logout-fix';
 function d(tag, ...args) { if (window.__RAMPET_DEBUG) console.log(`[DBG][${window.__BUILD_ID}] ${tag}`, ...args); }
 window.__reportState = async (where = '') => {
   const notifPerm = (window.Notification?.permission) || 'n/a';
@@ -1002,6 +1002,11 @@ async function main() {
 
     } else {
       console.log('[Auth] State Changed: User is NULL. Trace:', new Error().stack);
+
+      // 🛑 Cleanup explícito para detener listeners y evitar "Permission Denied"
+      try { Data.cleanupListener(); } catch (e) { console.warn('Data cleanup error:', e); }
+      try { Notifications.handleSignOutCleanup(); } catch (e) { console.warn('Notif cleanup error:', e); }
+
       // 🔹 Nuevo: al desloguearse, reseteamos el "Luego" del banner de domicilio
       try {
         sessionStorage.removeItem('addressBannerDeferred');
@@ -1014,6 +1019,7 @@ async function main() {
       setupAuthScreenListeners();
       UI.showScreen('login-screen');
 
+      // Limpiar Inbox
       if (inboxUnsub) { try { inboxUnsub(); } catch { } inboxUnsub = null; }
       inboxPagination.clienteRefPath = null;
       inboxLastSnapshot = [];

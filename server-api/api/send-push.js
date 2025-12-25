@@ -57,11 +57,11 @@ export default async function handler(req, res) {
     const { templateId, segment = {}, options = {}, defaults = {}, overrideVars = {} } = body;
     const { dryRun = false, saveInbox = true, batchSize = 500, maxPerSecond = 200 } = options;
 
-    if (!templateId) return res.status(400).json({ ok:false, error:'templateId required' });
+    if (!templateId) return res.status(400).json({ ok: false, error: 'templateId required' });
 
     const tpl = await resolveTemplate(db, templateId, 'push');
     const recipients = await getRecipients(db, segment);
-    const jobId = new Date().toISOString().replace(/[:.]/g,'-')+`-${templateId}`;
+    const jobId = new Date().toISOString().replace(/[:.]/g, '-') + `-${templateId}`;
 
     const summary = { total: recipients.length, push: 0, skipped: 0 };
     const invalidTokens = new Set();
@@ -80,8 +80,14 @@ export default async function handler(req, res) {
           try {
             const resp = await fcm.sendEachForMulticast({
               tokens: r.tokens,
-              notification: { title: titulo, body: cuerpo },
-              data: { templateId, uid: r.uid }
+              // notification: { title: titulo, body: cuerpo }, // ❌ Removed to force SW handling
+              data: {
+                templateId,
+                uid: r.uid,
+                title: titulo,  // ✅ Moved to data
+                body: cuerpo,   // ✅ Moved to data
+                icon: '/images/mi_logo_192.png'
+              }
             });
             resp.responses.forEach((it, idx) => {
               if (!it.success) {
@@ -92,7 +98,7 @@ export default async function handler(req, res) {
               }
             });
             summary.push = (summary.push || 0) + resp.successCount;
-          } catch (e) {}
+          } catch (e) { }
         }
 
         if (saveInbox && !dryRun) {
@@ -106,7 +112,7 @@ export default async function handler(req, res) {
         await db.collection('envios').doc(jobId)
           .collection('items').doc(r.uid)
           .set({
-            uid: r.uid, email: r.email || null, tokens: (r.tokens||[]).length,
+            uid: r.uid, email: r.email || null, tokens: (r.tokens || []).length,
             channel: 'push', templateId, varsUsadas: data,
             status: dryRun ? 'dry-run' : 'sent', ts: Date.now()
           }, { merge: true });
@@ -131,8 +137,8 @@ export default async function handler(req, res) {
   }
 }
 
-function chunkArray(arr, size){
-  const out = []; for (let i=0;i<arr.length;i+=size) out.push(arr.slice(i,i+size)); return out;
+function chunkArray(arr, size) {
+  const out = []; for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size)); return out;
 }
 
 function buildDataFor(r, defaults = {}, overrides = {}) {
@@ -151,14 +157,14 @@ async function getRecipients(db, segment) {
   } else if (s.type === 'uids' && Array.isArray(s.uids)) {
     const chunks = chunkArray(s.uids, 10);
     for (const ch of chunks) {
-      const snaps = await db.collection('clientes').where('__name__','in', ch).get();
+      const snaps = await db.collection('clientes').where('__name__', 'in', ch).get();
       snaps.forEach(doc => out.push(packRecipient(doc)));
     }
   } else if (s.type === 'query') {
     let q = db.collection('clientes');
-    if (s.esTester === true) q = q.where('esTester','==', true);
-    if (s.barrio) q = q.where('domicilio.barrio','==', s.barrio);
-    if (s.partido) q = q.where('domicilio.partido','==', s.partido);
+    if (s.esTester === true) q = q.where('esTester', '==', true);
+    if (s.barrio) q = q.where('domicilio.barrio', '==', s.barrio);
+    if (s.partido) q = q.where('domicilio.partido', '==', s.partido);
     const snap = await q.limit(1000).get();
     snap.forEach(doc => out.push(packRecipient(doc)));
   }
@@ -176,10 +182,10 @@ function packRecipient(doc) {
 async function pruneInvalidTokens(db, tokens) {
   if (!tokens.length) return;
   const slice = tokens.slice(0, 10);
-  const snap = await db.collection('clientes').where('fcmTokens','array-contains-any', slice).get();
+  const snap = await db.collection('clientes').where('fcmTokens', 'array-contains-any', slice).get();
   const batch = db.batch();
   snap.forEach(doc => {
-    const arr = (doc.data().fcmTokens||[]).filter(t => !slice.includes(t));
+    const arr = (doc.data().fcmTokens || []).filter(t => !slice.includes(t));
     batch.update(doc.ref, { fcmTokens: arr });
   });
   await batch.commit();

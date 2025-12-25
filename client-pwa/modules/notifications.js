@@ -972,7 +972,6 @@ async function hookOnMessage() {
 }
 
 /* Cableado de botones del HTML (notifs) */
-/* Cableado de botones del HTML (notifs) */
 function wirePushButtonsOnce() {
   const allow = $('btn-enable-notifs'); // ID Nuevo
   if (allow && !allow._wired) { allow._wired = true; allow.addEventListener('click', () => { handlePermissionRequest(); }); }

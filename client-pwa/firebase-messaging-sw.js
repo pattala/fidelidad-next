@@ -19,9 +19,34 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 /* ──────────────────────────────────────────────────────────────
-   SPA FALLBACK: cualquier navegación interna → index.html
-   (evita 404 de Vercel en /mis-puntos y asegura que cargue app.js)
+   Hybrid Backup: Raw Push Listener
+   Colocado AL INICIO para asegurar registro aunque Firebase falle init.
    ────────────────────────────────────────────────────────────── */
+self.addEventListener('push', (event) => {
+  let payload;
+  try { payload = event.data.json(); } catch (e) { return; }
+
+  // FIX: Mostramos SIEMPRE si hay data (backup agresivo)
+  if (payload && payload.data) {
+    const d = normPayload({ data: payload.data });
+    console.log('[SW-Raw] Push received (Broad):', d);
+
+    const title = d.title || 'Club de Beneficios';
+    const options = {
+      body: d.body || 'Tienes un nuevo mensaje',
+      icon: d.icon,
+      tag: d.tag,
+      data: { id: d.id, url: d.url, via: 'raw-push-broad' },
+      renotify: true,
+      requireInteraction: true
+    };
+    if (d.badge) options.badge = d.badge;
+
+    event.waitUntil(
+      self.registration.showNotification(title, options)
+    );
+  }
+});
 self.addEventListener('fetch', (event) => {
   const req = event.request;
 
@@ -133,46 +158,3 @@ self.addEventListener('notificationclick', (event) => {
   })());
 });
 // ... (existing code)
-
-/* ──────────────────────────────────────────────────────────────
-   Hybrid Backup: Raw Push Listener
-   Si Firebase falla en despertar el onBackgroundMessage, esto lo hará.
-   ────────────────────────────────────────────────────────────── */
-self.addEventListener('push', (event) => {
-  // Intentamos no pisar a Firebase si ya lo manejó
-  // Pero como es data-only, Firebase a veces no hace nada visual.
-
-  let payload;
-  try {
-    payload = event.data.json();
-  } catch (e) {
-    // Si no es JSON, texto plano?
-    return;
-  }
-
-  // Si es un mensaje de 'notificacion' estandar (con payload.notification),
-  // Firebase SDK debería manejarlo (o no, si lo quitamos del backend).
-  // Aquí nos enfocamos en data-only que NO tiene 'notification'.
-  if (payload && payload.data && !payload.notification) {
-    const d = normPayload({ data: payload.data });
-
-    console.log('[SW-Raw] Push received (Data-Only):', d);
-
-    // Evitar duplicados?
-    // Usamos el tag para que si Firebase también lo dispara, se reemplacen.
-    const title = d.title || 'Notificación';
-    const options = {
-      body: d.body,
-      icon: d.icon,
-      tag: d.tag,
-      data: { id: d.id, url: d.url, via: 'raw-push' },
-      renotify: true,
-      requireInteraction: true
-    };
-    if (d.badge) options.badge = d.badge;
-
-    event.waitUntil(
-      self.registration.showNotification(title, options)
-    );
-  }
-});

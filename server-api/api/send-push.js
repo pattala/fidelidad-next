@@ -85,10 +85,10 @@ export default async function handler(req, res) {
                 templateId,
                 uid: r.uid,
                 id: jobId, // ✅ Unique ID for distinct tags/renotify
-                title: titulo,
                 body: cuerpo,
                 icon: '/images/mi_logo_192.png'
-              }
+              },
+              webpush: { headers: { Urgency: "high" } } // ⚡ Force instant delivery
             });
             resp.responses.forEach((it, idx) => {
               if (!it.success) {

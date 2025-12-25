@@ -935,7 +935,12 @@ async function hookOnMessage() {
       const title = n.title || d.title || 'Nueva Notificación';
       const body = n.body || d.body || '';
       const icon = '/images/mi_logo_192.png';
+      const id = d.id || d.jobId || 'fg-' + Date.now();
 
+      // 🔔 1. UI Toast Inmediato (Fallback Visual asegurado)
+      try { UI.showToast(`🔔 ${title}`, 'info', 4000); } catch (e) { }
+
+      // 🔔 2. System Notification (Intento Nativo)
       try {
         // Fallback robusto para obtener el SW activo
         const reg = await navigator.serviceWorker.ready || await navigator.serviceWorker.getRegistration();
@@ -944,7 +949,8 @@ async function hookOnMessage() {
           await reg.showNotification(title, {
             body: body,
             icon: icon,
-            tag: 'rampet-fg',
+            tag: id, // Usar mismo ID para consistencia
+            renotify: true, // Forzar sonido
             data: { url: '/?inbox=1' }
           });
           emit('rampet:notification-received', payload);

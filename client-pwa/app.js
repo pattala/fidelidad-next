@@ -15,7 +15,7 @@ import {
 
 // === DEBUG / OBS ===
 window.__RAMPET_DEBUG = true;
-window.__BUILD_ID = 'pwa-1.12.9-clean-data';
+window.__BUILD_ID = 'pwa-1.12.10-ref-fix';
 function d(tag, ...args) { if (window.__RAMPET_DEBUG) console.log(`[DBG][${window.__BUILD_ID}] ${tag}`, ...args); }
 window.__reportState = async (where = '') => {
   const notifPerm = (window.Notification?.permission) || 'n/a';
@@ -1005,7 +1005,7 @@ async function main() {
 
       // 🛑 Cleanup explícito para detener listeners y evitar "Permission Denied"
       try { Data.cleanupListener(); } catch (e) { console.warn('Data cleanup error:', e); }
-      try { Notifications.handleSignOutCleanup(); } catch (e) { console.warn('Notif cleanup error:', e); }
+      try { handleSignOutCleanup(); } catch (e) { console.warn('Notif cleanup error:', e); }
 
       // 🔹 Nuevo: al desloguearse, reseteamos el "Luego" del banner de domicilio
       try {

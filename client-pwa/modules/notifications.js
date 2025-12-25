@@ -394,12 +394,27 @@ async function setFcmTokensOnCliente(newTokens) {
   const uid = firebase.auth().currentUser && firebase.auth().currentUser.uid; if (!uid) throw new Error('No hay usuario logueado.');
   let clienteId = await getClienteDocIdPorUID(uid);
   let ref;
-  if (clienteId) { ref = firebase.firestore().collection('clientes').doc(clienteId); }
-  else { clienteId = uid; ref = firebase.firestore().collection('clientes').doc(clienteId); await ref.set({ authUID: uid, creadoDesde: 'pwa' }, { merge: true }); }
-  let current = [];
-  try { const snap = await ref.get(); current = Array.isArray(snap.data() && snap.data().fcmTokens) ? snap.data().fcmTokens : []; } catch (e) { }
-  const merged = dedupeTokens([].concat(newTokens || [], current)).slice(0, MAX_TOKENS);
-  await ref.set({ fcmTokens: merged }, { merge: true });
+
+  if (clienteId) {
+    ref = firebase.firestore().collection('clientes').doc(clienteId);
+  } else {
+    // Si no existe el doc, lo creamos primero (fallback)
+    clienteId = uid;
+    ref = firebase.firestore().collection('clientes').doc(clienteId);
+    await ref.set({ authUID: uid, creadoDesde: 'pwa' }, { merge: true });
+  }
+
+  // ⚡ FIX: Atomic update para evitar race conditions
+  const batch = firebase.firestore().batch();
+  const tokens = dedupeTokens(newTokens || []);
+
+  if (tokens.length > 0) {
+    batch.update(ref, {
+      fcmTokens: firebase.firestore.FieldValue.arrayUnion(...tokens),
+      'config.notifUpdatedAt': new Date().toISOString()
+    });
+  }
+  await batch.commit();
   return clienteId;
 }
 async function clearFcmTokensOnCliente() {

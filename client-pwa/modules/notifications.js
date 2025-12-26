@@ -290,4 +290,10 @@ export async function handlePermissionSwitch(enabled) {
 export async function wireGeoButtonsOnce() { }
 export async function updateGeoUI() { }
 export async function syncProfileConsentUI() { }
-export async function syncProfileGeoUI() { } 
+export async function syncProfileGeoUI() { }
+
+export async function handleBellClick() {
+  if (window.UI && window.UI.openInboxModal) {
+    window.UI.openInboxModal();
+  }
+} 

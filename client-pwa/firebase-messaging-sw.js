@@ -28,6 +28,9 @@ self.addEventListener('push', (event) => {
 
   // FIX: Mostramos SIEMPRE si hay data (backup agresivo)
   if (payload && payload.data) {
+    // Si viene con "notification", el navegador/SDK ya lo muestra. Evitar duplicados.
+    if (payload.notification) return;
+
     const d = normPayload({ data: payload.data });
     console.log('[SW-Raw] Push received (Broad):', d);
 

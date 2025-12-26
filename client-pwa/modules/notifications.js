@@ -194,6 +194,15 @@ export async function obtenerYGuardarToken() {
     // Firestore Sync
     await saveTokenToFirestore(token);
 
+    // 4. Foreground Listener (Hybrid Mode support)
+    messaging.onMessage((payload) => {
+      console.log('[FCM] Foreground Message:', payload);
+      const title = payload.notification?.title || payload.data?.title || 'Notificación';
+      const body = payload.notification?.body || payload.data?.body || '';
+      // Show In-App Toast
+      toast(`${title}: ${body}`, 'info');
+    });
+
     toast('Notificaciones Activas ✅', 'success');
     return token;
 

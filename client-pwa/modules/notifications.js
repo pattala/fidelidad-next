@@ -204,7 +204,9 @@ export async function obtenerYGuardarToken() {
     await saveTokenToFirestore(token);
 
     // 4. Foreground Listener (Hybrid Mode support)
-    messaging.onMessage((payload) => {
+    // Re-get messaging instance safely
+    const msgInstance = firebase.messaging();
+    msgInstance.onMessage((payload) => {
       console.log('[FCM] Foreground Message (Main):', payload);
       // USER REQUEST: SIEMPRE Popup, NUNCA Toast.
       const title = payload.notification?.title || payload.data?.title || 'Notificación';

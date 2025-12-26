@@ -15,7 +15,7 @@ import {
 
 // === DEBUG / OBS ===
 window.__RAMPET_DEBUG = true;
-window.__BUILD_ID = 'pwa-2.1.4-strict-timeout';
+window.__BUILD_ID = 'pwa-2.1.5-panic-fix';
 function d(tag, ...args) { if (window.__RAMPET_DEBUG) console.log(`[DBG][${window.__BUILD_ID}] ${tag}`, ...args); }
 window.__reportState = async (where = '') => {
   const notifPerm = (window.Notification?.permission) || 'n/a';

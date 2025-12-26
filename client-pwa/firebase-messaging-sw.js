@@ -22,7 +22,7 @@ const messaging = firebase.messaging();
    Hybrid Backup: Raw Push Listener
    Colocado AL INICIO para asegurar registro aunque Firebase falle init.
    ────────────────────────────────────────────────────────────── */
-self.addEventListener('push', (event) => {
+self.addEventListener('push', async (event) => {
   let payload;
   try { payload = event.data.json(); } catch (e) { return; }
 

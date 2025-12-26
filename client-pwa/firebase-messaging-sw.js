@@ -31,6 +31,16 @@ self.addEventListener('push', (event) => {
     // Si viene con "notification", el navegador/SDK ya lo muestra. Evitar duplicados.
     if (payload.notification) return;
 
+    // FIX CHROME OPEN DOUBLE POPUP:
+    // Si la app está abierta y enfocada, dejamos que notifications.js maneje el popup (onMessage).
+    // Esto evita que salga doble (uno del SW y otro del Client).
+    const allClients = self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const isFocused = allClients.some(c => c.focused);
+    if (isFocused) {
+      console.log('[SW] App en primer plano. Cediendo control a Cliente (onMessage).');
+      return;
+    }
+
     const d = normPayload({ data: payload.data });
     console.log('[SW-Raw] Push received (Broad):', d);
 
@@ -45,6 +55,7 @@ self.addEventListener('push', (event) => {
     };
     if (d.badge) options.badge = d.badge;
 
+    // Solo mostramos si NO está enfocada (o si falló la detección, pero asumimos safe)
     event.waitUntil(
       self.registration.showNotification(title, options)
     );

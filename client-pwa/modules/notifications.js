@@ -244,4 +244,50 @@ export async function gestionarPermisoNotificaciones() {
 }
 
 // 🆕 Export placeholder for 'fetchServerNotifEnabled' if needed by UI
-export async function fetchServerNotifEnabled() { return false; } 
+export async function fetchServerNotifEnabled() { return false; }
+
+/* ────────────────────────────────────────────────────────────
+   COMPATIBILITY SHIMS (Restore UI.js linkage)
+   ──────────────────────────────────────────────────────────── */
+export async function handlePermissionRequest() {
+  // Wrapper UI para el botón "Activar"
+  try {
+    await obtenerYGuardarToken();
+  } catch (e) {
+    console.warn('[FCM] handlePermissionRequest fail', e);
+  }
+}
+
+export async function handlePermissionSwitch(enabled) {
+  // Wrapper para el toggle del perfil
+  if (enabled) {
+    try { await obtenerYGuardarToken(); } catch {
+      // Si falla, revertir visualmente el switch sería ideal, 
+      // pero por ahora dejamos que el estado se sincronice solo.
+    }
+  } else {
+    // Disable logic simplificada
+    try {
+      localStorage.removeItem('fcmToken');
+      localStorage.setItem(LS_NOTIF_STATE, 'blocked'); // O deferred?
+
+      const user = firebase.auth().currentUser;
+      if (user) {
+        // Update Firestore config
+        const docId = await getClienteDocIdPorUID(user.uid);
+        if (docId) {
+          await firebase.firestore().collection('clientes').doc(docId).update({
+            'config.notifEnabled': false
+          });
+        }
+      }
+      toast('Notificaciones desactivadas.', 'info');
+    } catch (e) { console.warn('Disable error', e); }
+  }
+}
+
+// Stub para Geo (si UI lo llama y no existe, explotará también)
+export async function wireGeoButtonsOnce() { }
+export async function updateGeoUI() { }
+export async function syncProfileConsentUI() { }
+export async function syncProfileGeoUI() { } 

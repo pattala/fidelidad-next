@@ -15,7 +15,7 @@ import {
 
 // === DEBUG / OBS ===
 window.__RAMPET_DEBUG = true;
-window.__BUILD_ID = 'pwa-2.0.1-compat-fix';
+window.__BUILD_ID = 'pwa-2.0.2-compat-fix-2';
 function d(tag, ...args) { if (window.__RAMPET_DEBUG) console.log(`[DBG][${window.__BUILD_ID}] ${tag}`, ...args); }
 window.__reportState = async (where = '') => {
   const notifPerm = (window.Notification?.permission) || 'n/a';

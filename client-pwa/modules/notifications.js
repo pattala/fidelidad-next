@@ -208,10 +208,18 @@ export async function obtenerYGuardarToken() {
     const msgInstance = firebase.messaging();
     msgInstance.onMessage((payload) => {
       console.log('[FCM] Foreground Message (Main):', payload);
-      // USER REQUEST: SIEMPRE Popup, NUNCA Toast.
-      // ESTRATEGIA v2.1.6: Delegamos TODO al Service Worker (Data-Only).
-      // Aquí no hacemos nada visual para evitar duplicados si el SW dispara.
-      console.log('[FCM] Suppressed Foreground UI (Relying on SW)');
+      // ESTRATEGIA v2.1.7: Hybrid-Passive.
+      // App Abierta -> El Sistema suprime la notif visual. El SW la ignora (ver abajo).
+      // POR LO TANTO -> El Cliente debe mostrar el Popup forzado.
+      const title = payload.notification?.title || payload.data?.title || 'Notificación';
+      const body = payload.notification?.body || payload.data?.body || '';
+      const icon = payload.notification?.icon || payload.data?.icon || 'https://rampet.vercel.app/images/mi_logo_192.png';
+
+      new Notification(title, {
+        body: body,
+        icon: icon,
+        tag: 'rampet-foreground'
+      });
     });
 
     toast('Notificaciones Activas ✅', 'success');

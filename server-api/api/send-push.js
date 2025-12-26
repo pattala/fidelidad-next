@@ -80,7 +80,7 @@ export default async function handler(req, res) {
           try {
             const resp = await fcm.sendEachForMulticast({
               tokens: r.tokens,
-              // notification: { title: titulo, body: cuerpo }, // ❌ Removed: Force SW 'push' event
+              notification: { title: titulo, body: cuerpo }, // ✅ Restore for System/Mobile support
               data: {
                 templateId,
                 uid: r.uid,

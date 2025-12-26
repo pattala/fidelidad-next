@@ -126,8 +126,21 @@ export async function obtenerYGuardarToken() {
     let reg = await navigator.serviceWorker.getRegistration(SW_PATH);
     if (!reg) {
       console.log('[FCM] Registrando SW...');
-      reg = await navigator.serviceWorker.register(SW_PATH);
-      await navigator.serviceWorker.ready;
+      try {
+        reg = await navigator.serviceWorker.register(SW_PATH);
+
+        // Timeout para .ready (Edge Strict mode puede colgarse aquí)
+        const readyPromise = navigator.serviceWorker.ready;
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout_sw_ready')), 3000));
+
+        await Promise.race([readyPromise, timeoutPromise]);
+      } catch (e) {
+        if (e.message === 'timeout_sw_ready') {
+          console.warn('[FCM] SW Ready Timeout (Privacy Block?)');
+          throw new Error('storage_blocked'); // Tratamos como bloqueo de privacidad
+        }
+        throw e;
+      }
     }
 
     // 2. Get Token (CRITICAL STEP)

@@ -7,15 +7,14 @@ import * as Data from './modules/data.js';
 import * as Auth from './modules/auth.js';
 
 // Notificaciones (único import desde notifications.js)
-import {
-  initNotificationsOnce,
+initNotificationsOnce,
   handleBellClick,
   handleSignOutCleanup
-} from './modules/notifications.js';
+} from './modules/notifications.js?v=2.0.3';
 
 // === DEBUG / OBS ===
 window.__RAMPET_DEBUG = true;
-window.__BUILD_ID = 'pwa-2.0.2-compat-fix-2';
+window.__BUILD_ID = 'pwa-2.0.3-cache-bust';
 function d(tag, ...args) { if (window.__RAMPET_DEBUG) console.log(`[DBG][${window.__BUILD_ID}] ${tag}`, ...args); }
 window.__reportState = async (where = '') => {
   const notifPerm = (window.Notification?.permission) || 'n/a';

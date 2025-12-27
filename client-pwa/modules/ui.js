@@ -671,15 +671,19 @@ export async function checkUnreadMessages() {
     const count = snap.size;
     const badge = document.getElementById('notif-badge');
 
+    // Limpiar clases legacy
+    btn.classList.remove('has-unread', 'blink-active');
+
     if (count > 0) {
-      btn.classList.add('has-unread');
+      // NUEVO: Parpadeo agresivo
+      btn.classList.add('blink-active');
+
       // Activar contador si existe elemento visual
       if (badge) {
         badge.textContent = count > 9 ? '9+' : String(count);
         badge.style.display = 'inline-block';
       }
     } else {
-      btn.classList.remove('has-unread');
       if (badge) badge.style.display = 'none';
     }
   } catch (e) { console.warn('[UI] checkUnreadMessages error', e); }
@@ -712,30 +716,83 @@ export async function openInboxModal() {
   const btnNotifs = document.getElementById('btn-notifs');
   const badge = document.getElementById('notif-badge');
 
-  if (btnNotifs) btnNotifs.classList.remove('has-unread');
+  if (btnNotifs) btnNotifs.classList.remove('blink-active', 'has-unread');
   if (badge) badge.style.display = 'none';
 
-  // Wiring botón "Limpiar todo"
-  const clearBtn = document.getElementById('clear-inbox-btn');
-  if (clearBtn) {
-    // Clonar para limpiar listeners previos
-    const newBtn = clearBtn.cloneNode(true);
-    clearBtn.parentNode.replaceChild(newBtn, clearBtn);
-    newBtn.addEventListener('click', async () => {
-      // Uso del modal custom
-      const ok = await showConfirmModal('Limpiar todo', '¿Borrar todos los mensajes? No se puede deshacer.');
-      if (ok) {
-        try {
-          await Data.clearInbox();
-          openInboxModal(); // recargar
-          showToast('Bandeja limpia', 'success');
-        } catch (e) {
-          console.error(e);
-          showToast('Error al limpiar bandeja', 'error');
-        }
-      }
-    });
+  // -- AUTO-CLEANUP: Límite de 20 mensajes --
+  try {
+    await Data.enforceInboxLimit(20);
+  } catch (e) { console.warn('Inbox limit check fail', e); }
+
+  // -- Toolbar de Selección Múltiple --
+  // Insertar toolbar si no existe (o resetearlo)
+  let toolbar = document.getElementById('inbox-toolbar-custom');
+  if (!toolbar) {
+    toolbar = document.createElement('div');
+    toolbar.id = 'inbox-toolbar-custom';
+    toolbar.className = 'inbox-toolbar';
+    toolbar.style.display = 'none'; // Oculto hasta que cargue
+
+    toolbar.innerHTML = `
+        <div style="display:flex; align-items:center; gap:8px;">
+          <input type="checkbox" id="inbox-select-all" style="width:18px; height:18px;">
+          <label for="inbox-select-all" style="font-size:0.9rem; cursor:pointer;">Todos</label>
+        </div>
+        <button id="inbox-delete-selected" class="btn-text-danger" style="color:red; font-size:0.9rem; background:none; border:none; cursor:pointer; opacity:0.5; pointer-events:none;">
+          Borrar Seleccionados
+        </button>
+      `;
+    // Insertar antes del contenedor de items
+    container.parentElement.insertBefore(toolbar, container);
   }
+
+  // Lógica Toolbar
+  const checkAll = document.getElementById('inbox-select-all');
+  const btnDelete = document.getElementById('inbox-delete-selected');
+  if (checkAll) checkAll.checked = false;
+
+  // Función para actualizar estado del botón borrar
+  const updateDeleteBtn = () => {
+    const selected = container.querySelectorAll('.inbox-select-check:checked');
+    const count = selected.length;
+    btnDelete.style.opacity = count > 0 ? '1' : '0.5';
+    btnDelete.style.pointerEvents = count > 0 ? 'auto' : 'none';
+    btnDelete.textContent = count > 0 ? `Borrar (${count})` : 'Borrar Seleccionados';
+
+    // Update checkAll state
+    const allChecks = container.querySelectorAll('.inbox-select-check');
+    if (allChecks.length > 0 && selected.length === allChecks.length) checkAll.checked = true;
+    else checkAll.checked = false;
+  };
+
+  if (checkAll) {
+    checkAll.onclick = () => {
+      const checks = container.querySelectorAll('.inbox-select-check');
+      checks.forEach(c => c.checked = checkAll.checked);
+      updateDeleteBtn();
+    };
+  }
+
+  btnDelete.onclick = async () => {
+    const selected = Array.from(container.querySelectorAll('.inbox-select-check:checked'));
+    if (!selected.length) return;
+
+    const ok = await showConfirmModal('Borrar Mensajes', `¿Eliminar ${selected.length} mensajes seleccionados?`);
+    if (ok) {
+      const ids = selected.map(el => el.value); // Value es ID
+      try {
+        container.innerHTML = '<p style="text-align:center; color:#999;">Borrando...</p>';
+        await Data.deleteInboxMessages(ids);
+        showToast('Mensajes eliminados', 'success');
+        openInboxModal(); // Recargar
+      } catch (e) {
+        console.error(e);
+        showToast('Error al borrar', 'error');
+        openInboxModal();
+      }
+    }
+  };
+
 
   try {
     const user = firebase.auth().currentUser;
@@ -751,53 +808,40 @@ export async function openInboxModal() {
       }
     } catch { }
 
-    const snap = await firebase.firestore()
-      .collection('clientes')
-      .doc(clienteId)
-      .collection('inbox')
-      .orderBy('ts', 'desc')
-      .limit(30)
-      .get();
+    const msgs = await Data.getInboxMessages(50); // Usamos Data layer
 
-    if (snap.empty) {
+    if (!msgs || msgs.length === 0) {
       container.innerHTML = `
         <div style="text-align:center; padding:40px 20px; color:#888;">
           <div style="font-size:40px; margin-bottom:10px;">📭</div>
           <p>No tienes mensajes nuevos.</p>
         </div>`;
+      if (toolbar) toolbar.style.display = 'none';
       return;
     }
 
+    if (toolbar) toolbar.style.display = 'flex';
     container.innerHTML = '';
+
+    // Render Items
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
 
-    // Batch para marcar leídos visualmente si quisiéramos
-    const unreadIds = [];
-
-    snap.forEach(doc => {
-      const d = doc.data();
-      const id = doc.id;
-      if (!d.read) unreadIds.push(doc.ref);
-
+    msgs.forEach(d => {
       const date = d.ts ? new Date(d.ts) : new Date();
       const isToday = date >= startOfToday;
       const dateStr = isToday
         ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         : date.toLocaleDateString([], { day: '2-digit', month: '2-digit' });
 
-      // Clasificación de Tipo e Ícono
       let icon = '📢';
-      let bgColor = '#fff';
       let iconBg = '#f0f0f0';
-
       const titleLower = (d.titulo || '').toLowerCase();
-      const bodyLower = (d.cuerpo || '').toLowerCase();
 
-      if (d.tipo === 'premio' || titleLower.includes('premio') || titleLower.includes('ganaste') || titleLower.includes('regalo')) {
-        icon = '🎁'; iconBg = '#f3e5f5'; // Violeta claro
-      } else if (titleLower.includes('puntos') || bodyLower.includes('puntos')) {
-        icon = '🛍️'; iconBg = '#e8f5e9'; // Verde claro
+      if (d.tipo === 'premio' || titleLower.includes('premio') || titleLower.includes('ganaste')) {
+        icon = '🎁'; iconBg = '#f3e5f5';
+      } else if (titleLower.includes('puntos')) {
+        icon = '🛍️'; iconBg = '#e8f5e9';
       } else if (titleLower.includes('promo') || titleLower.includes('descuento')) {
         icon = '🔥'; iconBg = '#fff3e0'; // Naranja claro
       } else if (d.tipo === 'system' || titleLower.includes('sistema') || titleLower.includes('bienvenid')) {
@@ -806,29 +850,18 @@ export async function openInboxModal() {
 
       const item = document.createElement('div');
       item.className = 'inbox-item';
-      item.style.cssText = `
-        padding: 12px; 
-        border-bottom: 1px solid #eee; 
-        display: flex; 
-        gap: 12px; 
-        align-items: flex-start; 
-        background-color: ${bgColor};
-        position: relative;
-      `;
+      if (!d.read) item.classList.add('destacado');
 
       item.innerHTML = `
-        <div style="
-          width: 40px; height: 40px; 
-          background: ${iconBg}; 
-          border-radius: 50%; 
-          display: flex; align-items: center; justify-content: center; 
-          font-size: 20px; flex-shrink: 0;">
+        <input type="checkbox" class="inbox-select-check" value="${d.id}" onclick="event.stopPropagation()">
+        
+        <div style="width:40px; height:40px; border-radius:50%; background:${iconBg}; display:flex; align-items:center; justify-content:center; font-size:1.2rem; flex-shrink:0;">
           ${icon}
         </div>
-        <div style="flex:1; padding-right: 24px;"> <!-- padding para el delete btn -->
-          <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-            <strong style="font-size:0.95rem; color:#333;">${d.titulo || 'Mensaje'}</strong>
-            <span style="font-size:0.75rem; color:#999; white-space:nowrap; margin-left:8px;">${dateStr}</span>
+        <div class="inbox-content-wrapper">
+          <div class="inbox-title">
+            ${d.titulo || 'Mensaje'}
+            ${!d.read ? '<span class="chip-destacado">Nuevo</span>' : ''}
           </div>
           <p style="margin:0; font-size:0.9rem; color:#555; line-height:1.4;">${d.cuerpo || ''}</p>
         </div>

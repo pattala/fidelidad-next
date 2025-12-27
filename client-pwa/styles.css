@@ -116,89 +116,35 @@ header h1 {
   z-index: 2;
 }
 
-@keyframes bellBlink {
-
-  0%,
-  100% {
-    transform: rotate(0deg);
-    filter: brightness(1);
-  }
-
-  25% {
-    transform: rotate(-12deg);
-    filter: brightness(1.06);
+@keyframes bellBlinkFull {
+  0% {
+    transform: scale(1);
+    filter: brightness(1) drop-shadow(0 0 0 rgba(220, 38, 38, 0));
   }
 
   50% {
-    transform: rotate(0deg);
-    filter: brightness(1);
+    transform: scale(1.1);
+    filter: brightness(1.2) drop-shadow(0 0 6px rgba(220, 38, 38, 0.6));
   }
 
-  75% {
-    transform: rotate(12deg);
-    filter: brightness(1.06);
+  100% {
+    transform: scale(1);
+    filter: brightness(1) drop-shadow(0 0 0 rgba(220, 38, 38, 0));
   }
 }
 
-#btn-notifs.blink {
-  animation: bellBlink 1.2s ease-in-out 6;
+#btn-notifs.blink-active {
+  animation: bellBlinkFull 1.2s ease-in-out infinite !important;
+  color: #c62828 !important;
+  background-color: #ffebee !important;
+  border-color: #ef5350 !important;
 }
 
 #btn-notifs.has-unread {
+  /* Legacy/Fallback class - usamos blink-active ahora */
   background: #ffebee;
-  /* Rojo muy claro pero visible */
   border-color: #ef5350;
-  /* Rojo definido */
   color: #c62828;
-  box-shadow: 0 0 8px rgba(239, 83, 80, 0.4);
-  /* Glow suave */
-  /* Animación de "sacudida" lateral (tipo notificación clásica) */
-  animation: bellShake 3s ease-in-out infinite;
-  transform-origin: top center;
-}
-
-@keyframes bellShake {
-
-  0%,
-  90%,
-  100% {
-    transform: rotate(0);
-  }
-
-  92% {
-    transform: rotate(15deg);
-  }
-
-  94% {
-    transform: rotate(-15deg);
-  }
-
-  96% {
-    transform: rotate(10deg);
-  }
-
-  98% {
-    transform: rotate(-10deg);
-  }
-}
-
-/* Eliminado ::after redundante, ya usamos #notif-badge */
-
-@keyframes bellPulse {
-  0% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7);
-  }
-
-  70% {
-    transform: scale(1);
-    box-shadow: 0 0 0 6px rgba(255, 0, 0, 0);
-  }
-
-  100% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(255, 0, 0, 0);
-  }
 }
 
 /* ───────── Pantallas ───────── */
@@ -582,53 +528,90 @@ input:checked+.slider:before {
 }
 
 /* INBOX */
+/* INBOX */
+.inbox-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
 .inbox-item {
   position: relative;
   outline: none;
   cursor: pointer;
+  display: flex;
+  /* Flex para alinear checkbox */
+  gap: 12px;
+  align-items: flex-start;
+  padding: 10px;
+  /* Mejor área de click */
+  border-radius: 8px;
+  /* Redondear bordes */
+  transition: background 0.1s;
+}
+
+.inbox-item:hover {
+  background: #f9f9f9;
 }
 
 .inbox-item:focus-visible {
   box-shadow: 0 0 0 3px rgba(0, 123, 255, .35);
 }
 
+/* Checkbox overlay para selección múltiple */
+.inbox-select-check {
+  margin-top: 4px;
+  /* Alinear visualmente con el texto */
+  transform: scale(1.2);
+  cursor: pointer;
+}
+
+.inbox-content-wrapper {
+  flex: 1;
+}
+
 .inbox-item.destacado {
   background: #fffbe6;
-  box-shadow: inset 0 0 0 2px #ffe58f;
+  box-shadow: inset 0 0 0 1px #ffe58f;
 }
 
 .inbox-item.destacado::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  background: #fadb14;
-  border-radius: 12px 0 0 12px;
+  /* Linea lateral eliminada para no chocar con checkbox */
+  display: none;
 }
 
 .chip-destacado {
   display: inline-block;
-  font-size: 12px;
-  padding: 2px 8px;
-  border-radius: 999px;
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 4px;
   background: #fff1b8;
-  color: #613400;
+  color: #d48806;
   border: 1px solid #ffe58f;
+  margin-left: 6px;
+  vertical-align: middle;
 }
 
 .inbox-title {
-  font-size: 1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 2px;
 }
 
 .inbox-body {
-  font-size: .95rem;
+  font-size: 0.9rem;
+  color: #555;
+  line-height: 1.4;
 }
 
 .inbox-date {
-  font-size: .82rem;
-  color: #888;
+  font-size: 0.75rem;
+  color: #999;
+  margin-top: 4px;
+  display: block;
 }
 
 /* ───────── Historial & Premios ───────── */

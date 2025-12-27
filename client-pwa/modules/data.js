@@ -517,6 +517,44 @@ export async function deleteInboxItem(notifId) {
   await db.collection('clientes').doc(clienteId).collection('inbox').doc(notifId).delete();
 }
 
+export async function getInboxMessages(limitCnt = 50) {
+  const uid = Auth.getCurrentUser()?.uid;
+  if (!uid) return [];
+  const clienteId = (await getClienteDocIdPorUID(uid)) || uid;
+  const snap = await db.collection('clientes').doc(clienteId).collection('inbox').orderBy('ts', 'desc').limit(limitCnt).get();
+  return snap.docs.map(d => ({ ...d.data(), id: d.id, ref: d.ref }));
+}
+
+export async function deleteInboxMessages(ids) {
+  if (!ids || !ids.length) return;
+  const uid = Auth.getCurrentUser()?.uid;
+  if (!uid) throw new Error('No auth');
+  const clienteId = (await getClienteDocIdPorUID(uid)) || uid;
+  const col = db.collection('clientes').doc(clienteId).collection('inbox');
+
+  const batch = db.batch();
+  ids.forEach(id => {
+    batch.delete(col.doc(id));
+  });
+  await batch.commit();
+}
+
+export async function enforceInboxLimit(limit = 20) {
+  try {
+    const msgs = await getInboxMessages(50); // Traemos un poco más del límite
+    if (msgs.length <= limit) return;
+
+    // Identificar excedentes (los más viejos, ya vienen ordenados desc por getInboxMessages)
+    const toDelete = msgs.slice(limit);
+    const ids = toDelete.map(m => m.id);
+    console.log(`[Inbox] Limpiando ${ids.length} mensajes antiguos por límite de ${limit}.`);
+
+    await deleteInboxMessages(ids);
+  } catch (e) {
+    console.warn('[Inbox] Falló enforceInboxLimit', e);
+  }
+}
+
 export async function clearInbox() {
   const uid = Auth.getCurrentUser()?.uid;
   if (!uid) return;

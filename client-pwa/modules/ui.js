@@ -80,6 +80,18 @@ export function renderMainScreen(clienteData, premiosData, campanasData = [], op
 
   if (!clienteData) return;
 
+  // -- LOGICA NOTIFICACIONES --
+  // 1. Chequeo inicial al renderizar
+  setTimeout(checkUnreadMessages, 1000);
+
+  // 2. Polling automático cada 60s
+  if (window._notifPollId) clearInterval(window._notifPollId);
+  window._notifPollId = setInterval(() => {
+    if (document.visibilityState === 'visible') {
+      checkUnreadMessages();
+    }
+  }, 60000);
+
   safeSetText('cliente-nombre', (clienteData.nombre || '--').split(' ')[0]);
   safeSetText('cliente-numero-socio', clienteData.numeroSocio ? `#${clienteData.numeroSocio}` : 'N° De Socio Pendiente de Aceptacion');
   safeSetText('cliente-puntos', clienteData.puntos || 0);

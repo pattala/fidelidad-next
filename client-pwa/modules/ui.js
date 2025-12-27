@@ -448,6 +448,14 @@ function reorderProfileSections() {
   container.appendChild(prefsSection);
   // Domicilio inmediatamente antes de Preferencias
   container.insertBefore(addressSection, prefsSection);
+
+  // Listener para ocultar banner de domicilio cuando se completa
+  document.addEventListener('rampet:address:dismissed', () => {
+    const banner = document.getElementById('mission-address-card');
+    if (banner) banner.style.display = 'none';
+    const slot = document.getElementById('geo-context-slot');
+    if (slot) slot.innerHTML = ''; // Limpiar cualquier promt pendiente
+  });
 }
 
 async function syncProfileTogglesFromRuntime() {
@@ -918,16 +926,40 @@ export async function openInboxModal() {
       `;
 
       item.onclick = async (e) => {
+        // Evitar conflictos con el checkbox
         if (e.target.classList && e.target.classList.contains('inbox-select-check')) return;
 
-        try { await Data.markInboxAsRead(d.id); } catch { }
+        // 1. Marcar como leído visualmente + BD
+        try {
+          await Data.markInboxAsRead(d.id);
+          // Feedback inmediato en UI: quitar destacado y etiqueta "Nuevo"
+          item.classList.remove('destacado');
+          const chip = item.querySelector('.chip-destacado');
+          if (chip) chip.remove();
+        } catch { }
 
-        if (d.url && d.url !== '#') {
-          location.href = d.url;
-        } else if (d.click_action) {
-          location.href = d.click_action;
+        // 2. Navegación inteligente
+        const targetUrl = d.url || d.click_action;
+
+        // Si hay una URL válida y NO es un hash vacío o la misma página
+        if (targetUrl && targetUrl !== '#' && !targetUrl.endsWith(location.pathname)) {
+          // Si es absoluta externa, abrir nueva pestaña. Si es relativa, navegar.
+          if (targetUrl.startsWith('http')) {
+            window.open(targetUrl, '_blank');
+          } else {
+            location.href = targetUrl;
+          }
         }
-        document.getElementById('inbox-modal').style.display = 'none';
+        // Si NO hay URL, simplemente cerramos el modal (ya se marcó leído)
+        // O podríamos expandir un detalle si el cuerpo es largo (futura mejora)
+        // Por ahora, asumimos "comportamiento notificación": click = acción o descartar.
+        else {
+          // NO recargar la página. Solo cerrar modal si el usuario espera "ir" a ver algo.
+          // Si es solo texto informativo, quizás es mejor no cerrar, pero el usuario dijo "no se abre nada vuelve a la pwa".
+          // Probablemente el comportamiento deseado sea "marcar leido y ya".
+          // Vamos a mostrar un Toast "Mensaje marcado como leído" para dar feedback.
+          // showToast('Mensaje marcado como leído', 'info'); 
+        }
       };
 
       item.querySelector('.inbox-select-check').addEventListener('change', updateDeleteBtn);

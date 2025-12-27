@@ -22,38 +22,50 @@ const messaging = firebase.messaging();
    Hybrid Backup: Raw Push Listener
    Colocado AL INICIO para asegurar registro aunque Firebase falle init.
    ────────────────────────────────────────────────────────────── */
+/* ──────────────────────────────────────────────────────────────
+   Hybrid Backup: Raw Push Listener
+   Colocado AL INICIO para asegurar registro aunque Firebase falle init.
+   ────────────────────────────────────────────────────────────── */
 self.addEventListener('push', async (event) => {
   let payload;
   try { payload = event.data.json(); } catch (e) { return; }
 
   // FIX: Mostramos SIEMPRE si hay data (backup agresivo)
   if (payload && payload.data) {
-    // Si viene con "notification", el navegador/SDK ya lo muestra. Evitar duplicados.
-    if (payload.notification) return;
+    // Ya NO viene "notification" desde el backend, así que esto siempre es data-only
 
-    // ESTRATEGIA v2.1.6: SINGLE SOURCE OF TRUTH
-    // Eliminamos el chequeo de Foco. El SW SIEMPRE dispara la notificación.
-    // Como eliminamos el 'new Notification' del cliente, esto garantiza 1 solo popup.
+    // ESTRATEGIA v2.2: DATA-ONLY AGRESIVO
+    // El SW es la única fuente de verdad.
 
     const d = normPayload({ data: payload.data });
-    console.log('[SW-Raw] Push received (Broad):', d);
+    console.log('[SW-Raw] Push received (Data-Only):', d);
 
     const title = d.title || 'Club de Beneficios';
     const options = {
       body: d.body || 'Tienes un nuevo mensaje',
       icon: d.icon,
-      tag: d.tag,
-      data: { id: d.id, url: d.url, via: 'raw-push-broad' },
-      renotify: true,
-      requireInteraction: true
+      tag: d.tag, // Importante para agrupar
+      data: { id: d.id, url: d.url, via: 'raw-push-data-only' },
+
+      // -- OPCIONES AGRESIVAS DE PERSISTENCIA --
+      renotify: true,           // Fuerza vibración/sonido aunque sea el mismo tag
+      requireInteraction: true, // Se queda pegado en pantalla hasta que el usuario interactúa
+      actions: [
+        { action: 'open', title: 'Ver Mensaje' }
+      ]
     };
     if (d.badge) options.badge = d.badge;
 
     event.waitUntil(
       self.registration.showNotification(title, options)
+        .then(() => {
+          // Opcional: Avisar a clientes que llegó
+          broadcastLog('🔔 Notification shown via Raw Push', d);
+        })
     );
   }
 });
+
 self.addEventListener('fetch', (event) => {
   const req = event.request;
 
@@ -114,33 +126,20 @@ function broadcastLog(msg, data) {
 }
 
 messaging.onBackgroundMessage(async (payload) => {
-  console.log('[SW] onBackgroundMessage:', payload);
-  broadcastLog('📩 Background Message received:', payload);
+  console.log('[SW] onBackgroundMessage (Silent - handled by Raw Push):', payload);
+  broadcastLog('📩 Background Message received (Silent)', payload);
+
+  // ESTRATEGIA v2.2:
+  // DESACTIVAMOS showNotification AQUÍ para evitar duplicados.
+  // El listener 'push' raw de arriba ya hizo el trabajo sucio.
 
   const d = normPayload(payload);
-
   try {
     const list = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     list.forEach(c => c.postMessage({ type: 'PUSH_DELIVERED', data: d }));
   } catch { }
 
-  const opts = {
-    body: d.body,
-    icon: d.icon,
-    tag: d.tag,
-    data: { id: d.id, url: d.url, via: 'sw' }
-  };
-  if (d.badge) opts.badge = d.badge;
-  // renotify en true para forzar alerta visual/sonora aunque usemos el mismo tag
-  opts.renotify = true;
-  opts.requireInteraction = true; // Hace que el toast no desaparezca solo (opcional, ayuda en desktop)
-
-  try {
-    await self.registration.showNotification(d.title, opts);
-  } catch (e) {
-    console.warn('[SW] showNotification error:', e?.message || e);
-    broadcastLog('❌ Error showing notification:', e);
-  }
+  // No llamamos showNotification aquí.
 });
 
 /* ──────────────────────────────────────────────────────────────

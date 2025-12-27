@@ -267,14 +267,9 @@ export default async function handler(req, res) {
     ...extraData,
   });
 
-  // Config común a todos los lotes
+  // Config común a todos los lotes (DATA ONLY para control total en SW)
   const baseMsg = {
-    notification: {
-      title,
-      body: msgBody,
-      // Si hay imagen/icono, ayuda
-      ...(data.icon ? { image: data.icon } : {})
-    },
+    // notification: { ... }  <-- ELIMINADO para evitar duplicados y bugs en desktop
     data,
     webpush: {
       fcmOptions: { link: data.url || "/notificaciones" },

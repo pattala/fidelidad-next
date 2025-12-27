@@ -12,6 +12,7 @@ import * as Transacciones from './modules/transacciones.js';
 import * as Config from './modules/config.js';
 import * as Notificaciones from './modules/notificaciones.js';
 import * as Campanas from './modules/campanas.js';
+import * as WhatsApp from './modules/whatsapp.js'; // [NEW]
 import * as UI from './modules/ui.js';
 
 // Referencias DOM
@@ -155,6 +156,9 @@ function setupEventListeners() {
       }
       if (tabName === 'notificaciones') {
         Notificaciones.initNotificaciones?.();
+      }
+      if (tabName === 'whatsapp') {
+        WhatsApp.initWhatsApp?.();
       }
     });
   });
@@ -305,6 +309,20 @@ function setupEventListeners() {
   UI.attachAutocomplete('cliente-bono-buscar', { onPick: (it) => { const i = document.getElementById('cliente-bono-buscar'); if (i) i.value = String(it.numeroSocio || it.dni || ''); } });
   UI.attachAutocomplete('cliente-premio', { onPick: (it) => { const i = document.getElementById('cliente-premio'); if (i) i.value = String(it.numeroSocio || it.dni || ''); } });
 
+  // WhatsApp Autocomplete
+  UI.attachAutocomplete('whatsapp-buscar-cliente', {
+    onPick: (it) => {
+      const v = String(it.numeroSocio || it.dni || '');
+      const i = document.getElementById('whatsapp-buscar-cliente');
+      if (i) i.value = v;
+      // Trigger manual de búsqueda para mostrar info
+      const btn = document.getElementById('whatsapp-btn-buscar');
+      if (btn) btn.click();
+    }
+  });
+
 }
+
+
 
 window.addEventListener('DOMContentLoaded', main);

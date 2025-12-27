@@ -123,6 +123,7 @@
       <button class="tablinks" data-tab="bonos">🎁 Bonos y Ajustes</button>
       <button class="tablinks" data-tab="premios">🏆 Canjear</button>
       <button class="tablinks" data-tab="notificaciones">📢 Notificaciones</button>
+      <button class="tablinks" data-tab="whatsapp">💬 WhatsApp</button>
       <button class="tablinks" data-tab="campanas">📣 Campañas</button>
       <button class="tablinks" data-tab="config">⚙️ Configuración</button>
       <button id="ver-cumpleanos-btn" title="No hay cumpleaños hoy">🎂 Ver Cumpleaños de Hoy</button>
@@ -660,6 +661,41 @@
       </div>
     </div>
     <!-- /NOTIFICACIONES -->
+
+    <!-- WHATSAPP -->
+    <div id="whatsapp" class="tabcontent">
+      <h2>💬 Enviar WhatsApp (Directo)</h2>
+
+      <div class="section">
+        <p>Envía mensajes directamente usando tu aplicación de WhatsApp Desktop (o Web). <br>
+          <small>Esta función abre un chat con el cliente pre-cargando el mensaje.</small>
+        </p>
+      </div>
+
+      <div class="section">
+        <h3>1. Buscar Cliente</h3>
+        <div class="form-grid" style="grid-template-columns: 2fr 1fr;">
+          <input type="text" id="whatsapp-buscar-cliente" placeholder="Buscar por N° Socio o DNI...">
+          <button id="whatsapp-btn-buscar" class="primary-btn">Buscar</button>
+        </div>
+        <div id="whatsapp-cliente-encontrado"
+          style="margin-top:15px; padding:10px; background:#f4f4f4; border-radius:5px;"></div>
+      </div>
+
+      <div id="whatsapp-mensaje-area" class="section" style="display:none;">
+        <h3>2. Escribir Mensaje</h3>
+        <textarea id="whatsapp-mensaje-texto" rows="5" style="width:100%;"
+          placeholder="Hola! Te escribimos para contarte..."></textarea>
+
+        <div style="margin-top:15px;">
+          <button id="whatsapp-enviar-btn" class="save-btn"
+            style="background-color:#25D366; color:white; font-weight:bold;">
+            📲 Abrir WhatsApp y Enviar
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- /WHATSAPP -->
 
     <!-- CAMPANAS -->
     <div id="campanas" class="tabcontent">

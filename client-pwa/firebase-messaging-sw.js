@@ -37,7 +37,21 @@ self.addEventListener('push', async (event) => {
     // ESTRATEGIA v2.2: DATA-ONLY AGRESIVO
     // El SW es la única fuente de verdad.
 
+    // 0. Verificar si la app está ABIERTA y EN FOCO
+    // Si el usuario ya está viendo la app, evitamos duplicar con un popup de sistema molesto.
+    const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const isFocused = clientList.some(client => client.focused);
+
     const d = normPayload({ data: payload.data });
+
+    // Si está en foco, avisamos a la UI (postMessage) y salimos sin Notification nativa
+    if (isFocused) {
+      console.log('[SW-Raw] App in foreground. Skipping system notification.');
+      // Enviamos mensaje a la UI por si quiere mostrar un Toast suave
+      clientList.forEach(c => c.postMessage({ type: 'PUSH_FOREGROUND', data: d }));
+      return;
+    }
+
     console.log('[SW-Raw] Push received (Data-Only):', d);
 
     const title = d.title || 'Club de Beneficios';
@@ -60,7 +74,7 @@ self.addEventListener('push', async (event) => {
       self.registration.showNotification(title, options)
         .then(() => {
           // Opcional: Avisar a clientes que llegó
-          broadcastLog('🔔 Notification shown via Raw Push', d);
+          broadcastLog('🔔 Notification shown via Raw Push (Background)', d);
         })
     );
   }

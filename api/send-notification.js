@@ -273,7 +273,10 @@ export default async function handler(req, res) {
     data,
     webpush: {
       fcmOptions: { link: data.url || "/notificaciones" },
-      headers: { TTL: "2419200" } // 28 días
+      headers: {
+        TTL: "2419200", // 28 días
+        Urgency: "high" // RFC 8030: Ayuda a despertar navegadores dormidos
+      }
     }
   };
 

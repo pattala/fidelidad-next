@@ -543,7 +543,8 @@ export function subscribeToUnreadInbox(callback) {
     if (isCancelled || !cid) return;
     const q = db.collection('clientes').doc(cid).collection('inbox').where('read', '==', false);
     internalUnsub = q.onSnapshot(snap => {
-      callback(snap.size);
+      // Pass size AND changes to allow UI to detect new items
+      callback(snap.size, snap.docChanges());
     }, err => console.warn('[Data] Inbox listen error', err));
   });
 

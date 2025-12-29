@@ -85,7 +85,8 @@ export function renderMainScreen(clienteData, premiosData, campanasData = [], op
   // Si ya tenemos suscripción, no la duplicamos. Si cambió el usuario, podríamos reiniciar,
   // pero por simplicidad asumimos SPA simple.
   if (!unsubscribeInbox) {
-    unsubscribeInbox = Data.subscribeToUnreadInbox((count) => {
+    let _firstLoad = true;
+    unsubscribeInbox = Data.subscribeToUnreadInbox((count, changes) => {
       const btn = document.getElementById('btn-notifs');
       const badge = document.getElementById('notif-badge');
 
@@ -100,6 +101,27 @@ export function renderMainScreen(clienteData, premiosData, campanasData = [], op
           btn.classList.remove('blink-active');
           if (badge) badge.style.display = 'none';
         }
+      }
+
+      // Detectar nuevos mensajes para mostrar popup
+      if (_firstLoad) {
+        _firstLoad = false;
+        return;
+      }
+
+      if (changes && Array.isArray(changes)) {
+        changes.forEach(change => {
+          if (change.type === 'added') {
+            const data = change.doc.data();
+            const title = data.title || 'Nuevo Mensaje';
+            // Solo notificamos si parece reciente (evitar repetidos si algo raro pasa)
+            // Pero como filtramos firstLoad, asumimos que es realtime.
+            showToast(`📩 ${title}`, 'info', 5000);
+
+            // Opcional: Vibrar
+            if (navigator.vibrate) try { navigator.vibrate(200); } catch { }
+          }
+        });
       }
     });
   }
@@ -556,6 +578,20 @@ export async function openProfileModal() {
   const addr = c?.domicilio?.addressLine || '—';
   setText('prof-address-summary', addr);
 
+  // -- POPULATE ADDRESS FORM (Fix) --
+  const comps = c?.domicilio?.components || {};
+  setVal('dom-calle', comps.calle);
+  setVal('dom-numero', comps.numero);
+  setVal('dom-piso', comps.piso);
+  setVal('dom-depto', comps.depto);
+  setVal('dom-cp', comps.codigoPostal || comps.cp);
+  setVal('dom-referencia', comps.referencia);
+  // Selects/Inputs simples (sin logica de carga dinamica compleja por ahora)
+  setVal('dom-provincia', comps.provincia);
+  setVal('dom-partido', comps.partido);
+  setVal('dom-localidad', comps.localidad);
+  setVal('dom-pais', comps.pais || 'Argentina');
+
   // 2) Mostramos ya el modal…
   m.style.display = 'flex';
 
@@ -700,6 +736,24 @@ document.getElementById('address-save')?.addEventListener('click', async () => {
 
     // Disparar evento de dismissed para que no vuelva a molestar
     document.dispatchEvent(new CustomEvent('rampet:address:dismissed'));
+
+    // ─────────────────────────────────────────────
+    // GAMIFICATION: Validar si completó todo y premiar
+    // ─────────────────────────────────────────────
+    if (dom.calle && dom.numero && dom.provincia && (dom.localidad || dom.partido || dom.provincia === 'CABA')) {
+      try {
+        const token = await auth.currentUser.getIdToken();
+        fetch('/api/assign-points', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason: 'profile_address' })
+        }).then(r => r.json()).then(d => {
+          if (d.ok && d.pointsAdded > 0) {
+            showToast(`¡Genial! Ganaste +${d.pointsAdded} Puntos por completar tus datos 🎁`, 'success');
+          }
+        }).catch(err => console.warn('[PWA] Error asignando puntos domicilio:', err));
+      } catch (eToken) { console.warn('[PWA] No token for points:', eToken); }
+    }
   } catch (e) {
     console.error(e);
     showToast('Error al guardar domicilio', 'error');

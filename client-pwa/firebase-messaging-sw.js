@@ -37,20 +37,16 @@ self.addEventListener('push', async (event) => {
     // ESTRATEGIA v2.2: DATA-ONLY AGRESIVO
     // El SW es la única fuente de verdad.
 
-    // 0. Verificar si la app está ABIERTA y EN FOCO
-    // Si el usuario ya está viendo la app, evitamos duplicar con un popup de sistema molesto.
+    // 0. SIEMPRE MOSTRAR POPUP (Incluso en Foreground) - Pedido explícito
+    // Aunque la app esté abierta, forzamos la notificación de sistema.
     const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-    const isFocused = clientList.some(client => client.focused);
 
     const d = normPayload({ data: payload.data });
 
-    // Si está en foco, avisamos a la UI (postMessage) y salimos sin Notification nativa
-    if (isFocused) {
-      console.log('[SW-Raw] App in foreground. Skipping system notification.');
-      // Enviamos mensaje a la UI por si quiere mostrar un Toast suave
-      clientList.forEach(c => c.postMessage({ type: 'PUSH_FOREGROUND', data: d }));
-      return;
-    }
+    // Avisamos a la UI para actualizaciones en tiempo real (badges, etc)
+    clientList.forEach(c => c.postMessage({ type: 'PUSH_FOREGROUND', data: d }));
+
+    // NO HACEMOS return, dejamos que siga para ejecutar showNotification abajo 👇
 
     console.log('[SW-Raw] Push received (Data-Only):', d);
 

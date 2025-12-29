@@ -208,9 +208,13 @@ export async function obtenerYGuardarToken() {
     const msgInstance = firebase.messaging();
     msgInstance.onMessage((payload) => {
       console.log('[FCM] Foreground Message (Main):', payload);
-      // ESTRATEGIA v2.1.7: Hybrid-Passive.
-      // App Abierta -> El Sistema suprime la notif visual. El SW la ignora (ver abajo).
-      // POR LO TANTO -> El Cliente debe mostrar el Popup forzado.
+      // ESTRATEGIA v3: El SW (Service Worker) ahora fuerza el Popup SIEMPRE.
+      // Aquí NO generamos notificación visual para evitar duplicados.
+      // Solo nos sirve para actualizar UI si hiciera falta (aunque PUSH_FOREGROUND del SW ya lo hace).
+      console.log('[FCM] Foreground Message recibida (Visual gestionada por SW).');
+
+      /* 
+      // Código Legacy (Desactivado para evitar doble popup)
       const title = payload.notification?.title || payload.data?.title || 'Notificación';
       const body = payload.notification?.body || payload.data?.body || '';
       const icon = payload.notification?.icon || payload.data?.icon || 'https://rampet.vercel.app/images/mi_logo_192.png';
@@ -220,6 +224,7 @@ export async function obtenerYGuardarToken() {
         icon: icon,
         tag: 'rampet-foreground'
       });
+      */
     });
 
     toast('Notificaciones Activas ✅', 'success');

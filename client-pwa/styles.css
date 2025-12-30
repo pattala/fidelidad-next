@@ -1092,34 +1092,10 @@ header h1 {
 /* botón “Crear Cuenta” un poco más protagonista */
 #register-screen #register-btn {
   font-size: 1rem;
-  padding: 12px 18px;
-  border-radius: 12px;
-}
-
-/* Estilo específico para el link "Regístrate aquí" del login */
-#login-screen .toggle-link a#show-register-link {
-  color: #000 !important;
-  /* letra negra */
-  background: #dc26264d;
-  /* fondo solicitado */
-  padding: 4px 10px;
-  /* un poco de aire */
-  border-radius: 8px;
-  /* pastilla */
-  font-weight: 700;
-  /* más destacado */
-  text-decoration: none;
-  /* sin subrayado */
-}
-
-#login-screen .toggle-link a#show-register-link:hover,
-#login-screen .toggle-link a#show-register-link:focus {
-  background: #dc262680;
-  /* un poco más intenso al hover/focus */
   outline: none;
   text-decoration: underline;
   /* feedback visual accesible */
 }
-/* Pantallas (SPA) - FIX OVERLAP */
-.screen { display: none; background: var(--bg); min-height: 100vh; width: 100%; position: absolute; top: 0; left: 0; z-index: 50; }
-.screen.active { display: block; }
+
+/* Pantallas (SPA) - FIX OVERLAP REMOVED to restore flow */
+/* .screen { display: none; ... } */

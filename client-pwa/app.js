@@ -1046,53 +1046,40 @@ async function main() {
 
         // PASO 2: GEO
         if (btnGeoEnable) btnGeoEnable.onclick = () => {
-          console.log('[Onboarding] Click Geo Enable');
+          console.log('[Onboarding] Click Geo Enable -> Zero Wait Advancing');
 
-          btnGeoEnable.textContent = 'Configurando...';
-          btnGeoEnable.disabled = true;
+          // Visual Feedback (aunque sea breve)
+          btnGeoEnable.textContent = 'Activando...';
 
-          let finished = false;
-          const safeFinish = () => {
-            if (finished) return;
-            finished = true;
-            console.log('[Onboarding] Calling safeFinish()');
-            finishOnboarding();
-          };
+          // 1. Disparar el Prompt Nativo (El navegador lo mostrará encima de la UI)
+          if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+              (pos) => {
+                console.log('[Onboarding/Bk] Geo Success', pos);
+                try {
+                  localStorage.setItem('geoState', 'active');
+                  if (window.toast) window.toast('✅ Zona Activada', 'success');
 
-          if (!navigator.geolocation) {
-            safeFinish();
-            return;
+                  // Sync Fire-and-forget
+                  const db = firebase.firestore();
+                  db.collection('clientes').where('authUID', '==', user.uid).limit(1).get().then(qs => {
+                    if (!qs.empty) qs.docs[0].ref.update({ 'config.geoEnabled': true, 'config.geoUpdatedAt': new Date().toISOString() });
+                  }).catch(e => console.warn(e));
+                } catch (e) { console.error('Geo logic err', e); }
+              },
+              (err) => {
+                console.warn('[Onboarding/Bk] Geo Error/Deny', err);
+                if (err.code === 1) localStorage.setItem('geoState', 'blocked');
+              },
+              { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+            );
+          } else {
+            // No support
           }
 
-          navigator.geolocation.getCurrentPosition(
-            (pos) => {
-              console.log('[Onboarding] Geo Success', pos);
-              try {
-                localStorage.setItem('geoState', 'active');
-                if (window.toast) window.toast('✅ Zona Activada', 'success');
-
-                // Sync Fire-and-forget
-                const db = firebase.firestore();
-                db.collection('clientes').where('authUID', '==', user.uid).limit(1).get().then(qs => {
-                  if (!qs.empty) qs.docs[0].ref.update({ 'config.geoEnabled': true, 'config.geoUpdatedAt': new Date().toISOString() });
-                }).catch(err => console.warn('[Onboarding] Sync Error', err));
-
-              } catch (e) {
-                console.error('[Onboarding] Success Logic Error:', e);
-              }
-
-              safeFinish();
-            },
-            (err) => {
-              console.warn('[Onboarding] Geo Error/Deny', err);
-              if (err.code === 1) {
-                localStorage.setItem('geoState', 'blocked');
-              }
-              safeFinish();
-            },
-            // Timeout 15 segs (damos tiempo al GPS)
-            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-          );
+          // 2. AVANZAR INMEDIATAMENTE (Zero Wait)
+          // La App carga abajo, y el prompt de "Permitir" queda flotando.
+          finishOnboarding();
         };
 
         if (btnGeoSkip) btnGeoSkip.onclick = () => {

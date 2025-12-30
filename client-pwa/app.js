@@ -585,13 +585,24 @@ function setupMainAppScreenListeners() {
 
   // Listener GLOBAL para ocultar banner de domicilio cuando se completa
   document.addEventListener('rampet:address:dismissed', () => {
-    const banner = document.getElementById('mission-address-card');
-    if (banner) banner.style.display = 'none';
-    const addressCard = document.getElementById('address-card'); // También cerramos el form si está abierto
+    console.log('[UI] Address Dismissed Event Recibido');
+
+    // Fuerza bruta visual
+    const missionCard = document.getElementById('mission-address-card');
+    if (missionCard) missionCard.style.setProperty('display', 'none', 'important');
+
+    const addressCard = document.getElementById('address-card');
     if (addressCard) {
       addressCard.style.display = 'none';
       const container = document.querySelector('.container') || document.body;
-      container.appendChild(addressCard); // Restaurar al main si estaba en modal
+      container.appendChild(addressCard);
+    }
+
+    // Update State for logic checks
+    if (window.clienteData) {
+      // Mock complete para que checkMissionStatus no lo vuelva a abrir
+      window.clienteData.domicilio = window.clienteData.domicilio || {};
+      window.clienteData.domicilio.status = 'COMPLETE';
     }
   });
 
@@ -1079,7 +1090,8 @@ async function main() {
               }
               safeFinish();
             },
-            { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+            // Timeout 15 segs (damos tiempo al GPS)
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
           );
         };
 
@@ -1091,6 +1103,9 @@ async function main() {
         UI.showScreen('onboarding-screen');
 
       } else {
+        // ─────────────────────────────────────────────
+        // Flujo Normal (Ya registrado)
+        // ─────────────────────────────────────────────
         // Flujo normal directo al home
         UI.showScreen('main-app-screen');
         try { await setupAddressSection(); } catch (e) { }
@@ -1103,6 +1118,7 @@ async function main() {
 
       // Si estamos en onboarding, REPRIMIMOS que data.js cambie la pantalla (para que no pise el onboarding)
       const suppressNav = !!justSignedUp;
+      console.log('[Data] Listening to client data... suppressNav:', suppressNav);
       Data.listenToClientData(user, { suppressNavigation: suppressNav });
 
       document.addEventListener('rampet:cliente-updated', (e) => {
@@ -1132,8 +1148,10 @@ async function main() {
       openInboxIfQuery();
 
       try {
+        console.log('[INBOX] Starting Realtime Inbox Listener...');
         if (inboxUnsub) { try { inboxUnsub(); } catch { } }
         inboxUnsub = await listenInboxRealtime();
+        console.log('[INBOX] Listener Started.');
       } catch (e) { console.warn('[INBOX] realtime no iniciado:', e?.message || e); }
 
     } else {

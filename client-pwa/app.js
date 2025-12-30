@@ -237,6 +237,11 @@ function renderInboxList(items) {
       }
     });
   });
+
+  // ⚡ FORCE SYNC BADGE
+  // Recalculate unread count from the items we aren't displaying and update UI
+  const unreadCount = data.filter(i => !i.read).length;
+  if (window.setBadgeCount) window.setBadgeCount(unreadCount);
 }
 async function fetchInboxBatchUnified() {
   const clienteRef = await resolveClienteRef();

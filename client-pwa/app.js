@@ -996,10 +996,17 @@ async function main() {
         const btnGeoSkip = document.getElementById('btn-onboarding-geo-skip');
 
         const finishOnboarding = async () => {
-          localStorage.removeItem('justSignedUp');
-          UI.showScreen('main-app-screen');
-          try { await setupAddressSection(); } catch (e) { }
-          try { initNotificationsOnce(); } catch (e) { }
+          console.log('[Onboarding] finishOnboarding START');
+          try { localStorage.removeItem('justSignedUp'); } catch (e) { }
+
+          try {
+            console.log('[Onboarding] Screen Switch > main-app-screen');
+            UI.showScreen('main-app-screen');
+          } catch (e) { console.error('[Onboarding] UI Switch Error:', e); }
+
+          // Background tasks (no await to avoid UI block)
+          setupAddressSection().catch(e => console.warn(e));
+          initNotificationsOnce().catch(e => console.warn(e));
         };
 
         const goToStep2 = () => {
@@ -1013,11 +1020,10 @@ async function main() {
           console.log('[Onboarding] Click Notif Enable');
           try {
             const m = NotifMod || await import('./modules/notifications.js');
-            // Must be awaited inside user gesture
             await m.handlePermissionRequest();
           } catch (e) {
             console.error('[Onboarding] Notif Error:', e);
-            alert('Error al pedir permisos. Continua al siguiente paso.');
+            // alert('Error al pedir permisos. Continua al siguiente paso.'); 
           }
           goToStep2();
         };
@@ -1031,21 +1037,14 @@ async function main() {
         if (btnGeoEnable) btnGeoEnable.onclick = () => {
           console.log('[Onboarding] Click Geo Enable');
 
-          // Visual Feedback
           btnGeoEnable.textContent = 'Configurando...';
           btnGeoEnable.disabled = true;
-
-          // Safety Valve: Avance forzado en 5s si el navegador se cuelga
-          // O si el usuario se tarda mucho en decidir (Background processing approach)
-          // Pero ojo: si el prompt está abierto, cambiar la pantalla puede ser confuso.
-          // Haremos que al ENTRAR al callback (exito/error) avancemos.
-          // Y si el GPS "tarda" en resolver la posición (pero ya dio permiso), que no bloquee.
-          // Solución Híbrida: Pedimos posición con timeout bajo (8s).
 
           let finished = false;
           const safeFinish = () => {
             if (finished) return;
             finished = true;
+            console.log('[Onboarding] Calling safeFinish()');
             finishOnboarding();
           };
 
@@ -1057,14 +1056,19 @@ async function main() {
           navigator.geolocation.getCurrentPosition(
             (pos) => {
               console.log('[Onboarding] Geo Success', pos);
-              localStorage.setItem('geoState', 'active');
-              toast('✅ Zona Activada', 'success');
+              try {
+                localStorage.setItem('geoState', 'active');
+                if (window.toast) window.toast('✅ Zona Activada', 'success');
 
-              // Sync Fire-and-forget (Background)
-              const db = firebase.firestore();
-              db.collection('clientes').where('authUID', '==', user.uid).limit(1).get().then(qs => {
-                if (!qs.empty) qs.docs[0].ref.update({ 'config.geoEnabled': true, 'config.geoUpdatedAt': new Date().toISOString() });
-              });
+                // Sync Fire-and-forget
+                const db = firebase.firestore();
+                db.collection('clientes').where('authUID', '==', user.uid).limit(1).get().then(qs => {
+                  if (!qs.empty) qs.docs[0].ref.update({ 'config.geoEnabled': true, 'config.geoUpdatedAt': new Date().toISOString() });
+                }).catch(err => console.warn('[Onboarding] Sync Error', err));
+
+              } catch (e) {
+                console.error('[Onboarding] Success Logic Error:', e);
+              }
 
               safeFinish();
             },
@@ -1072,12 +1076,10 @@ async function main() {
               console.warn('[Onboarding] Geo Error/Deny', err);
               if (err.code === 1) {
                 localStorage.setItem('geoState', 'blocked');
-                // No mostrar alerta intrusiva, solo avanzar
               }
               safeFinish();
             },
-            // Timeout 5 segs (si tarda mas, el error callback dispara y avanza)
-            { ci: true, timeout: 5000, maximumAge: 0 }
+            { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
           );
         };
 

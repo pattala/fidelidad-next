@@ -556,13 +556,11 @@ export function subscribeToUnreadInbox(uidOrCb, cb) {
       if (typeof callback === 'function') callback(snap);
     }, err => console.warn('[Data] Inbox listen error', err));
   });
-}, err => console.warn('[Data] Inbox listen error', err));
-  });
 
-return () => {
-  isCancelled = true;
-  if (internalUnsub) internalUnsub();
-};
+  return () => {
+    isCancelled = true;
+    if (internalUnsub) internalUnsub();
+  };
 }
 
 export async function deleteInboxMessages(ids) {

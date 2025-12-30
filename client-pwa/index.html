@@ -301,363 +301,339 @@
       <p class="toggle-link">¿Ya tienes cuenta? <a href="#" id="show-login-link">Ingresa aquí</a></p>
     </div>
 
-    <!-- ONBOARDING (Post-Registro) -->
-    <div id="onboarding-screen" class="screen" style="text-align:center; padding-top:40px;">
+    <!-- 🟢 PANTALLA DE PROGRESO DE REGISTRO (Checklist) -->
+    <div id="registration-progress-screen" class="screen" style="text-align:center; padding-top:40px;">
+      <h2 style="margin-bottom:20px;">Creando tu cuenta...</h2>
 
-      <!-- STEP 1: NOTIFICACIONES -->
-      <div id="onboarding-step-1">
-        <div style="font-size:48px; margin-bottom:20px;">🚀</div>
-        <h2>¡Activá tus beneficios!</h2>
-        <p style="color:#666; max-width:280px; margin:0 auto 30px;">
-          Para avisarte cuando sumes puntos o tengas premios disponibles, necesitamos enviarte notificaciones.
+      <div
+        style="display:inline-block; text-align:left; max-width:280px; background:rgba(0,0,0,0.03); padding:20px; border-radius:12px;">
+        <div id="reg-check-1" style="margin:10px 0; font-size:1.1rem; color:#ccc;">⚪ Creando usuario</div>
+        <div id="reg-check-2" style="margin:10px 0; font-size:1.1rem; color:#ccc;">⚪ Asignando puntos</div>
+        <div id="reg-check-3" style="margin:10px 0; font-size:1.1rem; color:#ccc;">⚪ Preparando perfil</div>
+        <div id="reg-check-4" style="margin:10px 0; font-size:1.1rem; color:#ccc;">⚪ Inicializando Inbox</div>
+      </div>
+
+      <p id="reg-progress-msg" style="margin-top:30px; color:#666; font-style:italic;">Por favor espera, estamos
+        preparando todo para vos...</p>
+    </div>
+
+    <!-- 🟢 ONBOARDING PASO 1: Notificaciones -->
+    <div id="onboarding-step-1" class="screen" style="text-align:center; padding-top:20px;">
+      <p
+        style="color:#666; font-size:0.9rem; font-weight:600; text-transform:uppercase; letter-spacing:1px; margin-bottom:10px;">
+        PASO 1 DE 2
+      </p>
+      <h2 style="margin-top:0; font-size:1.8rem;">¡Ya casi estamos! 🚀</h2>
+
+      <!-- Icono Emoji Grande en vez de imagen rota -->
+      <div style="font-size:80px; margin:20px 0;">🔔</div>
+
+      <p style="max-width:320px; margin:0 auto 30px; font-size:1.05rem; line-height:1.5; color:#444;">
+        Activá las notificaciones para enterarte al instante cuando sumes puntos o tengas premios disponibles.
+      </p>
+
+      <div class="actions">
+        <button id="btn-onboarding-enable" class="primary-btn"
+          style="width:100%; max-width:300px; padding:14px; font-size:1.1rem;">
+          Activar Avisos
+        </button>
+        <br>
+        <button id="btn-onboarding-skip" class="secondary-btn"
+          style="margin-top:16px; border:none; background:transparent; color:#999;">
+          Ahora no
+        </button>
+      </div>
+    </div>
+
+    <!-- 🟢 ONBOARDING PASO 2: GEOLOCALIZACION -->
+    <div id="onboarding-step-2" class="screen" style="text-align:center; padding-top:20px;">
+      <p
+        style="color:#666; font-size:0.9rem; font-weight:600; text-transform:uppercase; letter-spacing:1px; margin-bottom:10px;">
+        PASO 2 DE 2 (ÚLTIMO)
+      </p>
+      <h2 style="margin-top:0; font-size:1.8rem;">Beneficios en tu Zona 📍</h2>
+
+      <!-- Icono Emoji Grande -->
+      <div style="font-size:80px; margin:20px 0;">🗺️</div>
+
+      <p style="max-width:320px; margin:0 auto 30px; font-size:1.05rem; line-height:1.5; color:#444;">
+        Si activas tu ubicación, podremos mostrarte descuentos exclusivos en comercios de tu barrio.
+      </p>
+
+      <div class="actions" style="margin-top:20px;">
+        <button id="btn-onboarding-geo-enable" class="primary-btn"
+          style="width:100%; max-width:300px; padding:14px; font-size:1.1rem;">
+          Sí, activar beneficios
+        </button>
+        <br>
+        <button id="btn-onboarding-geo-skip" class="secondary-btn"
+          style="margin-top:16px; border:none; background:transparent; color:#999;">
+          Omitir por ahora
+        </button>
+      </div>
+    </div>
+
+    <!-- APP -->
+    <div id="main-app-screen" class="screen">
+      <div class="user-header">
+        <h3>Hola, <span id="cliente-nombre">--</span> (<span id="cliente-numero-socio">--</span>)</h3>
+        <div class="user-actions">
+          <button id="edit-profile-btn" class="secondary-btn">Mi perfil</button>
+          <button id="change-password-btn" class="secondary-btn">Cambiar Clave</button>
+          <button id="logout-btn" class="secondary-btn">Salir</button>
+        </div>
+      </div>
+
+      <div id="terms-banner" class="card terms-banner" style="display:none;">
+        <p>⚠️ Para poder canjear premios, debes aceptar los <a href="#" id="show-terms-link-banner">Términos y
+            Condiciones</a>.</p>
+      </div>
+
+
+
+      <!-- Card de domicilio (formulario), oculta por defecto -->
+      <section id="address-card" class="card address-card" style="display:none;">
+        <h3>Recibí beneficios cerca tuyo</h3>
+        <p class="sub">Contanos tu zona y activamos promos para tu barrio. Opcional, podés hacerlo más tarde.
         </p>
 
-        <div class="card" style="border:none; background:transparent; box-shadow:none;">
-          <ul style="text-align:left; display:inline-block; color:#555; line-height:1.8;">
-            <li>💰 <strong>Puntos al instante</strong></li>
-            <li>🔥 <strong>Ofertas flash</strong></li>
-            <li>🎁 <strong>Premios exclusivos</strong></li>
-          </ul>
+        <div class="grid-2">
+          <input id="dom-calle" placeholder="Calle">
+          <input id="dom-numero" placeholder="Número (puede ser s/n)">
+          <input id="dom-piso" placeholder="Piso">
+          <input id="dom-depto" placeholder="Depto">
+
+          <!-- Localidad y Partido con datalist -->
+          <input id="dom-localidad" list="localidad-list" placeholder="Localidad / Barrio">
+          <datalist id="localidad-list"></datalist>
+
+          <input id="dom-partido" list="partido-list" placeholder="Partido / Barrio">
+          <datalist id="partido-list"></datalist>
+
+          <!-- Provincia como select -->
+          <select id="dom-provincia">
+            <option value="">Provincia</option>
+            <option>Buenos Aires</option>
+            <option>CABA</option>
+            <option>Catamarca</option>
+            <option>Chaco</option>
+            <option>Chubut</option>
+            <option>Córdoba</option>
+            <option>Corrientes</option>
+            <option>Entre Ríos</option>
+            <option>Formosa</option>
+            <option>Jujuy</option>
+            <option>La Pampa</option>
+            <option>La Rioja</option>
+            <option>Mendoza</option>
+            <option>Misiones</option>
+            <option>Neuquén</option>
+            <option>Río Negro</option>
+            <option>Salta</option>
+            <option>San Juan</option>
+            <option>San Luis</option>
+            <option>Santa Cruz</option>
+            <option>Santa Fe</option>
+            <option>Santiago del Estero</option>
+            <option>Tierra del Fuego</option>
+            <option>Tucumán</option>
+          </select>
+
+          <input id="dom-cp" placeholder="Código Postal">
+          <input id="dom-pais" placeholder="País" value="Argentina">
+          <input id="dom-referencia" placeholder="Referencia (opcional)">
         </div>
 
-        <div class="actions" style="margin-top:40px;">
-          <button id="btn-onboarding-enable" class="primary-btn"
-            style="width:100%; max-width:300px; padding:14px; font-size:1.1rem;">
-            Sí, activar notificaciones
-          </button>
-          <br>
-          <button id="btn-onboarding-skip" class="secondary-btn"
-            style="margin-top:16px; border:none; background:transparent; color:#999;">
-            <!-- 🟢 NUEVO: Pantalla de Carga / Checklist Animado del Registro -->
-            <div id="registration-progress-screen" class="screen" style="text-align:center; padding-top:40px;">
-              <h2 style="margin-bottom:20px;">Creando tu cuenta...</h2>
-
-              <div style="display:inline-block; text-align:left; max-width:280px;">
-                <div id="reg-check-1" style="margin:10px 0; font-size:1.1rem; color:#ccc;">⚪ Creando usuario</div>
-                <div id="reg-check-2" style="margin:10px 0; font-size:1.1rem; color:#ccc;">⚪ Asignando puntos</div>
-                <div id="reg-check-3" style="margin:10px 0; font-size:1.1rem; color:#ccc;">⚪ Preparando perfil</div>
-                <div id="reg-check-4" style="margin:10px 0; font-size:1.1rem; color:#ccc;">⚪ Inicializando Inbox</div>
-              </div>
-
-              <p id="reg-progress-msg" style="margin-top:30px; color:#666; font-style:italic;">Por favor espera...</p>
-            </div>
-
-            <!-- ONBOARDING PASO 1: Notificaciones -->
-            <div id="onboarding-step-1" class="screen" style="text-align:center; padding-top:20px;">
-              <p
-                style="color:#666; font-size:0.9rem; font-weight:600; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">
-                Paso 1 de 2
-              </p>
-              <h2 style="margin-top:0;">¡Ya casi estamos! 🚀</h2>
-
-              <img src="images/icon_bell_large.png" alt="Alertas" style="width:80px; margin:20px 0; opacity:0.8;">
-
-              <p style="max-width:320px; margin:0 auto 30px; font-size:1.05rem; line-height:1.5;">
-                Para avisarte cuando sumes puntos o ganés premios, necesitamos que actives las notificaciones.
-              </p>
-
-              <div class="actions">
-                <button id="btn-onboarding-enable" class="primary-btn"
-                  style="width:100%; max-width:300px; padding:12px; font-size:1.1rem;">
-                  Activar Avisos
-                </button>
-                <br>
-                <button id="btn-onboarding-skip" class="secondary-btn"
-                  style="margin-top:16px; border:none; background:transparent; color:#999;">
-                  Ahora no
-                </button>
-              </div>
-            </div>
-
-            <!-- ONBOARDING PASO 2: GEOLOCALIZACION -->
-            <div id="onboarding-step-2" class="screen" style="text-align:center; padding-top:20px;">
-              <p
-                style="color:#666; font-size:0.9rem; font-weight:600; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">
-                Paso 2 de 2 (Último)
-              </p>
-              <h2 style="margin-top:0;">Beneficios en tu Zona 📍</h2>
-
-              <img src="images/icon_map.png" alt="Mapa" style="width:80px; margin:20px 0; opacity:0.8;">
-
-              <p style="max-width:320px; margin:0 auto 30px; font-size:1.05rem; line-height:1.5;">
-                Si activas tu ubicación, podremos mostrarte descuentos exclusivos cerca de tu barrio.
-              </p>
-
-              <div class="actions" style="margin-top:40px;">
-                <button id="btn-onboarding-geo-enable" class="primary-btn"
-                  style="width:100%; max-width:300px; padding:14px; font-size:1.1rem;">
-                  Sí, activar beneficios
-                </button>
-                <br>
-                <button id="btn-onboarding-geo-skip" class="secondary-btn"
-                  style="margin-top:16px; border:none; background:transparent; color:#999;">
-                  Omitir por ahora
-                </button>
-              </div>
-            </div>
-
-            <!-- APP -->
-            <div id="main-app-screen" class="screen">
-              <div class="user-header">
-                <h3>Hola, <span id="cliente-nombre">--</span> (<span id="cliente-numero-socio">--</span>)</h3>
-                <div class="user-actions">
-                  <button id="edit-profile-btn" class="secondary-btn">Mi perfil</button>
-                  <button id="change-password-btn" class="secondary-btn">Cambiar Clave</button>
-                  <button id="logout-btn" class="secondary-btn">Salir</button>
-                </div>
-              </div>
-
-              <div id="terms-banner" class="card terms-banner" style="display:none;">
-                <p>⚠️ Para poder canjear premios, debes aceptar los <a href="#" id="show-terms-link-banner">Términos y
-                    Condiciones</a>.</p>
-              </div>
-
-
-
-              <!-- Card de domicilio (formulario), oculta por defecto -->
-              <section id="address-card" class="card address-card" style="display:none;">
-                <h3>Recibí beneficios cerca tuyo</h3>
-                <p class="sub">Contanos tu zona y activamos promos para tu barrio. Opcional, podés hacerlo más tarde.
-                </p>
-
-                <div class="grid-2">
-                  <input id="dom-calle" placeholder="Calle">
-                  <input id="dom-numero" placeholder="Número (puede ser s/n)">
-                  <input id="dom-piso" placeholder="Piso">
-                  <input id="dom-depto" placeholder="Depto">
-
-                  <!-- Localidad y Partido con datalist -->
-                  <input id="dom-localidad" list="localidad-list" placeholder="Localidad / Barrio">
-                  <datalist id="localidad-list"></datalist>
-
-                  <input id="dom-partido" list="partido-list" placeholder="Partido / Barrio">
-                  <datalist id="partido-list"></datalist>
-
-                  <!-- Provincia como select -->
-                  <select id="dom-provincia">
-                    <option value="">Provincia</option>
-                    <option>Buenos Aires</option>
-                    <option>CABA</option>
-                    <option>Catamarca</option>
-                    <option>Chaco</option>
-                    <option>Chubut</option>
-                    <option>Córdoba</option>
-                    <option>Corrientes</option>
-                    <option>Entre Ríos</option>
-                    <option>Formosa</option>
-                    <option>Jujuy</option>
-                    <option>La Pampa</option>
-                    <option>La Rioja</option>
-                    <option>Mendoza</option>
-                    <option>Misiones</option>
-                    <option>Neuquén</option>
-                    <option>Río Negro</option>
-                    <option>Salta</option>
-                    <option>San Juan</option>
-                    <option>San Luis</option>
-                    <option>Santa Cruz</option>
-                    <option>Santa Fe</option>
-                    <option>Santiago del Estero</option>
-                    <option>Tierra del Fuego</option>
-                    <option>Tucumán</option>
-                  </select>
-
-                  <input id="dom-cp" placeholder="Código Postal">
-                  <input id="dom-pais" placeholder="País" value="Argentina">
-                  <input id="dom-referencia" placeholder="Referencia (opcional)">
-                </div>
-
-                <div class="actions" style="margin-top:10px; display:flex; gap:8px; justify-content:flex-end;">
-                  <!-- ⚠️ Evitamos duplicar id con el banner -->
-                  <button id="address-cancel" class="secondary-btn" type="button">Luego</button>
-                  <button id="address-save" class="primary-btn" type="button">Guardar domicilio</button>
-                </div>
-
-                <p class="small-note" style="margin-top:6px;">
-                  Usamos estos datos para personalizar beneficios por zona. Podés borrarlos cuando quieras.
-                </p>
-              </section>
-
-              <!-- Puntos -->
-              <div class="card puntos-card">
-                <p>Tus Puntos Disponibles</p>
-                <h2 id="cliente-puntos">--</h2>
-              </div>
-
-              <!-- Puntos por vencer -->
-              <div id="vencimiento-card" class="card vencimiento-card" style="display:none;">
-                <p>⚠️ Puntos por Vencer</p>
-                <h2><span id="cliente-puntos-vencimiento">--</span> Puntos</h2>
-                <p>Vencen el: <strong id="cliente-fecha-vencimiento">--</strong></p>
-                <ul id="vencimiento-list" class="venc-list"></ul>
-              </div>
-
-              <!-- Saldo a favor -->
-              <div class="card" id="saldo-card">
-                <h3>Saldo a favor</h3>
-                <div id="cliente-saldo">$ 5.00</div>
-                <p class="info-message">Se acumula con compras que no alcanzan a sumar un punto.</p>
-              </div>
-              <!-- Misión: Completar Domicilio -->
-              <!-- ✅ Banner Marketing Notificaciones (Card Interruptiva / Drip) -->
-              <div id="notif-prompt-card" class="card highlight-card" style="display:none;">
-                <h3 style="margin-top:0;">Notificaciones</h3>
-                <p>¡Validalo y ganás puntos! No te pierdas ofertas, descuentos y novedades.</p>
-
-                <div style="display:flex; flex-direction:column; gap:8px; margin-top:12px;">
-                  <button id="btn-enable-notifs" class="primary-btn" style="width:100%;">Activar</button>
-                  <button id="btn-later-notifs" class="secondary-btn" style="width:100%;">Recordármelo más
-                    adelante</button>
-                </div>
-
-                <div style="text-align:center; margin-top:12px;">
-                  <a href="#" id="btn-block-notifs" style="color:#999; font-size:0.85rem; text-decoration:underline;">No
-                    me
-                    interesa</a>
-                </div>
-              </div>
-
-
-
-
-
-              <div id="mission-address-card" class="card mission-card"
-                style="display:none; border: 2px solid #ffc107; background: #fffbf0; padding: 12px;">
-
-                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                  <div style="flex:1;">
-                    <h3 style="margin:0; color:#d39e00; font-size:1.1rem;">🎯 Ganá 50 puntos</h3>
-                    <p style="margin:4px 0 8px; font-size:0.95rem;">Completá tu domicilio para recibir beneficios en tu
-                      zona.
-                    </p>
-                  </div>
-                </div>
-
-                <div style="display:flex; gap:8px; margin-top:8px;">
-                  <button id="mission-address-btn" class="primary-btn" style="flex:1; padding:8px;">Completar
-                    ahora</button>
-                  <button id="mission-address-later" class="secondary-btn" style="flex:1; padding:8px;">Más
-                    tarde</button>
-                </div>
-
-                <div style="text-align:center; margin-top:10px;">
-                  <a href="#" id="mission-address-never"
-                    style="font-size:12px; color:#999; text-decoration:underline;">No me
-                    interesa</a>
-                </div>
-              </div>
-
-              <!-- Slot para avisos chicos de notificaciones -->
-              <div id="notif-off-slot"></div>
-
-              <!-- Slot mini-prompt GEO (ahora libre, notifications.js no lo usa) -->
-              <div id="geo-context-slot"></div>
-
-              <!-- Carrusel de campañas -->
-              <div id="carrusel-campanas-container" class="carrusel-container" style="display:none;">
-                <h3>Promociones para ti</h3>
-                <div id="carrusel-campanas" class="carrusel"></div>
-                <div id="carrusel-indicadores" class="carrusel-indicadores"></div>
-              </div>
-
-              <!-- 🔴 Aviso “notificaciones bloqueadas” — pequeño y DEBAJO del carrusel -->
-              <div id="notif-blocked-warning" class="card warning-banner"
-                style="display:none; border:1px solid #f5c2c7; background:#f8d7da; color:#842029; margin:12px 0; padding:10px 12px; font-size:14px;">
-                <div class="card-body">
-                  <p style="margin:0;"><strong>Tenés las notificaciones bloqueadas en el navegador.</strong></p>
-                  <p style="margin:6px 0 0 0; font-size:14px;">
-                    Para habilitarlas: clic en el <em>candado (🔒)</em> de la barra de direcciones →
-                    <em>Notificaciones</em> →
-                    <strong>Permitir</strong>, y recargá la página.
-                  </p>
-                </div>
-              </div>
-
-
-
-              <div i)d="install-prompt-card" class="card" style="display:none;">
-                <h3>📲 ¡Lleva el Club Contigo!</h3>
-                <p>Instala la aplicación para acceso más rápido a tus puntos y beneficios.</p>
-                <div class="prompt-actions">
-                  <button id="btn-install-pwa" class="primary-btn">Instalar Ahora</button>
-                  <button id="btn-dismiss-install" class="secondary-btn">No, gracias</button>
-                </div>
-              </div>
-
-              <!-- ✅ Card regular con switch (lo maneja notifications.js) -->
-
-
-              <!-- Banner de ubicación (GEO) -->
-              <div id="geo-banner" class="card" style="display:none;">
-                <h3>Beneficios cerca tuyo</h3>
-                <p id="geo-banner-text" style="margin:8px 0 12px;"></p>
-                <div class="prompt-actions" style="display:flex; gap:8px; flex-wrap:wrap;">
-                  <button id="geo-enable-btn" class="primary-btn" style="display:none;">Activar ahora</button>
-                  <button id="geo-later-btn" class="secondary-btn" style="display:none;">Luego</button>
-                  <button id="geo-disable-btn" class="secondary-btn" style="display:none;">Desactivar</button>
-                  <button id="geo-help-btn" class="secondary-btn" style="display:none;">Cómo habilitarlo</button>
-                </div>
-              </div>
-
-              <div id="historial-container" class="card">
-                <h3>Historial Reciente</h3>
-                <ul id="lista-historial"></ul>
-              </div>
-
-              <div id="premios-container" class="card">
-                <h3>Catálogo de Premios</h3>
-                <p>Estos son los premios que puedes canjear en la tienda:</p>
-                <ul id="lista-premios-cliente"></ul>
-              </div>
-
-
-
-              <footer class="app-footer">
-                <p>Al usar esta app, aceptas nuestros <a href="#" id="footer-terms-link">Términos y Condiciones</a>.</p>
-              </footer>
-            </div>
+        <div class="actions" style="margin-top:10px; display:flex; gap:8px; justify-content:flex-end;">
+          <!-- ⚠️ Evitamos duplicar id con el banner -->
+          <button id="address-cancel" class="secondary-btn" type="button">Luego</button>
+          <button id="address-save" class="primary-btn" type="button">Guardar domicilio</button>
         </div>
 
-        <!-- Deep-link del INBOX -->
-        <script>
-          (function () {
-            const u = new URL(location.href);
-            const wantsInbox =
-              u.pathname.replace(/\/+$/, '') === '/notificaciones' ||
-              u.searchParams.has('inbox');
-            if (!wantsInbox) return;
+        <p class="small-note" style="margin-top:6px;">
+          Usamos estos datos para personalizar beneficios por zona. Podés borrarlos cuando quieras.
+        </p>
+      </section>
 
-            function tryOpen() {
-              const btn = document.getElementById('btn-notifs');
-              if (btn && getComputedStyle(btn).display !== 'none') {
-                try { btn.click(); } catch { }
-                return;
-              }
-              setTimeout(tryOpen, 250);
-            }
-            if (document.readyState === 'complete' || document.readyState === 'interactive') {
-              tryOpen();
-            } else {
-              document.addEventListener('DOMContentLoaded', tryOpen);
-            }
-          })();
-        </script>
+      <!-- Puntos -->
+      <div class="card puntos-card">
+        <p>Tus Puntos Disponibles</p>
+        <h2 id="cliente-puntos">--</h2>
+      </div>
 
-        <script>
-          // Mini-prompt contextual (actualmente no usado por notifications.js)
-          function tryShowGeoPrompt() {
-            try { window.maybeShowGeoContextPrompt?.('geo-context-slot'); } catch { }
-          }
-          if (document.readyState === 'complete' || document.readyState === 'interactive') {
-            setTimeout(tryShowGeoPrompt, 0);
-          } else {
-            document.addEventListener('DOMContentLoaded', () => setTimeout(tryShowGeoPrompt, 0));
-          }
-          document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') tryShowGeoPrompt();
-          });
-          document.addEventListener('rampet:geo:changed', tryShowGeoPrompt);
-        </script>
+      <!-- Puntos por vencer -->
+      <div id="vencimiento-card" class="card vencimiento-card" style="display:none;">
+        <p>⚠️ Puntos por Vencer</p>
+        <h2><span id="cliente-puntos-vencimiento">--</span> Puntos</h2>
+        <p>Vencen el: <strong id="cliente-fecha-vencimiento">--</strong></p>
+        <ul id="vencimiento-list" class="venc-list"></ul>
+      </div>
+
+      <!-- Saldo a favor -->
+      <div class="card" id="saldo-card">
+        <h3>Saldo a favor</h3>
+        <div id="cliente-saldo">$ 5.00</div>
+        <p class="info-message">Se acumula con compras que no alcanzan a sumar un punto.</p>
+      </div>
+      <!-- Misión: Completar Domicilio -->
+      <!-- ✅ Banner Marketing Notificaciones (Card Interruptiva / Drip) -->
+      <div id="notif-prompt-card" class="card highlight-card" style="display:none;">
+        <h3 style="margin-top:0;">Notificaciones</h3>
+        <p>¡Validalo y ganás puntos! No te pierdas ofertas, descuentos y novedades.</p>
+
+        <div style="display:flex; flex-direction:column; gap:8px; margin-top:12px;">
+          <button id="btn-enable-notifs" class="primary-btn" style="width:100%;">Activar</button>
+          <button id="btn-later-notifs" class="secondary-btn" style="width:100%;">Recordármelo más
+            adelante</button>
+        </div>
+
+        <div style="text-align:center; margin-top:12px;">
+          <a href="#" id="btn-block-notifs" style="color:#999; font-size:0.85rem; text-decoration:underline;">No
+            me
+            interesa</a>
+        </div>
+      </div>
+
+
+
+
+
+      <div id="mission-address-card" class="card mission-card"
+        style="display:none; border: 2px solid #ffc107; background: #fffbf0; padding: 12px;">
+
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div style="flex:1;">
+            <h3 style="margin:0; color:#d39e00; font-size:1.1rem;">🎯 Ganá 50 puntos</h3>
+            <p style="margin:4px 0 8px; font-size:0.95rem;">Completá tu domicilio para recibir beneficios en tu
+              zona.
+            </p>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <button id="mission-address-btn" class="primary-btn" style="flex:1; padding:8px;">Completar
+            ahora</button>
+          <button id="mission-address-later" class="secondary-btn" style="flex:1; padding:8px;">Más
+            tarde</button>
+        </div>
+
+        <div style="text-align:center; margin-top:10px;">
+          <a href="#" id="mission-address-never" style="font-size:12px; color:#999; text-decoration:underline;">No me
+            interesa</a>
+        </div>
+      </div>
+
+      <!-- Slot para avisos chicos de notificaciones -->
+      <div id="notif-off-slot"></div>
+
+      <!-- Slot mini-prompt GEO (ahora libre, notifications.js no lo usa) -->
+      <div id="geo-context-slot"></div>
+
+      <!-- Carrusel de campañas -->
+      <div id="carrusel-campanas-container" class="carrusel-container" style="display:none;">
+        <h3>Promociones para ti</h3>
+        <div id="carrusel-campanas" class="carrusel"></div>
+        <div id="carrusel-indicadores" class="carrusel-indicadores"></div>
+      </div>
+
+      <!-- 🔴 Aviso “notificaciones bloqueadas” — pequeño y DEBAJO del carrusel -->
+      <div id="notif-blocked-warning" class="card warning-banner"
+        style="display:none; border:1px solid #f5c2c7; background:#f8d7da; color:#842029; margin:12px 0; padding:10px 12px; font-size:14px;">
+        <div class="card-body">
+          <p style="margin:0;"><strong>Tenés las notificaciones bloqueadas en el navegador.</strong></p>
+          <p style="margin:6px 0 0 0; font-size:14px;">
+            Para habilitarlas: clic en el <em>candado (🔒)</em> de la barra de direcciones →
+            <em>Notificaciones</em> →
+            <strong>Permitir</strong>, y recargá la página.
+          </p>
+        </div>
+      </div>
+
+
+
+      <div i)d="install-prompt-card" class="card" style="display:none;">
+        <h3>📲 ¡Lleva el Club Contigo!</h3>
+        <p>Instala la aplicación para acceso más rápido a tus puntos y beneficios.</p>
+        <div class="prompt-actions">
+          <button id="btn-install-pwa" class="primary-btn">Instalar Ahora</button>
+          <button id="btn-dismiss-install" class="secondary-btn">No, gracias</button>
+        </div>
+      </div>
+
+      <!-- ✅ Card regular con switch (lo maneja notifications.js) -->
+
+
+      <!-- Banner de ubicación (GEO) -->
+      <div id="geo-banner" class="card" style="display:none;">
+        <h3>Beneficios cerca tuyo</h3>
+        <p id="geo-banner-text" style="margin:8px 0 12px;"></p>
+        <div class="prompt-actions" style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button id="geo-enable-btn" class="primary-btn" style="display:none;">Activar ahora</button>
+          <button id="geo-later-btn" class="secondary-btn" style="display:none;">Luego</button>
+          <button id="geo-disable-btn" class="secondary-btn" style="display:none;">Desactivar</button>
+          <button id="geo-help-btn" class="secondary-btn" style="display:none;">Cómo habilitarlo</button>
+        </div>
+      </div>
+
+      <div id="historial-container" class="card">
+        <h3>Historial Reciente</h3>
+        <ul id="lista-historial"></ul>
+      </div>
+
+      <div id="premios-container" class="card">
+        <h3>Catálogo de Premios</h3>
+        <p>Estos son los premios que puedes canjear en la tienda:</p>
+        <ul id="lista-premios-cliente"></ul>
+      </div>
+
+
+
+      <footer class="app-footer">
+        <p>Al usar esta app, aceptas nuestros <a href="#" id="footer-terms-link">Términos y Condiciones</a>.</p>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Deep-link del INBOX -->
+  <script>
+    (function () {
+      const u = new URL(location.href);
+      const wantsInbox =
+        u.pathname.replace(/\/+$/, '') === '/notificaciones' ||
+        u.searchParams.has('inbox');
+      if (!wantsInbox) return;
+
+      function tryOpen() {
+        const btn = document.getElementById('btn-notifs');
+        if (btn && getComputedStyle(btn).display !== 'none') {
+          try { btn.click(); } catch { }
+          return;
+        }
+        setTimeout(tryOpen, 250);
+      }
+      if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        tryOpen();
+      } else {
+        document.addEventListener('DOMContentLoaded', tryOpen);
+      }
+    })();
+  </script>
+
+  <script>
+    // Mini-prompt contextual (actualmente no usado por notifications.js)
+    function tryShowGeoPrompt() {
+      try { window.maybeShowGeoContextPrompt?.('geo-context-slot'); } catch { }
+    }
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      setTimeout(tryShowGeoPrompt, 0);
+    } else {
+      document.addEventListener('DOMContentLoaded', () => setTimeout(tryShowGeoPrompt, 0));
+    }
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') tryShowGeoPrompt();
+    });
+    document.addEventListener('rampet:geo:changed', tryShowGeoPrompt);
+  </script>
 
 </body>
 

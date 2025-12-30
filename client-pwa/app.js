@@ -1096,7 +1096,14 @@ async function main() {
           finishOnboarding();
         };
 
-        UI.showScreen('onboarding-screen');
+        // Si no tiene permiso de notif ni geo, mandamos al onboarding
+        if (Notification.permission === 'default') {
+          UI.showScreen('onboarding-step-1');
+        } else {
+          // Si ya tiene notif pero falta geo, podríamos ir al paso 2 directo,
+          // pero el flujo lineal 1->2 es más seguro.
+          UI.showScreen('onboarding-step-1');
+        }
 
       } else {
         // ─────────────────────────────────────────────

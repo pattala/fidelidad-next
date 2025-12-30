@@ -532,8 +532,8 @@ export async function getInboxMessages(limitCnt = 50) {
   return snap.docs.map(d => ({ ...d.data(), id: d.id, ref: d.ref }));
 }
 
-export function subscribeToUnreadInbox(callback) {
-  const uid = Auth.getCurrentUser()?.uid;
+// FIX: Accept uid explicitly to avoid 'auth' undefined race conditions
+export function subscribeToUnreadInbox(uid, callback) {
   if (!uid) return () => { };
 
   let internalUnsub = null;

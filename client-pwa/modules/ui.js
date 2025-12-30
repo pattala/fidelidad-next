@@ -225,9 +225,9 @@ function showWelcomeModal(title, body) {
 // ... existing code ...
 
 // -- LOGICA NOTIFICACIONES (REALTIME) --
-if (!unsubscribeInbox) {
+if (!unsubscribeInbox && clienteData?.id) {
   let _firstLoad = true;
-  unsubscribeInbox = Data.subscribeToUnreadInbox((snap) => {
+  unsubscribeInbox = Data.subscribeToUnreadInbox(clienteData.id, (snap) => {
     const count = snap.size;
     const changes = snap.docChanges();
 

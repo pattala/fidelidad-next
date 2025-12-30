@@ -1030,10 +1030,27 @@ async function main() {
         // PASO 2: GEO
         if (btnGeoEnable) btnGeoEnable.onclick = () => {
           console.log('[Onboarding] Click Geo Enable');
-          // Direct Browser Call (No Wrappers to lose context)
-          if (!navigator.geolocation) {
-            alert('Tu dispositivo no soporta geolocalización.');
+
+          // Visual Feedback
+          btnGeoEnable.textContent = 'Configurando...';
+          btnGeoEnable.disabled = true;
+
+          // Safety Valve: Avance forzado en 5s si el navegador se cuelga
+          // O si el usuario se tarda mucho en decidir (Background processing approach)
+          // Pero ojo: si el prompt está abierto, cambiar la pantalla puede ser confuso.
+          // Haremos que al ENTRAR al callback (exito/error) avancemos.
+          // Y si el GPS "tarda" en resolver la posición (pero ya dio permiso), que no bloquee.
+          // Solución Híbrida: Pedimos posición con timeout bajo (8s).
+
+          let finished = false;
+          const safeFinish = () => {
+            if (finished) return;
+            finished = true;
             finishOnboarding();
+          };
+
+          if (!navigator.geolocation) {
+            safeFinish();
             return;
           }
 
@@ -1041,25 +1058,26 @@ async function main() {
             (pos) => {
               console.log('[Onboarding] Geo Success', pos);
               localStorage.setItem('geoState', 'active');
-              toast('✅ Ubicación Activada', 'success');
+              toast('✅ Zona Activada', 'success');
 
-              // Sync Fire-and-forget
+              // Sync Fire-and-forget (Background)
               const db = firebase.firestore();
               db.collection('clientes').where('authUID', '==', user.uid).limit(1).get().then(qs => {
                 if (!qs.empty) qs.docs[0].ref.update({ 'config.geoEnabled': true, 'config.geoUpdatedAt': new Date().toISOString() });
               });
 
-              finishOnboarding();
+              safeFinish();
             },
             (err) => {
               console.warn('[Onboarding] Geo Error/Deny', err);
               if (err.code === 1) {
                 localStorage.setItem('geoState', 'blocked');
-                alert('Has bloqueado la ubicación. Podrás activarla luego en tu perfil.');
+                // No mostrar alerta intrusiva, solo avanzar
               }
-              finishOnboarding();
+              safeFinish();
             },
-            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+            // Timeout 5 segs (si tarda mas, el error callback dispara y avanza)
+            { ci: true, timeout: 5000, maximumAge: 0 }
           );
         };
 

@@ -364,7 +364,13 @@ export async function checkAndPromptGeo() {
   // 2. Browser Check
   if (!navigator.geolocation) return;
 
-  // 3. DB Check (Source of Truth) - Evitar prompt si ya está activo en Firestore
+  // 🛡️ NO MOSTRAR si el onboarding ya lo pidió hace poco (evita doble banner)
+  if (sessionStorage.getItem('geoPromptedRecent') === 'true') {
+    console.log('[Geo] Silenciado por Onboarding reciente');
+    return;
+  }
+
+  // 3. DB Check (Source of Truth)
   if (window.clienteData?.config?.geoEnabled === true) {
     localStorage.setItem('geoState', 'active');
     return;

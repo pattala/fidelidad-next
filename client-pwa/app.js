@@ -1060,7 +1060,6 @@ async function main() {
                   localStorage.setItem('geoState', 'active');
                   if (window.toast) window.toast('✅ Zona Activada', 'success');
 
-                  // Sync Fire-and-forget
                   const db = firebase.firestore();
                   db.collection('clientes').where('authUID', '==', user.uid).limit(1).get().then(qs => {
                     if (!qs.empty) qs.docs[0].ref.update({ 'config.geoEnabled': true, 'config.geoUpdatedAt': new Date().toISOString() });
@@ -1077,9 +1076,14 @@ async function main() {
             // No support
           }
 
-          // 2. AVANZAR INMEDIATAMENTE (Zero Wait)
-          // La App carga abajo, y el prompt de "Permitir" queda flotando.
-          finishOnboarding();
+          // 2. AVANZAR CON BREVE RETRASO (2s)
+          // Para que el prompt nativo aparezca antes de cambiar de pantalla.
+          // Marcamos flag para que notifications.js NO vuelva a pedirlo inmediatamente.
+          sessionStorage.setItem('geoPromptedRecent', 'true');
+
+          setTimeout(() => {
+            finishOnboarding();
+          }, 2000);
         };
 
         if (btnGeoSkip) btnGeoSkip.onclick = () => {

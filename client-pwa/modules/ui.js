@@ -20,7 +20,7 @@ function safeSetText(id, content) {
   else console.warn(`[UI SafeSet] No existe #${id}`);
 }
 
-export function showToast(message, type = 'info', duration = 6000) {
+export function showToast(message, type = 'info', duration = 4000) {
   const container = document.getElementById('toast-container');
   if (!container) return;
   const toast = document.createElement('div');
@@ -94,7 +94,11 @@ export function renderMainScreen(clienteData, premiosData, campanasData = [], op
   // pero por simplicidad asumimos SPA simple.
   if (!unsubscribeInbox) {
     let _firstLoad = true;
-    unsubscribeInbox = Data.subscribeToUnreadInbox((count, changes) => {
+    unsubscribeInbox = Data.subscribeToUnreadInbox((snap) => {
+      // FIX: Data.js sends a QuerySnapshot, not (count, changes)
+      const count = snap.size;
+      const changes = snap.docChanges();
+
       const btn = document.getElementById('btn-notifs');
       const badge = document.getElementById('notif-badge');
 

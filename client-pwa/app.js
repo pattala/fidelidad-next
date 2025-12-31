@@ -142,7 +142,7 @@ function renderInboxList(items) {
   if (!data.length) { list.innerHTML = ''; return; }
 
   list.innerHTML = data.map(it => {
-    console.log('[RENDER ITEM DEBUG]', it.id, 'Title:', it.title, 'Body:', it.body, 'Cuerpo:', it.cuerpo);
+    // Original Logic 0db4b1f
     const sentAt = it.sentAt ? (it.sentAt.toDate ? it.sentAt.toDate() : new Date(it.sentAt)) : null;
     const dateTxt = sentAt ? sentAt.toLocaleString() : '';
     const isRead = !!it.read;
@@ -158,18 +158,18 @@ function renderInboxList(items) {
           <div class="inbox-main" style="flex:1 1 auto; min-width:0;">
             <div class="inbox-header-line" style="display:flex; justify-content:space-between; align-items:center;">
                <div class="inbox-title" style="font-weight:${titleWeight}; font-size:1rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:85%;">
-                 ${it.title || it.titulo || 'Mensaje'} 
+                 ${it.title || 'Mensaje'}
                  ${isDestacado ? '⭐' : ''}
                </div>
                <div class="inbox-date" style="color:#999; font-size:11px; flex-shrink:0;">${dateTxt}</div>
             </div>
             
             <div class="inbox-body-preview" style="color:#666; font-size:0.9rem; margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block;">
-              ${(it.body || it.cuerpo || it.message || it.description || 'Sin contenido').substring(0, 60)}${(it.body || it.cuerpo || it.message || it.description || '').length > 60 ? '...' : ''}
+              ${(it.body || 'Sin contenido').substring(0, 60)}${(it.body || '').length > 60 ? '...' : ''}
             </div>
             
             <div class="inbox-body-full" style="display:none; color:#333; margin-top:8px; line-height:1.4; border-top:1px solid #eee; padding-top:8px; white-space:pre-wrap;">
-              ${it.body || it.cuerpo || it.message || it.description || 'Sin contenido'}
+              ${it.body || 'Sin contenido'}
             </div>
 
           </div>

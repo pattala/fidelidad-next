@@ -136,11 +136,14 @@ export function renderMainScreen(clienteData, premiosData, campanasData = [], op
   // Tarjeta Misión: Completar Domicilio
   const missionAddress = document.getElementById('mission-address-card');
   if (missionAddress) {
-    // Mostrar solo si NO tiene calle Y NO lo ha descartado explícitamente
-    const hasAddress = clienteData.domicilio && clienteData.domicilio.calle && clienteData.domicilio.calle.length > 0;
-    const isDismissed = clienteData.config && clienteData.config.addressPromptDismissed === true;
+    // FORCE CHECK: Si tiene la clase o estilo de "ignorado", no lo mostramos ni que llueva.
+    const isForceHidden = missionAddress.style.display === 'none' && missionAddress.style.getPropertyPriority('display') === 'important';
 
-    if (!hasAddress && !isDismissed) {
+    // Check real de data
+    const hasAddress = clienteData.domicilio && clienteData.domicilio.calle && clienteData.domicilio.calle.length > 0;
+    const isDismissedConfig = clienteData.config && clienteData.config.addressPromptDismissed === true;
+
+    if (!isForceHidden && !hasAddress && !isDismissedConfig) {
       missionAddress.style.display = 'block';
       // Hookear botón "completar"
       const btn = missionAddress.querySelector('button');
@@ -153,7 +156,8 @@ export function renderMainScreen(clienteData, premiosData, campanasData = [], op
         });
       }
     } else {
-      missionAddress.style.display = 'none';
+      // Si ya estaba hidden "important", no tocamos nada para no romper el override
+      if (!isForceHidden) missionAddress.style.display = 'none';
     }
   }
   const vencCard = document.getElementById('vencimiento-card');
@@ -902,47 +906,17 @@ export function showConfirmModal(title, msg) {
 // ─────────────────────────────────────────────────────────────
 // Badge de Notificaciones
 // ─────────────────────────────────────────────────────────────
+// (Legacy checkUnreadMessages removed to avoid conflicts with Realtime Listener)
 export async function checkUnreadMessages() {
-  try {
-    const btn = document.getElementById('btn-notifs');
-    if (!btn) return;
-
-    const uid = auth.currentUser?.uid;
-    if (!uid) return;
-
-    let clienteId = uid;
-    try { if (Data?.getClienteDocIdPorUID) clienteId = await Data.getClienteDocIdPorUID(uid) || uid; } catch { }
-
-    const snap = await db.collection('clientes')
-      .doc(clienteId)
-      .collection('inbox')
-      .where('read', '==', false)
-      .limit(50)
-      .get();
-
-    const count = snap.size;
-    const badge = document.getElementById('notif-badge');
-
-    btn.classList.remove('has-unread', 'blink-active');
-
-    if (count > 0) {
-      btn.classList.add('blink-active');
-      if (badge) {
-        badge.textContent = count > 9 ? '9+' : String(count);
-        badge.style.display = 'inline-block';
-      }
-    } else {
-      if (badge) badge.style.display = 'none';
-    }
-  } catch (e) { console.warn('[UI] checkUnreadMessages error', e); }
+  // No-op
 }
 
 // Wire up global events
 document.addEventListener('rampet:notification-received', () => {
-  checkUnreadMessages();
+  // Realtime listener handles this now
 });
 document.addEventListener('DOMContentLoaded', () => {
-  setTimeout(checkUnreadMessages, 3000);
+  // setTimeout(checkUnreadMessages, 3000); // REMOVED
 });
 
 // ─────────────────────────────────────────────────────────────

@@ -593,6 +593,19 @@ export async function enforceInboxLimit(limit = 20) {
   }
 }
 
+// 🆕 Mark as read
+export async function markInboxAsRead(notifId) {
+  const uid = Auth.getCurrentUser()?.uid;
+  if (!uid) return;
+  const clienteId = await getClienteDocIdPorUID(uid);
+  if (!clienteId) throw new Error("Cliente no identificado");
+
+  await db.collection('clientes').doc(clienteId).collection('inbox').doc(notifId).update({
+    read: true,
+    readAt: new Date().toISOString()
+  });
+}
+
 export async function clearInbox() {
   const uid = Auth.getCurrentUser()?.uid;
   if (!uid) return;

@@ -228,20 +228,21 @@ function showWelcomeModal(title, body) {
 // ... existing code ...
 
 // -- LOGICA NOTIFICACIONES (REALTIME) --
+// Si ya tenemos suscripción, no la duplicamos
 if (!unsubscribeInbox && clienteData?.id) {
   let _firstLoad = true;
   unsubscribeInbox = Data.subscribeToUnreadInbox(clienteData.id, (snap) => {
+    // 1. Badge Update
     const count = snap.size;
-    const changes = snap.docChanges();
-
-    // 1. SIEMPRE Actualizar Badge (Corrección clave)
     const btn = document.getElementById('btn-notifs');
     const badge = document.getElementById('notif-badge');
+
     if (btn) {
       if (count > 0) {
         btn.classList.add('blink-active');
         if (badge) {
           badge.textContent = count > 9 ? '9+' : String(count);
+          // Force display inline-block to override any CSS hiding it
           badge.style.display = 'inline-block';
         }
       } else {
@@ -250,32 +251,9 @@ if (!unsubscribeInbox && clienteData?.id) {
       }
     }
 
-    // 2. Manejo de Popups / Bienvenida
-    if (_firstLoad) {
-      // Buscar mensaje de bienvenida NO visto en localstorage
-      const welcomeKey = 'welcome_modal_seen_' + (auth.currentUser?.uid || '');
-      const hasSeen = localStorage.getItem(welcomeKey);
-
-      if (!hasSeen) {
-        const welcomeMsg = snap.docs.find(d => {
-          const t = (d.data().title || '').toLowerCase();
-          return t.includes('bienvenida') || t.includes('bienvenido');
-        });
-
-        if (welcomeMsg) {
-          const d = welcomeMsg.data();
-          showWelcomeModal(d.title, d.body);
-          localStorage.setItem(welcomeKey, 'true');
-        }
-      }
-
-      _firstLoad = false;
-      return;
-    }
-
-    // 3. Realtime Toasts (para mensajes nuevos MIENTRAS usas la app)
-    if (changes && Array.isArray(changes)) {
-      changes.forEach(change => {
+    // 2. Realtime Toast (only for additions after load)
+    if (!_firstLoad) {
+      snap.docChanges().forEach(change => {
         if (change.type === 'added') {
           const data = change.doc.data();
           const title = data.title || 'Nuevo Mensaje';
@@ -284,6 +262,7 @@ if (!unsubscribeInbox && clienteData?.id) {
         }
       });
     }
+    _firstLoad = false;
   });
 }
 

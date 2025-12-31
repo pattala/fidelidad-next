@@ -329,11 +329,8 @@ export async function updateAddress(addressData) {
 
 export async function updateConfig(partial = {}) {
   if (!clienteRef) return;
-  const patch = {};
-  Object.keys(partial).forEach(k => {
-    patch[`config.${k}`] = partial[k];
-  });
-  await clienteRef.set(patch, { merge: true });
+  // FIX: Don't use dot notation with set(), pass nested object
+  await clienteRef.set({ config: partial }, { merge: true });
 }
 
 export async function saveNotifConsent(allowed, extra = {}) {

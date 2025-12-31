@@ -258,29 +258,9 @@ async function fetchInboxBatchUnified() {
   }
 }
 async function listenInboxRealtime() {
-  const clienteRef = await resolveClienteRef();
-  if (!clienteRef) return () => { };
-
-  // Escuchamos TODO el inbox (limitado) para tener el contador correcto
-  const q = clienteRef.collection('inbox').orderBy('sentAt', 'desc').limit(50);
-
-  return q.onSnapshot((snap) => {
-    const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-    // 1. Calcular Badge (Unread)
-    // Nota: Si hay más de 50 mensajes, esto cuenta solo los que entren en el query. 
-    // Para badge preciso global debería ser un count server-side o query específico, 
-    // pero para UX local esto es suficiente.
-    const unreadCount = items.filter(i => !i.read).length;
-    setBadgeCount(unreadCount);
-
-    // 2. Disponibilizar datos para UI si fuera necesario
-    inboxLastSnapshot = items;
-
-    // (Legacy renderInboxList eliminado porque target #inbox-list no existe)
-    // renderInboxList(items); 
-
-  }, (err) => { console.warn('[INBOX] onSnapshot error:', err?.message || err); });
+  // 🛑 DESHABILITADO: La lógica de UI y notificaciones se centraliza en ui.js / renderMainScreen
+  // para evitar conflicto de "dos choferes" manejando la campanita.
+  return () => { };
 }
 function wireInboxModal() {
   const modal = document.getElementById('inbox-modal');

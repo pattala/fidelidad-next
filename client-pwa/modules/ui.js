@@ -1059,61 +1059,70 @@ export async function openInboxModal() {
       item.className = 'inbox-item';
       if (!d.read) item.classList.add('destacado');
 
+      // Lógica de truncado manual para máxima robustez
+      const bodyText = d.cuerpo || '';
+      const isLong = bodyText.length > 60;
+      const shortText = isLong ? bodyText.substring(0, 60) + '...' : bodyText;
+
       item.innerHTML = `
         <input type="checkbox" class="inbox-select-check" value="${d.id}" onclick="event.stopPropagation()">
         
         <div style="width:40px; height:40px; border-radius:50%; background:${iconBg}; display:flex; align-items:center; justify-content:center; font-size:1.2rem; flex-shrink:0;">
           ${icon}
         </div>
-        <div class="inbox-content-wrapper">
+        <div class="inbox-content-wrapper" style="flex:1; min-width:0;">
           <div class="inbox-title">
             ${d.titulo || 'Mensaje'}
             ${!d.read ? '<span class="chip-destacado">Nuevo</span>' : ''}
           </div>
-          <div class="inbox-body">${d.cuerpo || ''}</div>
+          
+          <!-- Vista Corta -->
+          <div class="inbox-body-short" style="display:block; color:#555; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">
+            ${shortText}
+          </div>
+
+          <!-- Vista Larga (Oculta por defecto) -->
+          <div class="inbox-body-full" style="display:none; color:#333; margin-top:8px; white-space:pre-wrap; line-height:1.5;">
+            ${bodyText}
+          </div>
+
           <small class="inbox-date">${dateStr}</small>
         </div>
       `;
 
       item.onclick = async (e) => {
-        console.log('[UI] Inbox Item Clicked:', d.id);
-
         // Evitar conflictos con el checkbox
         if (e.target.classList && e.target.classList.contains('inbox-select-check')) return;
         if (e.target.closest('.inbox-select-check')) return;
 
-        // Evitar navegación default si es un enlace envuelto incorrectamente
         e.preventDefault();
 
-        // 1. Marcar como leído visualmente + BD
-        try {
-          // Feedback inmediato en UI: quitar destacado y etiqueta "Nuevo"
-          if (item.classList.contains('destacado')) {
-            item.classList.remove('destacado');
-            const chip = item.querySelector('.chip-destacado');
-            if (chip) chip.remove();
-            // Call Async but don't wait for UI update
-            Data.markInboxAsRead(d.id).catch(err => console.warn('Read mark fail', err));
-          }
-        } catch (err) { console.warn(err); }
-
-        // 2. Navegación inteligente
-        const targetUrl = d.url || d.click_action;
-
-        // Si hay una URL válida y NO es un hash vacío o la misma página
-        if (targetUrl && targetUrl !== '#' && !targetUrl.endsWith(location.pathname)) {
-          console.log('[UI] Navigating to:', targetUrl);
-          if (targetUrl.startsWith('http')) {
-            window.open(targetUrl, '_blank');
-          } else {
-            window.location.href = targetUrl;
-          }
+        // 1. Marcar leído
+        if (item.classList.contains('destacado')) {
+          item.classList.remove('destacado');
+          const chip = item.querySelector('.chip-destacado');
+          if (chip) chip.remove();
+          Data.markInboxAsRead(d.id).catch(err => console.warn(err));
         }
-        // Si NO hay URL, Expandir (Toggle Class)
-        else {
-          console.log('[UI] Toggling expansion. Current:', item.classList.contains('expanded'));
-          item.classList.toggle('expanded');
-          console.log('[UI] New State:', item.classList.contains('expanded'));
+
+        const targetUrl = d.url || d.click_action;
+        if (targetUrl && targetUrl !== '#' && !targetUrl.endsWith(location.pathname)) {
+          if (targetUrl.startsWith('http')) window.open(targetUrl, '_blank');
+          else window.location.href = targetUrl;
+        } else {
+          // Lógica Manual de Toggle
+          const vShort = item.querySelector('.inbox-body-short');
+          const vFull = item.querySelector('.inbox-body-full');
+
+          if (vFull.style.display === 'none') {
+            vFull.style.display = 'block';
+            if (vShort) vShort.style.display = 'none';
+            item.style.background = '#fafafa';
+          } else {
+            vFull.style.display = 'none';
+            if (vShort) vShort.style.display = 'block';
+            item.style.background = '';
+          }
         }
       };
 

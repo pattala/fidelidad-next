@@ -92,9 +92,9 @@ export function renderMainScreen(clienteData, premiosData, campanasData = [], op
   // -- LOGICA NOTIFICACIONES (REALTIME) --
   // Si ya tenemos suscripción, no la duplicamos. Si cambió el usuario, podríamos reiniciar,
   // pero por simplicidad asumimos SPA simple.
-  if (!unsubscribeInbox) {
+  if (!unsubscribeInbox && clienteData?.authUID) {
     let _firstLoad = true;
-    unsubscribeInbox = Data.subscribeToUnreadInbox((snap) => {
+    unsubscribeInbox = Data.subscribeToUnreadInbox(clienteData.authUID, (snap) => {
       // FIX: Data.js sends a QuerySnapshot, not (count, changes)
       const count = snap.size;
       const changes = snap.docChanges();

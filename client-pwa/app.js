@@ -158,7 +158,7 @@ function renderInboxList(items) {
           <div class="inbox-main" style="flex:1 1 auto; min-width:0;">
             <div class="inbox-header-line" style="display:flex; justify-content:space-between; align-items:center;">
                <div class="inbox-title" style="font-weight:${titleWeight}; font-size:1rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:85%;">
-                 ${it.title || 'Mensaje'} 
+                 ${it.title || it.titulo || 'Mensaje'} 
                  ${isDestacado ? '⭐' : ''}
                </div>
                <div class="inbox-date" style="color:#999; font-size:11px; flex-shrink:0;">${dateTxt}</div>
@@ -253,6 +253,8 @@ async function fetchInboxBatchUnified() {
   try {
     const snap = await clienteRef.collection('inbox').orderBy('sentAt', 'desc').limit(50).get();
     const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    console.log('[FETCH DEBUG] Items fetched:', items.length);
+    items.forEach((it, i) => console.log(`[FETCH ITEM ${i}] ID:${it.id} Title:${it.title} Titulo:${it.titulo}`));
     inboxLastSnapshot = items;
     renderInboxList(items);
   } catch (e) {

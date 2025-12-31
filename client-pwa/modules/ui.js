@@ -1116,45 +1116,44 @@ export async function openInboxModal() {
       `;
 
       item.onclick = async (e) => {
+        console.log('[UI] Inbox Item Clicked:', d.id);
+
         // Evitar conflictos con el checkbox
         if (e.target.classList && e.target.classList.contains('inbox-select-check')) return;
+        if (e.target.closest('.inbox-select-check')) return;
 
         // Evitar navegación default si es un enlace envuelto incorrectamente
         e.preventDefault();
 
         // 1. Marcar como leído visualmente + BD
         try {
-          await Data.markInboxAsRead(d.id);
           // Feedback inmediato en UI: quitar destacado y etiqueta "Nuevo"
-          item.classList.remove('destacado');
-          const chip = item.querySelector('.chip-destacado');
-          if (chip) chip.remove();
-        } catch { }
+          if (item.classList.contains('destacado')) {
+            item.classList.remove('destacado');
+            const chip = item.querySelector('.chip-destacado');
+            if (chip) chip.remove();
+            // Call Async but don't wait for UI update
+            Data.markInboxAsRead(d.id).catch(err => console.warn('Read mark fail', err));
+          }
+        } catch (err) { console.warn(err); }
 
         // 2. Navegación inteligente
         const targetUrl = d.url || d.click_action;
 
         // Si hay una URL válida y NO es un hash vacío o la misma página
         if (targetUrl && targetUrl !== '#' && !targetUrl.endsWith(location.pathname)) {
-          // Si es absoluta externa, abrir nueva pestaña. Si es relativa, navegar.
+          console.log('[UI] Navigating to:', targetUrl);
           if (targetUrl.startsWith('http')) {
             window.open(targetUrl, '_blank');
           } else {
             window.location.href = targetUrl;
           }
         }
-        // Si NO hay URL, simplemente cerramos el modal (ya se marcó leído)
+        // Si NO hay URL, Expandir (Toggle Class)
         else {
-          // Lógica de "Despliegue" (Accordion)
-          // Colapsar otros (opcional, si queremos accordion estricto)
-          /* 
-          container.querySelectorAll('.inbox-item.expanded').forEach(other => {
-             if (other !== item) other.classList.remove('expanded');
-          }); 
-          */
-
-          // Toggle actual
+          console.log('[UI] Toggling expansion. Current:', item.classList.contains('expanded'));
           item.classList.toggle('expanded');
+          console.log('[UI] New State:', item.classList.contains('expanded'));
         }
       };
 

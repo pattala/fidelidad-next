@@ -101,6 +101,7 @@ export default async function handler(req, res) {
               ts: Date.now(), tipo: 'push', templateId,
               titulo, cuerpo,
               title: titulo, body: cuerpo, // ⚡ FIX: Legacy/New compat
+              read: false, // 🔔 FIX: Required for unread count
               meta: { jobId, requestedBy }
             });
         }

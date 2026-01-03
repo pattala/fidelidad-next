@@ -295,7 +295,8 @@ async function listenInboxRealtime() {
     inboxLastSnapshot = items;
 
     // ⚡ ALWAYS Update Badge (Fix: Update count even if modal is closed)
-    const unreadCount = items.filter(i => !i.read).length;
+    // Defensive: Anything NOT explicitly read is UNREAD. Handles legacy/undefined.
+    const unreadCount = items.filter(i => i.read !== true).length;
     // Fix: setBadgeCount is local to module, not on window
     if (typeof setBadgeCount === 'function') setBadgeCount(unreadCount);
 
@@ -860,59 +861,55 @@ function wireAddressDatalists(prefix = 'dom-') {
 }
 
 // —— Mission Card Logic
-function checkMissionStatus(hasAddress, dismissedOnServer) {
+// —— Mission Card Logic (State Driven)
+function refreshMissionState(hasAddress, dismissedOnServer) {
   const card = document.getElementById('mission-address-card');
   const btn = document.getElementById('mission-address-btn');
   const btnLater = document.getElementById('mission-address-later');
-  const pointsEl = document.getElementById('mission-address-points');
 
   if (!card) return;
 
   // 1. Config Check & Dynamic Points
   const points = window.GAMIFICATION_CONFIG?.pointsForAddress || 50;
-  // Dynamic Title Update
   const titleH3 = card.querySelector('h3');
-  if (titleH3) titleH3.textContent = `🎯 Ganá ${points} puntos`;
+  if (titleH3) titleH3.innerHTML = `🎯 Gan&aacute; <b>${points}</b> puntos`;
 
-  // 2. Hide if address exists OR dismissed on server OR deferred in session
+  // 2. Hide if address exists, server dismissed, OR session deferred
   const isDeferred = sessionStorage.getItem('missionAddressDeferred') === '1';
 
-  if (hasAddress || dismissedOnServer || isDeferred) {
-    console.log('[Mission] Hiding card. Reason:', { hasAddress, dismissedOnServer, isDeferred });
-    card.style.display = 'none';
-    return;
+  // Logic: Show ONLY if no address, not dismissed, and not deferred
+  const shouldShow = (!hasAddress && !dismissedOnServer && !isDeferred);
+
+  if (!shouldShow) {
+    if (card.style.display !== 'none') {
+      console.log('[Mission] State Change: Hiding card.', { hasAddress, dismissedOnServer, isDeferred });
+      card.style.display = 'none';
+    }
+  } else {
+    if (card.style.display !== 'block') {
+      console.log('[Mission] State Change: Showing card.', { hasAddress, dismissedOnServer, isDeferred });
+      card.style.display = 'block';
+    }
   }
 
-  // 3. Show Mission
-  console.log('[Mission] Showing card (No Address & Not Deferred)');
-  card.style.display = 'block';
-
-  // 4. Wire "Completar ahora"
+  // 3. Wire Buttons (Idempotent)
   if (btn && !btn._wired) {
     btn._wired = true;
     btn.addEventListener('click', () => {
-      const addressCard = document.getElementById('address-card');
-      const banner = document.getElementById('address-banner');
-      if (addressCard) {
-        addressCard.style.display = 'block';
-        try { window.scrollTo({ top: addressCard.offsetTop - 60, behavior: 'smooth' }); } catch { }
-      }
-      if (banner) banner.style.display = 'none';
-      // Hide mission card when acting on it
-      card.style.display = 'none';
-
+      document.getElementById('address-card').style.display = 'block';
+      document.getElementById('address-banner').style.display = 'none';
+      card.style.display = 'none'; // Instant hide
       import('./modules/notifications.js').then(mod => mod.initDomicilioForm?.()).catch(() => { });
     });
   }
 
-  // 5. Wire "Más tarde"
   if (btnLater && !btnLater._wired) {
     btnLater._wired = true;
     btnLater.addEventListener('click', (e) => {
       e.preventDefault();
-      console.log('[Mission] Deferring for session');
       sessionStorage.setItem('missionAddressDeferred', '1');
       card.style.display = 'none';
+      window.printStateDiagnostic?.('banner-deferred');
     });
   }
 }
@@ -1013,8 +1010,8 @@ async function setupAddressSection() {
     deferredSession = false;
   }
 
-  // Update Mission Card
-  checkMissionStatus(hasAddress, dismissedOnServer);
+  // Update Mission Card (USING NEW STATE FUNCTION)
+  refreshMissionState(hasAddress, dismissedOnServer);
 
   // Combinamos: si lo marcó local O servidor, se considera dismiss
   const dismissed = dismissedLocal || dismissedOnServer;
@@ -1235,7 +1232,20 @@ async function main() {
       Data.listenToClientData(user, { suppressNavigation: suppressNav });
 
       document.addEventListener('rampet:cliente-updated', (e) => {
-        try { window.clienteData = e.detail?.cliente || window.clienteData || {}; } catch { }
+        try {
+          const d = e.detail?.cliente || {};
+          window.clienteData = d;
+
+          // Re-evaluate mission status with FRESH data
+          const comp = d.domicilio?.components;
+          const hasAddr = !!(comp && comp.calle && comp.numero && comp.provincia && (comp.localidad || comp.barrio || comp.partido));
+          const dismissed = !!(d.config?.addressPromptDismissed || d['config.addressPromptDismissed']);
+
+          if (typeof refreshMissionState === 'function') {
+            refreshMissionState(hasAddr, dismissed);
+          }
+          window.printStateDiagnostic?.('data-updated');
+        } catch (err) { console.warn('Client update error', err); }
       });
 
       try { await window.ensureGeoOnStartup?.(); } catch { }
@@ -1247,7 +1257,7 @@ async function main() {
 
       if (messagingSupported) {
         console.log('[FCM] token actual:', localStorage.getItem('fcmToken') || '(sin token)');
-        window.__reportState?.('post-init-notifs');
+        // Remove early diagnostic to avoid confusion
       }
 
       setBadgeCount(getBadgeCount());

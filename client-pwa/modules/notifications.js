@@ -208,6 +208,7 @@ export async function obtenerYGuardarToken() {
     const msgInstance = firebase.messaging();
     msgInstance.onMessage((payload) => {
       console.log('[FCM] Foreground Message (Main):', payload);
+      try { console.log('[FCM Payload] JSON:', JSON.stringify(payload, null, 2)); } catch { }
       // ESTRATEGIA v4: No forzamos nada visual aquí. 
       // Dejamos que el Service Worker se encargue si quiere mostrar algo, 
       // o que el usuario vea el badge. Evitamos duplicados.

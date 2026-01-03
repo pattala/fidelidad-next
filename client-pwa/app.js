@@ -31,8 +31,13 @@ window.printStateDiagnostic = async (where = '') => {
   // Inbox Stats
   const inbox = window.inboxLastSnapshot || [];
   const total = inbox.length;
-  const unread = inbox.filter(m => !m.read).length;
+  const unread = inbox.filter(m => m.read !== true).length; // ⚡ FIX: Defensive Count
   const read = total - unread;
+
+  // Debug Banner Logic
+  const bannerEl = document.getElementById('mission-address-card');
+  const bannerVis = bannerEl && bannerEl.style.display !== 'none' ? 'Visible' : 'Hidden';
+  const deferred = sessionStorage.getItem('missionAddressDeferred') === '1';
 
   console.group(`🔍 DIAGNÓSTICO ESTADO [${where}]`);
   console.table({
@@ -44,8 +49,8 @@ window.printStateDiagnostic = async (where = '') => {
     'Messages Total': total,
     'Messages Unread': unread,
     'Messages Read': read,
-    'Address Banner': document.getElementById('mission-address-card')?.style.display === 'none' ? 'Hidden' : 'Visible',
-    'Session Deferred': sessionStorage.getItem('missionAddressDeferred') === '1' ? 'YES' : 'NO',
+    'Address Banner': bannerVis,
+    'Session Deferred': deferred ? 'YES' : 'NO',
     'Timestamp': new Date().toISOString()
   });
   console.groupEnd();
@@ -196,43 +201,51 @@ function renderInboxList(items) {
 
   list.querySelectorAll('.inbox-item').forEach(card => {
     card.onclick = async (e) => {
-      // Ignorar si click en delete
-      if (e.target.closest('.inbox-delete')) return;
+      // 🛡️ STABILITY: Prevent Default & Stop Prop to avoid reloads/bubbling
+      e.preventDefault();
+      e.stopPropagation();
 
-      const id = card.getAttribute('data-id');
-      const item = inboxLastSnapshot.find(x => x.id === id);
+      try {
+        // Ignorar si click en delete
+        if (e.target.closest('.inbox-delete')) return;
 
-      // 1. Expandir UI
-      const preview = card.querySelector('.inbox-body-preview');
-      const full = card.querySelector('.inbox-body-full');
+        const id = card.getAttribute('data-id');
+        const item = inboxLastSnapshot.find(x => x.id === id);
 
-      const isExpanded = full.style.display === 'block';
-      if (isExpanded) {
-        full.style.display = 'none';
-        preview.style.display = 'block';
-      } else {
-        full.style.display = 'block';
-        preview.style.display = 'none';
+        // 1. Expandir UI
+        const preview = card.querySelector('.inbox-body-preview');
+        const full = card.querySelector('.inbox-body-full');
 
-        // 2. Marcar como leído si no lo estaba
-        if (item && !item.read) {
-          item.read = true; // Optimistic update
-          // Update UI visual "read" state instantly
-          card.style.background = '#fff';
-          card.style.borderLeft = 'none';
-          const t = card.querySelector('.inbox-title');
-          if (t) t.style.fontWeight = '400';
+        const isExpanded = full.style.display === 'block';
+        if (isExpanded) {
+          full.style.display = 'none';
+          preview.style.display = 'block';
+        } else {
+          full.style.display = 'block';
+          preview.style.display = 'none';
 
-          try {
-            // DB Update
-            const clienteRef = await resolveClienteRef();
-            await clienteRef.collection('inbox').doc(id).update({
-              read: true,
-              readAt: new Date().toISOString()
-            });
-            // Badge logic depends on listener, which will fire automatically and reduce count
-          } catch (err) { console.warn('Read update fail', err); }
+          // 2. Marcar como leído si no lo estaba
+          if (item && !item.read) {
+            item.read = true; // Optimistic update
+            // Update UI visual "read" state instantly
+            card.style.background = '#fff';
+            card.style.borderLeft = 'none';
+            const t = card.querySelector('.inbox-title');
+            if (t) t.style.fontWeight = '400';
+
+            try {
+              // DB Update
+              const clienteRef = await resolveClienteRef();
+              await clienteRef.collection('inbox').doc(id).update({
+                read: true,
+                readAt: new Date().toISOString()
+              });
+              // Badge logic depends on listener, which will fire automatically and reduce count
+            } catch (err) { console.warn('Read update fail', err); }
+          }
         }
+      } catch (err) {
+        console.warn('Inbox UI Interaction Error', err);
       }
     };
   });
@@ -1235,8 +1248,11 @@ async function main() {
           window.appClienteData = d;
 
           // Re-evaluate mission status with FRESH data
+          // Re-evaluate mission status with FRESH data
+          // Re-evaluate mission status with FRESH data
           const comp = d.domicilio?.components;
-          const hasAddr = !!(comp && comp.calle && comp.numero && comp.provincia && (comp.localidad || comp.barrio || comp.partido));
+          // STRICT CHECK (User Request): Calle + Numero + Provincia + (Localidad OR Barrio)
+          const hasAddr = !!(comp && comp.calle && comp.numero && comp.provincia && (comp.localidad || comp.barrio));
           const dismissed = !!(d.config?.addressPromptDismissed || d['config.addressPromptDismissed']);
 
           if (typeof refreshMissionState === 'function') {

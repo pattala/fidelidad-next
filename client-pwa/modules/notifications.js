@@ -209,9 +209,20 @@ export async function obtenerYGuardarToken() {
     msgInstance.onMessage((payload) => {
       console.log('[FCM] Foreground Message (Main):', payload);
       try { console.log('[FCM Payload] JSON:', JSON.stringify(payload, null, 2)); } catch { }
-      // ESTRATEGIA v4: No forzamos nada visual aquí. 
-      // Dejamos que el Service Worker se encargue si quiere mostrar algo, 
-      // o que el usuario vea el badge. Evitamos duplicados.
+
+      // 🛡️ POPUP TITLE FIX (Generic -> Specific)
+      const d = payload.data || {};
+      const MAPPER = {
+        'welcome_signup': { t: '👋 ¡Bienvenido!', b: 'Gracias por sumarte. ¡Tus puntos ya están!' },
+        'profile_address': { t: '🎁 ¡Puntos Acreditados!', b: 'Gracias por completar tu perfil.' },
+        'premio': { t: '🎉 ¡Sumaste Puntos!', b: 'Tenés nuevos puntos disponibles.' }
+      };
+
+      if (d.type && MAPPER[d.type]) {
+        console.log('[FCM] Mapping Generic Title to Specific:', d.type);
+        const mapped = MAPPER[d.type];
+        if (window.toast) window.toast(`${mapped.t} - ${mapped.b}`, 'info');
+      }
     });
 
     toast('Notificaciones Activas ✅', 'success');

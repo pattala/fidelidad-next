@@ -650,9 +650,9 @@ function setupMainAppScreenListeners() {
     }
 
     // Update State for logic checks
-    if (window.clienteData) {
-      window.clienteData.domicilio = window.clienteData.domicilio || {};
-      window.clienteData.domicilio.status = 'COMPLETE';
+    if (window.appClienteData) {
+      window.appClienteData.domicilio = window.appClienteData.domicilio || {};
+      window.appClienteData.domicilio.status = 'COMPLETE';
     }
   });
 
@@ -1234,7 +1234,8 @@ async function main() {
       document.addEventListener('rampet:cliente-updated', (e) => {
         try {
           const d = e.detail?.cliente || {};
-          window.clienteData = d;
+          // Fix: Rename global to avoid 'only a getter' error (conflict with data.js?)
+          window.appClienteData = d;
 
           // Re-evaluate mission status with FRESH data
           const comp = d.domicilio?.components;

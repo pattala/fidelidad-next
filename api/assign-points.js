@@ -184,7 +184,7 @@ export default async function handler(req, res) {
                 ts: Date.now(),
                 sentAt: admin.firestore.FieldValue.serverTimestamp(),
                 tipo: inboxType, // Para ícono en UI
-                read: false,
+                read: false, // ⚡ FIX: Mark as unread for badge count
                 source: 'assign-points',
                 expireAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 90 * 24 * 60 * 60 * 1000))
             });

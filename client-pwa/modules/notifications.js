@@ -208,23 +208,23 @@ export async function obtenerYGuardarToken() {
     const msgInstance = firebase.messaging();
     msgInstance.onMessage((payload) => {
       console.log('[FCM] Foreground Message (Main):', payload);
-      // ESTRATEGIA v3: El SW (Service Worker) ahora fuerza el Popup SIEMPRE.
-      // Aquí NO generamos notificación visual para evitar duplicados.
-      // Solo nos sirve para actualizar UI si hiciera falta (aunque PUSH_FOREGROUND del SW ya lo hace).
-      console.log('[FCM] Foreground Message recibida (Visual gestionada por SW).');
 
-      /* 
-      // Código Legacy (Desactivado para evitar doble popup)
+      // ESTRATEGIA v3: Forzar Popup Nativo en Windows/Android incluso en Primer Plano.
+      // Esto asegura que el usuario vea el cartelito negro del sistema.
       const title = payload.notification?.title || payload.data?.title || 'Notificación';
       const body = payload.notification?.body || payload.data?.body || '';
-      const icon = payload.notification?.icon || payload.data?.icon || 'https://rampet.vercel.app/images/mi_logo_192.png';
+      const icon = payload.notification?.icon || payload.data?.icon || '/images/mi_logo_192.png';
 
-      new Notification(title, {
-        body: body,
-        icon: icon,
-        tag: 'rampet-foreground'
-      });
-      */
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then(reg => {
+          reg.showNotification(title, {
+            body: body,
+            icon: icon,
+            tag: 'renpet-foreground-force', // Tag único para evitar duplicados si el SW ya lo mostró
+            data: payload.data
+          });
+        }).catch(err => console.error('[FCM] Error forzando popup nativo:', err));
+      }
     });
 
     toast('Notificaciones Activas ✅', 'success');
@@ -263,7 +263,11 @@ export async function initNotificationsOnce() {
     debugLog('Init', 'Permiso ya concedido. Sincronizando token silenciosamente...');
     try {
       // Auto-healing: Si dice granted pero no tenemos token local, intentamos recuperar
-      await obtenerYGuardarToken();
+      const localToken = localStorage.getItem('fcmToken');
+      if (!localToken) {
+        console.warn('[FCM] ♻️ Permiso OK pero falta Token Local (Reset detectable). Resincronizando...');
+        await obtenerYGuardarToken();
+      }
     } catch (e) {
       console.warn('[FCM] Falló sync silenciosa:', e);
     }

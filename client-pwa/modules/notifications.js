@@ -280,11 +280,12 @@ export async function initNotificationsOnce() {
     const localState = localStorage.getItem(LS_NOTIF_STATE);
     if (!localState) {
       // Primer uso: mostrar prompt
-      show($('notif-prompt-card'), true);
-      show($('notif-card'), false);
+      // checkAndPromptGeo(); // MOVED TO EVENT LISTENER
+      // show($('notif-prompt-card'), true);
+      // show($('notif-card'), false);
     } else {
       // Si ya decidieron notif (o está deferred), probamos Geo
-      checkAndPromptGeo();
+      // checkAndPromptGeo(); // MOVED TO EVENT LISTENER
     }
   }
 }
@@ -372,8 +373,11 @@ export async function checkAndPromptGeo() {
     return;
   }
 
-  // 3. DB Check (Source of Truth)
-  if (window.clienteData?.config?.geoEnabled === true) {
+  // 3. DB Check (Source of Truth) - STRICT
+  // If config.geoEnabled is true, WE NEVER PROMPT (Assume active or handled by OS)
+  const dbConfig = window.clienteData?.config || {};
+  if (dbConfig.geoEnabled === true) {
+    console.log('[Geo] DB says enabled. Silent check local state.');
     localStorage.setItem('geoState', 'active');
     return;
   }
@@ -485,7 +489,7 @@ export async function initDomicilioForm() {
 
       // 3. Ocultar Banner Misión en esta sesión tambien (UX Consistency)
       sessionStorage.setItem('missionAddressDeferred', '1');
-      document.dispatchEvent(new CustomEvent('rampet:address:dismissed'));
+      document.dispatchEvent(new CustomEvent('sys:address:dismissed'));
 
       toast('Recordaremos esto más adelante.', 'info');
     });
@@ -569,8 +573,8 @@ export async function initDomicilioForm() {
 
         // 5. Update UI
         // Dispatch event so UI.js updates profile card immediately
-        document.dispatchEvent(new CustomEvent('rampet:address:dismissed'));
-        document.dispatchEvent(new CustomEvent('rampet:address-saved')); // ⚡ NEW: Signal for App.js to close card correctly
+        document.dispatchEvent(new CustomEvent('sys:address:dismissed'));
+        document.dispatchEvent(new CustomEvent('sys:address-saved')); // ⚡ NEW: Signal for App.js to close card correctly
 
         // Force reload global data or wait for storage sync?
         // UI.js listens to onSnapshot, so it should update auto.

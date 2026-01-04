@@ -560,7 +560,7 @@ function setupMainAppScreenListeners() {
   on('prof-cancel', 'click', restoreAddressCard);
   on('address-cancel', 'click', restoreAddressCard);
   // on('address-save', 'click', ... ) -> REMOVED (Handled by notifications.js event)
-  document.addEventListener('rampet:address-saved', () => {
+  document.addEventListener('sys:address-saved', () => {
     setTimeout(restoreAddressCard, 500);
   });
 
@@ -645,7 +645,7 @@ function setupMainAppScreenListeners() {
   on('btn-notifs', 'click', async () => { try { await openInboxModal(); } catch { } try { await handleBellClick(); } catch { } });
 
   // Listener GLOBAL para ocultar banner de domicilio cuando se completa
-  document.addEventListener('rampet:address:dismissed', () => {
+  document.addEventListener('sys:address:dismissed', () => {
     console.log('[UI] Address Dismissed Event Recibido');
 
     // Fuerza bruta visual
@@ -1033,20 +1033,10 @@ async function setupAddressSection() {
     deferredSession = false;
   }
 
-  // Update Mission Card (USING NEW STATE FUNCTION)
-  refreshMissionState(hasAddress, dismissedOnServer);
-
-  // Combinamos: si lo marcó local O servidor, se considera dismiss
-  const dismissed = dismissedLocal || dismissedOnServer;
-
-  // Si NO tiene domicilio, NO dijo "No gracias" (ni local ni server) y NO difirió por sesión → mostramos banner
-  if (!hasAddress && !dismissed && !deferredSession) {
-    if (banner) banner.style.display = 'block';
-    if (card) card.style.display = 'none';
-  } else {
-    if (banner) banner.style.display = 'none';
-    if (card) card.style.display = 'none';
-  }
+  // 🔹 LOGIC MOVED TO EVENT LISTENER (DB-FIRST)
+  // Default State: Hidden. We wait for 'sys:cliente-updated' to decide.
+  if (banner) banner.style.display = 'none';
+  if (card) card.style.display = 'none';
 }
 
 
@@ -1254,7 +1244,7 @@ async function main() {
       console.log('[Data] Listening to client data... suppressNav:', suppressNav);
       Data.listenToClientData(user, { suppressNavigation: suppressNav });
 
-      document.addEventListener('rampet:cliente-updated', (e) => {
+      document.addEventListener('sys:cliente-updated', (e) => {
         try {
           const d = e.detail?.cliente || {};
           // Fix: Rename global to avoid 'only a getter' error (conflict with data.js?)

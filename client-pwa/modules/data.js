@@ -278,7 +278,7 @@ function renderizarPantallaPrincipal(opts = {}) {
 
   // Disparar evento para que otras capas ajusten banners/prompts
   try {
-    document.dispatchEvent(new CustomEvent('rampet:config-updated', {
+    document.dispatchEvent(new CustomEvent('sys:config-updated', {
       detail: {
         cliente: clienteData,
         config: clienteData?.config || {}
@@ -296,10 +296,10 @@ export function patchLocalConfig(partial = {}) {
     clienteData.config = { ...(clienteData.config || {}), ...partial };
 
     // avisar a quien escuche
-    document.dispatchEvent(new CustomEvent('rampet:cliente-updated', {
+    document.dispatchEvent(new CustomEvent('sys:cliente-updated', {
       detail: { cliente: clienteData }
     }));
-    document.dispatchEvent(new CustomEvent('rampet:config-updated', {
+    document.dispatchEvent(new CustomEvent('sys:config-updated', {
       detail: { cliente: clienteData, config: clienteData.config }
     }));
   } catch (e) {
@@ -361,24 +361,24 @@ function wireConsentEventBridges() {
   if (__bridgesWired) return;
   __bridgesWired = true;
 
-  document.addEventListener('rampet:consent:notif-opt-in', async (e) => {
+  document.addEventListener('sys:consent:notif-opt-in', async (e) => {
     await saveNotifConsent(true, { notifOptInSource: e?.detail?.source || 'prompt' });
   });
-  document.addEventListener('rampet:consent:notif-opt-out', async (e) => {
+  document.addEventListener('sys:consent:notif-opt-out', async (e) => {
     await saveNotifConsent(false, { notifOptOutSource: e?.detail?.source || 'user' });
   });
-  document.addEventListener('rampet:consent:notif-dismissed', async () => {
+  document.addEventListener('sys:consent:notif-dismissed', async () => {
     await saveNotifDismiss();
   });
 
-  document.addEventListener('rampet:geo:enabled', async (e) => {
+  document.addEventListener('sys:geo:enabled', async (e) => {
     await saveGeoConsent(true, { geoMethod: e?.detail?.method || 'prompt' });
   });
-  document.addEventListener('rampet:geo:disabled', async (e) => {
+  document.addEventListener('sys:geo:disabled', async (e) => {
     await saveGeoConsent(false, { geoMethod: e?.detail?.method || 'toggle' });
   });
   // 🔹 Nuevo: el usuario dijo "No gracias" al banner de domicilio
-  document.addEventListener('rampet:address:dismissed', async () => {
+  document.addEventListener('sys:address:dismissed', async () => {
     const now = new Date().toISOString();
     await updateConfig({
       addressPromptDismissed: true,
@@ -443,7 +443,7 @@ export async function listenToClientData(user, opts = {}) {
       clienteData = { ...raw, config: safeConfig };
 
       try {
-        document.dispatchEvent(new CustomEvent('rampet:cliente-updated', { detail: { cliente: clienteData } }));
+        document.dispatchEvent(new CustomEvent('sys:cliente-updated', { detail: { cliente: clienteData } }));
       } catch { }
 
       renderizarPantallaPrincipal(opts);

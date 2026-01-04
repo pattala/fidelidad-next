@@ -546,7 +546,7 @@ export function renderRecentHistory(cliente = {}) {
 }
 
 // Re-render cuando se actualiza el cliente desde data.js
-document.addEventListener('rampet:cliente-updated', (e) => {
+document.addEventListener('sys:cliente-updated', (e) => {
   try { renderRecentHistory(e.detail?.cliente || {}); } catch { }
 });
 
@@ -584,7 +584,7 @@ function reorderProfileSections() {
   container.insertBefore(addressSection, prefsSection);
 
   // Listener GLOBAL para ocultar banner de domicilio cuando se completa
-  document.addEventListener('rampet:address:dismissed', () => {
+  document.addEventListener('sys:address:dismissed', () => {
     console.log('[UI] Address Dismissed Event Recibido');
 
     // Fuerza bruta visual con !important
@@ -854,7 +854,7 @@ document.getElementById('address-save')?.addEventListener('click', async () => {
     showToast('Domicilio guardado. ¡Gracias!', 'success');
 
     // Disparar evento de dismissed para que no vuelva a molestar
-    document.dispatchEvent(new CustomEvent('rampet:address:dismissed'));
+    document.dispatchEvent(new CustomEvent('sys:address:dismissed'));
 
     // ─────────────────────────────────────────────
     // GAMIFICATION: Validar si completó todo y premiar
@@ -932,7 +932,7 @@ export async function checkUnreadMessages() {
 }
 
 // Wire up global events
-document.addEventListener('rampet:notification-received', () => {
+document.addEventListener('sys:notification-received', () => {
   // Realtime listener handles this now
 });
 document.addEventListener('DOMContentLoaded', () => {
@@ -1162,7 +1162,7 @@ document.getElementById('close-inbox-modal')?.addEventListener('click', closeInb
 document.getElementById('close-inbox-btn')?.addEventListener('click', closeInboxModal);
 
 // Si cambian config/consentimientos mientras el modal está abierto, refrescamos switches
-document.addEventListener('rampet:config-updated', () => {
+document.addEventListener('sys:config-updated', () => {
   const m = document.getElementById('profile-modal');
   if (m && m.style.display === 'flex') { syncProfileTogglesFromRuntime(); }
 });

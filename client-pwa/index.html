@@ -634,7 +634,7 @@
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') tryShowGeoPrompt();
     });
-    document.addEventListener('rampet:geo:changed', tryShowGeoPrompt);
+    document.addEventListener('sys:geo:changed', tryShowGeoPrompt);
   </script>
 
 </body>

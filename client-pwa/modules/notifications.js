@@ -466,7 +466,30 @@ export async function handleBellClick() {
 export async function initDomicilioForm() {
   const saveBtn = $('address-save');
   const cancelBtn = $('address-cancel'); // Handled by UI.js logic mostly
-  const skipBtn = $('address-skip'); // "Ahora no"
+  /* ────────────────────────────────────────────────────────────
+     BOTÓN "AHORA NO" (COOLDOWN)
+     ──────────────────────────────────────────────────────────── */
+  if (skipBtn && !skipBtn._wiredLogic) {
+    skipBtn._wiredLogic = true;
+    skipBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      console.log('[Address] User clicked Skip/Ahora no.');
+
+      // 1. Guardar Timestamp de rechazo (Cooldown)
+      localStorage.setItem('addressPromptDismissedAt', Date.now().toString());
+
+      // 2. Cerrar Modal (UI.js handle)
+      // Si UI.js tiene un metodo close, lo usamos, sino ocultamos a mano
+      const modal = document.getElementById('address-modal'); // Asumiendo ID
+      if (modal) modal.style.display = 'none';
+
+      // 3. Ocultar Banner Misión en esta sesión tambien (UX Consistency)
+      sessionStorage.setItem('missionAddressDeferred', '1');
+      document.dispatchEvent(new CustomEvent('rampet:address:dismissed'));
+
+      toast('Recordaremos esto más adelante.', 'info');
+    });
+  }
 
   if (saveBtn && !saveBtn._wiredLogic) {
     saveBtn._wiredLogic = true;

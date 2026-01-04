@@ -887,17 +887,30 @@ function refreshMissionState(hasAddress, dismissedOnServer) {
   // 2. Hide if address exists, server dismissed, OR session deferred
   const isDeferred = sessionStorage.getItem('missionAddressDeferred') === '1';
 
-  // Logic: Show ONLY if no address, not dismissed, and not deferred
-  const shouldShow = (!hasAddress && !dismissedOnServer && !isDeferred);
+  // 3. Cooldown Logic (Days)
+  let isInCooldown = false;
+  const lastDismissed = parseInt(localStorage.getItem('addressPromptDismissedAt') || '0');
+  if (lastDismissed > 0) {
+    // Default 5 days if config missing
+    const silenceDays = window.GAMIFICATION_CONFIG?.notif_silence_days || 5;
+    const daysPassed = (Date.now() - lastDismissed) / (1000 * 60 * 60 * 24);
+    if (daysPassed < silenceDays) {
+      isInCooldown = true;
+      console.log(`[Mission] Cooldown Active. Days passed: ${daysPassed.toFixed(1)}/${silenceDays}`);
+    }
+  }
+
+  // Logic: Show ONLY if no address, not dismissed server-side, not deferred session, AND not in cooldown
+  const shouldShow = (!hasAddress && !dismissedOnServer && !isDeferred && !isInCooldown);
 
   if (!shouldShow) {
     if (card.style.display !== 'none') {
-      console.log('[Mission] State Change: Hiding card.', { hasAddress, dismissedOnServer, isDeferred });
+      console.log('[Mission] State Change: Hiding card.', { hasAddress, dismissedOnServer, isDeferred, isInCooldown });
       card.style.display = 'none';
     }
   } else {
     if (card.style.display !== 'block') {
-      console.log('[Mission] State Change: Showing card.', { hasAddress, dismissedOnServer, isDeferred });
+      console.log('[Mission] State Change: Showing card.', { hasAddress, dismissedOnServer, isDeferred, isInCooldown });
       card.style.display = 'block';
     }
   }

@@ -147,32 +147,9 @@ export function renderMainScreen(clienteData, premiosData, campanasData = [], op
   safeSetText('cliente-puntos', clienteData.puntos || 0);
 
   // Tarjeta Misión: Completar Domicilio
-  const missionAddress = document.getElementById('mission-address-card');
-  if (missionAddress) {
-    // FORCE CHECK: Si tiene la clase o estilo de "ignorado", no lo mostramos ni que llueva.
-    const isForceHidden = missionAddress.style.display === 'none' && missionAddress.style.getPropertyPriority('display') === 'important';
+  // 🗑️ CLEANUP: Logic moved to app.js (DB-First & Strict). 
+  // UI.js should NOT touch this banner to avoid 'Ghost' overwrites.
 
-    // Check real de data
-    const hasAddress = clienteData.domicilio && clienteData.domicilio.calle && clienteData.domicilio.calle.length > 0;
-    const isDismissedConfig = clienteData.config && clienteData.config.addressPromptDismissed === true;
-
-    if (!isForceHidden && !hasAddress && !isDismissedConfig) {
-      missionAddress.style.display = 'block';
-      // Hookear botón "completar"
-      const btn = missionAddress.querySelector('button');
-      if (btn) {
-        // Clonar para limpiar listeners previos
-        const newBtn = btn.cloneNode(true);
-        btn.parentNode.replaceChild(newBtn, btn);
-        newBtn.addEventListener('click', () => {
-          openProfileModal();
-        });
-      }
-    } else {
-      // Si ya estaba hidden "important", no tocamos nada para no romper el override
-      if (!isForceHidden) missionAddress.style.display = 'none';
-    }
-  }
   const vencCard = document.getElementById('vencimiento-card');
   if (vencCard) {
     const pts = Data.getPuntosEnProximoVencimiento(clienteData);
@@ -860,6 +837,12 @@ document.getElementById('address-save')?.addEventListener('click', async () => {
     // GAMIFICATION: Validar si completó todo y premiar
     // ─────────────────────────────────────────────
     if (dom.calle && dom.numero && dom.provincia && (dom.localidad || dom.partido || dom.provincia === 'CABA')) {
+      // 🛡️ IDEMPOTENCY FIX: Check if already awarded!
+      if (window.clienteData?.rewards_awarded?.profile_address) {
+        console.log('[Gamification] Address points already awarded. Skipping API call.');
+        return;
+      }
+
       try {
         const token = await auth.currentUser.getIdToken();
         fetch('/api/assign-points', {

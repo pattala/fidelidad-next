@@ -497,96 +497,15 @@ export async function initDomicilioForm() {
     });
   }
 
+  /*
+  // 🗑️ DISABLED: Logic is handled centrally in UI.js (id: address-save)
+  // Converting this to comment to prevent Double-Save and Double-Points bugs.
   if (saveBtn && !saveBtn._wiredLogic) {
     saveBtn._wiredLogic = true;
     saveBtn.addEventListener('click', async (e) => {
-      e.preventDefault();
-
-      // 1. Collect Data
-      const get = (id) => document.getElementById(id)?.value?.trim() || '';
-      const calle = get('dom-calle');
-      const numero = get('dom-numero');
-      const piso = get('dom-piso');
-      const depto = get('dom-depto');
-      const provincia = get('dom-provincia');
-      const partido = get('dom-partido');
-      const localidad = get('dom-localidad');
-      const cp = get('dom-cp');
-      const pais = get('dom-pais') || 'Argentina';
-      const ref = get('dom-referencia');
-
-      // Validacion Minima
-      if (!calle || !numero || !provincia) {
-        return toast('Faltan datos obligatorios (Calle, Altura, Provincia)', 'error');
-      }
-
-      // 2. Build Objects
-      const seg1 = [calle, numero].filter(Boolean).join(' ');
-      const seg2 = [piso, depto].filter(Boolean).join(' ');
-      const seg3 = provincia === 'CABA'
-        ? [localidad, 'CABA'].filter(Boolean).join(', ')
-        : [localidad, partido, provincia].filter(Boolean).join(', ');
-      const seg4 = [cp, pais].filter(Boolean).join(', ');
-      const addressLine = [seg1, seg2, seg3, seg4].filter(Boolean).join(' — ');
-
-      const domData = {
-        addressLine,
-        status: 'COMPLETE', // Asumimos complete si guardan
-        components: {
-          calle, numero, piso, depto, provincia, partido, localidad, codigoPostal: cp, pais, referencia: ref,
-          barrio: provincia === 'CABA' ? localidad : ''
-        }
-      };
-
-      // 3. Save to Firestore
-      const btnTxt = saveBtn.textContent;
-      saveBtn.disabled = true; saveBtn.textContent = 'Guardando...';
-      try {
-        const uid = firebase.auth().currentUser?.uid;
-        if (!uid) throw new Error('No auth');
-        const docId = await getClienteDocIdPorUID(uid);
-        if (!docId) throw new Error('No doc');
-
-        await firebase.firestore().collection('clientes').doc(docId).update({
-          domicilio: domData,
-          'config.addressUpdatedAt': new Date().toISOString()
-        });
-
-        // ⚡ OPTIMISTIC UPDATE (Critical for UI responsiveness)
-        if (window.clienteData) {
-          window.clienteData.domicilio = domData;
-        }
-
-        // 4. Assign Points (API)
-        try {
-          const token = await firebase.auth().currentUser.getIdToken();
-          const r = await fetch('/api/assign-points', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ reason: 'profile_address' })
-          });
-          const d = await r.json();
-          if (d.pointsAdded > 0) toast(`¡+${d.pointsAdded} Puntos Agregados!`, 'success');
-          else toast('Dirección guardada exitosamente.', 'success');
-
-        } catch {
-          toast('Dirección guardada.', 'success');
-        }
-
-        // 5. Update UI
-        // Dispatch event so UI.js updates profile card immediately
-        document.dispatchEvent(new CustomEvent('sys:address:dismissed'));
-        document.dispatchEvent(new CustomEvent('sys:address-saved')); // ⚡ NEW: Signal for App.js to close card correctly
-
-        // Force reload global data or wait for storage sync?
-        // UI.js listens to onSnapshot, so it should update auto.
-
-      } catch (err) {
-        console.warn('Address Save Error:', err);
-        toast('Error al guardar dirección.', 'error');
-      } finally {
-        saveBtn.disabled = false; saveBtn.textContent = btnTxt;
-      }
+       console.warn('[Notif] Disable legacy save. Use UI.js handler.');
     });
   }
-} 
+  */
+}
+

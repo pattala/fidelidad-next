@@ -1255,11 +1255,34 @@ async function main() {
           window.appClienteData = d;
 
           // Re-evaluate mission status with FRESH data
-          const comp = d.domicilio?.components;
-          console.log('[ADDR SPY]', { comp, val: !!(comp && comp.calle && comp.numero && comp.provincia && (comp.localidad || comp.barrio)) });
+          const comp = d.domicilio?.components || {};
 
-          // STRICT CHECK (User Request): Calle + Numero + Provincia + (Localidad OR Barrio)
-          const hasAddr = !!(comp && comp.calle && comp.numero && comp.provincia && (comp.localidad || comp.barrio));
+          // 🔎 LOG DETALLADO SOLICITADO POR USUARIO
+          console.group('[ADDR SPY] Validando Domicilio...');
+          console.log('1. Raw Components:', comp);
+          console.log('2. Config:', d.config);
+
+          let hasAddr = false;
+          if (comp.calle && comp.numero && comp.provincia) {
+            const p = comp.provincia.toLowerCase();
+            if (p === 'caba' || p.includes('autónoma')) {
+              // Regla CABA: Requiere Barrio
+              hasAddr = !!comp.barrio;
+              console.log(`3. Regla CABA (Barrio): ${hasAddr ? 'OK' : 'Falta Barrio'}`);
+            } else if (p === 'buenos aires' || p.includes('buenos aires')) {
+              // Regla BSAS: Requiere Localidad O Partido
+              hasAddr = !!(comp.localidad || comp.partido);
+              console.log(`3. Regla BSAS (Loc/Part): ${hasAddr ? 'OK' : 'Falta Partido/Localidad'}`);
+            } else {
+              // Regla Interior: Solo Calle+Num+Prov (Resto opcional/libre)
+              hasAddr = true;
+              console.log('3. Regla General: OK (Calle+Num+Prov suficiente)');
+            }
+          } else {
+            console.log('3. Fallo Estructural: Falta Calle, Numero o Provincia básica');
+          }
+          console.groupEnd();
+
           const dismissed = !!(d.config?.addressPromptDismissed || d['config.addressPromptDismissed']);
 
           if (typeof refreshMissionState === 'function') {

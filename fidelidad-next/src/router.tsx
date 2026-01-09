@@ -63,7 +63,7 @@ export const router = createBrowserRouter([
 
     // Admin Panel
     {
-        path: "/admin",
+        path: "/admin/login",
         element: <LoginPage />,
     },
     {

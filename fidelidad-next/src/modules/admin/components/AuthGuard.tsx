@@ -15,7 +15,7 @@ export const AuthGuard = ({ children }: { children: React.ReactNode }) => {
             setUser(auth.currentUser);
             setLoading(false);
             if (!auth.currentUser) {
-                navigate('/admin');
+                navigate('/admin/login');
             }
         };
         initCheck();
@@ -25,7 +25,7 @@ export const AuthGuard = ({ children }: { children: React.ReactNode }) => {
             setUser(currentUser);
             if (!loading && !currentUser) {
                 // Only redirect if we were already loaded (active logout)
-                navigate('/admin');
+                navigate('/admin/login');
             }
         });
         return () => unsubscribe();

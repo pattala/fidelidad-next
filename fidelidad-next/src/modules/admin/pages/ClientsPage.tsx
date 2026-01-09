@@ -663,6 +663,13 @@ export const ClientsPage = () => {
         setSelectedClientForPoints(null);
     };
 
+    const filteredClients = clients.filter(c =>
+        c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (c.dni && c.dni.includes(searchTerm)) ||
+        (c.socioNumber && c.socioNumber.includes(searchTerm)) ||
+        (c.email && c.email.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -673,7 +680,7 @@ export const ClientsPage = () => {
                 </div>
                 <button
                     onClick={openNewClientModal}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg shadow-blue-200 transition-all flex items-center gap-2 active:scale-95"
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg shadow-blue-200 transition-all flex items-center gap-2 active:scale-95 w-full md:w-auto justify-center"
                 >
                     <Plus size={20} />
                     Nuevo Cliente
@@ -681,19 +688,112 @@ export const ClientsPage = () => {
             </div>
 
             {/* Buscador */}
-            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-3">
+            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-3 sticky top-0 z-10 md:static">
                 <Search className="text-gray-400" size={20} />
                 <input
                     type="text"
                     placeholder="Buscar por nombre, DNI, N° Socio o Email..."
-                    className="flex-1 outline-none text-gray-700"
+                    className="flex-1 outline-none text-gray-700 min-w-0" // min-w-0 fixes flex shrinking
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
             </div>
 
-            {/* Tabla */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            {/* VISTA MÓVIL (Cards) - Visible solo en celulares (md:hidden) */}
+            <div className="md:hidden space-y-4 pb-20">
+                {filteredClients.map((client) => (
+                    <div key={client.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 relative">
+                        <div className="flex justify-between items-start mb-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
+                                    {client.name.charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-gray-800 leading-tight">{client.name}</h3>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        {client.socioNumber && (
+                                            <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border border-gray-200">
+                                                #{client.socioNumber}
+                                            </span>
+                                        )}
+                                        {client.createdAt && (
+                                            <span className="text-[10px] text-gray-400">
+                                                {client.createdAt?.seconds ? new Date(client.createdAt.seconds * 1000).toLocaleDateString('es-AR') : new Date(client.createdAt).toLocaleDateString('es-AR')}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <span className="block text-xl font-bold text-blue-600 leading-none">{client.points || 0}</span>
+                                <span className="text-[9px] uppercase text-gray-400 font-bold">Pts</span>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2 text-sm text-gray-600 mb-4 border-b border-gray-50 pb-4">
+                            {client.phone && (
+                                <div className="flex items-center gap-2">
+                                    <Phone size={16} className="text-green-500 shrink-0" />
+                                    <span>{client.phone}</span>
+                                </div>
+                            )}
+                            {client.email && (
+                                <div className="flex items-center gap-2">
+                                    <Mail size={16} className="text-blue-400 shrink-0" />
+                                    <span className="truncate">{client.email}</span>
+                                </div>
+                            )}
+                            {(client.calle || client.localidad) && (
+                                <a
+                                    href={client.google_maps_link || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${client.calle}, ${client.localidad}, ${client.partido || ''}, ${client.provincia}, Argentina`)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-start gap-2 text-gray-500 hover:text-blue-600"
+                                >
+                                    <MapPin size={16} className="text-red-400 shrink-0 mt-0.5" />
+                                    <span className="truncate leading-tight">
+                                        {client.calle} {client.piso ? `(${client.piso}° ${client.depto})` : ''}
+                                        {client.localidad && `, ${client.localidad}`}
+                                    </span>
+                                </a>
+                            )}
+                            {(client.accumulated_balance || 0) > 0 && (
+                                <div className="mt-2 text-xs bg-green-50 text-green-700 px-2 py-1 rounded inline-block font-medium">
+                                    💰 Saldo a favor: ${client.accumulated_balance}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Actions Grid */}
+                        <div className="grid grid-cols-5 gap-2">
+                            <button onClick={() => openPointsModal(client)} className="col-span-2 bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg font-bold flex flex-col items-center justify-center text-xs shadow-sm active:scale-95 transition">
+                                <Coins size={18} className="mb-1" />
+                                Sumar
+                            </button>
+                            <button onClick={() => openHistoryModal(client)} className="bg-gray-50 hover:bg-gray-100 text-gray-600 py-2 rounded-lg flex flex-col items-center justify-center text-[10px] font-medium transition" title="Historial">
+                                <History size={18} className="mb-1" />
+                                Historial
+                            </button>
+                            <button onClick={() => navigate('/admin/whatsapp', { state: { clientId: client.id } })} className="bg-green-50 hover:bg-green-100 text-green-600 py-2 rounded-lg flex flex-col items-center justify-center text-[10px] font-medium transition" title="WhatsApp">
+                                <MessageCircle size={18} className="mb-1" />
+                                Chat
+                            </button>
+                            <button onClick={() => openEditClientModal(client)} className="bg-blue-50 hover:bg-blue-100 text-blue-600 py-2 rounded-lg flex flex-col items-center justify-center text-[10px] font-medium transition" title="Editar">
+                                <Edit size={18} className="mb-1" />
+                                Editar
+                            </button>
+                        </div>
+                    </div>
+                ))}
+                {filteredClients.length === 0 && (
+                    <div className="text-center py-10 text-gray-400 bg-white rounded-xl border border-gray-100">
+                        <p>No se encontraron clientes.</p>
+                    </div>
+                )}
+            </div>
+
+            {/* VISTA DE ESCRITORIO (Tabla) - Visible solo en PC (hidden md:block) */}
+            <div className="hidden md:block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
@@ -706,12 +806,7 @@ export const ClientsPage = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50 text-sm">
-                            {clients.filter(c =>
-                                c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                (c.dni && c.dni.includes(searchTerm)) ||
-                                (c.socioNumber && c.socioNumber.includes(searchTerm)) ||
-                                (c.email && c.email.toLowerCase().includes(searchTerm.toLowerCase()))
-                            ).map((client) => (
+                            {filteredClients.map((client) => (
                                 <tr key={client.id} className="hover:bg-blue-50/20 transition-colors group">
                                     <td className="p-4 pl-6">
                                         <div className="flex items-center gap-3">
@@ -826,7 +921,7 @@ export const ClientsPage = () => {
                                 </tr>
                             ))}
 
-                            {clients.length === 0 && (
+                            {filteredClients.length === 0 && (
                                 <tr>
                                     <td colSpan={5} className="p-12 text-center text-gray-400">
                                         No hay clientes registrados.

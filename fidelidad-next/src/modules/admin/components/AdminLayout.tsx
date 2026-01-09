@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Home, Users, Gift, Settings, LogOut, MessageCircle, BarChart3, ChevronDown, ChevronRight, Clock } from 'lucide-react';
+import { Home, Users, Gift, Settings, LogOut, MessageCircle, BarChart3, ChevronDown, ChevronRight, Clock, Menu, X } from 'lucide-react';
 import { auth } from '../../../lib/firebase';
 import { signOut } from 'firebase/auth';
 import toast from 'react-hot-toast';
@@ -15,6 +15,9 @@ export const AdminLayout = () => {
     const [config, setConfig] = useState<any>(null);
     const [simulatedOffset, setSimulatedOffset] = useState(0);
 
+    // Mobile Sidebar State
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
     useEffect(() => {
         ConfigService.get().then(setConfig);
         setSimulatedOffset(TimeService.getOffsetInDays());
@@ -25,6 +28,8 @@ export const AdminLayout = () => {
         if (location.pathname.includes('/admin/whatsapp') || location.pathname.includes('/admin/push')) {
             setIsMessagingOpen(true);
         }
+        // Auto-close mobile menu on navigation
+        setIsMobileMenuOpen(false);
     }, [location.pathname]);
 
     // Clock
@@ -63,26 +68,45 @@ export const AdminLayout = () => {
         }`;
 
     return (
-        <div className="flex h-screen bg-gray-100">
+        <div className="flex h-screen bg-gray-100 relative overflow-hidden">
+            {/* Mobile Overlay */}
+            {isMobileMenuOpen && (
+                <div
+                    className="fixed inset-0 bg-black/50 z-40 md:hidden animate-fade-in backdrop-blur-sm"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                />
+            )}
+
             {/* Sidebar */}
-            <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
-                <div className="p-6 border-b border-gray-100">
-                    <div className="flex items-center gap-2 text-blue-600 font-bold text-xl">
-                        {config?.logoUrl ? (
-                            <img src={config.logoUrl} alt="Logo" className="w-8 h-8 object-contain" />
-                        ) : (
-                            <span>🛡️</span>
-                        )}
-                        Admin Panel
+            <aside
+                className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 flex flex-col transition-transform duration-300 md:translate-x-0 md:static ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
+            >
+                <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 md:bg-white">
+                    <div>
+                        <div className="flex items-center gap-2 text-blue-600 font-bold text-xl">
+                            {config?.logoUrl ? (
+                                <img src={config.logoUrl} alt="Logo" className="w-8 h-8 object-contain" />
+                            ) : (
+                                <span>🛡️</span>
+                            )}
+                            Admin
+                        </div>
+                        {/* Live Date/Time */}
+                        <div className="mt-2 text-xs text-gray-400 font-medium flex items-center gap-1">
+                            <Clock size={12} />
+                            {currentTime.toLocaleString('es-AR', {
+                                day: '2-digit', month: '2-digit', year: 'numeric',
+                                hour: '2-digit', minute: '2-digit'
+                            })}
+                        </div>
                     </div>
-                    {/* Live Date/Time */}
-                    <div className="mt-2 text-xs text-gray-400 font-medium flex items-center gap-1">
-                        <Clock size={12} />
-                        {currentTime.toLocaleString('es-AR', {
-                            day: '2-digit', month: '2-digit', year: 'numeric',
-                            hour: '2-digit', minute: '2-digit'
-                        })}
-                    </div>
+                    {/* Close Button Mobile */}
+                    <button
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="md:hidden text-gray-400 hover:text-gray-600 bg-white p-2 rounded-full shadow-sm"
+                    >
+                        <X size={20} />
+                    </button>
                 </div>
 
                 <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
@@ -96,7 +120,7 @@ export const AdminLayout = () => {
                         <BarChart3 size={20} /> Métricas
                     </NavLink>
                     <NavLink to="/admin/prizes" className={navItemClass}>
-                        <Gift size={20} /> Catálogo de Premios
+                        <Gift size={20} /> Catálogo
                     </NavLink>
                     <NavLink to="/admin/campaigns" className={navItemClass}>
                         <MessageCircle size={20} /> Campañas
@@ -121,7 +145,7 @@ export const AdminLayout = () => {
                                     WhatsApp
                                 </NavLink>
                                 <NavLink to="/admin/push" className={subNavItemClass}>
-                                    Notificaciones Push
+                                    Push
                                 </NavLink>
                             </div>
                         )}
@@ -156,7 +180,7 @@ export const AdminLayout = () => {
                     )}
                 </div>
 
-                <div className="p-4 border-t border-gray-100">
+                <div className="p-4 border-t border-gray-100 bg-white">
                     <button
                         onClick={handleLogout}
                         className="flex items-center gap-3 px-4 py-3 w-full text-left text-red-600 hover:bg-red-50 rounded-lg transition"
@@ -167,15 +191,27 @@ export const AdminLayout = () => {
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 overflow-auto">
-                <header className="bg-white shadow-sm p-4 flex justify-between items-center px-8">
-                    <h2 className="text-gray-800 font-semibold">Fidelidad V2 - Gestión</h2>
-                    <div className="text-sm text-gray-500">
+            <main className="flex-1 flex flex-col w-full min-w-0 bg-gray-50">
+                <header className="bg-white shadow-sm p-4 flex items-center justify-between px-4 md:px-8 shrink-0 z-30 relative">
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={() => setIsMobileMenuOpen(true)}
+                            className="md:hidden text-gray-600 hover:text-blue-600 transition bg-gray-100 p-2 rounded-lg"
+                        >
+                            <Menu size={24} />
+                        </button>
+                        <h2 className="text-gray-800 font-bold text-lg md:text-xl truncate">Fidelidad V2</h2>
+                    </div>
+
+                    <div className="text-sm text-gray-500 hidden md:block">
                         {auth.currentUser?.email}
                     </div>
                 </header>
-                <div className="p-8">
-                    <Outlet />
+
+                <div className="flex-1 overflow-auto p-4 md:p-8">
+                    <div className="max-w-7xl mx-auto w-full">
+                        <Outlet />
+                    </div>
                 </div>
             </main>
         </div>

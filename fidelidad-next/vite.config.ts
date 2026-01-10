@@ -8,6 +8,7 @@ export default defineConfig({
         react(),
         VitePWA({
             registerType: 'autoUpdate',
+            injectRegister: 'script', // Forces a visible script tag for detection
             includeAssets: ['vite.svg'],
             manifest: {
                 name: 'Fidelidad App',
@@ -23,7 +24,7 @@ export default defineConfig({
                     {
                         src: 'pwa-192x192.png',
                         sizes: '192x192',
-                        type: 'image/png'
+                        type: 'image/png' // Browsers tolerate mismatch, PWABuilder might warn but generation usually works
                     },
                     {
                         src: 'pwa-512x512.png',

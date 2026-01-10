@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getMessaging } from "firebase/messaging";
 
 // Configuración de Fidelidad V2
 // Nota: En producción, estos valores deberían ir en variables de entorno (VITE_API_KEY, etc.)
@@ -27,5 +28,6 @@ setPersistence(auth, browserLocalPersistence)
     });
 
 export const db = getFirestore(app);
+export const messaging = typeof window !== "undefined" ? getMessaging(app) : null;
 
 export default app;

@@ -3,6 +3,7 @@ import { Home, Gift, User, X, Mail, MapPin, Clock } from 'lucide-react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { doc, onSnapshot, collection, query, where } from 'firebase/firestore';
 import { db, auth } from '../../../lib/firebase';
+import { useFcmToken } from '../../../hooks/useFcmToken'; // Import Hook
 
 export const ClientLayout = () => {
     const [isContactOpen, setIsContactOpen] = useState(false);
@@ -10,6 +11,9 @@ export const ClientLayout = () => {
     const [unreadCount, setUnreadCount] = useState(0);
     const location = useLocation();
     const navigate = useNavigate();
+
+    // Enable Push Notifications
+    useFcmToken();
 
     // Listen for unread messages
     useEffect(() => {

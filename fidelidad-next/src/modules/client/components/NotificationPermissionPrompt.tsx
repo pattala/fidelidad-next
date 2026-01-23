@@ -133,6 +133,7 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
     };
 
     const handleNo = async () => {
+        if (step === 'none') return;
         const type = step;
         const currentCount = userData?.permissions?.[type]?.deniedCount || 0;
         const nextCount = currentCount + 1;

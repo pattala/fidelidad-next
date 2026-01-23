@@ -131,6 +131,38 @@ export const ClientProfilePage = () => {
 
             {/* SETTINGS GROUP */}
             <div className="px-6 mt-6 space-y-3">
+
+                {/* Notification Toggle (New) */}
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-4">
+                    <button
+                        onClick={async () => {
+                            const permission = await Notification.requestPermission();
+                            if (permission === 'granted') {
+                                toast.success('Notificaciones activadas');
+                                // Force re-render or logic could handle state
+                            } else {
+                                toast.error('Permiso denegado. Actívalo en config.');
+                            }
+                        }}
+                        className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="bg-purple-50 p-2 rounded-full text-purple-600">
+                                <span className="text-xl">🔔</span>
+                            </div>
+                            <div className="text-left">
+                                <span className="font-bold text-gray-700 text-sm block">Notificaciones</span>
+                                <span className="text-xs text-gray-400 font-medium">
+                                    {Notification.permission === 'granted' ? 'Activadas' : 'Toca para activar'}
+                                </span>
+                            </div>
+                        </div>
+                        <div className={`w-10 h-6 rounded-full p-1 transition-colors ${Notification.permission === 'granted' ? 'bg-green-500' : 'bg-gray-300'}`}>
+                            <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${Notification.permission === 'granted' ? 'translate-x-4' : ''}`}></div>
+                        </div>
+                    </button>
+                </div>
+
                 <h3 className="text-gray-400 font-bold text-xs uppercase tracking-wider ml-2">Cuenta</h3>
 
                 {/* Change Password Toggle */}

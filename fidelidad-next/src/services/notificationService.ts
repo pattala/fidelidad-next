@@ -26,29 +26,17 @@ export const NotificationService = {
             console.log(`[NotificationService] Sending to ${clientId}`, payload);
 
             // 1. Call Backend API for Real Push (FCM)
-            // We wrap this in a silent try/catch so failure to PUSH doesn't stop Inbox save.
+            // UPDATE: We are now using Firestore Triggers (firebase-functions-trigger.js)
+            // When the doc is written to 'inbox', the Cloud Function detects it and sends the FCM Push.
+            // NO need to call /api/send-push anymore from client.
+
+            /* 
             try {
                 await fetch(PUSH_API_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        templateId: payload.templateId || 'system_manual_push', // Use provided templateId or a default
-                        segment: { type: 'one', uid: clientId },
-                        overrideVars: {
-                            titulo: payload.title,
-                            cuerpo: payload.body
-                        },
-                        options: {
-                            saveInbox: false, // Inbox is saved separately by this service
-                            icon: payload.icon // Send logo to backend
-                        }
-                    })
+                     // ... (Legacy Direct Call)
                 });
-            } catch (err) {
-                console.warn('[NotificationService] Backend push failed (silent)', err);
-            }
+            } catch (err) { ... } 
+            */
 
             // 2. Save to Inbox (Firestore)
             if (clientId) {

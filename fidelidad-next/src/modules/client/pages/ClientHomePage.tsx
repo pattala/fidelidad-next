@@ -8,6 +8,8 @@ import toast from 'react-hot-toast';
 import { CampaignService, type BonusRule } from '../../../services/campaignService';
 import { CampaignCarousel } from '../components/CampaignCarousel';
 import { PointsExpirationWarning } from '../components/PointsExpirationWarning';
+import { NotificationPermissionPrompt } from '../components/NotificationPermissionPrompt'; // New Import
+import { useFcmToken } from '../../../hooks/useFcmToken'; // New Import
 
 // Subcomponent for the list to keep main component clean
 const RecentActivityList = ({ uid }: { uid?: string }) => {
@@ -139,8 +141,20 @@ export const ClientHomePage = () => {
     const balanceForCalc = rawBalance % costPerPoint;
     const missing = Math.ceil(costPerPoint - balanceForCalc);
 
+    // Prompt Logic
+    const { retrieveToken } = useFcmToken(); // Modificar hook para devolver esto
+    const handlePermissionGranted = () => {
+        retrieveToken();
+    };
+
     return (
         <div className="relative font-sans text-gray-800 px-4 pt-6 space-y-6">
+            <NotificationPermissionPrompt
+                user={user}
+                userData={userData}
+                onNotificationGranted={handlePermissionGranted}
+            />
+
 
             {/* GREETING LINE */}
             <div className="flex justify-between items-center px-2">

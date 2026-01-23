@@ -24,7 +24,7 @@ messaging.onBackgroundMessage((payload) => {
         body: payload.notification?.body || payload.data?.body || 'Tienes un nuevo aviso',
         icon: '/pwa-192x192.png',
         badge: '/pwa-192x192.png',
-        // data: payload.data // Pass data to click handler
+        data: payload.data || { url: '/inbox' } // Default to inbox
     };
 
     // Si el payload ya trae 'notification', el navegador la muestra auto.
@@ -32,4 +32,39 @@ messaging.onBackgroundMessage((payload) => {
     if (!payload.notification) {
         self.registration.showNotification(notificationTitle, notificationOptions);
     }
+});
+
+// Handler para clicks en la notificación
+self.addEventListener('notificationclick', function (event) {
+    console.log('[Service Worker] Notification click Received.', event.notification.data);
+
+    event.notification.close();
+
+    // Determinar URL de destino
+    let urlToOpen = event.notification.data?.url || '/inbox';
+    // Ensure absolute path
+    if (!urlToOpen.startsWith('http')) {
+        urlToOpen = self.location.origin + urlToOpen;
+    }
+
+    // focus or open window logic
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (windowClients) {
+            // Check if there is already a window/tab open with the target URL
+            for (let i = 0; i < windowClients.length; i++) {
+                const client = windowClients[i];
+                // Si la app ya está abierta, enfocala y navega
+                if (client.url.includes(self.location.origin) && 'focus' in client) {
+                    return client.focus().then(activeClient => {
+                        // Opcional: Podríamos enviar un mensaje al cliente para navegar sin recargar
+                        if (activeClient) activeClient.navigate(urlToOpen);
+                    });
+                }
+            }
+            // If not open, open new window
+            if (clients.openWindow) {
+                return clients.openWindow(urlToOpen);
+            }
+        })
+    );
 });

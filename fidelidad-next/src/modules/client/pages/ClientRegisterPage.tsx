@@ -179,7 +179,7 @@ export const ClientRegisterPage = () => {
                                     className="w-full bg-gray-50 px-4 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none"
                                 >
                                     <option value="">Selecciona Partido</option>
-                                    {PARTIDOS.sort().map(p => <option key={p} value={p}>{p}</option>)}
+                                    {PARTIDOS_BUENOS_AIRES.map(p => <option key={p} value={p}>{p}</option>)}
                                 </select>
                                 <select
                                     value={localidad}

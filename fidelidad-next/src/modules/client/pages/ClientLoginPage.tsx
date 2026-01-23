@@ -141,7 +141,7 @@ export const ClientLoginPage = () => {
                 {/* Footer Link */}
                 <div className="text-center mt-8">
                     <p className="text-sm text-gray-500 font-medium">
-                        ¿No tienes cuenta? <a href="#" className="text-purple-600 font-bold hover:underline">Regístrate gratis</a>
+                        ¿No tienes cuenta? <button onClick={() => navigate('/register')} className="text-purple-600 font-bold hover:underline">Regístrate gratis</button>
                     </p>
                 </div>
 

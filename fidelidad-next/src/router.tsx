@@ -14,17 +14,19 @@ import { ClientLayout } from "./modules/client/components/ClientLayout";
 import { ClientHomePage } from "./modules/client/pages/ClientHomePage";
 import { ClientRewardsPage } from "./modules/client/pages/ClientRewardsPage";
 import { ClientLoginPage } from "./modules/client/pages/ClientLoginPage";
+import { ClientRegisterPage } from "./modules/client/pages/ClientRegisterPage";
 import { ClientProfilePage } from "./modules/client/pages/ClientProfilePage";
-import { ClientActivityPage } from "./modules/client/pages/ClientActivityPage";
-import { ClientInboxPage } from "./modules/client/pages/ClientInboxPage";
-import { ClientPromosPage } from "./modules/client/pages/ClientPromosPage";
-import { ClientAuthGuard } from "./modules/client/components/ClientAuthGuard";
+// ... imports ...
 
 export const router = createBrowserRouter([
     // Client App (PWA)
     {
         path: "/login",
         element: <ClientLoginPage />
+    },
+    {
+        path: "/register",
+        element: <ClientRegisterPage />
     },
     {
         path: "/",

@@ -5,7 +5,7 @@ import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { Mail, Lock, User, Phone, ArrowLeft, ArrowRight, MapPin, Building, Home } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { PARTIDOS, LOCALIDADES } from '../../../lib/geoData';
+import { PARTIDOS_BUENOS_AIRES, BA_LOCALIDADES_BY_PARTIDO } from '../../../lib/geoData';
 
 export const ClientRegisterPage = () => {
     // Step 1: Personal Data
@@ -91,7 +91,7 @@ export const ClientRegisterPage = () => {
     };
 
     // Derived lists for dropdowns
-    const availableLocalidades = partido ? (LOCALIDADES[partido as keyof typeof LOCALIDADES] || []) : [];
+    const availableLocalidades = partido ? (BA_LOCALIDADES_BY_PARTIDO[partido] || []) : [];
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 relative overflow-hidden">

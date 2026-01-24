@@ -23,6 +23,7 @@ export const ClientRegisterPage = () => {
     const [number, setNumber] = useState('');
     const [floor, setFloor] = useState('');
     const [apt, setApt] = useState('');
+    const [termsAccepted, setTermsAccepted] = useState(false);
 
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
@@ -38,6 +39,12 @@ export const ClientRegisterPage = () => {
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (!termsAccepted) {
+            toast.error('Debes aceptar los términos y condiciones');
+            return;
+        }
+
         setLoading(true);
 
         try {
@@ -238,10 +245,24 @@ export const ClientRegisterPage = () => {
                                 </div>
                             </div>
 
+                            <div className="flex items-center gap-3 pt-2">
+                                <input
+                                    type="checkbox"
+                                    id="terms"
+                                    required
+                                    checked={termsAccepted}
+                                    onChange={(e) => setTermsAccepted(e.target.checked)}
+                                    className="w-5 h-5 rounded border-gray-300 text-purple-600 focus:ring-purple-500 transition cursor-pointer"
+                                />
+                                <label htmlFor="terms" className="text-xs text-gray-600">
+                                    Acepto los <a href="#" className="font-bold text-purple-600 hover:underline">Términos y Condiciones</a> y la <a href="#" className="font-bold text-purple-600 hover:underline">Política de Privacidad</a>
+                                </label>
+                            </div>
+
                             <button
                                 type="submit"
-                                disabled={loading}
-                                className="w-full bg-purple-600 text-white py-4 rounded-2xl font-bold text-sm shadow-lg shadow-purple-200 hover:bg-purple-700 active:scale-95 transition-all flex items-center justify-center gap-2 group mt-6 disabled:opacity-70"
+                                disabled={loading || !termsAccepted}
+                                className="w-full bg-purple-600 text-white py-4 rounded-2xl font-bold text-sm shadow-lg shadow-purple-200 hover:bg-purple-700 active:scale-95 transition-all flex items-center justify-center gap-2 group mt-6 disabled:opacity-70 disabled:grayscale"
                             >
                                 {loading ? 'Registrando...' : 'Finalizar Registro'}
                             </button>

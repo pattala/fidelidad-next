@@ -134,11 +134,15 @@ export default async function handler(req, res) {
     initFirebaseAdmin();
     let authUser = null;
     let createdAuth = false;
+    console.log('[create-user] Payload received:', { email, dni });
 
     try {
+      console.log('[create-user] Checking Auth for:', email);
       authUser = await admin.auth().getUserByEmail(email);
+      console.log('[create-user] User exists in Auth:', authUser.uid);
     } catch {
       // no existe → crear
+      console.log('[create-user] User missing in Auth. Creating...');
       try {
         authUser = await admin.auth().createUser({
           email,
@@ -149,9 +153,12 @@ export default async function handler(req, res) {
           disabled: false,
         });
         createdAuth = true;
+        console.log('[create-user] Auth Created. UID:', authUser.uid);
       } catch (e) {
+        console.error('[create-user] Error creating Auth:', e);
         // Reintentar sin phone si falló
         if (telefono) {
+          console.log('[create-user] Retrying without phone...');
           authUser = await admin.auth().createUser({
             email,
             password: dni,
@@ -160,6 +167,7 @@ export default async function handler(req, res) {
             disabled: false,
           });
           createdAuth = true;
+          console.log('[create-user] Auth Created (Retry). UID:', authUser.uid);
         } else {
           throw e;
         }

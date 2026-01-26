@@ -206,15 +206,43 @@ export const ClientsPage = () => {
                     }
                 }
 
-                const welcomePts = config?.welcomePoints || 0;
-                const newDocRef = await addDoc(collection(db, 'users'), {
-                    ...clientPayload,
-                    socioNumber: newSocioId,
-                    createdAt: new Date(),
-                    points: welcomePts,
-                    historialPuntos: [] // Initialize array for PWA
+                // USAR API BACKEND PARA CREAR (AUTH + FIRESTORE)
+                const createPayload = {
+                    email: formData.email,
+                    dni: formData.dni,
+                    nombre: formData.name,
+                    telefono: formData.phone,
+                    numeroSocio: newSocioId,
+                    domicilio: {
+                        status: 'complete',
+                        addressLine: formattedAddress,
+                        components: {
+                            calle: formData.calle,
+                            localidad: formData.localidad,
+                            partido: formData.partido,
+                            provincia: formData.provincia
+                        }
+                    },
+                    fechaInscripcion: new Date().toISOString()
+                };
+
+                const resCreate = await fetch('/api/create-user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }, // API key disabled for now
+                    body: JSON.stringify(createPayload)
                 });
 
+                if (!resCreate.ok) {
+                    throw new Error(`Error API Création: ${resCreate.status}`);
+                }
+
+                const resultCreate = await resCreate.json();
+                if (!resultCreate.ok) throw new Error(resultCreate.error || 'Error creando usuario');
+
+                const newDocId = resultCreate.firestore.docId; // ID real del doc
+                const welcomePts = config?.welcomePoints || 0;
+
+                // POST-CREATION: Puntos de Bienvenida (Manual porque la API create-user no asigna puntos)
                 if (welcomePts > 0) {
                     // Lógica de Vencimiento Escalonado
                     let days = 365; // Default 1 año
@@ -228,7 +256,7 @@ export const ClientsPage = () => {
                     const expiresAt = new Date();
                     expiresAt.setDate(expiresAt.getDate() + days);
 
-                    await addDoc(collection(db, `users/${newDocRef.id}/points_history`), {
+                    await addDoc(collection(db, `users/${newDocId}/points_history`), {
                         amount: welcomePts,
                         concept: '🎁 Bienvenida al sistema',
                         date: new Date(),
@@ -237,7 +265,8 @@ export const ClientsPage = () => {
                     });
 
                     // Update PWA Array
-                    await updateDoc(newDocRef, {
+                    await updateDoc(doc(db, 'users', newDocId), {
+                        points: welcomePts, // Set initial points
                         historialPuntos: arrayUnion({
                             fechaObtencion: new Date(),
                             puntosObtenidos: welcomePts,
@@ -247,20 +276,6 @@ export const ClientsPage = () => {
                             estado: 'Activo'
                         })
                     });
-
-                    // CLEANUP: Keep max 20 History Items
-                    try {
-                        const MAX_HISTORY = 20;
-                        const hQ = query(collection(db, `users/${newDocRef.id}/points_history`), orderBy('date', 'desc'));
-                        const hSnap = await getDocs(hQ);
-                        if (hSnap.size > MAX_HISTORY) {
-                            const deletePromises: any[] = [];
-                            hSnap.docs.slice(MAX_HISTORY).forEach(d => deletePromises.push(deleteDoc(d.ref)));
-                            await Promise.all(deletePromises);
-                        }
-                    } catch (e) {
-                        console.warn('Error cleaning history:', e);
-                    }
                 }
 
                 // TRIGGER NOTIFICATIONS (Granular)
@@ -293,7 +308,7 @@ export const ClientsPage = () => {
                         .replace(/{dni}/g, formData.dni)
                         .replace(/{email}/g, formData.email);
 
-                    NotificationService.sendToClient(newDocRef.id, {
+                    NotificationService.sendToClient(newDocId, {
                         title: '¡Bienvenido al Club!',
                         body: msg,
                         type: 'welcome',
@@ -321,7 +336,7 @@ export const ClientsPage = () => {
                     }
                 }
 
-                toast.success('Nuevo cliente registrado');
+                toast.success('Nuevo cliente registrado (Auth + Base de Datos)');
             }
 
             closeModal();

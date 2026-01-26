@@ -86,10 +86,11 @@ export default async function handler(req, res) {
   }
 
   // API key
-  const clientKey = req.headers["x-api-key"];
-  if (!clientKey || clientKey !== process.env.API_SECRET_KEY) {
-    return res.status(401).json({ ok: false, error: "Unauthorized" });
-  }
+  // API key DISABLED
+  // const clientKey = req.headers["x-api-key"];
+  // if (!clientKey || clientKey !== process.env.API_SECRET_KEY) {
+  //   return res.status(401).json({ ok: false, error: "Unauthorized" });
+  // }
 
   // Body
   let payload = {};

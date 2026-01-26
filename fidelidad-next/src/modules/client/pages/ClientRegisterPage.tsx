@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../../../lib/firebase';
 import { createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, query, where, getDocs, collection } from 'firebase/firestore';
 import { Mail, Lock, User, Phone, ArrowLeft, ArrowRight, MapPin, Building, Home } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { PARTIDOS_BUENOS_AIRES, BA_LOCALIDADES_BY_PARTIDO } from '../../../lib/geoData';
@@ -37,6 +37,16 @@ export const ClientRegisterPage = () => {
         setStep(2);
     };
 
+    // Helper: Formatear teléfono para WhatsApp (Argentina)
+    const formatPhone = (val: string) => {
+        // Eliminar todo lo que no sea número
+        let num = val.replace(/\D/g, '');
+        // Si empieza con 549, dejarlo, si empieza con 11 o 15, ajustar...
+        // Estrategia simple: Guardar solo números limpios para búsqueda, pero visualmente...
+        // Mejor strategy: Pedir al usuario sin 0 ni 15, y agregar +549.
+        return num;
+    };
+
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -48,48 +58,31 @@ export const ClientRegisterPage = () => {
         setLoading(true);
 
         try {
-            let user = null;
-            let isNewAuth = false;
+            // 0. Validaciones Previas de Unicidad (Teléfono)
+            // Esto evita problemas antes de siquiera tocar Auth
+            const cleanPhone = phone.replace(/\D/g, '');
+            const qPhone = query(collection(db, 'users'), where('phone_raw', '==', cleanPhone)); // Usar versión limpia para búsqueda
 
-            // 1. Intentar crear usuario en Auth
-            try {
-                const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-                user = userCredential.user;
-                isNewAuth = true;
-            } catch (authError: any) {
-                if (authError.code === 'auth/email-already-in-use') {
-                    // Hybrid Flow: Si el email existe, intentamos loguear para ver si es una "cuenta fantasma"
-                    // (borrada de Firestore pero no de Auth)
-                    try {
-                        const loginCredential = await signInWithEmailAndPassword(auth, email, pass);
-                        user = loginCredential.user;
+            // Verificación asíncrona paralela
+            const snapPhone = await getDocs(qPhone);
 
-                        // Verificar si existe en Firestore
-                        const userDoc = await getDoc(doc(db, 'users', user.uid));
-                        if (userDoc.exists()) {
-                            toast.error('Este usuario ya está registrado. Por favor inicia sesión.');
-                            navigate('/login');
-                            return;
-                        }
-                        // Si no existe el doc, proseguimos a "re-crearlo" (Recuperación de cuenta fantasma)
-                        console.log('Detectado usuario Auth sin datos (fantasma). Re-registrando...');
-                    } catch (loginError) {
-                        // Si la contraseña no coincide o falla el login, es que el email está ocupado por otro
-                        toast.error('El email ya está registrado.');
-                        setLoading(false);
-                        return;
-                    }
-                } else {
-                    throw authError;
-                }
+            if (!snapPhone.empty) {
+                toast.error('Ese número de teléfono ya está registrado.');
+                setLoading(false);
+                return;
             }
 
-            if (!user) throw new Error("No se pudo obtener usuario.");
+            // 1. Intentar crear usuario en Auth (Estricto)
+            const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+            const user = userCredential.user;
 
-            // 2. Actualizar perfil Auth (si es nuevo o si queremos forzar nombre)
-            if (isNewAuth || user.displayName !== name) {
-                await updateProfile(user, { displayName: name });
-            }
+            // 2. Actualizar perfil
+            await updateProfile(user, { displayName: name });
+
+            // Formatear teléfono a estándar intl para guardarlo
+            // Asumiendo input local (ej 11 1234 5678) transformamos a +54 9 11...
+            // O guardamos limpio si prefieres. Estándar: +549 + numero_sin_0_ni_15
+            const finalPhone = `+549${cleanPhone}`;
 
             // 3. Crear documento en Firestore (Base + Dirección)
             const fullAddress = `${street} ${number} ${floor ? 'Piso ' + floor : ''} ${apt ? 'Dpto ' + apt : ''}, ${localidad}, ${partido}, ${province}`;
@@ -98,7 +91,8 @@ export const ClientRegisterPage = () => {
             await setDoc(doc(db, 'users', user.uid), {
                 name: name,
                 email: email,
-                phone: phone,
+                phone: finalPhone, // Guardar normalizado
+                phone_raw: cleanPhone, // Guardar crudo para búsquedas fáciles
                 authUID: user.uid, // Backup ID
                 // Dirección estructurada
                 domicilio: {
@@ -133,8 +127,8 @@ export const ClientRegisterPage = () => {
                 termsAccepted: true,
                 termsAcceptedAt: new Date().toISOString(),
                 source: 'pwa',
-                metadata: { createdFrom: 'pwa', version: '2.0-hybrid' }
-            }, { merge: true });
+                metadata: { createdFrom: 'pwa', version: '2.1-strict' }
+            });
 
             // 4. Llamadas al Backend (Serverless APIs) para finalización robusta
             // Obtener token para autenticar con el backend
@@ -142,30 +136,29 @@ export const ClientRegisterPage = () => {
             const apiKey = import.meta.env.VITE_API_KEY || 'Felipe01';
 
             // A. Asignar N° Socio (Secuencial seguro)
-            try {
-                await fetch('/api/assign-socio-number', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'x-api-key': apiKey },
-                    body: JSON.stringify({ docId: user.uid })
-                });
-            } catch (e) { console.warn('Error asignando socio:', e); }
+            fetch('/api/assign-socio-number', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'x-api-key': apiKey },
+                body: JSON.stringify({ docId: user.uid })
+            }).catch(e => console.warn('Error asignando socio:', e));
 
             // B. Asignar Puntos de Bienvenida
-            try {
-                // Usamos fetch en modo "fire and forget" o esperamos confirmación
-                await fetch('/api/assign-points', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'x-api-key': apiKey },
-                    body: JSON.stringify({ reason: 'welcome_signup' })
-                });
-            } catch (e) { console.warn('Error asignando puntos:', e); }
+            fetch('/api/assign-points', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'x-api-key': apiKey },
+                body: JSON.stringify({ reason: 'welcome_signup' })
+            }).catch(e => console.warn('Error asignando puntos:', e));
 
             toast.success('¡Registro completo! Bienvenido.');
             navigate('/');
 
         } catch (error: any) {
             console.error(error);
-            toast.error('Error al registrar: ' + error.message);
+            if (error.code === 'auth/email-already-in-use') {
+                toast.error('El email ya está registrado.');
+            } else {
+                toast.error('Error al registrar: ' + error.message);
+            }
         } finally {
             setLoading(false);
         }

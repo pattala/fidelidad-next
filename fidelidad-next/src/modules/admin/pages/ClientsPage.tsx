@@ -350,7 +350,7 @@ export const ClientsPage = () => {
                 headers: {
                     'Content-Type': 'application/json',
                     // Usa la variable de entorno si existe, sino un fallback común del proyecto viejo
-                    'x-api-key': import.meta.env.VITE_API_KEY || 'Felipe01'
+                    'x-api-key': import.meta.env.VITE_API_KEY
                 },
                 body: JSON.stringify({ docId: id })
             });

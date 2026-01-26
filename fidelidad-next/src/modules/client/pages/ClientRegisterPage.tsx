@@ -133,7 +133,7 @@ export const ClientRegisterPage = () => {
             // 4. Llamadas al Backend (Serverless APIs) para finalización robusta
             // Obtener token para autenticar con el backend
             const token = await user.getIdToken();
-            const apiKey = import.meta.env.VITE_API_KEY || 'Felipe01';
+            const apiKey = import.meta.env.VITE_API_KEY;
 
             // A. Asignar N° Socio (Secuencial seguro)
             fetch('/api/assign-socio-number', {

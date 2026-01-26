@@ -110,12 +110,7 @@ async function findClienteDoc(db, { docId, numeroSocio, authUID, email }) {
    NUEVO: Helpers de borrado en cascada
    ──────────────────────────────────────────────────────────── */
 
-/**
- * Borra documentos que cumplan un query, en lotes de 500, hasta vaciar.
- * Acepta una función "makeQuery" para rearmar el query en cada pasada.
- */
 async function deleteByQueryPaged(db, makeQuery, label = "batch") {
-  // Repite hasta que el query no devuelva más docs
   while (true) {
     const snap = await makeQuery().get();
     if (snap.empty) break;
@@ -123,36 +118,22 @@ async function deleteByQueryPaged(db, makeQuery, label = "batch") {
     const batch = db.batch();
     snap.docs.forEach(d => batch.delete(d.ref));
     await batch.commit();
-    // Vuelve a iterar hasta vaciar
   }
   console.log(`[delete-user][cascade] ${label}: completo`);
 }
 
-/**
- * Borra subcolecciones bajo clientes/{docId} si agregás nombres en el array.
- * De momento no se encontraron subcolecciones obligatorias; queda como hook.
- */
 async function deleteClienteSubcollections(db, docId) {
-  // Si en el futuro agregás subcolecciones, listalas acá:
-  // p.ej.: const subs = ["geo", "historialPuntos", "historialCanjes"];
   const subs = ["geo_raw"];
-
   for (const sub of subs) {
     const makeQuery = () => db.collection(`clientes/${docId}/${sub}`).limit(500);
     await deleteByQueryPaged(db, makeQuery, `clientes/${docId}/${sub}`);
   }
 }
 
-/**
- * Borra registros sueltos relacionados al cliente (por ej. geo_raw)
- * Considera que en geo_raw puede existir campo "uid" y/o "clienteId"
- */
 async function deleteLooseCollections(db, { uid, docId }) {
-  // GEO RAW por uid
   const makeQueryUid = () => db.collection("geo_raw").where("uid", "==", uid).limit(500);
   await deleteByQueryPaged(db, makeQueryUid, `geo_raw where uid==${uid}`);
 
-  // GEO RAW por clienteId (id de doc en clientes)
   const makeQueryDoc = () => db.collection("geo_raw").where("clienteId", "==", docId).limit(500);
   await deleteByQueryPaged(db, makeQueryDoc, `geo_raw where clienteId==${docId}`);
 }
@@ -180,14 +161,12 @@ export default async function handler(req, res) {
     return res.status(405).json({ ok: false, error: "Method Not Allowed" });
   }
 
-  // API key
-  // API key validation DISABLED TEMPORARILY for immediate fix
+  // API key TEMPORARILY DISABLED
   // const clientKey = req.headers["x-api-key"];
   // if (!clientKey || clientKey !== process.env.API_SECRET_KEY) {
   //   return res.status(401).json({ ok: false, error: "Unauthorized" });
   // }
 
-  // Body
   let payload = {};
   try {
     payload = await readJsonBody(req);
@@ -200,8 +179,8 @@ export default async function handler(req, res) {
 
   try {
     const db = getDb();
-
     const { docId, numeroSocio, authUID, email } = payload || {};
+
     if (!docId && !numeroSocio && !authUID && !email) {
       return res.status(400).json({
         ok: false,
@@ -209,40 +188,29 @@ export default async function handler(req, res) {
       });
     }
 
-    // 1) Resolver doc/cliente (si ya borraste antes, found puede venir null)
     const found = await findClienteDoc(db, { docId, numeroSocio, authUID, email });
 
     let deletedDocId = null;
     let matchedBy = null;
     let data = null;
 
-    // Capturamos uid/docId para cascada incluso si el doc ya no está
     let resolvedDocId = found?.id || docId || null;
     let resolvedAuthUID = authUID || found?.data?.authUID || null;
     let resolvedEmail = email || found?.data?.email || null;
 
-    // 2) Si hay doc, borra primero datos relacionados (cascada), luego el doc
     if (found) {
       deletedDocId = found.id;
       data = found.data;
       matchedBy = docId ? "docId" : authUID ? "authUID" : email ? "email" : "numeroSocio";
 
-      // 2.a) Cascada de subcolecciones bajo clientes/{docId} (si configuras subs)
       await deleteClienteSubcollections(db, found.id);
-
-      // 2.b) Cascada de colecciones sueltas (geo_raw por uid/clienteId)
       await deleteLooseCollections(db, {
         uid: data?.authUID || resolvedAuthUID || "",
         docId: found.id
       });
-
-      // 2.c) Borrar documento en Firestore
       await db.collection("users").doc(found.id).delete();
     } else {
-      // Si no encontramos el doc, igualmente hacemos cascada por pistas que tengamos
       matchedBy = docId ? "docId" : authUID ? "authUID" : email ? "email" : "numeroSocio";
-
-      // Intento de cascada mínima: si tenemos docId o authUID, limpiamos geo_raw
       if (resolvedDocId || resolvedAuthUID) {
         await deleteLooseCollections(db, {
           uid: resolvedAuthUID || "",
@@ -251,20 +219,23 @@ export default async function handler(req, res) {
       }
     }
 
-    // 3) Borrar usuario en Auth (si existe), siempre (purga total)
+    // 3) Borrar usuario en Auth
     initFirebaseAdmin();
+    console.log('[delete-user] Inicio purga Auth. Payload:', JSON.stringify(payload));
 
-    // Resolver UID por prioridad: payload.authUID -> data.authUID -> email (lookup)
     let uidToDelete = resolvedAuthUID || data?.authUID || null;
+    console.log('[delete-user] UID resuelto:', uidToDelete);
 
     if (!uidToDelete) {
       const emailToResolve = resolvedEmail || data?.email;
       if (emailToResolve) {
         try {
+          console.log('[delete-user] Buscando UID por email:', emailToResolve);
           const user = await admin.auth().getUserByEmail(String(emailToResolve).toLowerCase());
           uidToDelete = user.uid;
-        } catch {
-          // no existe por email -> seguimos sin romper
+          console.log('[delete-user] UID encontrado:', uidToDelete);
+        } catch (e) {
+          console.log('[delete-user] Email no existe en Auth:', emailToResolve);
         }
       }
     }
@@ -273,12 +244,14 @@ export default async function handler(req, res) {
     if (uidToDelete) {
       try {
         await admin.auth().deleteUser(uidToDelete);
+        console.log('[delete-user] AUTH DELETED OK:', uidToDelete);
         authDeletion = { deleted: true, uid: uidToDelete };
       } catch (e) {
-        // no rompas la operación principal: reportá el fallo
+        console.error('[delete-user] ERROR AUTH DELETE:', e);
         authDeletion = { deleted: false, uid: uidToDelete, error: e?.message || String(e) };
       }
     } else {
+      console.log('[delete-user] No UID to delete.');
       authDeletion = { deleted: false, reason: "auth user not found" };
     }
 
@@ -289,6 +262,7 @@ export default async function handler(req, res) {
       authDeletion,
       cascade: { geo_raw: "done", subcollections: "done" }
     });
+
   } catch (err) {
     console.error("delete-user error:", err);
     return res.status(500).json({ ok: false, error: "Internal Server Error" });

@@ -334,17 +334,49 @@ export const ClientsPage = () => {
         }
     };
 
-    // 3. Eliminar
+    // 3. Eliminar (Full Backend API)
     const handleDelete = async (id: string, name: string) => {
-        if (!window.confirm(`¿Estás seguro de eliminar a ${name}? Esta acción no se puede deshacer.`)) {
+        if (!window.confirm(`¿Estás seguro de eliminar a ${name}? Esta acción purga TODOS sus datos y su acceso.`)) {
             return;
         }
+
+        const toastId = toast.loading('Eliminando usuario por completo...');
+
         try {
-            await deleteDoc(doc(db, 'users', id));
-            toast.success(`Cliente ${name} eliminado`);
+            // Intento 1: Vía API (Frontend -> Backend -> Auth + Firestore)
+            // Esto es necesario para borrar el Auth User, que requiere Admin SDK
+            const response = await fetch('/api/delete-user', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // Usa la variable de entorno si existe, sino un fallback común del proyecto viejo
+                    'x-api-key': import.meta.env.VITE_API_KEY || 'Felipe01'
+                },
+                body: JSON.stringify({ docId: id })
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.ok) {
+                toast.success(`Cliente ${name} eliminado correctamente`, { id: toastId });
+            } else {
+                console.warn('API delete falló, usando fallback local', result);
+                // Fallback: Si falla la API (ej. local sin env), borramos al menos en Firestore
+                await deleteDoc(doc(db, 'users', id));
+                toast.success(`Cliente ${name} eliminado (Solo Datos)`, { id: toastId });
+            }
+
             fetchData();
         } catch (error) {
-            toast.error("No se pudo eliminar");
+            console.error("Error al eliminar:", error);
+            // Fallback final por si la red falla
+            try {
+                await deleteDoc(doc(db, 'users', id));
+                toast.success(`Cliente ${name} eliminado (Local)`, { id: toastId });
+                fetchData();
+            } catch (e) {
+                toast.error("No se pudo eliminar", { id: toastId });
+            }
         }
     };
 

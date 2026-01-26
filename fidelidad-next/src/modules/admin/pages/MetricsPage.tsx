@@ -302,13 +302,6 @@ export const MetricsPage = () => {
                                     </tr>
                                 ) : (
                                     topSpenders.map((user, i) => {
-                                        // Calcular Dinero Estimado: (Puntos * 100) / Ratio
-                                        // Si ratio es indefinido, default a 1 para evitar division por 0 (aunque 0 daría infinity)
-                                        const ratio = config?.pointsPerPeso || 1;
-                                        // Evitar division por cero si ratio es 0 (user input handling)
-                                        const safeRatio = ratio === 0 ? 1 : ratio;
-                                        const estimatedMoney = (user.total * 100) / safeRatio;
-
                                         return (
                                             <tr key={user.id} className="hover:bg-green-50/30 transition">
                                                 <td className="p-4 pl-6 font-medium text-gray-700 flex items-center gap-3">
@@ -323,7 +316,7 @@ export const MetricsPage = () => {
                                                     </div>
                                                 </td>
                                                 <td className="p-4 text-right pr-6 font-bold text-green-600">
-                                                    ${estimatedMoney.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                                                    ${user.total.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                                                 </td>
                                             </tr>
                                         );

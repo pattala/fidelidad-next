@@ -45,3 +45,30 @@ exports.sendInboxPush = functions.firestore
             // Opcional: Si el error es "token inválido", borrarlo de la BD
         }
     });
+
+/**
+ * Escucha cuando se BORRA un usuario de Firestore: users/{userId}
+ * y elimina automáticamente su cuenta de Firebase Authentication.
+ * Esto asegura consistencia total al borrar desde el panel Admin.
+ */
+exports.cleanupUserAuth = functions.firestore
+    .document("users/{userId}")
+    .onDelete(async (snap, context) => {
+        const userId = context.params.userId;
+        const userData = snap.data();
+        const userName = userData.name || 'Desconocido';
+
+        console.log(`[Cleanup] Iniciando borrado de Auth para usuario: ${userId} (${userName})`);
+
+        try {
+            await admin.auth().deleteUser(userId);
+            console.log(`[Cleanup] Usuario Auth eliminado correctamente: ${userId}`);
+        } catch (error) {
+            if (error.code === 'auth/user-not-found') {
+                console.log(`[Cleanup] El usuario Auth ya no existía: ${userId}`);
+            } else {
+                console.error(`[Cleanup] Error eliminando usuario Auth: ${userId}`, error);
+            }
+        }
+    });
+

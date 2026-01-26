@@ -358,12 +358,13 @@ export const ClientsPage = () => {
             const result = await response.json();
 
             if (response.ok && result.ok) {
-                toast.success(`Cliente ${name} eliminado correctamente`, { id: toastId });
+                toast.success(`Cliente ${name} eliminado correctamente (Firestore + Auth)`, { id: toastId });
             } else {
-                console.warn('API delete falló, usando fallback local', result);
-                // Fallback: Si falla la API (ej. local sin env), borramos al menos en Firestore
+                console.error('❌ API Borrado FALLÓ. Status:', response.status, 'Error:', result);
+
+                // Fallback
                 await deleteDoc(doc(db, 'users', id));
-                toast.success(`Cliente ${name} eliminado (Solo Datos)`, { id: toastId });
+                toast.success(`Cliente ${name} eliminado (SOLO DATOS - Falló API: ${response.status})`, { id: toastId });
             }
 
             fetchData();

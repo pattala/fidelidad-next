@@ -340,10 +340,14 @@ export const ClientsPage = () => {
             }
 
             closeModal();
-            fetchData();
-        } catch (error) {
-            console.error("Error el guardar:", error);
-            toast.error("Error al guardar cliente");
+            // Pequeño delay para dar tiempo a Firestore a indexar y que aparezca la dirección
+            setTimeout(() => fetchData(), 1000);
+        } catch (error: any) {
+            console.error("Error al guardar:", error);
+            // Mostrar el mensaje de error específico del backend si existe
+            const msg = error.message || "Error al guardar cliente";
+            // Si el mensaje viene del backend con "Error: ", limpiarlo un poco si se quiere, o mostrarlo directo
+            toast.error(msg);
         } finally {
             setLoading(false);
         }

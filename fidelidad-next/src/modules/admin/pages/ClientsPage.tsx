@@ -642,7 +642,16 @@ export const ClientsPage = () => {
                     name: data.name || data.nombre || '',
                     phone: data.phone || data.telefono || '',
                     socioNumber: data.socioNumber || data.numeroSocio || '',
-                    points: data.points || data.puntos || 0
+                    points: data.points || data.puntos || 0,
+
+                    // Normalización Domicilio (Priority: Nested > Flat)
+                    provincia: data.domicilio?.components?.provincia || data.provincia || '',
+                    partido: data.domicilio?.components?.partido || data.partido || '',
+                    localidad: data.domicilio?.components?.localidad || data.localidad || '',
+                    calle: data.domicilio?.components?.calle || data.calle || '',
+                    piso: data.domicilio?.components?.piso || data.piso || '',
+                    depto: data.domicilio?.components?.depto || data.depto || '',
+                    cp: data.domicilio?.components?.zipCode || data.cp || ''
                 } as Client;
 
                 // Update local list state optimistically/lazily if needed, but definitely for the modal

@@ -240,7 +240,8 @@ export const ClientsPage = () => {
                 });
 
                 if (!resCreate.ok) {
-                    throw new Error(`Error API Création: ${resCreate.status}`);
+                    const errData = await resCreate.json().catch(() => ({}));
+                    throw new Error(errData.error || `Error API: ${resCreate.status}`);
                 }
 
                 const resultCreate = await resCreate.json();

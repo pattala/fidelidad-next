@@ -713,11 +713,17 @@ export const ClientsPage = () => {
 
     const filteredClients = clients.filter(c => {
         const searchOpen = searchTerm.toLowerCase();
+        // Ultra-safe check: Ensure everything is cast to String first
+        const nameSafe = String(c.name || '').toLowerCase();
+        const dniSafe = String(c.dni || '');
+        const socioSafe = String(c.socioNumber || '');
+        const emailSafe = String(c.email || '').toLowerCase();
+
         return (
-            (c.name || '').toLowerCase().includes(searchOpen) ||
-            (c.dni || '').includes(searchTerm) ||
-            (c.socioNumber && String(c.socioNumber).includes(searchTerm)) ||
-            (c.email || '').toLowerCase().includes(searchOpen)
+            nameSafe.includes(searchOpen) ||
+            dniSafe.includes(searchTerm) ||
+            socioSafe.includes(searchTerm) ||
+            emailSafe.includes(searchOpen)
         );
     });
 

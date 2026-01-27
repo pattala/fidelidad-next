@@ -27,13 +27,19 @@ export const DashboardPage = () => {
             try {
                 // 1. KPI Stats
                 // Clientes
-                const qUsers = query(collection(db, 'users'), where('role', '==', 'client'));
+                // Clientes (Fetch all to include those with missing role)
+                const qUsers = query(collection(db, 'users'));
                 const snapUsers = await getDocs(qUsers);
 
                 let points = 0;
+                let clientCount = 0;
                 snapUsers.forEach(doc => {
                     const d = doc.data();
-                    points += ((d.points || d.puntos) || 0);
+                    // Count as client if NOT admin (handling missing role as client)
+                    if (d.role !== 'admin') {
+                        clientCount++;
+                        points += ((d.points || d.puntos) || 0);
+                    }
                 });
 
                 // Canjes Globales
@@ -100,7 +106,7 @@ export const DashboardPage = () => {
                 const remainingBudget = Math.max(0, totalBudget - redeemedMoney);
 
                 setStats({
-                    usersCount: snapUsers.size,
+                    usersCount: clientCount,
                     totalPoints: points,
                     redeemedPoints,
                     redeemedMoney,

@@ -763,10 +763,10 @@ export const ClientsPage = () => {
                         <div className="flex justify-between items-start mb-4">
                             <div className="flex items-center gap-3">
                                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
-                                    {client.name.charAt(0).toUpperCase()}
+                                    {(client.name || '?').charAt(0).toUpperCase()}
                                 </div>
                                 <div>
-                                    <h3 className="font-bold text-gray-800 leading-tight">{client.name}</h3>
+                                    <h3 className="font-bold text-gray-800 leading-tight">{client.name || "Sin Nombre"}</h3>
                                     <div className="flex items-center gap-2 mt-1">
                                         {client.socioNumber && (
                                             <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border border-gray-200">
@@ -868,11 +868,11 @@ export const ClientsPage = () => {
                                     <td className="p-4 pl-6">
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center font-bold shadow-sm">
-                                                {client.name.charAt(0).toUpperCase()}
+                                                {(client.name || '?').charAt(0).toUpperCase()}
                                             </div>
                                             <div>
                                                 <p className="font-bold text-gray-800 flex items-center gap-2">
-                                                    {client.name}
+                                                    {client.name || "Sin Nombre"}
                                                     {client.socioNumber && (
                                                         <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border border-gray-200">
                                                             #{client.socioNumber}

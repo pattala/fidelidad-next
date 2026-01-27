@@ -139,16 +139,52 @@ export default async function handler(req, res) {
     }
 
     // Normalizar Teléfono (si existe)
+    // Antes de procesar telefono, validamos unicidad de DNI en BD
+    const dbDniRef = getDb();
+    const snapDni = await dbDniRef.collection('users').where('dni', '==', dni).limit(1).get();
+    if (!snapDni.empty) {
+      const foundDniData = snapDni.docs[0].data();
+      // Si el DNI existe pero el email es distinto, es colisión.
+      // Si el email es el mismo, es el mismo usuario actualizando.
+      if (foundDniData.email !== email) {
+        return res.status(400).json({
+          ok: false,
+          error: `El DNI ${dni} ya está registrado en el sistema con otro email.`
+        });
+      }
+    }
+
     let formattedPhone = undefined;
     if (telefono) {
-      // Eliminar todo lo que no sea dígito
-      const cleanPhone = String(telefono).replace(/\D/g, "");
-      if (cleanPhone.length < 10) { // Validación básica Arg (cod area + num)
-        // Opcional: Podríamos ser menos estrictos, pero sirve de guard.
+      // Estrategia Robustez WhatsApp (+54 9 ...)
+      let val = String(telefono).replace(/\D/g, "");
+
+      // 2. Manejo de prefijos argentinos típicos
+      if (val.startsWith("549") && val.length > 10) {
+        // ok, formato perfecto
+      } else if (val.startsWith("54") && val.length > 10) {
+        // Viene con 54 pero sin 9? (ej 5411...) -> agregar 9
+        if (!val.startsWith("549") && (val.startsWith("5411") || val.startsWith("5415") || val.startsWith("542") || val.startsWith("543"))) {
+          val = val.replace("54", "549");
+        }
+      } else {
+        // Input local (011..., 15..., 11...)
+        // Quitar "0" inicial (011 -> 11)
+        if (val.startsWith("0")) val = val.substring(1);
+
+        // Quitar "15" inicial (si es que la gente pone 154444... asumiendo celular)
+        // Nota: esto es delicado porque algunos codigos de area empiezan con 1, pero bueno, prioridad celular
+        // Si tiene 10 digitos (ej 11 1234 5678) -> +54 9 11 ...
+        if (val.length === 10) {
+          val = "549" + val;
+        } else if (val.length > 10) {
+          // Si es largo y no tiene prefijo país, asumimos error o ya tiene 54
+          if (!val.startsWith("54")) val = "549" + val;
+        }
       }
-      // Formato E.164 para Firebase Auth: +54 + telefono (asumiendo input local sin country code)
-      // Ojo: si ya viene con 54, hay que manjearlo. Simplificamos:
-      formattedPhone = `+54${cleanPhone}`;
+
+      if (!val.startsWith("54")) val = "54" + val; // Fallback final
+      formattedPhone = `+${val}`;
     }
 
     // 1) Auth: Gestión de Usuario
@@ -171,9 +207,6 @@ export default async function handler(req, res) {
         try {
           authUser = await admin.auth().getUserByPhoneNumber(formattedPhone);
           console.log('[create-user] User exists (Phone match):', authUser.uid);
-          // Riesgo: email podría ser distinto. Si es distinto, chocará luego al actualizar.
-          // Vamos a asumir que si coincide el teléfono, es la misma persona y queremos unificar.
-          // PERO: Si el email es distinto al registrado, Auth tirará error `email-already-exists` al intentar actualizarlo.
         } catch (e) {
           if (e.code !== 'auth/user-not-found') throw e;
         }
@@ -190,7 +223,6 @@ export default async function handler(req, res) {
         };
 
         // Solo actualizar password si el DNI cambió (para no romper otras flows, o forzar siempre)
-        // El usuario pide que el DNI sea la clave. Forzamos.
         updateData.password = dni;
 
         if (nombre) updateData.displayName = nombre;
@@ -260,6 +292,7 @@ export default async function handler(req, res) {
     const buildFsPayload = (isNew) => {
       const base = {
         email,
+        dni: dni, // Guardar explícitamente en BD
         nombre: isNew ? (nombre || "") : (nombre ?? admin.firestore.FieldValue.delete()),
         telefono: isNew ? (telefono || "") : (telefono ?? admin.firestore.FieldValue.delete()),
         numeroSocio: (numeroSocio != null)

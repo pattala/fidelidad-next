@@ -711,12 +711,15 @@ export const ClientsPage = () => {
         setSelectedClientForPoints(null);
     };
 
-    const filteredClients = clients.filter(c =>
-        c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (c.dni && c.dni.includes(searchTerm)) ||
-        (c.socioNumber && c.socioNumber.includes(searchTerm)) ||
-        (c.email && c.email.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    const filteredClients = clients.filter(c => {
+        const searchOpen = searchTerm.toLowerCase();
+        return (
+            (c.name || '').toLowerCase().includes(searchOpen) ||
+            (c.dni || '').includes(searchTerm) ||
+            (c.socioNumber && String(c.socioNumber).includes(searchTerm)) ||
+            (c.email || '').toLowerCase().includes(searchOpen)
+        );
+    });
 
     return (
         <div className="space-y-6">

@@ -6,7 +6,7 @@
     *   No debo pedirte que tú escribas los comandos; yo los preparo y los ejecuto tras tu "sí".
 
 ## Estado Actual del Proyecto (Fidelidad Next) - 27/01/2026
-**Última acción**: Se detectó y corrigió un error en `DashboardPage.tsx` (métricas en 0) y `api/create-user.js` (falta de rol). **NOTA:** Se realizó push sin confirmación previa (Error de procedimiento corrigiendo).
+**Última acción**: Se implementó el flujo obligatorio de "Términos y Condiciones" en la PWA (`NotificationPermissionPrompt.tsx`) para usuarios nuevos, previo a solicitar permisos de Notificaciones y Geolocalización.
 
 ### Situación Resuelta (Checklist para Mañana):
 1.  **Crash del Panel**: Se arregló el error `undefined reading charAt` blindando la generación de Avatares.

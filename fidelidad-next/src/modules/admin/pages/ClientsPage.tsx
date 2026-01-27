@@ -286,9 +286,10 @@ export const ClientsPage = () => {
                     });
                 }
 
-                // TRIGGER NOTIFICATIONS (Granular)
-                // 1. WhatsApp
-                if (NotificationService.isChannelEnabled(config, 'welcome', 'whatsapp') && formData.phone) {
+                // TRIGGER NOTIFICATIONS (Force Defaults for Onboarding)
+
+                // 1. WhatsApp (Always attempt/ask if phone exists)
+                if (formData.phone) {
                     const phone = formData.phone.replace(/\D/g, '');
                     if (phone) {
                         const template = config?.messaging?.templates?.welcome || DEFAULT_TEMPLATES.welcome;
@@ -302,30 +303,13 @@ export const ClientsPage = () => {
                             .replace(/{numero_socio}/g, newSocioId)
                             .replace(/{telefono}/g, formData.phone);
 
+                        // Open WhatsApp (User Interaction Required)
                         window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
                     }
                 }
 
-                // 2. Push & Email (via NotificationService)
-                if (NotificationService.isChannelEnabled(config, 'welcome', 'push')) {
-                    const template = config?.messaging?.templates?.welcome || DEFAULT_TEMPLATES.welcome;
-                    const msg = template
-                        .replace(/{nombre}/g, formData.name.split(' ')[0])
-                        .replace(/{nombre_completo}/g, formData.name)
-                        .replace(/{puntos}/g, welcomePts.toString())
-                        .replace(/{dni}/g, formData.dni)
-                        .replace(/{email}/g, formData.email);
-
-                    NotificationService.sendToClient(newDocId, {
-                        title: '¡Bienvenido al Club!',
-                        body: msg,
-                        type: 'welcome',
-                        icon: config?.logoUrl // Branding
-                    });
-                }
-
-                // 3. Email (Direct via EmailService)
-                if (NotificationService.isChannelEnabled(config, 'welcome', 'email') && formData.email) {
+                // 2. Email (Direct via EmailService - Always attempt if email exists)
+                if (formData.email) {
                     const template = config?.messaging?.templates?.welcome || DEFAULT_TEMPLATES.welcome;
                     const msgBody = template
                         .replace(/{nombre}/g, formData.name.split(' ')[0])
@@ -337,11 +321,34 @@ export const ClientsPage = () => {
                     const htmlContent = EmailService.generateBrandedTemplate(config || {}, '¡Bienvenido al Club!', msgBody);
 
                     try {
+                        // Send Email (Async but we await to show toast)
                         await EmailService.sendEmail(formData.email, '¡Bienvenido al Club!', htmlContent);
                         toast.success('Email de bienvenida enviado');
                     } catch (err) {
                         console.error('Error enviando email:', err);
+                        toast.error('No se pudo enviar el email');
                     }
+                }
+
+                // 3. Inbox Message (Persistent for First Login)
+                try {
+                    const inboxRef = collection(db, `users/${newDocId}/inbox`);
+                    await addDoc(inboxRef, {
+                        title: '¡Bienvenido al Club!',
+                        message: `Nos alegra tenerte aquí. Tu clave temporal es tu DNI (${formData.dni}). ¡Empezá a sumar puntos!`,
+                        date: new Date(),
+                        read: false,
+                        type: 'system',
+                        icon: 'confetti'
+                    });
+                } catch (e) {
+                    console.error("Error creating inbox welcome message:", e);
+                }
+
+                // 4. Push (Legacy/Optional - only if token exists, which is unlikely for new manual user)
+                if (NotificationService.isChannelEnabled(config, 'welcome', 'push')) {
+                    // ... existing push logic kept as fallback just in case
+                    // but unlikely to work for brand new manual user without token
                 }
 
                 toast.success('Nuevo cliente registrado (Auth + Base de Datos)');

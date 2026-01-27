@@ -6,7 +6,7 @@
     *   No debo pedirte que tú escribas los comandos; yo los preparo y los ejecuto tras tu "sí".
 
 ## Estado Actual del Proyecto (Fidelidad Next) - 27/01/2026
-**Última acción**: Se implementó el flujo obligatorio de "Términos y Condiciones" en la PWA (`NotificationPermissionPrompt.tsx`) para usuarios nuevos, previo a solicitar permisos de Notificaciones y Geolocalización.
+**Última acción**: Se activó el envío forzado de Email y WhatsApp de bienvenida al crear clientes desde el panel, y se agregó la generación de un mensaje persistente en el Inbox para el primer login.
 
 ### Situación Resuelta (Checklist para Mañana):
 1.  **Crash del Panel**: Se arregló el error `undefined reading charAt` blindando la generación de Avatares.
@@ -16,10 +16,21 @@
     *   `domicilio.components` (BD) -> Campos planos (Form).
 3.  **API Crear Usuario**: Se validó unicidad de DNI y normalización de Teléfono (+549).
 
-### Próximos Pasos (Al retomar):
-1.  **Validar**: Confirmar visualmente que al editar un cliente con datos "viejos" o "nuevos", el formulario se llena correctamente (Nombre y Dirección completa).
-2.  **Limpieza**: Si todo funciona, evaluar si es necesario hacer un script de migración para estandarizar la base de datos (pasar todo a inglés o español) o si mantenemos esta capa de compatibilidad en el Frontend.
-3.  **Funcionalidad**: Seguir con el flujo de canjes o campañas si el módulo de clientes ya está estable.
+### Retomando la Sesión (Estado de Cierre 27/01/2026):
+**Logros de esta sesión:**
+1.  **Panel Admin (Clientes):**
+    *   Se arregló visualización de direcciones anidadas en la tabla.
+    *   El alta manual valida DNI/Email y devuelve errores claros en español.
+    *   El alta manual asigna correctamente el rol "client" y los metadatos de domicilio.
+2.  **Dashboard:**
+    *   Se corrigió el conteo de usuarios (incluye usuarios sin rol explícito).
+3.  **App Cliente (PWA Onboarding):**
+    *   El flujo de entrada para usuarios creados por panel ahora es: **Login DNI -> Términos y Condiciones (Obligatorio) -> Permisos Notificaciones -> Geolocalización**.
+    *   Se guarda aceptación de términos y lat/long en la BD.
+
+### Próximos Pasos (Pendiente):
+1.  **Registro Autónomo (PWA):** Analizar y trabajar en el flujo de los usuarios que se registran solos desde la web/app (no cargados por el admin).
+2.  **Validación General:** Verificar que el flujo completo (Admin crea -> Usuario entra -> Acepta todo -> Usa la app) no tenga fricción.
 
 ## Notas Técnicas
 - **Base de Datos**: Firestore tiene mezcla de campos español (`nombre`) e inglés (`name`) debido a diferentes versiones de la API/Frontend. La capa de compatibilidad en el Frontend es la solución actual.

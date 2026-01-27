@@ -634,7 +634,17 @@ export const ClientsPage = () => {
             const snap = await import('firebase/firestore').then(mod => mod.getDoc(docRef));
 
             if (snap.exists()) {
-                const refreshedClient = { id: snap.id, ...snap.data() } as Client;
+                const data = snap.data();
+                const refreshedClient = {
+                    id: snap.id,
+                    ...data,
+                    // Normalización crítica (Español -> Inglés)
+                    name: data.name || data.nombre || '',
+                    phone: data.phone || data.telefono || '',
+                    socioNumber: data.socioNumber || data.numeroSocio || '',
+                    points: data.points || data.puntos || 0
+                } as Client;
+
                 // Update local list state optimistically/lazily if needed, but definitely for the modal
                 openFn(refreshedClient);
 

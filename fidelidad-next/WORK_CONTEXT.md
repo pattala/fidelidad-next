@@ -5,16 +5,21 @@
     *   **Regla de Oro**: Siempre debo CONSULTARTE y pedir confirmación antes de ejecutar el `push` o una secuencia de deploy.
     *   No debo pedirte que tú escribas los comandos; yo los preparo y los ejecuto tras tu "sí".
 
-## Estado Actual del Proyecto (Fidelidad Next)
-- **Backend (API)**: `api/create-user.js` saneada. Guarda DNI, valida unicidad, y normaliza teléfonos para WhatsApp.
-- **Frontend (Admin)**: `ClientsPage.tsx` blindado contra crashes (`undefined` names).
-    - **Fix Reciente**: Normalización de datos en el Modal de Edición (`nombre`->`name`, `domicilio.components` -> flat fields) para que al editar no se pierdan datos.
+## Estado Actual del Proyecto (Fidelidad Next) - 27/01/2026
+**Última acción**: Se desplegó un fix crítico en `ClientsPage.tsx` para normalizar datos al editar clientes.
 
-## Tareas Pendientes Inmediatas
-- Verificar que el deploy con el fix de domicilio funcione correctamente.
-- Limpiar cualquier otro punto donde se asuma `name` en lugar de `nombre` si aparecen más casos.
+### Situación Resuelta (Checklist para Mañana):
+1.  **Crash del Panel**: Se arregló el error `undefined reading charAt` blindando la generación de Avatares.
+2.  **Datos en Edición**: Se implementó una capa de traducción en `refreshAndOpen` para:
+    *   `nombre` (BD) -> `name` (Form).
+    *   `telefono` (BD) -> `phone` (Form).
+    *   `domicilio.components` (BD) -> Campos planos (Form).
+3.  **API Crear Usuario**: Se validó unicidad de DNI y normalización de Teléfono (+549).
+
+### Próximos Pasos (Al retomar):
+1.  **Validar**: Confirmar visualmente que al editar un cliente con datos "viejos" o "nuevos", el formulario se llena correctamente (Nombre y Dirección completa).
+2.  **Limpieza**: Si todo funciona, evaluar si es necesario hacer un script de migración para estandarizar la base de datos (pasar todo a inglés o español) o si mantenemos esta capa de compatibilidad en el Frontend.
+3.  **Funcionalidad**: Seguir con el flujo de canjes o campañas si el módulo de clientes ya está estable.
 
 ## Notas Técnicas
-- **Base de Datos**: Firestore usa campos en español (`nombre`, `telefono`, `domicilio`).
-- **Código**: TypeScript usa campos en inglés (`name`, `phone`, flat address fields).
-- **Binding**: El mapeo se hace manualmente en `fetchData` y `refreshAndOpen` dentro de `ClientsPage.tsx`. Mantener esto sincronizado es vital.
+- **Base de Datos**: Firestore tiene mezcla de campos español (`nombre`) e inglés (`name`) debido a diferentes versiones de la API/Frontend. La capa de compatibilidad en el Frontend es la solución actual.

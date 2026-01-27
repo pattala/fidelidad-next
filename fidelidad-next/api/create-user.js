@@ -205,7 +205,17 @@ export default async function handler(req, res) {
       // B. Verificar existencia por TELÉFONO (si no encontró por email y hay teléfono)
       if (!authUser && formattedPhone) {
         try {
-          authUser = await admin.auth().getUserByPhoneNumber(formattedPhone);
+          const authUserByPhone = await admin.auth().getUserByPhoneNumber(formattedPhone);
+          // Si encontramos usuario por teléfono, chequeamos si el email coincide.
+          // Si el email es distinto, es un conflicto: NO debemos sobreescribir.
+          if (authUserByPhone.email && authUserByPhone.email !== email) {
+            return res.status(400).json({
+              ok: false,
+              error: `El teléfono ${formattedPhone} ya está registrado por otro usuario (${authUserByPhone.email}). Usá un teléfono único.`
+            });
+          }
+          // Si no tiene email o coincide, asumimos que es el mismo usuario
+          authUser = authUserByPhone;
           console.log('[create-user] User exists (Phone match):', authUser.uid);
         } catch (e) {
           if (e.code !== 'auth/user-not-found') throw e;

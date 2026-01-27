@@ -123,55 +123,127 @@ export default async function handler(req, res) {
     if (!email || !dni) {
       return res.status(400).json({ ok: false, error: "Faltan campos obligatorios: email y dni" });
     }
+    // 0. Normalización y Validaciones Previas
     email = String(email).toLowerCase().trim();
     dni = String(dni).trim();
 
-    if (dni.length < 6) {
-      return res.status(400).json({ ok: false, error: "El DNI/clave debe tener al menos 6 caracteres" });
+    // Validación Email
+    if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      return res.status(400).json({ ok: false, error: "Formato de email inválido" });
     }
 
-    // 1) Auth: crear usuario si no existe
+    // Validación y Corrección DNI (Password)
+    // Firebase pide min 6 chars. Si DNI < 6, agregar ceros adelante.
+    if (dni.length < 6) {
+      dni = dni.padStart(6, '0');
+    }
+
+    // Normalizar Teléfono (si existe)
+    let formattedPhone = undefined;
+    if (telefono) {
+      // Eliminar todo lo que no sea dígito
+      const cleanPhone = String(telefono).replace(/\D/g, "");
+      if (cleanPhone.length < 10) { // Validación básica Arg (cod area + num)
+        // Opcional: Podríamos ser menos estrictos, pero sirve de guard.
+      }
+      // Formato E.164 para Firebase Auth: +54 + telefono (asumiendo input local sin country code)
+      // Ojo: si ya viene con 54, hay que manjearlo. Simplificamos:
+      formattedPhone = `+54${cleanPhone}`;
+    }
+
+    // 1) Auth: Gestión de Usuario
     initFirebaseAdmin();
     let authUser = null;
     let createdAuth = false;
-    console.log('[create-user] Payload received:', { email, dni });
+    console.log('[create-user] Payload received:', { email, dni, phone: formattedPhone });
 
     try {
-      console.log('[create-user] Checking Auth for:', email);
-      authUser = await admin.auth().getUserByEmail(email);
-      console.log('[create-user] User exists in Auth:', authUser.uid);
-    } catch {
-      // no existe → crear
-      console.log('[create-user] User missing in Auth. Creating...');
+      // A. Verificar existencia por EMAIL
       try {
-        authUser = await admin.auth().createUser({
-          email,
-          password: dni,                 // clave por default = DNI
-          displayName: nombre || "",
-          phoneNumber: telefono ? `+54${telefono}`.replace(/\D/g, "") : undefined, // opcional
-          emailVerified: false,
-          disabled: false,
-        });
-        createdAuth = true;
-        console.log('[create-user] Auth Created. UID:', authUser.uid);
+        authUser = await admin.auth().getUserByEmail(email);
+        console.log('[create-user] User exists (Email match):', authUser.uid);
       } catch (e) {
-        console.error('[create-user] Error creating Auth:', e);
-        // Reintentar sin phone si falló
-        if (telefono) {
-          console.log('[create-user] Retrying without phone...');
-          authUser = await admin.auth().createUser({
-            email,
-            password: dni,
-            displayName: nombre || "",
-            emailVerified: false,
-            disabled: false,
-          });
-          createdAuth = true;
-          console.log('[create-user] Auth Created (Retry). UID:', authUser.uid);
-        } else {
-          throw e;
+        if (e.code !== 'auth/user-not-found') throw e;
+      }
+
+      // B. Verificar existencia por TELÉFONO (si no encontró por email y hay teléfono)
+      if (!authUser && formattedPhone) {
+        try {
+          authUser = await admin.auth().getUserByPhoneNumber(formattedPhone);
+          console.log('[create-user] User exists (Phone match):', authUser.uid);
+          // Riesgo: email podría ser distinto. Si es distinto, chocará luego al actualizar.
+          // Vamos a asumir que si coincide el teléfono, es la misma persona y queremos unificar.
+          // PERO: Si el email es distinto al registrado, Auth tirará error `email-already-exists` al intentar actualizarlo.
+        } catch (e) {
+          if (e.code !== 'auth/user-not-found') throw e;
         }
       }
+
+      // C. Lógica de Creación o Actualización
+      if (authUser) {
+        // --- ACTUALIZAR ---
+        console.log('[create-user] Updating existing user:', authUser.uid);
+
+        // Preparar updates
+        const updateData = {
+          disabled: false // Reactivar siempre
+        };
+
+        // Solo actualizar password si el DNI cambió (para no romper otras flows, o forzar siempre)
+        // El usuario pide que el DNI sea la clave. Forzamos.
+        updateData.password = dni;
+
+        if (nombre) updateData.displayName = nombre;
+
+        // Actualizar email si difiere (OJO: puede fallar si el nuevo email está en uso por OTRO user)
+        if (authUser.email !== email) {
+          updateData.email = email;
+          updateData.emailVerified = false;
+        }
+
+        // Actualizar teléfono si se proveyó y difiere
+        if (formattedPhone && authUser.phoneNumber !== formattedPhone) {
+          updateData.phoneNumber = formattedPhone;
+        }
+
+        await admin.auth().updateUser(authUser.uid, updateData);
+        console.log('[create-user] User Updated Successfully');
+
+      } else {
+        // --- CREAR ---
+        console.log('[create-user] Creating new user...');
+
+        const createData = {
+          email,
+          password: dni,
+          displayName: nombre || "",
+          emailVerified: false,
+          disabled: false,
+        };
+
+        if (formattedPhone) {
+          createData.phoneNumber = formattedPhone;
+        }
+
+        authUser = await admin.auth().createUser(createData);
+        createdAuth = true;
+        console.log('[create-user] User Created. UID:', authUser.uid);
+      }
+
+    } catch (authError) {
+      console.error('[create-user] Auth Error:', authError);
+
+      // Mapeo de errores comunes para devolver mensaje claro
+      const code = authError.errorInfo?.code || authError.code;
+      let msg = "Error en autenticación";
+
+      if (code === 'auth/email-already-exists') msg = "El email ya está siendo usado por otro usuario.";
+      if (code === 'auth/phone-number-already-exists') msg = "El teléfono ya está registrado en otra cuenta.";
+      if (code === 'auth/invalid-phone-number') msg = "El número de teléfono no es válido.";
+      if (code === 'auth/invalid-email') msg = "El formato del email es incorrecto.";
+      if (code === 'auth/weak-password') msg = "El DNI es demasiado corto para ser contraseña (min 6).";
+
+      return res.status(400).json({ ok: false, error: msg, code: code });
     }
 
     const authUID = authUser.uid;
@@ -228,8 +300,10 @@ export default async function handler(req, res) {
       const fsPayload = buildFsPayload(false);
       await fsDocRef.set(fsPayload, { merge: true });
     } else {
-      // nuevo → docId opcional
-      fsDocRef = docId ? col.doc(docId) : col.doc();
+      // nuevo → usar authUID como ID si existe (paridad PWA), sino docId opcional o random
+      const finalDocId = docId || authUID;
+      fsDocRef = finalDocId ? col.doc(finalDocId) : col.doc();
+
       const newDoc = buildFsPayload(true);
       await fsDocRef.set(newDoc);
       createdFs = true;

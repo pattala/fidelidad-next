@@ -76,8 +76,15 @@ export const ClientsPage = () => {
                     phone: data.phone || data.telefono || '',
                     points: data.points || data.puntos || 0,
                     socioNumber: data.socioNumber || data.numeroSocio || '',
-                    // Ensure address fields mapped if needed, though they seem flat or nested
-                    // For now, focus on the main display fields
+
+                    // Address Normalization (Flattening)
+                    provincia: data.domicilio?.components?.provincia || data.provincia || '',
+                    partido: data.domicilio?.components?.partido || data.partido || '',
+                    localidad: data.domicilio?.components?.localidad || data.localidad || '',
+                    calle: data.domicilio?.components?.calle || data.calle || '',
+                    piso: data.domicilio?.components?.piso || data.piso || '',
+                    depto: data.domicilio?.components?.depto || data.depto || '',
+                    cp: data.domicilio?.components?.zipCode || data.cp || ''
                 };
             }) as Client[];
 

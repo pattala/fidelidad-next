@@ -6,7 +6,7 @@
     *   No debo pedirte que tú escribas los comandos; yo los preparo y los ejecuto tras tu "sí".
 
 ## Estado Actual del Proyecto (Fidelidad Next) - 27/01/2026
-**Última acción**: Se desplegó un fix crítico en `ClientsPage.tsx` para normalizar datos al editar clientes.
+**Última acción**: Se arregló la visualización de la dirección en la tabla de clientes (`ClientsPage.tsx`) aplanando los datos anidados de `domicilio`.
 
 ### Situación Resuelta (Checklist para Mañana):
 1.  **Crash del Panel**: Se arregló el error `undefined reading charAt` blindando la generación de Avatares.

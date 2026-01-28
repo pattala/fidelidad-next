@@ -141,6 +141,13 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Error fatal procesando el email:', error);
-    return res.status(500).json({ message: 'Error interno del servidor.', error: error.message });
+    // Return more details for debugging (careful not to expose too much in prod, but needed now)
+    return res.status(500).json({
+      message: 'Error interno del servidor.',
+      error: error.message,
+      code: error.code,
+      details: error.response || null,
+      smtpConfigured: !!(process.env.SMTP_USER && process.env.SMTP_PASS)
+    });
   }
 }

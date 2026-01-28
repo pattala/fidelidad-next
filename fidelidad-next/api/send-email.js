@@ -101,11 +101,23 @@ export default async function handler(req, res) {
     const { to, templateId, templateData = {} } = req.body || {};
     if (!to || !templateId) return res.status(400).json({ message: 'Faltan parámetros: to y templateId.' });
 
-    // 1) Plantilla unificada
-    const tpl = await resolveTemplate(db, templateId, 'email');
-    const subject = applyBlocksAndVars(tpl.titulo, { ...templateData, email: to });
-    const htmlInner = applyBlocksAndVars(tpl.cuerpo, { ...templateData, email: to });
-    const html = buildHtmlLayout(htmlInner);
+    // 1) Plantilla unificada o Manual Override
+    let subject, html;
+
+    if (templateId === 'manual_override') {
+      // Bypass template engine lookup
+      subject = templateData.subject || 'Notificación';
+      // Si el frontend ya manda el HTML completo (como hace EmailService.ts), lo usamos directo.
+      // Si quisiéramos envolverlo con el layout de la API, haríamos buildHtmlLayout(templateData.htmlContent)
+      // Pero como el frontend usa generateBrandedTemplate, ya tiene layout.
+      html = templateData.htmlContent || '<p>Sin contenido</p>';
+    } else {
+      // Standard flow: database template
+      const tpl = await resolveTemplate(db, templateId, 'email');
+      subject = applyBlocksAndVars(tpl.titulo, { ...templateData, email: to });
+      const htmlInner = applyBlocksAndVars(tpl.cuerpo, { ...templateData, email: to });
+      html = buildHtmlLayout(htmlInner);
+    }
 
     // 2) Validar Credenciales SMTP
     if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {

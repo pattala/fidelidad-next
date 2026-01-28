@@ -6,7 +6,7 @@
     *   No debo pedirte que tú escribas los comandos; yo los preparo y los ejecuto tras tu "sí".
 
 ## Estado Actual del Proyecto (Fidelidad Next) - 27/01/2026
-**Última acción**: Se activó el envío forzado de Email y WhatsApp de bienvenida al crear clientes desde el panel, y se agregó la generación de un mensaje persistente en el Inbox para el primer login.
+**Última acción**: Se conectó el servicio de Email del frontend con la API backend (`/api/send-email`) habilitando el envío real de correos (usando SMTP Gmail). Se actualizó la API para permitir envíos directos manuales.
 
 ### Situación Resuelta (Checklist para Mañana):
 1.  **Crash del Panel**: Se arregló el error `undefined reading charAt` blindando la generación de Avatares.
@@ -22,6 +22,7 @@
     *   Se arregló visualización de direcciones anidadas en la tabla.
     *   El alta manual valida DNI/Email y devuelve errores claros en español.
     *   El alta manual asigna correctamente el rol "client" y los metadatos de domicilio.
+    *   **NUEVO:** Al crear cliente: se envía Email de bienvenida, se abre WhatsApp con mensaje predefinido, y se crea un mensaje en el Inbox ("¡Bienvenido!") para que lo vea al entrar.
 2.  **Dashboard:**
     *   Se corrigió el conteo de usuarios (incluye usuarios sin rol explícito).
 3.  **App Cliente (PWA Onboarding):**

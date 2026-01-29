@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Edit, Trash2, X, Search, MapPin, Phone, Mail, Coins, Sparkles, Gift, History, MessageCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { collection, addDoc, getDocs, query, orderBy, doc, deleteDoc, updateDoc, increment, runTransaction, arrayUnion, where } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, orderBy, doc, deleteDoc, updateDoc, increment, runTransaction, arrayUnion, where, setDoc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import { ConfigService, DEFAULT_TEMPLATES } from '../../../services/configService';
 import { NotificationService } from '../../../services/notificationService';
@@ -188,32 +188,28 @@ export const ClientsPage = () => {
                         throw error;
                     }
                 }
-            } else {
-                // Generar ID Automático Transaccional
-                let newSocioId = formData.socioNumber;
+                // --- CREAR NUEVO CLIENTE ---
+                let newDocId = '';
+                let welcomePts = config?.welcomePoints || 0;
 
+                // Generar ID Socio
+                let newSocioId = formData.socioNumber;
                 if (!newSocioId) {
                     try {
                         await runTransaction(db, async (transaction) => {
                             const counterRef = doc(db, 'config', 'counters');
                             const counterDoc = await transaction.get(counterRef);
-
                             let nextId = 1000;
-                            if (counterDoc.exists()) {
-                                nextId = counterDoc.data().lastSocioId + 1;
-                            }
-
+                            if (counterDoc.exists()) nextId = counterDoc.data().lastSocioId + 1;
                             transaction.set(counterRef, { lastSocioId: nextId }, { merge: true });
                             newSocioId = nextId.toString();
                         });
                     } catch (e) {
-                        console.error("Error generando ID:", e);
-                        // Fallback random si falla transacción (raro)
                         newSocioId = Math.floor(1000 + Math.random() * 9000).toString();
                     }
                 }
 
-                // USAR API BACKEND PARA CREAR (AUTH + FIRESTORE)
+                // Payload Base
                 const createPayload = {
                     email: formData.email,
                     dni: formData.dni,
@@ -233,136 +229,155 @@ export const ClientsPage = () => {
                     fechaInscripcion: new Date().toISOString()
                 };
 
-                const resCreate = await fetch('/api/create-user', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }, // API key disabled for now
-                    body: JSON.stringify(createPayload)
-                });
+                // INTENTO 1: Usar API (Backend Real)
+                let creationSuccess = false;
+                try {
+                    const resCreate = await fetch('/api/create-user', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(createPayload)
+                    });
 
-                if (!resCreate.ok) {
-                    const errData = await resCreate.json().catch(() => ({}));
-                    throw new Error(errData.error || `Error API: ${resCreate.status}`);
+                    if (resCreate.ok) {
+                        const resultCreate = await resCreate.json();
+                        if (resultCreate.ok) {
+                            newDocId = resultCreate.firestore.docId;
+                            creationSuccess = true;
+                            toast.success('¡Cliente registrado con éxito!');
+                        }
+                    }
+                } catch (e) {
+                    console.warn("API Backend no disponible, usando método directo...", e);
                 }
 
-                const resultCreate = await resCreate.json();
-                if (!resultCreate.ok) throw new Error(resultCreate.error || 'Error creando usuario');
+                // FALLBACK: Escritura Directa en Firestore (Si falló API o estamos en local sin backend)
+                if (!creationSuccess) {
+                    try {
+                        const usersCol = collection(db, 'users');
+                        const newDocRef = doc(usersCol); // Auto-ID
+                        newDocId = newDocRef.id;
 
-                const newDocId = resultCreate.firestore.docId; // ID real del doc
-                const welcomePts = config?.welcomePoints || 0;
+                        await setDoc(newDocRef, {
+                            ...createPayload,
+                            points: 0, // Se agregan despues
+                            role: 'client',
+                            createdAt: new Date(),
+                            updatedAt: new Date(),
+                            // Mapeo plano para búsquedas simples
+                            name: formData.name,
+                            phone: formData.phone,
+                            socioNumber: newSocioId,
+                            calle: formData.calle,
+                            localidad: formData.localidad,
+                            provincia: formData.provincia
+                        });
+                        toast.success('¡Cliente registrado con éxito!');
+                    } catch (errFallback) {
+                        console.error("Error fatal creando cliente:", errFallback);
+                        toast.error("Error al guardar en base de datos");
+                        setLoading(false);
+                        return;
+                    }
+                }
 
-                // POST-CREATION: Puntos de Bienvenida (Manual porque la API create-user no asigna puntos)
-                if (welcomePts > 0) {
-                    // Lógica de Vencimiento Escalonado
-                    let days = 365; // Default 1 año
-                    if (config?.expirationRules) {
-                        const rule = config.expirationRules.find((r: any) =>
-                            welcomePts >= r.minPoints && (r.maxPoints === null || welcomePts <= r.maxPoints)
-                        );
-                        if (rule) days = rule.validityDays;
+                // --- POST-CREATION ACTIONS ---
+                if (newDocId) {
+                    // 1. Asignar Puntos (Firestore)
+                    if (welcomePts > 0) {
+                        let days = 365;
+                        if (config?.expirationRules) {
+                            const rule = config.expirationRules.find((r: any) =>
+                                welcomePts >= r.minPoints && (r.maxPoints === null || welcomePts <= r.maxPoints)
+                            );
+                            if (rule) days = rule.validityDays;
+                        }
+
+                        const expiresAt = new Date();
+                        expiresAt.setDate(expiresAt.getDate() + days);
+
+                        // Historial
+                        await addDoc(collection(db, `users/${newDocId}/points_history`), {
+                            amount: welcomePts,
+                            concept: '🎁 Bienvenida al sistema',
+                            date: new Date(),
+                            type: 'credit',
+                            expiresAt: expiresAt
+                        });
+
+                        // Update User Doc
+                        await updateDoc(doc(db, 'users', newDocId), {
+                            points: welcomePts,
+                            historialPuntos: arrayUnion({
+                                fechaObtencion: new Date(),
+                                puntosObtenidos: welcomePts,
+                                puntosDisponibles: welcomePts,
+                                diasCaducidad: days,
+                                origen: '🎁 Bienvenida al sistema',
+                                estado: 'Activo'
+                            })
+                        });
                     }
 
-                    const expiresAt = new Date();
-                    expiresAt.setDate(expiresAt.getDate() + days);
+                    // 2. WhatsApp (Cliente)
+                    if (formData.phone) {
+                        const phone = formData.phone.replace(/\D/g, '');
+                        if (phone.length > 5) {
+                            const template = config?.messaging?.templates?.welcome || DEFAULT_TEMPLATES.welcome;
+                            const msg = template
+                                .replace(/{nombre}/g, formData.name.split(' ')[0])
+                                .replace(/{nombre_completo}/g, formData.name)
+                                .replace(/{puntos}/g, welcomePts.toString())
+                                .replace(/{dni}/g, formData.dni)
+                                .replace(/{email}/g, formData.email)
+                                .replace(/{socio}/g, newSocioId)
+                                .replace(/{numero_socio}/g, newSocioId)
+                                .replace(/{telefono}/g, formData.phone);
 
-                    await addDoc(collection(db, `users/${newDocId}/points_history`), {
-                        amount: welcomePts,
-                        concept: '🎁 Bienvenida al sistema',
-                        date: new Date(),
-                        type: 'credit',
-                        expiresAt: expiresAt
-                    });
+                            // Timeout breve para asegurar que el navegador permita el popup tras el async
+                            setTimeout(() => {
+                                window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+                            }, 500);
+                        }
+                    }
 
-                    // Update PWA Array
-                    await updateDoc(doc(db, 'users', newDocId), {
-                        points: welcomePts, // Set initial points
-                        historialPuntos: arrayUnion({
-                            fechaObtencion: new Date(),
-                            puntosObtenidos: welcomePts,
-                            puntosDisponibles: welcomePts,
-                            diasCaducidad: days,
-                            origen: '🎁 Bienvenida al sistema',
-                            estado: 'Activo'
-                        })
-                    });
-                }
-
-                // TRIGGER NOTIFICATIONS (Force Defaults for Onboarding)
-
-                // 1. WhatsApp (Always attempt/ask if phone exists)
-                if (formData.phone) {
-                    const phone = formData.phone.replace(/\D/g, '');
-                    if (phone) {
+                    // 3. Email (Intento API)
+                    if (formData.email) {
                         const template = config?.messaging?.templates?.welcome || DEFAULT_TEMPLATES.welcome;
-                        const msg = template
+                        const msgBody = template
                             .replace(/{nombre}/g, formData.name.split(' ')[0])
                             .replace(/{nombre_completo}/g, formData.name)
                             .replace(/{puntos}/g, welcomePts.toString())
                             .replace(/{dni}/g, formData.dni)
-                            .replace(/{email}/g, formData.email)
-                            .replace(/{socio}/g, newSocioId)
-                            .replace(/{numero_socio}/g, newSocioId)
-                            .replace(/{telefono}/g, formData.phone);
+                            .replace(/{email}/g, formData.email);
 
-                        // Open WhatsApp (User Interaction Required)
-                        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+                        const htmlContent = EmailService.generateBrandedTemplate(config || {}, '¡Bienvenido al Club!', msgBody);
+
+                        // No bloqueamos la UI si falla el email
+                        EmailService.sendEmail(formData.email, '¡Bienvenido al Club!', htmlContent)
+                            .then(() => toast.success('Email de bienvenida enviado'))
+                            .catch(() => { }); // Silencioso si falla
                     }
-                }
 
-                // 2. Email (Direct via EmailService - Always attempt if email exists)
-                if (formData.email) {
-                    const template = config?.messaging?.templates?.welcome || DEFAULT_TEMPLATES.welcome;
-                    const msgBody = template
-                        .replace(/{nombre}/g, formData.name.split(' ')[0])
-                        .replace(/{nombre_completo}/g, formData.name)
-                        .replace(/{puntos}/g, welcomePts.toString())
-                        .replace(/{dni}/g, formData.dni)
-                        .replace(/{email}/g, formData.email);
-
-                    const htmlContent = EmailService.generateBrandedTemplate(config || {}, '¡Bienvenido al Club!', msgBody);
-
+                    // 4. Inbox
                     try {
-                        // Send Email (Async but we await to show toast)
-                        await EmailService.sendEmail(formData.email, '¡Bienvenido al Club!', htmlContent);
-                        toast.success('Email de bienvenida enviado');
-                    } catch (err) {
-                        console.error('Error enviando email:', err);
-                        toast.error('No se pudo enviar el email');
-                    }
+                        await addDoc(collection(db, `users/${newDocId}/inbox`), {
+                            title: '¡Bienvenido al Club!',
+                            message: `Nos alegra tenerte aquí. Tu clave temporal es tu DNI (${formData.dni}).`,
+                            date: new Date(),
+                            read: false,
+                            type: 'system',
+                            icon: 'confetti'
+                        });
+                    } catch (e) { }
                 }
 
-                // 3. Inbox Message (Persistent for First Login)
-                try {
-                    const inboxRef = collection(db, `users/${newDocId}/inbox`);
-                    await addDoc(inboxRef, {
-                        title: '¡Bienvenido al Club!',
-                        message: `Nos alegra tenerte aquí. Tu clave temporal es tu DNI (${formData.dni}). ¡Empezá a sumar puntos!`,
-                        date: new Date(),
-                        read: false,
-                        type: 'system',
-                        icon: 'confetti'
-                    });
-                } catch (e) {
-                    console.error("Error creating inbox welcome message:", e);
-                }
-
-                // 4. Push (Legacy/Optional - only if token exists, which is unlikely for new manual user)
-                if (NotificationService.isChannelEnabled(config, 'welcome', 'push')) {
-                    // ... existing push logic kept as fallback just in case
-                    // but unlikely to work for brand new manual user without token
-                }
-
-                toast.success('Nuevo cliente registrado (Auth + Base de Datos)');
-            }
+            } // Fin IF / ELSE;
 
             closeModal();
-            // Pequeño delay para dar tiempo a Firestore a indexar y que aparezca la dirección
-            setTimeout(() => fetchData(), 1000);
+            setTimeout(() => fetchData(), 1000); // Refrescar lista
         } catch (error: any) {
-            console.error("Error al guardar:", error);
-            // Mostrar el mensaje de error específico del backend si existe
-            const msg = error.message || "Error al guardar cliente";
-            // Si el mensaje viene del backend con "Error: ", limpiarlo un poco si se quiere, o mostrarlo directo
-            toast.error(msg);
+            console.error("Error General al guardar:", error);
+            toast.error(error.message || "Error al guardar");
         } finally {
             setLoading(false);
         }

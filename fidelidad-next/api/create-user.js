@@ -94,13 +94,17 @@ export default async function handler(req, res) {
 
   // Body
   let payload = {};
-  try {
-    payload = await readJsonBody(req);
-  } catch (e) {
-    if (e.code === "BAD_JSON") {
-      return res.status(400).json({ ok: false, error: "Invalid JSON body" });
+  if (req.body && Object.keys(req.body).length > 0) {
+    payload = req.body;
+  } else {
+    try {
+      payload = await readJsonBody(req);
+    } catch (e) {
+      if (e.code === "BAD_JSON") {
+        return res.status(400).json({ ok: false, error: "Invalid JSON body" });
+      }
+      return res.status(400).json({ ok: false, error: "Invalid request body" });
     }
-    return res.status(400).json({ ok: false, error: "Invalid request body" });
   }
 
   try {

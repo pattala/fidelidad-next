@@ -27,6 +27,7 @@
     "firebase-admin": "^13.6.0",
     "framer-motion": "^12.23.26",
     "lucide-react": "^0.562.0",
+    "nodemailer": "^7.0.13",
     "postcss": "^8.5.6",
     "react-hot-toast": "^2.6.0",
     "react-qr-code": "^2.0.18",

@@ -286,12 +286,21 @@ export const ClientsPage = () => {
                 }
 
                 // --- POST-CREATION ACTIONS ---
+                console.log("[ClientsPage] Starting post-creation actions for ID:", newDocId);
                 if (newDocId) {
+                    // Refrescar config al vuelo para asegurar que no sea null
+                    const freshConfig = await ConfigService.get();
+                    console.log("[ClientsPage] Channels Config:", {
+                        whatsapp: freshConfig?.messaging?.whatsappEnabled,
+                        email: freshConfig?.messaging?.emailEnabled,
+                        welcomeConfig: freshConfig?.messaging?.eventConfigs?.welcome
+                    });
+
                     // 1. Asignar Puntos de Bienvenida
                     if (welcomePts > 0) {
                         let days = 365;
-                        if (config?.expirationRules) {
-                            const rule = config.expirationRules.find((r: any) =>
+                        if (freshConfig?.expirationRules) {
+                            const rule = freshConfig.expirationRules.find((r: any) =>
                                 welcomePts >= r.minPoints && (r.maxPoints === null || welcomePts <= r.maxPoints)
                             );
                             if (rule) days = rule.validityDays;
@@ -319,10 +328,11 @@ export const ClientsPage = () => {
                                 estado: 'Activo'
                             })
                         });
+                        console.log("[ClientsPage] Welcome points assigned");
                     }
 
                     // 2. WhatsApp (Si está habilitado el canal 'welcome')
-                    const welcomeTemplate = config?.messaging?.templates?.welcome || DEFAULT_TEMPLATES.welcome;
+                    const welcomeTemplate = freshConfig?.messaging?.templates?.welcome || DEFAULT_TEMPLATES.welcome;
                     const welcomeMsg = welcomeTemplate
                         .replace(/{nombre}/g, formData.name.split(' ')[0])
                         .replace(/{nombre_completo}/g, formData.name)
@@ -333,37 +343,50 @@ export const ClientsPage = () => {
                         .replace(/{numero_socio}/g, newSocioId)
                         .replace(/{telefono}/g, formData.phone);
 
-                    if (formData.phone && NotificationService.isChannelEnabled(config, 'welcome', 'whatsapp')) {
-                        const phone = formData.phone.replace(/\D/g, '');
-                        if (phone.length > 5) {
-                            setTimeout(() => {
-                                window.open(`https://wa.me/${phone}?text=${encodeURIComponent(welcomeMsg)}`, '_blank');
-                            }, 500);
+                    const isWhatsappReady = (formData.phone && NotificationService.isChannelEnabled(freshConfig, 'welcome', 'whatsapp'));
+                    console.log("[ClientsPage] WhatsApp condition:", {
+                        hasPhone: !!formData.phone,
+                        isEnabled: NotificationService.isChannelEnabled(freshConfig, 'welcome', 'whatsapp')
+                    });
+
+                    if (isWhatsappReady) {
+                        const cleanPhone = formData.phone.replace(/\D/g, '');
+                        if (cleanPhone.length > 5) {
+                            console.log("[ClientsPage] Triggering WhatsApp window open to:", cleanPhone);
+                            // Intento de apertura inmediata para evitar bloqueadores de popups
+                            const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(welcomeMsg)}`;
+                            window.open(waUrl, '_blank');
                         }
                     }
 
                     // 3. Email (Si está habilitado el canal 'welcome')
-                    if (formData.email && NotificationService.isChannelEnabled(config, 'welcome', 'email')) {
-                        const htmlContent = EmailService.generateBrandedTemplate(config || {}, '¡Bienvenido al Club!', welcomeMsg);
+                    const isEmailReady = (formData.email && NotificationService.isChannelEnabled(freshConfig, 'welcome', 'email'));
+                    console.log("[ClientsPage] Email condition:", {
+                        hasEmail: !!formData.email,
+                        isEnabled: NotificationService.isChannelEnabled(freshConfig, 'welcome', 'email')
+                    });
 
+                    if (isEmailReady) {
+                        const htmlContent = EmailService.generateBrandedTemplate(freshConfig || {}, '¡Bienvenido al Club!', welcomeMsg);
                         EmailService.sendEmail(formData.email, '¡Bienvenido al Club!', htmlContent)
-                            .then(() => toast.success('Email de bienvenida enviado'))
+                            .then(res => console.log("[ClientsPage] Email sent response:", res))
                             .catch((err) => {
-                                console.error("Error enviando email:", err);
+                                console.error("[ClientsPage] Error enviando email:", err);
                                 toast.error("No se pudo enviar el email de bienvenida");
                             });
                     }
 
-                    // 4. Push & Inbox (Siempre guarda en Inbox, lanza Push si habilitado)
-                    // Nota: NotificationService.sendToClient ya maneja el guardado en Inbox internamente.
+                    // 4. Push & Inbox (Siempre guarda en Inbox)
                     NotificationService.sendToClient(newDocId, {
                         title: '¡Bienvenido al Club!',
                         body: welcomeMsg + `\n\nTu clave de acceso es tu DNI (${formData.dni}).`,
                         type: 'welcome',
-                        icon: config?.logoUrl
-                    }).catch(e => console.error("Error en notificación Push/Inbox:", e));
+                        icon: freshConfig?.logoUrl
+                    })
+                        .then(() => console.log("[ClientsPage] Inbox/Push notification created"))
+                        .catch(e => console.error("[ClientsPage] Error en notificación Push/Inbox:", e));
                 }
-            } // Fin IF / ELSE
+            } // Fin IF / ELSE creado en paso anterior
 
 
             closeModal();

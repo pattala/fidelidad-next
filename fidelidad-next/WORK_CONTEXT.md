@@ -5,33 +5,23 @@
     *   **Regla de Oro**: Siempre debo CONSULTARTE y pedir confirmación antes de ejecutar el `push` o una secuencia de deploy.
     *   No debo pedirte que tú escribas los comandos; yo los preparo y los ejecuto tras tu "sí".
 
-## Estado Actual del Proyecto (Fidelidad Next) - 27/01/2026
-**Última acción**: Se conectó el servicio de Email del frontend con la API backend (`/api/send-email`) habilitando el envío real de correos (usando SMTP Gmail). Se actualizó la API para permitir envíos directos manuales.
+## Estado Actual del Proyecto (Fidelidad Next) - 30/01/2026
+**Última acción**: Se corrigió el error de lógica en `ClientsPage.tsx` que impedía la creación de nuevos clientes y se desplegó a GitHub (`main`) para disparar el redeploy en Vercel.
 
-### Situación Resuelta (Checklist para Mañana):
-1.  **Crash del Panel**: Se arregló el error `undefined reading charAt` blindando la generación de Avatares.
-2.  **Datos en Edición**: Se implementó una capa de traducción en `refreshAndOpen` para:
-    *   `nombre` (BD) -> `name` (Form).
-    *   `telefono` (BD) -> `phone` (Form).
-    *   `domicilio.components` (BD) -> Campos planos (Form).
-3.  **API Crear Usuario**: Se validó unicidad de DNI y normalización de Teléfono (+549).
+### Retomando la Sesión (Logros al 30/01/2026):
+1.  **Panel Admin (Clientes) - FIX CRÍTICO:**
+    *   Se separó la lógica de "Actualización" de la de "Creación" en `handleSave` (estaban anidadas incorrectamente).
+    *   Se automatizaron las notificaciones de bienvenida (Email, WhatsApp, Push e Inbox) respetando la configuración de canales habilitados (`isChannelEnabled`).
+    *   Se integró el `NotificationService.sendToClient` para centralizar mensajes en el Inbox.
 
-### Retomando la Sesión (Estado de Cierre 27/01/2026):
-**Logros de esta sesión:**
-1.  **Panel Admin (Clientes):**
-    *   Se arregló visualización de direcciones anidadas en la tabla.
-    *   El alta manual valida DNI/Email y devuelve errores claros en español.
-    *   El alta manual asigna correctamente el rol "client" y los metadatos de domicilio.
-    *   **NUEVO:** Al crear cliente: se envía Email de bienvenida, se abre WhatsApp con mensaje predefinido, y se crea un mensaje en el Inbox ("¡Bienvenido!") para que lo vea al entrar.
-2.  **Dashboard:**
-    *   Se corrigió el conteo de usuarios (incluye usuarios sin rol explícito).
-3.  **App Cliente (PWA Onboarding):**
-    *   El flujo de entrada para usuarios creados por panel ahora es: **Login DNI -> Términos y Condiciones (Obligatorio) -> Permisos Notificaciones -> Geolocalización**.
-    *   Se guarda aceptación de términos y lat/long en la BD.
+2.  **Infraestructura:**
+    *   Se verificó la configuración de variables de entorno en Vercel (SMTP, API Keys).
+    *   Deploy exitoso a la rama `main`.
 
 ### Próximos Pasos (Pendiente):
-1.  **Registro Autónomo (PWA):** Analizar y trabajar en el flujo de los usuarios que se registran solos desde la web/app (no cargados por el admin).
-2.  **Validación General:** Verificar que el flujo completo (Admin crea -> Usuario entra -> Acepta todo -> Usa la app) no tenga fricción.
+1.  **Prueba de Flujo Completo**: Crear un cliente real, recibir el email y entrar a la PWA para ver el Inbox.
+2.  **Registro Autónomo (PWA)**: Trabajar en el flujo de usuarios que se registran por su cuenta (Onboarding completo).
+3.  **Refactor Client Inbox**: Asegurar que todos los tipos de mensajes (bienvenida, premios, puntos) se rendericen correctamente tras los cambios.
 
 ## Notas Técnicas
 - **Base de Datos**: Firestore tiene mezcla de campos español (`nombre`) e inglés (`name`) debido a diferentes versiones de la API/Frontend. La capa de compatibilidad en el Frontend es la solución actual.

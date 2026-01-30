@@ -135,7 +135,7 @@ export const WhatsAppPage = () => {
             .replace(/{dni}/g, client.dni || '')
             .replace(/{email}/g, client.email || '');
 
-        return `https://wa.me/${phoneNum}?text=${encodeURIComponent(processedMsg)}`;
+        return `https://api.whatsapp.com/send?phone=${phoneNum}&text=${encodeURIComponent(processedMsg.trim())}`;
     };
 
     const handleSendIndividual = (client: Client) => {

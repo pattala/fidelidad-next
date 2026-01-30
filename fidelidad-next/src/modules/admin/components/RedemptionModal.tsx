@@ -168,7 +168,7 @@ export const RedemptionModal = ({ client, onClose, onRedeemSuccess }: Redemption
                             .replace(/{premio}/g, selectedPrize.name)
                             .replace(/{codigo}/g, selectedPrize.id.substring(0, 4).toUpperCase()); // Short code
 
-                        const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+                        const waUrl = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(msg.trim())}`;
                         const newWindow = window.open(waUrl, '_blank');
 
                         if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {

@@ -643,7 +643,7 @@ export const ClientsPage = () => {
                         .replace(/{dni}/g, selectedClientForPoints.dni || '')
                         .replace(/{email}/g, selectedClientForPoints.email || '');
 
-                    const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+                    const waUrl = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(msg.trim())}`;
                     const newWindow = window.open(waUrl, '_blank');
 
                     if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {

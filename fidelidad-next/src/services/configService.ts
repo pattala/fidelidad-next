@@ -81,10 +81,10 @@ export const ConfigService = {
 };
 
 export const DEFAULT_TEMPLATES = {
-    whatsappDefaultMessage: "Hola {nombre}, ¡gracias por tu visita! Tenés {puntos} puntos disponibles.",
-    pointsAdded: "¡Hola {nombre}! Sumaste {puntos} puntos. Tu nuevo saldo es {saldo}.",
-    redemption: "¡Felicidades {nombre}! Canjeaste {premio}. Código: {codigo}.",
-    welcome: "¡Bienvenido al Club, {nombre}! Ya tienes {puntos} puntos de regalo.",
-    campaign: "¡Atención {nombre}! Nueva campaña: {descripcion}.",
-    offer: "¡Oferta Flash! {titulo}: {detalle}. Válido hasta el {vencimiento}."
+    whatsappDefaultMessage: "Hola {nombre}, ¡gracias por tu visita! Tenés {puntos} puntos disponibles. 📲",
+    pointsAdded: "¡Hola {nombre}! 🎉 Sumaste {puntos} puntos. Tu nuevo saldo es {saldo} 🚀",
+    redemption: "¡Felicidades {nombre}! 🎁 Canjeaste {premio}. Código: {codigo}. ¡Que lo disfrutes! ✨",
+    welcome: "¡Bienvenido al Club, {nombre}! 👋 Ya tienes {puntos} puntos de regalo. 🎁",
+    campaign: "🚀 ¡Atención {nombre}! Nueva campaña: {descripcion}. ¡No te la pierdas! 🔥",
+    offer: "🔥 ¡Oferta Flash! {titulo}: {detalle}. Válido hasta el {vencimiento}. 📢"
 };

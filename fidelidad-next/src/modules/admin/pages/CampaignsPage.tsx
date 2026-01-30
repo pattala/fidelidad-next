@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { collection, getDocs, query } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import { NotificationService } from '../../../services/notificationService';
+import { EmailService } from '../../../services/emailService';
 
 export const CampaignsPage = () => {
     const navigate = useNavigate();
@@ -230,16 +231,43 @@ export const CampaignsPage = () => {
                 }
             }
 
-            // 3. CHECK WHATSAPP ENABLEMENT & REDIRECT
-            // Note: Granular check for WhatsApp too, or fallback to global?
-            // Existing logic relied on global. We now use granular if available.
+            // 3. CHECK EMAIL ENABLEMENT & SEND
+            if (NotificationService.isChannelEnabled(config, eventType, 'email')) {
+                const confirmEmail = confirm(`¿Enviar EMAIL masivo a todos los clientes?\n\n"${msg}"`);
+                if (confirmEmail) {
+                    const loadingToast = toast.loading('Enviando Emails...');
+                    try {
+                        const q = query(collection(db, 'users'));
+                        const snap = await getDocs(q);
+                        let sentCount = 0;
+
+                        const emailPromises = snap.docs.map(doc => {
+                            const data = doc.data();
+                            if (data.email) {
+                                sentCount++;
+                                const htmlContent = EmailService.generateBrandedTemplate(config, bonus.rewardType === 'INFO' ? '¡Oferta Especial!' : '¡Nueva Campaña!', msg);
+                                return EmailService.sendEmail(data.email, bonus.rewardType === 'INFO' ? '¡Oferta Especial!' : '¡Nueva Campaña!', htmlContent);
+                            }
+                            return null;
+                        }).filter(Boolean);
+
+                        await Promise.allSettled(emailPromises);
+                        toast.success(`Email enviado a ${sentCount} clientes`, { id: loadingToast });
+                    } catch (err) {
+                        console.error("Email Broadcast Error", err);
+                        toast.error("Error enviando Emails", { id: loadingToast });
+                    }
+                }
+            }
+
+            // 4. CHECK WHATSAPP ENABLEMENT & REDIRECT
             const waEnabled = NotificationService.isChannelEnabled(config, eventType, 'whatsapp');
 
             if (waEnabled) {
                 navigate('/admin/whatsapp', { state: { message: msg } });
                 toast.success('Redirigiendo a Mensajería WhatsApp...');
-            } else if (!NotificationService.isChannelEnabled(config, eventType, 'push')) {
-                toast('Ningún canal (WhatsApp/Push) habilitado para este evento.', { icon: 'ℹ️' });
+            } else if (!NotificationService.isChannelEnabled(config, eventType, 'push') && !NotificationService.isChannelEnabled(config, eventType, 'email')) {
+                toast('Ningún canal (WhatsApp/Push/Email) habilitado para este evento.', { icon: 'ℹ️' });
             }
 
         } catch (error) {

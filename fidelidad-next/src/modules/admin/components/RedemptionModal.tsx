@@ -167,7 +167,26 @@ export const RedemptionModal = ({ client, onClose, onRedeemSuccess }: Redemption
                             .replace(/{nombre_completo}/g, client.name)
                             .replace(/{premio}/g, selectedPrize.name)
                             .replace(/{codigo}/g, selectedPrize.id.substring(0, 4).toUpperCase()); // Short code
-                        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+
+                        const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+                        const newWindow = window.open(waUrl, '_blank');
+
+                        if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+                            toast((t) => (
+                                <span className="flex items-center gap-2">
+                                    WhatsApp bloqueado por el navegador
+                                    <button
+                                        onClick={() => {
+                                            window.open(waUrl, '_blank');
+                                            toast.dismiss(t.id);
+                                        }}
+                                        className="bg-green-500 text-white px-2 py-1 rounded text-xs font-bold"
+                                    >
+                                        REINTENTAR
+                                    </button>
+                                </span>
+                            ), { duration: 6000, icon: '📱' });
+                        }
                     }
                 }
 
@@ -185,6 +204,21 @@ export const RedemptionModal = ({ client, onClose, onRedeemSuccess }: Redemption
                         type: 'redemption',
                         icon: config?.logoUrl
                     });
+                }
+
+                // NOTIFICAR EMAIL (Granular Config)
+                if (client.email && NotificationService.isChannelEnabled(config, 'redemption', 'email')) {
+                    const template = config?.messaging?.templates?.redemption || DEFAULT_TEMPLATES.redemption;
+                    const msg = template
+                        .replace(/{nombre}/g, client.name.split(' ')[0])
+                        .replace(/{nombre_completo}/g, client.name)
+                        .replace(/{premio}/g, selectedPrize.name)
+                        .replace(/{codigo}/g, selectedPrize.id.substring(0, 4).toUpperCase());
+
+                    const { EmailService } = await import('../../../services/emailService');
+                    const htmlContent = EmailService.generateBrandedTemplate(config, '¡Canje Exitoso!', msg);
+                    EmailService.sendEmail(client.email, '¡Canje Exitoso!', htmlContent)
+                        .catch(e => console.error("Error enviando email de canje:", e));
                 }
             } catch (e) {
                 console.error("Notif error", e);

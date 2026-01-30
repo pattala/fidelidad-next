@@ -625,11 +625,14 @@ export const ClientsPage = () => {
             const balanceMsg = pointsData.isPesos && newAccumulatedBalance > 0 ? ` (Quedan $${newAccumulatedBalance} a favor)` : '';
             toast.success(`¡Se asignaron ${finalPoints} puntos a ${selectedClientForPoints.name}!${balanceMsg}`);
 
+            // OBTENER CONFIG FRESCA PARA NOTIFICACIONES
+            const freshConfig = await ConfigService.get();
+
             // NOTIFICAR WHATSAPP (Granular Config)
-            if (notifyWhatsapp && NotificationService.isChannelEnabled(config, 'pointsAdded', 'whatsapp') && selectedClientForPoints.phone) {
+            if (notifyWhatsapp && NotificationService.isChannelEnabled(freshConfig, 'pointsAdded', 'whatsapp') && selectedClientForPoints.phone) {
                 const phone = selectedClientForPoints.phone.replace(/\D/g, '');
                 if (phone) {
-                    const template = config?.messaging?.templates?.pointsAdded || DEFAULT_TEMPLATES.pointsAdded;
+                    const template = freshConfig?.messaging?.templates?.pointsAdded || DEFAULT_TEMPLATES.pointsAdded;
                     const newTotal = (selectedClientForPoints.points || 0) + finalPoints;
 
                     const msg = template
@@ -640,13 +643,49 @@ export const ClientsPage = () => {
                         .replace(/{dni}/g, selectedClientForPoints.dni || '')
                         .replace(/{email}/g, selectedClientForPoints.email || '');
 
-                    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+                    const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+                    const newWindow = window.open(waUrl, '_blank');
+
+                    if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+                        toast((t) => (
+                            <span className="flex items-center gap-2">
+                                WhatsApp bloqueado por el navegador
+                                <button
+                                    onClick={() => {
+                                        window.open(waUrl, '_blank');
+                                        toast.dismiss(t.id);
+                                    }}
+                                    className="bg-green-500 text-white px-2 py-1 rounded text-xs font-bold"
+                                >
+                                    REINTENTAR
+                                </button>
+                            </span>
+                        ), { duration: 6000, icon: '📱' });
+                    }
                 }
             }
 
-            // NOTIFICAR PUSH (Granular Config)
-            if (NotificationService.isChannelEnabled(config, 'pointsAdded', 'push')) {
-                const template = config?.messaging?.templates?.pointsAdded || DEFAULT_TEMPLATES.pointsAdded;
+            // NOTIFICAR EMAIL (Granular Config)
+            if (selectedClientForPoints.email && NotificationService.isChannelEnabled(freshConfig, 'pointsAdded', 'email')) {
+                const template = freshConfig?.messaging?.templates?.pointsAdded || DEFAULT_TEMPLATES.pointsAdded;
+                const newTotal = (selectedClientForPoints.points || 0) + finalPoints;
+
+                const msg = template
+                    .replace(/{nombre}/g, selectedClientForPoints.name.split(' ')[0])
+                    .replace(/{nombre_completo}/g, selectedClientForPoints.name)
+                    .replace(/{puntos}/g, finalPoints.toString())
+                    .replace(/{saldo}/g, newTotal.toString())
+                    .replace(/{dni}/g, selectedClientForPoints.dni || '')
+                    .replace(/{email}/g, selectedClientForPoints.email || '');
+
+                const htmlContent = EmailService.generateBrandedTemplate(freshConfig, '¡Sumaste Puntos!', msg);
+                EmailService.sendEmail(selectedClientForPoints.email, '¡Sumaste Puntos!', htmlContent)
+                    .catch(e => console.error("Error enviando email de puntos:", e));
+            }
+
+            // NOTIFICAR PUSH / INBOX (Granular Config)
+            if (NotificationService.isChannelEnabled(freshConfig, 'pointsAdded', 'push')) {
+                const template = freshConfig?.messaging?.templates?.pointsAdded || DEFAULT_TEMPLATES.pointsAdded;
                 const newTotal = (selectedClientForPoints.points || 0) + finalPoints;
                 const msg = template
                     .replace(/{nombre}/g, selectedClientForPoints.name.split(' ')[0])
@@ -660,7 +699,7 @@ export const ClientsPage = () => {
                     title: '¡Sumaste Puntos!',
                     body: msg,
                     type: 'pointsAdded',
-                    icon: config?.logoUrl // Branding
+                    icon: freshConfig?.logoUrl // Branding
                 });
             }
 

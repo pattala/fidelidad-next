@@ -165,6 +165,32 @@ export const LoginPage = () => {
                         </div>
                     </div>
 
+                    <div className="flex justify-end mt-1">
+                        <button
+                            type="button"
+                            onClick={async () => {
+                                if (!email) {
+                                    toast.error('Por favor escribe tu email arriba primero.');
+                                    return;
+                                }
+                                try {
+                                    const { sendPasswordResetEmail } = await import('firebase/auth');
+                                    await sendPasswordResetEmail(auth, email);
+                                    toast.success('¡Email de recuperación enviado! Revisa tu bandeja.');
+                                } catch (e: any) {
+                                    if (e.code === 'auth/user-not-found') {
+                                        toast.error('No existe cuenta con este email.');
+                                    } else {
+                                        toast.error('Error al enviar: ' + e.message);
+                                    }
+                                }
+                            }}
+                            className="text-xs text-blue-500 font-bold hover:text-blue-700 transition"
+                        >
+                            ¿Olvidaste tu contraseña?
+                        </button>
+                    </div>
+
                     <button
                         type="submit"
                         disabled={loading}

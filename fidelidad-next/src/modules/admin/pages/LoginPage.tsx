@@ -5,10 +5,12 @@ import { MASTER_ADMINS } from '../../../lib/adminConfig';
 import { signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword } from 'firebase/auth';
 import { collection, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
 import toast from 'react-hot-toast';
+import { Eye, EyeOff } from 'lucide-react';
 
 export const LoginPage = () => {
     const [email, setEmail] = useState('');
     const [pass, setPass] = useState('');
+    const [showPass, setShowPass] = useState(false);
     const [loading, setLoading] = useState(false);
     const [isFirstRun, setIsFirstRun] = useState(false);
     const navigate = useNavigate();
@@ -123,14 +125,23 @@ export const LoginPage = () => {
                     </div>
                     <div>
                         <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Contraseña</label>
-                        <input
-                            type="password"
-                            required
-                            placeholder="••••••••"
-                            className="w-full bg-gray-50 px-4 py-3 rounded-xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-blue-100 focus:ring-4 focus:ring-blue-50 outline-none transition-all"
-                            value={pass}
-                            onChange={e => setPass(e.target.value)}
-                        />
+                        <div className="relative">
+                            <input
+                                type={showPass ? "text" : "password"}
+                                required
+                                placeholder="••••••••"
+                                className="w-full bg-gray-50 px-4 py-3 rounded-xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-blue-100 focus:ring-4 focus:ring-blue-50 outline-none transition-all pr-12"
+                                value={pass}
+                                onChange={e => setPass(e.target.value)}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPass(!showPass)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1"
+                            >
+                                {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
+                        </div>
                     </div>
 
                     <button

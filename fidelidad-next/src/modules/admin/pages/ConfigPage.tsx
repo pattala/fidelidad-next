@@ -787,7 +787,7 @@ export const ConfigPage = () => {
                                                 const { db } = await import('../../../lib/firebase');
 
                                                 // 1. Resetear Puntos de Usuarios
-                                                const usersSnap = await getDocs(collection(db, 'users')); // Reverted to 'users'
+                                                const usersSnap = await getDocs(collection(db, 'users'));
                                                 let currentBatch = writeBatch(db);
                                                 let count = 0;
 
@@ -833,6 +833,47 @@ export const ConfigPage = () => {
                                         className="px-4 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition shadow-lg shadow-red-200"
                                     >
                                         ⚠️ EJECUTAR RESET
+                                    </button>
+                                </div>
+
+                                {/* FACTORY RESET: Delete Admins */}
+                                <div className="flex items-center justify-between bg-white p-4 rounded-lg border border-red-100 mt-4">
+                                    <div>
+                                        <h4 className="font-bold text-gray-800">Restablecer Instalación (Factory Reset)</h4>
+                                        <p className="text-xs text-gray-500">Borra TODOS los administradores para volver a la pantalla de "Setup Inicial".</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={async () => {
+                                            if (!window.confirm("¿Seguro? Esto borrará TODOS los accesos admin y te cerrará la sesión. Tendrás que crear la cuenta maestra de nuevo.")) return;
+
+                                            setLoading(true);
+                                            try {
+                                                const { collection, getDocs, writeBatch } = await import('firebase/firestore');
+                                                const { db, auth } = await import('../../../lib/firebase');
+
+                                                // 1. Borrar Admins
+                                                const snap = await getDocs(collection(db, 'admins'));
+                                                const batch = writeBatch(db);
+                                                snap.docs.forEach(d => batch.delete(d.ref));
+                                                await batch.commit();
+
+                                                // 2. Logout
+                                                await auth.signOut();
+
+                                                toast.success('¡Sistema restablecido de fábrica!');
+                                                setTimeout(() => window.location.href = '/admin/login', 1000);
+
+                                            } catch (e: any) {
+                                                console.error(e);
+                                                toast.error("Error: " + e.message);
+                                            } finally {
+                                                setLoading(false);
+                                            }
+                                        }}
+                                        className="px-4 py-2 bg-red-100 text-red-700 font-bold rounded-lg hover:bg-red-200 transition text-sm"
+                                    >
+                                        🧨 RESET FÁBRICA
                                     </button>
                                 </div>
                             </div>

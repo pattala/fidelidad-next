@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Edit, Trash2, X, Search, MapPin, Phone, Mail, Coins, Sparkles, Gift, History, MessageCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { collection, addDoc, getDocs, query, orderBy, doc, deleteDoc, updateDoc, increment, runTransaction, arrayUnion, where, setDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, orderBy, doc, deleteDoc, updateDoc, increment, runTransaction, arrayUnion, where } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import { ConfigService, DEFAULT_TEMPLATES } from '../../../services/configService';
 import { NotificationService } from '../../../services/notificationService';
@@ -76,15 +76,8 @@ export const ClientsPage = () => {
                     phone: data.phone || data.telefono || '',
                     points: data.points || data.puntos || 0,
                     socioNumber: data.socioNumber || data.numeroSocio || '',
-
-                    // Address Normalization (Flattening)
-                    provincia: data.domicilio?.components?.provincia || data.provincia || '',
-                    partido: data.domicilio?.components?.partido || data.partido || '',
-                    localidad: data.domicilio?.components?.localidad || data.localidad || '',
-                    calle: data.domicilio?.components?.calle || data.calle || '',
-                    piso: data.domicilio?.components?.piso || data.piso || '',
-                    depto: data.domicilio?.components?.depto || data.depto || '',
-                    cp: data.domicilio?.components?.zipCode || data.cp || ''
+                    // Ensure address fields mapped if needed, though they seem flat or nested
+                    // For now, focus on the main display fields
                 };
             }) as Client[];
 
@@ -175,6 +168,7 @@ export const ClientsPage = () => {
 
             if (editingId) {
                 const docRef = doc(db, 'users', editingId);
+                // Check without auto-create fallback to avoid duplicates
                 try {
                     await updateDoc(docRef, clientPayload);
                     toast.success('Cliente actualizado correctamente');
@@ -188,279 +182,169 @@ export const ClientsPage = () => {
                     }
                 }
             } else {
-                // --- CREAR NUEVO CLIENTE ---
-                let newDocId = '';
-                let welcomePts = config?.welcomePoints || 0;
-
-                // Generar ID Socio
+                // Generar ID Automático Transaccional
                 let newSocioId = formData.socioNumber;
+
                 if (!newSocioId) {
                     try {
                         await runTransaction(db, async (transaction) => {
                             const counterRef = doc(db, 'config', 'counters');
                             const counterDoc = await transaction.get(counterRef);
+
                             let nextId = 1000;
-                            if (counterDoc.exists()) nextId = counterDoc.data().lastSocioId + 1;
+                            if (counterDoc.exists()) {
+                                nextId = counterDoc.data().lastSocioId + 1;
+                            }
+
                             transaction.set(counterRef, { lastSocioId: nextId }, { merge: true });
                             newSocioId = nextId.toString();
                         });
                     } catch (e) {
+                        console.error("Error generando ID:", e);
+                        // Fallback random si falla transacción (raro)
                         newSocioId = Math.floor(1000 + Math.random() * 9000).toString();
                     }
                 }
 
-                // Payload Base
-                const createPayload = {
-                    email: formData.email,
-                    dni: formData.dni,
-                    nombre: formData.name,
-                    telefono: formData.phone,
-                    numeroSocio: newSocioId,
-                    domicilio: {
-                        status: 'complete',
-                        addressLine: formattedAddress,
-                        components: {
-                            calle: formData.calle,
-                            localidad: formData.localidad,
-                            partido: formData.partido,
-                            provincia: formData.provincia
-                        }
-                    },
-                    fechaInscripcion: new Date().toISOString()
-                };
+                const welcomePts = config?.welcomePoints || 0;
+                const newDocRef = await addDoc(collection(db, 'users'), {
+                    ...clientPayload,
+                    socioNumber: newSocioId,
+                    createdAt: new Date(),
+                    points: welcomePts,
+                    historialPuntos: [] // Initialize array for PWA
+                });
 
-                // INTENTO 1: Usar API (Backend Real para Auth + Firestore)
-                let creationSuccess = false;
-                try {
-                    const resCreate = await fetch('/api/create-user', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'x-api-key': import.meta.env.VITE_API_KEY || ''
-                        },
-                        body: JSON.stringify(createPayload)
+                if (welcomePts > 0) {
+                    // Lógica de Vencimiento Escalonado
+                    let days = 365; // Default 1 año
+                    if (config?.expirationRules) {
+                        const rule = config.expirationRules.find((r: any) =>
+                            welcomePts >= r.minPoints && (r.maxPoints === null || welcomePts <= r.maxPoints)
+                        );
+                        if (rule) days = rule.validityDays;
+                    }
+
+                    const expiresAt = new Date();
+                    expiresAt.setDate(expiresAt.getDate() + days);
+
+                    await addDoc(collection(db, `users/${newDocRef.id}/points_history`), {
+                        amount: welcomePts,
+                        concept: '🎁 Bienvenida al sistema',
+                        date: new Date(),
+                        type: 'credit',
+                        expiresAt: expiresAt
                     });
 
-                    if (resCreate.ok) {
-                        const resultCreate = await resCreate.json();
-                        if (resultCreate.ok) {
-                            newDocId = resultCreate.firestore.docId;
-                            creationSuccess = true;
-                            toast.success('¡Cliente registrado con éxito!');
-                        }
-                    } else {
-                        const errData = await resCreate.json();
-                        console.warn("API Create falló:", errData);
-                    }
-                } catch (e) {
-                    console.warn("API Backend no disponible, usando método directo...", e);
-                }
+                    // Update PWA Array
+                    await updateDoc(newDocRef, {
+                        historialPuntos: arrayUnion({
+                            fechaObtencion: new Date(),
+                            puntosObtenidos: welcomePts,
+                            puntosDisponibles: welcomePts,
+                            diasCaducidad: days,
+                            origen: '🎁 Bienvenida al sistema',
+                            estado: 'Activo'
+                        })
+                    });
 
-                // FALLBACK: Escritura Directa en Firestore (Si falló API)
-                if (!creationSuccess) {
+                    // CLEANUP: Keep max 20 History Items
                     try {
-                        const usersCol = collection(db, 'users');
-                        const newDocRef = doc(usersCol);
-                        newDocId = newDocRef.id;
-
-                        await setDoc(newDocRef, {
-                            ...createPayload,
-                            points: 0,
-                            role: 'client',
-                            createdAt: new Date(),
-                            updatedAt: new Date(),
-                            name: formData.name,
-                            phone: formData.phone,
-                            socioNumber: newSocioId,
-                            calle: formData.calle,
-                            localidad: formData.localidad,
-                            provincia: formData.provincia
-                        });
-                        toast.success('¡Cliente registrado con éxito (Modo Local)!');
-                    } catch (errFallback) {
-                        console.error("Error fatal creando cliente:", errFallback);
-                        toast.error("Error al guardar en base de datos");
-                        setLoading(false);
-                        return;
+                        const MAX_HISTORY = 20;
+                        const hQ = query(collection(db, `users/${newDocRef.id}/points_history`), orderBy('date', 'desc'));
+                        const hSnap = await getDocs(hQ);
+                        if (hSnap.size > MAX_HISTORY) {
+                            const deletePromises: any[] = [];
+                            hSnap.docs.slice(MAX_HISTORY).forEach(d => deletePromises.push(deleteDoc(d.ref)));
+                            await Promise.all(deletePromises);
+                        }
+                    } catch (e) {
+                        console.warn('Error cleaning history:', e);
                     }
                 }
 
-                // --- POST-CREATION ACTIONS ---
-                console.log("[ClientsPage] Starting post-creation actions for ID:", newDocId);
-                if (newDocId) {
-                    // Refrescar config al vuelo para asegurar que no sea null
-                    const freshConfig = await ConfigService.get();
-                    console.log("[ClientsPage] Channels Config:", {
-                        whatsapp: freshConfig?.messaging?.whatsappEnabled,
-                        email: freshConfig?.messaging?.emailEnabled,
-                        welcomeConfig: freshConfig?.messaging?.eventConfigs?.welcome
-                    });
+                // TRIGGER NOTIFICATIONS (Granular)
+                // 1. WhatsApp
+                if (NotificationService.isChannelEnabled(config, 'welcome', 'whatsapp') && formData.phone) {
+                    const phone = formData.phone.replace(/\D/g, '');
+                    if (phone) {
+                        const template = config?.messaging?.templates?.welcome || DEFAULT_TEMPLATES.welcome;
+                        const msg = template
+                            .replace(/{nombre}/g, formData.name.split(' ')[0])
+                            .replace(/{nombre_completo}/g, formData.name)
+                            .replace(/{puntos}/g, welcomePts.toString())
+                            .replace(/{dni}/g, formData.dni)
+                            .replace(/{email}/g, formData.email)
+                            .replace(/{socio}/g, newSocioId)
+                            .replace(/{numero_socio}/g, newSocioId)
+                            .replace(/{telefono}/g, formData.phone);
 
-                    // 1. Asignar Puntos de Bienvenida
-                    if (welcomePts > 0) {
-                        let days = 365;
-                        if (freshConfig?.expirationRules) {
-                            const rule = freshConfig.expirationRules.find((r: any) =>
-                                welcomePts >= r.minPoints && (r.maxPoints === null || welcomePts <= r.maxPoints)
-                            );
-                            if (rule) days = rule.validityDays;
-                        }
-
-                        const expiresAt = new Date();
-                        expiresAt.setDate(expiresAt.getDate() + days);
-
-                        await addDoc(collection(db, `users/${newDocId}/points_history`), {
-                            amount: welcomePts,
-                            concept: '🎁 Bienvenida al sistema',
-                            date: new Date(),
-                            type: 'credit',
-                            expiresAt: expiresAt
-                        });
-
-                        await updateDoc(doc(db, 'users', newDocId), {
-                            points: welcomePts,
-                            historialPuntos: arrayUnion({
-                                fechaObtencion: new Date(),
-                                puntosObtenidos: welcomePts,
-                                puntosDisponibles: welcomePts,
-                                diasCaducidad: days,
-                                origen: '🎁 Bienvenida al sistema',
-                                estado: 'Activo'
-                            })
-                        });
-                        console.log("[ClientsPage] Welcome points assigned");
+                        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
                     }
+                }
 
-                    // 2. WhatsApp (Si está habilitado el canal 'welcome')
-                    const welcomeTemplate = freshConfig?.messaging?.templates?.welcome || DEFAULT_TEMPLATES.welcome;
-                    const welcomeMsg = welcomeTemplate
+                // 2. Push & Email (via NotificationService)
+                if (NotificationService.isChannelEnabled(config, 'welcome', 'push')) {
+                    const template = config?.messaging?.templates?.welcome || DEFAULT_TEMPLATES.welcome;
+                    const msg = template
                         .replace(/{nombre}/g, formData.name.split(' ')[0])
                         .replace(/{nombre_completo}/g, formData.name)
                         .replace(/{puntos}/g, welcomePts.toString())
                         .replace(/{dni}/g, formData.dni)
-                        .replace(/{email}/g, formData.email)
-                        .replace(/{socio}/g, newSocioId)
-                        .replace(/{numero_socio}/g, newSocioId)
-                        .replace(/{telefono}/g, formData.phone);
+                        .replace(/{email}/g, formData.email);
 
-                    const isWhatsappReady = (formData.phone && NotificationService.isChannelEnabled(freshConfig, 'welcome', 'whatsapp'));
-                    console.log("[ClientsPage] WhatsApp condition:", {
-                        hasPhone: !!formData.phone,
-                        isEnabled: NotificationService.isChannelEnabled(freshConfig, 'welcome', 'whatsapp')
-                    });
-
-                    if (isWhatsappReady) {
-                        const cleanPhone = formData.phone.replace(/\D/g, '');
-                        if (cleanPhone.length > 5) {
-                            console.log("[ClientsPage] Triggering WhatsApp window open to:", cleanPhone);
-                            const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(welcomeMsg.trim())}`;
-
-                            const newWindow = window.open(waUrl, '_blank');
-
-                            if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
-                                // POPUP BLOQUEADO
-                                toast((t) => (
-                                    <span className="flex items-center gap-2">
-                                        WhatsApp bloqueado por el navegador
-                                        <button
-                                            onClick={() => {
-                                                window.open(waUrl, '_blank');
-                                                toast.dismiss(t.id);
-                                            }}
-                                            className="bg-green-500 text-white px-2 py-1 rounded text-xs font-bold"
-                                        >
-                                            REINTENTAR
-                                        </button>
-                                    </span>
-                                ), { duration: 6000, icon: '📱' });
-                            }
-                        }
-                    }
-
-                    // 3. Email (Si está habilitado el canal 'welcome')
-                    const isEmailReady = (formData.email && NotificationService.isChannelEnabled(freshConfig, 'welcome', 'email'));
-                    console.log("[ClientsPage] Email condition:", {
-                        hasEmail: !!formData.email,
-                        isEnabled: NotificationService.isChannelEnabled(freshConfig, 'welcome', 'email')
-                    });
-
-                    if (isEmailReady) {
-                        const htmlContent = EmailService.generateBrandedTemplate(freshConfig || {}, '¡Bienvenido al Club!', welcomeMsg);
-                        EmailService.sendEmail(formData.email, '¡Bienvenido al Club!', htmlContent)
-                            .then(res => console.log("[ClientsPage] Email sent response:", res))
-                            .catch((err) => {
-                                console.error("[ClientsPage] Error enviando email:", err);
-                                toast.error("No se pudo enviar el email de bienvenida");
-                            });
-                    }
-
-                    // 4. Push & Inbox (Siempre guarda en Inbox)
-                    NotificationService.sendToClient(newDocId, {
+                    NotificationService.sendToClient(newDocRef.id, {
                         title: '¡Bienvenido al Club!',
-                        body: welcomeMsg + `\n\nTu clave de acceso es tu DNI (${formData.dni}).`,
+                        body: msg,
                         type: 'welcome',
-                        icon: freshConfig?.logoUrl
-                    })
-                        .then(() => console.log("[ClientsPage] Inbox/Push notification created"))
-                        .catch(e => console.error("[ClientsPage] Error en notificación Push/Inbox:", e));
+                        icon: config?.logoUrl // Branding
+                    });
                 }
-            } // Fin IF / ELSE creado en paso anterior
 
+                // 3. Email (Direct via EmailService)
+                if (NotificationService.isChannelEnabled(config, 'welcome', 'email') && formData.email) {
+                    const template = config?.messaging?.templates?.welcome || DEFAULT_TEMPLATES.welcome;
+                    const msgBody = template
+                        .replace(/{nombre}/g, formData.name.split(' ')[0])
+                        .replace(/{nombre_completo}/g, formData.name)
+                        .replace(/{puntos}/g, welcomePts.toString())
+                        .replace(/{dni}/g, formData.dni)
+                        .replace(/{email}/g, formData.email);
+
+                    const htmlContent = EmailService.generateBrandedTemplate(config || {}, '¡Bienvenido al Club!', msgBody);
+
+                    try {
+                        await EmailService.sendEmail(formData.email, '¡Bienvenido al Club!', htmlContent);
+                        toast.success('Email de bienvenida enviado');
+                    } catch (err) {
+                        console.error('Error enviando email:', err);
+                    }
+                }
+
+                toast.success('Nuevo cliente registrado');
+            }
 
             closeModal();
-            setTimeout(() => fetchData(), 1000); // Refrescar lista
-        } catch (error: any) {
-            console.error("Error General al guardar:", error);
-            toast.error(error.message || "Error al guardar");
+            fetchData();
+        } catch (error) {
+            console.error("Error el guardar:", error);
+            toast.error("Error al guardar cliente");
         } finally {
             setLoading(false);
         }
     };
 
-    // 3. Eliminar (Full Backend API)
+    // 3. Eliminar
     const handleDelete = async (id: string, name: string) => {
-        if (!window.confirm(`¿Estás seguro de eliminar a ${name}? Esta acción purga TODOS sus datos y su acceso.`)) {
+        if (!window.confirm(`¿Estás seguro de eliminar a ${name}? Esta acción no se puede deshacer.`)) {
             return;
         }
-
-        const toastId = toast.loading('Eliminando usuario por completo...');
-
         try {
-            // Intento 1: Vía API (Frontend -> Backend -> Auth + Firestore)
-            // Esto es necesario para borrar el Auth User, que requiere Admin SDK
-            const response = await fetch('/api/delete-user', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    // Usa la variable de entorno si existe, sino un fallback común del proyecto viejo
-                    'x-api-key': import.meta.env.VITE_API_KEY
-                },
-                body: JSON.stringify({ docId: id })
-            });
-
-            const result = await response.json();
-
-            if (response.ok && result.ok) {
-                toast.success(`Cliente ${name} eliminado correctamente (Firestore + Auth)`, { id: toastId });
-            } else {
-                console.error('❌ API Borrado FALLÓ. Status:', response.status, 'Error:', result);
-
-                // Fallback
-                await deleteDoc(doc(db, 'users', id));
-                toast.success(`Cliente ${name} eliminado (SOLO DATOS - Falló API: ${response.status})`, { id: toastId });
-            }
-
+            await deleteDoc(doc(db, 'users', id));
+            toast.success(`Cliente ${name} eliminado`);
             fetchData();
         } catch (error) {
-            console.error("Error al eliminar:", error);
-            // Fallback final por si la red falla
-            try {
-                await deleteDoc(doc(db, 'users', id));
-                toast.success(`Cliente ${name} eliminado (Local)`, { id: toastId });
-                fetchData();
-            } catch (e) {
-                toast.error("No se pudo eliminar", { id: toastId });
-            }
+            toast.error("No se pudo eliminar");
         }
     };
 
@@ -625,14 +509,11 @@ export const ClientsPage = () => {
             const balanceMsg = pointsData.isPesos && newAccumulatedBalance > 0 ? ` (Quedan $${newAccumulatedBalance} a favor)` : '';
             toast.success(`¡Se asignaron ${finalPoints} puntos a ${selectedClientForPoints.name}!${balanceMsg}`);
 
-            // OBTENER CONFIG FRESCA PARA NOTIFICACIONES
-            const freshConfig = await ConfigService.get();
-
             // NOTIFICAR WHATSAPP (Granular Config)
-            if (notifyWhatsapp && NotificationService.isChannelEnabled(freshConfig, 'pointsAdded', 'whatsapp') && selectedClientForPoints.phone) {
+            if (notifyWhatsapp && NotificationService.isChannelEnabled(config, 'pointsAdded', 'whatsapp') && selectedClientForPoints.phone) {
                 const phone = selectedClientForPoints.phone.replace(/\D/g, '');
                 if (phone) {
-                    const template = freshConfig?.messaging?.templates?.pointsAdded || DEFAULT_TEMPLATES.pointsAdded;
+                    const template = config?.messaging?.templates?.pointsAdded || DEFAULT_TEMPLATES.pointsAdded;
                     const newTotal = (selectedClientForPoints.points || 0) + finalPoints;
 
                     const msg = template
@@ -643,49 +524,13 @@ export const ClientsPage = () => {
                         .replace(/{dni}/g, selectedClientForPoints.dni || '')
                         .replace(/{email}/g, selectedClientForPoints.email || '');
 
-                    const waUrl = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(msg.trim())}`;
-                    const newWindow = window.open(waUrl, '_blank');
-
-                    if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
-                        toast((t) => (
-                            <span className="flex items-center gap-2">
-                                WhatsApp bloqueado por el navegador
-                                <button
-                                    onClick={() => {
-                                        window.open(waUrl, '_blank');
-                                        toast.dismiss(t.id);
-                                    }}
-                                    className="bg-green-500 text-white px-2 py-1 rounded text-xs font-bold"
-                                >
-                                    REINTENTAR
-                                </button>
-                            </span>
-                        ), { duration: 6000, icon: '📱' });
-                    }
+                    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
                 }
             }
 
-            // NOTIFICAR EMAIL (Granular Config)
-            if (selectedClientForPoints.email && NotificationService.isChannelEnabled(freshConfig, 'pointsAdded', 'email')) {
-                const template = freshConfig?.messaging?.templates?.pointsAdded || DEFAULT_TEMPLATES.pointsAdded;
-                const newTotal = (selectedClientForPoints.points || 0) + finalPoints;
-
-                const msg = template
-                    .replace(/{nombre}/g, selectedClientForPoints.name.split(' ')[0])
-                    .replace(/{nombre_completo}/g, selectedClientForPoints.name)
-                    .replace(/{puntos}/g, finalPoints.toString())
-                    .replace(/{saldo}/g, newTotal.toString())
-                    .replace(/{dni}/g, selectedClientForPoints.dni || '')
-                    .replace(/{email}/g, selectedClientForPoints.email || '');
-
-                const htmlContent = EmailService.generateBrandedTemplate(freshConfig, '¡Sumaste Puntos!', msg);
-                EmailService.sendEmail(selectedClientForPoints.email, '¡Sumaste Puntos!', htmlContent)
-                    .catch(e => console.error("Error enviando email de puntos:", e));
-            }
-
-            // NOTIFICAR PUSH / INBOX (Granular Config)
-            if (NotificationService.isChannelEnabled(freshConfig, 'pointsAdded', 'push')) {
-                const template = freshConfig?.messaging?.templates?.pointsAdded || DEFAULT_TEMPLATES.pointsAdded;
+            // NOTIFICAR PUSH (Granular Config)
+            if (NotificationService.isChannelEnabled(config, 'pointsAdded', 'push')) {
+                const template = config?.messaging?.templates?.pointsAdded || DEFAULT_TEMPLATES.pointsAdded;
                 const newTotal = (selectedClientForPoints.points || 0) + finalPoints;
                 const msg = template
                     .replace(/{nombre}/g, selectedClientForPoints.name.split(' ')[0])
@@ -699,7 +544,7 @@ export const ClientsPage = () => {
                     title: '¡Sumaste Puntos!',
                     body: msg,
                     type: 'pointsAdded',
-                    icon: freshConfig?.logoUrl // Branding
+                    icon: config?.logoUrl // Branding
                 });
             }
 
@@ -741,26 +586,7 @@ export const ClientsPage = () => {
             const snap = await import('firebase/firestore').then(mod => mod.getDoc(docRef));
 
             if (snap.exists()) {
-                const data = snap.data();
-                const refreshedClient = {
-                    id: snap.id,
-                    ...data,
-                    // Normalización crítica (Español -> Inglés)
-                    name: data.name || data.nombre || '',
-                    phone: data.phone || data.telefono || '',
-                    socioNumber: data.socioNumber || data.numeroSocio || '',
-                    points: data.points || data.puntos || 0,
-
-                    // Normalización Domicilio (Priority: Nested > Flat)
-                    provincia: data.domicilio?.components?.provincia || data.provincia || '',
-                    partido: data.domicilio?.components?.partido || data.partido || '',
-                    localidad: data.domicilio?.components?.localidad || data.localidad || '',
-                    calle: data.domicilio?.components?.calle || data.calle || '',
-                    piso: data.domicilio?.components?.piso || data.piso || '',
-                    depto: data.domicilio?.components?.depto || data.depto || '',
-                    cp: data.domicilio?.components?.zipCode || data.cp || ''
-                } as Client;
-
+                const refreshedClient = { id: snap.id, ...snap.data() } as Client;
                 // Update local list state optimistically/lazily if needed, but definitely for the modal
                 openFn(refreshedClient);
 
@@ -837,22 +663,6 @@ export const ClientsPage = () => {
         setSelectedClientForPoints(null);
     };
 
-    const filteredClients = clients.filter(c => {
-        const searchOpen = searchTerm.toLowerCase();
-        // Ultra-safe check: Ensure everything is cast to String first
-        const nameSafe = String(c.name || '').toLowerCase();
-        const dniSafe = String(c.dni || '');
-        const socioSafe = String(c.socioNumber || '');
-        const emailSafe = String(c.email || '').toLowerCase();
-
-        return (
-            nameSafe.includes(searchOpen) ||
-            dniSafe.includes(searchTerm) ||
-            socioSafe.includes(searchTerm) ||
-            emailSafe.includes(searchOpen)
-        );
-    });
-
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -863,7 +673,7 @@ export const ClientsPage = () => {
                 </div>
                 <button
                     onClick={openNewClientModal}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg shadow-blue-200 transition-all flex items-center gap-2 active:scale-95 w-full md:w-auto justify-center"
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg shadow-blue-200 transition-all flex items-center gap-2 active:scale-95"
                 >
                     <Plus size={20} />
                     Nuevo Cliente
@@ -871,112 +681,19 @@ export const ClientsPage = () => {
             </div>
 
             {/* Buscador */}
-            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-3 sticky top-0 z-10 md:static">
+            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-3">
                 <Search className="text-gray-400" size={20} />
                 <input
                     type="text"
                     placeholder="Buscar por nombre, DNI, N° Socio o Email..."
-                    className="flex-1 outline-none text-gray-700 min-w-0" // min-w-0 fixes flex shrinking
+                    className="flex-1 outline-none text-gray-700"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
             </div>
 
-            {/* VISTA MÓVIL (Cards) - Visible solo en celulares (md:hidden) */}
-            <div className="md:hidden space-y-4 pb-20">
-                {filteredClients.map((client) => (
-                    <div key={client.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 relative">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
-                                    {(client.name || '?').charAt(0).toUpperCase()}
-                                </div>
-                                <div>
-                                    <h3 className="font-bold text-gray-800 leading-tight">{client.name || "Sin Nombre"}</h3>
-                                    <div className="flex items-center gap-2 mt-1">
-                                        {client.socioNumber && (
-                                            <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border border-gray-200">
-                                                #{client.socioNumber}
-                                            </span>
-                                        )}
-                                        {client.createdAt && (
-                                            <span className="text-[10px] text-gray-400">
-                                                {client.createdAt?.seconds ? new Date(client.createdAt.seconds * 1000).toLocaleDateString('es-AR') : new Date(client.createdAt).toLocaleDateString('es-AR')}
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="text-right">
-                                <span className="block text-xl font-bold text-blue-600 leading-none">{client.points || 0}</span>
-                                <span className="text-[9px] uppercase text-gray-400 font-bold">Pts</span>
-                            </div>
-                        </div>
-
-                        <div className="space-y-2 text-sm text-gray-600 mb-4 border-b border-gray-50 pb-4">
-                            {client.phone && (
-                                <div className="flex items-center gap-2">
-                                    <Phone size={16} className="text-green-500 shrink-0" />
-                                    <span>{client.phone}</span>
-                                </div>
-                            )}
-                            {client.email && (
-                                <div className="flex items-center gap-2">
-                                    <Mail size={16} className="text-blue-400 shrink-0" />
-                                    <span className="truncate">{client.email}</span>
-                                </div>
-                            )}
-                            {(client.calle || client.localidad) && (
-                                <a
-                                    href={client.google_maps_link || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${client.calle}, ${client.localidad}, ${client.partido || ''}, ${client.provincia}, Argentina`)}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-start gap-2 text-gray-500 hover:text-blue-600"
-                                >
-                                    <MapPin size={16} className="text-red-400 shrink-0 mt-0.5" />
-                                    <span className="truncate leading-tight">
-                                        {client.calle} {client.piso ? `(${client.piso}° ${client.depto})` : ''}
-                                        {client.localidad && `, ${client.localidad}`}
-                                    </span>
-                                </a>
-                            )}
-                            {(client.accumulated_balance || 0) > 0 && (
-                                <div className="mt-2 text-xs bg-green-50 text-green-700 px-2 py-1 rounded inline-block font-medium">
-                                    💰 Saldo a favor: ${client.accumulated_balance}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Actions Grid */}
-                        <div className="grid grid-cols-5 gap-2">
-                            <button onClick={() => openPointsModal(client)} className="col-span-2 bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg font-bold flex flex-col items-center justify-center text-xs shadow-sm active:scale-95 transition">
-                                <Coins size={18} className="mb-1" />
-                                Sumar
-                            </button>
-                            <button onClick={() => openHistoryModal(client)} className="bg-gray-50 hover:bg-gray-100 text-gray-600 py-2 rounded-lg flex flex-col items-center justify-center text-[10px] font-medium transition" title="Historial">
-                                <History size={18} className="mb-1" />
-                                Historial
-                            </button>
-                            <button onClick={() => navigate('/admin/whatsapp', { state: { clientId: client.id } })} className="bg-green-50 hover:bg-green-100 text-green-600 py-2 rounded-lg flex flex-col items-center justify-center text-[10px] font-medium transition" title="WhatsApp">
-                                <MessageCircle size={18} className="mb-1" />
-                                Chat
-                            </button>
-                            <button onClick={() => openEditClientModal(client)} className="bg-blue-50 hover:bg-blue-100 text-blue-600 py-2 rounded-lg flex flex-col items-center justify-center text-[10px] font-medium transition" title="Editar">
-                                <Edit size={18} className="mb-1" />
-                                Editar
-                            </button>
-                        </div>
-                    </div>
-                ))}
-                {filteredClients.length === 0 && (
-                    <div className="text-center py-10 text-gray-400 bg-white rounded-xl border border-gray-100">
-                        <p>No se encontraron clientes.</p>
-                    </div>
-                )}
-            </div>
-
-            {/* VISTA DE ESCRITORIO (Tabla) - Visible solo en PC (hidden md:block) */}
-            <div className="hidden md:block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            {/* Tabla */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
@@ -989,16 +706,21 @@ export const ClientsPage = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50 text-sm">
-                            {filteredClients.map((client) => (
+                            {clients.filter(c =>
+                                c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                (c.dni && c.dni.includes(searchTerm)) ||
+                                (c.socioNumber && c.socioNumber.includes(searchTerm)) ||
+                                (c.email && c.email.toLowerCase().includes(searchTerm.toLowerCase()))
+                            ).map((client) => (
                                 <tr key={client.id} className="hover:bg-blue-50/20 transition-colors group">
                                     <td className="p-4 pl-6">
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center font-bold shadow-sm">
-                                                {(client.name || '?').charAt(0).toUpperCase()}
+                                                {client.name.charAt(0).toUpperCase()}
                                             </div>
                                             <div>
                                                 <p className="font-bold text-gray-800 flex items-center gap-2">
-                                                    {client.name || "Sin Nombre"}
+                                                    {client.name}
                                                     {client.socioNumber && (
                                                         <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border border-gray-200">
                                                             #{client.socioNumber}
@@ -1104,7 +826,7 @@ export const ClientsPage = () => {
                                 </tr>
                             ))}
 
-                            {filteredClients.length === 0 && (
+                            {clients.length === 0 && (
                                 <tr>
                                     <td colSpan={5} className="p-12 text-center text-gray-400">
                                         No hay clientes registrados.

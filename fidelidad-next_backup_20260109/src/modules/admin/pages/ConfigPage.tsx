@@ -47,22 +47,6 @@ const ChannelSelector = ({
     );
 };
 
-const VariableChips = ({ vars, onSelect }: { vars: string[], onSelect: (v: string) => void }) => (
-    <div className="mt-2 flex flex-wrap gap-1">
-        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mr-1 mt-1">Insertar:</span>
-        {vars.map(v => (
-            <button
-                key={v}
-                type="button"
-                onClick={() => onSelect(v)}
-                className="px-2 py-0.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded text-[10px] font-bold transition-colors"
-            >
-                {`{${v}}`}
-            </button>
-        ))}
-    </div>
-);
-
 export const ConfigPage = () => {
     // Estado inicial
     const [config, setConfig] = useState<AppConfig>({
@@ -97,21 +81,6 @@ export const ConfigPage = () => {
     const [loading, setLoading] = useState(false);
     const [showCalculator, setShowCalculator] = useState(false);
     const [autoPointValue, setAutoPointValue] = useState<number>(0);
-
-    const insertVar = (field: 'pointsAdded' | 'redemption' | 'welcome' | 'campaign' | 'offer', variable: string) => {
-        const currentTemplates = config.messaging?.templates || {};
-        const currentValue = currentTemplates[field] || '';
-        setConfig({
-            ...config,
-            messaging: {
-                ...config.messaging!,
-                templates: {
-                    ...currentTemplates,
-                    [field]: `${currentValue} {${variable}} `
-                }
-            }
-        });
-    };
 
     // Calcular valor automático para mostrarlo
     useEffect(() => {
@@ -971,7 +940,6 @@ export const ConfigPage = () => {
                                         </div>
                                         <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, pointsAdded: DEFAULT_TEMPLATES.pointsAdded } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition">↺</button>
                                     </div>
-                                    <VariableChips vars={['nombre', 'puntos', 'saldo']} onSelect={v => insertVar('pointsAdded', v)} />
                                     <ChannelSelector
                                         channels={config.messaging?.eventConfigs?.pointsAdded?.channels || []}
                                         onChange={(newChannels) => setConfig({
@@ -1003,7 +971,6 @@ export const ConfigPage = () => {
                                         </div>
                                         <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, redemption: DEFAULT_TEMPLATES.redemption } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition">↺</button>
                                     </div>
-                                    <VariableChips vars={['nombre', 'premio', 'codigo']} onSelect={v => insertVar('redemption', v)} />
                                     <ChannelSelector
                                         channels={config.messaging?.eventConfigs?.redemption?.channels || []}
                                         onChange={(newChannels) => setConfig({
@@ -1035,7 +1002,7 @@ export const ConfigPage = () => {
                                         </div>
                                         <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, welcome: DEFAULT_TEMPLATES.welcome } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition">↺</button>
                                     </div>
-                                    <VariableChips vars={['nombre', 'nombre_completo', 'puntos', 'socio', 'dni']} onSelect={v => insertVar('welcome', v)} />
+                                    <p className="text-[10px] text-gray-400 mt-1">Vars: {`{ nombre }, { nombre_completo }, { puntos }, { socio }, { dni } `}</p>
                                     <ChannelSelector
                                         channels={config.messaging?.eventConfigs?.welcome?.channels || []}
                                         onChange={(newChannels) => setConfig({
@@ -1067,7 +1034,7 @@ export const ConfigPage = () => {
                                         </div>
                                         <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, campaign: DEFAULT_TEMPLATES.campaign } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition">↺</button>
                                     </div>
-                                    <VariableChips vars={['titulo', 'descripcion']} onSelect={v => insertVar('campaign', v)} />
+                                    <p className="text-[10px] text-gray-400 mt-1">Vars: {`{ nombre }, { descripcion } `}</p>
                                     <ChannelSelector
                                         channels={config.messaging?.eventConfigs?.campaign?.channels || []}
                                         onChange={(newChannels) => setConfig({
@@ -1099,7 +1066,7 @@ export const ConfigPage = () => {
                                         </div>
                                         <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, offer: DEFAULT_TEMPLATES.offer } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition">↺</button>
                                     </div>
-                                    <VariableChips vars={['titulo', 'detalle', 'vencimiento']} onSelect={v => insertVar('offer', v)} />
+                                    <p className="text-[10px] text-gray-400 mt-1">Vars: {`{ titulo }, { detalle }, { vencimiento } `}</p>
                                     <ChannelSelector
                                         channels={config.messaging?.eventConfigs?.offer?.channels || []}
                                         onChange={(newChannels) => setConfig({

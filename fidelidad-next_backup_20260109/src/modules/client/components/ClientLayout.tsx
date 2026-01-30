@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Home, Gift, User, X, Mail, MapPin, Clock } from 'lucide-react';
-import toast from 'react-hot-toast';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { doc, onSnapshot, collection, query, where } from 'firebase/firestore';
 import { db, auth } from '../../../lib/firebase';
-import { useFcmToken } from '../../../hooks/useFcmToken'; // Import Hook
 
 export const ClientLayout = () => {
     const [isContactOpen, setIsContactOpen] = useState(false);
@@ -13,12 +11,8 @@ export const ClientLayout = () => {
     const location = useLocation();
     const navigate = useNavigate();
 
-    // Enable Push Notifications
-    useFcmToken();
-
     // Listen for unread messages
     useEffect(() => {
-        let isInitialLoad = true;
         const unsubscribeAuth = auth.onAuthStateChanged((user) => {
             if (user) {
                 const q = query(
@@ -28,33 +22,6 @@ export const ClientLayout = () => {
 
                 const unsubMessages = onSnapshot(q, (snap) => {
                     setUnreadCount(snap.size);
-
-                    if (!isInitialLoad) {
-                        snap.docChanges().forEach((change) => {
-                            if (change.type === "added") {
-                                const data = change.doc.data();
-                                // Optional: Play sound?
-                                toast((t) => (
-                                    <div
-                                        onClick={() => {
-                                            toast.dismiss(t.id);
-                                            navigate('/inbox');
-                                        }}
-                                        className="cursor-pointer flex items-center gap-3 w-full"
-                                    >
-                                        <div className="bg-purple-100 p-2 rounded-full text-purple-600">
-                                            <Mail size={18} />
-                                        </div>
-                                        <div className="flex-1">
-                                            <p className="font-bold text-sm text-gray-800">{data.title || 'Nuevo Mensaje'}</p>
-                                            <p className="text-xs text-gray-500 line-clamp-1">{data.body}</p>
-                                        </div>
-                                    </div>
-                                ), { duration: 5000, position: 'top-center', style: { borderRadius: '1rem' } });
-                            }
-                        });
-                    }
-                    isInitialLoad = false;
                 });
                 return () => unsubMessages();
             }
@@ -253,7 +220,7 @@ export const ClientLayout = () => {
 
                             {/* WhatsApp */}
                             <a
-                                href={`https://api.whatsapp.com/send?phone=${config?.contact?.whatsapp?.replace(/\D/g, '') || ''}`}
+                                href={`https://wa.me/${config?.contact?.whatsapp?.replace(/\D/g, '') || ''}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="w-full flex items-center justify-between p-4 bg-green-50 rounded-3xl group active:scale-95 transition border border-green-100"

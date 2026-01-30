@@ -1,37 +1,63 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '../../../lib/firebase';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '../../../lib/firebase';
+import toast from 'react-hot-toast';
 
 export const AuthGuard = ({ children }: { children: React.ReactNode }) => {
     const [loading, setLoading] = useState(true);
-    const [user, setUser] = useState<any>(null);
+    const [authorized, setAuthorized] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
-        // 1. Initial Check: Wait for persistence to settle
-        const initCheck = async () => {
-            await auth.authStateReady();
-            setUser(auth.currentUser);
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                try {
+                    // Try to find the user role in Firestore
+                    // Check in 'users' collection (for promoted clients)
+                    const userDoc = await getDoc(doc(db, 'users', user.uid));
+                    if (userDoc.exists() && userDoc.data().role === 'admin') {
+                        setAuthorized(true);
+                        setLoading(false);
+                        return;
+                    }
+
+                    // Check in 'admins' collection (dedicated administrators)
+                    const adminDoc = await getDoc(doc(db, 'admins', user.uid));
+                    if (adminDoc.exists()) {
+                        setAuthorized(true);
+                        setLoading(false);
+                        return;
+                    }
+
+                    // If not found in either, access is denied
+                    console.warn("Acceso denegado: El usuario no tiene rol administrativo.");
+                    toast.error("No tienes permisos de administrador.");
+                    setAuthorized(false);
+                    navigate('/admin/login');
+                } catch (error) {
+                    console.error("Error verificando permisos:", error);
+                    toast.error("Error al verificar permisos.");
+                    setAuthorized(false);
+                    navigate('/admin/login');
+                }
+            } else {
+                setAuthorized(false);
+                navigate('/admin/login');
+            }
             setLoading(false);
-            if (!auth.currentUser) {
-                navigate('/admin/login');
-            }
-        };
-        initCheck();
-
-        // 2. Real-time Listener (for active sign-outs)
-        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-            setUser(currentUser);
-            if (!loading && !currentUser) {
-                // Only redirect if we were already loaded (active logout)
-                navigate('/admin/login');
-            }
         });
+
         return () => unsubscribe();
-    }, [navigate]); // Removed 'loading' from dependency to avoid loop, handled inside logic
+    }, [navigate]);
 
-    if (loading) return <div className="h-screen flex items-center justify-center">Cargando...</div>;
+    if (loading) return (
+        <div className="h-screen flex flex-col items-center justify-center gap-4 bg-gray-50">
+            <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-gray-500 font-medium animate-pulse">Verificando credenciales...</p>
+        </div>
+    );
 
-    return user ? <>{children}</> : null;
+    return authorized ? <>{children}</> : null;
 };

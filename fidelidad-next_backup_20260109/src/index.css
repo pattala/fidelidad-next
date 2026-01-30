@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    --primary: #8e24aa;
+    --secondary: #d81b60;
+    --bg-cosmic: linear-gradient(135deg, #4a148c 0%, #880e4f 50%, #ad1457 100%);
+    --bg-light: #f5f3f7;
+}
+
+@layer base {
+    body {
+        @apply bg-transparent text-gray-900 overflow-hidden m-0 p-0 antialiased;
+        background-color: var(--bg-light);
+    }
+}
+
+@layer utilities {
+    .bg-premium-gradient {
+        background: var(--bg-cosmic);
+    }
+
+    .glass {
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        background: rgba(255, 255, 255, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+
+    .glass-dark {
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .text-shadow-sm {
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    .animate-in-up {
+        animation: fadeInUp 0.5s ease-out forwards;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+    }
+
+    .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+}

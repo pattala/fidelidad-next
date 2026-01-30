@@ -18,14 +18,14 @@ export const EmailService = {
 
         if (contact.whatsapp) {
             const num = contact.whatsapp.replace(/\D/g, '');
-            links.push(`<a href="https://api.whatsapp.com/send?phone=${num}"><img src="https://img.icons8.com/color/48/whatsapp--v1.png" alt="WhatsApp" style="${iconStyle}" title="WhatsApp" /></a>`);
+            links.push(`<a href="https://wa.me/${num}"><img src="https://cdn.simpleicons.org/whatsapp" alt="WhatsApp" style="${iconStyle}" title="WhatsApp" /></a>`);
         }
         if (contact.instagram) {
             const url = contact.instagram.startsWith('http') ? contact.instagram : `https://instagram.com/${contact.instagram.replace('@', '')}`;
-            links.push(`<a href="${url}"><img src="https://img.icons8.com/color/48/instagram-new--v1.png" alt="Instagram" style="${iconStyle}" title="Instagram" /></a>`);
+            links.push(`<a href="${url}"><img src="https://cdn.simpleicons.org/instagram" alt="Instagram" style="${iconStyle}" title="Instagram" /></a>`);
         }
         if (contact.facebook) {
-            links.push(`<a href="${contact.facebook}"><img src="https://img.icons8.com/color/48/facebook-new.png" alt="Facebook" style="${iconStyle}" title="Facebook" /></a>`);
+            links.push(`<a href="${contact.facebook}"><img src="https://cdn.simpleicons.org/facebook" alt="Facebook" style="${iconStyle}" title="Facebook" /></a>`);
         }
         if (contact.website) {
             links.push(`<a href="${contact.website}" style="text-decoration: none; color: ${safeColor}; font-weight: bold; font-size: 14px; vertical-align: middle; margin: 0 8px;">🌐 Web</a>`);
@@ -87,39 +87,9 @@ export const EmailService = {
     /**
      * Placeholder for sending functionality
      */
-    async sendEmail(to: string, subject: string, htmlBody: string) {
-        try {
-            console.log(`[EmailService] Sending real email to ${to}:`, subject);
-
-            const response = await fetch('/api/send-email', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': import.meta.env.VITE_API_KEY || ''
-                },
-                body: JSON.stringify({
-                    to,
-                    // We use a special ID to signal the backend to use the provided HTML directly
-                    // This requires a corresponding update in api/send-email.js to handle 'manual_override'
-                    templateId: 'manual_override',
-                    templateData: {
-                        htmlContent: htmlBody,
-                        subject: subject
-                    }
-                })
-            });
-
-            if (!response.ok) {
-                const err = await response.json().catch(() => ({}));
-                console.error('[EmailService] Error response:', err);
-                throw new Error(err.message || 'Error sending email');
-            }
-
-            console.log('[EmailService] Email sent successfully');
-            return await response.json();
-        } catch (error) {
-            console.error('[EmailService] Failed to send:', error);
-            throw error;
-        }
+    async sendEmail(to: string, subject: string, htmlOb: string) {
+        // Here we would call the backend API
+        console.log(`[EmailService] Mock Sending to ${to}:`, subject);
+        // await fetch('/api/send-email', { ... })
     }
 };

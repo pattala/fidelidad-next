@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { auth, db } from '../../../lib/firebase';
-import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { auth } from '../../../lib/firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import toast from 'react-hot-toast';
 
 export const LoginPage = () => {
@@ -15,32 +14,12 @@ export const LoginPage = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            const userCredential = await signInWithEmailAndPassword(auth, email, pass);
-            const user = userCredential.user;
-
-            // Verificación inmediata de ROL
-            // 1. Buscar en users (promocionados)
-            const userDoc = await getDoc(doc(db, 'users', user.uid));
-            if (userDoc.exists() && userDoc.data().role === 'admin') {
-                toast.success('¡Bienvenido, Administrador!');
-                navigate('/admin/dashboard');
-                return;
-            }
-
-            // 2. Buscar en admins (dedicados)
-            const adminDoc = await getDoc(doc(db, 'admins', user.uid));
-            if (adminDoc.exists()) {
-                toast.success('¡Bienvenido al Panel!');
-                navigate('/admin/dashboard');
-                return;
-            }
-
-            // Si no está en ninguno, fuera
-            await signOut(auth);
-            toast.error('Acceso denegado: No tienes permisos de administrador.');
+            await signInWithEmailAndPassword(auth, email, pass);
+            toast.success('¡Bienvenido!');
+            navigate('/admin/dashboard');
         } catch (err: any) {
             console.error(err);
-            toast.error('Credenciales inválidas o error de conexión.');
+            toast.error('Error: ' + err.message);
         } finally {
             setLoading(false);
         }

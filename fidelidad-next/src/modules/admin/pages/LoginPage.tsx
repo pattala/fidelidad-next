@@ -109,11 +109,51 @@ export const LoginPage = () => {
             toast.error('No tienes permisos de administrador.');
         } catch (err: any) {
             console.error(err);
+
+            // --- FLUJO DE INVITACIÓN ---
+            // Si el usuario no existe en Auth, pero está invitado en Firestore (por email)
+            if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+                try {
+                    // Buscar si existe invitación por email
+                    const { query, where, getDocs, deleteDoc, setDoc } = await import('firebase/firestore');
+                    const q = query(collection(db, 'admins'), where('email', '==', finalEmail));
+                    const inviteSnap = await getDocs(q);
+
+                    if (!inviteSnap.empty) {
+                        // ¡ES UN INVITADO!
+                        const inviteDoc = inviteSnap.docs[0];
+                        const inviteData = inviteDoc.data();
+
+                        // 1. Crear usuario en Auth
+                        const userCredential = await createUserWithEmailAndPassword(auth, finalEmail, pass);
+                        const user = userCredential.user;
+
+                        // 2. Migrar documento de 'auto-id' a 'user.uid'
+                        await setDoc(doc(db, 'admins', user.uid), {
+                            ...inviteData,
+                            status: 'active', // Ya no es invitado, es activo
+                            activatedAt: new Date(),
+                            uid: user.uid
+                        });
+
+                        // 3. Borrar la invitación vieja (el doc con ID automático)
+                        await deleteDoc(inviteDoc.ref);
+
+                        toast.success('¡Invitación aceptada! Tu cuenta de administrador ha sido activada.');
+                        navigate('/admin/dashboard');
+                        return;
+                    }
+                } catch (inviteErr) {
+                    console.error("Error procesando invitación:", inviteErr);
+                }
+            }
+            // ---------------------------
+
             if (err.code === 'auth/email-already-in-use') {
                 toast.error('El usuario ya existe. Intenta loguearte normalmente.');
                 setIsFirstRun(false);
             } else {
-                toast.error('Credenciales inválidas o error de conexión.');
+                toast.error('Credenciales inválidas o no tienes cuenta.');
             }
         } finally {
             setLoading(false);

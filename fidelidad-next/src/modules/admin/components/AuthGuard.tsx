@@ -14,16 +14,15 @@ export const AuthGuard = ({ children }: { children: React.ReactNode }) => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
                 try {
-                    // Try to find the user role in Firestore
-                    // Check in 'users' collection (for promoted clients)
-                    const userDoc = await getDoc(doc(db, 'users', user.uid));
-                    if (userDoc.exists() && userDoc.data().role === 'admin') {
+                    // 1. LISTA BLANCA DE ADMINISTRADORES MAESTROS (Hardcoded para máxima seguridad)
+                    const MASTER_ADMINS = ['pablo_attala@yahoo.com.ar'];
+                    if (user.email && MASTER_ADMINS.includes(user.email)) {
                         setAuthorized(true);
                         setLoading(false);
                         return;
                     }
 
-                    // Check in 'admins' collection (dedicated administrators)
+                    // 2. Verificación secundaria en Firestore (Admins dedicados)
                     const adminDoc = await getDoc(doc(db, 'admins', user.uid));
                     if (adminDoc.exists()) {
                         setAuthorized(true);
@@ -31,14 +30,22 @@ export const AuthGuard = ({ children }: { children: React.ReactNode }) => {
                         return;
                     }
 
-                    // If not found in either, access is denied
-                    console.warn("Acceso denegado: El usuario no tiene rol administrativo.");
+                    // 3. Verificación en usuarios promocionados (users/role:admin)
+                    const userDoc = await getDoc(doc(db, 'users', user.uid));
+                    if (userDoc.exists() && userDoc.data().role === 'admin') {
+                        setAuthorized(true);
+                        setLoading(false);
+                        return;
+                    }
+
+                    // Si no es ninguno de los anteriores, se cierra la sesión por seguridad
+                    console.warn("Acceso denegado: Usuario no autorizado para el panel.");
                     toast.error("No tienes permisos de administrador.");
+                    await signOut(auth); // Desloguear para limpiar estado
                     setAuthorized(false);
                     navigate('/admin/login');
                 } catch (error) {
                     console.error("Error verificando permisos:", error);
-                    toast.error("Error al verificar permisos.");
                     setAuthorized(false);
                     navigate('/admin/login');
                 }

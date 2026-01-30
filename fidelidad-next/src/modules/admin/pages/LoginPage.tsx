@@ -18,16 +18,15 @@ export const LoginPage = () => {
             const userCredential = await signInWithEmailAndPassword(auth, email, pass);
             const user = userCredential.user;
 
-            // Verificación inmediata de ROL
-            // 1. Buscar en users (promocionados)
-            const userDoc = await getDoc(doc(db, 'users', user.uid));
-            if (userDoc.exists() && userDoc.data().role === 'admin') {
-                toast.success('¡Bienvenido, Administrador!');
+            // 1. Validar contra MASTER WHITELIST (Inmediato)
+            const MASTER_ADMINS = ['pablo_attala@yahoo.com.ar'];
+            if (user.email && MASTER_ADMINS.includes(user.email)) {
+                toast.success('¡Bienvenido, Administrador Maestro!');
                 navigate('/admin/dashboard');
                 return;
             }
 
-            // 2. Buscar en admins (dedicados)
+            // 2. Validar contra BD (admins específicos)
             const adminDoc = await getDoc(doc(db, 'admins', user.uid));
             if (adminDoc.exists()) {
                 toast.success('¡Bienvenido al Panel!');
@@ -35,7 +34,15 @@ export const LoginPage = () => {
                 return;
             }
 
-            // Si no está en ninguno, fuera
+            // 3. Validar contra BD (users con rol admin)
+            const userDoc = await getDoc(doc(db, 'users', user.uid));
+            if (userDoc.exists() && userDoc.data().role === 'admin') {
+                toast.success('Acceso concedido.');
+                navigate('/admin/dashboard');
+                return;
+            }
+
+            // Si llegamos aquí, no tiene permisos
             await signOut(auth);
             toast.error('Acceso denegado: No tienes permisos de administrador.');
         } catch (err: any) {

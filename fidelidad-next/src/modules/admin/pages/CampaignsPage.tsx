@@ -48,6 +48,11 @@ export const CampaignsPage = () => {
         link: ''
     });
 
+    // Broadcast Modal State
+    const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
+    const [broadcastData, setBroadcastData] = useState<{ bonus: BonusRule, msg: string, eventType: string, config: any } | null>(null);
+    const [selectedChannels, setSelectedChannels] = useState({ push: true, email: true, whatsapp: true });
+
     const DAYS = [
         { id: 0, label: 'Dom' },
         { id: 1, label: 'Lun' },
@@ -200,77 +205,84 @@ export const CampaignsPage = () => {
                     .replace(/{descripcion}/g, bonus.description || '¡Sumá más puntos!');
             }
 
-            // 2. CHECK PUSH ENABLEMENT & SEND
-            const pushEnabledForCampaign = bonus.channels?.includes('push') ?? true;
-            if (pushEnabledForCampaign && NotificationService.isChannelEnabled(config, eventType, 'push')) {
-                const confirmPush = confirm(`¿Enviar notificación PUSH a todos los clientes activos?\n\n"${msg}"`);
-                if (confirmPush) {
-                    const loadingToast = toast.loading('Enviando Pushes...');
-                    try {
-                        const q = query(collection(db, 'users'));
-                        const snap = await getDocs(q);
-                        let sentCount = 0;
-                        const pushPromises = snap.docs.map(doc => {
-                            sentCount++;
-                            return NotificationService.sendToClient(doc.id, {
-                                title: bonus.rewardType === 'INFO' ? '¡Nueva Oferta!' : '¡Nueva Campaña!',
-                                body: msg,
-                                type: eventType,
-                            });
-                        });
-                        await Promise.allSettled(pushPromises);
-                        toast.success(`Push enviado a ${sentCount} clientes`, { id: loadingToast });
-                    } catch (err) {
-                        console.error("Push Broadcast Error", err);
-                        toast.error("Error enviando Pushes", { id: loadingToast });
-                    }
-                }
-            }
+            // Set data and open modal
+            setBroadcastData({ bonus, msg, eventType, config });
 
-            // 3. CHECK EMAIL ENABLEMENT & SEND
-            const emailEnabledForCampaign = bonus.channels?.includes('email') ?? true;
-            if (emailEnabledForCampaign && NotificationService.isChannelEnabled(config, eventType, 'email')) {
-                const confirmEmail = confirm(`¿Enviar EMAIL masivo a todos los clientes?\n\n"${msg}"`);
-                if (confirmEmail) {
-                    const loadingToast = toast.loading('Enviando Emails...');
-                    try {
-                        const q = query(collection(db, 'users'));
-                        const snap = await getDocs(q);
-                        let sentCount = 0;
+            // Set default selected channels based on campaign settings AND global enablement
+            setSelectedChannels({
+                push: (bonus.channels?.includes('push') ?? true) && NotificationService.isChannelEnabled(config, eventType, 'push'),
+                email: (bonus.channels?.includes('email') ?? true) && NotificationService.isChannelEnabled(config, eventType, 'email'),
+                whatsapp: (bonus.channels?.includes('whatsapp') ?? true) && NotificationService.isChannelEnabled(config, eventType, 'whatsapp')
+            });
 
-                        const emailPromises = snap.docs.map(doc => {
-                            const data = doc.data();
-                            if (data.email) {
-                                sentCount++;
-                                const htmlContent = EmailService.generateBrandedTemplate(config, bonus.rewardType === 'INFO' ? '¡Oferta Especial!' : '¡Nueva Campaña!', msg);
-                                return EmailService.sendEmail(data.email, bonus.rewardType === 'INFO' ? '¡Oferta Especial!' : '¡Nueva Campaña!', htmlContent);
-                            }
-                            return null;
-                        }).filter(Boolean);
-
-                        await Promise.allSettled(emailPromises);
-                        toast.success(`Email enviado a ${sentCount} clientes`, { id: loadingToast });
-                    } catch (err) {
-                        console.error("Email Broadcast Error", err);
-                        toast.error("Error enviando Emails", { id: loadingToast });
-                    }
-                }
-            }
-
-            // 4. CHECK WHATSAPP ENABLEMENT & REDIRECT
-            const waEnabledForCampaign = bonus.channels?.includes('whatsapp') ?? true;
-            const waGlobalEnabled = NotificationService.isChannelEnabled(config, eventType, 'whatsapp');
-
-            if (waEnabledForCampaign && waGlobalEnabled) {
-                navigate('/admin/whatsapp', { state: { message: msg } });
-                toast.success('Redirigiendo a Mensajería WhatsApp...');
-            } else if (!pushEnabledForCampaign && !emailEnabledForCampaign && !waEnabledForCampaign) {
-                toast('Ningún canal habilitado en la campaña para difundir.', { icon: 'ℹ️' });
-            }
+            setIsBroadcastModalOpen(true);
 
         } catch (error) {
             console.error(error);
             toast.error('Error al preparar difusión');
+        }
+    };
+
+    const executeBroadcast = async () => {
+        if (!broadcastData) return;
+        const { bonus, msg, eventType, config } = broadcastData;
+        setIsBroadcastModalOpen(false);
+
+        try {
+            // 1. PUSH
+            if (selectedChannels.push) {
+                const loadingToast = toast.loading('Enviando Pushes...');
+                try {
+                    const q = query(collection(db, 'users'));
+                    const snap = await getDocs(q);
+                    let sentCount = 0;
+                    const pushPromises = snap.docs.map(doc => {
+                        sentCount++;
+                        return NotificationService.sendToClient(doc.id, {
+                            title: bonus.rewardType === 'INFO' ? '¡Nueva Oferta!' : '¡Nueva Campaña!',
+                            body: msg,
+                            type: eventType,
+                        });
+                    });
+                    await Promise.allSettled(pushPromises);
+                    toast.success(`Push enviado a ${sentCount} clientes`, { id: loadingToast });
+                } catch (err) {
+                    toast.error("Error enviando Pushes", { id: loadingToast });
+                }
+            }
+
+            // 2. EMAIL
+            if (selectedChannels.email) {
+                const loadingToast = toast.loading('Enviando Emails...');
+                try {
+                    const q = query(collection(db, 'users'));
+                    const snap = await getDocs(q);
+                    let sentCount = 0;
+                    const emailPromises = snap.docs.map(doc => {
+                        const data = doc.data();
+                        if (data.email) {
+                            sentCount++;
+                            const htmlContent = EmailService.generateBrandedTemplate(config, bonus.rewardType === 'INFO' ? '¡Oferta Especial!' : '¡Nueva Campaña!', msg);
+                            return EmailService.sendEmail(data.email, bonus.rewardType === 'INFO' ? '¡Oferta Especial!' : '¡Nueva Campaña!', htmlContent);
+                        }
+                        return null;
+                    }).filter(Boolean);
+                    await Promise.allSettled(emailPromises);
+                    toast.success(`Email enviado a ${sentCount} clientes`, { id: loadingToast });
+                } catch (err) {
+                    toast.error("Error enviando Emails", { id: loadingToast });
+                }
+            }
+
+            // 3. WHATSAPP
+            if (selectedChannels.whatsapp) {
+                navigate('/admin/whatsapp', { state: { message: msg } });
+                toast.success('Redirigiendo a Mensajería WhatsApp...');
+            }
+
+        } catch (error) {
+            console.error(error);
+            toast.error('Ocurrió un error durate la difusión');
         }
     };
 
@@ -849,6 +861,99 @@ export const CampaignsPage = () => {
                                 </div>
                             </form>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* BROADCAST CONFIRMATION MODAL */}
+            {isBroadcastModalOpen && broadcastData && (
+                <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="bg-purple-600 p-6 text-white flex justify-between items-center">
+                            <div>
+                                <h3 className="font-bold text-xl">Confirmar Difusión</h3>
+                                <p className="text-purple-100 text-sm">Selecciona los canales para enviar</p>
+                            </div>
+                            <button onClick={() => setIsBroadcastModalOpen(false)} className="text-white hover:bg-white/10 p-1 rounded-lg">
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <div className="p-8">
+                            <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 mb-6">
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Mensaje Vista Previa:</p>
+                                <p className="text-sm text-gray-600 italic leading-relaxed">
+                                    "{broadcastData.msg}"
+                                </p>
+                            </div>
+
+                            <div className="space-y-3 mb-8">
+                                {NotificationService.isChannelEnabled(broadcastData.config, broadcastData.eventType, 'push') && (
+                                    <label className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${selectedChannels.push ? 'border-purple-200 bg-purple-50' : 'border-gray-100 opacity-60'}`}>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedChannels.push}
+                                            onChange={e => setSelectedChannels({ ...selectedChannels, push: e.target.checked })}
+                                            className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
+                                        />
+                                        <div className="flex-1">
+                                            <p className="font-bold text-gray-800 flex items-center gap-2">
+                                                <Monitor size={16} className="text-purple-500" /> Notificación PUSH
+                                            </p>
+                                            <p className="text-[10px] text-gray-500 font-medium">Llega directo al celular del cliente</p>
+                                        </div>
+                                    </label>
+                                )}
+
+                                {NotificationService.isChannelEnabled(broadcastData.config, broadcastData.eventType, 'email') && (
+                                    <label className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${selectedChannels.email ? 'border-blue-200 bg-blue-50' : 'border-gray-100 opacity-60'}`}>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedChannels.email}
+                                            onChange={e => setSelectedChannels({ ...selectedChannels, email: e.target.checked })}
+                                            className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
+                                        />
+                                        <div className="flex-1">
+                                            <p className="font-bold text-gray-800 flex items-center gap-2">
+                                                <Sparkles size={16} className="text-blue-500" /> Correo Electrónico
+                                            </p>
+                                            <p className="text-[10px] text-gray-500 font-medium">Bandeja de entrada personalizada</p>
+                                        </div>
+                                    </label>
+                                )}
+
+                                {NotificationService.isChannelEnabled(broadcastData.config, broadcastData.eventType, 'whatsapp') && (
+                                    <label className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${selectedChannels.whatsapp ? 'border-green-200 bg-green-50' : 'border-gray-100 opacity-60'}`}>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedChannels.whatsapp}
+                                            onChange={e => setSelectedChannels({ ...selectedChannels, whatsapp: e.target.checked })}
+                                            className="w-5 h-5 text-green-600 rounded focus:ring-green-500"
+                                        />
+                                        <div className="flex-1">
+                                            <p className="font-bold text-gray-800 flex items-center gap-2">
+                                                <Megaphone size={16} className="text-green-500" /> WhatsApp
+                                            </p>
+                                            <p className="text-[10px] text-gray-500 font-medium">Redirige para envío manual/secuencial</p>
+                                        </div>
+                                    </label>
+                                )}
+                            </div>
+
+                            <button
+                                onClick={executeBroadcast}
+                                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 rounded-2xl shadow-xl shadow-purple-200 flex items-center justify-center gap-2 text-lg transition active:scale-95"
+                            >
+                                <Send size={20} />
+                                ¡Lanzar Difusión!
+                            </button>
+                            <button
+                                onClick={() => setIsBroadcastModalOpen(false)}
+                                className="w-full mt-2 py-3 text-gray-400 font-bold hover:bg-gray-50 rounded-xl transition text-sm"
+                            >
+                                Cancelar
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

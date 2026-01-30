@@ -129,6 +129,12 @@ export default async function handler(req, res) {
     }
 
     // 3) Enviar con Nodemailer (Gmail)
+    console.log('[send-email] Attempting to send via Nodemailer...', { to, subject });
+
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      console.error('[send-email] MISSING SMTP CREDENTIALS');
+    }
+
     const info = await transporter.sendMail({
       from: `"Club RAMPET" <${process.env.SMTP_USER}>`,
       to,
@@ -136,7 +142,7 @@ export default async function handler(req, res) {
       html
     });
 
-    console.log('Email enviado:', info.messageId);
+    console.log('[send-email] Nodemailer success:', info.messageId);
     return res.status(200).json({ ok: true, sent: true, to, subject, messageId: info.messageId });
 
   } catch (error) {

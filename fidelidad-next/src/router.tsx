@@ -9,7 +9,8 @@ import { CampaignsPage } from "./modules/admin/pages/CampaignsPage";
 import { PrizesPage } from "./modules/admin/pages/PrizesPage";
 import { MetricsPage } from "./modules/admin/pages/MetricsPage";
 import { WhatsAppPage } from "./modules/admin/pages/WhatsAppPage";
-import { PushPage } from "./modules/admin/pages/PushPage"; // Added import
+import { PushPage } from "./modules/admin/pages/PushPage";
+import { AdminProfilePage } from "./modules/admin/pages/AdminProfilePage";
 import { ClientLayout } from "./modules/client/components/ClientLayout";
 import { ClientHomePage } from "./modules/client/pages/ClientHomePage";
 import { ClientRewardsPage } from "./modules/client/pages/ClientRewardsPage";
@@ -109,6 +110,10 @@ export const router = createBrowserRouter([
             {
                 path: "push",
                 element: <PushPage />
+            },
+            {
+                path: "profile",
+                element: <AdminProfilePage />
             }
         ]
     }

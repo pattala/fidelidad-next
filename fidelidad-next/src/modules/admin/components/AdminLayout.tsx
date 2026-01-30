@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Home, Users, Gift, Settings, LogOut, MessageCircle, BarChart3, ChevronDown, ChevronRight, Clock, Menu, X } from 'lucide-react';
+import { Home, Users, User, Gift, Settings, LogOut, MessageCircle, BarChart3, ChevronDown, ChevronRight, Clock, Menu, X } from 'lucide-react';
 import { auth } from '../../../lib/firebase';
 import { signOut } from 'firebase/auth';
 import toast from 'react-hot-toast';
@@ -151,6 +151,9 @@ export const AdminLayout = () => {
                         )}
                     </div>
 
+                    <NavLink to="/admin/profile" className={navItemClass}>
+                        <User size={20} /> Mi Perfil
+                    </NavLink>
                     <NavLink to="/admin/config" className={navItemClass}>
                         <Settings size={20} /> Configuración
                     </NavLink>

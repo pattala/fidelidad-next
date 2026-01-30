@@ -1034,7 +1034,7 @@ export const ConfigPage = () => {
                                         </div>
                                         <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, campaign: DEFAULT_TEMPLATES.campaign } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition">↺</button>
                                     </div>
-                                    <p className="text-[10px] text-gray-400 mt-1">Vars: {`{ nombre }, { descripcion } `}</p>
+                                    <p className="text-[10px] text-gray-400 mt-1">Vars: {`{ titulo }, { descripcion } `}</p>
                                     <ChannelSelector
                                         channels={config.messaging?.eventConfigs?.campaign?.channels || []}
                                         onChange={(newChannels) => setConfig({

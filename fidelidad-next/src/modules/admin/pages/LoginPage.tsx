@@ -60,14 +60,35 @@ export const LoginPage = () => {
             const userCredential = await signInWithEmailAndPassword(auth, finalEmail, pass);
             const user = userCredential.user;
 
-            // 1. Validar contra MASTER WHITELIST (Configuración centralizada o soporte)
-            if (user.email && MASTER_ADMINS.includes(user.email)) {
-                toast.success('¡Bienvenido, Administrador!');
+            // --- SELF-HEALING: Recuperación automática de acceso ---
+            // Si el email es 'admin@admin.com' o está en la Whitelist, PERO no tiene documento en 'admins',
+            // lo creamos ahora mismo para restaurar el acceso.
+            const isMaster = MASTER_ADMINS.includes(user.email || '');
+            const isDefaultAdmin = user.email === 'admin@admin.com';
+
+            if (isMaster || isDefaultAdmin) {
+                const adminRef = doc(db, 'admins', user.uid);
+                const adminSnap = await getDoc(adminRef);
+
+                if (!adminSnap.exists()) {
+                    await setDoc(adminRef, {
+                        email: user.email,
+                        role: 'admin',
+                        isMaster: true,
+                        autoRecovered: true,
+                        createdAt: new Date()
+                    });
+                    toast.success('¡Acceso Recuperado! Sistema restaurado.');
+                } else {
+                    toast.success('¡Bienvenido de vuelta!');
+                }
+
                 navigate('/admin/dashboard');
                 return;
             }
+            // --------------------------------------------------------
 
-            // 2. Validar contra tabla de Admins
+            // 2. Validar contra tabla de Admins (Normales)
             const adminDoc = await getDoc(doc(db, 'admins', user.uid));
             if (adminDoc.exists()) {
                 toast.success('Acceso concedido.');

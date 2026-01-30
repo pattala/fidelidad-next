@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../../../lib/firebase';
+import { MASTER_ADMINS } from '../../../lib/adminConfig';
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import toast from 'react-hot-toast';
@@ -18,8 +19,7 @@ export const LoginPage = () => {
             const userCredential = await signInWithEmailAndPassword(auth, email, pass);
             const user = userCredential.user;
 
-            // 1. Validar contra MASTER WHITELIST (Inmediato)
-            const MASTER_ADMINS = ['pablo_attala@yahoo.com.ar'];
+            // 1. Validar contra MASTER WHITELIST (Configuración Centralizada)
             if (user.email && MASTER_ADMINS.includes(user.email)) {
                 toast.success('¡Bienvenido, Administrador Maestro!');
                 navigate('/admin/dashboard');

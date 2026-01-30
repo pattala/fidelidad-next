@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../../../lib/firebase';
+import { MASTER_ADMINS } from '../../../lib/adminConfig';
 import toast from 'react-hot-toast';
 
 export const AuthGuard = ({ children }: { children: React.ReactNode }) => {
@@ -14,8 +15,7 @@ export const AuthGuard = ({ children }: { children: React.ReactNode }) => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
                 try {
-                    // 1. LISTA BLANCA DE ADMINISTRADORES MAESTROS (Hardcoded para máxima seguridad)
-                    const MASTER_ADMINS = ['pablo_attala@yahoo.com.ar'];
+                    // 1. LISTA BLANCA DE ADMINISTRADORES MAESTROS (Configuración Centralizada)
                     if (user.email && MASTER_ADMINS.includes(user.email)) {
                         setAuthorized(true);
                         setLoading(false);

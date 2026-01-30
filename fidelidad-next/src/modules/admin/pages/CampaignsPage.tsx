@@ -78,6 +78,7 @@ export const CampaignsPage = () => {
             textColor: '#FFFFFF', fontWeight: 'normal',
             imageFit: 'contain', textPosition: 'bottom-left', fontStyle: 'sans',
             buttonText: 'Ver detalles',
+            channels: ['push', 'email', 'whatsapp'],
             // @ts-ignore
             link: ''
         });
@@ -142,8 +143,9 @@ export const CampaignsPage = () => {
             fontStyle: bonus.fontStyle || 'sans',
             showTitle: bonus.showTitle !== false,
             showDescription: bonus.showDescription !== false,
-            // @ts-ignore
-            buttonText: bonus.buttonText || 'Ver detalles',
+            descriptionSize: bonus.descriptionSize || 'sm',
+            imageOpacity: bonus.imageOpacity !== undefined ? bonus.imageOpacity : 60,
+            channels: bonus.channels || ['push', 'email', 'whatsapp'],
             // @ts-ignore
             link: bonus.link || ''
         });
@@ -199,29 +201,23 @@ export const CampaignsPage = () => {
             }
 
             // 2. CHECK PUSH ENABLEMENT & SEND
-            if (NotificationService.isChannelEnabled(config, eventType, 'push')) {
+            const pushEnabledForCampaign = bonus.channels?.includes('push') ?? true;
+            if (pushEnabledForCampaign && NotificationService.isChannelEnabled(config, eventType, 'push')) {
                 const confirmPush = confirm(`¿Enviar notificación PUSH a todos los clientes activos?\n\n"${msg}"`);
                 if (confirmPush) {
                     const loadingToast = toast.loading('Enviando Pushes...');
                     try {
-                        // 1. Fetch active users to send notifications
-                        // In a real app with thousands, use a Cloud Function.
-                        const q = query(collection(db, 'users')); // Reverted to 'users'
+                        const q = query(collection(db, 'users'));
                         const snap = await getDocs(q);
-
                         let sentCount = 0;
                         const pushPromises = snap.docs.map(doc => {
-                            // const data = doc.data(); // Unused
-                            // Basic filter: check if valid user (optional)
                             sentCount++;
                             return NotificationService.sendToClient(doc.id, {
                                 title: bonus.rewardType === 'INFO' ? '¡Nueva Oferta!' : '¡Nueva Campaña!',
                                 body: msg,
                                 type: eventType,
-                                // Optional: Link deeping
                             });
                         });
-
                         await Promise.allSettled(pushPromises);
                         toast.success(`Push enviado a ${sentCount} clientes`, { id: loadingToast });
                     } catch (err) {
@@ -232,7 +228,8 @@ export const CampaignsPage = () => {
             }
 
             // 3. CHECK EMAIL ENABLEMENT & SEND
-            if (NotificationService.isChannelEnabled(config, eventType, 'email')) {
+            const emailEnabledForCampaign = bonus.channels?.includes('email') ?? true;
+            if (emailEnabledForCampaign && NotificationService.isChannelEnabled(config, eventType, 'email')) {
                 const confirmEmail = confirm(`¿Enviar EMAIL masivo a todos los clientes?\n\n"${msg}"`);
                 if (confirmEmail) {
                     const loadingToast = toast.loading('Enviando Emails...');
@@ -261,13 +258,14 @@ export const CampaignsPage = () => {
             }
 
             // 4. CHECK WHATSAPP ENABLEMENT & REDIRECT
-            const waEnabled = NotificationService.isChannelEnabled(config, eventType, 'whatsapp');
+            const waEnabledForCampaign = bonus.channels?.includes('whatsapp') ?? true;
+            const waGlobalEnabled = NotificationService.isChannelEnabled(config, eventType, 'whatsapp');
 
-            if (waEnabled) {
+            if (waEnabledForCampaign && waGlobalEnabled) {
                 navigate('/admin/whatsapp', { state: { message: msg } });
                 toast.success('Redirigiendo a Mensajería WhatsApp...');
-            } else if (!NotificationService.isChannelEnabled(config, eventType, 'push') && !NotificationService.isChannelEnabled(config, eventType, 'email')) {
-                toast('Ningún canal (WhatsApp/Push/Email) habilitado para este evento.', { icon: 'ℹ️' });
+            } else if (!pushEnabledForCampaign && !emailEnabledForCampaign && !waEnabledForCampaign) {
+                toast('Ningún canal habilitado en la campaña para difundir.', { icon: 'ℹ️' });
             }
 
         } catch (error) {
@@ -597,6 +595,48 @@ export const CampaignsPage = () => {
                                                     onChange={e => setFormData({ ...formData, showInHomeBanner: e.target.checked })}
                                                 />
                                                 <span className="text-xs font-bold text-gray-700">Mostrar en Banner de Inicio (Home)</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-2 border-t mt-2">
+                                        <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">Canales de Difusión</label>
+                                        <div className="flex gap-4">
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    className="w-4 h-4 text-purple-600 rounded"
+                                                    checked={formData.channels?.includes('push')}
+                                                    onChange={e => {
+                                                        const current = formData.channels || [];
+                                                        setFormData({ ...formData, channels: e.target.checked ? [...current, 'push'] : current.filter(c => c !== 'push') });
+                                                    }}
+                                                />
+                                                <span className="text-xs font-bold text-gray-700">Push</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    className="w-4 h-4 text-purple-600 rounded"
+                                                    checked={formData.channels?.includes('email')}
+                                                    onChange={e => {
+                                                        const current = formData.channels || [];
+                                                        setFormData({ ...formData, channels: e.target.checked ? [...current, 'email'] : current.filter(c => c !== 'email') });
+                                                    }}
+                                                />
+                                                <span className="text-xs font-bold text-gray-700">Email</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    className="w-4 h-4 text-purple-600 rounded"
+                                                    checked={formData.channels?.includes('whatsapp')}
+                                                    onChange={e => {
+                                                        const current = formData.channels || [];
+                                                        setFormData({ ...formData, channels: e.target.checked ? [...current, 'whatsapp'] : current.filter(c => c !== 'whatsapp') });
+                                                    }}
+                                                />
+                                                <span className="text-xs font-bold text-gray-700">WhatsApp</span>
                                             </label>
                                         </div>
                                     </div>

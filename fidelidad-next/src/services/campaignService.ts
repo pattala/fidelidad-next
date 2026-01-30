@@ -40,6 +40,7 @@ export interface BonusRule {
 
     rewardType: 'FIXED' | 'MULTIPLIER' | 'INFO';
     rewardValue: number;
+    channels?: string[]; // push, email, whatsapp
 }
 
 const COLLECTION_NAME = 'campanas';

@@ -195,13 +195,13 @@ export const CampaignsPage = () => {
                     ? new Date(bonus.endDate + 'T00:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
                     : 'agotar stock';
                 msg = template
-                    .replace(/{titulo}/g, bonus.name)
+                    .replace(/{titulo}/g, bonus.title || bonus.name) // Use Public Title
                     .replace(/{detalle}/g, bonus.description || 'Consultanos.')
                     .replace(/{vencimiento}/g, vencimiento);
             } else {
                 template = config?.messaging?.templates?.campaign || DEFAULT_TEMPLATES.campaign;
                 msg = template
-                    .replace(/{nombre}/g, bonus.name)
+                    .replace(/{titulo}/g, bonus.title || bonus.name) // Use Public Title
                     .replace(/{descripcion}/g, bonus.description || '¡Sumá más puntos!');
             }
 

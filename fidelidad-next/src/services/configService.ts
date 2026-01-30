@@ -85,6 +85,6 @@ export const DEFAULT_TEMPLATES = {
     pointsAdded: "¡Hola {nombre}! 🎉 Sumaste {puntos} puntos. Tu nuevo saldo es {saldo} 🚀",
     redemption: "¡Felicidades {nombre}! 🎁 Canjeaste {premio}. Código: {codigo}. ¡Que lo disfrutes! ✨",
     welcome: "¡Bienvenido al Club, {nombre}! 👋 Ya tienes {puntos} puntos de regalo. 🎁",
-    campaign: "🚀 ¡Atención {nombre}! Nueva campaña: {descripcion}. ¡No te la pierdas! 🔥",
-    offer: "🔥 ¡Oferta Flash! {titulo}: {detalle}. Válido hasta el {vencimiento}. 📢"
+    campaign: "🚀 ¡Nueva Campaña!: {titulo}. {descripcion}. ¡No te la pierdas! 🔥",
+    offer: "🔥 ¡Oferta Especial! {titulo}: {detalle}. Válido hasta el {vencimiento}. 📢"
 };

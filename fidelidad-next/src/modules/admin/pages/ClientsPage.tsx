@@ -353,9 +353,27 @@ export const ClientsPage = () => {
                         const cleanPhone = formData.phone.replace(/\D/g, '');
                         if (cleanPhone.length > 5) {
                             console.log("[ClientsPage] Triggering WhatsApp window open to:", cleanPhone);
-                            // Intento de apertura inmediata para evitar bloqueadores de popups
                             const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(welcomeMsg)}`;
-                            window.open(waUrl, '_blank');
+
+                            const newWindow = window.open(waUrl, '_blank');
+
+                            if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+                                // POPUP BLOQUEADO
+                                toast((t) => (
+                                    <span className="flex items-center gap-2">
+                                        WhatsApp bloqueado por el navegador
+                                        <button
+                                            onClick={() => {
+                                                window.open(waUrl, '_blank');
+                                                toast.dismiss(t.id);
+                                            }}
+                                            className="bg-green-500 text-white px-2 py-1 rounded text-xs font-bold"
+                                        >
+                                            REINTENTAR
+                                        </button>
+                                    </span>
+                                ), { duration: 6000, icon: '📱' });
+                            }
                         }
                     }
 

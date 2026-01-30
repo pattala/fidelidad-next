@@ -18,14 +18,14 @@ export const EmailService = {
 
         if (contact.whatsapp) {
             const num = contact.whatsapp.replace(/\D/g, '');
-            links.push(`<a href="https://wa.me/${num}"><img src="https://cdn.simpleicons.org/whatsapp" alt="WhatsApp" style="${iconStyle}" title="WhatsApp" /></a>`);
+            links.push(`<a href="https://wa.me/${num}"><img src="https://img.icons8.com/color/48/whatsapp--v1.png" alt="WhatsApp" style="${iconStyle}" title="WhatsApp" /></a>`);
         }
         if (contact.instagram) {
             const url = contact.instagram.startsWith('http') ? contact.instagram : `https://instagram.com/${contact.instagram.replace('@', '')}`;
-            links.push(`<a href="${url}"><img src="https://cdn.simpleicons.org/instagram" alt="Instagram" style="${iconStyle}" title="Instagram" /></a>`);
+            links.push(`<a href="${url}"><img src="https://img.icons8.com/color/48/instagram-new--v1.png" alt="Instagram" style="${iconStyle}" title="Instagram" /></a>`);
         }
         if (contact.facebook) {
-            links.push(`<a href="${contact.facebook}"><img src="https://cdn.simpleicons.org/facebook" alt="Facebook" style="${iconStyle}" title="Facebook" /></a>`);
+            links.push(`<a href="${contact.facebook}"><img src="https://img.icons8.com/color/48/facebook-new.png" alt="Facebook" style="${iconStyle}" title="Facebook" /></a>`);
         }
         if (contact.website) {
             links.push(`<a href="${contact.website}" style="text-decoration: none; color: ${safeColor}; font-weight: bold; font-size: 14px; vertical-align: middle; margin: 0 8px;">🌐 Web</a>`);

@@ -175,7 +175,6 @@ export const ClientsPage = () => {
 
             if (editingId) {
                 const docRef = doc(db, 'users', editingId);
-                // Check without auto-create fallback to avoid duplicates
                 try {
                     await updateDoc(docRef, clientPayload);
                     toast.success('Cliente actualizado correctamente');
@@ -188,6 +187,7 @@ export const ClientsPage = () => {
                         throw error;
                     }
                 }
+            } else {
                 // --- CREAR NUEVO CLIENTE ---
                 let newDocId = '';
                 let welcomePts = config?.welcomePoints || 0;
@@ -229,12 +229,15 @@ export const ClientsPage = () => {
                     fechaInscripcion: new Date().toISOString()
                 };
 
-                // INTENTO 1: Usar API (Backend Real)
+                // INTENTO 1: Usar API (Backend Real para Auth + Firestore)
                 let creationSuccess = false;
                 try {
                     const resCreate = await fetch('/api/create-user', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-api-key': import.meta.env.VITE_API_KEY || ''
+                        },
                         body: JSON.stringify(createPayload)
                     });
 
@@ -245,25 +248,27 @@ export const ClientsPage = () => {
                             creationSuccess = true;
                             toast.success('¡Cliente registrado con éxito!');
                         }
+                    } else {
+                        const errData = await resCreate.json();
+                        console.warn("API Create falló:", errData);
                     }
                 } catch (e) {
                     console.warn("API Backend no disponible, usando método directo...", e);
                 }
 
-                // FALLBACK: Escritura Directa en Firestore (Si falló API o estamos en local sin backend)
+                // FALLBACK: Escritura Directa en Firestore (Si falló API)
                 if (!creationSuccess) {
                     try {
                         const usersCol = collection(db, 'users');
-                        const newDocRef = doc(usersCol); // Auto-ID
+                        const newDocRef = doc(usersCol);
                         newDocId = newDocRef.id;
 
                         await setDoc(newDocRef, {
                             ...createPayload,
-                            points: 0, // Se agregan despues
+                            points: 0,
                             role: 'client',
                             createdAt: new Date(),
                             updatedAt: new Date(),
-                            // Mapeo plano para búsquedas simples
                             name: formData.name,
                             phone: formData.phone,
                             socioNumber: newSocioId,
@@ -271,7 +276,7 @@ export const ClientsPage = () => {
                             localidad: formData.localidad,
                             provincia: formData.provincia
                         });
-                        toast.success('¡Cliente registrado con éxito!');
+                        toast.success('¡Cliente registrado con éxito (Modo Local)!');
                     } catch (errFallback) {
                         console.error("Error fatal creando cliente:", errFallback);
                         toast.error("Error al guardar en base de datos");
@@ -282,7 +287,7 @@ export const ClientsPage = () => {
 
                 // --- POST-CREATION ACTIONS ---
                 if (newDocId) {
-                    // 1. Asignar Puntos (Firestore)
+                    // 1. Asignar Puntos de Bienvenida
                     if (welcomePts > 0) {
                         let days = 365;
                         if (config?.expirationRules) {
@@ -295,7 +300,6 @@ export const ClientsPage = () => {
                         const expiresAt = new Date();
                         expiresAt.setDate(expiresAt.getDate() + days);
 
-                        // Historial
                         await addDoc(collection(db, `users/${newDocId}/points_history`), {
                             amount: welcomePts,
                             concept: '🎁 Bienvenida al sistema',
@@ -304,7 +308,6 @@ export const ClientsPage = () => {
                             expiresAt: expiresAt
                         });
 
-                        // Update User Doc
                         await updateDoc(doc(db, 'users', newDocId), {
                             points: welcomePts,
                             historialPuntos: arrayUnion({
@@ -318,60 +321,50 @@ export const ClientsPage = () => {
                         });
                     }
 
-                    // 2. WhatsApp (Cliente)
-                    if (formData.phone) {
+                    // 2. WhatsApp (Si está habilitado el canal 'welcome')
+                    const welcomeTemplate = config?.messaging?.templates?.welcome || DEFAULT_TEMPLATES.welcome;
+                    const welcomeMsg = welcomeTemplate
+                        .replace(/{nombre}/g, formData.name.split(' ')[0])
+                        .replace(/{nombre_completo}/g, formData.name)
+                        .replace(/{puntos}/g, welcomePts.toString())
+                        .replace(/{dni}/g, formData.dni)
+                        .replace(/{email}/g, formData.email)
+                        .replace(/{socio}/g, newSocioId)
+                        .replace(/{numero_socio}/g, newSocioId)
+                        .replace(/{telefono}/g, formData.phone);
+
+                    if (formData.phone && NotificationService.isChannelEnabled(config, 'welcome', 'whatsapp')) {
                         const phone = formData.phone.replace(/\D/g, '');
                         if (phone.length > 5) {
-                            const template = config?.messaging?.templates?.welcome || DEFAULT_TEMPLATES.welcome;
-                            const msg = template
-                                .replace(/{nombre}/g, formData.name.split(' ')[0])
-                                .replace(/{nombre_completo}/g, formData.name)
-                                .replace(/{puntos}/g, welcomePts.toString())
-                                .replace(/{dni}/g, formData.dni)
-                                .replace(/{email}/g, formData.email)
-                                .replace(/{socio}/g, newSocioId)
-                                .replace(/{numero_socio}/g, newSocioId)
-                                .replace(/{telefono}/g, formData.phone);
-
-                            // Timeout breve para asegurar que el navegador permita el popup tras el async
                             setTimeout(() => {
-                                window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+                                window.open(`https://wa.me/${phone}?text=${encodeURIComponent(welcomeMsg)}`, '_blank');
                             }, 500);
                         }
                     }
 
-                    // 3. Email (Intento API)
-                    if (formData.email) {
-                        const template = config?.messaging?.templates?.welcome || DEFAULT_TEMPLATES.welcome;
-                        const msgBody = template
-                            .replace(/{nombre}/g, formData.name.split(' ')[0])
-                            .replace(/{nombre_completo}/g, formData.name)
-                            .replace(/{puntos}/g, welcomePts.toString())
-                            .replace(/{dni}/g, formData.dni)
-                            .replace(/{email}/g, formData.email);
+                    // 3. Email (Si está habilitado el canal 'welcome')
+                    if (formData.email && NotificationService.isChannelEnabled(config, 'welcome', 'email')) {
+                        const htmlContent = EmailService.generateBrandedTemplate(config || {}, '¡Bienvenido al Club!', welcomeMsg);
 
-                        const htmlContent = EmailService.generateBrandedTemplate(config || {}, '¡Bienvenido al Club!', msgBody);
-
-                        // No bloqueamos la UI si falla el email
                         EmailService.sendEmail(formData.email, '¡Bienvenido al Club!', htmlContent)
                             .then(() => toast.success('Email de bienvenida enviado'))
-                            .catch(() => { }); // Silencioso si falla
+                            .catch((err) => {
+                                console.error("Error enviando email:", err);
+                                toast.error("No se pudo enviar el email de bienvenida");
+                            });
                     }
 
-                    // 4. Inbox
-                    try {
-                        await addDoc(collection(db, `users/${newDocId}/inbox`), {
-                            title: '¡Bienvenido al Club!',
-                            message: `Nos alegra tenerte aquí. Tu clave temporal es tu DNI (${formData.dni}).`,
-                            date: new Date(),
-                            read: false,
-                            type: 'system',
-                            icon: 'confetti'
-                        });
-                    } catch (e) { }
+                    // 4. Push & Inbox (Siempre guarda en Inbox, lanza Push si habilitado)
+                    // Nota: NotificationService.sendToClient ya maneja el guardado en Inbox internamente.
+                    NotificationService.sendToClient(newDocId, {
+                        title: '¡Bienvenido al Club!',
+                        body: welcomeMsg + `\n\nTu clave de acceso es tu DNI (${formData.dni}).`,
+                        type: 'welcome',
+                        icon: config?.logoUrl
+                    }).catch(e => console.error("Error en notificación Push/Inbox:", e));
                 }
+            } // Fin IF / ELSE
 
-            } // Fin IF / ELSE;
 
             closeModal();
             setTimeout(() => fetchData(), 1000); // Refrescar lista

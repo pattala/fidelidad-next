@@ -63,8 +63,9 @@ export default async function handler(req, res) {
         }
 
         // 3. Generar link de "Setup Password" (es el mismo de Reset)
+        const baseUrl = origin || process.env.PWA_URL || 'https://fidelidad-next.vercel.app';
         const actionCodeSettings = {
-            url: (process.env.PWA_URL || 'https://fidelidad-next.vercel.app') + '/admin/login',
+            url: baseUrl + '/admin/login',
         };
         const actionLink = await adminAuth.generatePasswordResetLink(email, actionCodeSettings);
 

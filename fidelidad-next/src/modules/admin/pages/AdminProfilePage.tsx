@@ -143,42 +143,40 @@ const TeamManagement = () => {
         e.preventDefault();
         if (!newEmail) return;
 
-        // No permitir duplicados
-        if (admins.some(a => a.email === newEmail)) {
-            toast.error('Este usuario ya es administrador.');
+        // No permitir duplicados en la lista visual (opcional, el backend también maneja)
+        if (admins.some(a => a.email === newEmail && a.status === 'active')) {
+            toast.error('Este usuario ya es administrador activo.');
             return;
         }
 
+        const toastId = toast.loading('Enviando invitación...');
+
         try {
-            const { addDoc, collection } = await import('firebase/firestore');
-            const { db } = await import('../../../lib/firebase');
-
-            // Usamos el email como ID para facilitar búsquedas o un ID generado
-            // Para consistencia con Auth, idealmente sería el UID, pero como aun no existe en Auth,
-            // creamos un documento placeholder. Cuando se loguee por primera vez, el Login debe manejar esto.
-            // ESTRATEGIA: Guardar con ID automático y campo 'email'.
-            // OJO: El Login actual busca doc(db, 'admins', user.uid).
-            // Esto significa que necesitamos crear el doc con el UID correcto... que no tenemos.
-            // SOLUCIÓN: Guardamos una invitación en una colección 'admin_invites' O permitimos búsqueda por email en Login.
-
-            // Vamos a simplificar: Guardamos en 'admins' con el email como ID temporal o un campo email indexado.
-            // Para que funcione con el Login actual (que busca por UID), modificaremos el Login para que TAMBIÉN busque por Email si no encuentra por UID.
-            // Por ahora, creamos el documento.
-
-            await addDoc(collection(db, 'admins'), {
-                email: newEmail,
-                role: newRole,
-                invitedBy: currentUserEmail,
-                createdAt: new Date(),
-                status: 'invited' // Marcamos como invitado
+            const response = await fetch('/api/invite-admin', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': import.meta.env.VITE_API_KEY || ''
+                },
+                body: JSON.stringify({
+                    email: newEmail,
+                    role: newRole,
+                    invitedBy: currentUserEmail
+                })
             });
 
-            toast.success(`Invitación creada para ${newEmail}`);
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || 'Error al enviar invitación');
+            }
+
+            toast.success(`¡Invitación enviada a ${newEmail}!`, { id: toastId });
             setNewEmail('');
             loadAdmins();
         } catch (e: any) {
             console.error(e);
-            toast.error('Error al invitar: ' + e.message);
+            toast.error('Error al invitar: ' + e.message, { id: toastId });
         }
     };
 

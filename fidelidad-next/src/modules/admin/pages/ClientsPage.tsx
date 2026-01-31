@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Edit, Trash2, X, Search, MapPin, Phone, Mail, Coins, Sparkles, Gift, History, MessageCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Search, MapPin, Phone, Mail, Coins, Sparkles, Gift, History, MessageCircle, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { collection, addDoc, getDocs, query, orderBy, doc, deleteDoc, updateDoc, increment, runTransaction, arrayUnion, where, setDoc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
@@ -853,9 +853,8 @@ export const ClientsPage = () => {
             {redemptionModalOpen && selectedClientForRedemption && (
                 <RedemptionModal
                     client={selectedClientForRedemption}
-                    isOpen={redemptionModalOpen}
                     onClose={() => setRedemptionModalOpen(false)}
-                    onSuccess={() => {
+                    onRedeemSuccess={() => {
                         setRedemptionModalOpen(false);
                         fetchData();
                     }}

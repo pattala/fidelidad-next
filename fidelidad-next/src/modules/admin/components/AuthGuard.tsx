@@ -1,63 +1,30 @@
-import React, { useEffect, useState } from 'react';
+
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import { auth, db } from '../../../lib/firebase';
+import { signOut } from 'firebase/auth';
+import { auth } from '../../../lib/firebase';
 import { MASTER_ADMINS } from '../../../lib/adminConfig';
 import toast from 'react-hot-toast';
+import { AdminAuthProvider, useAdminAuth } from '../contexts/AdminAuthContext';
 
-export const AuthGuard = ({ children }: { children: React.ReactNode }) => {
-    const [loading, setLoading] = useState(true);
-    const [authorized, setAuthorized] = useState(false);
+const GuardInner = ({ children }: { children: React.ReactNode }) => {
+    const { user, role, loading } = useAdminAuth();
     const navigate = useNavigate();
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                try {
-                    // 1. LISTA BLANCA DE ADMINISTRADORES MAESTROS (Configuración Centralizada)
-                    if (user.email && MASTER_ADMINS.includes(user.email)) {
-                        setAuthorized(true);
-                        setLoading(false);
-                        return;
-                    }
-
-                    // 2. Verificación secundaria en Firestore (Admins dedicados)
-                    const adminDoc = await getDoc(doc(db, 'admins', user.uid));
-                    if (adminDoc.exists()) {
-                        setAuthorized(true);
-                        setLoading(false);
-                        return;
-                    }
-
-                    // 3. Verificación en usuarios promocionados (users/role:admin)
-                    const userDoc = await getDoc(doc(db, 'users', user.uid));
-                    if (userDoc.exists() && userDoc.data().role === 'admin') {
-                        setAuthorized(true);
-                        setLoading(false);
-                        return;
-                    }
-
-                    // Si no es ninguno de los anteriores, se cierra la sesión por seguridad
-                    console.warn("Acceso denegado: Usuario no autorizado para el panel.");
-                    toast.error("No tienes permisos de administrador.");
-                    await signOut(auth); // Desloguear para limpiar estado
-                    setAuthorized(false);
-                    navigate('/admin/login');
-                } catch (error) {
-                    console.error("Error verificando permisos:", error);
-                    setAuthorized(false);
-                    navigate('/admin/login');
-                }
-            } else {
-                setAuthorized(false);
+        if (!loading) {
+            if (!user) {
                 navigate('/admin/login');
+                return;
             }
-            setLoading(false);
-        });
 
-        return () => unsubscribe();
-    }, [navigate]);
+            if (!role) {
+                console.warn("Acceso denegado: Usuario no tiene rol de admin.");
+                toast.error("No tienes permisos de administrador.");
+                signOut(auth).then(() => navigate('/admin/login'));
+            }
+        }
+    }, [user, role, loading, navigate]);
 
     if (loading) return (
         <div className="h-screen flex flex-col items-center justify-center gap-4 bg-gray-50">
@@ -66,5 +33,13 @@ export const AuthGuard = ({ children }: { children: React.ReactNode }) => {
         </div>
     );
 
-    return authorized ? <>{children}</> : null;
+    return (user && role) ? <>{children}</> : null;
+};
+
+export const AuthGuard = ({ children }: { children: React.ReactNode }) => {
+    return (
+        <AdminAuthProvider>
+            <GuardInner>{children}</GuardInner>
+        </AdminAuthProvider>
+    );
 };

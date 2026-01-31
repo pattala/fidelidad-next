@@ -6,10 +6,12 @@ import { signOut } from 'firebase/auth';
 import toast from 'react-hot-toast';
 import { ConfigService } from '../../../services/configService';
 import { TimeService } from '../../../services/timeService';
+import { useAdminAuth } from '../contexts/AdminAuthContext';
 
 export const AdminLayout = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const { role } = useAdminAuth();
     const [isMessagingOpen, setIsMessagingOpen] = useState(false);
     const [currentTime, setCurrentTime] = useState(new Date());
     const [config, setConfig] = useState<any>(null);
@@ -154,34 +156,38 @@ export const AdminLayout = () => {
                     <NavLink to="/admin/profile" className={navItemClass}>
                         <User size={20} /> Mi Perfil
                     </NavLink>
-                    <NavLink to="/admin/config" className={navItemClass}>
-                        <Settings size={20} /> Configuración
-                    </NavLink>
+
+                    {role === 'admin' && (
+                        <NavLink to="/admin/config" className={navItemClass}>
+                            <Settings size={20} /> Configuración
+                        </NavLink>
+                    )}
                 </nav>
 
-                {/* SIMULATION CONTROLS */}
-                <div className="p-4 border-t border-gray-200 bg-purple-50">
-                    <p className="text-[10px] font-bold text-purple-800 uppercase tracking-wider mb-2">Simulador de Fecha</p>
-                    <div className="text-xs text-gray-600 mb-2">
-                        <div className="flex justify-between">
-                            <span>Hoy Real:</span>
-                            <span>{new Date().toLocaleDateString()}</span>
+                {role === 'admin' && (
+                    <div className="p-4 border-t border-gray-200 bg-purple-50">
+                        <p className="text-[10px] font-bold text-purple-800 uppercase tracking-wider mb-2">Simulador de Fecha</p>
+                        <div className="text-xs text-gray-600 mb-2">
+                            <div className="flex justify-between">
+                                <span>Hoy Real:</span>
+                                <span>{new Date().toLocaleDateString()}</span>
+                            </div>
+                            <div className="flex justify-between font-bold text-purple-700">
+                                <span>Simulado:</span>
+                                <span>{simulatedDate.toLocaleDateString()}</span>
+                            </div>
                         </div>
-                        <div className="flex justify-between font-bold text-purple-700">
-                            <span>Simulado:</span>
-                            <span>{simulatedDate.toLocaleDateString()}</span>
+                        <div className="flex gap-2">
+                            <button onClick={() => updateSimulation(-1)} className="flex-1 bg-white border border-purple-200 text-purple-700 rounded px-2 py-1 text-xs hover:bg-purple-100">-1 Día</button>
+                            <button onClick={() => updateSimulation(1)} className="flex-1 bg-white border border-purple-200 text-purple-700 rounded px-2 py-1 text-xs hover:bg-purple-100">+1 Día</button>
                         </div>
+                        {simulatedOffset !== 0 && (
+                            <button onClick={resetSimulation} className="w-full mt-2 bg-purple-200 text-purple-800 rounded px-2 py-1 text-[10px] uppercase font-bold hover:bg-purple-300">
+                                Resetear Fecha
+                            </button>
+                        )}
                     </div>
-                    <div className="flex gap-2">
-                        <button onClick={() => updateSimulation(-1)} className="flex-1 bg-white border border-purple-200 text-purple-700 rounded px-2 py-1 text-xs hover:bg-purple-100">-1 Día</button>
-                        <button onClick={() => updateSimulation(1)} className="flex-1 bg-white border border-purple-200 text-purple-700 rounded px-2 py-1 text-xs hover:bg-purple-100">+1 Día</button>
-                    </div>
-                    {simulatedOffset !== 0 && (
-                        <button onClick={resetSimulation} className="w-full mt-2 bg-purple-200 text-purple-800 rounded px-2 py-1 text-[10px] uppercase font-bold hover:bg-purple-300">
-                            Resetear Fecha
-                        </button>
-                    )}
-                </div>
+                )}
 
                 <div className="p-4 border-t border-gray-100 bg-white">
                     <button

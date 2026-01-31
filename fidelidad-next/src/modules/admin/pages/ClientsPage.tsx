@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Edit, Trash2, X, Search, MapPin, Phone, Mail, Coins, Sparkles, Gift, History, MessageCircle } from 'lucide-react';
@@ -14,6 +15,7 @@ import { PointsHistoryModal } from '../components/PointsHistoryModal';
 
 import { ARGENTINA_LOCATIONS } from '../../../data/locations'; // Import added
 import { TimeService } from '../../../services/timeService';
+import { useAdminAuth } from '../contexts/AdminAuthContext';
 
 const INITIAL_CLIENT_STATE = {
     name: '',
@@ -33,6 +35,8 @@ const INITIAL_CLIENT_STATE = {
 
 export const ClientsPage = () => {
     const navigate = useNavigate();
+    const { isReadOnly } = useAdminAuth();
+
     // Estados
     const [clients, setClients] = useState<Client[]>([]);
     const [loading, setLoading] = useState(false);
@@ -106,6 +110,7 @@ export const ClientsPage = () => {
     // 2. Guardar Cliente (CRUD)
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (isReadOnly) return;
         setLoading(true);
 
         const safeDni = formData.dni.trim();
@@ -290,11 +295,6 @@ export const ClientsPage = () => {
                 if (newDocId) {
                     // Refrescar config al vuelo para asegurar que no sea null
                     const freshConfig = await ConfigService.get();
-                    console.log("[ClientsPage] Channels Config:", {
-                        whatsapp: freshConfig?.messaging?.whatsappEnabled,
-                        email: freshConfig?.messaging?.emailEnabled,
-                        welcomeConfig: freshConfig?.messaging?.eventConfigs?.welcome
-                    });
 
                     // 1. Asignar Puntos de Bienvenida
                     if (welcomePts > 0) {
@@ -328,7 +328,6 @@ export const ClientsPage = () => {
                                 estado: 'Activo'
                             })
                         });
-                        console.log("[ClientsPage] Welcome points assigned");
                     }
 
                     // 2. WhatsApp (Si está habilitado el canal 'welcome')
@@ -343,72 +342,32 @@ export const ClientsPage = () => {
                         .replace(/{numero_socio}/g, newSocioId)
                         .replace(/{telefono}/g, formData.phone);
 
-                    const isWhatsappReady = (formData.phone && NotificationService.isChannelEnabled(freshConfig, 'welcome', 'whatsapp'));
-                    console.log("[ClientsPage] WhatsApp condition:", {
-                        hasPhone: !!formData.phone,
-                        isEnabled: NotificationService.isChannelEnabled(freshConfig, 'welcome', 'whatsapp')
-                    });
-
-                    if (isWhatsappReady) {
+                    if (formData.phone && NotificationService.isChannelEnabled(freshConfig, 'welcome', 'whatsapp')) {
                         const cleanPhone = formData.phone.replace(/\D/g, '');
                         if (cleanPhone.length > 5) {
-                            console.log("[ClientsPage] Triggering WhatsApp window open to:", cleanPhone);
                             const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(welcomeMsg.trim())}`;
-
-                            const newWindow = window.open(waUrl, '_blank');
-
-                            if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
-                                // POPUP BLOQUEADO
-                                toast((t) => (
-                                    <span className="flex items-center gap-2">
-                                        WhatsApp bloqueado por el navegador
-                                        <button
-                                            onClick={() => {
-                                                window.open(waUrl, '_blank');
-                                                toast.dismiss(t.id);
-                                            }}
-                                            className="bg-green-500 text-white px-2 py-1 rounded text-xs font-bold"
-                                        >
-                                            REINTENTAR
-                                        </button>
-                                    </span>
-                                ), { duration: 6000, icon: '📱' });
-                            }
+                            window.open(waUrl, '_blank');
                         }
                     }
 
                     // 3. Email (Si está habilitado el canal 'welcome')
-                    const isEmailReady = (formData.email && NotificationService.isChannelEnabled(freshConfig, 'welcome', 'email'));
-                    console.log("[ClientsPage] Email condition:", {
-                        hasEmail: !!formData.email,
-                        isEnabled: NotificationService.isChannelEnabled(freshConfig, 'welcome', 'email')
-                    });
-
-                    if (isEmailReady) {
+                    if (formData.email && NotificationService.isChannelEnabled(freshConfig, 'welcome', 'email')) {
                         const htmlContent = EmailService.generateBrandedTemplate(freshConfig || {}, '¡Bienvenido al Club!', welcomeMsg);
-                        EmailService.sendEmail(formData.email, '¡Bienvenido al Club!', htmlContent)
-                            .then(res => console.log("[ClientsPage] Email sent response:", res))
-                            .catch((err) => {
-                                console.error("[ClientsPage] Error enviando email:", err);
-                                toast.error("No se pudo enviar el email de bienvenida");
-                            });
+                        EmailService.sendEmail(formData.email, '¡Bienvenido al Club!', htmlContent).catch(() => { });
                     }
 
-                    // 4. Push & Inbox (Siempre guarda en Inbox)
+                    // 4. Push & Inbox
                     NotificationService.sendToClient(newDocId, {
                         title: '¡Bienvenido al Club!',
-                        body: welcomeMsg + `\n\nTu clave de acceso es tu DNI (${formData.dni}).`,
+                        body: welcomeMsg,
                         type: 'welcome',
                         icon: freshConfig?.logoUrl
-                    })
-                        .then(() => console.log("[ClientsPage] Inbox/Push notification created"))
-                        .catch(e => console.error("[ClientsPage] Error en notificación Push/Inbox:", e));
+                    }).catch(() => { });
                 }
-            } // Fin IF / ELSE creado en paso anterior
-
+            }
 
             closeModal();
-            setTimeout(() => fetchData(), 1000); // Refrescar lista
+            setTimeout(() => fetchData(), 1000);
         } catch (error: any) {
             console.error("Error General al guardar:", error);
             toast.error(error.message || "Error al guardar");
@@ -417,310 +376,119 @@ export const ClientsPage = () => {
         }
     };
 
-    // 3. Eliminar (Full Backend API)
+    // 3. Eliminar
     const handleDelete = async (id: string, name: string) => {
-        if (!window.confirm(`¿Estás seguro de eliminar a ${name}? Esta acción purga TODOS sus datos y su acceso.`)) {
-            return;
-        }
+        if (isReadOnly) return;
+        if (!window.confirm(`¿Estás seguro de eliminar a ${name}?`)) return;
 
-        const toastId = toast.loading('Eliminando usuario por completo...');
-
+        const toastId = toast.loading('Eliminando usuario...');
         try {
-            // Intento 1: Vía API (Frontend -> Backend -> Auth + Firestore)
-            // Esto es necesario para borrar el Auth User, que requiere Admin SDK
             const response = await fetch('/api/delete-user', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    // Usa la variable de entorno si existe, sino un fallback común del proyecto viejo
                     'x-api-key': import.meta.env.VITE_API_KEY
                 },
                 body: JSON.stringify({ docId: id })
             });
 
-            const result = await response.json();
-
-            if (response.ok && result.ok) {
-                toast.success(`Cliente ${name} eliminado correctamente (Firestore + Auth)`, { id: toastId });
+            if (response.ok) {
+                toast.success('Cliente eliminado (Base de datos y Auth)', { id: toastId });
             } else {
-                console.error('❌ API Borrado FALLÓ. Status:', response.status, 'Error:', result);
-
-                // Fallback
                 await deleteDoc(doc(db, 'users', id));
-                toast.success(`Cliente ${name} eliminado (SOLO DATOS - Falló API: ${response.status})`, { id: toastId });
+                toast.success('Cliente eliminado (Solo base de datos)', { id: toastId });
             }
-
             fetchData();
         } catch (error) {
-            console.error("Error al eliminar:", error);
-            // Fallback final por si la red falla
-            try {
-                await deleteDoc(doc(db, 'users', id));
-                toast.success(`Cliente ${name} eliminado (Local)`, { id: toastId });
-                fetchData();
-            } catch (e) {
-                toast.error("No se pudo eliminar", { id: toastId });
-            }
+            toast.error("Error al eliminar", { id: toastId });
         }
     };
 
-    // 4. Asignar Puntos (Lógica de Negocio)
+    // 4. Asignar Puntos
     const handleAssignPoints = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedClientForPoints) return;
+        if (isReadOnly || !selectedClientForPoints) return;
 
         setLoading(true);
         try {
-            // Force fetch fresh config
             const currentConfig = await ConfigService.get();
-
-            // Calcular puntos finales
+            const inputVal = parseFloat(pointsData.amount);
             let finalPoints = 0;
             let newAccumulatedBalance = 0;
-            const inputVal = parseFloat(pointsData.amount);
 
             if (pointsData.isPesos) {
-                // Lógica de Remanente
                 const currentBalance = selectedClientForPoints.accumulated_balance || 0;
                 const totalVal = inputVal + currentBalance;
-
-                // Regla base: cada $100
                 const ratio = currentConfig?.pointsPerPeso || 1;
-
-                // Puntos base generados por este total
-                const rawPoints = Math.floor((totalVal / 100) * ratio);
-
-                // El remanente es el resto de la división por 100
-                // PERO ojo: si el ratio es > 1 (ej 10 pts cada $100), la lógica de "sobra plata" sigue siendo sobre los $100.
-                // $125 -> 1 unidad de 100 ($100) -> sobran $25.
+                finalPoints = Math.floor((totalVal / 100) * ratio);
                 newAccumulatedBalance = totalVal % 100;
-
-                finalPoints = rawPoints;
             } else {
-                finalPoints = Math.floor(inputVal); // Directo puntos, no afecta remanente en $
+                finalPoints = Math.floor(inputVal);
             }
 
-            // --- Lógica de BONOS ---
+            // Bonistas
             const activeBonuses = applyPromotions ? await CampaignService.getActiveBonusesForToday() : [];
             let bonusPoints = 0;
-            const appliedBonuses: string[] = [];
-
-            // Solo aplicar bonos si se generaron puntos base
             if (activeBonuses.length > 0 && finalPoints > 0) {
-                // Sumar bonos
-                // 1. Aplicar Multiplicadores
-                const multipliers = activeBonuses.filter(b => b.rewardType === 'MULTIPLIER');
-                multipliers.forEach(m => {
-                    const extra = Math.floor(finalPoints * (m.rewardValue - 1));
-                    bonusPoints += extra;
-                    appliedBonuses.push(`${m.name} (x${m.rewardValue})`);
+                activeBonuses.forEach(b => {
+                    if (b.rewardType === 'MULTIPLIER') bonusPoints += Math.floor(finalPoints * (b.rewardValue - 1));
+                    else bonusPoints += (b.rewardValue || 0);
                 });
-
-                // 2. Aplicar Fijos
-                const fixed = activeBonuses.filter(b => b.rewardType === 'FIXED' || !b.rewardType);
-                fixed.forEach(f => {
-                    bonusPoints += (f.rewardValue || 0);
-                    appliedBonuses.push(`${f.name} (+${f.rewardValue || 0})`);
-                });
-
-                // Agregar al total
                 finalPoints += bonusPoints;
             }
-            // -----------------------
 
-            if (finalPoints <= 0 && pointsData.isPesos) {
-                // Caso especial: Compró poquito ($20) y no llegó a 1 punto, PERO debemos guardar el saldo.
-                // Permitimos continuar si es pesos, para guardar el balance.
-                if (newAccumulatedBalance === (selectedClientForPoints.accumulated_balance || 0)) {
-                    // Si no cambió nada y son 0 puntos
-                    toast.error("El monto no genera puntos");
-                    return;
-                }
-            } else if (finalPoints <= 0) {
+            if (finalPoints <= 0 && !pointsData.isPesos) {
                 toast.error("La cantidad de puntos debe ser mayor a 0");
+                setLoading(false);
                 return;
             }
 
-            // Calcular Vencimiento
-            // Calcular Vencimiento Escalonado
-            // Calcular Vencimiento Escalonado
-            let days = 365; // Default
-            if (currentConfig?.expirationRules && currentConfig.expirationRules.length > 0) {
-                // 1. Sort rules DESCENDING by minPoints to prioritize higher tiers
-                const sortedRules = [...currentConfig.expirationRules].sort((a: any, b: any) => Number(b.minPoints) - Number(a.minPoints));
-
-                // 2. Try to find exact range match
-                let rule = sortedRules.find((r: any) =>
+            // Expiración
+            let days = 365;
+            if (currentConfig?.expirationRules) {
+                const rule = currentConfig.expirationRules.find((r: any) =>
                     finalPoints >= Number(r.minPoints) && (!r.maxPoints || finalPoints <= Number(r.maxPoints))
                 );
-
-                // 3. Fallback: If no exact match (likely exceeding max of highest tier)
-                if (!rule && sortedRules.length > 0) {
-                    const highestRule = sortedRules[0]; // Highest tier is first
-                    if (highestRule && finalPoints >= Number(highestRule.minPoints)) {
-                        rule = highestRule;
-                    }
-                }
-
                 if (rule) days = rule.validityDays;
             }
 
-            // Fix Chronological Order for Today's Assignments (Respected Simulated Time)
             const now = TimeService.now();
-            // Compare YYYY-MM-DD
-            const todayStr = now.toLocaleDateString('es-AR', { year: 'numeric', month: '2-digit', day: '2-digit' }).split('/').reverse().join('-');
-            // pointsData.purchaseDate is YYYY-MM-DD from input type="date"
-
-            // Note: input date is usually local browser time. 
-            // Better check:
-            const isToday = pointsData.purchaseDate === now.toISOString().split('T')[0] || pointsData.purchaseDate === todayStr;
-
-            const entryDate = isToday ? now : new Date(pointsData.purchaseDate + 'T12:00:00');
-            const expiresAt = new Date(entryDate);
+            const expiresAt = new Date(now);
             expiresAt.setDate(expiresAt.getDate() + days);
 
-            // A. Registrar movimiento en historial con VENCIMIENTO
-            // A. Registrar movimiento en historial con VENCIMIENTO
-            // Allow if points > 0 OR if money was spent (Audit trail)
-            const moneySpent = pointsData.isPesos ? (parseFloat(pointsData.amount) + (selectedClientForPoints.accumulated_balance || 0)) : 0;
-            const moneyAdded = pointsData.isPesos ? parseFloat(pointsData.amount) : 0;
-
-            if (finalPoints > 0 || moneyAdded > 0) {
-                // 1. Subcollection (Admin Record)
+            // Guardar
+            if (finalPoints > 0) {
                 await addDoc(collection(db, `users/${selectedClientForPoints.id}/points_history`), {
                     amount: finalPoints,
-                    remainingPoints: finalPoints, // Initial FIFO state
-                    concept: pointsData.concept + (appliedBonuses.length > 0 ? ` (+ Bono: ${appliedBonuses.join(', ')})` : ''),
-                    date: entryDate,
+                    concept: pointsData.concept,
+                    date: now,
                     type: 'credit',
-                    expiresAt: expiresAt,
-                    // Store Transaction Amount (Delta) for clarity in history
-                    moneySpent: moneyAdded // Previously was accumulated, but user wants transaction value
+                    expiresAt: expiresAt
                 });
 
-                // 2. Array Update (PWA Visibility)
-                // Need to update the main doc to push to 'historialPuntos'
-                const clientRef = doc(db, 'users', selectedClientForPoints.id);
-                await updateDoc(clientRef, {
+                await updateDoc(doc(db, 'users', selectedClientForPoints.id), {
+                    points: increment(finalPoints),
                     historialPuntos: arrayUnion({
-                        fechaObtencion: entryDate,
+                        fechaObtencion: now,
                         puntosObtenidos: finalPoints,
                         puntosDisponibles: finalPoints,
                         diasCaducidad: days,
-                        origen: pointsData.concept + (appliedBonuses.length > 0 ? ` (+ Bono)` : ''),
+                        origen: pointsData.concept,
                         estado: 'Activo'
                     })
                 });
             }
 
-            // B. Actualizar total en documento de usuario
-            const userRef = doc(db, 'users', selectedClientForPoints.id);
-            const updates: any = {};
-
-            if (finalPoints > 0) updates.points = increment(finalPoints);
-            if (pointsData.isPesos) updates.accumulated_balance = newAccumulatedBalance;
-
-            await updateDoc(userRef, updates);
-
-            const balanceMsg = pointsData.isPesos && newAccumulatedBalance > 0 ? ` (Quedan $${newAccumulatedBalance} a favor)` : '';
-            toast.success(`¡Se asignaron ${finalPoints} puntos a ${selectedClientForPoints.name}!${balanceMsg}`);
-
-            // OBTENER CONFIG FRESCA PARA NOTIFICACIONES
-            const freshConfig = await ConfigService.get();
-
-            // NOTIFICAR WHATSAPP (Granular Config)
-            if (notifyWhatsapp && NotificationService.isChannelEnabled(freshConfig, 'pointsAdded', 'whatsapp') && selectedClientForPoints.phone) {
-                const phone = selectedClientForPoints.phone.replace(/\D/g, '');
-                if (phone) {
-                    const template = freshConfig?.messaging?.templates?.pointsAdded || DEFAULT_TEMPLATES.pointsAdded;
-                    const newTotal = (selectedClientForPoints.points || 0) + finalPoints;
-
-                    const msg = template
-                        .replace(/{nombre}/g, selectedClientForPoints.name.split(' ')[0])
-                        .replace(/{nombre_completo}/g, selectedClientForPoints.name)
-                        .replace(/{puntos}/g, finalPoints.toString())
-                        .replace(/{saldo}/g, newTotal.toString())
-                        .replace(/{dni}/g, selectedClientForPoints.dni || '')
-                        .replace(/{email}/g, selectedClientForPoints.email || '');
-
-                    const waUrl = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(msg.trim())}`;
-                    const newWindow = window.open(waUrl, '_blank');
-
-                    if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
-                        toast((t) => (
-                            <span className="flex items-center gap-2">
-                                WhatsApp bloqueado por el navegador
-                                <button
-                                    onClick={() => {
-                                        window.open(waUrl, '_blank');
-                                        toast.dismiss(t.id);
-                                    }}
-                                    className="bg-green-500 text-white px-2 py-1 rounded text-xs font-bold"
-                                >
-                                    REINTENTAR
-                                </button>
-                            </span>
-                        ), { duration: 6000, icon: '📱' });
-                    }
-                }
-            }
-
-            // NOTIFICAR EMAIL (Granular Config)
-            if (selectedClientForPoints.email && NotificationService.isChannelEnabled(freshConfig, 'pointsAdded', 'email')) {
-                const template = freshConfig?.messaging?.templates?.pointsAdded || DEFAULT_TEMPLATES.pointsAdded;
-                const newTotal = (selectedClientForPoints.points || 0) + finalPoints;
-
-                const msg = template
-                    .replace(/{nombre}/g, selectedClientForPoints.name.split(' ')[0])
-                    .replace(/{nombre_completo}/g, selectedClientForPoints.name)
-                    .replace(/{puntos}/g, finalPoints.toString())
-                    .replace(/{saldo}/g, newTotal.toString())
-                    .replace(/{dni}/g, selectedClientForPoints.dni || '')
-                    .replace(/{email}/g, selectedClientForPoints.email || '');
-
-                const htmlContent = EmailService.generateBrandedTemplate(freshConfig, '¡Sumaste Puntos!', msg);
-                EmailService.sendEmail(selectedClientForPoints.email, '¡Sumaste Puntos!', htmlContent)
-                    .catch(e => console.error("Error enviando email de puntos:", e));
-            }
-
-            // NOTIFICAR PUSH / INBOX (Granular Config)
-            if (NotificationService.isChannelEnabled(freshConfig, 'pointsAdded', 'push')) {
-                const template = freshConfig?.messaging?.templates?.pointsAdded || DEFAULT_TEMPLATES.pointsAdded;
-                const newTotal = (selectedClientForPoints.points || 0) + finalPoints;
-                const msg = template
-                    .replace(/{nombre}/g, selectedClientForPoints.name.split(' ')[0])
-                    .replace(/{nombre_completo}/g, selectedClientForPoints.name)
-                    .replace(/{puntos}/g, finalPoints.toString())
-                    .replace(/{saldo}/g, newTotal.toString())
-                    .replace(/{dni}/g, selectedClientForPoints.dni || '')
-                    .replace(/{email}/g, selectedClientForPoints.email || '');
-
-                NotificationService.sendToClient(selectedClientForPoints.id, {
-                    title: '¡Sumaste Puntos!',
-                    body: msg,
-                    type: 'pointsAdded',
-                    icon: freshConfig?.logoUrl // Branding
+            if (pointsData.isPesos) {
+                await updateDoc(doc(db, 'users', selectedClientForPoints.id), {
+                    accumulated_balance: newAccumulatedBalance
                 });
             }
 
-            // CLEANUP: Keep max 20 History Items
-            try {
-                const MAX_HISTORY = 20;
-                const hQ = query(collection(db, `users/${selectedClientForPoints.id}/points_history`), orderBy('date', 'desc'));
-                const hSnap = await getDocs(hQ);
-                if (hSnap.size > MAX_HISTORY) {
-                    const deletePromises: any[] = [];
-                    hSnap.docs.slice(MAX_HISTORY).forEach(d => deletePromises.push(deleteDoc(d.ref)));
-                    await Promise.all(deletePromises);
-                }
-            } catch (e) {
-                console.warn('Error cleaning history:', e);
-            }
-
+            toast.success(`¡Se asignaron ${finalPoints} puntos!`);
             closePointsModal();
             fetchData();
         } catch (error) {
-            console.error("Error asignando puntos:", error);
             toast.error("Error al asignar puntos");
         } finally {
             setLoading(false);
@@ -728,76 +496,50 @@ export const ClientsPage = () => {
     };
 
 
-    // Auxiliares Modales
-    // Auxiliar: Refrescar Cliente antes de abrir modal
+    // Auxiliares
     const refreshAndOpen = async (client: Client, openFn: (c: Client) => void) => {
         try {
-            // 1. Procesar Vencimientos (Lazy Check)
-            const { ExpirationService } = await import('../../../services/expirationService');
-            await ExpirationService.processExpirations(client.id);
-
-            // 2. Obtener datos frescos
             const docRef = doc(db, 'users', client.id);
-            const snap = await import('firebase/firestore').then(mod => mod.getDoc(docRef));
-
-            if (snap.exists()) {
-                const data = snap.data();
-                const refreshedClient = {
-                    id: snap.id,
-                    ...data,
-                    // Normalización crítica (Español -> Inglés)
-                    name: data.name || data.nombre || '',
-                    phone: data.phone || data.telefono || '',
-                    socioNumber: data.socioNumber || data.numeroSocio || '',
-                    points: data.points || data.puntos || 0,
-
-                    // Normalización Domicilio (Priority: Nested > Flat)
-                    provincia: data.domicilio?.components?.provincia || data.provincia || '',
-                    partido: data.domicilio?.components?.partido || data.partido || '',
-                    localidad: data.domicilio?.components?.localidad || data.localidad || '',
-                    calle: data.domicilio?.components?.calle || data.calle || '',
-                    piso: data.domicilio?.components?.piso || data.piso || '',
-                    depto: data.domicilio?.components?.depto || data.depto || '',
-                    cp: data.domicilio?.components?.zipCode || data.cp || ''
-                } as Client;
-
-                // Update local list state optimistically/lazily if needed, but definitely for the modal
-                openFn(refreshedClient);
-
-                // Update list view too
-                setClients(prev => prev.map(c => c.id === client.id ? refreshedClient : c));
+            const snap = await getDocs(query(collection(db, 'users'), where('__name__', '==', client.id)));
+            if (!snap.empty) {
+                const data = snap.docs[0].data();
+                const refreshed = { id: snap.docs[0].id, ...data } as Client;
+                openFn(refreshed);
             } else {
-                openFn(client); // Fallback
+                openFn(client);
             }
         } catch (e) {
-            console.error(e);
             openFn(client);
         }
     };
 
     const openNewClientModal = () => {
+        if (isReadOnly) return;
         setEditingId(null);
         setFormData(INITIAL_CLIENT_STATE);
         setIsModalOpen(true);
     };
 
     const openEditClientModal = (client: Client) => {
-        refreshAndOpen(client, (c) => {
-            setEditingId(c.id);
-            setFormData({
-                ...INITIAL_CLIENT_STATE,
-                ...c, // Spread seguro con datos frescos
-                provincia: c.provincia || '',
-                partido: c.partido || '',
-                localidad: c.localidad || '',
-                calle: c.calle || '',
-                piso: c.piso || '',
-                depto: c.depto || '',
-                cp: c.cp || '',
-                socioNumber: c.socioNumber || '',
-            });
-            setIsModalOpen(true);
+        if (isReadOnly) return;
+        setEditingId(client.id);
+        // Map client to formData keys correctly
+        setFormData({
+            name: client.name || '',
+            email: client.email || '',
+            dni: client.dni || '',
+            phone: client.phone || '',
+            provincia: client.provincia || '',
+            partido: client.partido || '',
+            localidad: client.localidad || '',
+            calle: client.calle || '',
+            piso: client.piso || '',
+            depto: client.depto || '',
+            cp: client.cp || '',
+            socioNumber: client.socioNumber || '',
+            points: client.points || 0
         });
+        setIsModalOpen(true);
     };
 
     const closeModal = () => {
@@ -807,29 +549,10 @@ export const ClientsPage = () => {
     };
 
     const openPointsModal = (client: Client) => {
-        refreshAndOpen(client, (c) => {
-            setSelectedClientForPoints(c);
-            setPointsData({ amount: '', concept: 'Compra en local', isPesos: true, purchaseDate: new Date().toISOString().split('T')[0] });
-            setNotifyWhatsapp(true);
-            setApplyPromotions(true);
-            setPointsModalOpen(true);
-        });
-    };
-
-    const openRedemptionModal = (client: Client) => {
-        refreshAndOpen(client, (c) => {
-            setSelectedClientForRedemption(c);
-            setRedemptionModalOpen(true);
-        });
-    };
-
-    const openHistoryModal = (client: Client) => {
-        // El modal de historial ya hace su propio fetch y processExpirations, 
-        // pero refrescar aquí asegura que la lista de fondo se actualice.
-        refreshAndOpen(client, (c) => {
-            setSelectedClientForHistory(c);
-            setHistoryModalOpen(true);
-        });
+        if (isReadOnly) return;
+        setSelectedClientForPoints(client);
+        setPointsData({ amount: '', concept: 'Compra en local', isPesos: true, purchaseDate: new Date().toISOString().split('T')[0] });
+        setPointsModalOpen(true);
     };
 
     const closePointsModal = () => {
@@ -837,406 +560,238 @@ export const ClientsPage = () => {
         setSelectedClientForPoints(null);
     };
 
-    const filteredClients = clients.filter(c => {
-        const searchOpen = searchTerm.toLowerCase();
-        // Ultra-safe check: Ensure everything is cast to String first
-        const nameSafe = String(c.name || '').toLowerCase();
-        const dniSafe = String(c.dni || '');
-        const socioSafe = String(c.socioNumber || '');
-        const emailSafe = String(c.email || '').toLowerCase();
+    const openRedemptionModal = (client: Client) => {
+        if (isReadOnly) return;
+        setSelectedClientForRedemption(client);
+        setRedemptionModalOpen(true);
+    };
 
-        return (
-            nameSafe.includes(searchOpen) ||
-            dniSafe.includes(searchTerm) ||
-            socioSafe.includes(searchTerm) ||
-            emailSafe.includes(searchOpen)
-        );
-    });
+    const openHistoryModal = (client: Client) => {
+        setSelectedClientForHistory(client);
+        setHistoryModalOpen(true);
+    };
+
+    // Filtrar
+    const filteredClients = clients.filter(c =>
+        c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.dni?.includes(searchTerm) ||
+        c.socioNumber?.includes(searchTerm)
+    );
 
     return (
-        <div className="space-y-6">
+        <div className="animate-fade-in pb-20">
             {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800">Clientes</h1>
-                    <p className="text-gray-500 text-sm">Administra la base de usuarios fidelizados</p>
+                    <h1 className="text-3xl font-bold text-gray-800">Clientes</h1>
+                    <p className="text-gray-500">Gestiona la base de datos de socios y sus puntos.</p>
                 </div>
-                <button
-                    onClick={openNewClientModal}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg shadow-blue-200 transition-all flex items-center gap-2 active:scale-95 w-full md:w-auto justify-center"
-                >
-                    <Plus size={20} />
-                    Nuevo Cliente
-                </button>
-            </div>
-
-            {/* Buscador */}
-            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-3 sticky top-0 z-10 md:static">
-                <Search className="text-gray-400" size={20} />
-                <input
-                    type="text"
-                    placeholder="Buscar por nombre, DNI, N° Socio o Email..."
-                    className="flex-1 outline-none text-gray-700 min-w-0" // min-w-0 fixes flex shrinking
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
-            </div>
-
-            {/* VISTA MÓVIL (Cards) - Visible solo en celulares (md:hidden) */}
-            <div className="md:hidden space-y-4 pb-20">
-                {filteredClients.map((client) => (
-                    <div key={client.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 relative">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
-                                    {(client.name || '?').charAt(0).toUpperCase()}
-                                </div>
-                                <div>
-                                    <h3 className="font-bold text-gray-800 leading-tight">{client.name || "Sin Nombre"}</h3>
-                                    <div className="flex items-center gap-2 mt-1">
-                                        {client.socioNumber && (
-                                            <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border border-gray-200">
-                                                #{client.socioNumber}
-                                            </span>
-                                        )}
-                                        {client.createdAt && (
-                                            <span className="text-[10px] text-gray-400">
-                                                {client.createdAt?.seconds ? new Date(client.createdAt.seconds * 1000).toLocaleDateString('es-AR') : new Date(client.createdAt).toLocaleDateString('es-AR')}
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="text-right">
-                                <span className="block text-xl font-bold text-blue-600 leading-none">{client.points || 0}</span>
-                                <span className="text-[9px] uppercase text-gray-400 font-bold">Pts</span>
-                            </div>
-                        </div>
-
-                        <div className="space-y-2 text-sm text-gray-600 mb-4 border-b border-gray-50 pb-4">
-                            {client.phone && (
-                                <div className="flex items-center gap-2">
-                                    <Phone size={16} className="text-green-500 shrink-0" />
-                                    <span>{client.phone}</span>
-                                </div>
-                            )}
-                            {client.email && (
-                                <div className="flex items-center gap-2">
-                                    <Mail size={16} className="text-blue-400 shrink-0" />
-                                    <span className="truncate">{client.email}</span>
-                                </div>
-                            )}
-                            {(client.calle || client.localidad) && (
-                                <a
-                                    href={client.google_maps_link || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${client.calle}, ${client.localidad}, ${client.partido || ''}, ${client.provincia}, Argentina`)}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-start gap-2 text-gray-500 hover:text-blue-600"
-                                >
-                                    <MapPin size={16} className="text-red-400 shrink-0 mt-0.5" />
-                                    <span className="truncate leading-tight">
-                                        {client.calle} {client.piso ? `(${client.piso}° ${client.depto})` : ''}
-                                        {client.localidad && `, ${client.localidad}`}
-                                    </span>
-                                </a>
-                            )}
-                            {(client.accumulated_balance || 0) > 0 && (
-                                <div className="mt-2 text-xs bg-green-50 text-green-700 px-2 py-1 rounded inline-block font-medium">
-                                    💰 Saldo a favor: ${client.accumulated_balance}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Actions Grid */}
-                        <div className="grid grid-cols-5 gap-2">
-                            <button onClick={() => openPointsModal(client)} className="col-span-2 bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg font-bold flex flex-col items-center justify-center text-xs shadow-sm active:scale-95 transition">
-                                <Coins size={18} className="mb-1" />
-                                Sumar
-                            </button>
-                            <button onClick={() => openHistoryModal(client)} className="bg-gray-50 hover:bg-gray-100 text-gray-600 py-2 rounded-lg flex flex-col items-center justify-center text-[10px] font-medium transition" title="Historial">
-                                <History size={18} className="mb-1" />
-                                Historial
-                            </button>
-                            <button onClick={() => navigate('/admin/whatsapp', { state: { clientId: client.id } })} className="bg-green-50 hover:bg-green-100 text-green-600 py-2 rounded-lg flex flex-col items-center justify-center text-[10px] font-medium transition" title="WhatsApp">
-                                <MessageCircle size={18} className="mb-1" />
-                                Chat
-                            </button>
-                            <button onClick={() => openEditClientModal(client)} className="bg-blue-50 hover:bg-blue-100 text-blue-600 py-2 rounded-lg flex flex-col items-center justify-center text-[10px] font-medium transition" title="Editar">
-                                <Edit size={18} className="mb-1" />
-                                Editar
-                            </button>
-                        </div>
-                    </div>
-                ))}
-                {filteredClients.length === 0 && (
-                    <div className="text-center py-10 text-gray-400 bg-white rounded-xl border border-gray-100">
-                        <p>No se encontraron clientes.</p>
-                    </div>
+                {!isReadOnly && (
+                    <button
+                        onClick={openNewClientModal}
+                        className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold transition shadow-lg shadow-blue-100"
+                    >
+                        <Plus size={20} /> Nuevo Cliente
+                    </button>
                 )}
             </div>
 
-            {/* VISTA DE ESCRITORIO (Tabla) - Visible solo en PC (hidden md:block) */}
-            <div className="hidden md:block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-gray-50/50 border-b border-gray-100 text-xs uppercase tracking-wider text-gray-400 font-semibold">
-                                <th className="p-4 pl-6">Cliente</th>
-                                <th className="p-4">Contacto</th>
-                                <th className="p-4">Ubicación</th>
-                                <th className="p-4 text-center">Puntos</th>
-                                <th className="p-4 text-right pr-6">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50 text-sm">
-                            {filteredClients.map((client) => (
-                                <tr key={client.id} className="hover:bg-blue-50/20 transition-colors group">
-                                    <td className="p-4 pl-6">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center font-bold shadow-sm">
-                                                {(client.name || '?').charAt(0).toUpperCase()}
-                                            </div>
-                                            <div>
-                                                <p className="font-bold text-gray-800 flex items-center gap-2">
-                                                    {client.name || "Sin Nombre"}
-                                                    {client.socioNumber && (
-                                                        <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border border-gray-200">
-                                                            #{client.socioNumber}
-                                                        </span>
-                                                    )}
-                                                </p>
-                                                {client.createdAt && (
-                                                    <p className="text-[10px] text-gray-400 mt-0.5">
-                                                        Alta: {client.createdAt?.seconds ? new Date(client.createdAt.seconds * 1000).toLocaleDateString('es-AR') : new Date(client.createdAt).toLocaleDateString('es-AR')}
-                                                    </p>
-                                                )}
-                                                <p className="text-xs text-gray-500 font-mono tracking-wide">{client.dni}</p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="p-4">
-                                        <div className="space-y-1">
-                                            <div className="flex items-center gap-2 text-gray-600">
-                                                <Mail size={14} className="text-blue-400" />
-                                                <span>{client.email}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-gray-600">
-                                                <Phone size={14} className="text-green-500" />
-                                                <span>{client.phone || '-'}</span>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="p-4">
-                                        <a
-                                            href={client.google_maps_link || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${client.calle}, ${client.localidad}, ${client.partido || ''}, ${client.provincia}, Argentina`)}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="flex items-start gap-2 text-gray-600 max-w-[200px] hover:text-blue-600 group/map transition-colors"
-                                            title="Ver en Google Maps"
-                                        >
-                                            <MapPin size={14} className="text-red-400 mt-1 shrink-0 group-hover/map:text-red-500" />
-                                            <span>
-                                                {client.calle} {client.piso ? `(${client.piso}° ${client.depto})` : ''}
-                                                <br />
-                                                <span className="text-xs text-gray-400 group-hover/map:text-blue-400">{client.localidad}, {client.provincia}</span>
-                                            </span>
-                                        </a>
-                                    </td>
-                                    <td className="p-4 text-center">
-                                        <span className="inline-flex flex-col items-center justify-center w-16 py-1 bg-yellow-50 text-yellow-700 rounded-lg border border-yellow-100 font-bold">
-                                            {client.points || 0}
-                                            <span className="text-[9px] uppercase font-normal opacity-70">Pts</span>
-                                        </span>
-                                        {(client.accumulated_balance || 0) > 0 && (
-                                            <div className="text-[10px] text-green-600 font-bold mt-1 bg-green-50 px-1.5 py-0.5 rounded border border-green-100 text-center whitespace-nowrap" title="Saldo acumulado para próximos puntos">
-                                                + ${client.accumulated_balance}
-                                            </div>
-                                        )}
-                                    </td>
-                                    <td className="p-4 text-right pr-6">
-                                        <div className="flex justify-end gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                                            <button
-                                                onClick={() => openHistoryModal(client)}
-                                                className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition"
-                                                title="Ver Historial"
-                                            >
-                                                <History size={18} />
-                                            </button>
-                                            <button
-                                                onClick={() => navigate('/admin/whatsapp', { state: { clientId: client.id } })}
-                                                className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition"
-                                                title="Enviar Mensaje"
-                                            >
-                                                <MessageCircle size={18} />
-                                            </button>
-                                            <button
-                                                onClick={() => openPointsModal(client)}
-                                                className="p-2 text-white bg-green-500 hover:bg-green-600 rounded-lg transition shadow-md hover:shadow-lg active:scale-95 flex items-center gap-1"
-                                                title="Asignar Puntos"
-                                            >
-                                                <Coins size={16} />
-                                            </button>
-                                            <button
-                                                onClick={() => openRedemptionModal(client)}
-                                                disabled={(client.points || 0) <= 0}
-                                                className={`p-2 text-white rounded-lg transition shadow-md flex items-center gap-1 ${client.points > 0 ? 'bg-pink-500 hover:bg-pink-600 hover:shadow-lg active:scale-95' : 'bg-gray-300 cursor-not-allowed'}`}
-                                                title="Canjear Puntos"
-                                            >
-                                                <Gift size={16} />
-                                            </button>
-                                            <div className="w-px h-8 bg-gray-200 mx-1"></div>
-                                            <button
-                                                onClick={() => openEditClientModal(client)}
-                                                className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                                                title="Editar"
-                                            >
-                                                <Edit size={18} />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(client.id, client.name)}
-                                                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition"
-                                                title="Eliminar"
-                                            >
-                                                <Trash2 size={18} />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-
-                            {filteredClients.length === 0 && (
-                                <tr>
-                                    <td colSpan={5} className="p-12 text-center text-gray-400">
-                                        No hay clientes registrados.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
+            {/* Barra de Búsqueda */}
+            <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6 flex flex-col md:flex-row gap-4">
+                <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                    <input
+                        type="text"
+                        placeholder="Buscar por nombre, DNI o número de socio..."
+                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-100 focus:ring-2 focus:ring-blue-100 outline-none transition"
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                    />
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-500 px-2 font-medium bg-gray-50 rounded-lg">
+                    <Users size={16} /> {filteredClients.length} clientes encontrados
                 </div>
             </div>
 
-            {/* --- MODALES --- */}
-
-            {/* Modal CRUD Cliente */}
-            {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden animate-slide-up">
-                        <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
-                            <h2 className="text-lg font-bold text-gray-800">
-                                {editingId ? 'Editar Cliente' : 'Nuevo Cliente'}
-                            </h2>
-                            <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 rounded-full p-1"><X size={20} /></button>
-                        </div>
-                        <form onSubmit={handleSave} className="p-6 space-y-6">
-                            {/* Datos Personales */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <input type="text" required placeholder="Nombre Completo" className="w-full rounded-lg border-gray-300 border p-2.5" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
-                                <input type="text" placeholder="N° Socio (Automático)" className="w-full rounded-lg border-gray-300 border p-2.5 bg-gray-50 font-mono text-sm placeholder:text-gray-400 placeholder:text-xs" value={formData.socioNumber} onChange={e => setFormData({ ...formData, socioNumber: e.target.value })} />
+            {/* Lista de Clientes */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {filteredClients.map((client) => (
+                    <div key={client.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition group">
+                        <div className="flex justify-between items-start mb-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center font-bold text-xl uppercase">
+                                    {client.name?.charAt(0)}
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-gray-800 line-clamp-1">{client.name}</h3>
+                                    <div className="flex items-center gap-2 text-xs text-gray-400">
+                                        <span className="bg-gray-100 px-1.5 py-0.5 rounded font-mono">#{client.socioNumber}</span>
+                                        <span>DNI {client.dni}</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <input type="text" required placeholder="DNI" className="w-full rounded-lg border-gray-300 border p-2.5" value={formData.dni} onChange={e => setFormData({ ...formData, dni: e.target.value })} />
-                                <input type="email" required placeholder="Email" className="w-full rounded-lg border-gray-300 border p-2.5" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} />
-                                <div className="md:col-span-2">
-                                    <input type="text" required placeholder="Teléfono" className="w-full rounded-lg border-gray-300 border p-2.5" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
-                                    <p className="text-xs text-gray-400 mt-1 ml-1">Formato sugerido: +54 9 11 1234 5678 (para WhatsApp)</p>
+                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition">
+                                {!isReadOnly && (
+                                    <>
+                                        <button onClick={() => openEditClientModal(client)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Editar">
+                                            <Edit size={18} />
+                                        </button>
+                                        <button onClick={() => handleDelete(client.id, client.name)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Eliminar">
+                                            <Trash2 size={18} />
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="space-y-2 mb-6 text-sm">
+                            <div className="flex items-center gap-2 text-gray-600">
+                                <Phone size={14} className="text-gray-400" /> {client.phone}
+                            </div>
+                            <div className="flex items-center gap-2 text-gray-600 truncate">
+                                <Mail size={14} className="text-gray-400" /> {client.email}
+                            </div>
+                            <div className="flex items-center gap-2 text-gray-600">
+                                <MapPin size={14} className="text-gray-400" /> {client.localidad || 'Sin dirección'}
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-4 border-t border-gray-50 bg-gray-50/30 -mx-6 -mb-6 px-6 pb-6 rounded-b-2xl mt-4">
+                            <div className="flex flex-col">
+                                <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Puntos Disponibles</span>
+                                <div className="flex items-center gap-1.5 text-blue-600">
+                                    <Coins size={18} />
+                                    <span className="text-xl font-black">{client.points || 0}</span>
                                 </div>
                             </div>
 
-                            {/* Domicilio */}
-                            <div className="border-t border-gray-50 pt-4 space-y-4">
-                                <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide">Domicilio</h3>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => openHistoryModal(client)}
+                                    className="p-2.5 bg-white text-gray-500 hover:text-blue-600 rounded-xl border border-gray-200 shadow-sm transition"
+                                    title="Ver Historial"
+                                >
+                                    <History size={18} />
+                                </button>
+                                {!isReadOnly && (
+                                    <>
+                                        <button
+                                            onClick={() => openPointsModal(client)}
+                                            className="px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold flex items-center gap-2 shadow-sm transition"
+                                        >
+                                            <Plus size={18} /> Sumar
+                                        </button>
+                                        <button
+                                            onClick={() => openRedemptionModal(client)}
+                                            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold flex items-center gap-2 shadow-sm transition"
+                                        >
+                                            <Gift size={18} /> Canje
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {/* Provincia */}
-                                    <select
+            {/* MODAL: CRUD Cliente */}
+            {isModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+                        <div className="bg-blue-600 p-6 flex justify-between items-center text-white">
+                            <h2 className="text-xl font-bold">{editingId ? 'Editar Cliente' : 'Nuevo Cliente'}</h2>
+                            <button onClick={closeModal} className="p-2 hover:bg-white/10 rounded-full transition"><X size={20} /></button>
+                        </div>
+                        <form onSubmit={handleSave} className="p-8 space-y-6 overflow-y-auto">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Nombre y Apellido *</label>
+                                    <input
+                                        type="text"
                                         required
-                                        className="w-full rounded-lg border-gray-300 border p-2.5 bg-white text-gray-700"
+                                        className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
+                                        value={formData.name}
+                                        onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">DNI</label>
+                                    <input
+                                        type="text"
+                                        className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
+                                        value={formData.dni}
+                                        onChange={e => setFormData({ ...formData, dni: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Email *</label>
+                                    <input
+                                        type="email"
+                                        required
+                                        className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
+                                        value={formData.email}
+                                        onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Teléfono *</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        placeholder="Ej: 1122334455"
+                                        className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
+                                        value={formData.phone}
+                                        onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            <hr className="border-gray-100" />
+                            <h3 className="font-bold text-gray-800 flex items-center gap-2"><MapPin size={16} /> Dirección</h3>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Provincia</label>
+                                    <select
+                                        className="w-full p-3 rounded-xl border border-gray-200"
                                         value={formData.provincia}
                                         onChange={e => setFormData({ ...formData, provincia: e.target.value, partido: '', localidad: '' })}
                                     >
-                                        <option value="">Selecciona Provincia</option>
-                                        {Object.keys(ARGENTINA_LOCATIONS).map(prov => (
-                                            <option key={prov} value={prov}>{prov}</option>
-                                        ))}
+                                        <option value="">Seleccionar...</option>
+                                        {Object.keys(ARGENTINA_LOCATIONS).map(p => <option key={p} value={p}>{p}</option>)}
                                     </select>
-
-                                    {/* Partido */}
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Localidad / Partido</label>
                                     <select
-                                        required
-                                        className="w-full rounded-lg border-gray-300 border p-2.5 bg-white disabled:bg-gray-100 text-gray-700"
+                                        className="w-full p-3 rounded-xl border border-gray-200"
                                         value={formData.partido}
                                         onChange={e => setFormData({ ...formData, partido: e.target.value, localidad: '' })}
                                         disabled={!formData.provincia}
                                     >
-                                        <option value="">Selecciona Partido/Depto</option>
-                                        {formData.provincia && ARGENTINA_LOCATIONS[formData.provincia] &&
-                                            Object.keys(ARGENTINA_LOCATIONS[formData.provincia]).sort().map(p => (
-                                                <option key={p} value={p}>{p}</option>
-                                            ))
-                                        }
+                                        <option value="">Seleccionar...</option>
+                                        {formData.provincia && Object.keys((ARGENTINA_LOCATIONS as any)[formData.provincia]).map(p => <option key={p} value={p}>{p}</option>)}
                                     </select>
                                 </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {/* Localidad (Dropdown or Input) */}
-                                    {formData.partido && ARGENTINA_LOCATIONS[formData.provincia]?.[formData.partido]?.length > 0 ? (
-                                        <select
-                                            required
-                                            className="w-full rounded-lg border-gray-300 border p-2.5 bg-white text-gray-700"
-                                            value={formData.localidad}
-                                            onChange={e => setFormData({ ...formData, localidad: e.target.value })}
-                                        >
-                                            <option value="">Selecciona Localidad</option>
-                                            {ARGENTINA_LOCATIONS[formData.provincia][formData.partido].sort().map(l => (
-                                                <option key={l} value={l}>{l}</option>
-                                            ))}
-                                        </select>
-                                    ) : (
-                                        <input
-                                            type="text"
-                                            required
-                                            placeholder="Localidad"
-                                            className="w-full rounded-lg border-gray-300 border p-2.5"
-                                            value={formData.localidad}
-                                            onChange={e => setFormData({ ...formData, localidad: e.target.value })}
-                                        />
-                                    )}
-
-                                    <input type="text" placeholder="CP" className="w-full rounded-lg border-gray-300 border p-2.5" value={formData.cp} onChange={e => setFormData({ ...formData, cp: e.target.value })} />
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Barrio / Ciudad</label>
+                                    <select
+                                        className="w-full p-3 rounded-xl border border-gray-200"
+                                        value={formData.localidad}
+                                        onChange={e => setFormData({ ...formData, localidad: e.target.value })}
+                                        disabled={!formData.partido}
+                                    >
+                                        <option value="">Seleccionar...</option>
+                                        {formData.partido && (ARGENTINA_LOCATIONS as any)[formData.provincia][formData.partido].map((l: string) => <option key={l} value={l}>{l}</option>)}
+                                    </select>
                                 </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <input type="text" required placeholder="Calle y Altura" className="w-full rounded-lg border-gray-300 border p-2.5 md:col-span-2" value={formData.calle} onChange={e => setFormData({ ...formData, calle: e.target.value })} />
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <input type="text" placeholder="Piso" className="w-full rounded-lg border-gray-300 border p-2.5" value={formData.piso} onChange={e => setFormData({ ...formData, piso: e.target.value })} />
-                                        <input type="text" placeholder="Depto" className="w-full rounded-lg border-gray-300 border p-2.5" value={formData.depto} onChange={e => setFormData({ ...formData, depto: e.target.value })} />
-                                    </div>
-                                </div>
-
-                                {/* Preview de Dirección Formateada */}
-                                {(formData.calle && formData.provincia) && (
-                                    <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded border border-gray-100 italic">
-                                        <MapPin size={12} className="inline mr-1" />
-                                        {`${formData.calle}, ${formData.localidad}, ${formData.partido}, ${formData.provincia}, Argentina`}
-                                    </div>
-                                )}
                             </div>
 
-                            {/* Nota Legal / Autorizaciones */}
-                            <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 flex gap-2 items-start text-xs text-blue-700">
-                                <Sparkles size={14} className="mt-0.5 shrink-0" />
-                                <p>
-                                    <strong>Nota Importante:</strong> El cliente deberá validar su identidad y aceptar los permisos de
-                                    <strong> Ubicación con GPS</strong> y <strong>Notificaciones Push</strong> directamente desde su dispositivo
-                                    al iniciar sesión en la App Web (PWA). Estos permisos no se pueden forzar desde el panel.
-                                </p>
-                            </div>
-
-                            <div className="flex gap-3 justify-end pt-4 border-t border-gray-50">
-                                <button type="button" onClick={closeModal} className="px-5 py-2.5 text-gray-600 font-medium hover:bg-gray-100 rounded-xl">Cancelar</button>
-                                <button type="submit" disabled={loading} className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg transition active:scale-95">
-                                    {loading ? 'Guardando...' : 'Guardar'}
+                            <div className="mt-8 flex justify-end gap-3">
+                                <button type="button" onClick={closeModal} className="px-8 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition">Cancelar</button>
+                                <button type="submit" disabled={loading} className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-100 disabled:opacity-50">
+                                    {loading ? 'Guardando...' : 'Guardar Cliente'}
                                 </button>
                             </div>
                         </form>
@@ -1244,229 +799,77 @@ export const ClientsPage = () => {
                 </div>
             )}
 
-            {/* Modal ASIGNAR PUNTOS */}
+            {/* MODAL: Asignar Puntos */}
             {pointsModalOpen && selectedClientForPoints && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-md animate-fade-in">
-                    <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-scale-up">
-                        <div className="bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-6 text-white text-center">
-                            <h2 className="text-2xl font-black mb-1">¡Asignar Puntos!</h2>
-                            <p className="opacity-90 text-sm">a {selectedClientForPoints.name}</p>
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden">
+                        <div className="bg-green-600 p-6 flex justify-between items-center text-white">
+                            <div>
+                                <h2 className="text-xl font-bold">Sumar Puntos</h2>
+                                <p className="text-green-100 text-xs">{selectedClientForPoints.name}</p>
+                            </div>
+                            <button onClick={closePointsModal} className="p-2 hover:bg-white/10 rounded-full transition"><X size={20} /></button>
                         </div>
-
-                        <form onSubmit={handleAssignPoints} className="p-6 space-y-6">
-                            {/* Selector de Modo */}
-                            <div className="bg-gray-100 p-1 rounded-lg flex text-sm font-bold">
-                                <button
-                                    type="button"
-                                    onClick={() => setPointsData({ ...pointsData, isPesos: true })}
-                                    className={`flex-1 py-2 rounded-md transition ${pointsData.isPesos ? 'bg-white shadow text-green-600' : 'text-gray-500 hover:text-gray-700'}`}
-                                >
-                                    En Pesos ($)
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setPointsData({ ...pointsData, isPesos: false })}
-                                    className={`flex-1 py-2 rounded-md transition ${!pointsData.isPesos ? 'bg-white shadow text-green-600' : 'text-gray-500 hover:text-gray-700'}`}
-                                >
-                                    Directo (Pts)
-                                </button>
+                        <form onSubmit={handleAssignPoints} className="p-8 space-y-6">
+                            <div className="flex gap-4 p-1 bg-gray-50 rounded-xl mb-4">
+                                <button type="button" onClick={() => setPointsData({ ...pointsData, isPesos: true })} className={`flex-1 py-2 rounded-lg font-bold text-sm transition ${pointsData.isPesos ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400'}`}>Por Monto ($)</button>
+                                <button type="button" onClick={() => setPointsData({ ...pointsData, isPesos: false })} className={`flex-1 py-2 rounded-lg font-bold text-sm transition ${!pointsData.isPesos ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400'}`}>Puntos Directos</button>
                             </div>
 
-                            {/* Input Principal */}
-                            <div className="relative">
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">
-                                    {pointsData.isPesos ? 'Monto de la Compra' : 'Cantidad de Puntos'}
-                                </label>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">{pointsData.isPesos ? 'Monto de la Compra ($)' : 'Cantidad de Puntos'}</label>
                                 <div className="relative">
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-lg">
-                                        {pointsData.isPesos ? '$' : 'Pts'}
-                                    </span>
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">{pointsData.isPesos ? '$' : 'pts'}</span>
                                     <input
-                                        type="number" autoFocus required min="1"
-                                        className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl py-4 pl-10 pr-4 text-3xl font-bold text-gray-800 outline-none focus:border-green-500 focus:bg-white transition"
-                                        placeholder="0"
+                                        type="number"
+                                        required
+                                        autoFocus
+                                        className="w-full pl-10 pr-4 py-4 rounded-xl border border-gray-200 text-2xl font-black focus:ring-2 focus:ring-green-100 outline-none"
                                         value={pointsData.amount}
                                         onChange={e => setPointsData({ ...pointsData, amount: e.target.value })}
                                     />
                                 </div>
-                                {pointsData.isPesos && (
-                                    <div className="text-right mt-2 space-y-1">
-                                        <p className="text-xs text-green-600 font-bold">
-                                            ➜ Base: {Math.floor((parseFloat(pointsData.amount || '0') / 100) * (config?.pointsPerPeso || 1))} Pts
-                                        </p>
-                                        {/* Preview de Bonos (Solo visual, requiere lógica async real, aquí simulamos llamada o dejamos genérico) 
-                                            Para hacerlo reactivo real necesitaríamos un useEffect que busque bonos al abrir el modal.
-                                            Por simplicidad y performance, mostraremos el aviso genérico si detectamos bonos al abrir.
-                                        */}
-                                        <BonusPreview />
-                                    </div>
-                                )}
-                                {/* Visualización del Vencimiento (Feedback para el usuario) */}
-                                <div className="mt-2 text-right">
-                                    <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
-                                        Vencimiento de este lote:
-                                    </p>
-                                    <p className="text-sm font-medium text-gray-600">
-                                        {(() => {
-                                            // Calcular 'preview' del vencimiento
-                                            let pts = 0;
-                                            if (pointsData.isPesos) {
-                                                const currentBalance = selectedClientForPoints?.accumulated_balance || 0;
-                                                const totalVal = (parseFloat(pointsData.amount) || 0) + currentBalance;
-                                                pts = Math.floor((totalVal / 100) * (config?.pointsPerPeso || 1));
-                                            } else {
-                                                pts = parseFloat(pointsData.amount) || 0;
-                                            }
-
-                                            // Buscar regla
-                                            let days = 365;
-                                            if (config?.expirationRules && pts > 0) {
-                                                const rule = config.expirationRules.find((r: any) =>
-                                                    pts >= r.minPoints && (r.maxPoints === null || pts <= r.maxPoints)
-                                                );
-                                                if (rule) {
-                                                    days = rule.validityDays;
-                                                } else {
-                                                    // Fallback for exceeding points: Highest Tier logic
-                                                    const sorted = [...config.expirationRules].sort((a: any, b: any) => Number(a.minPoints) - Number(b.minPoints));
-                                                    const lastRule = sorted[sorted.length - 1];
-
-                                                    // If pts >= lastRule.minPoints, then we are in (or above) the top tier
-                                                    if (lastRule && pts >= Number(lastRule.minPoints)) {
-                                                        days = lastRule.validityDays;
-                                                    }
-                                                }
-                                            }
-
-                                            // Calculate expiration based on PURCHASE DATE, not just today
-                                            const baseDate = pointsData.purchaseDate
-                                                ? new Date(pointsData.purchaseDate + 'T12:00:00')
-                                                : new Date();
-
-                                            const d = new Date(baseDate);
-                                            d.setDate(d.getDate() + days);
-                                            return d.toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
-                                        })()}
-                                    </p>
-                                </div>
                             </div>
 
-                            {/* Fecha de Compra */}
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Fecha de Compra</label>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">Concepto / Motivo</label>
                                 <input
-                                    type="date"
-                                    required
-                                    className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-green-100 font-medium text-gray-700"
-                                    value={pointsData.purchaseDate}
-                                    max={new Date().toISOString().split('T')[0]}
-                                    onChange={e => setPointsData({ ...pointsData, purchaseDate: e.target.value })}
+                                    type="text"
+                                    className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none"
+                                    value={pointsData.concept}
+                                    onChange={e => setPointsData({ ...pointsData, concept: e.target.value })}
                                 />
                             </div>
 
-                            {/* Concepto */}
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Motivo / Concepto</label>
-                                <select
-                                    className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-green-100"
-                                    value={pointsData.concept}
-                                    onChange={e => setPointsData({ ...pointsData, concept: e.target.value })}
-                                >
-                                    <option>Compra en local</option>
-                                    <option>Regalo de cumpleaños</option>
-                                    <option>Ajuste manual</option>
-                                    <option>Promoción especial</option>
-                                </select>
-                            </div>
-
-                            {/* Notificar Checkbox */}
-                            {config?.messaging?.whatsappEnabled && (
-                                <div className="flex items-center gap-2 p-3 bg-green-50 rounded-xl border border-green-100 cursor-pointer" onClick={() => setNotifyWhatsapp(!notifyWhatsapp)}>
-                                    <div className={`w-5 h-5 rounded border flex items-center justify-center transition ${notifyWhatsapp ? 'bg-green-500 border-green-500' : 'bg-white border-gray-300'}`}>
-                                        {notifyWhatsapp && <span className="text-white text-xs font-bold">✓</span>}
-                                    </div>
-                                    <span className="text-sm font-bold text-gray-700 select-none">Notificar al cliente por WhatsApp</span>
-                                </div>
-                            )}
-
-                            {/* Aplicar Promociones Checkbox */}
-                            <div className="flex items-center gap-2 p-3 bg-purple-50 rounded-xl border border-purple-100 cursor-pointer mt-2" onClick={() => setApplyPromotions(!applyPromotions)}>
-                                <div className={`w-5 h-5 rounded border flex items-center justify-center transition ${applyPromotions ? 'bg-purple-500 border-purple-500' : 'bg-white border-gray-300'}`}>
-                                    {applyPromotions && <span className="text-white text-xs font-bold">✓</span>}
-                                </div>
-                                <span className="text-sm font-bold text-gray-700 select-none">Aplicar Promociones Vigentes</span>
-                            </div>
-
-                            <div className="flex gap-3 pt-2">
-                                <button
-                                    type="button" onClick={closePointsModal}
-                                    className="flex-1 py-3 text-gray-500 font-bold hover:bg-gray-100 rounded-xl"
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    type="submit" disabled={loading}
-                                    className="flex-1 py-3 bg-grad-green text-white bg-green-500 hover:bg-green-600 font-bold rounded-xl shadow-lg shadow-green-200 transform transition active:scale-95"
-                                >
-                                    {loading ? 'Asignando...' : 'Confirmar'}
-                                </button>
-                            </div>
+                            <button type="submit" disabled={loading} className="w-full py-4 bg-green-600 text-white rounded-2xl font-bold text-lg hover:bg-green-700 transition shadow-lg shadow-green-100 disabled:opacity-50">
+                                {loading ? 'Procesando...' : 'Asignar Puntos'}
+                            </button>
                         </form>
                     </div>
                 </div>
             )}
 
-            {/* Modal REDENCION/CANJE */}
+            {/* MODAL: Canje */}
             {redemptionModalOpen && selectedClientForRedemption && (
                 <RedemptionModal
                     client={selectedClientForRedemption}
-                    onClose={() => {
+                    isOpen={redemptionModalOpen}
+                    onClose={() => setRedemptionModalOpen(false)}
+                    onSuccess={() => {
                         setRedemptionModalOpen(false);
-                        setSelectedClientForRedemption(null);
-                    }}
-                    onRedeemSuccess={() => {
-                        fetchData(); // Recargar puntos
+                        fetchData();
                     }}
                 />
             )}
 
-            {/* Modal HISTORIAL */}
+            {/* MODAL: Historial */}
             {historyModalOpen && selectedClientForHistory && (
                 <PointsHistoryModal
-                    isOpen={historyModalOpen}
                     client={selectedClientForHistory}
-                    onClose={() => {
-                        setHistoryModalOpen(false);
-                        setSelectedClientForHistory(null);
-                    }}
-                    onClientUpdated={fetchData}
+                    isOpen={historyModalOpen}
+                    onClose={() => setHistoryModalOpen(false)}
                 />
             )}
-        </div>
-    );
-};
-
-// Componente auxiliar para mostrar bonos activos en el modal
-const BonusPreview = () => {
-    const [bonuses, setBonuses] = useState<any[]>([]);
-
-    useEffect(() => {
-        CampaignService.getActiveBonusesForToday().then(setBonuses);
-    }, []);
-
-    if (bonuses.length === 0) return null;
-
-    return (
-        <div className="animate-pulse flex flex-col items-end gap-1 mt-1">
-            {bonuses.map(b => (
-                <span key={b.id} className="text-xs font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-100 flex items-center gap-1">
-                    <Sparkles size={10} />
-                    {b.rewardType === 'MULTIPLIER'
-                        ? `x${b.rewardValue} Pts por ${b.name}`
-                        : `+${b.rewardValue} Pts por ${b.name}`
-                    }
-                </span>
-            ))}
         </div>
     );
 };

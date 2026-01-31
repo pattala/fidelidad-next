@@ -112,22 +112,28 @@ async function procesarNotificacionIndividual({ campaignId, tipoNotificacion, de
   // 6) EMAILS — SendGrid
   let emailCount = 0;
   if (process.env.SENDGRID_API_KEY && process.env.SENDGRID_FROM_EMAIL) {
+    // Branding
+    const configSnap = await db.collection('config').doc('general').get();
+    const appConfig = configSnap.exists ? configSnap.data() : { siteName: 'Club Fidelidad' };
+    const siteNameValue = appConfig.siteName || 'Club Fidelidad';
+    const logoUrl = appConfig.logoUrl || ICON_URL;
+
     const emails = Array.from(new Set(clientes.map(c => c.email).filter(Boolean)));
     const jobs = emails.map(async (email) => {
       const cliente = clientes.find(c => c.email === email);
       const nombre = cliente?.nombre?.split(" ")[0] || "Cliente";
       const html = `
         <div style="font-family:Arial, sans-serif; line-height:1.6; color:#333; max-width:600px; margin:auto; border:1px solid #ddd; padding:20px;">
-          <img src="${ICON_URL}" alt="Logo" style="width:150px; display:block; margin:0 auto 20px 0;">
+          <img src="${logoUrl}" alt="Logo" style="width:150px; display:block; margin:0 auto 20px 0;">
           <h2 style="color:#0056b3;">${subject}</h2>
           <div>${cuerpoBase.replace(/{nombre}/g, nombre)}</div>
-          <br><p>Atentamente,<br><strong>Club RAMPET</strong></p>
+          <br><p>Atentamente,<br><strong>${siteNameValue}</strong></p>
         </div>
       `.trim();
       try {
         await sgMail.send({
           to: email,
-          from: { email: process.env.SENDGRID_FROM_EMAIL, name: "Club RAMPET" },
+          from: { email: process.env.SENDGRID_FROM_EMAIL, name: siteNameValue },
           subject,
           html
         });

@@ -223,14 +223,34 @@ const SwipeableMessage = ({ msg, onDelete, onRead }: { msg: InboxMessage, onDele
                 </p>
 
                 <div className="flex justify-between items-center border-t border-gray-50 pt-3 mt-1">
-                    <span className={`
-                        text-[10px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider
-                        ${msg.type === 'prize' ? 'bg-yellow-50 text-yellow-700' :
-                            msg.type === 'manual' ? 'bg-blue-50 text-blue-700' :
-                                'bg-gray-100 text-gray-500'}
-                    `}>
-                        {msg.type || 'Sistema'}
-                    </span>
+                    {(() => {
+                        let label = 'Sistema';
+                        let colorClass = 'bg-gray-100 text-gray-500';
+                        const type = msg.type?.toLowerCase();
+
+                        if (type === 'prize' || type === 'premio' || type === 'redemption') {
+                            label = 'Premio';
+                            colorClass = 'bg-yellow-50 text-yellow-700 border border-yellow-100';
+                        } else if (type === 'pointsadded' || type === 'puntos') {
+                            label = 'Puntos';
+                            colorClass = 'bg-green-50 text-green-700 border border-green-100';
+                        } else if (type === 'welcome' || type === 'bienvenida') {
+                            label = 'Bienvenida';
+                            colorClass = 'bg-purple-50 text-purple-700 border border-purple-100';
+                        } else if (type === 'campaign' || type === 'campaña' || type === 'offer' || type === 'oferta') {
+                            label = 'Promoción';
+                            colorClass = 'bg-rose-50 text-rose-700 border border-rose-100';
+                        } else if (type === 'manual') {
+                            label = 'Mensaje';
+                            colorClass = 'bg-blue-50 text-blue-700 border border-blue-100';
+                        }
+
+                        return (
+                            <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider ${colorClass}`}>
+                                {label}
+                            </span>
+                        );
+                    })()}
 
                     {/* Visible Delete Button */}
                     <button

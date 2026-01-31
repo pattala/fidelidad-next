@@ -43,7 +43,7 @@ export default async function handler(req, res) {
 
     try {
         // 1. Obtener configuración del comercio para el branding
-        const configSnap = await db.collection('config').doc('app_config').get();
+        const configSnap = await db.collection('config').doc('general').get();
         const config = configSnap.exists ? configSnap.data() : { siteName: 'Club de Fidelidad', primaryColor: '#2563eb' };
 
         // 2. Crear o recuperar usuario en Firebase Auth

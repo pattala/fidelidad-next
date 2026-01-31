@@ -20,6 +20,7 @@ Este documento es la guía definitiva para la operación, configuración y estra
 5. [Mensajería y Enlaces Externos](#5-mensajería-y-enlaces-externos)
    - [Cómo funciona el motor de WhatsApp](#cómo-funciona-el-motor-de-whatsapp)
 6. [Solución de Problemas](#6-solución-de-problemas)
+7. [Gestión de Roles y Permisos](#7-gestión-de-roles-y-permisos)
 
 ---
 
@@ -140,4 +141,39 @@ En el modal de historial, abajo a la izquierda, use el botón rojo **"Resetear T
 Asegúrese de que el cliente tiene conexión a internet y ha actualizado la página. Los canjes aparecen en rojo con el signo negativo (-).
 
 ---
-*Manual Operativo Avanzado v2.0*
+
+## 7. 🔐 Gestión de Roles y Permisos
+
+El sistema cuenta con un esquema de seguridad basado en roles para asegurar que cada miembro del equipo acceda solo a lo que necesita para su función.
+
+### Jerarquía de Roles
+
+#### A. Administrador (admin)
+Es el nivel más alto de acceso. Recomendado solo para dueños o gerentes generales.
+*   **Permisos Especiales:**
+    *   Gestión de Configuración (Valor del punto, expiración, branding).
+    *   Gestión de Equipo (Invitar/eliminar otros administradores).
+    *   Uso del Simulador de Fecha para pruebas de vencimiento.
+    *   Acciones de CRUD completas en todas las áreas.
+
+#### B. Operador (editor)
+Ideal para encargados de local o personal administrativo.
+*   **Permisos:**
+    *   Gestión de Clientes (Alta, edición, carga de puntos y canjes).
+    *   Gestión de Premios (Crear y editar catálogo).
+    *   Gestión de Campañas y Notificaciones.
+*   **Restricciones:** No puede entrar a "Configuración" ni gestionar otros usuarios.
+
+#### C. Solo Ver (viewer)
+Ideal para auditorías o pasivistas que necesitan consultar datos sin el riesgo de modificarlos.
+*   **Permisos:** Puede navegar por todas las pantallas (excepto configuración) para consultar saldos, historiales y estadísticas.
+*   **Restricciones:** Todos los botones de "Guardar", "Eliminar", "Nuevo", "Sumar Puntos" o "Enviar" están deshabilitados. No puede realizar ninguna acción que altere la base de datos.
+
+### Gestión de Equipo
+Para gestionar el acceso de su equipo, diríjase a **Mi Perfil > Gestión de Equipo**.
+1.  **Invitar Invitado:** Ingrese el email del colaborador y asigne el rol correspondiente.
+2.  **Activación:** El invitado recibirá una notificación (según el flujo de onboarding) y podrá registrarse usando ese mismo email para activar sus permisos.
+3.  **Revocación:** El administrador principal puede eliminar el acceso de cualquier miembro en cualquier momento.
+
+---
+*Manual Operativo Avanzado v2.1 (Roles & Permissions update)*

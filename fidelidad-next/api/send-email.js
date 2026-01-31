@@ -101,25 +101,30 @@ export default async function handler(req, res) {
     const { to, templateId, templateData = {} } = req.body || {};
     if (!to || !templateId) return res.status(400).json({ message: 'Faltan parámetros: to y templateId.' });
 
-    // 1) Plantilla unificada o Manual Override
+    // 1) Fetch Dynamic Config for Branding
+    const configSnap = await db.collection('config').doc('general').get();
+    const appConfig = configSnap.exists ? configSnap.data() : { siteName: 'Club Fidelidad' };
+    const siteName = appConfig.siteName || 'Club Fidelidad';
+
+    // 2) Plantilla unificada o Manual Override
     let subject, html;
 
     if (templateId === 'manual_override') {
-      // Bypass template engine lookup
       subject = templateData.subject || 'Notificación';
-      // Si el frontend ya manda el HTML completo (como hace EmailService.ts), lo usamos directo.
-      // Si quisiéramos envolverlo con el layout de la API, haríamos buildHtmlLayout(templateData.htmlContent)
-      // Pero como el frontend usa generateBrandedTemplate, ya tiene layout.
       html = templateData.htmlContent || '<p>Sin contenido</p>';
     } else {
-      // Standard flow: database template
       const tpl = await resolveTemplate(db, templateId, 'email');
       subject = applyBlocksAndVars(tpl.titulo, { ...templateData, email: to });
       const htmlInner = applyBlocksAndVars(tpl.cuerpo, { ...templateData, email: to });
-      html = buildHtmlLayout(htmlInner);
+
+      // We could use buildHtmlLayout with dynamic config if we refactored it, 
+      // but let's keep it simple and inject dynamic names directly
+      html = buildHtmlLayout(htmlInner)
+        .replace(/Club RAMPET/g, siteName)
+        .replace(/RAMPET/g, siteName);
     }
 
-    // 2) Validar Credenciales SMTP
+    // 3) Validar Credenciales SMTP
     if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
       console.error('Faltan credenciales SMTP_USER / SMTP_PASS');
       return res.status(500).json({
@@ -128,15 +133,11 @@ export default async function handler(req, res) {
       });
     }
 
-    // 3) Enviar con Nodemailer (Gmail)
+    // 4) Enviar con Nodemailer (Gmail)
     console.log('[send-email] Attempting to send via Nodemailer...', { to, subject });
 
-    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-      console.error('[send-email] MISSING SMTP CREDENTIALS');
-    }
-
     const info = await transporter.sendMail({
-      from: `"Club RAMPET" <${process.env.SMTP_USER}>`,
+      from: `"${siteName}" <${process.env.SMTP_USER}>`,
       to,
       subject,
       html

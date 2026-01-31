@@ -8,8 +8,10 @@ import { Search, Filter, Send, Copy, CheckSquare, Square } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import { useLocation } from 'react-router-dom';
+import { useAdminAuth } from '../contexts/AdminAuthContext';
 
 export const WhatsAppPage = () => {
+    const { isReadOnly } = useAdminAuth();
     const location = useLocation();
     const [clients, setClients] = useState<Client[]>([]);
     const [config, setConfig] = useState<AppConfig | null>(null);
@@ -42,8 +44,6 @@ export const WhatsAppPage = () => {
                 }
 
                 // 2. Load Clients
-                // Note: 'orderBy' might fail if field doesn't exist on all docs or index missing for 'name'.
-                // defaulting to safe fetch
                 const q = query(collection(db, 'users')); // Reverted to 'users'
                 const snap = await getDocs(q);
                 // Filter users that have a name (valid clients)
@@ -82,7 +82,7 @@ export const WhatsAppPage = () => {
             }
         };
         loadJava();
-    }, []);
+    }, [location.state]);
 
     // Derived: Unique Tags
     const allTags = Array.from(new Set(clients.flatMap(c => c.tags || []))).sort();
@@ -102,6 +102,7 @@ export const WhatsAppPage = () => {
     });
 
     const toggleClient = (id: string) => {
+        if (isReadOnly) return;
         const newSet = new Set(selectedClients);
         if (newSet.has(id)) newSet.delete(id);
         else newSet.add(id);
@@ -109,6 +110,7 @@ export const WhatsAppPage = () => {
     };
 
     const toggleAll = () => {
+        if (isReadOnly) return;
         if (selectedClients.size === filteredClients.length) {
             setSelectedClients(new Set());
         } else {
@@ -125,7 +127,6 @@ export const WhatsAppPage = () => {
         if (!phoneNum.startsWith('54') && phoneNum.length === 10) phoneNum = '549' + phoneNum;
 
         // Process message variables
-        // Extract first name for a more personal touch if desired, or use full name
         const firstName = client.name.split(' ')[0];
 
         const processedMsg = message
@@ -139,6 +140,7 @@ export const WhatsAppPage = () => {
     };
 
     const handleSendIndividual = (client: Client) => {
+        if (isReadOnly) return;
         if (!client.phone) {
             toast.error('Cliente sin teléfono');
             return;
@@ -153,6 +155,7 @@ export const WhatsAppPage = () => {
     const [currentIndex, setCurrentIndex] = useState(0);
 
     const startSendingQueue = () => {
+        if (isReadOnly) return;
         const queue = filteredClients.filter(c => selectedClients.has(c.id));
         if (queue.length === 0) return;
         setSendingQueue(queue);
@@ -181,8 +184,7 @@ export const WhatsAppPage = () => {
 
 
     const copyLinksToClipboard = () => {
-        // Feature for "Bulk Send" workaround (since we can't open 100 tabs)
-        // We generate a list of links
+        if (isReadOnly) return;
         const selectedList = filteredClients.filter(c => selectedClients.has(c.id));
         if (selectedList.length === 0) return;
 
@@ -220,7 +222,7 @@ export const WhatsAppPage = () => {
 
                 {/* List Header */}
                 <div className="px-4 py-2 bg-gray-100 border-b border-gray-200 flex items-center text-xs font-bold text-gray-500 uppercase">
-                    <button onClick={toggleAll} className="mr-3 hover:text-blue-600">
+                    <button onClick={toggleAll} disabled={isReadOnly} className="mr-3 hover:text-blue-600 disabled:opacity-50">
                         {selectedClients.size > 0 && selectedClients.size === filteredClients.length ? <CheckSquare size={18} /> : <Square size={18} />}
                     </button>
                     <div className="w-12">Avatar</div>
@@ -239,7 +241,7 @@ export const WhatsAppPage = () => {
                     ) : (
                         filteredClients.map(client => (
                             <div key={client.id} className={`flex items-center px-4 py-3 border-b border-gray-50 hover:bg-blue-50/50 transition ${selectedClients.has(client.id) ? 'bg-blue-50' : ''}`}>
-                                <button onClick={() => toggleClient(client.id)} className="mr-3 text-gray-400 hover:text-blue-600">
+                                <button onClick={() => toggleClient(client.id)} disabled={isReadOnly} className="mr-3 text-gray-400 hover:text-blue-600 disabled:opacity-50">
                                     {selectedClients.has(client.id) ? <CheckSquare size={18} className="text-blue-600" /> : <Square size={18} />}
                                 </button>
 
@@ -269,9 +271,9 @@ export const WhatsAppPage = () => {
                                 <div className="w-24 flex justify-center">
                                     <button
                                         onClick={() => handleSendIndividual(client)}
-                                        className="p-2 text-green-600 hover:bg-green-100 rounded-full transition"
+                                        className="p-2 text-green-600 hover:bg-green-100 rounded-full transition disabled:opacity-20"
                                         title="Enviar WhatsApp ahora"
-                                        disabled={!client.phone}
+                                        disabled={isReadOnly || !client.phone}
                                     >
                                         <Send size={16} />
                                     </button>
@@ -302,7 +304,8 @@ export const WhatsAppPage = () => {
                         <textarea
                             value={message}
                             onChange={e => setMessage(e.target.value)}
-                            className="w-full h-full p-4 bg-gray-50 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-green-100 resize-none font-medium text-gray-700"
+                            disabled={isReadOnly}
+                            className="w-full h-full p-4 bg-gray-50 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-green-100 resize-none font-medium text-gray-700 disabled:opacity-50"
                             placeholder="Escribe tu mensaje aquí..."
                         />
                     </div>
@@ -310,10 +313,10 @@ export const WhatsAppPage = () => {
                     <div className="mt-4 space-y-3">
                         <p className="text-xs text-gray-400">Variables Disponibles (haz clic para insertar):</p>
                         <div className="flex gap-2">
-                            <button onClick={() => setMessage(m => m + ' {nombre} ')} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-bold text-gray-600 transition">
+                            <button onClick={() => setMessage(m => m + ' {nombre} ')} disabled={isReadOnly} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-bold text-gray-600 transition disabled:opacity-50">
                                 {`{nombre}`}
                             </button>
-                            <button onClick={() => setMessage(m => m + ' {puntos} ')} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-bold text-gray-600 transition">
+                            <button onClick={() => setMessage(m => m + ' {puntos} ')} disabled={isReadOnly} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-bold text-gray-600 transition disabled:opacity-50">
                                 {`{puntos}`}
                             </button>
                         </div>
@@ -329,7 +332,7 @@ export const WhatsAppPage = () => {
 
                     <button
                         onClick={startSendingQueue}
-                        disabled={selectedClients.size === 0}
+                        disabled={isReadOnly || selectedClients.size === 0}
                         className="w-full mb-3 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl shadow-lg shadow-green-200 flex items-center justify-center gap-2 transition disabled:opacity-50 disabled:shadow-none"
                     >
                         <Send size={18} />
@@ -338,7 +341,7 @@ export const WhatsAppPage = () => {
 
                     <button
                         onClick={copyLinksToClipboard}
-                        disabled={selectedClients.size === 0}
+                        disabled={isReadOnly || selectedClients.size === 0}
                         className="w-full bg-white hover:bg-gray-50 text-green-700 border border-green-200 font-bold py-2 rounded-xl flex items-center justify-center gap-2 transition disabled:opacity-50"
                     >
                         <Copy size={16} />
@@ -351,7 +354,7 @@ export const WhatsAppPage = () => {
             {/* SENDING MODE OVERLAY */}
             {isSendingMode && sendingQueue.length > 0 && (
                 <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
+                    <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden animate-fade-in">
                         {/* Header */}
                         <div className="bg-green-600 p-6 text-white flex justify-between items-center">
                             <div>

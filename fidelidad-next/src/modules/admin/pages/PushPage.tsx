@@ -7,7 +7,10 @@ import { collection, getDocs, query, doc, getDoc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import { NotificationService } from '../../../services/notificationService';
 
+import { useAdminAuth } from '../contexts/AdminAuthContext';
+
 export const PushPage = () => {
+    const { isReadOnly } = useAdminAuth();
     const [loading, setLoading] = useState(false);
     const [targetType, setTargetType] = useState<'all' | 'single'>('single');
     const [targetId, setTargetId] = useState('');
@@ -288,7 +291,7 @@ export const PushPage = () => {
                     <div className="pt-4 flex justify-end">
                         <button
                             type="submit"
-                            disabled={loading || (targetType === 'single' && !targetId) || !title || !body}
+                            disabled={loading || isReadOnly || (targetType === 'single' && !targetId) || !title || !body}
                             className={`
                                 px-8 py-3 rounded-xl font-bold text-white shadow-lg flex items-center gap-2 transition-all
                                 ${loading ? 'bg-gray-400 cursor-wait' : 'bg-orange-500 hover:bg-orange-600 active:scale-95 shadow-orange-200'}

@@ -5,7 +5,10 @@ import toast from 'react-hot-toast';
 import { PrizeService } from '../../../services/prizeService';
 import type { Prize } from '../../../types';
 
+import { useAdminAuth } from '../contexts/AdminAuthContext';
+
 export const PrizesPage = () => {
+    const { isReadOnly } = useAdminAuth();
     const [prizes, setPrizes] = useState<Prize[]>([]);
     const [loading, setLoading] = useState(false);
 

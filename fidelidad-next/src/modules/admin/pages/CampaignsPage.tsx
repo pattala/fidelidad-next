@@ -10,8 +10,11 @@ import { db } from '../../../lib/firebase';
 import { NotificationService } from '../../../services/notificationService';
 import { EmailService } from '../../../services/emailService';
 
+import { useAdminAuth } from '../contexts/AdminAuthContext';
+
 export const CampaignsPage = () => {
     const navigate = useNavigate();
+    const { isReadOnly } = useAdminAuth();
     const [bonuses, setBonuses] = useState<BonusRule[]>([]);
     // const [loading, setLoading] = useState(false); // Unused
 
@@ -305,12 +308,14 @@ export const CampaignsPage = () => {
                     </h1>
                     <p className="text-gray-500 mt-1">Configura reglas de puntos, bonos y banners publicitarios.</p>
                 </div>
-                <button
-                    onClick={() => { resetForm(); setIsModalOpen(true); }}
-                    className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-purple-200 transition flex items-center gap-2 active:scale-95"
-                >
-                    <Plus size={20} /> Crear Nuevo
-                </button>
+                {!isReadOnly && (
+                    <button
+                        onClick={() => { resetForm(); setIsModalOpen(true); }}
+                        className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-purple-200 transition flex items-center gap-2 active:scale-95"
+                    >
+                        <Plus size={20} /> Crear Nuevo
+                    </button>
+                )}
             </div>
 
             {/* Grid de Bonos */}
@@ -410,31 +415,33 @@ export const CampaignsPage = () => {
                                 {bonus.active ? 'ACTIVO' : 'PAUSADO'}
                             </span>
 
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => handleBroadcast(bonus)}
-                                    className="text-gray-400 hover:text-green-600 transition p-1.5 hover:bg-green-50 rounded-lg flex items-center gap-1"
-                                    title="Difundir por WhatsApp"
-                                >
-                                    <Send size={16} />
-                                    <span className="text-xs font-bold">Difundir</span>
-                                </button>
-                                <div className="w-px h-4 bg-gray-200 self-center mx-1"></div>
-                                <button
-                                    onClick={() => handleEdit(bonus)}
-                                    className="text-gray-400 hover:text-blue-500 transition p-1.5 hover:bg-blue-50 rounded-lg"
-                                    title="Editar"
-                                >
-                                    <Edit size={16} />
-                                </button>
-                                <button
-                                    onClick={() => handleDelete(bonus.id)}
-                                    className="text-gray-400 hover:text-red-500 transition p-1.5 hover:bg-red-50 rounded-lg"
-                                    title="Eliminar"
-                                >
-                                    <Trash2 size={16} />
-                                </button>
-                            </div>
+                            {!isReadOnly && (
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => handleBroadcast(bonus)}
+                                        className="text-gray-400 hover:text-green-600 transition p-1.5 hover:bg-green-50 rounded-lg flex items-center gap-1"
+                                        title="Difundir por WhatsApp"
+                                    >
+                                        <Send size={16} />
+                                        <span className="text-xs font-bold">Difundir</span>
+                                    </button>
+                                    <div className="w-px h-4 bg-gray-200 self-center mx-1"></div>
+                                    <button
+                                        onClick={() => handleEdit(bonus)}
+                                        className="text-gray-400 hover:text-blue-500 transition p-1.5 hover:bg-blue-50 rounded-lg"
+                                        title="Editar"
+                                    >
+                                        <Edit size={16} />
+                                    </button>
+                                    <button
+                                        onClick={() => handleDelete(bonus.id)}
+                                        className="text-gray-400 hover:text-red-500 transition p-1.5 hover:bg-red-50 rounded-lg"
+                                        title="Eliminar"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 ))}

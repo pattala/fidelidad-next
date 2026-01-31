@@ -4,9 +4,10 @@ import { updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 
 import { auth } from '../../../lib/firebase';
 import toast from 'react-hot-toast';
 import { Lock, User, Users, Trash2 } from 'lucide-react';
+import { useAdminAuth } from '../contexts/AdminAuthContext';
 
 export const AdminProfilePage = () => {
-    const user = auth.currentUser;
+    const { user, role } = useAdminAuth();
     const [currentPass, setCurrentPass] = useState('');
     const [newPass, setNewPass] = useState('');
     const [loading, setLoading] = useState(false);
@@ -99,14 +100,16 @@ export const AdminProfilePage = () => {
                 </form>
             </div>
 
-            {/* GESTIÓN DE EQUIPO */}
-            <div className="mt-12">
-                <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    <Users size={24} className="text-blue-600" />
-                    Gestión de Equipo
-                </h2>
-                <TeamManagement />
-            </div>
+            {/* GESTIÓN DE EQUIPO - Only Admin */}
+            {role === 'admin' && (
+                <div className="mt-12">
+                    <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <Users size={24} className="text-blue-600" />
+                        Gestión de Equipo
+                    </h2>
+                    <TeamManagement />
+                </div>
+            )}
         </div>
     );
 };

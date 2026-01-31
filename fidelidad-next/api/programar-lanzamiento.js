@@ -85,7 +85,20 @@ function buildSendUrl() {
 
 /* Construye título/cuerpo desde templateData y, si existe, plantilla Firestore */
 async function buildMessage({ templateId, templateData }) {
-  let title = templateData?.titulo || "RAMPET";
+  // Fetch Branding for fallback
+  let siteName = "Club Fidelidad";
+  try {
+    if (db) {
+      const configSnap = await db.collection('config').doc('general').get();
+      if (configSnap.exists) {
+        siteName = configSnap.data().siteName || siteName;
+      }
+    }
+  } catch (e) {
+    console.warn("[programar-lanzamiento] branding fetch error:", e?.message);
+  }
+
+  let title = templateData?.titulo || siteName;
   let body = templateData?.descripcion || "";
 
   try {

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { auth } from '../../../lib/firebase';
 import toast from 'react-hot-toast';
-import { Lock, User, Users, Trash2 } from 'lucide-react';
+import { Lock, User, Users, Trash2, Eye, EyeOff } from 'lucide-react';
 import { useAdminAuth } from '../contexts/AdminAuthContext';
 
 export const AdminProfilePage = () => {
@@ -11,6 +11,7 @@ export const AdminProfilePage = () => {
     const [currentPass, setCurrentPass] = useState('');
     const [newPass, setNewPass] = useState('');
     const [loading, setLoading] = useState(false);
+    const [showPass, setShowPass] = useState(false);
 
     const handleChangePassword = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -66,27 +67,45 @@ export const AdminProfilePage = () => {
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña Actual</label>
-                        <input
-                            type="password"
-                            required
-                            className="w-full p-3 rounded-lg border border-gray-200 outline-none focus:ring-2 focus:ring-blue-100 transition"
-                            placeholder="••••••••"
-                            value={currentPass}
-                            onChange={e => setCurrentPass(e.target.value)}
-                        />
+                        <div className="relative">
+                            <input
+                                type={showPass ? "text" : "password"}
+                                required
+                                className="w-full p-3 rounded-lg border border-gray-200 outline-none focus:ring-2 focus:ring-blue-100 transition pr-10"
+                                placeholder="••••••••"
+                                value={currentPass}
+                                onChange={e => setCurrentPass(e.target.value)}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPass(!showPass)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
+                            >
+                                {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
+                        </div>
                     </div>
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Nueva Contraseña</label>
-                        <input
-                            type="password"
-                            required
-                            minLength={6}
-                            className="w-full p-3 rounded-lg border border-gray-200 outline-none focus:ring-2 focus:ring-blue-100 transition"
-                            placeholder="••••••••"
-                            value={newPass}
-                            onChange={e => setNewPass(e.target.value)}
-                        />
+                        <div className="relative">
+                            <input
+                                type={showPass ? "text" : "password"}
+                                required
+                                minLength={6}
+                                className="w-full p-3 rounded-lg border border-gray-200 outline-none focus:ring-2 focus:ring-blue-100 transition pr-10"
+                                placeholder="••••••••"
+                                value={newPass}
+                                onChange={e => setNewPass(e.target.value)}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPass(!showPass)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
+                            >
+                                {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
+                        </div>
                         <p className="text-xs text-gray-400 mt-1">Mínimo 6 caracteres.</p>
                     </div>
 
@@ -241,8 +260,8 @@ const TeamManagement = () => {
                             value={newRole}
                             onChange={e => setNewRole(e.target.value)}
                         >
-                            <option value="admin">Administrador (Total)</option>
-                            <option value="editor">Operador (Sin Config)</option>
+                            <option value="admin">Administrador</option>
+                            <option value="editor">Operador</option>
                             <option value="viewer">Solo Ver</option>
                         </select>
                     </div>

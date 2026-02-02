@@ -8,6 +8,8 @@ import { PointValueCalculatorModal } from '../components/PointValueCalculatorMod
 import type { AppConfig, MessagingChannel } from '../../../types';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
+import { useAdminAuth } from '../contexts/AdminAuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const ChannelSelector = ({
     label,
@@ -64,6 +66,17 @@ const VariableChips = ({ vars, onSelect }: { vars: string[], onSelect: (v: strin
 );
 
 export const ConfigPage = () => {
+    const { role, loading: authLoading } = useAdminAuth();
+    const navigate = useNavigate();
+
+    // Redirección si no es admin
+    useEffect(() => {
+        if (!authLoading && role && role !== 'admin') {
+            toast.error('No tienes permisos para acceder a esta configuración.');
+            navigate('/admin/dashboard');
+        }
+    }, [role, authLoading, navigate]);
+
     // Estado inicial
     const [config, setConfig] = useState<AppConfig>({
         siteName: 'Club Fidelidad',
@@ -179,6 +192,10 @@ export const ConfigPage = () => {
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (role !== 'admin') {
+            toast.error('No tienes permisos para guardar cambios.');
+            return;
+        }
         setLoading(true);
         try {
             await ConfigService.save(config);

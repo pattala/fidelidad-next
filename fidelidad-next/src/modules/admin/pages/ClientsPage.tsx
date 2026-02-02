@@ -1,9 +1,9 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Edit, Trash2, X, Search, MapPin, Phone, Mail, Coins, Sparkles, Gift, History, MessageCircle, Users, Bell, Check } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Search, MapPin, Phone, Mail, Coins, Sparkles, Gift, History, MessageCircle, Users, Bell, Check, FileDown } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { collection, addDoc, getDocs, query, orderBy, doc, deleteDoc, updateDoc, increment, runTransaction, arrayUnion, where, setDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, orderBy, doc, deleteDoc, updateDoc, increment, runTransaction, arrayUnion, where, setDoc, collectionGroup } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import { ConfigService, DEFAULT_TEMPLATES } from '../../../services/configService';
 import { NotificationService } from '../../../services/notificationService';
@@ -73,6 +73,26 @@ export const ClientsPage = () => {
             const q = query(collection(db, 'users'), orderBy('createdAt', 'desc')); // Reverted to 'users'
             const querySnapshot = await getDocs(q);
 
+            // Fetch expirations using Collection Group
+            const expiringQuery = query(
+                collectionGroup(db, 'points_history'),
+                where('expiresAt', '>', new Date())
+            );
+
+            let expiringMap: { [key: string]: number } = {};
+            try {
+                const expiringSnap = await getDocs(expiringQuery);
+                expiringSnap.docs.forEach(d => {
+                    const parentId = d.ref.parent.parent?.id;
+                    if (parentId) {
+                        const amount = d.data().amount || 0;
+                        expiringMap[parentId] = (expiringMap[parentId] || 0) + amount;
+                    }
+                });
+            } catch (e) {
+                console.warn("Collection group query failed (check index):", e);
+            }
+
             const loadedClients = querySnapshot.docs.map(doc => {
                 const data = doc.data();
                 return {
@@ -82,6 +102,7 @@ export const ClientsPage = () => {
                     phone: data.phone || data.telefono || '',
                     points: data.points || data.puntos || 0,
                     socioNumber: data.socioNumber || data.numeroSocio || '',
+                    expiringPoints: expiringMap[doc.id] || 0,
 
                     // Address Normalization (Flattening)
                     provincia: data.domicilio?.components?.provincia || data.provincia || '',
@@ -601,6 +622,51 @@ export const ClientsPage = () => {
         setHistoryModalOpen(true);
     };
 
+    const handleExportExcel = () => {
+        const headers = [
+            'Socio', 'Nombre', 'Email', 'DNI', 'Telefono', 'Puntos',
+            'Provincia', 'Partido', 'Localidad', 'Calle', 'Piso', 'Depto', 'CP',
+            'Visitas', 'Ultima Conexion', 'GPS', 'Notif', 'TyC'
+        ];
+
+        const rows = clients.map(c => [
+            c.socioNumber || '',
+            c.name || '',
+            c.email || '',
+            c.dni || '',
+            c.phone || '',
+            c.points || 0,
+            c.provincia || '',
+            c.partido || '',
+            c.localidad || '',
+            c.calle || '',
+            c.piso || '',
+            c.depto || '',
+            c.cp || '',
+            c.visitCount || 0,
+            c.lastActive ? new Date(c.lastActive?.toDate?.() || c.lastActive).toLocaleString() : '',
+            c.permissions?.geolocation?.status || 'pendiente',
+            c.permissions?.notifications?.status || 'pendiente',
+            c.termsAccepted ? 'si' : 'no'
+        ]);
+
+        const csvContent = [
+            headers.join(';'),
+            ...rows.map(r => r.map(v => `"${v}"`).join(';'))
+        ].join('\n');
+
+        const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `clientes_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast.success("Excel exportado correctamente");
+    };
+
     // Filtrar
     const filteredClients = clients.filter(c =>
         c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -616,14 +682,22 @@ export const ClientsPage = () => {
                     <h1 className="text-3xl font-bold text-gray-800">Clientes</h1>
                     <p className="text-gray-500">Gestiona la base de datos de socios y sus puntos.</p>
                 </div>
-                {!isReadOnly && (
+                <div className="flex items-center gap-3">
                     <button
-                        onClick={openNewClientModal}
-                        className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold transition shadow-lg shadow-blue-100"
+                        onClick={handleExportExcel}
+                        className="flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-6 py-3 rounded-xl font-bold transition shadow-sm"
                     >
-                        <Plus size={20} /> Nuevo Cliente
+                        <FileDown size={20} className="text-blue-600" /> Exportar a Excel
                     </button>
-                )}
+                    {!isReadOnly && (
+                        <button
+                            onClick={openNewClientModal}
+                            className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold transition shadow-lg shadow-blue-100"
+                        >
+                            <Plus size={20} /> Nuevo Cliente
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* Barra de Búsqueda */}
@@ -730,10 +804,17 @@ export const ClientsPage = () => {
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 text-center">
-                                        <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 rounded-full font-black">
+                                        <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 rounded-full font-black mb-1">
                                             <Coins size={14} />
                                             {client.points || 0}
                                         </div>
+                                        {client.expiringPoints && client.expiringPoints > 0 ? (
+                                            <div className="flex items-center justify-center gap-1 text-[9px] font-bold text-orange-600 bg-orange-50 py-0.5 px-1.5 rounded border border-orange-100 mt-1" title="Puntos que tienen una fecha de vencimiento configurada">
+                                                <History size={10} /> {client.expiringPoints} vencen
+                                            </div>
+                                        ) : (
+                                            <div className="text-[9px] text-gray-300 font-bold mt-1">Sin vencimientos</div>
+                                        )}
                                     </td>
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex items-center justify-end gap-2">

@@ -41,6 +41,7 @@ export interface Client {
             nextPrompt: number;
         };
     };
+    expiringPoints?: number;
 }
 
 export interface User {

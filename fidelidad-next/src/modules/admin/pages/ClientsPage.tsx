@@ -452,16 +452,18 @@ export const ClientsPage = () => {
                 if (rule) days = rule.validityDays;
             }
 
-            const now = TimeService.now();
-            const expiresAt = new Date(now);
+            // Usar la fecha seleccionada (ajustada a mediodía para evitar problemas de zona horaria)
+            const selectedDate = new Date(pointsData.purchaseDate + 'T12:00:00');
+            const expiresAt = new Date(selectedDate);
             expiresAt.setDate(expiresAt.getDate() + days);
 
             // Guardar
             if (finalPoints > 0) {
-                await addDoc(collection(db, `users/${selectedClientForPoints.id}/points_history`), {
+                const historyRef = collection(db, `users/${selectedClientForPoints.id}/points_history`);
+                await addDoc(historyRef, {
                     amount: finalPoints,
                     concept: pointsData.concept,
-                    date: now,
+                    date: selectedDate,
                     type: 'credit',
                     expiresAt: expiresAt
                 });
@@ -469,7 +471,7 @@ export const ClientsPage = () => {
                 await updateDoc(doc(db, 'users', selectedClientForPoints.id), {
                     points: increment(finalPoints),
                     historialPuntos: arrayUnion({
-                        fechaObtencion: now,
+                        fechaObtencion: selectedDate,
                         puntosObtenidos: finalPoints,
                         puntosDisponibles: finalPoints,
                         diasCaducidad: days,
@@ -477,6 +479,24 @@ export const ClientsPage = () => {
                         estado: 'Activo'
                     })
                 });
+
+                // Notificación por WhatsApp
+                if (notifyWhatsapp && selectedClientForPoints.phone) {
+                    const pointsTemplate = currentConfig?.messaging?.templates?.pointsAdded || DEFAULT_TEMPLATES.pointsAdded;
+                    const msg = pointsTemplate
+                        .replace(/{nombre}/g, selectedClientForPoints.name.split(' ')[0])
+                        .replace(/{puntos}/g, finalPoints.toString())
+                        .replace(/{saldo}/g, (selectedClientForPoints.points + finalPoints).toString())
+                        .replace(/{total_puntos}/g, (selectedClientForPoints.points + finalPoints).toString()) // Mantener por compatibilidad
+                        .replace(/{vence}/g, expiresAt.toLocaleDateString())
+                        .replace(/{concepto}/g, pointsData.concept);
+
+                    const cleanPhone = selectedClientForPoints.phone.replace(/\D/g, '');
+                    if (cleanPhone.length > 5) {
+                        const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msg.trim())}`;
+                        window.open(waUrl, '_blank');
+                    }
+                }
             }
 
             if (pointsData.isPesos) {
@@ -489,6 +509,7 @@ export const ClientsPage = () => {
             closePointsModal();
             fetchData();
         } catch (error) {
+            console.error("Error al asignar puntos:", error);
             toast.error("Error al asignar puntos");
         } finally {
             setLoading(false);
@@ -613,86 +634,103 @@ export const ClientsPage = () => {
                 </div>
             </div>
 
-            {/* Lista de Clientes */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {filteredClients.map((client) => (
-                    <div key={client.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition group">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center font-bold text-xl uppercase">
-                                    {client.name?.charAt(0)}
-                                </div>
-                                <div>
-                                    <h3 className="font-bold text-gray-800 line-clamp-1">{client.name}</h3>
-                                    <div className="flex items-center gap-2 text-xs text-gray-400">
-                                        <span className="bg-gray-100 px-1.5 py-0.5 rounded font-mono">#{client.socioNumber}</span>
-                                        <span>DNI {client.dni}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition">
-                                {!isReadOnly && (
-                                    <>
-                                        <button onClick={() => openEditClientModal(client)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Editar">
-                                            <Edit size={18} />
-                                        </button>
-                                        <button onClick={() => handleDelete(client.id, client.name)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Eliminar">
-                                            <Trash2 size={18} />
-                                        </button>
-                                    </>
-                                )}
-                            </div>
+            {/* Lista de Clientes (Tabla) */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                        <thead className="bg-gray-50 border-b border-gray-100">
+                            <tr>
+                                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Socio / Nombre</th>
+                                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">DNI / Contacto</th>
+                                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">Puntos</th>
+                                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {filteredClients.map((client) => (
+                                <tr key={client.id} className="hover:bg-gray-50/50 transition-colors group">
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center font-bold text-lg uppercase flex-shrink-0">
+                                                {client.name?.charAt(0)}
+                                            </div>
+                                            <div>
+                                                <div className="font-bold text-gray-800">{client.name}</div>
+                                                <div className="text-xs font-mono text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded inline-block mt-0.5">#{client.socioNumber}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="text-sm text-gray-600 font-medium">DNI {client.dni}</div>
+                                        <div className="text-xs text-gray-400 flex items-center gap-2 mt-1">
+                                            <Phone size={10} /> {client.phone}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-center">
+                                        <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 rounded-full font-black">
+                                            <Coins size={14} />
+                                            {client.points || 0}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-right">
+                                        <div className="flex items-center justify-end gap-2">
+                                            {!isReadOnly && (
+                                                <>
+                                                    <button
+                                                        onClick={() => openPointsModal(client)}
+                                                        className="p-2 bg-green-50 text-green-600 hover:bg-green-600 hover:text-white rounded-lg transition-all"
+                                                        title="Sumar Puntos"
+                                                    >
+                                                        <Plus size={18} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => openRedemptionModal(client)}
+                                                        className="p-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg transition-all"
+                                                        title="Canjear"
+                                                    >
+                                                        <Gift size={18} />
+                                                    </button>
+                                                </>
+                                            )}
+                                            <button
+                                                onClick={() => openHistoryModal(client)}
+                                                className="p-2 bg-gray-50 text-gray-500 hover:bg-gray-600 hover:text-white rounded-lg transition-all"
+                                                title="Ver Historial"
+                                            >
+                                                <History size={18} />
+                                            </button>
+                                            {!isReadOnly && (
+                                                <>
+                                                    <button
+                                                        onClick={() => openEditClientModal(client)}
+                                                        className="p-2 hover:bg-gray-100 text-gray-400 hover:text-blue-600 rounded-lg transition-all"
+                                                        title="Editar"
+                                                    >
+                                                        <Edit size={18} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(client.id, client.name)}
+                                                        className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-lg transition-all"
+                                                        title="Eliminar"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </>
+                                            )}
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                    {filteredClients.length === 0 && (
+                        <div className="p-20 text-center text-gray-400">
+                            <Users size={48} className="mx-auto mb-4 opacity-20" />
+                            <p className="text-lg">No se encontraron clientes</p>
+                            <p className="text-sm">Prueba ajustando los términos de búsqueda</p>
                         </div>
-
-                        <div className="space-y-2 mb-6 text-sm">
-                            <div className="flex items-center gap-2 text-gray-600">
-                                <Phone size={14} className="text-gray-400" /> {client.phone}
-                            </div>
-                            <div className="flex items-center gap-2 text-gray-600 truncate">
-                                <Mail size={14} className="text-gray-400" /> {client.email}
-                            </div>
-                            <div className="flex items-center gap-2 text-gray-600">
-                                <MapPin size={14} className="text-gray-400" /> {client.localidad || 'Sin dirección'}
-                            </div>
-                        </div>
-
-                        <div className="flex items-center justify-between pt-4 border-t border-gray-50 bg-gray-50/30 -mx-6 -mb-6 px-6 pb-6 rounded-b-2xl mt-4">
-                            <div className="flex flex-col">
-                                <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Puntos Disponibles</span>
-                                <div className="flex items-center gap-1.5 text-blue-600">
-                                    <Coins size={18} />
-                                    <span className="text-xl font-black">{client.points || 0}</span>
-                                </div>
-                            </div>
-
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => openHistoryModal(client)}
-                                    className="p-2.5 bg-white text-gray-500 hover:text-blue-600 rounded-xl border border-gray-200 shadow-sm transition"
-                                    title="Ver Historial"
-                                >
-                                    <History size={18} />
-                                </button>
-                                {!isReadOnly && (
-                                    <>
-                                        <button
-                                            onClick={() => openPointsModal(client)}
-                                            className="px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold flex items-center gap-2 shadow-sm transition"
-                                        >
-                                            <Plus size={18} /> Sumar
-                                        </button>
-                                        <button
-                                            onClick={() => openRedemptionModal(client)}
-                                            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold flex items-center gap-2 shadow-sm transition"
-                                        >
-                                            <Gift size={18} /> Canje
-                                        </button>
-                                    </>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                ))}
+                    )}
+                </div>
             </div>
 
             {/* MODAL: CRUD Cliente */}
@@ -831,14 +869,46 @@ export const ClientsPage = () => {
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Concepto / Motivo</label>
-                                <input
-                                    type="text"
-                                    className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none"
-                                    value={pointsData.concept}
-                                    onChange={e => setPointsData({ ...pointsData, concept: e.target.value })}
-                                />
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Concepto / Motivo</label>
+                                    <input
+                                        type="text"
+                                        className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none"
+                                        value={pointsData.concept}
+                                        onChange={e => setPointsData({ ...pointsData, concept: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Fecha de Compra</label>
+                                    <input
+                                        type="date"
+                                        className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none"
+                                        value={pointsData.purchaseDate}
+                                        onChange={e => setPointsData({ ...pointsData, purchaseDate: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-3 p-4 bg-gray-50 rounded-2xl">
+                                <label className="flex items-center gap-3 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        className="w-5 h-5 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                                        checked={applyPromotions}
+                                        onChange={e => setApplyPromotions(e.target.checked)}
+                                    />
+                                    <span className="text-sm font-medium text-gray-700">Aplicar Promociones / Bonus</span>
+                                </label>
+                                <label className="flex items-center gap-3 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        className="w-5 h-5 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                                        checked={notifyWhatsapp}
+                                        onChange={e => setNotifyWhatsapp(e.target.checked)}
+                                    />
+                                    <span className="text-sm font-medium text-gray-700">Notificar por WhatsApp</span>
+                                </label>
                             </div>
 
                             <button type="submit" disabled={loading} className="w-full py-4 bg-green-600 text-white rounded-2xl font-bold text-lg hover:bg-green-700 transition shadow-lg shadow-green-100 disabled:opacity-50">

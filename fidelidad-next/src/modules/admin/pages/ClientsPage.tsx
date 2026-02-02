@@ -12,6 +12,7 @@ import { CampaignService } from '../../../services/campaignService';
 import type { Client } from '../../../types';
 import { RedemptionModal } from '../components/RedemptionModal';
 import { PointsHistoryModal } from '../components/PointsHistoryModal';
+import { VisitHistoryModal } from '../components/VisitHistoryModal';
 
 import { ARGENTINA_LOCATIONS } from '../../../data/locations'; // Import added
 import { TimeService } from '../../../services/timeService';
@@ -63,6 +64,7 @@ export const ClientsPage = () => {
 
     // Estado Modal Historial
     const [historyModalOpen, setHistoryModalOpen] = useState(false);
+    const [visitHistoryModalOpen, setVisitHistoryModalOpen] = useState(false);
     const [selectedClientForHistory, setSelectedClientForHistory] = useState<Client | null>(null);
 
 
@@ -73,36 +75,59 @@ export const ClientsPage = () => {
             const q = query(collection(db, 'users'), orderBy('createdAt', 'desc')); // Reverted to 'users'
             const querySnapshot = await getDocs(q);
 
-            // Fetch expirations using Collection Group
-            const expiringQuery = query(
-                collectionGroup(db, 'points_history'),
-                where('expiresAt', '>', new Date())
-            );
+            // 1. Fetch Config first to use it in calculations
+            const freshConfig = await ConfigService.get();
+            setConfig(freshConfig);
 
-            let expiringMap: { [key: string]: number } = {};
-            try {
-                const expiringSnap = await getDocs(expiringQuery);
-                expiringSnap.docs.forEach(d => {
-                    const parentId = d.ref.parent.parent?.id;
-                    if (parentId) {
-                        const amount = d.data().amount || 0;
-                        expiringMap[parentId] = (expiringMap[parentId] || 0) + amount;
+            // 2. Fetch all history for aggregation (one single fetch to avoid multiple query index issues)
+            const allHistoryQuery = collectionGroup(db, 'points_history');
+            const historySnap = await getDocs(allHistoryQuery);
+
+            let metricsMap: { [key: string]: { expiring: number, totalspent: number, redeemedPoints: number, redeemedValue: number } } = {};
+            const now = new Date();
+
+            historySnap.docs.forEach(d => {
+                const parentId = d.ref.parent.parent?.id;
+                if (parentId) {
+                    if (!metricsMap[parentId]) metricsMap[parentId] = { expiring: 0, totalspent: 0, redeemedPoints: 0, redeemedValue: 0 };
+                    const hData = d.data();
+                    const amount = hData.amount || 0;
+
+                    if (hData.type === 'credit') {
+                        // Expiring?
+                        const expiresAt = hData.expiresAt?.toDate ? hData.expiresAt.toDate() : new Date(hData.expiresAt);
+                        if (expiresAt > now) {
+                            const remaining = hData.remainingPoints !== undefined ? hData.remainingPoints : amount;
+                            metricsMap[parentId].expiring += remaining;
+                        }
+                        // Money Spent (approx if not stored)
+                        const ratio = freshConfig?.pointsPerPeso || 1;
+                        const pesos = hData.moneySpent !== undefined ? hData.moneySpent : (amount * 100) / ratio;
+                        metricsMap[parentId].totalspent += pesos;
+                    } else if (hData.type === 'debit') {
+                        metricsMap[parentId].redeemedPoints += Math.abs(amount);
+                        metricsMap[parentId].redeemedValue += hData.redeemedValue || 0;
                     }
-                });
-            } catch (e) {
-                console.warn("Collection group query failed (check index):", e);
-            }
+                }
+            });
 
             const loadedClients = querySnapshot.docs.map(doc => {
                 const data = doc.data();
+                const metrics = metricsMap[doc.id] || { expiring: 0, totalspent: 0, redeemedPoints: 0, redeemedValue: 0 };
                 return {
                     id: doc.id,
                     ...data,
                     name: data.name || data.nombre || '',
+                    email: data.email || '',
+                    dni: data.dni || '',
                     phone: data.phone || data.telefono || '',
                     points: data.points || data.puntos || 0,
                     socioNumber: data.socioNumber || data.numeroSocio || '',
-                    expiringPoints: expiringMap[doc.id] || 0,
+                    expiringPoints: metrics.expiring,
+                    totalSpent: metrics.totalspent,
+                    redeemedPoints: metrics.redeemedPoints,
+                    redeemedValue: metrics.redeemedValue,
+                    registrationDate: data.createdAt || data.fechaInscripcion || null,
 
                     // Address Normalization (Flattening)
                     provincia: data.domicilio?.components?.provincia || data.provincia || '',
@@ -112,8 +137,8 @@ export const ClientsPage = () => {
                     piso: data.domicilio?.components?.piso || data.piso || '',
                     depto: data.domicilio?.components?.depto || data.depto || '',
                     cp: data.domicilio?.components?.zipCode || data.cp || ''
-                };
-            }) as Client[];
+                } as Client;
+            });
 
             setClients(loadedClients.filter(c => c.name));
 
@@ -486,10 +511,12 @@ export const ClientsPage = () => {
                 const historyRef = collection(db, `users/${selectedClientForPoints.id}/points_history`);
                 await addDoc(historyRef, {
                     amount: finalPoints,
+                    moneySpent: pointsData.isPesos ? inputVal : 0, // Store money spent for reports
                     concept: pointsData.concept,
                     date: selectedDate,
                     type: 'credit',
-                    expiresAt: expiresAt
+                    expiresAt: expiresAt,
+                    remainingPoints: finalPoints
                 });
 
                 await updateDoc(doc(db, 'users', selectedClientForPoints.id), {
@@ -624,7 +651,9 @@ export const ClientsPage = () => {
 
     const handleExportExcel = () => {
         const headers = [
-            'Socio', 'Nombre', 'Email', 'DNI', 'Telefono', 'Puntos',
+            'Socio', 'Nombre', 'Email', 'DNI', 'Telefono', 'Fecha Alta',
+            'Puntos Actuales', 'Puntos por Vencer', 'Puntos Canjeados Total',
+            'Valor Canjes ($)', 'Total Gastado ($ Estimado)',
             'Provincia', 'Partido', 'Localidad', 'Calle', 'Piso', 'Depto', 'CP',
             'Visitas', 'Ultima Conexion', 'GPS', 'Notif', 'TyC'
         ];
@@ -635,7 +664,12 @@ export const ClientsPage = () => {
             c.email || '',
             c.dni || '',
             c.phone || '',
+            c.registrationDate ? new Date(c.registrationDate?.toDate?.() || c.registrationDate).toLocaleDateString() : '',
             c.points || 0,
+            c.expiringPoints || 0,
+            c.redeemedPoints || 0,
+            c.redeemedValue || 0,
+            c.totalSpent || 0,
             c.provincia || '',
             c.partido || '',
             c.localidad || '',
@@ -652,7 +686,10 @@ export const ClientsPage = () => {
 
         const csvContent = [
             headers.join(';'),
-            ...rows.map(r => r.map(v => `"${v}"`).join(';'))
+            ...rows.map(r => r.map(v => {
+                if (typeof v === 'number') return v.toFixed(2).replace('.', ',');
+                return `"${v}"`;
+            }).join(';'))
         ].join('\n');
 
         const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -726,7 +763,7 @@ export const ClientsPage = () => {
                                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Socio / Nombre</th>
                                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Dirección / Maps</th>
                                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">Permisos</th>
-                                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">Uso</th>
+                                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">Actividad / Visitas</th>
                                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">Puntos</th>
                                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Acciones</th>
                             </tr>
@@ -752,6 +789,9 @@ export const ClientsPage = () => {
                                                         <span className="text-[10px] text-gray-400 font-bold flex items-center gap-1">
                                                             <Phone size={8} /> {client.phone}
                                                         </span>
+                                                    </div>
+                                                    <div className="text-[9px] text-blue-500 font-bold mt-0.5" title="Fecha en la que el usuario se registró en el Club">
+                                                        Miembro desde: {client.registrationDate ? new Date(client.registrationDate?.toDate?.() || client.registrationDate).toLocaleDateString() : 'N/D'}
                                                     </div>
                                                 </div>
                                             </div>
@@ -796,12 +836,19 @@ export const ClientsPage = () => {
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 text-center">
-                                        <div className="text-xs font-bold text-gray-700">{client.visitCount || 0} visitas</div>
-                                        <div className="text-[10px] text-gray-400 mt-0.5">
-                                            {client.lastActive ? (
-                                                `Hoy ${new Date(client.lastActive.toDate ? client.lastActive.toDate() : client.lastActive).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })}`
-                                            ) : 'Nunca'}
-                                        </div>
+                                        <button
+                                            onClick={() => { setSelectedClientForHistory(client); setVisitHistoryModalOpen(true); }}
+                                            className="hover:bg-blue-50 p-1.5 rounded-lg transition-colors group/visits"
+                                            title="Ver historial de aperturas de la App"
+                                        >
+                                            <div className="text-xs font-bold text-gray-700 group-hover/visits:text-blue-600 transition-colors">{client.visitCount || 0} visitas</div>
+                                            <div className="text-[10px] text-gray-400 mt-0.5 flex items-center justify-center gap-1 group-hover/visits:text-blue-500">
+                                                {client.lastActive ? (
+                                                    `Hoy ${new Date(client.lastActive.toDate ? client.lastActive.toDate() : client.lastActive).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })}`
+                                                ) : 'Nunca'}
+                                                <Sparkles size={10} className="opacity-0 group-hover/visits:opacity-100" />
+                                            </div>
+                                        </button>
                                     </td>
                                     <td className="px-6 py-4 text-center">
                                         <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 rounded-full font-black mb-1">
@@ -1150,6 +1197,14 @@ export const ClientsPage = () => {
                     client={selectedClientForHistory}
                     isOpen={historyModalOpen}
                     onClose={() => setHistoryModalOpen(false)}
+                />
+            )}
+
+            {visitHistoryModalOpen && selectedClientForHistory && (
+                <VisitHistoryModal
+                    isOpen={visitHistoryModalOpen}
+                    client={selectedClientForHistory}
+                    onClose={() => setVisitHistoryModalOpen(false)}
                 />
             )}
         </div>

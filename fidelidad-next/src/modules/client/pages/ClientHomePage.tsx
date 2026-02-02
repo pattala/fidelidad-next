@@ -93,13 +93,28 @@ export const ClientHomePage = () => {
                 // Registro de Actividad (Ping)
                 const userRef = doc(db, 'users', u.uid);
 
-                // Actualizar última actividad y contador de forma silenciosa
-                import('firebase/firestore').then(({ updateDoc, increment, serverTimestamp }) => {
-                    updateDoc(userRef, {
-                        lastActive: serverTimestamp(),
-                        visitCount: increment(1)
-                    }).catch(e => console.error("Error updating activity:", e));
-                });
+                // Actualizar última actividad y contador de forma silenciosa e inmediata
+                // Throttle: solo una vez por sesión de pestaña (o cada 30 min) para no inflar el historial
+                const lastPing = sessionStorage.getItem(`ping_${u.uid}`);
+                const nowMs = Date.now();
+
+                if (!lastPing || (nowMs - Number(lastPing) > 30 * 60 * 1000)) {
+                    try {
+                        const { updateDoc, increment, serverTimestamp, collection, addDoc } = await import('firebase/firestore');
+                        await updateDoc(userRef, {
+                            lastActive: serverTimestamp(),
+                            visitCount: increment(1)
+                        });
+                        // Guardar en historial para analítica de frecuencia
+                        await addDoc(collection(db, 'users', u.uid, 'visit_history'), {
+                            date: serverTimestamp(),
+                            type: 'app_open'
+                        });
+                        sessionStorage.setItem(`ping_${u.uid}`, nowMs.toString());
+                    } catch (e) {
+                        console.error("Error updating activity:", e);
+                    }
+                }
 
                 const unsubDb = onSnapshot(userRef, async (document) => {
                     const data = document.data();

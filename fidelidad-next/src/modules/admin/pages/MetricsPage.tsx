@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BarChart3, TrendingUp, Users, DollarSign, Award } from 'lucide-react';
+import { BarChart3, TrendingUp, Users, DollarSign, Award, Sparkles } from 'lucide-react';
 import { collection, query, where, getDocs, collectionGroup, orderBy, limit, documentId } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import {
@@ -14,6 +14,7 @@ export const MetricsPage = () => {
     const [chartData, setChartData] = useState<any[]>([]);
     const [topUsers, setTopUsers] = useState<any[]>([]);
     const [topSpenders, setTopSpenders] = useState<any[]>([]);
+    const [topVisitors, setTopVisitors] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [config, setConfig] = useState<any>(null);
 
@@ -153,6 +154,20 @@ export const MetricsPage = () => {
                 }));
                 setTopSpenders(spendersData);
 
+                // 6. Fetch Top Visitors (Most Active)
+                const qVisitors = query(collection(db, 'users'), orderBy('visitCount', 'desc'), limit(5));
+                const snapVisitors = await getDocs(qVisitors);
+                setTopVisitors(snapVisitors.docs.map(d => {
+                    const data = d.data();
+                    return {
+                        id: d.id,
+                        ...data,
+                        name: data.name || data.nombre || '',
+                        count: data.visitCount || 0,
+                        socioNumber: data.socioNumber || data.numeroSocio || ''
+                    };
+                }));
+
             } catch (error) {
                 console.error("Error metrics:", error);
             } finally {
@@ -235,7 +250,7 @@ export const MetricsPage = () => {
             </div>
 
             {/* Rankings Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                 {/* Top Balance (Accumulators) */}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full">
@@ -322,6 +337,46 @@ export const MetricsPage = () => {
                                         );
                                     })
                                 )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {/* Top Visitors (Engagement) */}
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full">
+                    <div className="p-6 border-b border-gray-100 bg-gray-50/50">
+                        <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                            <Sparkles size={18} className="text-orange-500" /> Clientes más Fieles (APP)
+                        </h3>
+                        <p className="text-xs text-gray-400 mt-1">Socios con más aperturas de la app</p>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-gray-50 text-gray-500 font-semibold">
+                                <tr>
+                                    <th className="p-4 pl-6">Cliente</th>
+                                    <th className="p-4 text-right pr-6">Visitas</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                                {topVisitors.map((user, i) => (
+                                    <tr key={user.id} className="hover:bg-orange-50/30 transition">
+                                        <td className="p-4 pl-6 font-medium text-gray-700 flex items-center gap-3">
+                                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${i < 3 ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-500'}`}>
+                                                {i + 1}
+                                            </span>
+                                            <div className="flex flex-col">
+                                                <span>{user.name}</span>
+                                                <span className="text-[10px] text-gray-400 font-mono">
+                                                    {user.socioNumber ? `#${user.socioNumber}` : ''}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="p-4 text-right pr-6 font-bold text-orange-600 text-lg">
+                                            {user.count}
+                                        </td>
+                                    </tr>
+                                ))}
                             </tbody>
                         </table>
                     </div>

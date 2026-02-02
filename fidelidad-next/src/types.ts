@@ -42,6 +42,10 @@ export interface Client {
         };
     };
     expiringPoints?: number;
+    totalSpent?: number;
+    redeemedPoints?: number;
+    redeemedValue?: number;
+    registrationDate?: any;
 }
 
 export interface User {

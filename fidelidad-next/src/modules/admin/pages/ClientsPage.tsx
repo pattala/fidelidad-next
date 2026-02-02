@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Edit, Trash2, X, Search, MapPin, Phone, Mail, Coins, Sparkles, Gift, History, MessageCircle, Users } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Search, MapPin, Phone, Mail, Coins, Sparkles, Gift, History, MessageCircle, Users, Bell, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { collection, addDoc, getDocs, query, orderBy, doc, deleteDoc, updateDoc, increment, runTransaction, arrayUnion, where, setDoc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
@@ -641,7 +641,9 @@ export const ClientsPage = () => {
                         <thead className="bg-gray-50 border-b border-gray-100">
                             <tr>
                                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Socio / Nombre</th>
-                                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">DNI / Contacto</th>
+                                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Dirección / Maps</th>
+                                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">Permisos</th>
+                                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">Uso</th>
                                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">Puntos</th>
                                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Acciones</th>
                             </tr>
@@ -655,15 +657,59 @@ export const ClientsPage = () => {
                                                 {client.name?.charAt(0)}
                                             </div>
                                             <div>
-                                                <div className="font-bold text-gray-800">{client.name}</div>
-                                                <div className="text-xs font-mono text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded inline-block mt-0.5">#{client.socioNumber}</div>
+                                                <div className="font-bold text-gray-800 leading-tight">{client.name}</div>
+                                                <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-1">
+                                                    <span className="text-[10px] font-mono text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">#{client.socioNumber}</span>
+                                                    <span className="text-[10px] text-gray-400">DNI {client.dni}</span>
+                                                    <span className="text-[10px] text-gray-400 flex items-center gap-1"><Phone size={8} /> {client.phone}</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <div className="text-sm text-gray-600 font-medium">DNI {client.dni}</div>
-                                        <div className="text-xs text-gray-400 flex items-center gap-2 mt-1">
-                                            <Phone size={10} /> {client.phone}
+                                        {client.calle ? (
+                                            <div className="max-w-[180px]">
+                                                <div className="text-sm text-gray-700 font-medium truncate">
+                                                    {client.calle} {client.piso ? ` ${client.piso}°${client.depto}` : ''}
+                                                </div>
+                                                <div className="text-[10px] text-gray-400 truncate">
+                                                    {client.localidad}, {client.provincia}
+                                                </div>
+                                                <a
+                                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${client.calle}, ${client.localidad}, ${client.provincia}, Argentina`)}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-1 text-[10px] text-blue-500 hover:text-blue-700 font-bold mt-1"
+                                                >
+                                                    <MapPin size={10} /> Ver en Mapa
+                                                </a>
+                                            </div>
+                                        ) : (
+                                            <span className="text-gray-300 italic text-xs">Sin dirección</span>
+                                        )}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex justify-center gap-1.5">
+                                            {/* TyC */}
+                                            <div title={client.termsAccepted ? "Términos Aceptados" : "Términos Pendientes"} className={`p-1.5 rounded-md ${client.termsAccepted ? 'text-blue-600 bg-blue-50' : 'text-gray-300 bg-gray-50'}`}>
+                                                <Check size={14} strokeWidth={3} />
+                                            </div>
+                                            {/* Push */}
+                                            <div title={`Notificaciones: ${client.permissions?.notifications?.status || 'Pendiente'}`} className={`p-1.5 rounded-md ${(client.permissions?.notifications?.status === 'granted') ? 'text-purple-600 bg-purple-50' : 'text-gray-300 bg-gray-50'}`}>
+                                                <Bell size={14} />
+                                            </div>
+                                            {/* GPS */}
+                                            <div title={`Ubicación: ${client.permissions?.geolocation?.status || 'Pendiente'}`} className={`p-1.5 rounded-md ${(client.permissions?.geolocation?.status === 'granted') ? 'text-green-600 bg-green-50' : 'text-gray-300 bg-gray-50'}`}>
+                                                <MapPin size={14} />
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-center">
+                                        <div className="text-xs font-bold text-gray-700">{client.visitCount || 0} visitas</div>
+                                        <div className="text-[10px] text-gray-400 mt-0.5">
+                                            {client.lastActive ? (
+                                                `Hoy ${new Date(client.lastActive.toDate ? client.lastActive.toDate() : client.lastActive).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })}`
+                                            ) : 'Nunca'}
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 text-center">

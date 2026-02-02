@@ -90,7 +90,18 @@ export const ClientHomePage = () => {
         const unsubscribeAuth = auth.onAuthStateChanged(async (u) => {
             setUser(u);
             if (u) {
-                const unsubDb = onSnapshot(doc(db, 'users', u.uid), async (document) => {
+                // Registro de Actividad (Ping)
+                const userRef = doc(db, 'users', u.uid);
+
+                // Actualizar última actividad y contador de forma silenciosa
+                import('firebase/firestore').then(({ updateDoc, increment, serverTimestamp }) => {
+                    updateDoc(userRef, {
+                        lastActive: serverTimestamp(),
+                        visitCount: increment(1)
+                    }).catch(e => console.error("Error updating activity:", e));
+                });
+
+                const unsubDb = onSnapshot(userRef, async (document) => {
                     const data = document.data();
                     setUserData(data);
                 });

@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 
 import { ConfigService } from '../../../services/configService';
 import { TimeService } from '../../../services/timeService';
+import { useAdminAuth } from '../contexts/AdminAuthContext';
 
 interface PointsHistoryModalProps {
     isOpen: boolean;
@@ -15,6 +16,9 @@ interface PointsHistoryModalProps {
 }
 
 export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }: PointsHistoryModalProps) => {
+    const { role } = useAdminAuth();
+    const isAdmin = role === 'admin';
+
     // 1. Local Client State (to show updated points immediately)
     const [currentClient, setCurrentClient] = useState(client);
 
@@ -161,6 +165,7 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
 
     // Delete Individual Item
     const handleDeleteItem = async (item: any) => {
+        if (!isAdmin) return;
         if (!confirm(`¿Eliminar este movimiento de ${item.amount} pts? Se ajustará el saldo del cliente.`)) return;
 
         setLoading(true);
@@ -470,13 +475,15 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
                                             </div>
                                         </td>
                                         <td className="p-4 text-center">
-                                            <button
-                                                onClick={() => handleDeleteItem(item)}
-                                                className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-md transition opacity-0 group-hover:opacity-100"
-                                                title="Eliminar movimiento (corrige saldo)"
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
+                                            {isAdmin && (
+                                                <button
+                                                    onClick={() => handleDeleteItem(item)}
+                                                    className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-md transition opacity-0 group-hover:opacity-100"
+                                                    title="Eliminar movimiento (corrige saldo)"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}
@@ -487,13 +494,17 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
 
                 {/* Footer */}
                 <div className="p-4 border-t border-gray-100 flex justify-between items-center bg-gray-50">
-                    <button
-                        onClick={handleDeleteAll}
-                        className="px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-lg border border-transparent hover:border-red-100 transition-colors flex items-center gap-2"
-                    >
-                        <Trash2 size={14} />
-                        Resetear Todo
-                    </button>
+                    {isAdmin ? (
+                        <button
+                            onClick={handleDeleteAll}
+                            className="px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-lg border border-transparent hover:border-red-100 transition-colors flex items-center gap-2"
+                        >
+                            <Trash2 size={14} />
+                            Resetear Todo
+                        </button>
+                    ) : (
+                        <div className="text-[10px] text-gray-400 font-medium">Solo administradores pueden resetear el historial.</div>
+                    )}
                     <div className="flex items-center gap-4">
                         <span className="text-xs text-gray-400 italic">
                             * Eliminar movimientos ajusta automáticamente el saldo.

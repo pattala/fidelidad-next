@@ -18,7 +18,29 @@ export interface Client {
     localidad?: string;
     cp?: string;
     formatted_address?: string;
-    google_maps_link?: string;
+    lastLocation?: {
+        lat: number;
+        lng: number;
+        timestamp: any;
+    };
+    termsAccepted?: boolean;
+    termsAcceptedAt?: any;
+    visitCount?: number;
+    lastActive?: any;
+    permissions?: {
+        notifications?: {
+            status: string;
+            updatedAt: number;
+            deniedCount: number;
+            nextPrompt: number;
+        };
+        geolocation?: {
+            status: string;
+            updatedAt: number;
+            deniedCount: number;
+            nextPrompt: number;
+        };
+    };
 }
 
 export interface User {

@@ -662,15 +662,23 @@ export const ClientsPage = () => {
                                 <tr key={client.id} className="hover:bg-gray-50/50 transition-colors group">
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center font-bold text-lg uppercase flex-shrink-0">
-                                                {client.name?.charAt(0)}
+                                            {/* El número de socio reemplaza al círculo de la letra */}
+                                            <div className="w-14 h-10 bg-blue-50 text-blue-700 rounded-lg flex flex-col items-center justify-center border border-blue-100 flex-shrink-0">
+                                                <span className="text-[9px] font-bold uppercase leading-none opacity-60">Socio</span>
+                                                <span className="text-sm font-black leading-none">{client.socioNumber}</span>
                                             </div>
-                                            <div>
-                                                <div className="font-bold text-gray-800 leading-tight">{client.name}</div>
-                                                <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-1">
-                                                    <span className="text-[10px] font-mono text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">#{client.socioNumber}</span>
-                                                    <span className="text-[10px] text-gray-400">DNI {client.dni}</span>
-                                                    <span className="text-[10px] text-gray-400 flex items-center gap-1"><Phone size={8} /> {client.phone}</span>
+                                            <div className="overflow-hidden">
+                                                <div className="font-bold text-gray-800 leading-tight truncate">{client.name}</div>
+                                                <div className="flex flex-col gap-0.5 mt-1">
+                                                    <span className="text-[10px] text-gray-500 font-medium flex items-center gap-1 truncate">
+                                                        <Mail size={10} /> {client.email}
+                                                    </span>
+                                                    <div className="flex gap-2">
+                                                        <span className="text-[10px] text-gray-400 font-bold">DNI {client.dni}</span>
+                                                        <span className="text-[10px] text-gray-400 font-bold flex items-center gap-1">
+                                                            <Phone size={8} /> {client.phone}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -843,11 +851,44 @@ export const ClientsPage = () => {
                             <hr className="border-gray-100" />
                             <h3 className="font-bold text-gray-800 flex items-center gap-2"><MapPin size={16} /> Dirección</h3>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div className="md:col-span-2 lg:col-span-2">
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Calle y Número</label>
+                                    <input
+                                        type="text"
+                                        className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
+                                        placeholder="Ej: Av. Rivadavia 1234"
+                                        value={formData.calle}
+                                        onChange={e => setFormData({ ...formData, calle: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Piso</label>
+                                    <input
+                                        type="text"
+                                        className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
+                                        placeholder="Ej: 2"
+                                        value={formData.piso}
+                                        onChange={e => setFormData({ ...formData, piso: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Depto</label>
+                                    <input
+                                        type="text"
+                                        className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
+                                        placeholder="Ej: B"
+                                        value={formData.depto}
+                                        onChange={e => setFormData({ ...formData, depto: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-2">Provincia</label>
                                     <select
-                                        className="w-full p-3 rounded-xl border border-gray-200"
+                                        className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
                                         value={formData.provincia}
                                         onChange={e => setFormData({ ...formData, provincia: e.target.value, partido: '', localidad: '' })}
                                     >
@@ -858,7 +899,7 @@ export const ClientsPage = () => {
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-2">Localidad / Partido</label>
                                     <select
-                                        className="w-full p-3 rounded-xl border border-gray-200"
+                                        className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
                                         value={formData.partido}
                                         onChange={e => setFormData({ ...formData, partido: e.target.value, localidad: '' })}
                                         disabled={!formData.provincia}
@@ -870,7 +911,7 @@ export const ClientsPage = () => {
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-2">Barrio / Ciudad</label>
                                     <select
-                                        className="w-full p-3 rounded-xl border border-gray-200"
+                                        className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
                                         value={formData.localidad}
                                         onChange={e => setFormData({ ...formData, localidad: e.target.value })}
                                         disabled={!formData.partido}
@@ -878,6 +919,16 @@ export const ClientsPage = () => {
                                         <option value="">Seleccionar...</option>
                                         {formData.partido && (ARGENTINA_LOCATIONS as any)[formData.provincia][formData.partido].map((l: string) => <option key={l} value={l}>{l}</option>)}
                                     </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Cód. Postal</label>
+                                    <input
+                                        type="text"
+                                        className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
+                                        placeholder="Ej: 1425"
+                                        value={formData.cp}
+                                        onChange={e => setFormData({ ...formData, cp: e.target.value })}
+                                    />
                                 </div>
                             </div>
 

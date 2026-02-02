@@ -190,14 +190,29 @@ const TeamManagement = () => {
             return;
         }
 
+        const toastId = toast.loading('Revocando acceso...');
+
         try {
-            const { deleteDoc, doc } = await import('firebase/firestore');
-            const { db } = await import('../../../lib/firebase');
-            await deleteDoc(doc(db, 'admins', id));
-            toast.success('Acceso revocado.');
+            const response = await fetch('/api/delete-admin', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': import.meta.env.VITE_API_KEY || ''
+                },
+                body: JSON.stringify({ uid: id, email })
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || 'Error al eliminar administrador');
+            }
+
+            toast.success('Acceso revocado y cuenta eliminada.', { id: toastId });
             loadAdmins();
         } catch (e: any) {
-            toast.error('Error: ' + e.message);
+            console.error(e);
+            toast.error('Error: ' + e.message, { id: toastId });
         }
     };
 

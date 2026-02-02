@@ -8,8 +8,12 @@
 ## Estado Actual del Proyecto (Fidelidad Next) - 31/01/2026
 **Última acción**: Se implementó el control de acceso basado en roles (RBAC) con tres niveles (Admin, Operador, Solo Ver) y se protegieron todas las páginas críticas del administrador.
 
-### Retomando la Sesión (Logros al 31/01/2026):
-1.  **Sistema de Permisos (RBAC):**
+### Retomando la Sesión (Logros al 01/02/2026):
+1.  **Eliminación Integral de Administradores**:
+    *   Se creó el endpoint `/api/delete-admin.js` para manejar la eliminación tanto en Firestore como en Firebase Authentication.
+    *   Se actualizó `AdminProfilePage.tsx` para usar este endpoint, asegurando que no queden usuarios huérfanos en Auth al revocar accesos.
+
+2.  **Sistema de Permisos (RBAC):** (previo)
     *   **Roles Definidos**: `admin` (acceso total), `editor` (operativo sin configuración), `viewer` (solo lectura).
     *   **Protección de IU**: Botones de acción (Crear, Editar, Borrar, Enviar) se ocultan o deshabilitan dinámicamente según el rol.
     *   **Centralización**: `AdminAuthContext` gestiona la lógica de roles globalmente, incluyendo a los `MASTER_ADMINS`.

@@ -54,6 +54,8 @@ export const ClientsPage = () => {
     const [pointsData, setPointsData] = useState({ amount: '', concept: 'Compra en local', isPesos: true, purchaseDate: new Date().toISOString().split('T')[0] });
     const [notifyWhatsapp, setNotifyWhatsapp] = useState(false); // Checkbox state
     const [applyPromotions, setApplyPromotions] = useState(true); // New State: Default True
+    const [availablePromotions, setAvailablePromotions] = useState<any[]>([]);
+    const [selectedPromos, setSelectedPromos] = useState<string[]>([]);
 
     // Estado Modal Canje
     const [redemptionModalOpen, setRedemptionModalOpen] = useState(false);
@@ -427,7 +429,8 @@ export const ClientsPage = () => {
             }
 
             // Bonistas
-            const activeBonuses = applyPromotions ? await CampaignService.getActiveBonusesForToday() : [];
+            // Bonistas (Filtrar solo las seleccionadas en el modal)
+            const activeBonuses = applyPromotions ? availablePromotions.filter(p => selectedPromos.includes(p.id)) : [];
             let bonusPoints = 0;
             if (activeBonuses.length > 0 && finalPoints > 0) {
                 activeBonuses.forEach(b => {
@@ -569,10 +572,16 @@ export const ClientsPage = () => {
         setFormData(INITIAL_CLIENT_STATE);
     };
 
-    const openPointsModal = (client: Client) => {
+    const openPointsModal = async (client: Client) => {
         if (isReadOnly) return;
         setSelectedClientForPoints(client);
         setPointsData({ amount: '', concept: 'Compra en local', isPesos: true, purchaseDate: new Date().toISOString().split('T')[0] });
+
+        // Cargar Promos Vigentes
+        const promos = await CampaignService.getActiveBonusesForToday();
+        setAvailablePromotions(promos);
+        setSelectedPromos(promos.map(p => p.id)); // Por defecto todas activas
+
         setPointsModalOpen(true);
     };
 
@@ -724,17 +733,17 @@ export const ClientsPage = () => {
                                                 <>
                                                     <button
                                                         onClick={() => openPointsModal(client)}
-                                                        className="p-2 bg-green-50 text-green-600 hover:bg-green-600 hover:text-white rounded-lg transition-all"
+                                                        className="px-3 py-1.5 bg-green-600 text-white hover:bg-green-700 rounded-lg transition-all font-bold flex items-center gap-1.5 shadow-sm shadow-green-100"
                                                         title="Sumar Puntos"
                                                     >
-                                                        <Plus size={18} />
+                                                        <Plus size={16} /> Sumar
                                                     </button>
                                                     <button
                                                         onClick={() => openRedemptionModal(client)}
-                                                        className="p-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg transition-all"
+                                                        className="px-3 py-1.5 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-all font-bold flex items-center gap-1.5 shadow-sm shadow-blue-100"
                                                         title="Canjear"
                                                     >
-                                                        <Gift size={18} />
+                                                        <Gift size={16} /> Canjes
                                                     </button>
                                                 </>
                                             )}
@@ -946,6 +955,32 @@ export const ClientsPage = () => {
                                     />
                                     <span className="text-sm font-medium text-gray-700">Aplicar Promociones / Bonus</span>
                                 </label>
+
+                                {applyPromotions && availablePromotions.length > 0 && (
+                                    <div className="mt-2 pl-8 space-y-2 border-l-2 border-green-100 ml-2 animate-fade-in">
+                                        {availablePromotions.map(promo => (
+                                            <label key={promo.id} className="flex items-center gap-2 cursor-pointer group">
+                                                <input
+                                                    type="checkbox"
+                                                    className="w-4 h-4 rounded border-gray-300 text-green-500 focus:ring-green-400"
+                                                    checked={selectedPromos.includes(promo.id)}
+                                                    onChange={e => {
+                                                        if (e.target.checked) setSelectedPromos([...selectedPromos, promo.id]);
+                                                        else setSelectedPromos(selectedPromos.filter(id => id !== promo.id));
+                                                    }}
+                                                />
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] font-bold text-gray-700 uppercase group-hover:text-green-600 transition">
+                                                        {promo.name || promo.title}
+                                                    </span>
+                                                    <span className="text-[9px] text-gray-400 font-bold">
+                                                        {promo.rewardType === 'MULTIPLIER' ? `Multiplicador x${promo.rewardValue}` : `Bonus +${promo.rewardValue} pts`}
+                                                    </span>
+                                                </div>
+                                            </label>
+                                        ))}
+                                    </div>
+                                )}
                                 <label className="flex items-center gap-3 cursor-pointer">
                                     <input
                                         type="checkbox"

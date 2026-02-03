@@ -123,7 +123,7 @@ export const ClientsPage = () => {
                     dni: data.dni || '',
                     phone: data.phone || data.telefono || '',
                     points: data.points || data.puntos || 0,
-                    socioNumber: data.socioNumber || data.numeroSocio || '',
+                    socioNumber: String(data.socioNumber || data.numeroSocio || ''),
                     expiringPoints: metrics.expiring,
                     totalSpent: metrics.totalspent,
                     redeemedPoints: metrics.redeemedPoints,
@@ -214,11 +214,28 @@ export const ClientsPage = () => {
 
             if (editingId) {
                 // ACTUALIZAR
-                await updateDoc(doc(db, 'users', editingId), {
+                const clientPayload = {
                     ...formData,
+                    nombre: formData.name.trim(),
+                    telefono: formData.phone.trim(),
+                    numeroSocio: Number(formData.socioNumber),
                     updatedAt: new Date(),
-                    formatted_address: formattedAddress
-                });
+                    formatted_address: formattedAddress,
+                    domicilio: {
+                        status: 'complete',
+                        addressLine: formattedAddress,
+                        components: {
+                            calle: formData.calle,
+                            piso: formData.piso,
+                            depto: formData.depto,
+                            localidad: formData.localidad,
+                            partido: formData.partido,
+                            provincia: formData.provincia,
+                            zipCode: formData.cp
+                        }
+                    }
+                };
+                await updateDoc(doc(db, 'users', editingId), clientPayload);
                 toast.success('Cliente actualizado correctamente');
             } else {
                 // CREAR
@@ -238,21 +255,27 @@ export const ClientsPage = () => {
                     }
                 }
 
-                const payload = {
-                    name: formData.name.trim(),
+                // Payload compatible con api/create-user.js (Español)
+                const apiPayload = {
+                    nombre: formData.name.trim(),
                     email: safeEmail,
                     dni: safeDni,
-                    phone: formData.phone.trim(),
-                    provincia: formData.provincia,
-                    partido: formData.partido,
-                    localidad: formData.localidad,
-                    calle: formData.calle,
-                    piso: formData.piso,
-                    depto: formData.depto,
-                    cp: formData.cp,
-                    role: 'client',
-                    socioNumber: finalSocioId,
-                    welcomePoints: welcomePts
+                    telefono: formData.phone.trim(),
+                    numeroSocio: finalSocioId,
+                    domicilio: {
+                        status: 'complete',
+                        addressLine: formattedAddress,
+                        components: {
+                            calle: formData.calle,
+                            piso: formData.piso,
+                            depto: formData.depto,
+                            localidad: formData.localidad,
+                            partido: formData.partido,
+                            provincia: formData.provincia,
+                            zipCode: formData.cp
+                        }
+                    },
+                    role: 'client'
                 };
 
                 let apiSuccess = false;
@@ -260,7 +283,7 @@ export const ClientsPage = () => {
                     const res = await fetch('/api/create-user', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'x-api-key': import.meta.env.VITE_API_KEY || '' },
-                        body: JSON.stringify(payload)
+                        body: JSON.stringify(apiPayload)
                     });
                     if (res.ok) {
                         const data = await res.json();
@@ -284,7 +307,10 @@ export const ClientsPage = () => {
                         const newRef = doc(collection(db, 'users'));
                         newDocId = newRef.id;
                         await setDoc(newRef, {
-                            ...payload,
+                            ...apiPayload,
+                            name: formData.name.trim(), // Keep both for backward compat
+                            phone: formData.phone.trim(),
+                            socioNumber: finalSocioId,
                             points: 0,
                             createdAt: new Date(),
                             updatedAt: new Date()

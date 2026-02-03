@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Edit, Trash2, X, Search, MapPin, Phone, Mail, Coins, Sparkles, Gift, History, MessageCircle, Users, Bell, Check, FileDown } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Search, MapPin, Phone, Mail, Coins, Sparkles, Gift, History, MessageCircle, Users, Bell, Check, FileDown, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { collection, addDoc, getDocs, query, orderBy, doc, deleteDoc, updateDoc, increment, runTransaction, arrayUnion, where, setDoc, collectionGroup } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
@@ -47,6 +47,7 @@ export const ClientsPage = () => {
     // Estado del Modal CRUD
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [formStep, setFormStep] = useState(1); // 1: Personal, 2: Domicilio
     const [formData, setFormData] = useState(INITIAL_CLIENT_STATE);
 
     // Estado Modal Asignar Puntos
@@ -141,10 +142,6 @@ export const ClientsPage = () => {
             });
 
             setClients(loadedClients.filter(c => c.name));
-
-            // Config
-            const cfg = await ConfigService.get();
-            setConfig(cfg);
         } catch (error) {
             console.error("Error cargando datos:", error);
             toast.error("Error de conexión");
@@ -163,9 +160,17 @@ export const ClientsPage = () => {
 
         const safeDni = formData.dni.trim();
         const safeEmail = formData.email.trim();
+        let newDocId = editingId || '';
+        let finalSocioId = formData.socioNumber;
 
         if (!safeEmail.includes('@')) {
             toast.error('El email debe ser válido');
+            setLoading(false);
+            return;
+        }
+
+        if (!safeDni || safeDni.length < 6) {
+            toast.error('El DNI es obligatorio y debe tener al menos 6 caracteres (se usará como contraseña)');
             setLoading(false);
             return;
         }
@@ -205,217 +210,164 @@ export const ClientsPage = () => {
             }
 
             const formattedAddress = `${formData.calle}, ${formData.localidad}, ${formData.partido}, ${formData.provincia}, Argentina`;
-
-            const clientPayload = {
-                ...formData,
-                updatedAt: new Date(),
-                role: 'client',
-                domicilio: {
-                    components: {
-                        calle: formData.calle,
-                        piso: formData.piso,
-                        depto: formData.depto,
-                        localidad: formData.localidad,
-                        partido: formData.partido,
-                        provincia: formData.provincia,
-                        zipCode: formData.cp
-                    },
-                    formatted_address: formattedAddress
-                },
-                partido: formData.partido,
-                formatted_address: formattedAddress
-            };
+            const welcomePts = Number(config?.welcomePoints || 0);
 
             if (editingId) {
-                const docRef = doc(db, 'users', editingId);
-                try {
-                    await updateDoc(docRef, clientPayload);
-                    toast.success('Cliente actualizado correctamente');
-                } catch (error: any) {
-                    if (error.code === 'not-found') {
-                        toast.error('Error: El cliente ya no existe.');
-                        closeModal();
-                        fetchData();
-                    } else {
-                        throw error;
-                    }
-                }
+                // ACTUALIZAR
+                await updateDoc(doc(db, 'users', editingId), {
+                    ...formData,
+                    updatedAt: new Date(),
+                    formatted_address: formattedAddress
+                });
+                toast.success('Cliente actualizado correctamente');
             } else {
-                // --- CREAR NUEVO CLIENTE ---
-                let newDocId = '';
-                let welcomePts = config?.welcomePoints || 0;
-
+                // CREAR
                 // Generar ID Socio
-                let newSocioId = formData.socioNumber;
-                if (!newSocioId) {
+                if (!finalSocioId) {
                     try {
                         await runTransaction(db, async (transaction) => {
                             const counterRef = doc(db, 'config', 'counters');
                             const counterDoc = await transaction.get(counterRef);
                             let nextId = 1000;
-                            if (counterDoc.exists()) nextId = counterDoc.data().lastSocioId + 1;
+                            if (counterDoc.exists()) nextId = (counterDoc.data()?.lastSocioId || 1000) + 1;
                             transaction.set(counterRef, { lastSocioId: nextId }, { merge: true });
-                            newSocioId = nextId.toString();
+                            finalSocioId = nextId.toString();
                         });
                     } catch (e) {
-                        newSocioId = Math.floor(1000 + Math.random() * 9000).toString();
+                        finalSocioId = Math.floor(10000 + Math.random() * 9000).toString();
                     }
                 }
 
-                // Payload Base
-                const createPayload = {
-                    email: formData.email,
-                    dni: formData.dni,
-                    nombre: formData.name,
-                    telefono: formData.phone,
-                    numeroSocio: newSocioId,
-                    domicilio: {
-                        status: 'complete',
-                        addressLine: formattedAddress,
-                        components: {
-                            calle: formData.calle,
-                            localidad: formData.localidad,
-                            partido: formData.partido,
-                            provincia: formData.provincia
-                        }
-                    },
-                    fechaInscripcion: new Date().toISOString()
+                const payload = {
+                    name: formData.name.trim(),
+                    email: safeEmail,
+                    dni: safeDni,
+                    phone: formData.phone.trim(),
+                    provincia: formData.provincia,
+                    partido: formData.partido,
+                    localidad: formData.localidad,
+                    calle: formData.calle,
+                    piso: formData.piso,
+                    depto: formData.depto,
+                    cp: formData.cp,
+                    role: 'client',
+                    socioNumber: finalSocioId,
+                    welcomePoints: welcomePts
                 };
 
-                // INTENTO 1: Usar API (Backend Real para Auth + Firestore)
-                let creationSuccess = false;
+                let apiSuccess = false;
                 try {
-                    const resCreate = await fetch('/api/create-user', {
+                    const res = await fetch('/api/create-user', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'x-api-key': import.meta.env.VITE_API_KEY || ''
-                        },
-                        body: JSON.stringify(createPayload)
+                        headers: { 'Content-Type': 'application/json', 'x-api-key': import.meta.env.VITE_API_KEY || '' },
+                        body: JSON.stringify(payload)
                     });
-
-                    if (resCreate.ok) {
-                        const resultCreate = await resCreate.json();
-                        if (resultCreate.ok) {
-                            newDocId = resultCreate.firestore.docId;
-                            creationSuccess = true;
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.ok) {
+                            newDocId = data.firestore.docId;
+                            apiSuccess = true;
                             toast.success('¡Cliente registrado con éxito!');
                         }
-                    } else {
-                        const errData = await resCreate.json();
-                        console.warn("API Create falló:", errData);
+                    } else if (res.status === 400 || res.status === 401) {
+                        const err = await res.json();
+                        toast.error(err.error || "Error de validación");
+                        setLoading(false);
+                        return;
                     }
                 } catch (e) {
-                    console.warn("API Backend no disponible, usando método directo...", e);
+                    console.warn("API Backend no disponible, intentando local...");
                 }
 
-                // FALLBACK: Escritura Directa en Firestore (Si falló API)
-                if (!creationSuccess) {
+                if (!apiSuccess) {
                     try {
-                        const usersCol = collection(db, 'users');
-                        const newDocRef = doc(usersCol);
-                        newDocId = newDocRef.id;
-
-                        await setDoc(newDocRef, {
-                            ...createPayload,
+                        const newRef = doc(collection(db, 'users'));
+                        newDocId = newRef.id;
+                        await setDoc(newRef, {
+                            ...payload,
                             points: 0,
-                            role: 'client',
                             createdAt: new Date(),
-                            updatedAt: new Date(),
-                            name: formData.name,
-                            phone: formData.phone,
-                            socioNumber: newSocioId,
-                            calle: formData.calle,
-                            localidad: formData.localidad,
-                            provincia: formData.provincia
+                            updatedAt: new Date()
                         });
-                        toast.success('¡Cliente registrado con éxito (Modo Local)!');
-                    } catch (errFallback) {
-                        console.error("Error fatal creando cliente:", errFallback);
-                        toast.error("Error al guardar en base de datos");
+                        toast.success('Cliente registrado (Modo Local)');
+                    } catch (errLocal) {
+                        console.error("Error local:", errLocal);
+                        toast.error("Error al guardar cliente");
                         setLoading(false);
                         return;
                     }
                 }
+            }
 
-                // --- POST-CREATION ACTIONS ---
-                console.log("[ClientsPage] Starting post-creation actions for ID:", newDocId);
-                if (newDocId) {
-                    // Refrescar config al vuelo para asegurar que no sea null
-                    const freshConfig = await ConfigService.get();
+            // --- ACCIONES POST-ALTA ---
+            if (!editingId && newDocId) {
+                const freshConfig = await ConfigService.get();
+                const pts = Number(freshConfig?.welcomePoints || 0);
 
-                    // 1. Asignar Puntos de Bienvenida
-                    if (welcomePts > 0) {
-                        let days = 365;
-                        if (freshConfig?.expirationRules) {
-                            const rule = freshConfig.expirationRules.find((r: any) =>
-                                welcomePts >= r.minPoints && (r.maxPoints === null || welcomePts <= r.maxPoints)
-                            );
-                            if (rule) days = rule.validityDays;
-                        }
-
-                        const expiresAt = new Date();
-                        expiresAt.setDate(expiresAt.getDate() + days);
-
-                        await addDoc(collection(db, `users/${newDocId}/points_history`), {
-                            amount: welcomePts,
-                            concept: '🎁 Bienvenida al sistema',
-                            date: new Date(),
-                            type: 'credit',
-                            expiresAt: expiresAt
-                        });
-
-                        await updateDoc(doc(db, 'users', newDocId), {
-                            points: welcomePts,
-                            historialPuntos: arrayUnion({
-                                fechaObtencion: new Date(),
-                                puntosObtenidos: welcomePts,
-                                puntosDisponibles: welcomePts,
-                                diasCaducidad: days,
-                                origen: '🎁 Bienvenida al sistema',
-                                estado: 'Activo'
-                            })
-                        });
+                if (pts > 0) {
+                    let days = 365;
+                    if (freshConfig?.expirationRules) {
+                        const rule = freshConfig.expirationRules.find((r: any) => pts >= r.minPoints && (!r.maxPoints || pts <= r.maxPoints));
+                        if (rule) days = rule.validityDays;
                     }
+                    const expiresAt = new Date();
+                    expiresAt.setDate(expiresAt.getDate() + days);
 
-                    // 2. WhatsApp (Si está habilitado el canal 'welcome')
-                    const welcomeTemplate = freshConfig?.messaging?.templates?.welcome || DEFAULT_TEMPLATES.welcome;
-                    const welcomeMsg = welcomeTemplate
-                        .replace(/{nombre}/g, formData.name.split(' ')[0])
-                        .replace(/{nombre_completo}/g, formData.name)
-                        .replace(/{puntos}/g, welcomePts.toString())
-                        .replace(/{dni}/g, formData.dni)
-                        .replace(/{email}/g, formData.email)
-                        .replace(/{socio}/g, newSocioId)
-                        .replace(/{numero_socio}/g, newSocioId)
-                        .replace(/{telefono}/g, formData.phone);
+                    await addDoc(collection(db, `users/${newDocId}/points_history`), {
+                        amount: pts,
+                        concept: '🎁 Bienvenida al sistema',
+                        date: new Date(),
+                        type: 'credit',
+                        expiresAt: expiresAt
+                    });
 
-                    if (formData.phone && NotificationService.isChannelEnabled(freshConfig, 'welcome', 'whatsapp')) {
-                        const cleanPhone = formData.phone.replace(/\D/g, '');
-                        if (cleanPhone.length > 5) {
-                            const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(welcomeMsg.trim())}`;
-                            window.open(waUrl, '_blank');
-                        }
-                    }
-
-                    // 3. Email (Si está habilitado el canal 'welcome')
-                    if (formData.email && NotificationService.isChannelEnabled(freshConfig, 'welcome', 'email')) {
-                        const htmlContent = EmailService.generateBrandedTemplate(freshConfig || {}, '¡Bienvenido al Club!', welcomeMsg);
-                        EmailService.sendEmail(formData.email, '¡Bienvenido al Club!', htmlContent).catch(() => { });
-                    }
-
-                    // 4. Push & Inbox
-                    NotificationService.sendToClient(newDocId, {
-                        title: '¡Bienvenido al Club!',
-                        body: welcomeMsg,
-                        type: 'welcome',
-                        icon: freshConfig?.logoUrl
-                    }).catch(() => { });
+                    await updateDoc(doc(db, 'users', newDocId), {
+                        points: pts,
+                        historialPuntos: arrayUnion({
+                            fechaObtencion: new Date(),
+                            puntosObtenidos: pts,
+                            puntosDisponibles: pts,
+                            diasCaducidad: days,
+                            origen: '🎁 Bienvenida al sistema',
+                            estado: 'Activo'
+                        })
+                    });
                 }
+
+                const welcomeTemplate = freshConfig?.messaging?.templates?.welcome || DEFAULT_TEMPLATES.welcome;
+                const welcomeMsg = welcomeTemplate
+                    .replace(/{nombre}/g, formData.name.split(' ')[0])
+                    .replace(/{nombre_completo}/g, formData.name)
+                    .replace(/{puntos}/g, pts.toString())
+                    .replace(/{dni}/g, formData.dni)
+                    .replace(/{email}/g, formData.email)
+                    .replace(/{socio}/g, finalSocioId)
+                    .replace(/{numero_socio}/g, finalSocioId)
+                    .replace(/{telefono}/g, formData.phone);
+
+                if (formData.phone && NotificationService.isChannelEnabled(freshConfig, 'welcome', 'whatsapp')) {
+                    const cleanPhone = formData.phone.replace(/\D/g, '');
+                    if (cleanPhone.length > 5) {
+                        const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(welcomeMsg.trim())}`;
+                        window.open(waUrl, '_blank');
+                    }
+                }
+
+                if (formData.email && NotificationService.isChannelEnabled(freshConfig, 'welcome', 'email')) {
+                    const htmlContent = EmailService.generateBrandedTemplate(freshConfig || {}, '¡Bienvenido al Club!', welcomeMsg);
+                    EmailService.sendEmail(formData.email, '¡Bienvenido al Club!', htmlContent).catch(() => { });
+                }
+
+                NotificationService.sendToClient(newDocId, {
+                    title: '¡Bienvenido al Club!',
+                    body: welcomeMsg,
+                    type: 'welcome',
+                    icon: freshConfig?.logoUrl
+                }).catch(() => { });
             }
 
             closeModal();
-            setTimeout(() => fetchData(), 1000);
+            setTimeout(() => fetchData(), 500);
         } catch (error: any) {
             console.error("Error General al guardar:", error);
             toast.error(error.message || "Error al guardar");
@@ -435,7 +387,7 @@ export const ClientsPage = () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'x-api-key': import.meta.env.VITE_API_KEY
+                    'x-api-key': import.meta.env.VITE_API_KEY || ''
                 },
                 body: JSON.stringify({ docId: id })
             });
@@ -474,8 +426,6 @@ export const ClientsPage = () => {
                 finalPoints = Math.floor(inputVal);
             }
 
-            // Bonistas
-            // Bonistas (Filtrar solo las seleccionadas en el modal)
             const activeBonuses = applyPromotions ? availablePromotions.filter(p => selectedPromos.includes(p.id)) : [];
             let bonusPoints = 0;
             if (activeBonuses.length > 0 && finalPoints > 0) {
@@ -492,7 +442,6 @@ export const ClientsPage = () => {
                 return;
             }
 
-            // Expiración
             let days = 365;
             if (currentConfig?.expirationRules) {
                 const rule = currentConfig.expirationRules.find((r: any) =>
@@ -501,17 +450,15 @@ export const ClientsPage = () => {
                 if (rule) days = rule.validityDays;
             }
 
-            // Usar la fecha seleccionada (ajustada a mediodía para evitar problemas de zona horaria)
             const selectedDate = new Date(pointsData.purchaseDate + 'T12:00:00');
             const expiresAt = new Date(selectedDate);
             expiresAt.setDate(expiresAt.getDate() + days);
 
-            // Guardar
             if (finalPoints > 0) {
                 const historyRef = collection(db, `users/${selectedClientForPoints.id}/points_history`);
                 await addDoc(historyRef, {
                     amount: finalPoints,
-                    moneySpent: pointsData.isPesos ? inputVal : 0, // Store money spent for reports
+                    moneySpent: pointsData.isPesos ? inputVal : 0,
                     concept: pointsData.concept,
                     date: selectedDate,
                     type: 'credit',
@@ -531,14 +478,13 @@ export const ClientsPage = () => {
                     })
                 });
 
-                // Notificación por WhatsApp
                 if (notifyWhatsapp && selectedClientForPoints.phone) {
                     const pointsTemplate = currentConfig?.messaging?.templates?.pointsAdded || DEFAULT_TEMPLATES.pointsAdded;
                     const msg = pointsTemplate
                         .replace(/{nombre}/g, selectedClientForPoints.name.split(' ')[0])
                         .replace(/{puntos}/g, finalPoints.toString())
                         .replace(/{saldo}/g, (selectedClientForPoints.points + finalPoints).toString())
-                        .replace(/{total_puntos}/g, (selectedClientForPoints.points + finalPoints).toString()) // Mantener por compatibilidad
+                        .replace(/{total_puntos}/g, (selectedClientForPoints.points + finalPoints).toString())
                         .replace(/{vence}/g, expiresAt.toLocaleDateString())
                         .replace(/{concepto}/g, pointsData.concept);
 
@@ -571,7 +517,6 @@ export const ClientsPage = () => {
     // Auxiliares
     const refreshAndOpen = async (client: Client, openFn: (c: Client) => void) => {
         try {
-            const docRef = doc(db, 'users', client.id);
             const snap = await getDocs(query(collection(db, 'users'), where('__name__', '==', client.id)));
             if (!snap.empty) {
                 const data = snap.docs[0].data();
@@ -588,6 +533,7 @@ export const ClientsPage = () => {
     const openNewClientModal = () => {
         if (isReadOnly) return;
         setEditingId(null);
+        setFormStep(1);
         setFormData(INITIAL_CLIENT_STATE);
         setIsModalOpen(true);
     };
@@ -595,7 +541,6 @@ export const ClientsPage = () => {
     const openEditClientModal = (client: Client) => {
         if (isReadOnly) return;
         setEditingId(client.id);
-        // Map client to formData keys correctly
         setFormData({
             name: client.name || '',
             email: client.email || '',
@@ -617,6 +562,7 @@ export const ClientsPage = () => {
     const closeModal = () => {
         setIsModalOpen(false);
         setEditingId(null);
+        setFormStep(1);
         setFormData(INITIAL_CLIENT_STATE);
     };
 
@@ -625,11 +571,9 @@ export const ClientsPage = () => {
         setSelectedClientForPoints(client);
         setPointsData({ amount: '', concept: 'Compra en local', isPesos: true, purchaseDate: new Date().toISOString().split('T')[0] });
 
-        // Cargar Promos Vigentes
         const promos = await CampaignService.getActiveBonusesForToday();
         setAvailablePromotions(promos);
-        setSelectedPromos(promos.map(p => p.id)); // Por defecto todas activas
-
+        setSelectedPromos(promos.map(p => p.id));
         setPointsModalOpen(true);
     };
 
@@ -704,7 +648,6 @@ export const ClientsPage = () => {
         toast.success("Excel exportado correctamente");
     };
 
-    // Filtrar
     const filteredClients = clients.filter(c =>
         c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.dni?.includes(searchTerm) ||
@@ -773,7 +716,6 @@ export const ClientsPage = () => {
                                 <tr key={client.id} className="hover:bg-gray-50/50 transition-colors group">
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
-                                            {/* El número de socio reemplaza al círculo de la letra */}
                                             <div className="w-14 h-10 bg-blue-50 text-blue-700 rounded-lg flex flex-col items-center justify-center border border-blue-100 flex-shrink-0">
                                                 <span className="text-[9px] font-bold uppercase leading-none opacity-60">Socio</span>
                                                 <span className="text-sm font-black leading-none">{client.socioNumber}</span>
@@ -821,15 +763,12 @@ export const ClientsPage = () => {
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="flex justify-center gap-1.5">
-                                            {/* TyC */}
                                             <div title={client.termsAccepted ? "Términos Aceptados" : "Términos Pendientes"} className={`p-1.5 rounded-md ${client.termsAccepted ? 'text-blue-600 bg-blue-50' : 'text-gray-300 bg-gray-50'}`}>
                                                 <Check size={14} strokeWidth={3} />
                                             </div>
-                                            {/* Push */}
                                             <div title={`Notificaciones: ${client.permissions?.notifications?.status || 'Pendiente'}`} className={`p-1.5 rounded-md ${(client.permissions?.notifications?.status === 'granted') ? 'text-purple-600 bg-purple-50' : 'text-gray-300 bg-gray-50'}`}>
                                                 <Bell size={14} />
                                             </div>
-                                            {/* GPS */}
                                             <div title={`Ubicación: ${client.permissions?.geolocation?.status || 'Pendiente'}`} className={`p-1.5 rounded-md ${(client.permissions?.geolocation?.status === 'granted') ? 'text-green-600 bg-green-50' : 'text-gray-300 bg-gray-50'}`}>
                                                 <MapPin size={14} />
                                             </div>
@@ -929,141 +868,209 @@ export const ClientsPage = () => {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
                     <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
                         <div className="bg-blue-600 p-6 flex justify-between items-center text-white">
-                            <h2 className="text-xl font-bold">{editingId ? 'Editar Cliente' : 'Nuevo Cliente'}</h2>
+                            <div>
+                                <h2 className="text-xl font-bold">{editingId ? 'Editar Cliente' : 'Nuevo Cliente'}</h2>
+                                {!editingId && (
+                                    <p className="text-blue-100 text-xs mt-1">
+                                        Paso {formStep} de 2: {formStep === 1 ? 'Datos Personales' : 'Dirección y Domicilio'}
+                                    </p>
+                                )}
+                            </div>
                             <button onClick={closeModal} className="p-2 hover:bg-white/10 rounded-full transition"><X size={20} /></button>
                         </div>
-                        <form onSubmit={handleSave} className="p-8 space-y-6 overflow-y-auto">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Nombre y Apellido *</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
-                                        value={formData.name}
-                                        onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">DNI</label>
-                                    <input
-                                        type="text"
-                                        className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
-                                        value={formData.dni}
-                                        onChange={e => setFormData({ ...formData, dni: e.target.value })}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Email *</label>
-                                    <input
-                                        type="email"
-                                        required
-                                        className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
-                                        value={formData.email}
-                                        onChange={e => setFormData({ ...formData, email: e.target.value })}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Teléfono *</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        placeholder="Ej: 1122334455"
-                                        className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
-                                        value={formData.phone}
-                                        onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                                    />
-                                </div>
-                            </div>
 
-                            <hr className="border-gray-100" />
-                            <h3 className="font-bold text-gray-800 flex items-center gap-2"><MapPin size={16} /> Dirección</h3>
+                        <form onSubmit={(e) => {
+                            if (!editingId && formStep === 1) {
+                                e.preventDefault();
+                                if (!formData.name || !formData.email || !formData.dni || !formData.phone) {
+                                    toast.error("Completá todos los campos obligatorios");
+                                    return;
+                                }
+                                setFormStep(2);
+                            } else {
+                                handleSave(e);
+                            }
+                        }} className="p-8 space-y-6 overflow-y-auto">
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                <div className="md:col-span-2 lg:col-span-2">
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Calle y Número</label>
-                                    <input
-                                        type="text"
-                                        className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
-                                        placeholder="Ej: Av. Rivadavia 1234"
-                                        value={formData.calle}
-                                        onChange={e => setFormData({ ...formData, calle: e.target.value })}
-                                    />
+                            {!editingId && (
+                                <div className="flex justify-center gap-3 mb-4">
+                                    <div className={`h-2 w-16 rounded-full transition-all ${formStep === 1 ? 'bg-blue-600' : 'bg-blue-100'}`}></div>
+                                    <div className={`h-2 w-16 rounded-full transition-all ${formStep === 2 ? 'bg-blue-600' : 'bg-blue-100'}`}></div>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Piso</label>
-                                    <input
-                                        type="text"
-                                        className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
-                                        placeholder="Ej: 2"
-                                        value={formData.piso}
-                                        onChange={e => setFormData({ ...formData, piso: e.target.value })}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Depto</label>
-                                    <input
-                                        type="text"
-                                        className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
-                                        placeholder="Ej: B"
-                                        value={formData.depto}
-                                        onChange={e => setFormData({ ...formData, depto: e.target.value })}
-                                    />
-                                </div>
-                            </div>
+                            )}
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Provincia</label>
-                                    <select
-                                        className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
-                                        value={formData.provincia}
-                                        onChange={e => setFormData({ ...formData, provincia: e.target.value, partido: '', localidad: '' })}
+                            {(editingId || formStep === 1) && (
+                                <div className="animate-fade-in">
+                                    <h3 className="font-bold text-gray-800 flex items-center gap-2 mb-4"><Users size={16} /> Datos del Socio</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Nombre y Apellido *</label>
+                                            <input
+                                                type="text"
+                                                required
+                                                className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
+                                                value={formData.name}
+                                                onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">DNI *</label>
+                                            <input
+                                                type="text"
+                                                required
+                                                placeholder="Será su contraseña"
+                                                className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
+                                                value={formData.dni}
+                                                onChange={e => setFormData({ ...formData, dni: e.target.value })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Email *</label>
+                                            <input
+                                                type="email"
+                                                required
+                                                className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
+                                                value={formData.email}
+                                                onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Teléfono *</label>
+                                            <input
+                                                type="text"
+                                                required
+                                                placeholder="Ej: 1122334455"
+                                                className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
+                                                value={formData.phone}
+                                                onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                                            />
+                                        </div>
+                                        {editingId && (
+                                            <div>
+                                                <label className="block text-sm font-bold text-gray-700 mb-2">N° de Socio</label>
+                                                <input
+                                                    type="text"
+                                                    disabled
+                                                    className="w-full p-3 rounded-xl border border-gray-100 bg-gray-50 text-gray-500 outline-none"
+                                                    value={formData.socioNumber}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {(editingId || formStep === 2) && (
+                                <div className="animate-fade-in space-y-6">
+                                    <hr className="border-gray-100" />
+                                    <h3 className="font-bold text-gray-800 flex items-center gap-2"><MapPin size={16} /> Ubicación</h3>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                        <div className="md:col-span-2 lg:col-span-2">
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Calle y Número</label>
+                                            <input
+                                                type="text"
+                                                className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
+                                                placeholder="Ej: Av. Rivadavia 1234"
+                                                value={formData.calle}
+                                                onChange={e => setFormData({ ...formData, calle: e.target.value })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Piso</label>
+                                            <input
+                                                type="text"
+                                                className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
+                                                placeholder="Ej: 2"
+                                                value={formData.piso}
+                                                onChange={e => setFormData({ ...formData, piso: e.target.value })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Depto</label>
+                                            <input
+                                                type="text"
+                                                className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
+                                                placeholder="Ej: B"
+                                                value={formData.depto}
+                                                onChange={e => setFormData({ ...formData, depto: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Provincia</label>
+                                            <select
+                                                className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
+                                                value={formData.provincia}
+                                                onChange={e => setFormData({ ...formData, provincia: e.target.value, partido: '', localidad: '' })}
+                                            >
+                                                <option value="">Seleccionar...</option>
+                                                {Object.keys(ARGENTINA_LOCATIONS).map(p => <option key={p} value={p}>{p}</option>)}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Localidad / Partido</label>
+                                            <select
+                                                className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
+                                                value={formData.partido}
+                                                onChange={e => setFormData({ ...formData, partido: e.target.value, localidad: '' })}
+                                                disabled={!formData.provincia}
+                                            >
+                                                <option value="">Seleccionar...</option>
+                                                {formData.provincia && Object.keys((ARGENTINA_LOCATIONS as any)[formData.provincia]).map(p => <option key={p} value={p}>{p}</option>)}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Barrio / Ciudad</label>
+                                            <select
+                                                className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
+                                                value={formData.localidad}
+                                                onChange={e => setFormData({ ...formData, localidad: e.target.value })}
+                                                disabled={!formData.partido}
+                                            >
+                                                <option value="">Seleccionar...</option>
+                                                {formData.partido && (ARGENTINA_LOCATIONS as any)[formData.provincia][formData.partido].map((l: string) => <option key={l} value={l}>{l}</option>)}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Cód. Postal</label>
+                                            <input
+                                                type="text"
+                                                className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
+                                                placeholder="Ej: 1425"
+                                                value={formData.cp}
+                                                onChange={e => setFormData({ ...formData, cp: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="mt-8 flex justify-end gap-3 pt-6 border-t border-gray-50">
+                                {formStep === 2 && !editingId && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormStep(1)}
+                                        className="px-8 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition border border-gray-100"
                                     >
-                                        <option value="">Seleccionar...</option>
-                                        {Object.keys(ARGENTINA_LOCATIONS).map(p => <option key={p} value={p}>{p}</option>)}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Localidad / Partido</label>
-                                    <select
-                                        className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
-                                        value={formData.partido}
-                                        onChange={e => setFormData({ ...formData, partido: e.target.value, localidad: '' })}
-                                        disabled={!formData.provincia}
-                                    >
-                                        <option value="">Seleccionar...</option>
-                                        {formData.provincia && Object.keys((ARGENTINA_LOCATIONS as any)[formData.provincia]).map(p => <option key={p} value={p}>{p}</option>)}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Barrio / Ciudad</label>
-                                    <select
-                                        className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
-                                        value={formData.localidad}
-                                        onChange={e => setFormData({ ...formData, localidad: e.target.value })}
-                                        disabled={!formData.partido}
-                                    >
-                                        <option value="">Seleccionar...</option>
-                                        {formData.partido && (ARGENTINA_LOCATIONS as any)[formData.provincia][formData.partido].map((l: string) => <option key={l} value={l}>{l}</option>)}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Cód. Postal</label>
-                                    <input
-                                        type="text"
-                                        className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
-                                        placeholder="Ej: 1425"
-                                        value={formData.cp}
-                                        onChange={e => setFormData({ ...formData, cp: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="mt-8 flex justify-end gap-3">
+                                        Atrás
+                                    </button>
+                                )}
                                 <button type="button" onClick={closeModal} className="px-8 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition">Cancelar</button>
-                                <button type="submit" disabled={loading} className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-100 disabled:opacity-50">
-                                    {loading ? 'Guardando...' : 'Guardar Cliente'}
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-100 disabled:opacity-50 flex items-center justify-center gap-2"
+                                >
+                                    {loading ? (
+                                        <>Cargando...</>
+                                    ) : (!editingId && formStep === 1 ? (
+                                        <>Siguiente <ArrowRight size={18} /></>
+                                    ) : (
+                                        'Guardar Cliente'
+                                    ))}
                                 </button>
                             </div>
                         </form>
@@ -1160,6 +1167,7 @@ export const ClientsPage = () => {
                                         ))}
                                     </div>
                                 )}
+
                                 <label className="flex items-center gap-3 cursor-pointer">
                                     <input
                                         type="checkbox"

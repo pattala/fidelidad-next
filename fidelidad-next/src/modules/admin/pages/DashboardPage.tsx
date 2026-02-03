@@ -21,13 +21,13 @@ export const DashboardPage = () => {
     });
     const [recentActivity, setRecentActivity] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [activityLimit, setActivityLimit] = useState(10);
 
     useEffect(() => {
         const fetchStats = async () => {
             try {
                 // 1. KPI Stats
                 // Clientes
-                // Clientes (Fetch all to include those with missing role)
                 const qUsers = query(collection(db, 'users'));
                 const snapUsers = await getDocs(qUsers);
 
@@ -35,7 +35,6 @@ export const DashboardPage = () => {
                 let clientCount = 0;
                 snapUsers.forEach(doc => {
                     const d = doc.data();
-                    // Count as client if NOT admin (handling missing role as client)
                     if (d.role !== 'admin') {
                         clientCount++;
                         points += ((d.points || d.puntos) || 0);
@@ -54,7 +53,7 @@ export const DashboardPage = () => {
                     redeemedMoney += (data.redeemedValue || 0);
                 });
 
-                // Dinero Generado (Puntos Otorgados)
+                // Dinero Generado
                 const qGenerated = query(collectionGroup(db, 'points_history'), where('type', '==', 'credit'));
                 const snapGenerated = await getDocs(qGenerated);
                 let totalMoneyGenerated = 0;
@@ -63,19 +62,14 @@ export const DashboardPage = () => {
                     totalMoneyGenerated += (data.moneySpent || 0);
                 });
 
-                // Calcular Valor del Punto (Automático o Manual)
                 const config = await ConfigService.get();
                 let finalPointValue = config.pointValue || 10;
-
-                // Always calculate Average Prize Value (needed for 'average' mode AND 'budget' comparison)
                 let averagePrizeValue = 0;
                 {
                     const qPrizes = query(collection(db, 'prizes'), where('active', '==', true));
                     const snapPrizes = await getDocs(qPrizes);
-
                     let totalRatio = 0;
                     let validPrizesCount = 0;
-
                     snapPrizes.forEach(doc => {
                         const p = doc.data();
                         if (p.cashValue && p.pointsRequired > 0) {
@@ -83,25 +77,13 @@ export const DashboardPage = () => {
                             validPrizesCount++;
                         }
                     });
-
-                    if (validPrizesCount > 0) {
-                        averagePrizeValue = totalRatio / validPrizesCount;
-                    }
+                    if (validPrizesCount > 0) averagePrizeValue = totalRatio / validPrizesCount;
                 }
 
-                // Determine method (fallback to legacy behavior if new field is missing)
                 const method = config.pointCalculationMethod || (config.useAutomaticPointValue ? 'average' : 'manual');
+                if (method === 'manual') finalPointValue = config.pointValue || 10;
+                else finalPointValue = averagePrizeValue;
 
-                if (method === 'manual') {
-                    finalPointValue = config.pointValue || 10;
-                } else if (method === 'average') {
-                    finalPointValue = averagePrizeValue;
-                } else if (method === 'budget') {
-                    // In budget mode, we want to show the REAL liability based on prizes to contrast with budget
-                    finalPointValue = averagePrizeValue;
-                }
-
-                // Budget Logic: Deduct already redeemed money from the total budget
                 const totalBudget = config.pointValueBudget || 0;
                 const remainingBudget = Math.max(0, totalBudget - redeemedMoney);
 
@@ -120,15 +102,14 @@ export const DashboardPage = () => {
                     pointValueReal: averagePrizeValue
                 });
 
-                // 2. Recent Activity Feed
+                // 2. Recent Activity Feed with dynamic limit
                 const qActivity = query(
                     collectionGroup(db, 'points_history'),
                     orderBy('date', 'desc'),
-                    limit(10)
+                    limit(activityLimit)
                 );
                 const snapActivity = await getDocs(qActivity);
 
-                // Helper to fetch user names
                 const userCache = new Map();
                 const getUserName = async (uid: string) => {
                     if (userCache.has(uid)) return userCache.get(uid);
@@ -145,9 +126,8 @@ export const DashboardPage = () => {
 
                 const activities = await Promise.all(snapActivity.docs.map(async (d) => {
                     const data = d.data();
-                    const userId = d.ref.parent.parent?.id; // users/{id}/points_history/{doc}
+                    const userId = d.ref.parent.parent?.id;
                     const userName = userId ? await getUserName(userId) : 'Sistema';
-
                     return {
                         id: d.id,
                         ...data,
@@ -166,7 +146,7 @@ export const DashboardPage = () => {
         };
 
         fetchStats();
-    }, []);
+    }, [activityLimit]);
 
     // Helper formatter
     const formatTime = (date: Date) => {
@@ -382,6 +362,17 @@ export const DashboardPage = () => {
                         ))
                     )}
                 </div>
+
+                {recentActivity.length >= activityLimit && (
+                    <div className="mt-4 flex justify-center">
+                        <button
+                            onClick={() => setActivityLimit(prev => prev + 10)}
+                            className="text-sm font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+                        >
+                            VER MÁS ACTIVIDAD <Clock size={14} />
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );

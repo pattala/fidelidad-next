@@ -28,6 +28,8 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
     const [loading, setLoading] = useState(true);
     const [config, setConfig] = useState<any>(null);
 
+    const [historyLimit, setHistoryLimit] = useState(50);
+
     // Fetch data wrapper
     const fetchData = async () => {
         if (!client?.id) return;
@@ -35,12 +37,6 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
             const cfg = await ConfigService.get();
             setConfig(cfg);
 
-            // A. Process Expirations First (to ensure data consistency)
-            // Import dynamically or assume it's available if we add import at top. Let's use dynamic to match previous pattern or add top import.
-            // Better to add top import but minimal change is dynamic or just adding import.
-            // Let's add the import at the top in a separate edit or just use dynamic import here to be safe and quick without changing top lines context.
-            // Actually, I should add the import line at the top optimally, but I have a partial view. 
-            // I'll use dynamic import for safety in this replace block.
             try {
                 const { ExpirationService } = await import('../../../services/expirationService');
                 await ExpirationService.processExpirations(client.id);
@@ -48,7 +44,6 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
                 console.warn('Auto-expiration check failed:', e);
             }
 
-            // A. Fetch Latest Client Data (Real-time points)
             const userRef = doc(db, 'users', client.id);
             const userSnap = await getDoc(userRef);
             if (userSnap.exists()) {
@@ -56,15 +51,14 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
                 setCurrentClient({ id: userSnap.id, ...userData });
             }
 
-            // B. Fetch History
+            // B. Fetch History with dynamic limit
             const historyQuery = query(
                 collection(db, `users/${client.id}/points_history`),
                 orderBy('date', 'desc'),
-                limit(50)
+                limit(historyLimit)
             );
 
             // C. Fetch ALL Expirations (Past and Future) to detect overdue points
-            // Note: We use '!=' null to ensure we only get docs with this field, ordered by date
             const expirationQuery = query(
                 collection(db, `users/${client.id}/points_history`),
                 where('expiresAt', '!=', null),
@@ -78,17 +72,13 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
             ]);
 
             let calculatedTotalSpent = 0;
-
             const historyData = historySnap.docs.map(doc => {
                 const d = doc.data();
-
-                // Calcular dinero de este item para el total
                 let itemMoney = 0;
                 if (d.type === 'credit') {
                     if (d.moneySpent !== undefined && d.moneySpent !== null) {
                         itemMoney = d.moneySpent;
                     } else {
-                        // Estimación Legacy
                         const conceptLower = (d.concept || '').toLowerCase();
                         if (!conceptLower.includes('regalo') && !conceptLower.includes('bienvenida') && !conceptLower.includes('bono')) {
                             const ratio = cfg?.pointsPerPeso || 1;
@@ -107,45 +97,29 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
                 };
             });
 
-            // Group Expirations by Date
             const todayStart = TimeService.startOfToday();
-
             const expirationMap: Record<string, { id: string, amount: number, date: Date, status: 'overdue' | 'today' | 'future' }> = {};
 
             expirationSnap.docs.forEach(doc => {
                 const d = doc.data();
-                // Use remainingPoints if available (FIFO logic), otherwise amount (Legacy)
                 const currentAmount = d.remainingPoints !== undefined ? d.remainingPoints : d.amount;
-
                 if (currentAmount > 0 && d.expiresAt) {
                     const date = d.expiresAt?.toDate ? d.expiresAt.toDate() : new Date(d.expiresAt);
-                    // Normalize date for grouping to avoid hours splitting groups
                     const dateKey = date.toLocaleDateString();
-
-                    // Determine status logic based on Start of Day
                     const checkDate = new Date(date);
                     checkDate.setHours(0, 0, 0, 0);
 
                     let status: 'overdue' | 'today' | 'future' = 'future';
-                    if (checkDate.getTime() < todayStart.getTime()) {
-                        status = 'overdue';
-                    } else if (checkDate.getTime() === todayStart.getTime()) {
-                        status = 'today';
-                    }
+                    if (checkDate.getTime() < todayStart.getTime()) status = 'overdue';
+                    else if (checkDate.getTime() === todayStart.getTime()) status = 'today';
 
                     if (!expirationMap[dateKey]) {
-                        expirationMap[dateKey] = {
-                            id: doc.id,
-                            amount: 0,
-                            date: date,
-                            status: status
-                        };
+                        expirationMap[dateKey] = { id: doc.id, amount: 0, date: date, status: status };
                     }
                     expirationMap[dateKey].amount += currentAmount;
                 }
             });
 
-            // Convert to array and sort
             const expirationData = Object.values(expirationMap).sort((a, b) => a.date.getTime() - b.date.getTime());
 
             setHistory(historyData);
@@ -161,7 +135,7 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
 
     useEffect(() => {
         fetchData();
-    }, [client]);
+    }, [client, historyLimit]);
 
     // Delete Individual Item
     const handleDeleteItem = async (item: any) => {
@@ -489,6 +463,16 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
                                 ))}
                             </tbody>
                         </table>
+                    )}
+                    {history.length >= historyLimit && (
+                        <div className="p-4 flex justify-center bg-white border-t border-gray-50">
+                            <button
+                                onClick={() => setHistoryLimit(prev => prev + 50)}
+                                className="text-sm font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-6 py-2 rounded-xl transition-all flex items-center gap-2 border border-blue-100 shadow-sm"
+                            >
+                                <History size={16} /> CARGAR MÁS MOVIMIENTOS
+                            </button>
+                        </div>
                     )}
                 </div>
 

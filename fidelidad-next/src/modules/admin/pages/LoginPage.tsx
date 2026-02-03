@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../../../lib/firebase';
 import { MASTER_ADMINS } from '../../../lib/adminConfig';
 import { signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword } from 'firebase/auth';
-import { collection, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import toast from 'react-hot-toast';
 import { Eye, EyeOff } from 'lucide-react';
 
@@ -17,6 +17,22 @@ export const LoginPage = () => {
 
     // 0. Detectar si el sistema necesita configuración inicial (White Label)
     useEffect(() => {
+        // Fetch config for favicon
+        const unsubConfig = onSnapshot(doc(db, 'config', 'general'), (snap) => {
+            if (snap.exists()) {
+                const data = snap.data();
+                if (data.logoUrl) {
+                    let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+                    if (!link) {
+                        link = document.createElement('link');
+                        link.rel = 'icon';
+                        document.getElementsByTagName('head')[0].appendChild(link);
+                    }
+                    link.href = data.logoUrl;
+                }
+            }
+        });
+
         const checkAdmins = async () => {
             try {
                 // Solo intentamos listar si no estamos logueados o si queremos saber si está vacío
@@ -32,6 +48,7 @@ export const LoginPage = () => {
             }
         };
         checkAdmins();
+        return () => unsubConfig();
     }, []);
 
     const handleLogin = async (e: React.FormEvent) => {

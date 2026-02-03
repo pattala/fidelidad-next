@@ -6,7 +6,7 @@
     *   No debo pedirte que tú escribas los comandos; yo los preparo y los ejecuto tras tu "sí".
 
 ## Estado Actual del Proyecto (Fidelidad Next) - 02/02/2026
-**Última acción**: Corrección crítica de acceso al Panel Administrativo y actualización de reglas de seguridad para soporte multi-admin.
+**Última acción**: Corrección de sintaxis en `firestore.rules` (cambio de `lower()` a `toLower()`) y mejora de accesibilidad en el login. Se restauró el acceso total para Master Admins.
 
 ### Retomando la Sesión (Logros al 02/02/2026):
 1.  **Historial de Actividad y Visitas**:

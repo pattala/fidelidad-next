@@ -186,6 +186,7 @@ export const LoginPage = () => {
                         <input
                             type="email"
                             required
+                            autoComplete="email"
                             placeholder={isFirstRun ? 'admin@empresa.com' : 'tu@email.com'}
                             className="w-full bg-gray-50 px-4 py-3 rounded-xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-blue-100 focus:ring-4 focus:ring-blue-50 outline-none transition-all"
                             value={email}
@@ -198,6 +199,7 @@ export const LoginPage = () => {
                             <input
                                 type={showPass ? "text" : "password"}
                                 required
+                                autoComplete={isFirstRun ? "new-password" : "current-password"}
                                 placeholder="••••••••"
                                 className="w-full bg-gray-50 px-4 py-3 rounded-xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-blue-100 focus:ring-4 focus:ring-blue-50 outline-none transition-all pr-12"
                                 value={pass}

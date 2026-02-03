@@ -60,7 +60,22 @@ export const PrizesPage = () => {
         }
     };
 
+    const handleToggleActive = async (prize: Prize) => {
+        if (isReadOnly) return;
+        try {
+            const newStatus = !prize.active;
+            // Optimistic update
+            setPrizes(prizes.map(p => p.id === prize.id ? { ...p, active: newStatus } : p));
+            await PrizeService.update(prize.id, { active: newStatus });
+            toast.success(`Premio ${newStatus ? 'activado' : 'desactivado'}`);
+        } catch (error) {
+            toast.error('Error al cambiar estado');
+            fetchPrizes(); // Rollback
+        }
+    };
+
     const handleDelete = async (id: string, name: string) => {
+        if (isReadOnly) return;
         if (!confirm(`¿Eliminar "${name}" ?\nEsta acción es irreversible.`)) return;
         try {
             await PrizeService.delete(id);
@@ -72,12 +87,14 @@ export const PrizesPage = () => {
     };
 
     const openCreateModal = () => {
+        if (isReadOnly) return;
         setEditingPrize(null);
         setFormData(INITIAL_FORM);
         setIsModalOpen(true);
     };
 
     const openEditModal = (prize: Prize) => {
+        if (isReadOnly) return;
         setEditingPrize(prize);
         setFormData({
             name: prize.name,
@@ -107,12 +124,14 @@ export const PrizesPage = () => {
                     </h1>
                     <p className="text-gray-500 mt-1">Administra los productos y vouchers disponibles para canje.</p>
                 </div>
-                <button
-                    onClick={openCreateModal}
-                    className="bg-pink-500 hover:bg-pink-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-pink-200 transition flex items-center gap-2 active:scale-95"
-                >
-                    <Plus size={20} /> Nuevo Premio
-                </button>
+                {!isReadOnly && (
+                    <button
+                        onClick={openCreateModal}
+                        className="bg-pink-500 hover:bg-pink-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-pink-200 transition flex items-center gap-2 active:scale-95"
+                    >
+                        <Plus size={20} /> Nuevo Premio
+                    </button>
+                )}
             </div>
 
             {/* Tabla */}
@@ -153,29 +172,42 @@ export const PrizesPage = () => {
                                         </span>
                                     </td>
                                     <td className="p-4 text-center">
-                                        <span className={`inline - flex items - center gap - 1 font - bold px - 2 py - 1 rounded - md ${prize.stock > 0 ? 'text-gray-700 bg-gray-100' : 'text-red-600 bg-red-50'} `}>
+                                        <span className={`inline-flex items-center gap-1 font-bold px-2 py-1 rounded-md ${prize.stock > 0 ? 'text-gray-700 bg-gray-100' : 'text-red-600 bg-red-50'} `}>
                                             <Package size={14} /> {prize.stock}
                                         </span>
                                     </td>
                                     <td className="p-4 text-center">
-                                        <div className={`inline - block w - 3 h - 3 rounded - full ${prize.active ? 'bg-green-500 shadow-sm shadow-green-300' : 'bg-gray-300'} `} title={prize.active ? 'Activo' : 'Inactivo'} />
+                                        <button
+                                            onClick={() => handleToggleActive(prize)}
+                                            disabled={isReadOnly}
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${prize.active ? 'bg-green-500' : 'bg-gray-200'}`}
+                                            title={prize.active ? 'Desactivar' : 'Activar'}
+                                        >
+                                            <span
+                                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${prize.active ? 'translate-x-6' : 'translate-x-1'}`}
+                                            />
+                                        </button>
                                     </td>
                                     <td className="p-4 text-right pr-6">
                                         <div className="flex justify-end gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                                            <button
-                                                onClick={() => openEditModal(prize)}
-                                                className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition"
-                                                title="Editar"
-                                            >
-                                                <Edit size={16} />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(prize.id, prize.name)}
-                                                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition"
-                                                title="Eliminar"
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
+                                            {!isReadOnly && (
+                                                <>
+                                                    <button
+                                                        onClick={() => openEditModal(prize)}
+                                                        className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition"
+                                                        title="Editar"
+                                                    >
+                                                        <Edit size={16} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(prize.id, prize.name)}
+                                                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition"
+                                                        title="Eliminar"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>

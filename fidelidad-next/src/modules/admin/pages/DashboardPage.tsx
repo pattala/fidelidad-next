@@ -370,11 +370,11 @@ export const DashboardPage = () => {
                                         </p>
                                     </div>
                                 </div>
-                                <div className="text-right pl-2 shrink-0">
-                                    <div className="text-xs font-semibold text-gray-400 bg-gray-50 px-2 py-1 rounded-md whitespace-nowrap">
-                                        {formatTime(item.date)}
+                                <div className="text-right pl-4 shrink-0">
+                                    <div className="text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded-lg inline-block whitespace-nowrap border border-gray-100 mb-1">
+                                        {item.date.toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
                                     </div>
-                                    <p className="text-[10px] text-gray-400 mt-1 max-w-[100px] truncate">
+                                    <p className="text-[11px] text-gray-400 font-medium max-w-[200px] sm:max-w-xs md:max-w-md line-clamp-1" title={item.concept}>
                                         {item.concept}
                                     </p>
                                 </div>

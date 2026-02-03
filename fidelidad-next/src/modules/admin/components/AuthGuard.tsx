@@ -19,9 +19,10 @@ const GuardInner = ({ children }: { children: React.ReactNode }) => {
             }
 
             if (!role) {
-                console.warn("Acceso denegado: Usuario no tiene rol de admin.");
-                toast.error("No tienes permisos de administrador.");
-                signOut(auth).then(() => navigate('/admin/login'));
+                console.warn("Acceso restringido: Usuario sin rol de admin verificado.");
+                // No cerramos sesión inmediatamente (signOut) para evitar expulsiones por lag de red.
+                // Simplemente redirigimos al login. El AdminAuthProvider seguirá intentando obtener el rol en segundo plano.
+                navigate('/admin/login');
             }
         }
     }, [user, role, loading, navigate]);

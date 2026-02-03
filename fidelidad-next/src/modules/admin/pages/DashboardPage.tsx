@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs, query, where, collectionGroup, orderBy, limit, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, query, where, collectionGroup, orderBy, limit, doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import { ConfigService } from '../../../services/configService';
-import { ArrowUpRight, ArrowDownLeft, TrendingUp, Gift, User, Clock, DollarSign } from 'lucide-react';
+import { ArrowUpRight, ArrowDownLeft, TrendingUp, Gift, User, Clock, RefreshCw } from 'lucide-react';
 
 export const DashboardPage = () => {
     const [stats, setStats] = useState({
@@ -21,175 +21,151 @@ export const DashboardPage = () => {
     });
     const [recentActivity, setRecentActivity] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [activityLimit, setActivityLimit] = useState(10);
 
-    useEffect(() => {
-        const fetchStats = async () => {
-            try {
-                // 1. KPI Stats
-                // Clientes
-                const qUsers = query(collection(db, 'users'));
-                const snapUsers = await getDocs(qUsers);
+    const fetchStats = async (isManual = false) => {
+        if (isManual) setRefreshing(true);
+        else setLoading(true);
 
-                let points = 0;
-                let clientCount = 0;
-                snapUsers.forEach(doc => {
-                    const d = doc.data();
-                    if (d.role !== 'admin') {
-                        clientCount++;
-                        points += ((d.points || d.puntos) || 0);
-                    }
-                });
+        try {
+            // 1. KPI Stats
+            const qUsers = query(collection(db, 'users'));
+            const snapUsers = await getDocs(qUsers);
 
-                // Canjes Globales
-                const qRedeems = query(collectionGroup(db, 'points_history'), where('type', '==', 'debit'));
-                const snapRedeems = await getDocs(qRedeems);
-
-                let redeemedPoints = 0;
-                let redeemedMoney = 0;
-                snapRedeems.forEach(doc => {
-                    const data = doc.data();
-                    redeemedPoints += Math.abs(data.amount || 0);
-                    redeemedMoney += (data.redeemedValue || 0);
-                });
-
-                // Dinero Generado
-                const qGenerated = query(collectionGroup(db, 'points_history'), where('type', '==', 'credit'));
-                const snapGenerated = await getDocs(qGenerated);
-                let totalMoneyGenerated = 0;
-                snapGenerated.forEach(doc => {
-                    const data = doc.data();
-                    totalMoneyGenerated += (data.moneySpent || 0);
-                });
-
-                const config = await ConfigService.get();
-                let finalPointValue = config.pointValue || 10;
-                let averagePrizeValue = 0;
-                {
-                    const qPrizes = query(collection(db, 'prizes'), where('active', '==', true));
-                    const snapPrizes = await getDocs(qPrizes);
-                    let totalRatio = 0;
-                    let validPrizesCount = 0;
-                    snapPrizes.forEach(doc => {
-                        const p = doc.data();
-                        if (p.cashValue && p.pointsRequired > 0) {
-                            totalRatio += (p.cashValue / p.pointsRequired);
-                            validPrizesCount++;
-                        }
-                    });
-                    if (validPrizesCount > 0) averagePrizeValue = totalRatio / validPrizesCount;
+            let points = 0;
+            let clientCount = 0;
+            snapUsers.forEach(doc => {
+                const d = doc.data();
+                if (d.role !== 'admin') {
+                    clientCount++;
+                    points += ((d.points || d.puntos) || 0);
                 }
+            });
 
-                const method = config.pointCalculationMethod || (config.useAutomaticPointValue ? 'average' : 'manual');
-                if (method === 'manual') finalPointValue = config.pointValue || 10;
-                else finalPointValue = averagePrizeValue;
+            const qRedeems = query(collectionGroup(db, 'points_history'), where('type', '==', 'debit'));
+            const snapRedeems = await getDocs(qRedeems);
 
-                const totalBudget = config.pointValueBudget || 0;
-                const remainingBudget = Math.max(0, totalBudget - redeemedMoney);
+            let redeemedPoints = 0;
+            let redeemedMoney = 0;
+            snapRedeems.forEach(doc => {
+                const data = doc.data();
+                redeemedPoints += Math.abs(data.amount || 0);
+                redeemedMoney += (data.redeemedValue || 0);
+            });
 
-                setStats({
-                    usersCount: clientCount,
-                    totalPoints: points,
-                    redeemedPoints,
-                    redeemedMoney,
-                    totalMoneyGenerated,
-                    circulatingValue: points * finalPointValue,
-                    budgetLimit: remainingBudget,
-                    isBudgetMode: method === 'budget',
-                    realLiability: points * averagePrizeValue,
-                    calculationMethod: method,
-                    pointValueConfigured: finalPointValue,
-                    pointValueReal: averagePrizeValue
-                });
+            const qGenerated = query(collectionGroup(db, 'points_history'), where('type', '==', 'credit'));
+            const snapGenerated = await getDocs(qGenerated);
+            let totalMoneyGenerated = 0;
+            snapGenerated.forEach(doc => {
+                const data = doc.data();
+                totalMoneyGenerated += (data.moneySpent || 0);
+            });
 
-                // 2. Recent Activity Feed with dynamic limit
-                const qActivity = query(
-                    collectionGroup(db, 'points_history'),
-                    orderBy('date', 'desc'),
-                    limit(activityLimit)
-                );
-                const snapActivity = await getDocs(qActivity);
-
-                const userCache = new Map();
-                const getUserName = async (uid: string) => {
-                    if (userCache.has(uid)) return userCache.get(uid);
-                    try {
-                        const userDoc = await getDoc(doc(db, 'users', uid));
-                        const d = userDoc.exists() ? userDoc.data() : null;
-                        const name = d ? (d.name || d.nombre || 'Usuario Desconocido') : 'Usuario Desconocido';
-                        userCache.set(uid, name);
-                        return name;
-                    } catch (e) {
-                        return 'Usuario';
+            const config = await ConfigService.get();
+            let finalPointValue = config.pointValue || 10;
+            let averagePrizeValue = 0;
+            {
+                const qPrizes = query(collection(db, 'prizes'), where('active', '==', true));
+                const snapPrizes = await getDocs(qPrizes);
+                let totalRatio = 0;
+                let validPrizesCount = 0;
+                snapPrizes.forEach(doc => {
+                    const p = doc.data();
+                    if (p.cashValue && p.pointsRequired > 0) {
+                        totalRatio += (p.cashValue / p.pointsRequired);
+                        validPrizesCount++;
                     }
-                };
+                });
+                if (validPrizesCount > 0) averagePrizeValue = totalRatio / validPrizesCount;
+            }
 
-                const activities = await Promise.all(snapActivity.docs.map(async (d) => {
-                    const data = d.data();
-                    const userId = d.ref.parent.parent?.id;
-                    const userName = userId ? await getUserName(userId) : 'Sistema';
-                    return {
-                        id: d.id,
-                        ...data,
-                        date: data.date?.toDate ? data.date.toDate() : new Date(),
-                        userName
-                    };
-                }));
+            const method = config.pointCalculationMethod || (config.useAutomaticPointValue ? 'average' : 'manual');
+            if (method === 'manual') finalPointValue = config.pointValue || 10;
+            else finalPointValue = averagePrizeValue;
 
-                setRecentActivity(activities);
+            const totalBudget = config.pointValueBudget || 0;
+            const remainingBudget = Math.max(0, totalBudget - redeemedMoney);
 
-            } catch (error) {
-                console.error("Error fetching dashboard data:", error);
-            } finally {
-                setLoading(false);
+            setStats({
+                usersCount: clientCount,
+                totalPoints: points,
+                redeemedPoints,
+                redeemedMoney,
+                totalMoneyGenerated,
+                circulatingValue: points * finalPointValue,
+                budgetLimit: remainingBudget,
+                isBudgetMode: method === 'budget',
+                realLiability: points * averagePrizeValue,
+                calculationMethod: method,
+                pointValueConfigured: finalPointValue,
+                pointValueReal: averagePrizeValue
+            });
+        } catch (error) {
+            console.error("Error fetching dashboard stats:", error);
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchStats();
+
+        // 2. Real-time Activity Feed (onSnapshot)
+        const qActivity = query(
+            collectionGroup(db, 'points_history'),
+            orderBy('date', 'desc'),
+            limit(activityLimit)
+        );
+
+        const userCache = new Map();
+        const getUserName = async (uid: string) => {
+            if (userCache.has(uid)) return userCache.get(uid);
+            try {
+                const userDoc = await getDoc(doc(db, 'users', uid));
+                const d = userDoc.exists() ? userDoc.data() : null;
+                const name = d ? (d.name || d.nombre || 'Usuario Desconocido') : 'Usuario Desconocido';
+                userCache.set(uid, name);
+                return name;
+            } catch (e) {
+                return 'Usuario';
             }
         };
 
-        fetchStats();
-    }, [activityLimit]);
-
-    // Helper formatter
-    const formatTime = (date: Date) => {
-        const now = new Date();
-        const diffMins = Math.floor((now.getTime() - date.getTime()) / 60000);
-
-        if (diffMins < 1) return 'Ahora';
-        if (diffMins < 60) return `${diffMins} min`;
-        const diffHours = Math.floor(diffMins / 60);
-        if (diffHours < 24) return `${diffHours} h`;
-        return date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' });
-    };
-
-    // --- Group Activity Logic ---
-    const groupedActivity: any[] = [];
-    if (recentActivity && recentActivity.length > 0) {
-        recentActivity.forEach((item) => {
-            // Unique Key for grouping: Date + UserId + Type
-            const dateStr = item.date.toLocaleDateString();
-            // const key = `${dateStr}-${item.userId || item.userName}-${item.type}`;
-
-            const existing = groupedActivity.find(g =>
-                g.date.toLocaleDateString() === dateStr &&
-                (g.userId === item.userId || g.userName === item.userName) &&
-                g.type === item.type
-            );
-
-            if (existing) {
-                existing.amount += Math.abs(item.amount);
-                // Merge concepts if different
-                if (!existing.concept.includes(item.concept)) {
-                    existing.concept += `, ${item.concept}`;
-                }
-            } else {
-                groupedActivity.push({ ...item, amount: Math.abs(item.amount) });
-            }
+        const unsubscribe = onSnapshot(qActivity, async (snapshot) => {
+            const activities = await Promise.all(snapshot.docs.map(async (d) => {
+                const data = d.data();
+                const userId = d.ref.parent.parent?.id;
+                const userName = userId ? await getUserName(userId) : 'Sistema';
+                return {
+                    id: d.id,
+                    ...data,
+                    date: data.date?.toDate ? data.date.toDate() : new Date(),
+                    userName
+                };
+            }));
+            setRecentActivity(activities);
+        }, (error) => {
+            console.error("Activity stream error:", error);
         });
-    }
-    // ----------------------------
+
+        return () => unsubscribe();
+    }, [activityLimit]);
 
     return (
         <div className="animate-fade-in pb-10">
-            <h1 className="text-2xl font-bold text-gray-800 mb-6">Tablero Principal</h1>
+            <div className="flex items-center justify-between mb-6">
+                <h1 className="text-2xl font-bold text-gray-800">Tablero Principal</h1>
+                <button
+                    onClick={() => fetchStats(true)}
+                    disabled={refreshing || loading}
+                    className={`flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition shadow-sm ${refreshing ? 'opacity-50' : ''}`}
+                >
+                    <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+                    {refreshing ? 'ACTUALIZANDO...' : 'REFRESCAR'}
+                </button>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
                 {/* KPI Cards */}

@@ -66,7 +66,19 @@ export const ClientLayout = () => {
     useEffect(() => {
         const unsubConfig = onSnapshot(doc(db, 'config', 'general'), (snap) => {
             if (snap.exists()) {
-                setConfig(snap.data());
+                const data = snap.data();
+                setConfig(data);
+
+                // Update Favicon
+                if (data.logoUrl) {
+                    let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+                    if (!link) {
+                        link = document.createElement('link');
+                        link.rel = 'icon';
+                        document.getElementsByTagName('head')[0].appendChild(link);
+                    }
+                    link.href = data.logoUrl;
+                }
             }
         });
         return () => unsubConfig();

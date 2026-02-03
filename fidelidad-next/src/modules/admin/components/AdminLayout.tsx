@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { Home, Users, User, Gift, Settings, LogOut, MessageCircle, BarChart3, ChevronDown, ChevronRight, Clock, Menu, X } from 'lucide-react';
-import { auth } from '../../../lib/firebase';
+import { auth, db } from '../../../lib/firebase';
 import { signOut } from 'firebase/auth';
+import { onSnapshot, doc } from 'firebase/firestore';
 import toast from 'react-hot-toast';
 import { ConfigService } from '../../../services/configService';
 import { TimeService } from '../../../services/timeService';
@@ -20,19 +21,46 @@ export const AdminLayout = () => {
     // Mobile Sidebar State
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+    // Favicon & Config Sync
     useEffect(() => {
-        ConfigService.get().then(setConfig);
         setSimulatedOffset(TimeService.getOffsetInDays());
+        const unsubConfig = onSnapshot(doc(db, 'config', 'general'), (snap) => {
+            if (snap.exists()) {
+                const data = snap.data();
+                setConfig(data);
+
+                // Update Favicon
+                if (data.logoUrl) {
+                    let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+                    if (!link) {
+                        link = document.createElement('link');
+                        link.rel = 'icon';
+                        document.getElementsByTagName('head')[0].appendChild(link);
+                    }
+                    link.href = data.logoUrl;
+                }
+            }
+        });
+        return () => unsubConfig();
     }, []);
 
-    // Auto-open if active
+    // Auto-open messaging if active
     useEffect(() => {
         if (location.pathname.includes('/admin/whatsapp') || location.pathname.includes('/admin/push')) {
             setIsMessagingOpen(true);
         }
-        // Auto-close mobile menu on navigation
         setIsMobileMenuOpen(false);
     }, [location.pathname]);
+
+    // Role Label Mapping
+    const getRoleLabel = () => {
+        switch (role) {
+            case 'admin': return 'Admin';
+            case 'editor': return 'Editor';
+            case 'viewer': return 'Solo Ver';
+            default: return 'Usuario';
+        }
+    };
 
     // Clock
     useEffect(() => {
@@ -85,13 +113,13 @@ export const AdminLayout = () => {
             >
                 <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 md:bg-white">
                     <div>
-                        <div className="flex items-center gap-2 text-blue-600 font-bold text-xl">
+                        <div className="flex items-center gap-2 text-blue-600 font-bold text-xl uppercase tracking-tighter">
                             {config?.logoUrl ? (
-                                <img src={config.logoUrl} alt="Logo" className="w-8 h-8 object-contain" />
+                                <img src={config.logoUrl} alt="Logo" className="w-8 h-8 object-contain rounded-lg" />
                             ) : (
                                 <span>🛡️</span>
                             )}
-                            Admin
+                            {getRoleLabel()}
                         </div>
                         {/* Live Date/Time */}
                         <div className="mt-2 text-xs text-gray-400 font-medium flex items-center gap-1">

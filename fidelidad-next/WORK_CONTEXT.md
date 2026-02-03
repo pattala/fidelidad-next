@@ -6,7 +6,7 @@
     *   No debo pedirte que tú escribas los comandos; yo los preparo y los ejecuto tras tu "sí".
 
 ## Estado Actual del Proyecto (Fidelidad Next) - 02/02/2026
-**Última acción**: Implementación de historial de visitas para clientes, mejoras en exportación Excel con métricas financieras y corrección de reglas de seguridad para el ping de actividad.
+**Última acción**: Corrección crítica de acceso al Panel Administrativo y actualización de reglas de seguridad para soporte multi-admin.
 
 ### Retomando la Sesión (Logros al 02/02/2026):
 1.  **Historial de Actividad y Visitas**:
@@ -19,9 +19,10 @@
     *   Se actualizaron los cálculos de "Total Gastado" y "Valor de Canjes".
     *   Exportación Excel (CSV) mejorada con 5 nuevas columnas de datos financieros y formato compatible con Excel.
 
-3.  **Seguridad y Fiabilidad**:
-    *   Se corrigieron las `firestore.rules` (sincronización de colección `clientes` vs `users`).
-    *   Se reubicó la "Fecha de Registro" en la tabla para mejor visibilidad.
+3.  **Seguridad y Fiabilidad (CRÍTICO)**:
+    *   Se corrigieron las `firestore.rules` para incluir la colección `admins` y habilitar el chequeo de roles basado en DB.
+    *   **Login Resiliente**: Se modificó `LoginPage.tsx` para evitar bloqueos por falta de permisos durante la verificación inicial del sistema.
+    *   Entrada garantizada para Master Admins (`pablo_attala@yahoo.com.ar` y `admin@admin.com`) con auto-creación de documento de perfil si falta.
 
 4.  **Git & Backup**:
     *   Se realizó backup de reglas de seguridad (`firestore.rules.bak`).

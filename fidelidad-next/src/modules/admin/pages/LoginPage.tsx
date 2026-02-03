@@ -15,16 +15,20 @@ export const LoginPage = () => {
     const [isFirstRun, setIsFirstRun] = useState(false);
     const navigate = useNavigate();
 
-    // 0. Detectar si el sistema necesita configuración inicial
+    // 0. Detectar si el sistema necesita configuración inicial (White Label)
     useEffect(() => {
         const checkAdmins = async () => {
             try {
+                // Solo intentamos listar si no estamos logueados o si queremos saber si está vacío
                 const snap = await getDocs(collection(db, 'admins'));
                 if (snap.empty) {
                     setIsFirstRun(true);
                 }
-            } catch (e) {
-                console.error("Error checking system state", e);
+            } catch (e: any) {
+                // Si falla por permisos, asumimos que NO es la primera vez (el sistema ya tiene reglas)
+                // o simplemente ignoramos para no bloquear el login.
+                console.warn("Estado del sistema: No se pudo verificar si hay administradores (posiblemente ya configurado).", e.message);
+                setIsFirstRun(false);
             }
         };
         checkAdmins();
@@ -60,27 +64,31 @@ export const LoginPage = () => {
             const userCredential = await signInWithEmailAndPassword(auth, finalEmail, pass);
             const user = userCredential.user;
 
-            // --- SELF-HEALING: Recuperación automática de acceso ---
-            // Si el email es 'admin@admin.com' o está en la Whitelist, PERO no tiene documento en 'admins',
-            // lo creamos ahora mismo para restaurar el acceso.
-            const isMaster = MASTER_ADMINS.includes(user.email || '');
-            const isDefaultAdmin = user.email === 'admin@admin.com';
+            // --- SELF-HEALING: Recuperación automática de acceso (Resiliente) ---
+            const userEmail = user.email?.toLowerCase() || '';
+            const isMaster = MASTER_ADMINS.map(e => e.toLowerCase()).includes(userEmail);
+            const isDefaultAdmin = userEmail === 'admin@admin.com';
 
             if (isMaster || isDefaultAdmin) {
-                const adminRef = doc(db, 'admins', user.uid);
-                const adminSnap = await getDoc(adminRef);
+                try {
+                    const adminRef = doc(db, 'admins', user.uid);
+                    const adminSnap = await getDoc(adminRef);
 
-                if (!adminSnap.exists()) {
-                    await setDoc(adminRef, {
-                        email: user.email,
-                        role: 'admin',
-                        isMaster: true,
-                        autoRecovered: true,
-                        createdAt: new Date()
-                    });
-                    toast.success('¡Acceso Recuperado! Sistema restaurado.');
-                } else {
-                    toast.success('¡Bienvenido de vuelta!');
+                    if (!adminSnap.exists()) {
+                        await setDoc(adminRef, {
+                            email: user.email,
+                            role: 'admin',
+                            isMaster: true,
+                            autoRecovered: true,
+                            createdAt: new Date()
+                        });
+                        toast.success('¡Acceso Recuperado! Sistema restaurado.');
+                    } else {
+                        toast.success('¡Bienvenido de vuelta!');
+                    }
+                } catch (recoveryErr) {
+                    console.error("Error en auto-recuperación (Firestore rules?):", recoveryErr);
+                    toast.success('Sesión iniciada (Master Admin).');
                 }
 
                 navigate('/admin/dashboard');

@@ -30,8 +30,12 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             if (firebaseUser) {
                 try {
-                    // Check if Master Admin
-                    if (firebaseUser.email && MASTER_ADMINS.includes(firebaseUser.email)) {
+                    const userEmail = firebaseUser.email?.toLowerCase() || '';
+                    const isMaster = MASTER_ADMINS.map(e => e.toLowerCase()).includes(userEmail);
+                    const isDefaultAdmin = userEmail === 'admin@admin.com';
+
+                    // Check if Master Admin or Default Factory Admin
+                    if (isMaster || isDefaultAdmin) {
                         setRole('admin');
                     } else {
                         // Try to get role from 'admins' collection

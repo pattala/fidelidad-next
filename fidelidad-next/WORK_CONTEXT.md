@@ -5,26 +5,27 @@
     *   **Regla de Oro**: Siempre debo CONSULTARTE y pedir confirmación antes de ejecutar el `push` o una secuencia de deploy.
     *   No debo pedirte que tú escribas los comandos; yo los preparo y los ejecuto tras tu "sí".
 
-## Estado Actual del Proyecto (Fidelidad Next) - 31/01/2026
-**Última acción**: Se implementó el control de acceso basado en roles (RBAC) con tres niveles (Admin, Operador, Solo Ver) y se protegieron todas las páginas críticas del administrador.
+## Estado Actual del Proyecto (Fidelidad Next) - 02/02/2026
+**Última acción**: Implementación de historial de visitas para clientes, mejoras en exportación Excel con métricas financieras y corrección de reglas de seguridad para el ping de actividad.
 
-### Retomando la Sesión (Logros al 01/02/2026):
-1.  **Eliminación Integral de Administradores**:
-    *   Se creó el endpoint `/api/delete-admin.js` para manejar la eliminación tanto en Firestore como en Firebase Authentication.
-    *   Se actualizó `AdminProfilePage.tsx` para usar este endpoint, asegurando que no queden usuarios huérfanos en Auth al revocar accesos.
+### Retomando la Sesión (Logros al 02/02/2026):
+1.  **Historial de Actividad y Visitas**:
+    *   Se creó una subcolección `visit_history` para cada usuario.
+    *   Se implementó el registro automático (ping) desde la PWA con control de frecuencia (30 min).
+    *   Se creó el componente `VisitHistoryModal.tsx` para visualizar estos datos desde el admin.
 
-2.  **Sistema de Permisos (RBAC):** (previo)
-    *   **Roles Definidos**: `admin` (acceso total), `editor` (operativo sin configuración), `viewer` (solo lectura).
-    *   **Protección de IU**: Botones de acción (Crear, Editar, Borrar, Enviar) se ocultan o deshabilitan dinámicamente según el rol.
-    *   **Centralización**: `AdminAuthContext` gestiona la lógica de roles globalmente, incluyendo a los `MASTER_ADMINS`.
-    *   **Refactor de AuthGuard**: Simplificación de la seguridad de rutas delegando al contexto.
+2.  **Métricas Financieras y Reportes**:
+    *   Se añadió el ranking "Clientes más Fieles (APP)" en la página de métricas.
+    *   Se actualizaron los cálculos de "Total Gastado" y "Valor de Canjes".
+    *   Exportación Excel (CSV) mejorada con 5 nuevas columnas de datos financieros y formato compatible con Excel.
 
-2.  **Documentación Actualizada:**
-    *   `MANUAL_DE_USO.md`: Nueva sección (7) sobre jerarquía de roles y gestión de equipo.
-    *   `SESSION_SUMMARY.md`: Resumen detallado de las protecciones implementadas.
+3.  **Seguridad y Fiabilidad**:
+    *   Se corrigieron las `firestore.rules` (sincronización de colección `clientes` vs `users`).
+    *   Se reubicó la "Fecha de Registro" en la tabla para mejor visibilidad.
 
-3.  **Git & CI/CD:**
-    *   Todos los cambios han sido commiteados y pusheados a la rama `main` de GitHub.
+4.  **Git & Backup**:
+    *   Se realizó backup de reglas de seguridad (`firestore.rules.bak`).
+    *   Cambios pusheados a la rama `main`.
 
 ### Próximos Pasos (Pendiente):
 1.  **Refactor de Roles (Futuro)**: El usuario mencionó que la estructura de roles actual podría cambiar más adelante.

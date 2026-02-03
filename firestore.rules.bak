@@ -7,14 +7,7 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isSignedIn() && (
-        request.auth.token.admin == true ||
-        (request.auth.token.email != null && request.auth.token.email.lower() == 'pablo_attala@yahoo.com.ar') ||
-        (request.auth.token.email != null && request.auth.token.email.lower() == 'admin@admin.com') ||
-        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
-      );
+      return isSignedIn() && request.auth.token.admin == true;
     }
 
     function isOwnerCliente(clienteId) {
@@ -128,13 +121,6 @@ service cloud.firestore {
       match /{sub=**}/{doc} {
         allow read, write: if isAdmin() || (isSignedIn() && request.auth.uid == clienteId);
       }
-    }
-
-    // LISTADO DE ADMINISTRADORES
-    match /admins/{adminId} {
-      allow read: if isSignedIn() && (request.auth.uid == adminId || isAdmin());
-      allow write: if isAdmin();
-      allow list: if isAdmin(); 
     }
   }
 }

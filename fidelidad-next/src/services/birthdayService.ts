@@ -74,7 +74,7 @@ export const BirthdayService = {
         }
     },
 
-    async sendBirthdayGreeting(uid: string, userData: any, config: any) {
+    async sendBirthdayGreeting(uid: string, userData: any, config: any, options: { forcePointsText?: boolean, cleanMessage?: boolean } = {}) {
         try {
             const birthdayPoints = config?.birthdayPoints || 100;
             const birthdayTemplate = config?.messaging?.templates?.birthday || DEFAULT_TEMPLATES.birthday;
@@ -101,7 +101,18 @@ export const BirthdayService = {
                 .replace(/{nombre_completo}/g, userData.name);
 
             // 3. Conditional Points Text
-            if (!pointsGivenThisYear && !willGivePointsAuto) {
+            let shouldShowPoints = false;
+
+            if (options.cleanMessage) {
+                shouldShowPoints = false; // Forced Clean
+            } else if (options.forcePointsText) {
+                shouldShowPoints = true; // Forced Points
+            } else {
+                // Default auto behavior
+                shouldShowPoints = pointsGivenThisYear || willGivePointsAuto;
+            }
+
+            if (!shouldShowPoints) {
                 // Remove the "Te regalamos..." sentence completely.
                 // Regex covers: "Te regalamos {puntos} puntos para que lo/los disfrutes."
                 msg = msg.replace(/Te regalamos {puntos} puntos( para que los? disfrutes)?\.?/gi, '');

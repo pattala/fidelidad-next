@@ -350,7 +350,7 @@ export const DashboardPage = () => {
                                                                 if (!config) return;
                                                                 // Enviamos 'userData' tal cual. El servicio detectará que NO se dieron puntos
                                                                 // y ajustará el mensaje (quitando la parte de "te regalamos puntos").
-                                                                const result: any = await BirthdayService.sendBirthdayGreeting(client.id, client, config);
+                                                                const result: any = await BirthdayService.sendBirthdayGreeting(client.id, client, config, { cleanMessage: true });
 
                                                                 if (result?.success) {
                                                                     const parts = [];
@@ -387,7 +387,7 @@ export const DashboardPage = () => {
 
                                                                     // 2. Saludar (Simulamos que el usuario YA tiene los puntos actualizados para que el mensaje salga completo)
                                                                     const updatedClient = { ...client, lastBirthdayPointsYear: currentYear };
-                                                                    const greetResult: any = await BirthdayService.sendBirthdayGreeting(client.id, updatedClient, config);
+                                                                    const greetResult: any = await BirthdayService.sendBirthdayGreeting(client.id, updatedClient, config, { forcePointsText: true });
 
                                                                     if (greetResult?.whatsappLink) {
                                                                         window.open(greetResult.whatsappLink, '_blank');
@@ -415,7 +415,7 @@ export const DashboardPage = () => {
                                                             onClick={async () => {
                                                                 if (!config) return;
                                                                 // Ya tiene puntos, el mensaje saldrá completo ("te regalamos...")
-                                                                const result: any = await BirthdayService.sendBirthdayGreeting(client.id, client, config);
+                                                                const result: any = await BirthdayService.sendBirthdayGreeting(client.id, client, config, { cleanMessage: true });
                                                                 if (result?.whatsappLink) window.open(result.whatsappLink, '_blank');
                                                                 toast.success("Saludo re-enviado");
                                                             }}

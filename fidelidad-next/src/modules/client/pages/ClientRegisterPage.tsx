@@ -3,7 +3,7 @@ import { ConfigService } from '../../../services/configService';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../../../lib/firebase';
 import { createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, getDoc, query, where, getDocs, collection, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, getDoc, query, where, getDocs, collection, onSnapshot, limit } from 'firebase/firestore';
 import { Mail, Lock, User, Phone, ArrowLeft, ArrowRight, MapPin, Building, Home, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { ARGENTINA_LOCATIONS } from '../../../data/locations';
@@ -88,7 +88,7 @@ export const ClientRegisterPage = () => {
             // 0. Validaciones Previas de Unicidad (Teléfono)
             // Esto evita problemas antes de siquiera tocar Auth
             const cleanPhone = phone.replace(/\D/g, '');
-            const qPhone = query(collection(db, 'users'), where('phone_raw', '==', cleanPhone)); // Usar versión limpia para búsqueda
+            const qPhone = query(collection(db, 'users'), where('phone_raw', '==', cleanPhone), limit(1)); // Usar versión limpia para búsqueda
 
             // Verificación asíncrona paralela
             const snapPhone = await getDocs(qPhone);
@@ -100,7 +100,7 @@ export const ClientRegisterPage = () => {
             }
 
             // 0.5. Validación de DNI
-            const qDni = query(collection(db, 'users'), where('dni', '==', dni));
+            const qDni = query(collection(db, 'users'), where('dni', '==', dni), limit(1));
             const snapDni = await getDocs(qDni);
             if (!snapDni.empty) {
                 toast.error('Este DNI ya se encuentra registrado.');

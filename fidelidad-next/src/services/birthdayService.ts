@@ -84,15 +84,60 @@ export const BirthdayService = {
                 .replace(/{nombre_completo}/g, userData.name)
                 .replace(/{puntos}/g, birthdayPoints.toString());
 
-            await NotificationService.sendToClient(uid, {
-                title: '¡Feliz Cumpleaños! 🎂',
-                body: msg,
-                type: 'birthday',
-                icon: config?.logoUrl || '/logo.png'
-            });
+            let pushSent = false;
+            let emailSent = false;
+            let whatsappLink = undefined;
 
-            // toast.success(`Saludo enviado a ${userData.name}`); // Optional
-            return true;
+            // 1. Send Push/Inbox (Default or if enabled)
+            if (NotificationService.isChannelEnabled(config, 'birthday', 'push')) {
+                await NotificationService.sendToClient(uid, {
+                    title: '¡Feliz Cumpleaños! 🎂',
+                    body: msg,
+                    type: 'birthday',
+                    icon: config?.logoUrl || '/logo.png'
+                });
+                pushSent = true;
+            }
+
+            // 2. Send Email
+            if (NotificationService.isChannelEnabled(config, 'birthday', 'email') && userData.email) {
+                try {
+                    const auth = (await import('../lib/firebase')).auth;
+                    const token = await auth.currentUser?.getIdToken();
+
+                    if (token) {
+                        await fetch('/api/send-email', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({
+                                to: userData.email,
+                                templateId: 'manual_override',
+                                templateData: {
+                                    subject: '¡Feliz Cumpleaños! 🎂',
+                                    htmlContent: `<p>${msg}</p>`
+                                }
+                            })
+                        });
+                        emailSent = true;
+                    }
+                } catch (e) {
+                    console.error("Error sending birthday email:", e);
+                }
+            }
+
+            // 3. Prepare WhatsApp Link
+            if (NotificationService.isChannelEnabled(config, 'birthday', 'whatsapp') && (userData.phone || userData.telefono)) {
+                const rawPhone = userData.phone || userData.telefono;
+                const cleanPhone = rawPhone.replace(/\D/g, '');
+                if (cleanPhone) {
+                    whatsappLink = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
+                }
+            }
+
+            return { success: true, pushSent, emailSent, whatsappLink, message: msg };
         } catch (e) {
             console.error(e);
             return false;

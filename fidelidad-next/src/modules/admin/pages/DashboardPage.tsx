@@ -345,13 +345,27 @@ export const DashboardPage = () => {
                                                 <button
                                                     onClick={async () => {
                                                         if (!config) return;
-                                                        const success = await BirthdayService.sendBirthdayGreeting(client.id, client, config);
-                                                        if (success) toast.success(`Saludo enviado a ${client.name}`);
+                                                        const result: any = await BirthdayService.sendBirthdayGreeting(client.id, client, config);
+
+                                                        if (result?.success) {
+                                                            const parts = [];
+                                                            if (result.pushSent) parts.push('Push');
+                                                            if (result.emailSent) parts.push('Email');
+
+                                                            if (result.whatsappLink) {
+                                                                window.open(result.whatsappLink, '_blank');
+                                                                toast.success(`Saludo enviado (${parts.join('+')}) y abriendo WhatsApp...`);
+                                                            } else {
+                                                                toast.success(`Saludo enviado (${parts.join('+')})`);
+                                                            }
+                                                        } else {
+                                                            toast.error('Error al enviar saludo');
+                                                        }
                                                     }}
                                                     className="flex-1 bg-white border border-pink-200 text-pink-600 text-[10px] font-bold py-1.5 rounded-lg hover:bg-pink-100 transition flex items-center justify-center gap-1"
-                                                    title="Enviar Solo Mensaje (Push/Inbox)"
+                                                    title="Enviar Saludo (Según configuración)"
                                                 >
-                                                    📩 Saludar
+                                                    📩 Saludar {(config?.messaging?.whatsappEnabled && config?.messaging?.eventConfigs?.birthday?.channels?.includes('whatsapp')) ? '(+WA)' : ''}
                                                 </button>
 
                                                 {!alreadyGifted ? (

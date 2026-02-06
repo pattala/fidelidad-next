@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { collection, getDocs, query, where, collectionGroup, orderBy, limit, doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import { ConfigService } from '../../../services/configService';
+import { TimeService } from '../../../services/timeService';
 import { ArrowUpRight, ArrowDownLeft, TrendingUp, Gift, User, Clock, RefreshCw, Cake } from 'lucide-react';
 
 export const DashboardPage = () => {
@@ -36,7 +37,7 @@ export const DashboardPage = () => {
 
             let points = 0;
             let clientCount = 0;
-            const today = new Date();
+            const today = TimeService.now();
             const todayMonthDay = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
             const todaysSelectedBirthdays: any[] = [];
 

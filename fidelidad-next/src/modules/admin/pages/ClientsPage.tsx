@@ -13,6 +13,7 @@ import { ConfigService, DEFAULT_TEMPLATES } from '../../../services/configServic
 import { NotificationService } from '../../../services/notificationService';
 import { EmailService } from '../../../services/emailService';
 import { CampaignService } from '../../../services/campaignService';
+import { TimeService } from '../../../services/timeService';
 import type { Client } from '../../../types';
 import { RedemptionModal } from '../components/RedemptionModal';
 import { PointsHistoryModal } from '../components/PointsHistoryModal';
@@ -819,7 +820,7 @@ export const ClientsPage = () => {
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
                                             {(() => {
-                                                const today = new Date();
+                                                const today = TimeService.now();
                                                 const todayMD = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
                                                 const isBirthday = client.birthDate?.endsWith(todayMD);
 

@@ -18,7 +18,9 @@ export const ClientLayout = () => {
 
     // Listen for unread messages
     useEffect(() => {
+        let unsubMessages: (() => void) | undefined;
         let isInitialLoad = true;
+
         const unsubscribeAuth = auth.onAuthStateChanged((user) => {
             if (user) {
                 const q = query(
@@ -26,14 +28,13 @@ export const ClientLayout = () => {
                     where('read', '==', false)
                 );
 
-                const unsubMessages = onSnapshot(q, (snap) => {
+                unsubMessages = onSnapshot(q, (snap) => {
                     setUnreadCount(snap.size);
 
                     if (!isInitialLoad) {
                         snap.docChanges().forEach((change) => {
                             if (change.type === "added") {
                                 const data = change.doc.data();
-                                // Optional: Play sound?
                                 toast((t) => (
                                     <div
                                         onClick={() => {
@@ -56,11 +57,18 @@ export const ClientLayout = () => {
                     }
                     isInitialLoad = false;
                 });
-                return () => unsubMessages();
+            } else {
+                if (unsubMessages) unsubMessages();
+                setUnreadCount(0);
+                isInitialLoad = true;
             }
         });
-        return () => unsubscribeAuth();
-    }, []);
+
+        return () => {
+            unsubscribeAuth();
+            if (unsubMessages) unsubMessages();
+        };
+    }, [navigate]);
 
     // Listen for global config
     useEffect(() => {

@@ -29,33 +29,33 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             if (firebaseUser) {
+                let resolvedRole: AdminRole = null;
                 try {
                     const userEmail = firebaseUser.email?.toLowerCase() || '';
                     const isMaster = MASTER_ADMINS.map(e => e.toLowerCase()).includes(userEmail);
                     const isDefaultAdmin = userEmail === 'admin@admin.com';
 
-                    // Check if Master Admin or Default Factory Admin
                     if (isMaster || isDefaultAdmin) {
-                        setRole('admin');
+                        resolvedRole = 'admin';
                     } else {
-                        // Try to get role from 'admins' collection
+                        // Check explicit admins collection
                         const adminDoc = await getDoc(doc(db, 'admins', firebaseUser.uid));
                         if (adminDoc.exists()) {
-                            setRole(adminDoc.data().role as AdminRole);
+                            resolvedRole = adminDoc.data().role as AdminRole;
                         } else {
-                            // Fallback: check if it's a promoted user/role:admin
+                            // Check 'users' collection for promoted role
                             const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
                             if (userDoc.exists() && userDoc.data().role === 'admin') {
-                                setRole('admin');
-                            } else {
-                                setRole(null);
+                                resolvedRole = 'admin';
                             }
                         }
                     }
                 } catch (e) {
                     console.error("Error fetching admin role:", e);
-                    setRole(null);
                 }
+
+                // Update both together to avoid intermediate states
+                setRole(resolvedRole);
                 setUser(firebaseUser);
             } else {
                 setUser(null);

@@ -1,7 +1,9 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '../../../lib/firebase';
+import { auth, db } from '../../../lib/firebase';
+import { doc, getDoc, type DocumentSnapshot } from 'firebase/firestore';
 
 export const ClientAuthGuard = ({ children }: { children: React.ReactNode }) => {
     const [loading, setLoading] = useState(true);
@@ -11,30 +13,29 @@ export const ClientAuthGuard = ({ children }: { children: React.ReactNode }) => 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
             if (!currentUser) {
+                setLoading(false);
                 navigate('/login');
             } else {
-                // Verify Firestore Document Existence
                 try {
-                    const { doc, getDoc } = await import('firebase/firestore');
-                    const { db } = await import('../../../lib/firebase');
+                    // Verify Firestore Document Existence
                     const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
 
                     if (!userSnap.exists()) {
                         console.warn("Authed user has no Firestore document. Logging out.");
                         const { signOut } = await import('firebase/auth');
                         await signOut(auth);
+                        setLoading(false);
                         navigate('/login');
                         return;
                     }
                     setUser(currentUser);
                 } catch (e) {
                     console.error("Error verifying user doc:", e);
-                    // Fallback to allowing auth if Firestore is temporarily down? 
-                    // No, safe default is logout/login
+                    // If error (e.g. network), we still allow the session but note the error
                     setUser(currentUser);
                 }
+                setLoading(false);
             }
-            setLoading(false);
         });
         return () => unsubscribe();
     }, [navigate]);

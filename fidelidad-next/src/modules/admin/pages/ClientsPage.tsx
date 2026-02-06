@@ -169,7 +169,25 @@ export const ClientsPage = () => {
     };
 
     useEffect(() => {
-        fetchData();
+        setLoading(true);
+        // Config listener
+        const unsubConfig = onSnapshot(doc(db, 'config', 'general'), (snap) => {
+            if (snap.exists()) setConfig(snap.data());
+        });
+
+        // Clients listener (Real-time)
+        const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
+        const unsubscribe = onSnapshot(q, async (snapshot) => {
+            // We still need the complex calculations, so we call fetchData but optimized
+            // To avoid flickering, we'll do the fetch and then set. 
+            // In a real app we'd subscribe to history too, but that's heavy.
+            fetchData();
+        });
+
+        return () => {
+            unsubscribe();
+            unsubConfig();
+        };
     }, []);
 
     // 2. Guardar Cliente (CRUD)
@@ -543,6 +561,13 @@ export const ClientsPage = () => {
                         window.open(waUrl, '_blank');
                     }
                 }
+
+                // NEW: Send Inbox Notification for the PWA Bell
+                await NotificationService.sendToClient(selectedClientForPoints.id, {
+                    title: '¡Puntos Sumados! 🎉',
+                    body: `Sumaste ${finalPoints} puntos por "${pointsData.concept}". ¡Sigue sumando!`,
+                    type: 'pointsAdded'
+                });
             }
 
             if (pointsData.isPesos) {

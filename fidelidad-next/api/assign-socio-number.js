@@ -92,22 +92,46 @@ export default async function handler(req, res) {
 
   // API key Check (Seguridad)
   const clientKey = req.headers["x-api-key"];
-  if (process.env.API_SECRET_KEY && (!clientKey || clientKey !== process.env.API_SECRET_KEY)) {
-    console.warn("Unauthorized attempt to assign-socio-number");
-    return res.status(401).json({ ok: false, error: "Unauthorized" });
+  const authHeader = req.headers["authorization"];
+  let isAuthorized = false;
+
+  // Option 1: API Key
+  if (process.env.API_SECRET_KEY && clientKey === process.env.API_SECRET_KEY) {
+    isAuthorized = true;
   }
 
-  // Body Parsing
+  // Body Parsing (needed for docId check in Token Auth)
   let payload = {};
-  try {
-    payload = await readJsonBody(req);
-  } catch (e) {
-    return res.status(400).json({ ok: false, error: "Invalid JSON body" });
-  }
+  try { payload = await readJsonBody(req); }
+  catch (e) { return res.status(400).json({ ok: false, error: "Invalid JSON body" }); }
 
   const { docId, sendWelcome } = payload;
-  if (!docId) {
-    return res.status(400).json({ ok: false, error: "Falta docId" });
+  if (!docId) return res.status(400).json({ ok: false, error: "Falta docId" });
+
+  // Option 2: Firebase Token Auth (Self-assignment or Admin)
+  if (!isAuthorized && authHeader && authHeader.startsWith("Bearer ")) {
+    try {
+      const token = authHeader.split("Bearer ")[1];
+      const decodedToken = await admin.auth().verifyIdToken(token);
+
+      // If user is assigning to themselves OR is a master/admin
+      if (decodedToken.uid === docId) {
+        isAuthorized = true;
+      } else {
+        // Optional: Check if decodedToken has admin claims or is in MASTER_ADMINS
+        const masterAdmins = (process.env.MASTER_ADMINS || "").split(",").map(e => e.trim().toLowerCase());
+        if (masterAdmins.includes(decodedToken.email?.toLowerCase())) {
+          isAuthorized = true;
+        }
+      }
+    } catch (err) {
+      console.warn("Invalid token in assign-socio-number:", err.message);
+    }
+  }
+
+  if (!isAuthorized && process.env.API_SECRET_KEY) {
+    console.warn("Unauthorized attempt to assign-socio-number");
+    return res.status(401).json({ ok: false, error: "Unauthorized" });
   }
 
   // Lógica de negocio

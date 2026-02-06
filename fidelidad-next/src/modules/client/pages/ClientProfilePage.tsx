@@ -61,10 +61,18 @@ export const ClientProfilePage = () => {
                 calle: fullCalle,
                 piso: editData.piso || '',
                 depto: editData.depto || '',
+                localidad: editData.localidad || '',
+                partido: editData.partido || '',
+                provincia: editData.provincia || '',
+                cp: editData.cp || '',
                 'domicilio.components.calle': fullCalle,
                 'domicilio.components.numero': editData.number || '',
                 'domicilio.components.piso': editData.piso || '',
                 'domicilio.components.depto': editData.depto || '',
+                'domicilio.components.localidad': editData.localidad || '',
+                'domicilio.components.partido': editData.partido || '',
+                'domicilio.components.provincia': editData.provincia || '',
+                'domicilio.components.zipCode': editData.cp || '',
             };
 
             await updateDoc(userRef, updates);
@@ -182,11 +190,17 @@ export const ClientProfilePage = () => {
                         onClick={() => {
                             setEditData({
                                 name: userData.name || '',
+                                email: userData.email || '',
+                                dni: userData.dni || '',
                                 phone: userData.phone || '',
-                                street: userData.calle?.split(' ')[0] || '',
-                                number: userData.calle?.split(' ')[1] || '',
+                                street: userData.domicilio?.components?.calle?.split(' ').slice(0, -1).join(' ') || userData.calle?.split(' ').slice(0, -1).join(' ') || '',
+                                number: userData.domicilio?.components?.numero || userData.calle?.split(' ').slice(-1)[0] || '',
                                 piso: userData.piso || '',
-                                depto: userData.depto || ''
+                                depto: userData.depto || '',
+                                localidad: userData.localidad || '',
+                                partido: userData.partido || '',
+                                provincia: userData.provincia || '',
+                                cp: userData.cp || ''
                             });
                             setIsEditModalOpen(true);
                         }}
@@ -349,132 +363,178 @@ export const ClientProfilePage = () => {
             <div className="h-4"></div>
 
             {/* Terms Modal */}
-            {isTermsOpen && (
-                <div className="fixed inset-0 z-50 flex flex-col bg-white animate-fade-in">
-                    {/* Header */}
-                    <div className="flex items-center justify-between px-4 py-4 bg-white border-b border-gray-100 shadow-sm flex-none z-10">
-                        <h2 className="text-lg font-black text-gray-800">Términos y Condiciones</h2>
-                        <button
-                            onClick={() => setIsTermsOpen(false)}
-                            className="p-2 text-gray-400 hover:text-gray-800 hover:bg-gray-100 rounded-full transition"
-                        >
-                            <X size={24} />
-                        </button>
+            {
+                isTermsOpen && (
+                    <div className="fixed inset-0 z-50 flex flex-col bg-white animate-fade-in">
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-4 py-4 bg-white border-b border-gray-100 shadow-sm flex-none z-10">
+                            <h2 className="text-lg font-black text-gray-800">Términos y Condiciones</h2>
+                            <button
+                                onClick={() => setIsTermsOpen(false)}
+                                className="p-2 text-gray-400 hover:text-gray-800 hover:bg-gray-100 rounded-full transition"
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+                        {/* Content (Internal restored text) */}
+                        <div className="flex-1 overflow-y-auto p-6 space-y-6 text-sm text-gray-600 scrollbar-hide">
+                            <div>
+                                <h4 className="font-bold text-gray-800 mb-2">1. Generalidades</h4>
+                                <p>El programa de fidelización "{config?.siteName || 'Club'}" es un beneficio exclusivo para nuestros clientes. La participación en el programa es gratuita e implica la aceptación total de los presentes términos y condiciones.</p>
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-gray-800 mb-2">2. Privacidad y Datos</h4>
+                                <p>Tus datos (Nombre, DNI, Teléfono y Dirección) se utilizan exclusivamente para identificarte como socio, validar tus canjes en el local y enviarte avisos importantes sobre tus puntos. No vendemos ni compartimos tu información con terceros.</p>
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-gray-800 mb-2">3. Consentimiento de Comunicaciones</h4>
+                                <p>Al registrarte y/o aceptar los términos en la aplicación, otorgas tu consentimiento explícito para recibir comunicaciones transaccionales y promocionales. Estas comunicaciones incluyen, entre otros, avisos sobre puntos ganados, premios canjeados y vencimiento de puntos.</p>
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-gray-800 mb-2">4. Acumulación de Puntos</h4>
+                                <p>Los puntos se acumularán según la tasa de conversión vigente establecida por el comercio. Los puntos no tienen valor monetario ni son canjeables por efectivo.</p>
+                            </div>
+                            <p className="text-xs text-center opacity-50 pt-8 pb-12">Última actualización: 8 de Agosto de 2025</p>
+                        </div>
                     </div>
-                    {/* Content (Internal restored text) */}
-                    <div className="flex-1 overflow-y-auto p-6 space-y-6 text-sm text-gray-600 scrollbar-hide">
-                        <div>
-                            <h4 className="font-bold text-gray-800 mb-2">1. Generalidades</h4>
-                            <p>El programa de fidelización "{config?.siteName || 'Club'}" es un beneficio exclusivo para nuestros clientes. La participación en el programa es gratuita e implica la aceptación total de los presentes términos y condiciones.</p>
-                        </div>
-                        <div>
-                            <h4 className="font-bold text-gray-800 mb-2">2. Privacidad y Datos</h4>
-                            <p>Tus datos (Nombre, DNI, Teléfono y Dirección) se utilizan exclusivamente para identificarte como socio, validar tus canjes en el local y enviarte avisos importantes sobre tus puntos. No vendemos ni compartimos tu información con terceros.</p>
-                        </div>
-                        <div>
-                            <h4 className="font-bold text-gray-800 mb-2">3. Consentimiento de Comunicaciones</h4>
-                            <p>Al registrarte y/o aceptar los términos en la aplicación, otorgas tu consentimiento explícito para recibir comunicaciones transaccionales y promocionales. Estas comunicaciones incluyen, entre otros, avisos sobre puntos ganados, premios canjeados y vencimiento de puntos.</p>
-                        </div>
-                        <div>
-                            <h4 className="font-bold text-gray-800 mb-2">4. Acumulación de Puntos</h4>
-                            <p>Los puntos se acumularán según la tasa de conversión vigente establecida por el comercio. Los puntos no tienen valor monetario ni son canjeables por efectivo.</p>
-                        </div>
-                        <p className="text-xs text-center opacity-50 pt-8 pb-12">Última actualización: 8 de Agosto de 2025</p>
-                    </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Edit Profile Modal */}
-            {isEditModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/50 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white w-full max-w-sm rounded-[2rem] shadow-2xl overflow-hidden flex flex-col">
-                        <div className="p-6 border-b border-gray-50 flex justify-between items-center bg-indigo-50/50">
-                            <h3 className="font-black text-indigo-900 uppercase tracking-tight">Editar Mi Perfil</h3>
-                            <button onClick={() => setIsEditModalOpen(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
-                        </div>
-                        <form onSubmit={handleUpdateProfile} className="p-6 space-y-4">
-                            <div>
-                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">Nombre Completo</label>
-                                <div className="relative">
-                                    <UserIcon className="absolute left-3 top-3 text-indigo-400" size={16} />
-                                    <input
-                                        type="text"
-                                        className="w-full bg-gray-50 pl-10 pr-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-indigo-200 outline-none text-sm font-bold"
-                                        value={editData.name}
-                                        onChange={e => setEditData({ ...editData, name: e.target.value })}
-                                        required
-                                    />
-                                </div>
+            {
+                isEditModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/50 backdrop-blur-sm animate-fade-in">
+                        <div className="bg-white w-full max-w-sm rounded-[2rem] shadow-2xl overflow-hidden flex flex-col">
+                            <div className="p-6 border-b border-gray-50 flex justify-between items-center bg-indigo-50/50">
+                                <h3 className="font-black text-indigo-900 uppercase tracking-tight">Editar Mi Perfil</h3>
+                                <button onClick={() => setIsEditModalOpen(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
                             </div>
-                            <div>
-                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">Teléfono</label>
-                                <div className="relative">
-                                    <Phone className="absolute left-3 top-3 text-indigo-400" size={16} />
-                                    <input
-                                        type="text"
-                                        className="w-full bg-gray-50 pl-10 pr-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-indigo-200 outline-none text-sm font-bold"
-                                        value={editData.phone}
-                                        onChange={e => setEditData({ ...editData, phone: e.target.value })}
-                                        required
-                                    />
+                            <form onSubmit={handleUpdateProfile} className="p-6 space-y-4 overflow-y-auto max-h-[70vh] scrollbar-hide">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">Email (No editable)</label>
+                                        <input
+                                            type="email"
+                                            className="w-full bg-gray-100 px-4 py-2.5 rounded-xl text-gray-400 text-sm font-bold cursor-not-allowed"
+                                            value={editData.email}
+                                            disabled
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">DNI (No editable)</label>
+                                        <input
+                                            type="text"
+                                            className="w-full bg-gray-100 px-4 py-2.5 rounded-xl text-gray-400 text-sm font-bold cursor-not-allowed"
+                                            value={editData.dni}
+                                            disabled
+                                        />
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="grid grid-cols-3 gap-2">
-                                <div className="col-span-2">
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">Calle</label>
+
+                                <div>
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">Nombre Completo</label>
                                     <div className="relative">
-                                        <Building className="absolute left-3 top-3 text-indigo-400" size={16} />
+                                        <UserIcon className="absolute left-3 top-3 text-indigo-400" size={16} />
                                         <input
                                             type="text"
                                             className="w-full bg-gray-50 pl-10 pr-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-indigo-200 outline-none text-sm font-bold"
-                                            value={editData.street}
-                                            onChange={e => setEditData({ ...editData, street: e.target.value })}
+                                            value={editData.name}
+                                            onChange={e => setEditData({ ...editData, name: e.target.value })}
                                             required
                                         />
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">N°</label>
-                                    <input
-                                        type="text"
-                                        className="w-full bg-gray-50 px-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-indigo-200 outline-none text-sm font-bold text-center"
-                                        value={editData.number}
-                                        onChange={e => setEditData({ ...editData, number: e.target.value })}
-                                        required
-                                    />
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">Teléfono</label>
+                                    <div className="relative">
+                                        <Phone className="absolute left-3 top-3 text-indigo-400" size={16} />
+                                        <input
+                                            type="text"
+                                            className="w-full bg-gray-50 pl-10 pr-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-indigo-200 outline-none text-sm font-bold"
+                                            value={editData.phone}
+                                            onChange={e => setEditData({ ...editData, phone: e.target.value })}
+                                            required
+                                        />
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-2">
-                                <div>
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">Piso</label>
-                                    <input
-                                        type="text"
-                                        className="w-full bg-gray-50 px-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-indigo-200 outline-none text-sm font-bold text-center"
-                                        value={editData.piso}
-                                        onChange={e => setEditData({ ...editData, piso: e.target.value })}
-                                    />
+
+                                <div className="grid grid-cols-3 gap-2">
+                                    <div className="col-span-2">
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">Calle</label>
+                                        <input
+                                            type="text"
+                                            className="w-full bg-gray-50 px-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-indigo-200 outline-none text-sm font-bold"
+                                            value={editData.street}
+                                            onChange={e => setEditData({ ...editData, street: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">N°</label>
+                                        <input
+                                            type="text"
+                                            className="w-full bg-gray-50 px-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-indigo-200 outline-none text-sm font-bold text-center"
+                                            value={editData.number}
+                                            onChange={e => setEditData({ ...editData, number: e.target.value })}
+                                            required
+                                        />
+                                    </div>
                                 </div>
-                                <div>
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">Depto</label>
-                                    <input
-                                        type="text"
-                                        className="w-full bg-gray-50 px-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-indigo-200 outline-none text-sm font-bold text-center"
-                                        value={editData.depto}
-                                        onChange={e => setEditData({ ...editData, depto: e.target.value })}
-                                    />
+
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">Piso</label>
+                                        <input
+                                            type="text"
+                                            className="w-full bg-gray-50 px-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-indigo-200 outline-none text-sm font-bold text-center"
+                                            value={editData.piso}
+                                            onChange={e => setEditData({ ...editData, piso: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">Depto</label>
+                                        <input
+                                            type="text"
+                                            className="w-full bg-gray-50 px-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-indigo-200 outline-none text-sm font-bold text-center"
+                                            value={editData.depto}
+                                            onChange={e => setEditData({ ...editData, depto: e.target.value })}
+                                        />
+                                    </div>
                                 </div>
-                            </div>
-                            <button
-                                type="submit"
-                                disabled={loadingEdit}
-                                className="w-full bg-indigo-600 text-white py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-100 hover:bg-indigo-700 active:scale-95 transition mt-4"
-                            >
-                                {loadingEdit ? 'Guardando...' : 'Guardar Cambios'}
-                            </button>
-                        </form>
+
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">Provincia</label>
+                                        <input
+                                            type="text"
+                                            className="w-full bg-gray-50 px-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-indigo-200 outline-none text-sm font-bold"
+                                            value={editData.provincia}
+                                            onChange={e => setEditData({ ...editData, provincia: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">Localidad</label>
+                                        <input
+                                            type="text"
+                                            className="w-full bg-gray-50 px-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-indigo-200 outline-none text-sm font-bold"
+                                            value={editData.localidad}
+                                            onChange={e => setEditData({ ...editData, localidad: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    disabled={loadingEdit}
+                                    className="w-full bg-indigo-600 text-white py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-100 hover:bg-indigo-700 active:scale-95 transition mt-4"
+                                >
+                                    {loadingEdit ? 'Guardando...' : 'Guardar Cambios'}
+                                </button>
+                            </form>
+                        </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 };

@@ -1,4 +1,4 @@
-  rules_version = '2';
+rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -28,69 +28,11 @@ service cloud.firestore {
       );
     }
 
-    function isOwnerCliente(clienteId) {
-      return isSignedIn() &&
-             get(/databases/$(database)/documents/users/$(clienteId)).data.authUID == request.auth.uid;
-    }
-
-    // PUBLIC: heatmap
-    match /public_heatmap/{uid} {
-      allow read: if true;
-      allow write: if isSignedIn()
-                   && request.auth.uid == uid
-                   && (request.resource.data.lat3 is number)
-                   && (request.resource.data.lng3 is number)
-                   && (request.resource.data.lat3 >= -90 && request.resource.data.lat3 <= 90)
-                   && (request.resource.data.lng3 >= -180 && request.resource.data.lng3 <= 180)
-                   && (
-                        !request.resource.data.keys().hasAny(['capturedAt']) ||
-                        request.resource.data.capturedAt is string ||
-                        request.resource.data.capturedAt is timestamp
-                      )
-                   && (
-                        !request.resource.data.keys().hasAny(['rounded']) ||
-                        request.resource.data.rounded is bool
-                      )
-                   && (
-                        !request.resource.data.keys().hasAny(['source']) ||
-                        request.resource.data.source is string
-                      )
-                   && (
-                        !request.resource.data.keys().hasAny(['name']) ||
-                        request.resource.data.name is string
-                      )
-                   && (
-                        !request.resource.data.keys().hasAny(['uid']) ||
-                        request.resource.data.uid is string
-                      );
-    }
-
-    // PUBLIC: recorrido opcional
-    match /public_geo/{uid} {
-      allow read: if true;
-      match /samples/{docId} {
-        allow read: if true;
-        allow create: if isSignedIn()
-                      && request.auth.uid == uid
-                      && (request.resource.data.lat3 is number)
-                      && (request.resource.data.lng3 is number)
-                      && (request.resource.data.lat3 >= -90 && request.resource.data.lat3 <= 90)
-                      && (request.resource.data.lng3 >= -180 && request.resource.data.lng3 <= 180)
-                      && (
-                           !request.resource.data.keys().hasAny(['capturedAt']) ||
-                           request.resource.data.capturedAt is string ||
-                           request.resource.data.capturedAt is timestamp
-                         );
-        allow update, delete: if false;
-      }
-    }
-
-    // CATÁLOGOS
+    // CATÁLOGOS - PÚBLICOS
     match /campanas/{id} { 
-      allow read: if isAdmin();
+      allow read: if true;
       allow write: if isEditor();
     }
-    // Suporting both Spanish (legacy/rules) and English (code) names
     match /premios/{id}  { 
       allow read: if true; 
       allow write: if isEditor();
@@ -100,13 +42,7 @@ service cloud.firestore {
       allow write: if isEditor();
     }
 
-    // Bonos (admin)
-    match /bonos/{id} {
-      allow read: if isAdmin();
-      allow write: if isEditor();
-    }
-
-    // Configuración (usuarios logueados leen; admin escribe)
+    // Configuración (Pública para Branding/Logos)
     match /configuracion/{docId} {
       allow read: if true; 
       allow write: if isEditor();
@@ -116,10 +52,10 @@ service cloud.firestore {
       allow write: if isEditor();
     }
     match /config/{docId} {
-      allow read: if isSignedIn();
+      allow read: if true; // Permitir lectura de config general para branding
       allow write: if isEditor();
     }
-
+    
     // Plantillas (admin)
     match /plantillas_mensajes/{docId} {
       allow read: if isAdmin();
@@ -128,30 +64,28 @@ service cloud.firestore {
 
     // CLIENTES
     match /users/{clienteId} {
+      // Necesario para que el cliente cree su propio perfil al registrarse
       allow create: if
         isEditor() ||
         (isSignedIn() && request.auth.uid == clienteId);
 
+      // Necesario para validar unicidad de DNI o Teléfono durante el registro
       allow list: if true;
 
-      allow read, update, delete: if
-        isAdmin() && (
-          isEditor() ||
-          (isSignedIn() && request.auth.uid == clienteId)
-        );
+      // El usuario puede leer y modificar su propio perfil. Admin puede todo.
+      allow read, update: if
+        isAdmin() || (isSignedIn() && request.auth.uid == clienteId);
+      
+      allow delete: if isAdmin();
 
-      match /inbox/{docId} {
-        allow read: if isAdmin() || (isSignedIn() && request.auth.uid == clienteId);
-        allow write: if isEditor();
-      }
-
+      // Subcolecciones del usuario (historial, inbox, etc)
       match /{sub=**}/{doc} {
         allow read: if isAdmin() || (isSignedIn() && request.auth.uid == clienteId);
-        allow write: if isEditor();
+        allow write: if isAdmin() || isEditor() || (isSignedIn() && request.auth.uid == clienteId);
       }
     }
 
-    // LISTADO DE ADMINISTRADORES
+    // ADMINISTRADORES
     match /admins/{adminId} {
       allow read: if isSignedIn() && (request.auth.uid == adminId || isAdmin());
       allow write: if isEditor();
@@ -160,10 +94,15 @@ service cloud.firestore {
 
     // REGLAS PARA COLLECTION GROUPS
     match /{path=**}/points_history/{docId} {
-      allow read: if isAdmin();
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid in path);
     }
     match /{path=**}/visit_history/{docId} {
       allow read: if isAdmin();
     }
+
+    // REGLAS PÚBLICAS DE MAPAS / GEOLOC (si se usan)
+    match /public_heatmap/{uid} { allow read: if true; allow write: if isSignedIn() && request.auth.uid == uid; }
+    match /public_geo/{uid} { allow read: if true; match /samples/{docId} { allow read: if true; allow create: if isSignedIn() && request.auth.uid == uid; } }
+
   }
 }

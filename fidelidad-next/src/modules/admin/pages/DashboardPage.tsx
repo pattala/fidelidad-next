@@ -5,6 +5,9 @@ import { ConfigService } from '../../../services/configService';
 import { TimeService } from '../../../services/timeService';
 import { ArrowUpRight, ArrowDownLeft, TrendingUp, Gift, User, Clock, RefreshCw, Cake } from 'lucide-react';
 
+import { BirthdayService } from '../../../services/birthdayService';
+import toast from 'react-hot-toast';
+
 export const DashboardPage = () => {
     const [stats, setStats] = useState({
         usersCount: 0,
@@ -25,6 +28,7 @@ export const DashboardPage = () => {
     const [refreshing, setRefreshing] = useState(false);
     const [activityLimit, setActivityLimit] = useState(10);
     const [birthdaysOfToday, setBirthdaysOfToday] = useState<any[]>([]);
+    const [config, setConfig] = useState<any>(null);
 
     const fetchStats = async (isManual = false) => {
         if (isManual) setRefreshing(true);
@@ -90,8 +94,10 @@ export const DashboardPage = () => {
                 totalMoneyGenerated += (data.moneySpent || 0);
             });
 
-            const config = await ConfigService.get();
-            let finalPointValue = config.pointValue || 10;
+            const retrievedConfig = await ConfigService.get();
+            setConfig(retrievedConfig);
+
+            let finalPointValue = retrievedConfig.pointValue || 10;
             let averagePrizeValue = 0;
             {
                 const qPrizes = query(collection(db, 'prizes'), where('active', '==', true));
@@ -108,11 +114,11 @@ export const DashboardPage = () => {
                 if (validPrizesCount > 0) averagePrizeValue = totalRatio / validPrizesCount;
             }
 
-            const method = config.pointCalculationMethod || (config.useAutomaticPointValue ? 'average' : 'manual');
-            if (method === 'manual') finalPointValue = config.pointValue || 10;
+            const method = retrievedConfig.pointCalculationMethod || (retrievedConfig.useAutomaticPointValue ? 'average' : 'manual');
+            if (method === 'manual') finalPointValue = retrievedConfig.pointValue || 10;
             else finalPointValue = averagePrizeValue;
 
-            const totalBudget = config.pointValueBudget || 0;
+            const totalBudget = retrievedConfig.pointValueBudget || 0;
             const remainingBudget = Math.max(0, totalBudget - redeemedMoney);
 
             setStats({
@@ -301,7 +307,7 @@ export const DashboardPage = () => {
 
             {/* Birthday Alert Section */}
             {birthdaysOfToday.length > 0 && (
-                <div className="mb-8 animate-bounce-subtle">
+                <div className="mb-0 animate-bounce-subtle">
                     <div className="bg-gradient-to-r from-pink-500 to-rose-500 p-1 rounded-2xl shadow-lg shadow-pink-100">
                         <div className="bg-white p-6 rounded-[calc(1rem-1px)]">
                             <div className="flex items-center justify-between mb-4">
@@ -309,24 +315,71 @@ export const DashboardPage = () => {
                                     <Cake className="text-pink-500" size={24} />
                                     ¡Cumpleaños de Hoy! 🎂
                                 </h3>
-                                <span className="bg-pink-100 text-pink-600 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">
-                                    {birthdaysOfToday.length} {birthdaysOfToday.length === 1 ? 'Socio' : 'Socios'}
-                                </span>
+                                <div className="flex items-center gap-2">
+                                    <span className="bg-pink-100 text-pink-600 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">
+                                        {birthdaysOfToday.length} {birthdaysOfToday.length === 1 ? 'Socio' : 'Socios'}
+                                    </span>
+                                </div>
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                {birthdaysOfToday.map(client => (
-                                    <div key={client.id} className="flex items-center gap-3 p-3 bg-pink-50/50 rounded-xl border border-pink-100 hover:bg-pink-50 transition-colors group">
-                                        <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-pink-500 shadow-sm border border-pink-100 group-hover:scale-110 transition-transform">
-                                            <Cake size={20} />
+                                {birthdaysOfToday.map(client => {
+                                    const currentYear = new Date().getFullYear().toString();
+                                    const alreadyGifted = client.lastBirthdayPointsYear === currentYear;
+
+                                    return (
+                                        <div key={client.id} className="flex flex-col gap-3 p-3 bg-pink-50/50 rounded-xl border border-pink-100 hover:bg-pink-50 transition-colors group">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-pink-500 shadow-sm border border-pink-100 group-hover:scale-110 transition-transform">
+                                                    <Cake size={20} />
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="font-bold text-gray-800 text-sm truncate">{client.name}</p>
+                                                    <p className="text-[10px] text-pink-600 font-bold uppercase tracking-tight flex items-center gap-1">
+                                                        Socio #{client.socioNumber}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {/* Actions */}
+                                            <div className="flex gap-2 mt-1">
+                                                <button
+                                                    onClick={async () => {
+                                                        if (!config) return;
+                                                        const success = await BirthdayService.sendBirthdayGreeting(client.id, client, config);
+                                                        if (success) toast.success(`Saludo enviado a ${client.name}`);
+                                                    }}
+                                                    className="flex-1 bg-white border border-pink-200 text-pink-600 text-[10px] font-bold py-1.5 rounded-lg hover:bg-pink-100 transition flex items-center justify-center gap-1"
+                                                    title="Enviar Saludo (Push/Email)"
+                                                >
+                                                    👋 Saludar
+                                                </button>
+
+                                                {!alreadyGifted ? (
+                                                    <button
+                                                        onClick={async () => {
+                                                            if (!config) return;
+                                                            if (!confirm(`¿Regalar ${config.birthdayPoints || 100} puntos a ${client.name}?`)) return;
+
+                                                            const success = await BirthdayService.giveBirthdayPoints(client.id, client, config);
+                                                            if (success) {
+                                                                // Update local state to hide button
+                                                                setBirthdaysOfToday(prev => prev.map(p => p.id === client.id ? { ...p, lastBirthdayPointsYear: currentYear } : p));
+                                                            }
+                                                        }}
+                                                        className="flex-1 bg-pink-500 text-white text-[10px] font-bold py-1.5 rounded-lg hover:bg-pink-600 transition flex items-center justify-center gap-1 shadow-sm shadow-pink-200"
+                                                        title="Regalar Puntos Manualmente"
+                                                    >
+                                                        🎁 Puntos
+                                                    </button>
+                                                ) : (
+                                                    <div className="flex-1 bg-gray-100 text-gray-400 text-[10px] font-bold py-1.5 rounded-lg flex items-center justify-center gap-1 cursor-default border border-gray-200">
+                                                        ✅ Listo
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="min-w-0">
-                                            <p className="font-bold text-gray-800 text-sm truncate">{client.name}</p>
-                                            <p className="text-[10px] text-pink-600 font-bold uppercase tracking-tight flex items-center gap-1">
-                                                Socio #{client.socioNumber}
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
                     </div>

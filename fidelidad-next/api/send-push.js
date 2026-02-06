@@ -60,6 +60,14 @@ export default async function handler(req, res) {
     if (!templateId) return res.status(400).json({ ok: false, error: 'templateId required' });
 
     const tpl = await resolveTemplate(db, templateId, 'push');
+
+    // Fetch Global Config for Logo
+    const configSnap = await db.collection('config').doc('global').get();
+    const config = configSnap.exists ? configSnap.data() : {};
+    // Ensure absolute URL if relative
+    let iconUrl = config.logoUrl || 'https://fidelidad-next.vercel.app/pwa-192x192.png';
+    if (iconUrl.startsWith('/')) iconUrl = 'https://fidelidad-next.vercel.app' + iconUrl;
+
     const recipients = await getRecipients(db, segment);
     const jobId = new Date().toISOString().replace(/[:.]/g, '-') + `-${templateId}`;
 
@@ -87,11 +95,11 @@ export default async function handler(req, res) {
                 id: jobId, // ✅ Unique ID for distinct tags/renotify
                 title: titulo, // ✅ RESTORED
                 body: cuerpo,
-                icon: 'https://rampet.vercel.app/images/mi_logo_192.png' // ⚡ ABSOLUTE URL
+                icon: iconUrl // ⚡ Dynamic URL
               },
               webpush: {
                 notification: {
-                  icon: 'https://fidelidad-next.vercel.app/pwa-192x192.png',
+                  icon: iconUrl,
                   badge: 'https://fidelidad-next.vercel.app/pwa-72x72.png',
                   silent: false
                 },

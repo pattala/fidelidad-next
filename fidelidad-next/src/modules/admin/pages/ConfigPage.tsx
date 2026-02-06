@@ -372,9 +372,9 @@ export const ConfigPage = () => {
                                             <button
                                                 type="button"
                                                 onClick={() => setConfig({ ...config, enableWelcomeBonus: !config.enableWelcomeBonus })}
-                                                className={`relative w-11 h-6 transition-colors rounded-full ${config.enableWelcomeBonus ? 'bg-blue-600' : 'bg-gray-200'}`}
+                                                className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.enableWelcomeBonus ? 'bg-blue-600' : 'bg-gray-200'}`}
                                             >
-                                                <span className={`inline-block w-4 h-4 transform transition-transform bg-white rounded-full translate-x-1 ${config.enableWelcomeBonus ? 'translate-x-6' : 'translate-x-1'}`} />
+                                                <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enableWelcomeBonus ? 'translate-x-5' : 'translate-x-0'}`} />
                                             </button>
                                         </div>
                                         <div className={`transition-all duration-300 ${!config.enableWelcomeBonus && 'opacity-50 pointer-events-none grayscale'}`}>
@@ -392,24 +392,50 @@ export const ConfigPage = () => {
 
                                     <div>
                                         <div className="flex items-center justify-between mb-2">
-                                            <label className="block text-sm font-semibold text-gray-700">🎂 Puntos de Cumpleaños</label>
-                                            <button
-                                                type="button"
-                                                onClick={() => setConfig({ ...config, enableBirthdayBonus: !config.enableBirthdayBonus })}
-                                                className={`relative w-11 h-6 transition-colors rounded-full ${config.enableBirthdayBonus ? 'bg-pink-600' : 'bg-gray-200'}`}
-                                            >
-                                                <span className={`inline-block w-4 h-4 transform transition-transform bg-white rounded-full translate-x-1 ${config.enableBirthdayBonus ? 'translate-x-6' : 'translate-x-1'}`} />
-                                            </button>
+                                            <label className="block text-sm font-semibold text-gray-700">🎂 Cumpleaños</label>
                                         </div>
-                                        <div className={`transition-all duration-300 ${!config.enableBirthdayBonus && 'opacity-50 pointer-events-none grayscale'}`}>
-                                            <div className="flex items-center gap-3">
-                                                <input
-                                                    type="number"
-                                                    value={config.birthdayPoints}
-                                                    onChange={e => setConfig({ ...config, birthdayPoints: parseInt(e.target.value) || 0 })}
-                                                    className="w-32 p-3 rounded-lg border border-gray-200 outline-none focus:ring-2 focus:ring-blue-100 transition font-bold text-gray-700"
-                                                />
-                                                <span className="text-gray-500 text-sm">puntos de regalo por cumpleaños.</span>
+
+                                        <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-200 space-y-4">
+                                            {/* 1. Automatic Points */}
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex-1">
+                                                    <span className="text-sm font-bold text-gray-800">Regalar Puntos Automáticamente</span>
+                                                    <p className="text-xs text-gray-500">El cliente recibe puntos al iniciar sesión en su cumple.</p>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setConfig({ ...config, enableBirthdayBonus: !config.enableBirthdayBonus })}
+                                                    className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.enableBirthdayBonus ? 'bg-pink-500' : 'bg-gray-200'}`}
+                                                >
+                                                    <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enableBirthdayBonus ? 'translate-x-5' : 'translate-x-0'}`} />
+                                                </button>
+                                            </div>
+
+                                            {config.enableBirthdayBonus && (
+                                                <div className="flex items-center gap-3 animate-fade-in pl-2 border-l-2 border-pink-200">
+                                                    <input
+                                                        type="number"
+                                                        value={config.birthdayPoints}
+                                                        onChange={e => setConfig({ ...config, birthdayPoints: parseInt(e.target.value) || 0 })}
+                                                        className="w-24 p-2 rounded-lg border border-gray-200 outline-none focus:ring-2 focus:ring-pink-100 font-bold text-gray-700 text-center"
+                                                    />
+                                                    <span className="text-gray-500 text-sm font-medium">puntos de regalo.</span>
+                                                </div>
+                                            )}
+
+                                            {/* 2. Automatic Message */}
+                                            <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                                                <div className="flex-1">
+                                                    <span className="text-sm font-bold text-gray-800">Enviar Saludo Automático</span>
+                                                    <p className="text-xs text-gray-500">Enviar Push/Email/WhatsApp automáticamente.</p>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setConfig({ ...config, enableBirthdayMessage: config.enableBirthdayMessage === undefined ? true : !config.enableBirthdayMessage })}
+                                                    className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.enableBirthdayMessage !== false ? 'bg-blue-500' : 'bg-gray-200'}`}
+                                                >
+                                                    <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enableBirthdayMessage !== false ? 'translate-x-5' : 'translate-x-0'}`} />
+                                                </button>
                                             </div>
                                         </div>
                                     </div>

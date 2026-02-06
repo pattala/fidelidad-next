@@ -98,6 +98,7 @@ export interface AppConfig {
     enableWelcomeBonus?: boolean;
     birthdayPoints?: number;
     enableBirthdayBonus?: boolean;
+    enableBirthdayMessage?: boolean;
 
     // Vencimiento por Rangos
     expirationRules?: Array<{

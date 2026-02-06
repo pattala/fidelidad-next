@@ -18,29 +18,39 @@ export const BirthdayService = {
         const currentYear = now.getFullYear().toString();
         const lastBirthdayPointsYear = userData.lastBirthdayPointsYear || "";
 
-        if (lastBirthdayPointsYear === currentYear) {
-            console.log("Birthday points already assigned for this year.");
-            return;
+        // 1. Process Points (if enabled and not already given)
+        if (config?.enableBirthdayBonus !== false && lastBirthdayPointsYear !== currentYear) {
+            await this.giveBirthdayPoints(uid, userData, config);
         }
 
-        // Check if Birthday Bonus is enabled
-        if (config?.enableBirthdayBonus === false) {
-            console.log("Birthday bonus is disabled in configuration.");
-            return;
+        // 2. Process Message (if enabled)
+        // Check if message is already sent today? We don't track message sent specifically in user doc, maybe we should?
+        // For now, relies on 'enableBirthdayMessage' config.
+        if (config?.enableBirthdayMessage !== false) {
+            // We don't want to spam, but client side check runs once per session/day ideally.
+            // We can check local storage or just rely on the fact checking happens on login.
+            // But if we want to support manual sending from dashboard, we should separate this.
+            await this.sendBirthdayGreeting(uid, userData, config);
         }
+    },
 
-        console.log("🎉 It's your birthday! Assigning gifts...");
+    async giveBirthdayPoints(uid: string, userData: any, config: any) {
+        const now = TimeService.now();
+        const currentYear = now.getFullYear().toString();
+
+        // Double check to be safe, though Dashboard might bypass
+        if (userData.lastBirthdayPointsYear === currentYear) {
+            console.log("Points already given for this year.");
+            return false;
+        }
 
         try {
-            // 1. Get Dynamic Config
             const birthdayPoints = config?.birthdayPoints || 100;
-            const birthdayTemplate = config?.messaging?.templates?.birthday || DEFAULT_TEMPLATES.birthday;
-
             const userRef = doc(db, 'users', uid);
             const historyRef = collection(db, 'users', uid, 'points_history');
 
             const expirationDate = new Date(now);
-            expirationDate.setDate(expirationDate.getDate() + 365); // Standard 1 year validity
+            expirationDate.setDate(expirationDate.getDate() + 365);
 
             await addDoc(historyRef, {
                 amount: birthdayPoints,
@@ -56,7 +66,19 @@ export const BirthdayService = {
                 lastBirthdayPointsYear: currentYear
             });
 
-            // 2. Send Notifications
+            toast.success(`Se regalaron ${birthdayPoints} puntos a ${userData.name}`);
+            return true;
+        } catch (e) {
+            console.error(e);
+            return false;
+        }
+    },
+
+    async sendBirthdayGreeting(uid: string, userData: any, config: any) {
+        try {
+            const birthdayPoints = config?.birthdayPoints || 100;
+            const birthdayTemplate = config?.messaging?.templates?.birthday || DEFAULT_TEMPLATES.birthday;
+
             const msg = birthdayTemplate
                 .replace(/{nombre}/g, userData.name.split(' ')[0])
                 .replace(/{nombre_completo}/g, userData.name)
@@ -69,10 +91,12 @@ export const BirthdayService = {
                 icon: config?.logoUrl || '/logo.png'
             });
 
-            toast.success(`¡Feliz Cumpleaños! Te hemos regalado ${birthdayPoints} puntos. 🎂`, { duration: 6000, icon: '🎉' });
-
-        } catch (error) {
-            console.error("Error processing birthday gift:", error);
+            // toast.success(`Saludo enviado a ${userData.name}`); // Optional
+            return true;
+        } catch (e) {
+            console.error(e);
+            return false;
         }
     }
 };
+

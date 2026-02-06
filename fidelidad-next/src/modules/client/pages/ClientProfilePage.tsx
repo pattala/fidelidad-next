@@ -6,6 +6,7 @@ import { LogOut, Key, ChevronRight, QrCode, FileText, X, ExternalLink, Eye, EyeO
 import QRCode from "react-qr-code";
 import toast from 'react-hot-toast';
 import { useNavigate, useOutletContext } from 'react-router-dom';
+import { useFcmToken } from '../../../hooks/useFcmToken';
 
 export const ClientProfilePage = () => {
     const [userAuth, setUserAuth] = useState<any>(null);
@@ -108,6 +109,8 @@ export const ClientProfilePage = () => {
         }
     };
 
+    const { retrieveToken } = useFcmToken();
+
     const handleTogglePermission = async (type: 'notifications' | 'geolocation') => {
         if (!userAuth || !userData) return;
 
@@ -122,6 +125,8 @@ export const ClientProfilePage = () => {
                     toast.error("Permiso bloqueado en el navegador");
                     return;
                 }
+                // Register token immediately
+                await retrieveToken();
             } else {
                 // simple check for geo
                 const p = await new Promise((resolve) => {

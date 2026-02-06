@@ -8,6 +8,7 @@ export interface Client {
     points: number;
     accumulated_balance?: number;
     tags?: string[];
+    fcmToken?: string;
     createdAt?: any;
     // Address fields
     calle?: string;

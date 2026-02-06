@@ -16,6 +16,39 @@ export const ClientLayout = () => {
     // Enable Push Notifications
     useFcmToken();
 
+    // Geolocation Tracking (Passive)
+    useEffect(() => {
+        let watchId: number;
+        const unsubscribeAuth = auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                const userDoc = await onSnapshot(doc(db, 'users', user.uid), (snap) => {
+                    const data = snap.data();
+                    if (data?.permissions?.geolocation?.status === 'granted' && navigator.geolocation) {
+                        const lastUpdate = data.lastLocation?.updatedAt?.toDate ? data.lastLocation.updatedAt.toDate() : new Date(0);
+                        const now = new Date();
+                        const diffMins = (now.getTime() - lastUpdate.getTime()) / 60000;
+
+                        if (diffMins > 5) { // Only update every 5 minutes to avoid loops
+                            navigator.geolocation.getCurrentPosition(async (pos) => {
+                                const { updateDoc } = await import('firebase/firestore');
+                                await updateDoc(doc(db, 'users', user.uid), {
+                                    lastLocation: {
+                                        lat: pos.coords.latitude,
+                                        lng: pos.coords.longitude,
+                                        accuracy: pos.coords.accuracy,
+                                        updatedAt: new Date()
+                                    }
+                                });
+                            }, (err) => console.warn('Geo error:', err), { enableHighAccuracy: true });
+                        }
+                    }
+                });
+                return () => userDoc();
+            }
+        });
+        return () => unsubscribeAuth();
+    }, []);
+
     // Listen for unread messages
     useEffect(() => {
         let unsubMessages: (() => void) | undefined;

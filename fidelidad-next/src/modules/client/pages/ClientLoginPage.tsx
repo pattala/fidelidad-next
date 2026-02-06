@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../../../lib/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { collection, query, where, getDocs, setDoc, deleteDoc, doc, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, getDocs, setDoc, deleteDoc, doc, onSnapshot, limit } from 'firebase/firestore';
 import { Mail, Lock, LogIn, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { ConfigService } from '../../../services/configService';
@@ -52,7 +52,7 @@ export const ClientLoginPage = () => {
             if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential' || err.code === 'auth/invalid-login-credentials') {
                 try {
                     // Check if exists in Firestore "users" collection (created by Admin)
-                    const q = query(collection(db, 'users'), where('email', '==', email));
+                    const q = query(collection(db, 'users'), where('email', '==', email), limit(1));
                     const snapshot = await getDocs(q);
 
                     if (!snapshot.empty) {

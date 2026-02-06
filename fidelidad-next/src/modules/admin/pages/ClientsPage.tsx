@@ -852,10 +852,10 @@ export const ClientsPage = () => {
                                             <div title={client.termsAccepted ? "Términos Aceptados" : "Términos Pendientes"} className={`p-1.5 rounded-md ${client.termsAccepted ? 'text-blue-600 bg-blue-50' : 'text-gray-300 bg-gray-50'}`}>
                                                 <Check size={14} strokeWidth={3} />
                                             </div>
-                                            <div title={`Notificaciones: ${client.permissions?.notifications?.status || 'Pendiente'}`} className={`p-1.5 rounded-md ${(client.permissions?.notifications?.status === 'granted') ? 'text-purple-600 bg-purple-50' : 'text-gray-300 bg-gray-50'}`}>
+                                            <div title={`Notificaciones: ${client.permissions?.notifications?.status === 'granted' ? (client.fcmToken ? 'Activas (Con Token)' : 'Permiso concedido pero falta registrar Token') : 'Pendiente/Denegado'}`} className={`p-1.5 rounded-md ${(client.permissions?.notifications?.status === 'granted' && client.fcmToken) ? 'text-purple-600 bg-purple-50 border border-purple-100 shadow-sm' : 'text-gray-300 bg-gray-50'}`}>
                                                 <Bell size={14} />
                                             </div>
-                                            <div title={`Ubicación: ${client.permissions?.geolocation?.status || 'Pendiente'}`} className={`p-1.5 rounded-md ${(client.permissions?.geolocation?.status === 'granted') ? 'text-green-600 bg-green-50' : 'text-gray-300 bg-gray-50'}`}>
+                                            <div title={`Ubicación: ${client.permissions?.geolocation?.status === 'granted' ? (client.lastLocation ? 'Activa (Con Coordenadas)' : 'Permiso concedido pero sin datos aún') : 'Pendiente/Denegado'}`} className={`p-1.5 rounded-md ${(client.permissions?.geolocation?.status === 'granted' && client.lastLocation) ? 'text-green-600 bg-green-50 border border-green-100 shadow-sm' : 'text-gray-300 bg-gray-50'}`}>
                                                 <MapPin size={14} />
                                             </div>
                                         </div>

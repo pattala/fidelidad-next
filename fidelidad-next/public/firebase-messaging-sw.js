@@ -1,4 +1,4 @@
-// Version: 3.0.0 (Fuerza actualización en Windows)
+// Version: 4.0.0 (Branding & Sound)
 importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js');
 
@@ -20,26 +20,27 @@ self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (event) => event.waitUntil(clients.claim()));
 
 messaging.onBackgroundMessage((payload) => {
-    console.log('[SW V3] Background Message:', payload);
+    console.log('[SW V4] Background Message:', payload);
 });
 
 self.addEventListener('push', (event) => {
-    console.log('[SW V3] Push event received');
+    console.log('[SW V4] Push event received');
 
     let title = 'Club de Fidelidad';
     let options = {
         body: 'Tienes una novedad en tu cuenta',
         icon: '/pwa-192x192.png',
         badge: '/pwa-192x192.png',
-        vibrate: [100, 50, 100],
+        vibrate: [200, 100, 200],
         requireInteraction: true,
+        silent: false, // Intentar forzar sonido
         data: { url: '/inbox' }
     };
 
     if (event.data) {
         try {
             const payload = event.data.json();
-            console.log('[SW V3] Payload Recibido:', payload);
+            console.log('[SW V4] Payload Recibido:', payload);
 
             const notification = payload.notification || {};
             const data = payload.data || {};
@@ -52,12 +53,12 @@ self.addEventListener('push', (event) => {
             if (payload.fcmMessageId) options.tag = payload.fcmMessageId;
 
         } catch (e) {
-            console.warn('[SW V3] Error parseando JSON:', e);
+            console.warn('[SW V4] Error parseando JSON:', e);
             options.body = event.data.text() || options.body;
         }
     }
 
-    console.log('[SW V3] Mostrando notificación:', title);
+    console.log('[SW V4] Mostrando notificación:', title);
     event.waitUntil(self.registration.showNotification(title, options));
 });
 

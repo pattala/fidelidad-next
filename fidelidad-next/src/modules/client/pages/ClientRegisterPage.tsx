@@ -145,7 +145,7 @@ export const ClientRegisterPage = () => {
             fetch('/api/assign-socio-number', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'x-api-key': apiKey },
-                body: JSON.stringify({ docId: user.uid })
+                body: JSON.stringify({ docId: user.uid, sendWelcome: true })
             }).catch(e => console.warn('Error asignando socio:', e));
 
             // B. Asignar Puntos de Bienvenida

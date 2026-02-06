@@ -47,6 +47,7 @@ export interface Client {
     redeemedPoints?: number;
     redeemedValue?: number;
     registrationDate?: any;
+    source?: 'pwa' | 'local';
 }
 
 export interface User {

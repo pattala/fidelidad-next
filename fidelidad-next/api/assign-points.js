@@ -101,9 +101,9 @@ export default async function handler(req, res) {
         let result = { ok: false };
 
         await db.runTransaction(async (tx) => {
-            const doc = await tx.get(clientRef);
-            if (!doc.exists) throw new Error("Client not found");
-            const data = doc.data();
+            const docSnapshot = await tx.get(clientRef);
+            if (!docSnapshot.exists) throw new Error("Client not found");
+            const data = docSnapshot.data();
 
             // Chequeo de duplicados
             if (data.rewards_awarded && data.rewards_awarded[reason]) {
@@ -132,11 +132,24 @@ export default async function handler(req, res) {
                 type: 'credit',
                 reason: reason || 'manual',
                 concept: reason === 'welcome_signup' ? 'Puntos de Bienvenida' : (reason === 'profile_address' ? 'Premio por completar dirección' : 'Asignación automática'),
+                date: admin.firestore.FieldValue.serverTimestamp(),
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
                 expiresAt: admin.firestore.Timestamp.fromDate(expirationDate),
                 remainingPoints: points,
                 balanceAfter: newPoints
             });
+
+            // Opcional: Crear mensaje en Inbox si es bienvenida
+            if (reason === 'welcome_signup') {
+                const inboxRef = clientRef.collection('inbox').doc();
+                tx.set(inboxRef, {
+                    title: '¡Te damos la bienvenida!',
+                    body: `Gracias por registrarte. Ya tienes ${points} puntos para empezar a disfrutar nuestros beneficios.`,
+                    type: 'welcome',
+                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                    isRead: false
+                });
+            }
 
             result = { ok: true, pointsAdded: points, newBalance: newPoints };
         });

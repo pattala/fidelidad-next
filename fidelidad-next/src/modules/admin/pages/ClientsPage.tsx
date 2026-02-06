@@ -295,7 +295,8 @@ export const ClientsPage = () => {
                             zipCode: formData.cp
                         }
                     },
-                    role: 'client'
+                    role: 'client',
+                    source: 'local'
                 };
 
                 let apiSuccess = false;
@@ -786,6 +787,18 @@ export const ClientsPage = () => {
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
+                                        <div className="flex flex-col">
+                                            <div className="text-sm font-bold text-gray-800">{client.name}</div>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <span className="text-[10px] text-gray-400 font-mono">#{client.socioNumber}</span>
+                                                <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${client.source === 'pwa'
+                                                        ? 'bg-purple-100 text-purple-600 border border-purple-200'
+                                                        : 'bg-emerald-100 text-emerald-600 border border-emerald-200'
+                                                    }`}>
+                                                    {client.source === 'pwa' ? 'PWA' : 'Local'}
+                                                </span>
+                                            </div>
+                                        </div>
                                         {client.calle ? (
                                             <div className="max-w-[180px]">
                                                 <div className="text-sm text-gray-700 font-medium truncate">

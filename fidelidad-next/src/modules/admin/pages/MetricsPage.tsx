@@ -15,6 +15,7 @@ export const MetricsPage = () => {
     const [topUsers, setTopUsers] = useState<any[]>([]);
     const [topSpenders, setTopSpenders] = useState<any[]>([]);
     const [topVisitors, setTopVisitors] = useState<any[]>([]);
+    const [registrationSources, setRegistrationSources] = useState<{ pwa: number, local: number }>({ pwa: 0, local: 0 });
     const [loading, setLoading] = useState(true);
     const [config, setConfig] = useState<any>(null);
 
@@ -25,7 +26,6 @@ export const MetricsPage = () => {
                 // Fetch Config for Ratio
                 const appConfig = await ConfigService.get();
                 setConfig(appConfig);
-                // Formula: Points = (Pesos / 100) * ratio  => Pesos = (Points / ratio) * 100
 
                 // 1. Define Date Range
                 const now = new Date();
@@ -44,8 +44,7 @@ export const MetricsPage = () => {
                 const snapHistory = await getDocs(qHistory);
                 const movements = snapHistory.docs.map(d => ({
                     ...d.data(),
-                    date: d.data().date.toDate(),
-                    // Extract userId from parent ref path: users/{userId}/points_history/{docId}
+                    date: d.data().date?.toDate ? d.data().date.toDate() : new Date(),
                     userId: d.ref.parent.parent?.id
                 }));
 
@@ -54,7 +53,6 @@ export const MetricsPage = () => {
                 const spendersMap = new Map<string, number>();
 
                 movements.forEach((mov: any) => {
-                    // --- Chart Data Grouping ---
                     const key = timeRange === '30_days'
                         ? mov.date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
                         : mov.date.toLocaleDateString('es-AR', { month: 'short', year: '2-digit' });
@@ -63,36 +61,24 @@ export const MetricsPage = () => {
 
                     if (mov.type === 'credit') {
                         current.emitted += (mov.amount || 0);
-
-                        // --- Top Spenders Accumulation ---
                         if (mov.userId) {
                             let pesoValue = 0;
-
                             if (mov.moneySpent !== undefined) {
-                                // Dato real (Nuevo sistema)
                                 pesoValue = mov.moneySpent;
                             } else {
-                                // Estimación (Datos viejos)
-                                // Excluir regalos obvios
                                 const concept = (mov.concept || '').toLowerCase();
-                                const isGift = concept.includes('regalo') ||
-                                    concept.includes('bienvenida') ||
-                                    concept.includes('bono');
-
+                                const isGift = concept.includes('regalo') || concept.includes('bienvenida') || concept.includes('bono');
                                 if (!isGift && mov.amount > 0) {
                                     const ratio = config?.pointsPerPeso || 1;
-                                    // Evitar división por 0 o NaN
                                     const safeRatio = ratio > 0 ? ratio : 1;
                                     pesoValue = Math.round((mov.amount * 100) / safeRatio);
                                 }
                             }
-
                             if (pesoValue > 0) {
                                 const currentTotal = spendersMap.get(mov.userId) || 0;
                                 spendersMap.set(mov.userId, currentTotal + pesoValue);
                             }
                         }
-
                     } else if (mov.type === 'debit') {
                         current.redeemed += Math.abs(mov.amount || 0);
                         current.money += (mov.redeemedValue || 0);
@@ -102,11 +88,19 @@ export const MetricsPage = () => {
 
                 setChartData(Array.from(groupedData.entries()).map(([name, data]) => ({ name, ...data })));
 
-                // 4. Fetch Top Users (Current Balance)
-                // Independent of time range, shows current state
-                // Independent of time range, shows current state
-                // Try 'puntos' first (new schema), if empty maybe 'points'? No, unified to 'clientes'.
-                const qUsers = query(collection(db, 'users'), orderBy('points', 'desc'), limit(5)); // Reverted to 'users' and 'points'
+                // 4. Fetch Users and Sources
+                const qFullUsers = query(collection(db, 'users'), where('createdAt', '>=', startDate));
+                const snapFullUsers = await getDocs(qFullUsers);
+
+                const sources = { pwa: 0, local: 0 };
+                snapFullUsers.docs.forEach(d => {
+                    const data = d.data();
+                    if (data.source === 'pwa') sources.pwa++;
+                    else sources.local++;
+                });
+                setRegistrationSources(sources);
+
+                const qUsers = query(collection(db, 'users'), orderBy('points', 'desc'), limit(5));
                 const snapUsers = await getDocs(qUsers);
                 setTopUsers(snapUsers.docs.map(d => {
                     const data = d.data();
@@ -125,17 +119,13 @@ export const MetricsPage = () => {
                     .slice(0, 5);
 
                 const spendersData = await Promise.all(sortedSpendersIds.map(async ([uid, total]) => {
-                    // Try to find in already fetched topUsers to save a read
                     const existing = snapUsers.docs.find(d => d.id === uid);
                     if (existing) {
                         const uData = existing.data();
                         return { id: uid, name: uData.name, dni: uData.dni, socioNumber: uData.socioNumber, total };
                     }
-
-                    // If not found, fetch individual user name
-                    // In a real app with many users, we might use a 'where in' query or just display ID
                     try {
-                        const qUser = query(collection(db, 'users'), where(documentId(), '==', uid)); // Reverted to 'users'
+                        const qUser = query(collection(db, 'users'), where(documentId(), '==', uid));
                         const userSnap = await getDocs(qUser);
                         if (!userSnap.empty) {
                             const uData = userSnap.docs[0].data();
@@ -147,14 +137,12 @@ export const MetricsPage = () => {
                                 total
                             };
                         }
-                    } catch (e) {
-                        // ignore
-                    }
+                    } catch (e) { }
                     return { id: uid, name: 'Socio sin N° asignado', total };
                 }));
                 setTopSpenders(spendersData);
 
-                // 6. Fetch Top Visitors (Most Active)
+                // 6. Fetch Top Visitors
                 const qVisitors = query(collection(db, 'users'), orderBy('visitCount', 'desc'), limit(5));
                 const snapVisitors = await getDocs(qVisitors);
                 setTopVisitors(snapVisitors.docs.map(d => {
@@ -245,6 +233,39 @@ export const MetricsPage = () => {
                                 <Bar dataKey="money" name="Dinero ($)" fill="#22c55e" radius={[4, 4, 0, 0]} barSize={40} />
                             </BarChart>
                         </ResponsiveContainer>
+                    </div>
+                </div>
+            </div>
+
+            {/* Registration Sources breakdown */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <h3 className="text-lg font-bold text-gray-700 mb-6 flex items-center gap-2">
+                    <Users size={20} className="text-purple-500" /> Origen de Registros (Nuevos)
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-end">
+                            <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Altas vía PWA</span>
+                            <span className="text-2xl font-black text-purple-600">{registrationSources.pwa}</span>
+                        </div>
+                        <div className="w-full bg-gray-100 h-3 rounded-full overflow-hidden">
+                            <div
+                                className="bg-purple-500 h-full transition-all duration-1000"
+                                style={{ width: `${(registrationSources.pwa / (registrationSources.pwa + registrationSources.local || 1)) * 100}%` }}
+                            ></div>
+                        </div>
+                    </div>
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-end">
+                            <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Altas en el Local</span>
+                            <span className="text-2xl font-black text-emerald-600">{registrationSources.local}</span>
+                        </div>
+                        <div className="w-full bg-gray-100 h-3 rounded-full overflow-hidden">
+                            <div
+                                className="bg-emerald-500 h-full transition-all duration-1000"
+                                style={{ width: `${(registrationSources.local / (registrationSources.pwa + registrationSources.local || 1)) * 100}%` }}
+                            ></div>
+                        </div>
                     </div>
                 </div>
             </div>

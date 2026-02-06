@@ -66,6 +66,7 @@ export const ClientProfilePage = () => {
                 partido: editData.partido || '',
                 provincia: editData.provincia || '',
                 cp: editData.cp || '',
+                birthDate: editData.birthDate || '',
                 'domicilio.components.calle': fullCalle,
                 'domicilio.components.numero': editData.number || '',
                 'domicilio.components.piso': editData.piso || '',
@@ -200,7 +201,8 @@ export const ClientProfilePage = () => {
                                 localidad: userData.localidad || '',
                                 partido: userData.partido || '',
                                 provincia: userData.provincia || '',
-                                cp: userData.cp || ''
+                                cp: userData.cp || '',
+                                birthDate: userData.birthDate || ''
                             });
                             setIsEditModalOpen(true);
                         }}
@@ -477,6 +479,16 @@ export const ClientProfilePage = () => {
                                             required
                                         />
                                     </div>
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">Cumpleaños</label>
+                                    <input
+                                        type="date"
+                                        className="w-full bg-gray-50 px-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-indigo-200 outline-none text-sm font-bold"
+                                        value={editData.birthDate}
+                                        onChange={e => setEditData({ ...editData, birthDate: e.target.value })}
+                                        required
+                                    />
                                 </div>
 
                                 <div className="grid grid-cols-3 gap-2">

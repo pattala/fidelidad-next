@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { auth, db } from '../../../lib/firebase';
 import { doc, onSnapshot, collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { Share2, Clock, Check, AlertTriangle, ChevronRight, User as UserIcon, LogOut, Calendar, Sparkles } from 'lucide-react';
+import { Share2, Clock, Check, AlertTriangle, ChevronRight, User as UserIcon, LogOut, Calendar, Sparkles, Cake } from 'lucide-react';
+import { TimeService } from '../../../services/timeService';
 import { signOut } from 'firebase/auth';
 import toast from 'react-hot-toast';
 import { CampaignService, type BonusRule } from '../../../services/campaignService';
@@ -138,12 +139,27 @@ export const ClientHomePage = () => {
                 const unsubDb = onSnapshot(userRef, async (document) => {
                     const data = document.data();
                     setUserData(data);
+
+                    // --- BIRTHDAY CHECK ---
+                    if (data && config) {
+                        const { BirthdayService } = await import('../../../services/birthdayService');
+                        BirthdayService.checkAndProcessBirthday(u.uid, data, config);
+                    }
                 });
                 return () => unsubDb();
             }
         });
         return () => unsubscribeAuth();
     }, [userData?.name, userData?.nombre]);
+
+    useEffect(() => {
+        const handleSimChange = () => {
+            // Trigger a re-render or re-fetch
+            window.location.reload();
+        };
+        window.addEventListener('time-simulation-change', handleSimChange);
+        return () => window.removeEventListener('time-simulation-change', handleSimChange);
+    }, []);
 
     useEffect(() => {
         const fetchCampaigns = async () => {
@@ -241,6 +257,32 @@ export const ClientHomePage = () => {
             <section className="relative z-10 mx-0">
                 <CampaignCarousel />
             </section>
+
+            {/* BIRTHDAY BANNER */}
+            {(() => {
+                const now = TimeService.now();
+                const todayMD = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                const isBirthday = userData?.birthDate?.endsWith(todayMD);
+
+                if (isBirthday) {
+                    return (
+                        <div className="bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 p-6 rounded-[2rem] shadow-xl text-white relative overflow-hidden animate-pulse-slow">
+                            <div className="absolute top-0 right-0 p-4 opacity-20">
+                                <Cake size={80} />
+                            </div>
+                            <div className="relative z-10">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Sparkles size={20} />
+                                    <span className="text-[10px] font-black uppercase tracking-[0.3em]">¡Evento Especial!</span>
+                                </div>
+                                <h3 className="text-2xl font-black tracking-tight mb-1">¡FELIZ CUMPLEAÑOS! 🎂</h3>
+                                <p className="text-xs font-medium opacity-90">Hoy es tu día especial y queremos celebrarlo con vos. ¡Ya sumamos tus puntos de regalo! 🎁</p>
+                            </div>
+                        </div>
+                    );
+                }
+                return null;
+            })()}
 
             {/* POINTS CARD */}
             <div className="relative z-10 px-0">

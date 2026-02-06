@@ -1,6 +1,8 @@
-// Version: 4.0.0 (Branding & Sound)
+// Version: 5.0.0 (Native professional behavior)
 importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js');
+
+const BASE_URL = 'https://fidelidad-next.vercel.app';
 
 const firebaseConfig = {
     apiKey: "AIzaSyCiWY4sS9VaJUcfD0o5c_ZRFT0NxFdfOX8",
@@ -20,19 +22,18 @@ self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (event) => event.waitUntil(clients.claim()));
 
 messaging.onBackgroundMessage((payload) => {
-    console.log('[SW V4] Background Message:', payload);
+    console.log('[SW V5] Background Message:', payload);
 });
 
 self.addEventListener('push', (event) => {
-    console.log('[SW V4] Push event received');
+    console.log('[SW V5] Push event received');
 
     let title = 'Club de Fidelidad';
     let options = {
         body: 'Tienes una novedad en tu cuenta',
-        icon: '/pwa-192x192.png',
-        badge: '/pwa-192x192.png',
+        icon: `${BASE_URL}/pwa-192x192.png`,
+        badge: `${BASE_URL}/pwa-72x72.png`,
         vibrate: [200, 100, 200],
-        requireInteraction: true,
         silent: false, // Intentar forzar sonido
         data: { url: '/inbox' }
     };
@@ -40,7 +41,7 @@ self.addEventListener('push', (event) => {
     if (event.data) {
         try {
             const payload = event.data.json();
-            console.log('[SW V4] Payload Recibido:', payload);
+            console.log('[SW V5] Payload Recibido:', payload);
 
             const notification = payload.notification || {};
             const data = payload.data || {};
@@ -53,12 +54,12 @@ self.addEventListener('push', (event) => {
             if (payload.fcmMessageId) options.tag = payload.fcmMessageId;
 
         } catch (e) {
-            console.warn('[SW V4] Error parseando JSON:', e);
+            console.warn('[SW V5] Error parseando JSON:', e);
             options.body = event.data.text() || options.body;
         }
     }
 
-    console.log('[SW V4] Mostrando notificación:', title);
+    console.log('[SW V5] Mostrando notificación:', title);
     event.waitUntil(self.registration.showNotification(title, options));
 });
 

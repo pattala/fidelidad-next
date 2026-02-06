@@ -91,9 +91,8 @@ export default async function handler(req, res) {
               },
               webpush: {
                 notification: {
-                  requireInteraction: true,
-                  icon: '/pwa-192x192.png',
-                  badge: '/pwa-192x192.png',
+                  icon: 'https://fidelidad-next.vercel.app/pwa-192x192.png',
+                  badge: 'https://fidelidad-next.vercel.app/pwa-72x72.png',
                   silent: false
                 },
                 headers: { Urgency: "high" }

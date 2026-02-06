@@ -269,9 +269,9 @@ export default async function handler(req, res) {
       notification: {
         title,
         body: msgBody,
-        icon: icon || process.env.PUSH_ICON_URL || '/pwa-192x192.png',
-        badge: badge || process.env.PUSH_BADGE_URL || '/pwa-192x192.png',
-        requireInteraction: true, // Mantiene la notificación en Windows
+        icon: icon || process.env.PUSH_ICON_URL || 'https://fidelidad-next.vercel.app/pwa-192x192.png',
+        badge: badge || process.env.PUSH_BADGE_URL || 'https://fidelidad-next.vercel.app/pwa-72x72.png',
+        // 'requireInteraction' removido para comportamiento nativo profesional (desaparece tras unos segundos)
       },
       fcmOptions: { link: data.url || "/notificaciones" },
       headers: { TTL: "2419200", Urgency: "high" }

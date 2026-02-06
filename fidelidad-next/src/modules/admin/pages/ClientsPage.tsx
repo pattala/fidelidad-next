@@ -20,7 +20,6 @@ import { PointsHistoryModal } from '../components/PointsHistoryModal';
 import { VisitHistoryModal } from '../components/VisitHistoryModal';
 
 import { ARGENTINA_LOCATIONS } from '../../../data/locations'; // Import added
-import { TimeService } from '../../../services/timeService';
 import { useAdminAuth } from '../contexts/AdminAuthContext';
 
 const INITIAL_CLIENT_STATE = {

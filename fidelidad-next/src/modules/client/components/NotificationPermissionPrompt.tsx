@@ -12,6 +12,15 @@ interface Props {
 
 export const NotificationPermissionPrompt = ({ user, userData, onNotificationGranted }: Props) => {
     const [step, setStep] = useState<'none' | 'terms' | 'notifications' | 'geolocation'>('none');
+    const [config, setConfig] = useState<any>(null);
+
+    useEffect(() => {
+        const loadConfig = async () => {
+            const { ConfigService } = await import('../../../services/configService');
+            ConfigService.get().then(setConfig);
+        };
+        loadConfig();
+    }, []);
 
     useEffect(() => {
         if (!user || !userData) return;
@@ -194,20 +203,20 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
                     <div className="bg-gray-50/80 rounded-3xl p-5 text-left text-[11px] h-64 overflow-y-auto border border-gray-100 mb-8 scrollbar-hide">
                         <div className="flex items-center gap-2 mb-4 text-blue-600">
                             <ShieldCheck size={16} />
-                            <span className="font-black uppercase tracking-widest">Contrato Club RAMPET</span>
+                            <span className="font-black uppercase tracking-widest">Contrato {config?.siteName || 'Club'}</span>
                         </div>
                         <div className="space-y-4 text-gray-600 font-medium overflow-y-auto pr-2">
                             <div className="section">
                                 <h4 className="font-bold text-gray-800 mb-1">1. Generalidades</h4>
-                                <p>El programa de fidelización "Club RAMPET" es un beneficio exclusivo para nuestros clientes. La participación en el programa es gratuita e implica la aceptación total de los presentes términos y condiciones.</p>
+                                <p>El programa de fidelización "{config?.siteName || 'fidelidad'}" es un beneficio exclusivo para nuestros clientes. La participación en el programa es gratuita e implica la aceptación total de los presentes términos y condiciones.</p>
                             </div>
                             <div className="section">
                                 <h4 className="font-bold text-gray-800 mb-1">2. Consentimiento de Comunicaciones</h4>
-                                <p>Al registrarte y/o aceptar los términos en la aplicación, otorgas tu consentimiento explícito para recibir comunicaciones transaccionales y promocionales del Club RAMPET a través de correo electrónico y notificaciones push. Estas comunicaciones son parte integral del programa de fidelización e incluyen, entre otros, avisos sobre puntos ganados, premios canjeados, promociones especiales y vencimiento de puntos. Puedes gestionar tus preferencias de notificaciones en cualquier momento.</p>
+                                <p>Al registrarte y/o aceptar los términos en la aplicación, otorgas tu consentimiento explícito para recibir comunicaciones transaccionales y promocionales de {config?.siteName || 'nuestra empresa'} a través de correo electrónico y notificaciones push. Estas comunicaciones son parte integral del programa de fidelización e incluyen, entre otros, avisos sobre puntos ganados, premios canjeados, promociones especiales y vencimiento de puntos. Puedes gestionar tus preferencias de notificaciones en cualquier momento.</p>
                             </div>
                             <div className="section">
                                 <h4 className="font-bold text-gray-800 mb-1">3. Acumulación de Puntos</h4>
-                                <p>Los puntos se acumularán según la tasa de conversión vigente establecida por RAMPET. Los puntos no tienen valor monetario, no son transferibles a otras personas ni canjeables por dinero en efectivo.</p>
+                                <p>Los puntos se acumularán según la tasa de conversión vigente establecida por {config?.siteName || 'la empresa'}. Los puntos no tienen valor monetario, no son transferibles a otras personas ni canjeables por dinero en efectivo.</p>
                             </div>
                             <div className="section">
                                 <h4 className="font-bold text-gray-800 mb-1">4. Canje de Premios</h4>
@@ -219,7 +228,7 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
                             </div>
                             <div className="section">
                                 <h4 className="font-bold text-gray-800 mb-1">6. Modificaciones del Programa</h4>
-                                <p>RAMPET se reserva el derecho de modificar los términos y condiciones, la tasa de conversión, el catálogo de premios o cualquier otro aspecto del programa de fidelización, inclusive su finalización, en cualquier momento y sin previo aviso.</p>
+                                <p>{config?.siteName || 'La empresa'} se reserva el derecho de modificar los términos y condiciones, la tasa de conversión, el catálogo de premios o cualquier otro aspecto del programa de fidelización, inclusive su finalización, en cualquier momento y sin previo aviso.</p>
                             </div>
                             <div className="pt-4 border-t border-gray-200 mt-2">
                                 <p className="text-[9px] text-gray-400 text-center font-bold italic">Última actualización: 8 de Agosto de 2025</p>

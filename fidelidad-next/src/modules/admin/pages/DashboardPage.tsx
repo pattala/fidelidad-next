@@ -341,55 +341,89 @@ export const DashboardPage = () => {
                                             </div>
 
                                             {/* Actions */}
-                                            <div className="flex gap-2 mt-1">
-                                                <button
-                                                    onClick={async () => {
-                                                        if (!config) return;
-                                                        const result: any = await BirthdayService.sendBirthdayGreeting(client.id, client, config);
-
-                                                        if (result?.success) {
-                                                            const parts = [];
-                                                            if (result.pushSent) parts.push('Push');
-                                                            if (result.emailSent) parts.push('Email');
-
-                                                            if (result.whatsappLink) {
-                                                                window.open(result.whatsappLink, '_blank');
-                                                                toast.success(`Saludo enviado (${parts.join('+')}) y abriendo WhatsApp...`);
-                                                            } else {
-                                                                toast.success(`Saludo enviado (${parts.join('+')})`);
-                                                            }
-                                                        } else {
-                                                            toast.error('Error al enviar saludo');
-                                                        }
-                                                    }}
-                                                    className="flex-1 bg-white border border-pink-200 text-pink-600 text-[10px] font-bold py-1.5 rounded-lg hover:bg-pink-100 transition flex items-center justify-center gap-1"
-                                                    title="Enviar Saludo (Según configuración)"
-                                                >
-                                                    📩 Saludar {(config?.messaging?.whatsappEnabled && config?.messaging?.eventConfigs?.birthday?.channels?.includes('whatsapp')) ? '(+WA)' : ''}
-                                                </button>
-
+                                            <div className="flex flex-col gap-2 mt-2">
                                                 {!alreadyGifted ? (
-                                                    <button
-                                                        onClick={async () => {
-                                                            if (!config) return;
-                                                            if (!confirm(`¿Regalar ${config.birthdayPoints || 100} puntos a ${client.name}?`)) return;
+                                                    <div className="flex gap-2">
+                                                        {/* Opción 1: Solo Saludar (Sin Puntos) */}
+                                                        <button
+                                                            onClick={async () => {
+                                                                if (!config) return;
+                                                                // Enviamos 'userData' tal cual. El servicio detectará que NO se dieron puntos
+                                                                // y ajustará el mensaje (quitando la parte de "te regalamos puntos").
+                                                                const result: any = await BirthdayService.sendBirthdayGreeting(client.id, client, config);
 
-                                                            const success = await BirthdayService.giveBirthdayPoints(client.id, client, config);
-                                                            if (success) {
-                                                                setBirthdaysOfToday(prev => prev.map(p => p.id === client.id ? { ...p, lastBirthdayPointsYear: currentYear } : p));
-                                                            }
-                                                        }}
-                                                        className="flex-1 bg-pink-500 text-white text-[10px] font-bold py-1.5 rounded-lg hover:bg-pink-600 transition flex items-center justify-center gap-1 shadow-sm shadow-pink-200"
-                                                        title={`Regalar ${config?.birthdayPoints || 100} Puntos`}
-                                                    >
-                                                        🎁 {config?.birthdayPoints || 100} Pts
-                                                    </button>
+                                                                if (result?.success) {
+                                                                    const parts = [];
+                                                                    if (result.pushSent) parts.push('Push');
+                                                                    if (result.emailSent) parts.push('Email');
+
+                                                                    if (result.whatsappLink) {
+                                                                        window.open(result.whatsappLink, '_blank');
+                                                                        toast.success(`Saludo enviado (${parts.join('+')}) y abriendo WhatsApp...`);
+                                                                    } else {
+                                                                        toast.success(`Saludo enviado (${parts.join('+')})`);
+                                                                    }
+                                                                }
+                                                            }}
+                                                            className="flex-1 bg-white border border-yellow-400 text-yellow-600 text-[10px] font-bold py-2 rounded-lg hover:bg-yellow-50 transition flex items-center justify-center gap-1 shadow-sm"
+                                                            title="Enviar 'Feliz Cumpleaños' sin regalar puntos hoy"
+                                                        >
+                                                            👋 Solo Saludar
+                                                        </button>
+
+                                                        {/* Opción 2: Regalar Puntos Y Saludar */}
+                                                        <button
+                                                            onClick={async () => {
+                                                                if (!config) return;
+                                                                const pointsToGift = config.birthdayPoints || 100;
+                                                                if (!confirm(`¿Confirmas enviar REGALO + SALUDO?\n\n- Se acreditarán ${pointsToGift} puntos.\n- Se enviará notificación de aviso.`)) return;
+
+                                                                // 1. Regalar Puntos
+                                                                const giftSuccess = await BirthdayService.giveBirthdayPoints(client.id, client, config);
+
+                                                                if (giftSuccess) {
+                                                                    // Actualizamos estado local inmediatamente para bloquear botón
+                                                                    setBirthdaysOfToday(prev => prev.map(p => p.id === client.id ? { ...p, lastBirthdayPointsYear: currentYear } : p));
+
+                                                                    // 2. Saludar (Simulamos que el usuario YA tiene los puntos actualizados para que el mensaje salga completo)
+                                                                    const updatedClient = { ...client, lastBirthdayPointsYear: currentYear };
+                                                                    const greetResult: any = await BirthdayService.sendBirthdayGreeting(client.id, updatedClient, config);
+
+                                                                    if (greetResult?.whatsappLink) {
+                                                                        window.open(greetResult.whatsappLink, '_blank');
+                                                                        toast.success(`¡Regalo acreditado! Abriendo WhatsApp...`);
+                                                                    } else {
+                                                                        toast.success(`¡Regalo acreditado y notificado!`);
+                                                                    }
+                                                                }
+                                                            }}
+                                                            className="flex-1 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-[10px] font-bold py-2 rounded-lg hover:shadow-md transition flex items-center justify-center gap-1 shadow-sm shadow-pink-200"
+                                                            title={`Acreditar ${config?.birthdayPoints || 100} pts y avisar al cliente`}
+                                                        >
+                                                            🎁 Regalar y Saludar
+                                                        </button>
+                                                    </div>
                                                 ) : (
-                                                    <div
-                                                        className="flex-1 bg-gray-50 text-gray-400 text-[10px] font-bold py-1.5 rounded-lg flex items-center justify-center gap-1 border border-gray-100 select-none"
-                                                        title="Los puntos de cumpleaños de este año ya fueron enviados"
-                                                    >
-                                                        ✅ Puntos Enviados
+                                                    <div className="flex gap-2">
+                                                        <div
+                                                            className="flex-1 bg-green-50 text-green-600 text-[10px] font-bold py-2 rounded-lg flex items-center justify-center gap-1 border border-green-200 select-none"
+                                                            title="Los puntos ya fueron acreditados en la base de datos"
+                                                        >
+                                                            ✅ Puntos Enviados
+                                                        </div>
+                                                        <button
+                                                            onClick={async () => {
+                                                                if (!config) return;
+                                                                // Ya tiene puntos, el mensaje saldrá completo ("te regalamos...")
+                                                                const result: any = await BirthdayService.sendBirthdayGreeting(client.id, client, config);
+                                                                if (result?.whatsappLink) window.open(result.whatsappLink, '_blank');
+                                                                toast.success("Saludo re-enviado");
+                                                            }}
+                                                            className="px-3 bg-white border border-gray-200 text-gray-500 text-[10px] font-bold rounded-lg hover:bg-gray-50 transition"
+                                                            title="Volver a enviar la notificación/mensaje"
+                                                        >
+                                                            📩 Re-enviar
+                                                        </button>
                                                     </div>
                                                 )}
                                             </div>

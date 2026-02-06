@@ -84,38 +84,36 @@ export const BirthdayService = {
             const pointsGivenThisYear = userData.lastBirthdayPointsYear === currentYear;
             const willGivePointsAuto = config?.enableBirthdayBonus !== false; // If auto is ON, we assume points are/will be there.
 
-            let msg = birthdayTemplate
+            let msg = birthdayTemplate;
+
+            // 1. Ensure Emojis exist (if using old default template text)
+            // If the message looks like the old default but misses emojis, let's upgrade it on the fly for display.
+            if (msg.includes("Feliz cumpleaños") && !msg.includes("🎂")) {
+                msg = msg.replace("Feliz cumpleaños", "¡Feliz cumpleaños 🎂🎉");
+            }
+            if (msg.includes("gran día") && !msg.includes("✨")) {
+                msg = msg.replace("gran día", "gran día ✨");
+            }
+
+            // 2. Personalize Name
+            msg = msg
                 .replace(/{nombre}/g, userData.name.split(' ')[0])
                 .replace(/{nombre_completo}/g, userData.name);
 
-            // Logic to avoid saying "We gifted you points" if we didn't.
-            // If points strictly NOT given and NOT configured to be given automatically:
-            // We should ideally use a different template or modify the text.
-            // Since we only have one template, we can try to smart-replace if the user hasn't customized it too much,
-            // or just inject "0" if we want to be technical, but "Te regalamos 0 puntos" is bad.
-            // Better approach: If points are 0 or disabled, the template might look weird.
-            // Let's assume the user configures the template. 
-            // BUT, if we want to support the "Two Options" requested:
-            // "Saludar" vs "Saludar + Puntos".
-            // If I click "Saludar" and points were NOT given, I might want to send a generic "Happy Birthday".
-
-            // Hack for "Standard" template: Remove the points sentence if it matches default structure
-            // or just replace {puntos} with "misjeros" (best wishes)? No.
-            // Let's just keep {puntos} as is from config for now to avoid breaking custom templates,
-            // UNLESS the user explicitly asked for "Two options".
-            // Use a temporary workaround: If the template contains "Te regalamos", try to make it generic?
-            // For now, let's stick to the requested variable replacement but ensure it's robust.
+            // 3. Conditional Points Text
             if (!pointsGivenThisYear && !willGivePointsAuto) {
-                // Try to gracefully remove the points part if it matches default structure
-                // or just replace {puntos} with "misjeros" (best wishes)? No.
-                // Let's just keep {puntos} as is from config for now to avoid breaking custom templates,
-                // UNLESS the user explicitly asked for "Two options".
-                // Use a temporary workaround: If the template contains "Te regalamos", try to make it generic?
-                // For now, let's stick to the requested variable replacement but ensure it's robust.
-                msg = msg.replace(/{puntos}/g, birthdayPoints.toString());
+                // Remove the "Te regalamos..." sentence completely.
+                // Regex covers: "Te regalamos {puntos} puntos para que lo/los disfrutes."
+                msg = msg.replace(/Te regalamos {puntos} puntos( para que los? disfrutes)?\.?/gi, '');
+                // Backup cleanup for just "{puntos} puntos" occurrences if sentence structure differs
+                msg = msg.replace(/{puntos} puntos/gi, '');
+                msg = msg.replace(/{puntos}/g, ''); // Clear any remaining variable
             } else {
                 msg = msg.replace(/{puntos}/g, birthdayPoints.toString());
             }
+
+            // 4. Cleanup double spaces and punctuation leftover
+            msg = msg.replace(/\s+/g, ' ').replace(/\s+\./g, '.').trim();
 
             let pushSent = false;
             let emailSent = false;

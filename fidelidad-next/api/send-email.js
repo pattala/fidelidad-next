@@ -76,13 +76,11 @@ function buildHtmlLayout(innerHtml, config = {}) {
   let socialIcons = '';
   if (facebook || instagram || whatsapp || website) {
     socialIcons = `
-        <tr><td style="padding: 0 24px 16px; text-align: center;">
-            ${website ? `<a href="${website}" style="display:inline-block; margin: 0 5px; text-decoration: none;"><img src="https://firebasestorage.googleapis.com/v0/b/fidelidad-v2-f2ff4.firebasestorage.app/o/assets%2Fweb.png?alt=media&token=8e2e2e2e-2e2e-2e2e-2e2e-2e2e2e2e2e2e" width="24" height="24" alt="Web" title="Website"/></a>` : ''}
-            ${whatsapp ? `<a href="https://wa.me/${whatsapp.replace(/\D/g, '')}" style="display:inline-block; margin: 0 5px; text-decoration: none;"><img src="https://firebasestorage.googleapis.com/v0/b/fidelidad-v2-f2ff4.firebasestorage.app/o/assets%2Fwhatsapp.png?alt=media&token=8e2e2e2e-2e2e-2e2e-2e2e-2e2e2e2e2e2e" width="24" height="24" alt="WhatsApp" title="WhatsApp"/></a>` : ''}
-            ${instagram ? `<a href="https://instagram.com/${instagram.replace('@', '')}" style="display:inline-block; margin: 0 5px; text-decoration: none;"><img src="https://firebasestorage.googleapis.com/v0/b/fidelidad-v2-f2ff4.firebasestorage.app/o/assets%2Finstagram.png?alt=media&token=8e2e2e2e-2e2e-2e2e-2e2e-2e2e2e2e2e2e" width="24" height="24" alt="Instagram" title="Instagram"/></a>` : ''}
-            ${facebook ? `<a href="${facebook}" style="display:inline-block; margin: 0 5px; text-decoration: none;"><img src="https://firebasestorage.googleapis.com/v0/b/fidelidad-v2-f2ff4.firebasestorage.app/o/assets%2Ffacebook.png?alt=media&token=8e2e2e2e-2e2e-2e2e-2e2e-2e2e2e2e2e2e" width="24" height="24" alt="Facebook" title="Facebook"/></a>` : ''}
-        </td></tr>
-      `;
+            ${website ? `<a href="${website}" style="display:inline-block; margin: 0 5px; text-decoration: none;"><img src="https://img.icons8.com/ios-filled/50/0ea5e9/internet.png" width="24" height="24" alt="Web" title="Website"/></a>` : ''}
+            ${whatsapp ? `<a href="https://wa.me/${whatsapp.replace(/\D/g, '')}" style="display:inline-block; margin: 0 5px; text-decoration: none;"><img src="https://img.icons8.com/color/48/whatsapp--v1.png" width="24" height="24" alt="WhatsApp" title="WhatsApp"/></a>` : ''}
+            ${instagram ? `<a href="${instagram.startsWith('http') ? instagram : 'https://instagram.com/' + instagram.replace('@', '')}" style="display:inline-block; margin: 0 5px; text-decoration: none;"><img src="https://img.icons8.com/color/48/instagram-new--v1.png" width="24" height="24" alt="Instagram" title="Instagram"/></a>` : ''}
+            ${facebook ? `<a href="${facebook}" style="display:inline-block; margin: 0 5px; text-decoration: none;"><img src="https://img.icons8.com/color/48/facebook-new.png" width="24" height="24" alt="Facebook" title="Facebook"/></a>` : ''}
+          `;
   }
 
   return `<!doctype html>

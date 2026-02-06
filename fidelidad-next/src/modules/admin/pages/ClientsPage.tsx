@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Edit, Trash2, X, Search, MapPin, Phone, Mail, Coins, Sparkles, Gift, History, MessageCircle, Users, Bell, Check, FileDown, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { collection, addDoc, getDocs, query, orderBy, doc, deleteDoc, updateDoc, increment, runTransaction, arrayUnion, where, setDoc, collectionGroup } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, orderBy, doc, deleteDoc, updateDoc, increment, runTransaction, arrayUnion, where, setDoc, collectionGroup, onSnapshot } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import { ConfigService, DEFAULT_TEMPLATES } from '../../../services/configService';
 import { NotificationService } from '../../../services/notificationService';

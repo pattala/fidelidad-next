@@ -113,7 +113,7 @@ export default async function handler(req, res) {
   // Lógica de negocio
   try {
     const db = getDb();
-    const contadorRef = db.collection('configuracion').doc('contadores');
+    const contadorRef = db.collection('config').doc('counters');
     const clienteRef = db.collection("users").doc(docId);
 
     let datosClienteParaEmail = null;
@@ -129,21 +129,21 @@ export default async function handler(req, res) {
       if (!clienteDoc.exists) throw new Error("Cliente no encontrado");
 
       const data = clienteDoc.data();
-      if (data.numeroSocio) {
+      if (data.numeroSocio || data.socioNumber) {
         alreadyHadNumber = true;
-        assignedNumber = data.numeroSocio;
+        assignedNumber = data.numeroSocio || data.socioNumber;
         return;
       }
 
       // Calcular nuevo número
       let nextNum = 1;
-      if (contadorDoc.exists && contadorDoc.data().ultimoNumeroSocio) {
-        nextNum = contadorDoc.data().ultimoNumeroSocio + 1;
+      if (contadorDoc.exists && contadorDoc.data().socioNumber) {
+        nextNum = contadorDoc.data().socioNumber + 1;
       }
 
       // Escribir
-      tx.set(contadorRef, { ultimoNumeroSocio: nextNum }, { merge: true });
-      tx.update(clienteRef, { numeroSocio: nextNum });
+      tx.set(contadorRef, { socioNumber: nextNum }, { merge: true });
+      tx.update(clienteRef, { socioNumber: nextNum });
 
       assignedNumber = nextNum;
       datosClienteParaEmail = {

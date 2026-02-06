@@ -108,7 +108,11 @@ export const ClientHomePage = () => {
                         // Guardar en historial para analítica de frecuencia
                         await addDoc(collection(db, 'users', u.uid, 'visit_history'), {
                             date: serverTimestamp(),
-                            type: 'app_open'
+                            type: 'app_open',
+                            clientName: displayName,
+                            clientEmail: u.email,
+                            platform: 'pwa',
+                            location: userData?.lastLocation || null
                         });
                         sessionStorage.setItem(`ping_${u.uid}`, nowMs.toString());
                     } catch (e) {

@@ -5,7 +5,7 @@ import { createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPasswo
 import { doc, setDoc, getDoc, query, where, getDocs, collection } from 'firebase/firestore';
 import { Mail, Lock, User, Phone, ArrowLeft, ArrowRight, MapPin, Building, Home } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { PARTIDOS_BUENOS_AIRES, BA_LOCALIDADES_BY_PARTIDO } from '../../../lib/geoData';
+import { ARGENTINA_LOCATIONS } from '../../../data/locations';
 
 export const ClientRegisterPage = () => {
     // Step 1: Personal Data
@@ -16,13 +16,14 @@ export const ClientRegisterPage = () => {
 
     // Step 2: Address Data
     const [step, setStep] = useState(1);
-    const [province, setProvince] = useState('Buenos Aires'); // Default
-    const [partido, setPartido] = useState('');
-    const [localidad, setLocalidad] = useState('');
+    const [province, setProvince] = useState('Buenos Aires');
+    const [partido, setPartido] = useState(''); // This acts as "Department/City"
+    const [localidad, setLocalidad] = useState(''); // This acts as "Town/Neighborhood"
     const [street, setStreet] = useState('');
     const [number, setNumber] = useState('');
     const [floor, setFloor] = useState('');
     const [apt, setApt] = useState('');
+    const [cp, setCp] = useState(''); // Added ZIP Code
     const [termsAccepted, setTermsAccepted] = useState(false);
 
     const [loading, setLoading] = useState(false);
@@ -87,35 +88,40 @@ export const ClientRegisterPage = () => {
             // 3. Crear documento en Firestore (Base + Dirección)
             const fullAddress = `${street} ${number} ${floor ? 'Piso ' + floor : ''} ${apt ? 'Dpto ' + apt : ''}, ${localidad}, ${partido}, ${province}`;
 
-            // Datos base del sistema antiguo + nuevo
+            // Sync structure with Admin Panel (using 'components' nesting)
             await setDoc(doc(db, 'users', user.uid), {
                 name: name,
                 email: email,
-                phone: finalPhone, // Guardar normalizado
-                phone_raw: cleanPhone, // Guardar crudo para búsquedas fáciles
-                authUID: user.uid, // Backup ID
-                // Dirección estructurada
+                phone: finalPhone,
+                phone_raw: cleanPhone,
+                authUID: user.uid,
                 domicilio: {
-                    calle: street,
-                    numero: number,
-                    piso: floor,
-                    depto: apt,
-                    localidad: localidad,
-                    partido: partido,
-                    provincia: province,
-                    formatted_address: fullAddress
+                    status: 'complete',
+                    addressLine: fullAddress,
+                    components: {
+                        calle: street,
+                        numero: number,
+                        piso: floor,
+                        depto: apt,
+                        localidad: localidad,
+                        partido: partido,
+                        provincia: province,
+                        zipCode: cp
+                    }
                 },
-                // Campos Legacy para compatibilidad
+                // Flattened for easy access if needed
+                localidad,
+                partido,
+                provincia: province,
                 calle: street,
                 numero: number,
-                localidad: localidad,
-                partido: partido,
-                provincia: province,
-                formatted_address: fullAddress,
+                piso: floor,
+                depto: apt,
+                cp,
 
                 role: 'client',
                 createdAt: new Date(),
-                fechaInscripcion: new Date().toISOString(), // Legacy
+                fechaInscripcion: new Date().toISOString(),
 
                 points: 0,
                 accumulated_balance: 0,
@@ -127,7 +133,7 @@ export const ClientRegisterPage = () => {
                 termsAccepted: true,
                 termsAcceptedAt: new Date().toISOString(),
                 source: 'pwa',
-                metadata: { createdFrom: 'pwa', version: '2.1-strict' }
+                metadata: { createdFrom: 'pwa', version: '2.2-unified' }
             });
 
             // 4. Llamadas al Backend (Serverless APIs) para finalización robusta
@@ -165,7 +171,9 @@ export const ClientRegisterPage = () => {
     };
 
     // Derived lists for dropdowns
-    const availableLocalidades = partido ? (BA_LOCALIDADES_BY_PARTIDO[partido] || []) : [];
+    const provinces = Object.keys(ARGENTINA_LOCATIONS);
+    const availablePartidos = province ? Object.keys(ARGENTINA_LOCATIONS[province] || {}) : [];
+    const availableLocalidades = (province && partido) ? (ARGENTINA_LOCATIONS[province][partido] || []) : [];
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 relative overflow-hidden">
@@ -247,13 +255,23 @@ export const ClientRegisterPage = () => {
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Zona</label>
                                 <select
-                                    value={partido}
-                                    onChange={e => { setPartido(e.target.value); setLocalidad(''); }}
+                                    value={province}
+                                    onChange={e => { setProvince(e.target.value); setPartido(''); setLocalidad(''); }}
                                     required
                                     className="w-full bg-gray-50 px-4 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none"
                                 >
-                                    <option value="">Selecciona Partido</option>
-                                    {PARTIDOS_BUENOS_AIRES.map(p => <option key={p} value={p}>{p}</option>)}
+                                    <option value="">Provincia</option>
+                                    {provinces.map(p => <option key={p} value={p}>{p}</option>)}
+                                </select>
+                                <select
+                                    value={partido}
+                                    onChange={e => { setPartido(e.target.value); setLocalidad(''); }}
+                                    required
+                                    disabled={!province}
+                                    className="w-full bg-gray-50 px-4 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none disabled:opacity-50"
+                                >
+                                    <option value="">Partido/Departamento</option>
+                                    {availablePartidos.map(p => <option key={p} value={p}>{p}</option>)}
                                 </select>
                                 <select
                                     value={localidad}
@@ -262,7 +280,7 @@ export const ClientRegisterPage = () => {
                                     disabled={!partido}
                                     className="w-full bg-gray-50 px-4 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none disabled:opacity-50"
                                 >
-                                    <option value="">Selecciona Localidad</option>
+                                    <option value="">Localidad/Barrio</option>
                                     {availableLocalidades.map(l => <option key={l} value={l}>{l}</option>)}
                                 </select>
                             </div>
@@ -310,6 +328,13 @@ export const ClientRegisterPage = () => {
                                         onChange={e => setApt(e.target.value)}
                                     />
                                 </div>
+                                <input
+                                    type="text"
+                                    placeholder="CP"
+                                    className="w-20 bg-gray-50 px-3 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none text-center"
+                                    value={cp}
+                                    onChange={e => setCp(e.target.value)}
+                                />
                             </div>
 
                             <div className="flex items-center gap-3 pt-2">

@@ -349,9 +349,9 @@ export const DashboardPage = () => {
                                                         if (success) toast.success(`Saludo enviado a ${client.name}`);
                                                     }}
                                                     className="flex-1 bg-white border border-pink-200 text-pink-600 text-[10px] font-bold py-1.5 rounded-lg hover:bg-pink-100 transition flex items-center justify-center gap-1"
-                                                    title="Enviar Saludo (Push/Email)"
+                                                    title="Enviar Solo Mensaje (Push/Inbox)"
                                                 >
-                                                    👋 Saludar
+                                                    📩 Saludar
                                                 </button>
 
                                                 {!alreadyGifted ? (
@@ -362,19 +362,22 @@ export const DashboardPage = () => {
 
                                                             const success = await BirthdayService.giveBirthdayPoints(client.id, client, config);
                                                             if (success) {
-                                                                // Update local state to hide button
                                                                 setBirthdaysOfToday(prev => prev.map(p => p.id === client.id ? { ...p, lastBirthdayPointsYear: currentYear } : p));
                                                             }
                                                         }}
                                                         className="flex-1 bg-pink-500 text-white text-[10px] font-bold py-1.5 rounded-lg hover:bg-pink-600 transition flex items-center justify-center gap-1 shadow-sm shadow-pink-200"
-                                                        title="Regalar Puntos Manualmente"
+                                                        title={`Regalar ${config?.birthdayPoints || 100} Puntos`}
                                                     >
-                                                        🎁 Puntos
+                                                        🎁 {config?.birthdayPoints || 100} Pts
                                                     </button>
                                                 ) : (
-                                                    <div className="flex-1 bg-gray-100 text-gray-400 text-[10px] font-bold py-1.5 rounded-lg flex items-center justify-center gap-1 cursor-default border border-gray-200">
-                                                        ✅ Listo
-                                                    </div>
+                                                    <button
+                                                        disabled
+                                                        className="flex-1 bg-gray-100 text-gray-400 text-[10px] font-bold py-1.5 rounded-lg flex items-center justify-center gap-1 cursor-not-allowed border border-gray-200"
+                                                        title="Puntos ya regalados este año"
+                                                    >
+                                                        ✅ Puntos
+                                                    </button>
                                                 )}
                                             </div>
                                         </div>

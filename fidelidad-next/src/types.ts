@@ -96,6 +96,7 @@ export interface AppConfig {
 
     welcomePoints?: number;
     enableWelcomeBonus?: boolean;
+    enableWelcomeMessage?: boolean;
     birthdayPoints?: number;
     enableBirthdayBonus?: boolean;
     enableBirthdayMessage?: boolean;

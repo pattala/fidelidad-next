@@ -186,10 +186,12 @@ export const ClientRegisterPage = () => {
 
             // Prepare for sequential steps with informative toast/loading
             // A. Asignar N° Socio (Secuencial seguro)
+            const shouldSendWelcome = config?.enableWelcomeMessage !== false;
+
             await fetch('/api/assign-socio-number', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'x-api-key': apiKey },
-                body: JSON.stringify({ docId: user.uid, sendWelcome: true })
+                body: JSON.stringify({ docId: user.uid, sendWelcome: shouldSendWelcome })
             }).catch(e => console.warn('Error asignando socio:', e));
 
             // B. Asignar Puntos de Bienvenida
@@ -202,13 +204,20 @@ export const ClientRegisterPage = () => {
                         reason: 'welcome_signup'
                     })
                 }).catch(e => console.warn('Error asignando puntos:', e));
+            }
 
-                // NEW: Send Welcome Notification to Inbox (for the bell icon)
+            // C. Enviar Notificación Inbox/Push (si mensaje está activado)
+            if (shouldSendWelcome) {
                 try {
-                    const pts = Number(config?.welcomePoints || 0);
+                    // Si hay puntos, mencionarlos, si no, mensaje genérico o sin puntos
+                    const pts = config?.enableWelcomeBonus !== false ? Number(config?.welcomePoints || 0) : 0;
+                    const bodyMsg = pts > 0
+                        ? `Gracias por registrarte, ${name.split(' ')[0]}. ¡Ya tienes ${pts} puntos de regalo!`
+                        : `Gracias por registrarte, ${name.split(' ')[0]}. ¡Nos alegra tenerte en el Club!`;
+
                     await NotificationService.sendToClient(user.uid, {
                         title: '¡Bienvenido al Club! 🎉',
-                        body: `Gracias por registrarte, ${name.split(' ')[0]}. ¡Ya tienes ${pts} puntos de regalo!`,
+                        body: bodyMsg,
                         type: 'welcome',
                         icon: config?.logoUrl || '/logo.png'
                     });

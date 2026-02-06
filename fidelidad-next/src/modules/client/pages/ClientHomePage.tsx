@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { auth, db } from '../../../lib/firebase';
 import { doc, onSnapshot, collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { LogOut, Calendar, Sparkles, Bell } from 'lucide-react';
+import { LogOut, Calendar, Sparkles, Bell, User as UserIcon } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import toast from 'react-hot-toast';
 import { CampaignService, type BonusRule } from '../../../services/campaignService';
@@ -193,12 +193,8 @@ export const ClientHomePage = () => {
             {/* GREETING LINE */}
             <div className="flex justify-between items-center px-2">
                 <div className="flex items-center gap-3">
-                    <div className="bg-white/80 backdrop-blur-md w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm border border-purple-50">
-                        <img
-                            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${displayName}`}
-                            alt="Avatar"
-                            className="w-9 h-9 rounded-full"
-                        />
+                    <div className="bg-white/80 backdrop-blur-md w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm border border-purple-50 text-purple-600">
+                        <UserIcon size={28} strokeWidth={2.5} />
                     </div>
                     <div>
                         <div className="flex items-center gap-2">

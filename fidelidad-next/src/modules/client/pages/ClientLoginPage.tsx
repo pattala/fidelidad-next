@@ -84,7 +84,7 @@ export const ClientLoginPage = () => {
                         }
                     }
                 } catch (dbError) {
-                    console.error("Database check failed", dbError);
+                    console.error("Database check failed during migration check:", dbError);
                 }
             }
 

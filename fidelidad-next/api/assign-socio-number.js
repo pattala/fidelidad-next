@@ -162,7 +162,7 @@ export default async function handler(req, res) {
 
       // Calcular nuevo número
       let nextNum = 1000;
-      if (contadorDoc.exists() && contadorDoc.data().lastSocioId) {
+      if (contadorDoc.exists && contadorDoc.data().lastSocioId) {
         nextNum = Number(contadorDoc.data().lastSocioId) + 1;
       }
 

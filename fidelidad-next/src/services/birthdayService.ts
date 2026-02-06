@@ -113,18 +113,29 @@ export const BirthdayService = {
             }
 
             if (!shouldShowPoints) {
-                // Remove the "Te regalamos..." sentence completely.
-                // Regex covers: "Te regalamos {puntos} puntos para que lo/los disfrutes."
-                msg = msg.replace(/Te regalamos {puntos} puntos( para que los? disfrutes)?\.?/gi, '');
-                // Backup cleanup for just "{puntos} puntos" occurrences if sentence structure differs
+                // Remove "Te regalamos..." sentence efficiently.
+                // Matches: "Te regalamos" ... (anything) ... end of sentence (. or ! or next capitalized start if missing punct?)
+                // We use a broader match that kills the phrase "Te regalamos" and everything up to the next dot/exclamation.
+                msg = msg.replace(/Te regalamos.*?[\.!]/gi, '');
+
+                // Fallback: If regex failed due to missing punctuation in user config:
+                // Remove common variations specifically
+                msg = msg.replace(/Te regalamos.*?puntos.*?disfrutes/gi, '');
+                msg = msg.replace(/Te regalamos.*?puntos.*?difrutes/gi, ''); // Handle typo "difrutes"
+
+                // Cleanup loose vars if any remain
                 msg = msg.replace(/{puntos} puntos/gi, '');
-                msg = msg.replace(/{puntos}/g, ''); // Clear any remaining variable
+                msg = msg.replace(/{puntos}/g, '');
             } else {
                 msg = msg.replace(/{puntos}/g, birthdayPoints.toString());
             }
 
-            // 4. Cleanup double spaces and punctuation leftover
-            msg = msg.replace(/\s+/g, ' ').replace(/\s+\./g, '.').trim();
+            // 4. Cleanup
+            // Fix double spaces and ensure spacing around punctuation is correct
+            msg = msg.replace(/\s+/g, ' ')
+                .replace(/\s+([\.!¡\?,])/g, '$1') // remove space before dots/exclamations
+                .replace(/\.\./g, '.') // fix double dots
+                .trim();
 
             let pushSent = false;
             let emailSent = false;

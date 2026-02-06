@@ -111,6 +111,10 @@ service cloud.firestore {
       allow read: if true; 
       allow write: if isEditor();
     }
+    match /config/general {
+      allow read: if true;
+      allow write: if isEditor();
+    }
     match /config/{docId} {
       allow read: if isSignedIn();
       allow write: if isEditor();

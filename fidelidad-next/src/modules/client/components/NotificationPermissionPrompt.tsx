@@ -1,32 +1,29 @@
 import { useEffect, useState } from 'react';
-import { Bell, X, Check, MapPin } from 'lucide-react';
+import { Bell, X, Check, MapPin, ScrollText, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { doc, updateDoc, setDoc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 
 interface Props {
     user: any;
     userData: any;
-    onNotificationGranted: () => void; // Callback cuando acepta notificaciones
+    onNotificationGranted: () => void;
 }
 
 export const NotificationPermissionPrompt = ({ user, userData, onNotificationGranted }: Props) => {
     const [step, setStep] = useState<'none' | 'terms' | 'notifications' | 'geolocation'>('none');
-    const [isClosing, setIsClosing] = useState(false);
 
     useEffect(() => {
         if (!user || !userData) return;
         checkNextStep();
-    }, [user, userData]); // Re-evaluar cuando cambie la data del usuario
+    }, [user, userData]);
 
     const checkNextStep = () => {
-        // 0. Check Terms & Conditions (Strict First)
         if (!userData.termsAccepted) {
             setStep('terms');
             return;
         }
 
-        // Estructura en DB: userData.permissions = { notifications: { status, ... }, geolocation: { status, ... } }
         const permissions = userData.permissions || {};
 
         // 1. Check Notifications
@@ -35,18 +32,16 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
         const notifBlocked = notifStatus === 'blocked';
         const notifDenied = notifStatus === 'denied';
 
-        // Validar si debemos mostrar prompt de notificaciones
         let showNotif = false;
         if (notifStatus === 'pending') showNotif = true;
-        else if (notifStatus === 'later') showNotif = true; // "Ahora no" se resetea en cada sesión/carga
+        else if (notifStatus === 'later') showNotif = true;
         else if (notifDenied && Date.now() > notifNextPrompt) showNotif = true;
 
-        // Si el navegador ya tiene permiso, forzamos update en DB si no coincide
         if (Notification.permission === 'granted' && notifStatus !== 'granted') {
             updatePermission('notifications', 'granted');
             showNotif = false;
         } else if (Notification.permission === 'denied') {
-            showNotif = false; // El navegador manda
+            showNotif = false;
         }
 
         if (showNotif && !notifBlocked && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
@@ -54,7 +49,7 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
             return;
         }
 
-        // 2. Check Geolocation (Solo si ya pasamos notificaciones)
+        // 2. Check Geolocation
         const geoStatus = permissions.geolocation?.status || 'pending';
         const geoNextPrompt = permissions.geolocation?.nextPrompt || 0;
         const geoBlocked = geoStatus === 'blocked';
@@ -66,8 +61,6 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
         else if (geoDenied && Date.now() > geoNextPrompt) showGeo = true;
 
         if (showGeo && !geoBlocked) {
-            // Verificar permiso nativo de geo es asíncrono, asumimos pending si no está guardado
-            // Podríamos usar navigator.permissions.query pero para simplificar confiamos en el flujo
             setStep('geolocation');
             return;
         }
@@ -79,7 +72,6 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
         if (!user) return;
         const ref = doc(db, 'users', user.uid);
 
-        // Calcular denied count si es necesario
         let deniedCount = 0;
         if (status === 'denied' || status === 'blocked') {
             const currentCount = userData?.permissions?.[type]?.deniedCount || 0;
@@ -105,14 +97,12 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
     const handleYes = async () => {
         if (step === 'terms') {
             try {
-                // Registrar Aceptación
                 await updateDoc(doc(db, 'users', user.uid), {
                     termsAccepted: true,
                     termsAcceptedAt: new Date(),
                     termsVersion: '1.0'
                 });
                 toast.success('¡Bienvenido a bordo!');
-                // checkNextStep se disparará solo al actualizarse userData
             } catch (e) {
                 console.error("Error accepting terms:", e);
                 toast.error("Error de conexión");
@@ -123,9 +113,7 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
                 await updatePermission('notifications', 'granted');
                 toast.success('¡Genial! Te avisaremos de ofertas.');
                 onNotificationGranted();
-                // El useEffect detectará el cambio en userData y pasará al siguiente step
             } else {
-                // Usuario canceló en el browser
                 await updatePermission('notifications', 'later');
             }
         } else if (step === 'geolocation') {
@@ -144,14 +132,13 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
                     },
                     async (error) => {
                         console.error("Geo error:", error);
-                        await updatePermission('geolocation', 'later'); // Tratamos error como 'later'
+                        await updatePermission('geolocation', 'later');
                     }
                 );
             } else {
-                await updatePermission('geolocation', 'blocked'); // No soportado
+                await updatePermission('geolocation', 'blocked');
             }
         }
-        // setIsClosing(true); setTimeout(() => { setStep('none'); setIsClosing(false); }, 300); // Animación opcional
     };
 
     const handleLater = async () => {
@@ -161,7 +148,7 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
 
     const handleNo = async () => {
         if (step === 'none') return;
-        const type = step as 'notifications' | 'geolocation'; // Cast simple
+        const type = step as 'notifications' | 'geolocation';
         const currentCount = userData?.permissions?.[type]?.deniedCount || 0;
         const nextCount = currentCount + 1;
 
@@ -169,7 +156,6 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
             await updatePermission(type, 'blocked');
             toast('Entendido. No te volveremos a molestar con esto.', { icon: 'silence' });
         } else {
-            // 7 días de bloqueo
             const DAYS_TO_WAIT = 7;
             const nextDate = Date.now() + (DAYS_TO_WAIT * 24 * 60 * 60 * 1000);
             await updatePermission(type, 'denied', nextDate);
@@ -182,68 +168,63 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
     const isTerms = step === 'terms';
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-            <div className="bg-white w-full max-w-sm rounded-[2rem] p-6 shadow-2xl animate-scale-up relative overflow-hidden">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in font-sans">
+            <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl animate-in-up relative overflow-hidden border border-gray-100 italic-none">
 
-                {/* Decorative Background */}
-                <div className={`absolute top-0 left-0 w-full h-24 bg-gradient-to-br ${isGeo ? 'from-green-100 to-emerald-50' : isTerms ? 'from-blue-100 to-blue-50' : 'from-purple-100 to-indigo-50'} -z-10`}></div>
-                <div className={`w-24 h-24 ${isGeo ? 'bg-green-200' : isTerms ? 'bg-blue-200' : 'bg-purple-200'} rounded-full blur-2xl absolute -top-10 -right-10 opacity-50`}></div>
+                {/* Decoration */}
+                <div className={`absolute -top-12 -right-12 w-32 h-32 rounded-full blur-3xl opacity-20 ${isTerms ? 'bg-blue-500' : isGeo ? 'bg-emerald-500' : 'bg-purple-500'}`}></div>
 
-                <div className="text-center mb-6 pt-4">
-                    <div className={`w-16 h-16 bg-white rounded-2xl shadow-lg mx-auto flex items-center justify-center mb-4 ${isGeo ? 'text-green-600' : isTerms ? 'text-blue-600' : 'text-purple-600'} relative`}>
-                        {isGeo ? <MapPin size={32} className="animate-bounce-slow" /> : isTerms ? <Check size={32} /> : <Bell size={32} className="animate-bounce-slow" />}
-                        {!isGeo && !isTerms && <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full border-2 border-white"></span>}
+                <div className="text-center relative z-10">
+                    <div className={`w-20 h-20 mx-auto rounded-3xl shadow-xl flex items-center justify-center mb-6 transform rotate-3 transition-transform hover:rotate-0 duration-500 ${isTerms ? 'bg-blue-600 text-white' : isGeo ? 'bg-emerald-600 text-white' : 'bg-purple-600 text-white shadow-purple-200'}`}>
+                        {isTerms ? <ScrollText size={38} /> : isGeo ? <MapPin size={38} className="animate-bounce-slow" /> : <Bell size={38} className="animate-bounce-slow" />}
                     </div>
-                    <h3 className="text-xl font-black text-gray-800 leading-tight mb-2">
-                        {isTerms ? 'Términos y Condiciones' : isGeo ? 'Mejora tu experiencia' : '¡No te pierdas nada!'}
+
+                    <h3 className="text-2xl font-black text-gray-800 leading-tight mb-3 px-2 italic-none uppercase tracking-tight">
+                        {isTerms ? 'Términos de Uso' : isGeo ? 'Ubicación' : 'Notificaciones'}
                     </h3>
-                    <p className="text-sm text-gray-500 leading-relaxed px-2">
+
+                    <p className="text-sm text-gray-500 font-medium leading-relaxed mb-8 px-2">
                         {isTerms
-                            ? 'Para continuar usando la aplicación y disfrutar de los beneficios, debes aceptar nuestros términos y condiciones de uso.'
+                            ? 'Antes de empezar, necesitamos que aceptes nuestras bases para proteger tu cuenta y puntos.'
                             : isGeo
-                                ? 'Activa la ubicación para ver las ofertas más cercanas a ti.'
-                                : 'Activa las notificaciones para saber al instante cuando ganes premios o recibas promos exclusivas.'
-                        }
+                                ? 'Permítenos conocer tu zona para mostrarte beneficios y comercios más cercanos.'
+                                : 'Activa los avisos para enterarte al instante cuando sumes puntos o ganes un premio.'}
                     </p>
+
                     {isTerms && (
-                        <div className="mt-4 p-3 bg-gray-50 rounded-xl text-xs text-left h-32 overflow-y-auto border border-gray-100 text-gray-600">
-                            <p className="font-bold mb-1">Resumen:</p>
-                            <ul className="list-disc pl-4 space-y-1">
-                                <li>Tus datos son privados y seguros.</li>
-                                <li>Acumulas puntos por tus compras.</li>
-                                <li>Los puntos tienen fecha de vencimiento.</li>
-                                <li>Nos reservamos el derecho de admisión.</li>
-                            </ul>
+                        <div className="bg-gray-50/80 rounded-3xl p-5 text-left text-[11px] h-48 overflow-y-auto border border-gray-100 mb-8 scrollbar-hide">
+                            <div className="flex items-center gap-2 mb-4 text-blue-600">
+                                <ShieldCheck size={16} />
+                                <span className="font-black uppercase tracking-widest">Resumen de Contrato</span>
+                            </div>
+                            <div className="space-y-4 text-gray-600 font-medium">
+                                <p><span className="font-bold text-gray-800">1. Privacidad:</span> Sus datos personales son tratados con protocolos de seguridad bancaria y no se comparten con terceros.</p>
+                                <p><span className="font-bold text-gray-800">2. Puntos:</span> La acumulación de puntos está sujeta a la validación de la compra por parte del comercio.</p>
+                                <p><span className="font-bold text-gray-800">3. Vencimiento:</span> Los puntos tienen una validez de 365 días desde su obtención, salvo campañas especiales.</p>
+                                <p><span className="font-bold text-gray-800">4. Uso:</span> La cuenta es personal e intransferible. El uso indebido causará la baja del socio.</p>
+                                <p><span className="font-bold text-gray-800">5. Modificaciones:</span> La empresa se reserva el derecho de modificar la tabla de premios avisando con 30 días.</p>
+                            </div>
                         </div>
                     )}
-                </div>
 
-                <div className="space-y-3">
-                    <button
-                        onClick={handleYes}
-                        className={`w-full py-3.5 bg-gradient-to-r ${isGeo ? 'from-green-600 to-emerald-600 shadow-green-200' : isTerms ? 'from-blue-600 to-blue-700 shadow-blue-200' : 'from-purple-600 to-indigo-600 shadow-purple-200'} text-white rounded-xl font-bold shadow-lg active:scale-[0.98] transition flex items-center justify-center gap-2`}
-                    >
-                        <Check size={20} />
-                        {isTerms ? 'Aceptar y Continuar' : isGeo ? 'Activar Ubicación' : '¡Sí, activar ahora!'}
-                    </button>
+                    <div className="space-y-3">
+                        <button
+                            onClick={handleYes}
+                            className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2 ${isTerms ? 'bg-blue-600 text-white shadow-blue-200' : isGeo ? 'bg-emerald-600 text-white shadow-emerald-200' : 'bg-purple-600 text-white shadow-purple-200'}`}
+                        >
+                            <Check size={16} strokeWidth={3} />
+                            {isTerms ? 'Acepto y Continuar' : isGeo ? 'Activar ahora' : 'Sí, avisar de premios'}
+                        </button>
 
-                    {!isTerms && (
-                        <>
+                        {!isTerms && (
                             <button
                                 onClick={handleLater}
-                                className="w-full py-3 bg-white border-2 border-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-50 transition active:scale-[0.98]"
+                                className="w-full py-4 text-xs font-black text-gray-400 uppercase tracking-widest hover:text-gray-600 transition"
                             >
-                                Ahora no (Próxima vez)
+                                Quizás luego
                             </button>
-
-                            <button
-                                onClick={handleNo}
-                                className="w-full py-2 text-xs font-bold text-gray-400 hover:text-red-400 transition"
-                            >
-                                No me interesa
-                            </button>
-                        </>
-                    )}
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

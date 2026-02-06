@@ -414,8 +414,8 @@ export const DashboardPage = () => {
                                                         <button
                                                             onClick={async () => {
                                                                 if (!config) return;
-                                                                // Ya tiene puntos, el mensaje saldrá completo ("te regalamos...")
-                                                                const result: any = await BirthdayService.sendBirthdayGreeting(client.id, client, config, { cleanMessage: true });
+                                                                // Re-envío: Auto-detectar (Si ya tiene puntos, mostrará el texto de puntos)
+                                                                const result: any = await BirthdayService.sendBirthdayGreeting(client.id, client, config);
                                                                 if (result?.whatsappLink) window.open(result.whatsappLink, '_blank');
                                                                 toast.success("Saludo re-enviado");
                                                             }}

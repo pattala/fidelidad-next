@@ -12,19 +12,23 @@ exports.sendInboxPush = functions.firestore
         const newMessage = snap.data();
         const userId = context.params.userId;
 
-        // 1. Obtener el token FCM del usuario
+        // 1. Obtener los tokens FCM del usuario
         const userDoc = await admin.firestore().collection("users").doc(userId).get();
+        const userData = userDoc.data();
 
-        // Validar si existe token
-        const fcmToken = userDoc.data()?.fcmToken;
-        if (!fcmToken) {
-            console.log(`El usuario ${userId} no tiene token FCM. No se envía Push.`);
+        let tokens = userData?.fcmTokens || [];
+        // Si no hay array pero hay token individual, lo usamos
+        if (tokens.length === 0 && userData?.fcmToken) {
+            tokens = [userData.fcmToken];
+        }
+
+        if (tokens.length === 0) {
+            console.log(`El usuario ${userId} no tiene tokens FCM asociados.`);
             return null;
         }
 
-        // 2. Construir el mensaje (FCM V1)
-        const payload = {
-            token: fcmToken,
+        // 2. Construir la estructura base del mensaje
+        const basePayload = {
             notification: {
                 title: newMessage.title || "Nuevo Mensaje",
                 body: newMessage.body || "Tienes una notificación nueva.",
@@ -37,7 +41,7 @@ exports.sendInboxPush = functions.firestore
                 notification: {
                     icon: '/pwa-192x192.png',
                     badge: '/pwa-192x192.png',
-                    requireInteraction: true, // Mantiene la notificación hasta que el usuario la cierre/haga clic (ideal para Windows)
+                    requireInteraction: true,
                     vibrate: [200, 100, 200]
                 },
                 fcmOptions: {
@@ -53,13 +57,38 @@ exports.sendInboxPush = functions.firestore
             }
         };
 
-        // 3. Enviar
+        // 3. Enviar a todos los tokens (Multicast)
         try {
-            await admin.messaging().send(payload);
-            console.log(`Push enviado correctamente a ${userId}`);
+            const response = await admin.messaging().sendEachForMulticast({
+                tokens: tokens,
+                ...basePayload
+            });
+
+            console.log(`Push enviado: ${response.successCount} éxitos, ${response.failureCount} fallos.`);
+
+            // 4. Limpieza de tokens inválidos
+            if (response.failureCount > 0) {
+                const failedTokens = [];
+                response.responses.forEach((resp, idx) => {
+                    if (!resp.success) {
+                        const errorCode = resp.error?.code;
+                        if (errorCode === 'messaging/invalid-registration-token' ||
+                            errorCode === 'messaging/registration-token-not-registered') {
+                            failedTokens.push(tokens[idx]);
+                        }
+                    }
+                });
+
+                if (failedTokens.length > 0) {
+                    const remainingTokens = tokens.filter(t => !failedTokens.includes(t));
+                    await admin.firestore().collection("users").doc(userId).update({
+                        fcmTokens: remainingTokens
+                    });
+                    console.log(`Tokens limpiados para ${userId}: ${failedTokens.length}`);
+                }
+            }
         } catch (error) {
-            console.error("Error enviando Push:", error);
-            // Opcional: Si el error es "token inválido", borrarlo de la BD
+            console.error("Error general enviando Push Multicast:", error);
         }
     });
 

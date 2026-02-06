@@ -19,8 +19,32 @@ export const useFcmToken = () => {
                 if (currentToken) {
                     console.log('FCM Token Retrieved:', currentToken);
                     setToken(currentToken);
+
+                    // Get current tokens to manage the array
+                    const { getDoc } = await import('firebase/firestore');
+                    const userDoc = await getDoc(doc(db, 'users', user.uid));
+                    const userData = userDoc.data();
+
+                    let tokens: string[] = userData?.fcmTokens || [];
+
+                    // Si ya existe el token viejo 'fcmToken' (string), lo migramos al array
+                    if (userData?.fcmToken && !tokens.includes(userData.fcmToken)) {
+                        tokens.push(userData.fcmToken);
+                    }
+
+                    // Añadir el nuevo token si no está
+                    if (!tokens.includes(currentToken)) {
+                        tokens.push(currentToken);
+                    }
+
+                    // Limitar a los últimos 5 dispositivos/tokens para no saturar el doc
+                    if (tokens.length > 5) {
+                        tokens = tokens.slice(-5);
+                    }
+
                     await setDoc(doc(db, 'users', user.uid), {
-                        fcmToken: currentToken,
+                        fcmToken: currentToken, // Mantenemos el último para compatibilidad
+                        fcmTokens: tokens,
                         lastFcmUpdate: new Date()
                     }, { merge: true });
                 }

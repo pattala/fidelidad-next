@@ -30,21 +30,22 @@ service cloud.firestore {
       // Permitir la búsqueda por email para la migración de login (limit 1)
       allow list: if (request.query.limit <= 1); 
 
-      allow create: if true; // Permitir registro
+      allow create: if isSignedIn() && request.auth.uid == userId; // Solo el usuario se crea a sí mismo
       allow update: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
       allow delete: if isAdmin();
 
       // Inbox (Para la campanita de la PWA)
       match /inbox/{msgId} {
         // El usuario puede leer, marcar como leído (update) y borrar sus mensajes
-        allow read, update, delete: if isSignedIn() && request.auth.uid == userId;
-        allow create: if isAdmin(); // Solo el admin manda mensajes
+        // Se permite 'create' para que la PWA pueda auto-mandarse mensajes de bienvenida/sistema localmente
+        allow read, update, delete, create: if isSignedIn() && request.auth.uid == userId; 
+        allow create: if isAdmin(); // El admin también puede crear mensajes para el usuario
       }
       
       // Historial de Puntos
       match /points_history/{docId} {
         allow read: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
-        allow write: if isAdmin();
+        allow write: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
       }
 
       // Historial de Visitas / Actividad

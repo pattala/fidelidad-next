@@ -382,6 +382,7 @@ export const WhatsAppPage = () => {
                                 <p className="text-sm text-gray-600 italic">
                                     "{message
                                         .replace(/{nombre}/g, sendingQueue[currentIndex].name.split(' ')[0])
+                                        .replace(/{nombre_completo}/g, sendingQueue[currentIndex].name)
                                         .replace(/{puntos}/g, (sendingQueue[currentIndex].points || 0).toString())}"
                                 </p>
                             </div>

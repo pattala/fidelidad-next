@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../../../lib/firebase';
 import { createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, getDoc, query, where, getDocs, collection, onSnapshot, limit } from 'firebase/firestore';
-import { Mail, Lock, User, Phone, ArrowLeft, ArrowRight, MapPin, Building, Home, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, User, Phone, ArrowLeft, ArrowRight, MapPin, Building, Home, Eye, EyeOff, Check, Heart, ShieldCheck, Cake } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { ARGENTINA_LOCATIONS } from '../../../data/locations';
 import { NotificationService } from '../../../services/notificationService';
@@ -16,6 +16,7 @@ export const ClientRegisterPage = () => {
     const [email, setEmail] = useState('');
     const [pass, setPass] = useState('');
     const [phone, setPhone] = useState('');
+    const [birthDate, setBirthDate] = useState('');
     const [showPass, setShowPass] = useState(false);
 
     // Step 2: Address Data
@@ -132,6 +133,7 @@ export const ClientRegisterPage = () => {
                 dni: dni,
                 email: email,
                 phone: finalPhone,
+                birthDate: birthDate,
                 phone_raw: cleanPhone,
                 authUID: user.uid,
                 domicilio: {
@@ -317,6 +319,16 @@ export const ClientRegisterPage = () => {
                                     className="w-full bg-gray-50 pl-12 pr-4 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50 outline-none transition-all"
                                     value={dni}
                                     onChange={e => setDni(e.target.value.replace(/\D/g, ''))}
+                                />
+                            </div>
+                            <div className="relative">
+                                <Cake className="absolute left-4 top-3.5 text-gray-400" size={20} />
+                                <input
+                                    type="date"
+                                    required
+                                    className="w-full bg-gray-50 pl-12 pr-4 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50 outline-none transition-all"
+                                    value={birthDate}
+                                    onChange={e => setBirthDate(e.target.value)}
                                 />
                             </div>
                             <div className="relative">

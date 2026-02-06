@@ -1029,7 +1029,7 @@ export const ConfigPage = () => {
                                         </div>
                                         <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, pointsAdded: DEFAULT_TEMPLATES.pointsAdded } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition">↺</button>
                                     </div>
-                                    <VariableChips vars={['nombre', 'puntos', 'saldo']} onSelect={v => insertVar('pointsAdded', v)} />
+                                    <VariableChips vars={['nombre', 'nombre_completo', 'puntos', 'saldo']} onSelect={v => insertVar('pointsAdded', v)} />
                                     <ChannelSelector
                                         channels={config.messaging?.eventConfigs?.pointsAdded?.channels || []}
                                         onChange={(newChannels) => setConfig({
@@ -1061,7 +1061,7 @@ export const ConfigPage = () => {
                                         </div>
                                         <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, redemption: DEFAULT_TEMPLATES.redemption } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition">↺</button>
                                     </div>
-                                    <VariableChips vars={['nombre', 'premio', 'codigo']} onSelect={v => insertVar('redemption', v)} />
+                                    <VariableChips vars={['nombre', 'nombre_completo', 'premio', 'codigo']} onSelect={v => insertVar('redemption', v)} />
                                     <ChannelSelector
                                         channels={config.messaging?.eventConfigs?.redemption?.channels || []}
                                         onChange={(newChannels) => setConfig({

@@ -1,7 +1,11 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Edit, Trash2, X, Search, MapPin, Phone, Mail, Coins, Sparkles, Gift, History, MessageCircle, Users, Bell, Check, FileDown, ArrowRight } from 'lucide-react';
+import {
+    Users, Plus, Search, Filter, Mail, Phone, MapPin, Check, Bell, Coins, History,
+    Shield, ArrowRight, Download, Edit2, Trash2, X, ChevronRight, Gift, Sparkles, Cake,
+    FileDown, MessageCircle, Edit
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import { collection, addDoc, getDocs, query, orderBy, doc, deleteDoc, updateDoc, increment, runTransaction, arrayUnion, where, setDoc, collectionGroup, onSnapshot } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
@@ -31,7 +35,8 @@ const INITIAL_CLIENT_STATE = {
     depto: '',
     cp: '',
     socioNumber: '',
-    points: 0
+    points: 0,
+    birthDate: ''
 };
 
 export const ClientsPage = () => {
@@ -303,6 +308,8 @@ export const ClientsPage = () => {
                     email: safeEmail,
                     dni: safeDni,
                     telefono: formData.phone.trim(),
+                    birthDate: formData.birthDate,
+                    localidad: formData.localidad,
                     numeroSocio: finalSocioId,
                     domicilio: {
                         status: 'complete',
@@ -552,6 +559,7 @@ export const ClientsPage = () => {
                     const pointsTemplate = currentConfig?.messaging?.templates?.pointsAdded || DEFAULT_TEMPLATES.pointsAdded;
                     const msg = pointsTemplate
                         .replace(/{nombre}/g, selectedClientForPoints.name.split(' ')[0])
+                        .replace(/{nombre_completo}/g, selectedClientForPoints.name)
                         .replace(/{puntos}/g, finalPoints.toString())
                         .replace(/{saldo}/g, (selectedClientForPoints.points + finalPoints).toString())
                         .replace(/{total_puntos}/g, (selectedClientForPoints.points + finalPoints).toString())
@@ -568,10 +576,21 @@ export const ClientsPage = () => {
 
                 // NEW: Send Inbox Notification for the PWA Bell
                 try {
+                    const pointsTemplate = currentConfig?.messaging?.templates?.pointsAdded || DEFAULT_TEMPLATES.pointsAdded;
+                    const msg = pointsTemplate
+                        .replace(/{nombre}/g, selectedClientForPoints.name.split(' ')[0])
+                        .replace(/{nombre_completo}/g, selectedClientForPoints.name)
+                        .replace(/{puntos}/g, finalPoints.toString())
+                        .replace(/{saldo}/g, (selectedClientForPoints.points + finalPoints).toString())
+                        .replace(/{total_puntos}/g, (selectedClientForPoints.points + finalPoints).toString())
+                        .replace(/{vence}/g, expiresAt.toLocaleDateString())
+                        .replace(/{concepto}/g, pointsData.concept);
+
                     await NotificationService.sendToClient(selectedClientForPoints.id, {
                         title: '¡Puntos Sumados! 🎉',
-                        body: `Sumaste ${finalPoints} puntos por "${pointsData.concept}". ¡Sigue sumando!`,
-                        type: 'pointsAdded'
+                        body: msg,
+                        type: 'pointsAdded',
+                        icon: currentConfig?.logoUrl
                     });
                 } catch (notiError) {
                     console.warn("No se pudo enviar la notificación inbox:", notiError);
@@ -636,7 +655,8 @@ export const ClientsPage = () => {
             depto: client.depto || '',
             cp: client.cp || '',
             socioNumber: client.socioNumber || '',
-            points: client.points || 0
+            points: client.points || 0,
+            birthDate: client.birthDate || ''
         });
         setIsModalOpen(true);
     };
@@ -798,12 +818,33 @@ export const ClientsPage = () => {
                                 <tr key={client.id} className="hover:bg-gray-50/50 transition-colors group">
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-14 h-10 bg-blue-50 text-blue-700 rounded-lg flex flex-col items-center justify-center border border-blue-100 flex-shrink-0">
-                                                <span className="text-[9px] font-bold uppercase leading-none opacity-60">Socio</span>
-                                                <span className="text-sm font-black leading-none">{client.socioNumber}</span>
-                                            </div>
+                                            {(() => {
+                                                const today = new Date();
+                                                const todayMD = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                                                const isBirthday = client.birthDate?.endsWith(todayMD);
+
+                                                return (
+                                                    <div className={`w-14 h-10 ${isBirthday ? 'bg-pink-50 text-pink-600 border-pink-200 animate-pulse' : 'bg-blue-50 text-blue-700 border-blue-100'} rounded-lg flex flex-col items-center justify-center border flex-shrink-0 relative`}>
+                                                        <span className="text-[9px] font-bold uppercase leading-none opacity-60">Socio</span>
+                                                        <span className="text-sm font-black leading-none">{client.socioNumber}</span>
+                                                        {isBirthday && (
+                                                            <div className="absolute -top-2 -right-2 bg-pink-500 text-white p-1 rounded-full shadow-sm animate-bounce">
+                                                                <Cake size={10} />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })()}
                                             <div className="overflow-hidden">
-                                                <div className="font-bold text-gray-800 leading-tight truncate">{client.name}</div>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="font-bold text-gray-800 leading-tight truncate">{client.name}</div>
+                                                    <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider shrink-0 ${client.source === 'pwa'
+                                                        ? 'bg-purple-100 text-purple-600 border border-purple-200'
+                                                        : 'bg-emerald-100 text-emerald-600 border border-emerald-200'
+                                                        }`}>
+                                                        {client.source === 'pwa' ? 'PWA' : 'Local'}
+                                                    </span>
+                                                </div>
                                                 <div className="flex flex-col gap-0.5 mt-1">
                                                     <span className="text-[10px] text-gray-500 font-medium flex items-center gap-1 truncate">
                                                         <Mail size={10} /> {client.email}
@@ -822,18 +863,6 @@ export const ClientsPage = () => {
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <div className="flex flex-col">
-                                            <div className="text-sm font-bold text-gray-800">{client.name}</div>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <span className="text-[10px] text-gray-400 font-mono">#{client.socioNumber}</span>
-                                                <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${client.source === 'pwa'
-                                                    ? 'bg-purple-100 text-purple-600 border border-purple-200'
-                                                    : 'bg-emerald-100 text-emerald-600 border border-emerald-200'
-                                                    }`}>
-                                                    {client.source === 'pwa' ? 'PWA' : 'Local'}
-                                                </span>
-                                            </div>
-                                        </div>
                                         {client.calle ? (
                                             <div className="max-w-[180px]">
                                                 <div className="text-sm text-gray-700 font-medium truncate">
@@ -1046,6 +1075,15 @@ export const ClientsPage = () => {
                                                 className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
                                                 value={formData.phone}
                                                 onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Cumpleaños</label>
+                                            <input
+                                                type="date"
+                                                className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
+                                                value={formData.birthDate}
+                                                onChange={e => setFormData({ ...formData, birthDate: e.target.value })}
                                             />
                                         </div>
                                         {editingId && (

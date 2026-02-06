@@ -49,6 +49,7 @@ export interface Client {
     redeemedValue?: number;
     registrationDate?: any;
     source?: 'pwa' | 'local';
+    birthDate?: string; // Format: YYYY-MM-DD
 }
 
 export interface User {

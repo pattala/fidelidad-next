@@ -240,11 +240,18 @@ export const CampaignsPage = () => {
                     const snap = await getDocs(q);
                     let sentCount = 0;
                     const pushPromises = snap.docs.map(doc => {
+                        const userData = doc.data();
+                        const userName = userData.name || '';
+                        const personalizedMsg = msg
+                            .replace(/{nombre}/g, userName.split(' ')[0])
+                            .replace(/{nombre_completo}/g, userName);
+
                         sentCount++;
                         return NotificationService.sendToClient(doc.id, {
                             title: bonus.rewardType === 'INFO' ? '¡Nueva Oferta!' : '¡Nueva Campaña!',
-                            body: msg,
+                            body: personalizedMsg,
                             type: eventType,
+                            icon: config?.logoUrl
                         });
                     });
                     await Promise.allSettled(pushPromises);
@@ -264,8 +271,13 @@ export const CampaignsPage = () => {
                     const emailPromises = snap.docs.map(doc => {
                         const data = doc.data();
                         if (data.email) {
+                            const userName = data.name || '';
+                            const personalizedMsg = msg
+                                .replace(/{nombre}/g, userName.split(' ')[0])
+                                .replace(/{nombre_completo}/g, userName);
+
                             sentCount++;
-                            const htmlContent = EmailService.generateBrandedTemplate(config, bonus.rewardType === 'INFO' ? '¡Oferta Especial!' : '¡Nueva Campaña!', msg);
+                            const htmlContent = EmailService.generateBrandedTemplate(config, bonus.rewardType === 'INFO' ? '¡Oferta Especial!' : '¡Nueva Campaña!', personalizedMsg);
                             return EmailService.sendEmail(data.email, bonus.rewardType === 'INFO' ? '¡Oferta Especial!' : '¡Nueva Campaña!', htmlContent);
                         }
                         return null;

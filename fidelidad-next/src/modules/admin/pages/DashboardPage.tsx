@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { collection, getDocs, query, where, collectionGroup, orderBy, limit, doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import { ConfigService } from '../../../services/configService';
-import { ArrowUpRight, ArrowDownLeft, TrendingUp, Gift, User, Clock, RefreshCw } from 'lucide-react';
+import { ArrowUpRight, ArrowDownLeft, TrendingUp, Gift, User, Clock, RefreshCw, Cake } from 'lucide-react';
 
 export const DashboardPage = () => {
     const [stats, setStats] = useState({
@@ -23,6 +23,7 @@ export const DashboardPage = () => {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [activityLimit, setActivityLimit] = useState(10);
+    const [birthdaysOfToday, setBirthdaysOfToday] = useState<any[]>([]);
 
     const fetchStats = async (isManual = false) => {
         if (isManual) setRefreshing(true);
@@ -35,13 +36,25 @@ export const DashboardPage = () => {
 
             let points = 0;
             let clientCount = 0;
+            const today = new Date();
+            const todayMonthDay = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            const todaysSelectedBirthdays: any[] = [];
+
             snapUsers.forEach(doc => {
                 const d = doc.data();
                 if (d.role !== 'admin') {
                     clientCount++;
                     points += ((d.points || d.puntos) || 0);
+
+                    if (d.birthDate) {
+                        const bDate = d.birthDate; // YYYY-MM-DD
+                        if (bDate.endsWith(todayMonthDay)) {
+                            todaysSelectedBirthdays.push({ id: doc.id, ...d });
+                        }
+                    }
                 }
             });
+            setBirthdaysOfToday(todaysSelectedBirthdays);
 
             const qRedeems = query(collectionGroup(db, 'points_history'), where('type', '==', 'debit'));
             const snapRedeems = await getDocs(qRedeems);
@@ -270,6 +283,40 @@ export const DashboardPage = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Birthday Alert Section */}
+            {birthdaysOfToday.length > 0 && (
+                <div className="mb-8 animate-bounce-subtle">
+                    <div className="bg-gradient-to-r from-pink-500 to-rose-500 p-1 rounded-2xl shadow-lg shadow-pink-100">
+                        <div className="bg-white p-6 rounded-[calc(1rem-1px)]">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="font-black text-xl text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-rose-600 flex items-center gap-2">
+                                    <Cake className="text-pink-500" size={24} />
+                                    ¡Cumpleaños de Hoy! 🎂
+                                </h3>
+                                <span className="bg-pink-100 text-pink-600 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">
+                                    {birthdaysOfToday.length} {birthdaysOfToday.length === 1 ? 'Socio' : 'Socios'}
+                                </span>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                {birthdaysOfToday.map(client => (
+                                    <div key={client.id} className="flex items-center gap-3 p-3 bg-pink-50/50 rounded-xl border border-pink-100 hover:bg-pink-50 transition-colors group">
+                                        <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-pink-500 shadow-sm border border-pink-100 group-hover:scale-110 transition-transform">
+                                            <Cake size={20} />
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="font-bold text-gray-800 text-sm truncate">{client.name}</p>
+                                            <p className="text-[10px] text-pink-600 font-bold uppercase tracking-tight flex items-center gap-1">
+                                                Socio #{client.socioNumber}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Recent Activity Feed */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">

@@ -312,6 +312,9 @@ export default async function handler(req, res) {
         numeroSocio: (numeroSocio != null)
           ? Number(numeroSocio)
           : (isNew ? null : admin.firestore.FieldValue.delete()),
+        socioNumber: (numeroSocio != null)
+          ? Number(numeroSocio)
+          : (isNew ? null : admin.firestore.FieldValue.delete()),
         authUID,
         role: "client",
         estado: "activo",

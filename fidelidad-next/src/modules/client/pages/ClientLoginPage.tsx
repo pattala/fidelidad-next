@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../../../lib/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { collection, query, where, getDocs, setDoc, deleteDoc, doc, onSnapshot } from 'firebase/firestore';
-import { Mail, Lock, LogIn, ArrowRight } from 'lucide-react';
+import { Mail, Lock, LogIn, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { ConfigService } from '../../../services/configService';
 import { useEffect } from 'react';
@@ -11,6 +11,7 @@ import { useEffect } from 'react';
 export const ClientLoginPage = () => {
     const [email, setEmail] = useState('');
     const [pass, setPass] = useState('');
+    const [showPass, setShowPass] = useState(false);
     const [loading, setLoading] = useState(false);
     const [config, setConfig] = useState<any>(null);
     const navigate = useNavigate();
@@ -137,13 +138,20 @@ export const ClientLoginPage = () => {
                         <div className="relative">
                             <Lock className="absolute left-4 top-3.5 text-gray-400" size={20} />
                             <input
-                                type="password"
+                                type={showPass ? "text" : "password"}
                                 required
                                 placeholder="Tu contraseña"
-                                className="w-full bg-gray-50 pl-12 pr-4 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50 outline-none transition-all"
+                                className="w-full bg-gray-50 pl-12 pr-12 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50 outline-none transition-all"
                                 value={pass}
                                 onChange={e => setPass(e.target.value)}
                             />
+                            <button
+                                type="button"
+                                onClick={() => setShowPass(!showPass)}
+                                className="absolute right-4 top-3.5 text-gray-400 hover:text-purple-600 transition"
+                            >
+                                {showPass ? <EyeOff size={20} /> : <Eye size={20} />}
+                            </button>
                         </div>
 
                         <div className="text-right">

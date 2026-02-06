@@ -136,14 +136,17 @@ export default async function handler(req, res) {
       }
 
       // Calcular nuevo número
-      let nextNum = 1;
-      if (contadorDoc.exists && contadorDoc.data().socioNumber) {
-        nextNum = contadorDoc.data().socioNumber + 1;
+      let nextNum = 1000;
+      if (contadorDoc.exists() && contadorDoc.data().lastSocioId) {
+        nextNum = Number(contadorDoc.data().lastSocioId) + 1;
       }
 
       // Escribir
-      tx.set(contadorRef, { socioNumber: nextNum }, { merge: true });
-      tx.update(clienteRef, { socioNumber: nextNum });
+      tx.set(contadorRef, { lastSocioId: nextNum }, { merge: true });
+      tx.update(clienteRef, {
+        socioNumber: nextNum,
+        numeroSocio: nextNum
+      });
 
       assignedNumber = nextNum;
       datosClienteParaEmail = {

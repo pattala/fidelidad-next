@@ -37,16 +37,21 @@ export const CampaignCarousel = () => {
 
     if (loading) return <div className="h-40 bg-gray-100 animate-pulse rounded-2xl mx-4 mb-6"></div>;
 
-    // Empty State: Show generic welcome if no campaigns
+    // Empty State: Show generic welcome slide if no campaigns
     if (campaigns.length === 0) {
         return (
-            <div className="mx-0 mb-8 p-6 rounded-[2.5rem] bg-white text-gray-800 shadow-sm flex items-center justify-between border border-gray-100">
-                <div>
-                    <h3 className="font-black text-2xl uppercase tracking-tight text-[#4a148c]">¡Bienvenido!</h3>
-                    <p className="text-gray-400 text-xs font-bold mt-1 uppercase tracking-wider">Acumula puntos y canjea premios increíbles.</p>
+            <div className="relative mb-6 mx-0">
+                <div className="flex justify-between items-center mb-4 px-2">
+                    <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Destacados</h3>
                 </div>
-                <div className="bg-purple-50 p-4 rounded-full border border-purple-100">
-                    <Megaphone className="text-[#4a148c]" size={28} />
+                <div className="relative overflow-hidden rounded-[2.5rem] shadow-sm h-48 border border-gray-100 bg-gradient-to-br from-[#4a148c] to-[#7b1fa2] flex items-center justify-center text-center p-8">
+                    <div className="relative z-10">
+                        <div className="bg-white/20 w-16 h-16 rounded-3xl backdrop-blur-md flex items-center justify-center mx-auto mb-4 animate-pulse">
+                            <Megaphone className="text-white" size={30} />
+                        </div>
+                        <h3 className="font-black text-2xl uppercase tracking-tight text-white mb-1">¡Bienvenido!</h3>
+                        <p className="text-white/80 text-xs font-bold uppercase tracking-wider">Pronto verás novedades y premios aquí.</p>
+                    </div>
                 </div>
             </div>
         );

@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../../../lib/firebase';
 import { createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, getDoc, query, where, getDocs, collection, onSnapshot } from 'firebase/firestore';
-import { Mail, Lock, User, Phone, ArrowLeft, ArrowRight, MapPin, Building, Home } from 'lucide-react';
+import { Mail, Lock, User, Phone, ArrowLeft, ArrowRight, MapPin, Building, Home, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { ARGENTINA_LOCATIONS } from '../../../data/locations';
 
@@ -15,6 +15,7 @@ export const ClientRegisterPage = () => {
     const [email, setEmail] = useState('');
     const [pass, setPass] = useState('');
     const [phone, setPhone] = useState('');
+    const [showPass, setShowPass] = useState(false);
 
     // Step 2: Address Data
     const [step, setStep] = useState(1);
@@ -27,6 +28,7 @@ export const ClientRegisterPage = () => {
     const [apt, setApt] = useState('');
     const [cp, setCp] = useState(''); // Added ZIP Code
     const [termsAccepted, setTermsAccepted] = useState(false);
+    const [showTermsModal, setShowTermsModal] = useState(false);
 
     const [loading, setLoading] = useState(false);
     const [config, setConfig] = useState<any>(null);
@@ -186,7 +188,10 @@ export const ClientRegisterPage = () => {
             fetch('/api/assign-points', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'x-api-key': apiKey },
-                body: JSON.stringify({ reason: 'welcome_signup' })
+                body: JSON.stringify({
+                    uid: user.uid, // Aseguramos UID para modo Admin
+                    reason: 'welcome_signup'
+                })
             }).catch(e => console.warn('Error asignando puntos:', e));
 
             toast.success('¡Registro completo! Bienvenido.');
@@ -296,13 +301,20 @@ export const ClientRegisterPage = () => {
                             <div className="relative">
                                 <Lock className="absolute left-4 top-3.5 text-gray-400" size={20} />
                                 <input
-                                    type="password"
+                                    type={showPass ? "text" : "password"}
                                     required
                                     placeholder="Contraseña (min 6 chars)"
-                                    className="w-full bg-gray-50 pl-12 pr-4 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50 outline-none transition-all"
+                                    className="w-full bg-gray-50 pl-12 pr-12 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50 outline-none transition-all"
                                     value={pass}
                                     onChange={e => setPass(e.target.value)}
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPass(!showPass)}
+                                    className="absolute right-4 top-3.5 text-gray-400 hover:text-purple-600 transition"
+                                >
+                                    {showPass ? <EyeOff size={20} /> : <Eye size={20} />}
+                                </button>
                             </div>
                             <button type="submit" className="w-full bg-gray-900 text-white py-4 rounded-2xl font-bold text-sm shadow-lg hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 group mt-4">
                                 Continuar <ArrowRight size={18} />
@@ -405,12 +417,11 @@ export const ClientRegisterPage = () => {
                                     className="w-5 h-5 rounded border-gray-300 text-purple-600 focus:ring-purple-500 transition cursor-pointer"
                                 />
                                 <label htmlFor="terms" className="text-xs text-gray-600">
-                                    Acepto los <a
-                                        href={config?.contact?.termsAndConditions || "#"}
-                                        target={config?.contact?.termsAndConditions ? "_blank" : "_self"}
-                                        rel="noopener noreferrer"
+                                    Acepto los <button
+                                        type="button"
+                                        onClick={() => setShowTermsModal(true)}
                                         className="font-bold text-purple-600 hover:underline"
-                                    >Términos y Condiciones</a> y la <a href="#" className="font-bold text-purple-600 hover:underline">Política de Privacidad</a>
+                                    >Términos y Condiciones y Política de Privacidad</button>
                                 </label>
                             </div>
 
@@ -425,6 +436,58 @@ export const ClientRegisterPage = () => {
                     )}
                 </div>
             </div>
+
+            {/* Terms & Conditions Modal */}
+            {showTermsModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in font-sans">
+                    <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl animate-in-up relative overflow-hidden flex flex-col max-h-[90vh]">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-xl font-black text-gray-800 uppercase tracking-tight">Reglas de Juego</h3>
+                            <button onClick={() => setShowTermsModal(false)} className="p-2 hover:bg-gray-100 rounded-full transition">
+                                <ArrowLeft size={20} className="text-gray-400" />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto pr-2 scrollbar-hide space-y-6 text-[11px] leading-relaxed text-gray-600 font-medium">
+                            <div className="section">
+                                <h4 className="font-bold text-gray-800 mb-2 uppercase tracking-widest text-[10px]">1. El Programa "{config?.siteName || 'Club'}"</h4>
+                                <p>Este programa es un beneficio gratuito para clientes. Al registrarte, aceptas que sumas puntos por tus consumos según la tasa vigente que podrás ver en tu pantalla principal.</p>
+                            </div>
+
+                            <div className="section">
+                                <h4 className="font-bold text-gray-800 mb-2 uppercase tracking-widest text-[10px]">2. Privacidad y Datos</h4>
+                                <p>Tus datos (Nombre, DNI, Teléfono y Dirección) se utilizan exclusivamente para identificarte como socio, validar tus canjes en el local y enviarte avisos importantes sobre tus puntos. No vendemos ni compartimos tu información con terceros.</p>
+                            </div>
+
+                            <div className="section">
+                                <h4 className="font-bold text-gray-800 mb-2 uppercase tracking-widest text-[10px]">3. Comunicaciones</h4>
+                                <p>Al aceptar, nos autorizas a enviarte notificaciones push y correos sobre: puntos ganados, premios disponibles y vencimientos. Puedes desactivarlas desde tu perfil, pero te perderás los avisos de premios.</p>
+                            </div>
+
+                            <div className="section">
+                                <h4 className="font-bold text-gray-800 mb-2 uppercase tracking-widest text-[10px]">4. Canjes y Vencimientos</h4>
+                                <p>Los premios se retiran únicamente en el local. Los puntos tienen una validez determinada por el comercio; te avisaremos antes de que venzan para que los uses a tiempo.</p>
+                            </div>
+
+                            <div className="section">
+                                <h4 className="font-bold text-gray-800 mb-2 uppercase tracking-widest text-[10px]">5. Política de Uso</h4>
+                                <p>Nos reservamos el derecho de modificar el catálogo de premios o las reglas del programa avisando con antelación por los canales de la app.</p>
+                            </div>
+
+                            <div className="pt-4 border-t border-gray-100 text-center opacity-50">
+                                <p>Última actualización: {new Date().toLocaleDateString('es-AR')}</p>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={() => { setTermsAccepted(true); setShowTermsModal(false); }}
+                            className="w-full bg-purple-600 text-white py-4 rounded-2xl font-bold text-sm shadow-lg shadow-purple-200 mt-6 active:scale-95 transition"
+                        >
+                            Aceptar y Cerrar
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

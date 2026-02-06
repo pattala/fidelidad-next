@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { db, auth } from '../../../lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { signOut, updatePassword } from 'firebase/auth';
-import { LogOut, Key, ChevronRight, QrCode, FileText, X, ExternalLink } from 'lucide-react';
+import { LogOut, Key, ChevronRight, QrCode, FileText, X, ExternalLink, Eye, EyeOff } from 'lucide-react';
 import QRCode from "react-qr-code";
 import toast from 'react-hot-toast';
 import { useNavigate, useOutletContext } from 'react-router-dom';
@@ -16,6 +16,7 @@ export const ClientProfilePage = () => {
     // Change Password State
     const [isChangePassOpen, setIsChangePassOpen] = useState(false);
     const [newPass, setNewPass] = useState('');
+    const [showPass, setShowPass] = useState(false);
     const [loadingPass, setLoadingPass] = useState(false);
     const [isTermsOpen, setIsTermsOpen] = useState(false);
 
@@ -184,15 +185,24 @@ export const ClientProfilePage = () => {
                     {isChangePassOpen && (
                         <div className="p-4 bg-gray-50/50 border-t border-gray-100 animate-fade-in">
                             <form onSubmit={handleChangePassword} className="flex flex-col gap-3">
-                                <input
-                                    type="password"
-                                    placeholder="Nueva contraseña (mín 6 caracteres)"
-                                    className="w-full p-3 rounded-xl border border-gray-200 text-sm outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
-                                    required
-                                    minLength={6}
-                                    value={newPass}
-                                    onChange={e => setNewPass(e.target.value)}
-                                />
+                                <div className="relative">
+                                    <input
+                                        type={showPass ? "text" : "password"}
+                                        placeholder="Nueva contraseña (mín 6 caracteres)"
+                                        className="w-full p-3 pr-12 rounded-xl border border-gray-200 text-sm outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                                        required
+                                        minLength={6}
+                                        value={newPass}
+                                        onChange={e => setNewPass(e.target.value)}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPass(!showPass)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-orange-600 transition"
+                                    >
+                                        {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
+                                </div>
                                 <button
                                     type="submit"
                                     disabled={loadingPass}

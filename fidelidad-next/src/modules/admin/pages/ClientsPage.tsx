@@ -239,6 +239,7 @@ export const ClientsPage = () => {
                     nombre: formData.name.trim(),
                     telefono: formData.phone.trim(),
                     numeroSocio: Number(formData.socioNumber),
+                    socioNumber: Number(formData.socioNumber),
                     updatedAt: new Date(),
                     formatted_address: formattedAddress,
                     domicilio: {
@@ -331,7 +332,8 @@ export const ClientsPage = () => {
                             ...apiPayload,
                             name: formData.name.trim(), // Keep both for backward compat
                             phone: formData.phone.trim(),
-                            socioNumber: finalSocioId,
+                            socioNumber: Number(finalSocioId),
+                            numeroSocio: Number(finalSocioId),
                             points: 0,
                             createdAt: new Date(),
                             updatedAt: new Date()
@@ -792,8 +794,8 @@ export const ClientsPage = () => {
                                             <div className="flex items-center gap-2 mt-1">
                                                 <span className="text-[10px] text-gray-400 font-mono">#{client.socioNumber}</span>
                                                 <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${client.source === 'pwa'
-                                                        ? 'bg-purple-100 text-purple-600 border border-purple-200'
-                                                        : 'bg-emerald-100 text-emerald-600 border border-emerald-200'
+                                                    ? 'bg-purple-100 text-purple-600 border border-purple-200'
+                                                    : 'bg-emerald-100 text-emerald-600 border border-emerald-200'
                                                     }`}>
                                                     {client.source === 'pwa' ? 'PWA' : 'Local'}
                                                 </span>

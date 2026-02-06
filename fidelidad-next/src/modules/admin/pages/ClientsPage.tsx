@@ -84,13 +84,21 @@ export const ClientsPage = () => {
             const allHistoryQuery = collectionGroup(db, 'points_history');
             const historySnap = await getDocs(allHistoryQuery);
 
-            let metricsMap: { [key: string]: { expiring: number, totalspent: number, redeemedPoints: number, redeemedValue: number } } = {};
+            let metricsMap: {
+                [key: string]: {
+                    expiring: number,
+                    totalspent: number,
+                    redeemedPoints: number,
+                    redeemedValue: number,
+                    expDates: { [key: string]: number }
+                }
+            } = {};
             const now = new Date();
 
             historySnap.docs.forEach(d => {
                 const parentId = d.ref.parent.parent?.id;
                 if (parentId) {
-                    if (!metricsMap[parentId]) metricsMap[parentId] = { expiring: 0, totalspent: 0, redeemedPoints: 0, redeemedValue: 0 };
+                    if (!metricsMap[parentId]) metricsMap[parentId] = { expiring: 0, totalspent: 0, redeemedPoints: 0, redeemedValue: 0, expDates: {} };
                     const hData = d.data();
                     const amount = hData.amount || 0;
 
@@ -100,6 +108,10 @@ export const ClientsPage = () => {
                         if (expiresAt > now) {
                             const remaining = hData.remainingPoints !== undefined ? hData.remainingPoints : amount;
                             metricsMap[parentId].expiring += remaining;
+
+                            // Group by date (ignoring time)
+                            const dateKey = expiresAt.toISOString().split('T')[0];
+                            metricsMap[parentId].expDates[dateKey] = (metricsMap[parentId].expDates[dateKey] || 0) + remaining;
                         }
                         // Money Spent (approx if not stored)
                         const ratio = freshConfig?.pointsPerPeso || 1;
@@ -114,7 +126,14 @@ export const ClientsPage = () => {
 
             const loadedClients = querySnapshot.docs.map(doc => {
                 const data = doc.data();
-                const metrics = metricsMap[doc.id] || { expiring: 0, totalspent: 0, redeemedPoints: 0, redeemedValue: 0 };
+                const metrics = metricsMap[doc.id] || { expiring: 0, totalspent: 0, redeemedPoints: 0, redeemedValue: 0, expDates: {} };
+
+                // Sort and get top 2 expirations
+                const sortedExpirations = Object.entries(metrics.expDates)
+                    .map(([date, points]) => ({ date: new Date(date + 'T12:00:00'), points }))
+                    .sort((a, b) => a.date.getTime() - b.date.getTime())
+                    .slice(0, 2);
+
                 return {
                     id: doc.id,
                     ...data,
@@ -125,6 +144,7 @@ export const ClientsPage = () => {
                     points: data.points || data.puntos || 0,
                     socioNumber: String(data.socioNumber || data.numeroSocio || ''),
                     expiringPoints: metrics.expiring,
+                    expirationDetails: sortedExpirations,
                     totalSpent: metrics.totalspent,
                     redeemedPoints: metrics.redeemedPoints,
                     redeemedValue: metrics.redeemedValue,
@@ -820,9 +840,18 @@ export const ClientsPage = () => {
                                             <Coins size={14} />
                                             {client.points || 0}
                                         </div>
-                                        {client.expiringPoints && client.expiringPoints > 0 ? (
-                                            <div className="flex items-center justify-center gap-1 text-[9px] font-bold text-orange-600 bg-orange-50 py-0.5 px-1.5 rounded border border-orange-100 mt-1" title="Puntos que tienen una fecha de vencimiento configurada">
-                                                <History size={10} /> {client.expiringPoints} vencen
+                                        {client.expirationDetails && client.expirationDetails.length > 0 ? (
+                                            <div className="space-y-1 mt-1">
+                                                {client.expirationDetails.map((exp, idx) => (
+                                                    <div
+                                                        key={idx}
+                                                        className="flex items-center justify-center gap-1 text-[9px] font-bold text-orange-600 bg-orange-50 py-0.5 px-1.5 rounded border border-orange-100"
+                                                        title={`Vencimiento ${idx + 1}`}
+                                                    >
+                                                        <History size={10} />
+                                                        {exp.points} ({exp.date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })})
+                                                    </div>
+                                                ))}
                                             </div>
                                         ) : (
                                             <div className="text-[9px] text-gray-300 font-bold mt-1">Sin vencimientos</div>

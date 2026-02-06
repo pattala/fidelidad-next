@@ -42,6 +42,7 @@ export interface Client {
         };
     };
     expiringPoints?: number;
+    expirationDetails?: Array<{ date: any; points: number }>;
     totalSpent?: number;
     redeemedPoints?: number;
     redeemedValue?: number;

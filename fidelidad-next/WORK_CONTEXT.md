@@ -5,34 +5,32 @@
     *   **Regla de Oro**: Siempre debo CONSULTARTE y pedir confirmación antes de ejecutar el `push` o una secuencia de deploy.
     *   No debo pedirte que tú escribas los comandos; yo los preparo y los ejecuto tras tu "sí".
 
-## Estado Actual del Proyecto (Fidelidad Next) - 02/02/2026
-**Última acción**: Corrección de sintaxis en `firestore.rules` (cambio de `lower()` a `toLower()`) y mejora de accesibilidad en el login. Se restauró el acceso total para Master Admins.
+## Estado Actual del Proyecto (Fidelidad Next) - 06/02/2026
+**Última acción**: Corrección integral de la PWA (campanita, edición de perfil completo, estabilidad de sesión) y panel de administración en tiempo real.
 
-### Retomando la Sesión (Logros al 02/02/2026):
-1.  **Historial de Actividad y Visitas**:
-    *   Se creó una subcolección `visit_history` para cada usuario.
-    *   Se implementó el registro automático (ping) desde la PWA con control de frecuencia (30 min).
-    *   Se creó el componente `VisitHistoryModal.tsx` para visualizar estos datos desde el admin.
+### Retomando la Sesión (Logros al 06/02/2026):
+1.  **Mejoras Críticas en PWA**:
+    *   **Notificaciones**: Campanita funcional con contador real de mensajes (`inbox`) y animación de pulso. Se vinculó la carga de puntos del admin con el envío automático de notificación al inbox.
+    *   **Edición de Perfil**: El usuario ahora puede editar todos sus datos (Nombre, Teléfono, Provincia, Localidad, CP, Dirección completa) desde la App.
+    *   **Estabilidad de Sesión**: Se solucionó el "bucle de logout" al refrescar o cambiar de pestaña mejorando la sincronización de Auth y Roles.
+    *   **Términos y Condiciones**: Restaurado texto original en un modal interno (sin enlaces externos).
+    *   **Carrusel Táctil**: Implementado soporte para deslizamiento manual (swipe/drag).
 
-2.  **Métricas Financieras y Reportes**:
-    *   Se añadió el ranking "Clientes más Fieles (APP)" en la página de métricas.
-    *   Se actualizaron los cálculos de "Total Gastado" y "Valor de Canjes".
-    *   Exportación Excel (CSV) mejorada con 5 nuevas columnas de datos financieros y formato compatible con Excel.
+2.  **Panel de Administración**:
+    *   **Tiempo Real**: Implementado `onSnapshot` en la lista de clientes; los nuevos registros aparecen al instante sin refrescar.
+    *   **Dirección unificada**: El campo `calle` ahora guarda automáticamente "Calle + Número" para facilitar la lectura del administrador.
+    *   **Visualización de Socios**: Corrección en la visualización de `socioNumber` / `numeroSocio` en todas las tablas.
 
-3.  **Seguridad y Fiabilidad (CRÍTICO)**:
-    *   Se corrigieron las `firestore.rules` para incluir la colección `admins` y habilitar el chequeo de roles basado en DB.
-    *   **Login Resiliente**: Se modificó `LoginPage.tsx` para evitar bloqueos por falta de permisos durante la verificación inicial del sistema.
-    *   Entrada garantizada para Master Admins (`pablo_attala@yahoo.com.ar` y `admin@admin.com`) con auto-creación de documento de perfil si falta.
-
-4.  **Git & Backup**:
-    *   Se realizó backup de reglas de seguridad (`firestore.rules.bak`).
-    *   Cambios pusheados a la rama `main`.
+3.  **Backend & Firebase (Seguridad)**:
+    *   **Asignación de Socio**: La API `/api/assign-socio-number` ahora es compatible con registros directos desde la PWA mediante tokens de identidad de Firebase.
+    *   **Firestore Rules (CRÍTICO)**: Se actualizaron las reglas para permitir acceso al `inbox`, `points_history` y subcolecciones de geolocalización.
+    *   **NOTA RECORDA**: Las reglas de Firestore deben pegarse MANUALLY en la consola de Firebase cada vez que se actualicen, ya que el asistente no tiene acceso directo a la publicación de reglas en la nube.
 
 ### Próximos Pasos (Pendiente):
-1.  **Refactor de Roles (Futuro)**: El usuario mencionó que la estructura de roles actual podría cambiar más adelante.
-2.  **Pruebas de Invitación**: Probar el flujo completo de invitar a un nuevo admin con un rol específico y verificar que sus permisos se apliquen al loguearse.
-3.  **Refactor Client Inbox**: Validar la visualización de mensajes automáticos en la PWA.
+1.  **Limpieza de Base de Datos**: El usuario planea borrar la colección `users` y usuarios de Auth para empezar de cero una vez que el despliegue en Vercel sea 100% estable.
+2.  **Pruebas de Push Real**: Verificar que las notificaciones FCM (notificación de sistema del celular) lleguen incluso con la App cerrada.
 
 ## Notas Técnicas
 - **Base de Datos**: Los roles de admin se almacenan en la colección `admins`. Los emails en `MASTER_ADMINS` (en `adminConfig.ts`) siempre tienen rol `admin`.
-- **Compatibilidad**: Se mantiene la normalización de campos (español/inglés) al cargar clientes en las páginas administrativas.
+- **Reglas del Firestore**: El código fuente de las reglas reside en `firestore.rules` en la raíz del proyecto.
+- **Geolocalización**: Se añadió un toggle en el perfil para que el usuario gestione sus permisos de ubicación.

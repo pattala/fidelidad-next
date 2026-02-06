@@ -91,5 +91,5 @@ export const DEFAULT_TEMPLATES = {
     welcome: "¡Bienvenido al Club, {nombre}! 👋 Ya tienes {puntos} puntos de regalo. 🎁",
     campaign: "🚀 ¡Nueva Campaña!: {titulo}. {descripcion}. ¡No te la pierdas! 🔥",
     offer: "🔥 ¡Oferta Especial! {titulo}: {detalle}. Válido hasta el {vencimiento}. 📢",
-    birthday: "¡Feliz cumpleaños, {nombre}! 🎂🎉 Te regalamos {puntos} puntos para que lo disfrutes. ¡Que pases un gran día! ✨"
+    birthday: "¡Feliz cumpleaños, {nombre}! 🎂🎉 Te regalamos {puntos} puntos para que los disfrutes. ¡Que pases un gran día! ✨"
 };

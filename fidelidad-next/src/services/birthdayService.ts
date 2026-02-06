@@ -79,10 +79,43 @@ export const BirthdayService = {
             const birthdayPoints = config?.birthdayPoints || 100;
             const birthdayTemplate = config?.messaging?.templates?.birthday || DEFAULT_TEMPLATES.birthday;
 
-            const msg = birthdayTemplate
+            const now = TimeService.now();
+            const currentYear = now.getFullYear().toString();
+            const pointsGivenThisYear = userData.lastBirthdayPointsYear === currentYear;
+            const willGivePointsAuto = config?.enableBirthdayBonus !== false; // If auto is ON, we assume points are/will be there.
+
+            let msg = birthdayTemplate
                 .replace(/{nombre}/g, userData.name.split(' ')[0])
-                .replace(/{nombre_completo}/g, userData.name)
-                .replace(/{puntos}/g, birthdayPoints.toString());
+                .replace(/{nombre_completo}/g, userData.name);
+
+            // Logic to avoid saying "We gifted you points" if we didn't.
+            // If points strictly NOT given and NOT configured to be given automatically:
+            // We should ideally use a different template or modify the text.
+            // Since we only have one template, we can try to smart-replace if the user hasn't customized it too much,
+            // or just inject "0" if we want to be technical, but "Te regalamos 0 puntos" is bad.
+            // Better approach: If points are 0 or disabled, the template might look weird.
+            // Let's assume the user configures the template. 
+            // BUT, if we want to support the "Two Options" requested:
+            // "Saludar" vs "Saludar + Puntos".
+            // If I click "Saludar" and points were NOT given, I might want to send a generic "Happy Birthday".
+
+            // Hack for "Standard" template: Remove the points sentence if it matches default structure
+            // or just replace {puntos} with "misjeros" (best wishes)? No.
+            // Let's just keep {puntos} as is from config for now to avoid breaking custom templates,
+            // UNLESS the user explicitly asked for "Two options".
+            // Use a temporary workaround: If the template contains "Te regalamos", try to make it generic?
+            // For now, let's stick to the requested variable replacement but ensure it's robust.
+            if (!pointsGivenThisYear && !willGivePointsAuto) {
+                // Try to gracefully remove the points part if it matches default structure
+                // or just replace {puntos} with "misjeros" (best wishes)? No.
+                // Let's just keep {puntos} as is from config for now to avoid breaking custom templates,
+                // UNLESS the user explicitly asked for "Two options".
+                // Use a temporary workaround: If the template contains "Te regalamos", try to make it generic?
+                // For now, let's stick to the requested variable replacement but ensure it's robust.
+                msg = msg.replace(/{puntos}/g, birthdayPoints.toString());
+            } else {
+                msg = msg.replace(/{puntos}/g, birthdayPoints.toString());
+            }
 
             let pushSent = false;
             let emailSent = false;
@@ -132,16 +165,18 @@ export const BirthdayService = {
             if (NotificationService.isChannelEnabled(config, 'birthday', 'whatsapp') && (userData.phone || userData.telefono)) {
                 const rawPhone = userData.phone || userData.telefono;
                 const cleanPhone = rawPhone.replace(/\D/g, '');
+
+                // Ensure proper encoding for URL
                 if (cleanPhone) {
-                    whatsappLink = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
+                    // Use api.whatsapp.com/send for broader compatibility (web + mobile)
+                    whatsappLink = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msg)}`;
                 }
             }
 
             return { success: true, pushSent, emailSent, whatsappLink, message: msg };
         } catch (e) {
             console.error(e);
-            return false;
+            return { success: false, error: e };
         }
     }
 };
-

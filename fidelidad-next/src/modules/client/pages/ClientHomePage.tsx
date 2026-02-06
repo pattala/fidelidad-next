@@ -1,8 +1,9 @@
+```
 import { useEffect, useState } from 'react';
 import { auth, db } from '../../../lib/firebase';
 import { doc, onSnapshot, collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { LogOut, Calendar, Sparkles, Bell, User as UserIcon } from 'lucide-react';
+import { Share2, Clock, Check, AlertTriangle, ChevronRight, User as UserIcon, LogOut } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import toast from 'react-hot-toast';
 import { CampaignService, type BonusRule } from '../../../services/campaignService';
@@ -58,7 +59,7 @@ const RecentActivityList = ({ uid }: { uid?: string }) => {
                                 {item.concept || 'Movimiento'}
                             </p>
                         </div>
-                        <span className={`text-sm font-black px-3 py-1 rounded-xl ${isPositive ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+                        <span className={`text - sm font - black px - 3 py - 1 rounded - xl ${ isPositive ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600' } `}>
                             {isPositive ? '+' : ''}{item.amount}
                         </span>
                     </div>
@@ -103,7 +104,7 @@ export const ClientHomePage = () => {
 
                 // Actualizar última actividad y contador de forma silenciosa e inmediata
                 // Throttle: solo una vez por sesión de pestaña (o cada 30 min) para no inflar el historial
-                const lastPing = sessionStorage.getItem(`ping_${u.uid}`);
+                const lastPing = sessionStorage.getItem(`ping_${ u.uid } `);
                 const nowMs = Date.now();
 
                 if (!lastPing || (nowMs - Number(lastPing) > 30 * 60 * 1000)) {
@@ -126,7 +127,7 @@ export const ClientHomePage = () => {
                             platform: 'pwa',
                             location: userData?.lastLocation || null
                         });
-                        sessionStorage.setItem(`ping_${u.uid}`, nowMs.toString());
+                        sessionStorage.setItem(`ping_${ u.uid } `, nowMs.toString());
                     } catch (e) {
                         console.error("Error updating activity:", e);
                     }
@@ -157,7 +158,7 @@ export const ClientHomePage = () => {
             import('../../../services/expirationService').then(({ ExpirationService }) => {
                 ExpirationService.processExpirations(user.uid).then((expiredAmount) => {
                     if (expiredAmount && expiredAmount > 0) {
-                        toast(`Se han vencido ${expiredAmount} puntos antiguos.`, { icon: 'info' });
+                        toast(`Se han vencido ${ expiredAmount } puntos antiguos.`, { icon: 'info' });
                     }
                 });
             });

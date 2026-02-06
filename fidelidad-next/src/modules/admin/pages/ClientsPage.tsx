@@ -558,31 +558,36 @@ export const ClientsPage = () => {
                     const cleanPhone = selectedClientForPoints.phone.replace(/\D/g, '');
                     if (cleanPhone.length > 5) {
                         const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msg.trim())}`;
-                        window.open(waUrl, '_blank');
+                        // Delay opening WhatsApp slightly to allow UI to update
+                        setTimeout(() => window.open(waUrl, '_blank'), 500);
                     }
                 }
 
                 // NEW: Send Inbox Notification for the PWA Bell
-                await NotificationService.sendToClient(selectedClientForPoints.id, {
-                    title: '¡Puntos Sumados! 🎉',
-                    body: `Sumaste ${finalPoints} puntos por "${pointsData.concept}". ¡Sigue sumando!`,
-                    type: 'pointsAdded'
-                });
+                try {
+                    await NotificationService.sendToClient(selectedClientForPoints.id, {
+                        title: '¡Puntos Sumados! 🎉',
+                        body: `Sumaste ${finalPoints} puntos por "${pointsData.concept}". ¡Sigue sumando!`,
+                        type: 'pointsAdded'
+                    });
+                } catch (notiError) {
+                    console.warn("No se pudo enviar la notificación inbox:", notiError);
+                }
             }
 
-            if (pointsData.isPesos) {
+            if (pointsData.isPesos && newAccumulatedBalance !== undefined) {
                 await updateDoc(doc(db, 'users', selectedClientForPoints.id), {
                     accumulated_balance: newAccumulatedBalance
                 });
             }
 
             toast.success(`¡Se asignaron ${finalPoints} puntos!`);
+            setLoading(false); // Ensure loading is cleared BEFORE closing
             closePointsModal();
             fetchData();
         } catch (error) {
             console.error("Error al asignar puntos:", error);
             toast.error("Error al asignar puntos");
-        } finally {
             setLoading(false);
         }
     };

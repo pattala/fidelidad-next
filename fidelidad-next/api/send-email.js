@@ -67,22 +67,52 @@ function buildHtmlLayout(innerHtml, config = {}) {
   const siteName = config.siteName || 'Club Fidelidad';
   const terms = process.env.URL_TERMINOS_Y_CONDICIONES || '#';
 
+  // Social Media Links
+  const facebook = config.contact?.facebook;
+  const instagram = config.contact?.instagram;
+  const whatsapp = config.contact?.whatsapp;
+  const website = config.contact?.website;
+
+  let socialIcons = '';
+  if (facebook || instagram || whatsapp || website) {
+    socialIcons = `
+        <tr><td style="padding: 0 24px 16px; text-align: center;">
+            ${website ? `<a href="${website}" style="display:inline-block; margin: 0 5px; text-decoration: none;"><img src="https://firebasestorage.googleapis.com/v0/b/fidelidad-v2-f2ff4.firebasestorage.app/o/assets%2Fweb.png?alt=media&token=8e2e2e2e-2e2e-2e2e-2e2e-2e2e2e2e2e2e" width="24" height="24" alt="Web" title="Website"/></a>` : ''}
+            ${whatsapp ? `<a href="https://wa.me/${whatsapp.replace(/\D/g, '')}" style="display:inline-block; margin: 0 5px; text-decoration: none;"><img src="https://firebasestorage.googleapis.com/v0/b/fidelidad-v2-f2ff4.firebasestorage.app/o/assets%2Fwhatsapp.png?alt=media&token=8e2e2e2e-2e2e-2e2e-2e2e-2e2e2e2e2e2e" width="24" height="24" alt="WhatsApp" title="WhatsApp"/></a>` : ''}
+            ${instagram ? `<a href="https://instagram.com/${instagram.replace('@', '')}" style="display:inline-block; margin: 0 5px; text-decoration: none;"><img src="https://firebasestorage.googleapis.com/v0/b/fidelidad-v2-f2ff4.firebasestorage.app/o/assets%2Finstagram.png?alt=media&token=8e2e2e2e-2e2e-2e2e-2e2e-2e2e2e2e2e2e" width="24" height="24" alt="Instagram" title="Instagram"/></a>` : ''}
+            ${facebook ? `<a href="${facebook}" style="display:inline-block; margin: 0 5px; text-decoration: none;"><img src="https://firebasestorage.googleapis.com/v0/b/fidelidad-v2-f2ff4.firebasestorage.app/o/assets%2Ffacebook.png?alt=media&token=8e2e2e2e-2e2e-2e2e-2e2e-2e2e2e2e2e2e" width="24" height="24" alt="Facebook" title="Facebook"/></a>` : ''}
+        </td></tr>
+      `;
+  }
+
   return `<!doctype html>
   <html lang="es">
     <head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${siteName}</title></head>
-    <body style="background:#f7f7f7;padding:0;margin:0;font-family:Arial,Helvetica,sans-serif;color:#111;">
-      <table width="100%" cellspacing="0" cellpadding="0" style="background:#f7f7f7;padding:24px 0;">
+    <body style="background:#f0f2f5;padding:0;margin:0;font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;color:#333;">
+      <table width="100%" cellspacing="0" cellpadding="0" style="background:#f0f2f5;padding:40px 0;">
         <tr><td align="center">
-          <table width="600" cellspacing="0" cellpadding="0" style="background:#fff;border-radius:8px;overflow:hidden;border:1px solid #eee;">
-            <tr><td style="background:#0ea5e9;height:6px;"></td></tr>
-            <tr><td style="padding:16px;text-align:center;"><img src="${logo}" alt="${siteName}" style="max-width:140px;height:auto"/></td></tr>
-            <tr><td style="padding:16px 24px;font-size:16px;line-height:1.5;">${innerHtml}</td></tr>
-            <tr><td style="padding:16px 24px;text-align:center;color:#666;font-size:12px;">
-              <a href="${base}" style="color:#0ea5e9;text-decoration:none;">Abrir App</a> · 
-              <a href="${terms}" style="color:#0ea5e9;text-decoration:none;">Términos</a> · 
-              © ${new Date().getFullYear()} ${siteName}
+          <table width="600" cellspacing="0" cellpadding="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+            <tr><td style="background:#0ea5e9;height:8px;"></td></tr>
+            <tr><td style="padding:32px 32px 24px;text-align:center;">
+                <img src="${logo}" alt="${siteName}" style="max-width:120px;height:auto;border-radius:12px;"/>
+            </td></tr>
+            <tr><td style="padding:0 32px 32px;font-size:16px;line-height:1.6;text-align:left;color:#4b5563;">${innerHtml}</td></tr>
+            
+            ${socialIcons}
+
+            <tr><td style="background-color:#f8fafc;padding:24px;text-align:center;border-top:1px solid #e2e8f0;">
+              <p style="margin:0 0 16px 0;font-size:14px;">
+                <a href="${base}/login" style="display:inline-block;padding:10px 20px;background-color:#0ea5e9;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:bold;">Abrir App Web</a>
+              </p>
+              <p style="margin:0;font-size:12px;color:#94a3b8;">
+                <a href="${terms}" style="color:#64748b;text-decoration:underline;">Términos y Condiciones</a>
+              </p>
+              <p style="margin:8px 0 0;font-size:11px;color:#cbd5e1;">&copy; ${new Date().getFullYear()} ${siteName}. Todos los derechos reservados.</p>
             </td></tr>
           </table>
+          <p style="margin-top:24px;text-align:center;font-size:11px;color:#94a3b8;max-width:400px;">
+            Este correo fue enviado automáticamente por ${siteName}.
+          </p>
         </td></tr>
       </table>
     </body>

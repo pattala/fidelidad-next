@@ -39,7 +39,29 @@ messaging.onBackgroundMessage((payload) => {
 
 self.addEventListener('push', (event) => {
     console.log('[SW] Push event received');
-    // If the browser doesn't support FCM background handlers well, showing it here is a fallback
+    if (event.data) {
+        try {
+            const payload = event.data.json();
+            console.log('[SW] Payload:', payload);
+
+            // Si la notificación no viene estructurada de forma standard para el navegador, 
+            // la forzamos aquí para asegurar que Windows la muestre.
+            if (payload.data && !payload.notification) {
+                const title = payload.data.title || 'Club de Fidelidad';
+                const options = {
+                    body: payload.data.body || 'Tienes una novedad en tu cuenta',
+                    icon: '/pwa-192x192.png',
+                    badge: '/pwa-192x192.png',
+                    vibrate: [100, 50, 100],
+                    requireInteraction: true,
+                    data: payload.data
+                };
+                event.waitUntil(self.registration.showNotification(title, options));
+            }
+        } catch (e) {
+            console.warn('[SW] Push event error or non-json data');
+        }
+    }
 });
 
 // Handler para clicks en la notificación

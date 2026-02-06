@@ -22,17 +22,34 @@ exports.sendInboxPush = functions.firestore
             return null;
         }
 
-        // 2. Construir el mensaje
+        // 2. Construir el mensaje (FCM V1)
         const payload = {
             token: fcmToken,
             notification: {
                 title: newMessage.title || "Nuevo Mensaje",
                 body: newMessage.body || "Tienes una notificación nueva.",
-                // icon: '/pwa-192x192.png' // Opcional, Android lo maneja via Manifest a veces
             },
             data: {
-                url: "/inbox", // Para abrir directo en la sección
+                url: "/inbox",
                 messageId: context.params.messageId
+            },
+            webpush: {
+                notification: {
+                    icon: '/pwa-192x192.png',
+                    badge: '/pwa-192x192.png',
+                    requireInteraction: true, // Mantiene la notificación hasta que el usuario la cierre/haga clic (ideal para Windows)
+                    vibrate: [200, 100, 200]
+                },
+                fcmOptions: {
+                    link: "/inbox"
+                }
+            },
+            android: {
+                priority: "high",
+                notification: {
+                    sound: "default",
+                    clickAction: "OPEN_ACTIVITY_1"
+                }
             }
         };
 

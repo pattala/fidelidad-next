@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Home, Gift, User, X, Mail, MapPin, Clock, Bell, LogOut } from 'lucide-react';
+import { Home, Gift, User, X, Mail, MapPin, Clock, Bell, LogOut, ChevronLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { doc, onSnapshot, collection, query, where, addDoc } from 'firebase/firestore';
@@ -140,19 +140,16 @@ export const ClientLayout = () => {
                 className="px-4 py-5 flex-none z-20 flex items-center justify-between text-white shadow-xl transition-all duration-500"
                 style={{ background: `linear-gradient(to right, ${config.primaryColor || '#4a148c'}, ${config.secondaryColor || '#880e4f'})` }}
             >
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={() => {
-                            if (window.confirm('¿Deseas cerrar sesión?')) {
-                                signOut(auth).then(() => navigate('/login'));
-                            }
-                        }}
-                        className="p-2 hover:bg-white/10 rounded-xl transition-all active:scale-95 text-white/80"
-                        title="Cerrar Sesión"
-                    >
-                        <LogOut size={20} />
-                    </button>
-                    <div className="bg-white p-0.5 rounded-full shadow-lg">
+                <div className="flex items-center gap-1">
+                    {location.pathname !== '/' && (
+                        <button
+                            onClick={() => navigate(-1)}
+                            className="p-2 hover:bg-white/10 rounded-xl transition-all active:scale-95 text-white"
+                        >
+                            <ChevronLeft size={24} strokeWidth={2.5} />
+                        </button>
+                    )}
+                    <div className="bg-white p-0.5 rounded-full shadow-lg ml-1">
                         <img
                             src={config.logoUrl || "/logo.png"}
                             alt="Logo"

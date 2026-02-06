@@ -8,8 +8,9 @@ import toast from 'react-hot-toast';
 import { CampaignService, type BonusRule } from '../../../services/campaignService';
 import { CampaignCarousel } from '../components/CampaignCarousel';
 import { PointsExpirationWarning } from '../components/PointsExpirationWarning';
-import { NotificationPermissionPrompt } from '../components/NotificationPermissionPrompt'; // New Import
-import { useFcmToken } from '../../../hooks/useFcmToken'; // New Import
+import { NotificationPermissionPrompt } from '../components/NotificationPermissionPrompt';
+import { useFcmToken } from '../../../hooks/useFcmToken';
+import { ModernConfirmModal } from '../components/ModernConfirmModal';
 
 // Subcomponent for the list to keep main component clean
 const RecentActivityList = ({ uid }: { uid?: string }) => {
@@ -71,6 +72,8 @@ const RecentActivityList = ({ uid }: { uid?: string }) => {
 export const ClientHomePage = () => {
     const [user, setUser] = useState<any>(null);
     const [userData, setUserData] = useState<any>(null);
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
     const { config } = useOutletContext<{ config: any }>();
 
     const [campaigns, setCampaigns] = useState<BonusRule[]>([]);
@@ -210,7 +213,29 @@ export const ClientHomePage = () => {
                         </h2>
                     </div>
                 </div>
+
+                {/* LogOut Button - Moved here from Header */}
+                <button
+                    onClick={() => setShowLogoutConfirm(true)}
+                    className="w-11 h-11 bg-white/80 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-sm border border-gray-100 text-gray-400 hover:text-rose-500 hover:border-rose-100 transition-all active:scale-90"
+                    title="Cerrar Sesión"
+                >
+                    <LogOut size={22} />
+                </button>
             </div>
+
+            {/* Logout Confirmation */}
+            <ModernConfirmModal
+                isOpen={showLogoutConfirm}
+                title="Cerrar Sesión"
+                message="¿Estás seguro que deseas salir de tu cuenta?"
+                onConfirm={() => {
+                    signOut(auth).then(() => navigate('/login'));
+                }}
+                onCancel={() => setShowLogoutConfirm(false)}
+                confirmText="Sí, salir"
+                type="danger"
+            />
 
             {/* HERO CAROUSEL */}
             <section className="relative z-10 mx-0">

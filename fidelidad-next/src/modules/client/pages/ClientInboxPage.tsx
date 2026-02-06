@@ -5,6 +5,7 @@ import { Bell, Trash2, MailOpen, ChevronLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { ModernConfirmModal } from '../components/ModernConfirmModal';
 
 interface InboxMessage {
     id: string;
@@ -19,6 +20,7 @@ interface InboxMessage {
 export const ClientInboxPage = () => {
     const [messages, setMessages] = useState<InboxMessage[]>([]);
     const [loading, setLoading] = useState(true);
+    const [msgToDelete, setMsgToDelete] = useState<string | null>(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -78,21 +80,14 @@ export const ClientInboxPage = () => {
         await batch.commit();
     };
 
-    const deleteMessage = async (e: React.MouseEvent | null, id: string) => {
-        if (e) e.stopPropagation();
+    const deleteMessage = async (id: string) => {
         const user = auth.currentUser;
         if (!user) return;
 
-        if (!confirm('¿Eliminar mensaje?')) return;
-
         try {
-            const batch = writeBatch(db); // Use batch just in case, or single delete
-            // Actually single delete is fine
-            // await deleteDoc(doc(db, `users/${user.uid}/inbox`, id));
-            // Let's use batch for consistency if we expand
             const ref = doc(db, `users/${user.uid}/inbox`, id);
-            batch.delete(ref);
-            await batch.commit();
+            await writeBatch(db).delete(ref).commit();
+            setMsgToDelete(null);
         } catch (error) {
             console.error("Error deleting", error);
         }
@@ -138,12 +133,23 @@ export const ClientInboxPage = () => {
                         <SwipeableMessage
                             key={msg.id}
                             msg={msg}
-                            onDelete={(id) => deleteMessage(null as any, id)}
+                            onDelete={(id) => setMsgToDelete(id)}
                             onRead={(m) => markAsRead(m)}
                         />
                     ))
                 )}
             </div>
+
+            {/* Confirmation Modal */}
+            <ModernConfirmModal
+                isOpen={!!msgToDelete}
+                title="Eliminar Mensaje"
+                message="¿Estás seguro que deseas borrar este mensaje? Esta acción no se puede deshacer."
+                onConfirm={() => msgToDelete && deleteMessage(msgToDelete)}
+                onCancel={() => setMsgToDelete(null)}
+                confirmText="Sí, eliminar"
+                type="danger"
+            />
         </div>
     );
 };

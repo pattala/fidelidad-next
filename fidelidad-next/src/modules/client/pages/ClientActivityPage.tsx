@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { db, auth } from '../../../lib/firebase';
 import { collection, query, orderBy, getDocs, doc, getDoc, deleteDoc } from 'firebase/firestore';
 import { ArrowDownLeft, ArrowUpRight, Calendar, History, Clock } from 'lucide-react';
+import { ModernConfirmModal } from '../components/ModernConfirmModal';
 
 export const ClientActivityPage = () => {
     const [history, setHistory] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [userBalance, setUserBalance] = useState(0);
+    const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchHistory = async () => {
@@ -58,12 +60,12 @@ export const ClientActivityPage = () => {
     };
 
     const handleDeleteHistoryItem = async (id: string) => {
-        if (!confirm('¿Ocultar este movimiento del historial?')) return;
         try {
             const user = auth.currentUser;
             if (!user) return;
             await deleteDoc(doc(db, 'users', user.uid, 'points_history', id));
             setHistory(prev => prev.filter(h => h.id !== id));
+            setItemToDelete(null);
         } catch (error) {
             console.error("Error deleting history item", error);
         }
@@ -102,10 +104,21 @@ export const ClientActivityPage = () => {
                     </div>
                 ) : (
                     history.map((item) => (
-                        <SwipeableHistoryItem key={item.id} item={item} onDelete={handleDeleteHistoryItem} />
+                        <SwipeableHistoryItem key={item.id} item={item} onDelete={(id) => setItemToDelete(id)} />
                     ))
                 )}
             </div>
+
+            {/* Confirmation Modal */}
+            <ModernConfirmModal
+                isOpen={!!itemToDelete}
+                title="Ocultar Movimiento"
+                message="¿Estás seguro que deseas ocultar este movimiento de tu historial?"
+                onConfirm={() => itemToDelete && handleDeleteHistoryItem(itemToDelete)}
+                onCancel={() => setItemToDelete(null)}
+                confirmText="Sí, ocultar"
+                type="warning"
+            />
         </div>
     );
 };

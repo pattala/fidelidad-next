@@ -193,26 +193,28 @@ export const ClientRegisterPage = () => {
             }).catch(e => console.warn('Error asignando socio:', e));
 
             // B. Asignar Puntos de Bienvenida
-            await fetch('/api/assign-points', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'x-api-key': apiKey },
-                body: JSON.stringify({
-                    uid: user.uid,
-                    reason: 'welcome_signup'
-                })
-            }).catch(e => console.warn('Error asignando puntos:', e));
+            if (config?.enableWelcomeBonus !== false) {
+                await fetch('/api/assign-points', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'x-api-key': apiKey },
+                    body: JSON.stringify({
+                        uid: user.uid,
+                        reason: 'welcome_signup'
+                    })
+                }).catch(e => console.warn('Error asignando puntos:', e));
 
-            // NEW: Send Welcome Notification to Inbox (for the bell icon)
-            try {
-                const pts = Number(config?.welcomePoints || 0);
-                await NotificationService.sendToClient(user.uid, {
-                    title: '¡Bienvenido al Club! 🎉',
-                    body: `Gracias por registrarte, ${name.split(' ')[0]}. ¡Ya tienes ${pts} puntos de regalo!`,
-                    type: 'welcome',
-                    icon: config?.logoUrl || '/logo.png'
-                });
-            } catch (notiError) {
-                console.warn("No se pudo enviar la notificación inbox:", notiError);
+                // NEW: Send Welcome Notification to Inbox (for the bell icon)
+                try {
+                    const pts = Number(config?.welcomePoints || 0);
+                    await NotificationService.sendToClient(user.uid, {
+                        title: '¡Bienvenido al Club! 🎉',
+                        body: `Gracias por registrarte, ${name.split(' ')[0]}. ¡Ya tienes ${pts} puntos de regalo!`,
+                        type: 'welcome',
+                        icon: config?.logoUrl || '/logo.png'
+                    });
+                } catch (notiError) {
+                    console.warn("No se pudo enviar la notificación inbox:", notiError);
+                }
             }
 
             toast.success('¡Registro completo! Bienvenido.');

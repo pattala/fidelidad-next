@@ -25,7 +25,9 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
     pointsMoneyBase: 100,
     pointValue: 10,
     welcomePoints: 100,
+    enableWelcomeBonus: true,
     birthdayPoints: 100,
+    enableBirthdayBonus: true,
     expirationRules: [],
     messaging: {
         emailEnabled: true,

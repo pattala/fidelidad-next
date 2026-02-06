@@ -39,7 +39,11 @@ export const ClientActivityPage = () => {
                     };
                 });
 
-                data.sort((a, b) => b.date.getTime() - a.date.getTime());
+                data.sort((a, b) => {
+                    const timeA = a.date instanceof Date ? a.date.getTime() : new Date(a.date).getTime();
+                    const timeB = b.date instanceof Date ? b.date.getTime() : new Date(b.date).getTime();
+                    return timeB - timeA;
+                });
                 setHistory(data);
             } catch (error) {
                 console.error("Error fetching history:", error);

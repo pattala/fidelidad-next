@@ -95,7 +95,9 @@ export interface AppConfig {
     linkColor?: string;
 
     welcomePoints?: number;
+    enableWelcomeBonus?: boolean;
     birthdayPoints?: number;
+    enableBirthdayBonus?: boolean;
 
     // Vencimiento por Rangos
     expirationRules?: Array<{

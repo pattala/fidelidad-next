@@ -50,7 +50,9 @@ self.addEventListener('push', (event) => {
             options.body = notification.body || data.body || options.body;
             options.data.url = data.url || data.click_action || options.data.url;
 
-            if (data.icon) options.icon = data.icon;
+            if (data.icon && data.icon.startsWith('http')) options.icon = data.icon;
+            else options.icon = `${BASE_URL}/pwa-192x192.png`; // Fallback seguro
+
             if (payload.fcmMessageId) options.tag = payload.fcmMessageId;
 
         } catch (e) {

@@ -23,6 +23,12 @@ export const BirthdayService = {
             return;
         }
 
+        // Check if Birthday Bonus is enabled
+        if (config?.enableBirthdayBonus === false) {
+            console.log("Birthday bonus is disabled in configuration.");
+            return;
+        }
+
         console.log("🎉 It's your birthday! Assigning gifts...");
 
         try {

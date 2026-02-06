@@ -57,15 +57,29 @@ export const DashboardPage = () => {
             });
             setBirthdaysOfToday(todaysSelectedBirthdays);
 
-            const qRedeems = query(collectionGroup(db, 'points_history'), where('type', '==', 'debit'));
-            const snapRedeems = await getDocs(qRedeems);
+            const qDebits = query(collectionGroup(db, 'points_history'), where('type', '==', 'debit'));
+            const snapDebits = await getDocs(qDebits);
 
             let redeemedPoints = 0;
-            let redeemedMoney = 0;
-            snapRedeems.forEach(doc => {
+            let redeemedMoney = 0; // Value of items redeemed
+            let expiredPoints = 0;
+
+            snapDebits.forEach(doc => {
                 const data = doc.data();
-                redeemedPoints += Math.abs(data.amount || 0);
-                redeemedMoney += (data.redeemedValue || 0);
+                const concept = (data.concept || '').toLowerCase();
+                const isExpiration =
+                    data.isExpirationAdjustment === true ||
+                    concept.includes('vencimiento') ||
+                    concept.includes('vencidos') ||
+                    concept.includes('expirados') ||
+                    concept.includes('vencieron'); // From dashboard log "Vencieron -60 pts"
+
+                if (isExpiration) {
+                    expiredPoints += Math.abs(data.amount || 0);
+                } else {
+                    redeemedPoints += Math.abs(data.amount || 0);
+                    redeemedMoney += (data.redeemedValue || 0);
+                }
             });
 
             const qGenerated = query(collectionGroup(db, 'points_history'), where('type', '==', 'credit'));

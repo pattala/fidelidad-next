@@ -367,28 +367,50 @@ export const ConfigPage = () => {
                                 <h3 className="text-lg font-bold text-gray-800 mb-6">Políticas del Programa</h3>
                                 <div className="space-y-6">
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">🎁 Puntos de Bienvenida</label>
-                                        <div className="flex items-center gap-3">
-                                            <input
-                                                type="number"
-                                                value={config.welcomePoints}
-                                                onChange={e => setConfig({ ...config, welcomePoints: parseInt(e.target.value) || 0 })}
-                                                className="w-32 p-3 rounded-lg border border-gray-200 outline-none focus:ring-2 focus:ring-blue-100 transition font-bold text-gray-700"
-                                            />
-                                            <span className="text-gray-500 text-sm">puntos regalados al registrarse.</span>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <label className="block text-sm font-semibold text-gray-700">🎁 Puntos de Bienvenida</label>
+                                            <button
+                                                type="button"
+                                                onClick={() => setConfig({ ...config, enableWelcomeBonus: !config.enableWelcomeBonus })}
+                                                className={`relative w-11 h-6 transition-colors rounded-full ${config.enableWelcomeBonus ? 'bg-blue-600' : 'bg-gray-200'}`}
+                                            >
+                                                <span className={`inline-block w-4 h-4 transform transition-transform bg-white rounded-full translate-x-1 ${config.enableWelcomeBonus ? 'translate-x-6' : 'translate-x-1'}`} />
+                                            </button>
+                                        </div>
+                                        <div className={`transition-all duration-300 ${!config.enableWelcomeBonus && 'opacity-50 pointer-events-none grayscale'}`}>
+                                            <div className="flex items-center gap-3">
+                                                <input
+                                                    type="number"
+                                                    value={config.welcomePoints}
+                                                    onChange={e => setConfig({ ...config, welcomePoints: parseInt(e.target.value) || 0 })}
+                                                    className="w-32 p-3 rounded-lg border border-gray-200 outline-none focus:ring-2 focus:ring-blue-100 transition font-bold text-gray-700"
+                                                />
+                                                <span className="text-gray-500 text-sm">puntos regalados al registrarse.</span>
+                                            </div>
                                         </div>
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">🎂 Puntos de Cumpleaños</label>
-                                        <div className="flex items-center gap-3">
-                                            <input
-                                                type="number"
-                                                value={config.birthdayPoints}
-                                                onChange={e => setConfig({ ...config, birthdayPoints: parseInt(e.target.value) || 0 })}
-                                                className="w-32 p-3 rounded-lg border border-gray-200 outline-none focus:ring-2 focus:ring-blue-100 transition font-bold text-gray-700"
-                                            />
-                                            <span className="text-gray-500 text-sm">puntos de regalo por cumpleaños.</span>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <label className="block text-sm font-semibold text-gray-700">🎂 Puntos de Cumpleaños</label>
+                                            <button
+                                                type="button"
+                                                onClick={() => setConfig({ ...config, enableBirthdayBonus: !config.enableBirthdayBonus })}
+                                                className={`relative w-11 h-6 transition-colors rounded-full ${config.enableBirthdayBonus ? 'bg-pink-600' : 'bg-gray-200'}`}
+                                            >
+                                                <span className={`inline-block w-4 h-4 transform transition-transform bg-white rounded-full translate-x-1 ${config.enableBirthdayBonus ? 'translate-x-6' : 'translate-x-1'}`} />
+                                            </button>
+                                        </div>
+                                        <div className={`transition-all duration-300 ${!config.enableBirthdayBonus && 'opacity-50 pointer-events-none grayscale'}`}>
+                                            <div className="flex items-center gap-3">
+                                                <input
+                                                    type="number"
+                                                    value={config.birthdayPoints}
+                                                    onChange={e => setConfig({ ...config, birthdayPoints: parseInt(e.target.value) || 0 })}
+                                                    className="w-32 p-3 rounded-lg border border-gray-200 outline-none focus:ring-2 focus:ring-blue-100 transition font-bold text-gray-700"
+                                                />
+                                                <span className="text-gray-500 text-sm">puntos de regalo por cumpleaños.</span>
+                                            </div>
                                         </div>
                                     </div>
 

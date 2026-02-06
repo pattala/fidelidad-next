@@ -11,6 +11,7 @@ import { ARGENTINA_LOCATIONS } from '../../../data/locations';
 export const ClientRegisterPage = () => {
     // Step 1: Personal Data
     const [name, setName] = useState('');
+    const [dni, setDni] = useState('');
     const [email, setEmail] = useState('');
     const [pass, setPass] = useState('');
     const [phone, setPhone] = useState('');
@@ -96,6 +97,15 @@ export const ClientRegisterPage = () => {
                 return;
             }
 
+            // 0.5. Validación de DNI
+            const qDni = query(collection(db, 'users'), where('dni', '==', dni));
+            const snapDni = await getDocs(qDni);
+            if (!snapDni.empty) {
+                toast.error('Este DNI ya se encuentra registrado.');
+                setLoading(false);
+                return;
+            }
+
             // 1. Intentar crear usuario en Auth (Estricto)
             const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
             const user = userCredential.user;
@@ -114,6 +124,7 @@ export const ClientRegisterPage = () => {
             // Sync structure with Admin Panel (using 'components' nesting)
             await setDoc(doc(db, 'users', user.uid), {
                 name: name,
+                dni: dni,
                 email: email,
                 phone: finalPhone,
                 phone_raw: cleanPhone,
@@ -258,6 +269,17 @@ export const ClientRegisterPage = () => {
                                     className="w-full bg-gray-50 pl-12 pr-4 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50 outline-none transition-all"
                                     value={phone}
                                     onChange={e => setPhone(e.target.value)}
+                                />
+                            </div>
+                            <div className="relative">
+                                <Building className="absolute left-4 top-3.5 text-gray-400" size={20} />
+                                <input
+                                    type="text"
+                                    required
+                                    placeholder="DNI (Sin puntos)"
+                                    className="w-full bg-gray-50 pl-12 pr-4 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50 outline-none transition-all"
+                                    value={dni}
+                                    onChange={e => setDni(e.target.value.replace(/\D/g, ''))}
                                 />
                             </div>
                             <div className="relative">

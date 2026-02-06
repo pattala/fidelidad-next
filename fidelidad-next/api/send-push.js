@@ -1,6 +1,6 @@
 // /api/send-push.js — Envío PUSH por templateId a 1/varios/segmento
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 import { getMessaging } from 'firebase-admin/messaging';
 import { resolveTemplate, sanitizePush, applyBlocksAndVars } from '../utils/templates.js';
@@ -93,7 +93,8 @@ export default async function handler(req, res) {
                 notification: {
                   requireInteraction: true,
                   icon: '/pwa-192x192.png',
-                  badge: '/pwa-192x192.png'
+                  badge: '/pwa-192x192.png',
+                  silent: false
                 },
                 headers: { Urgency: "high" }
               }
@@ -113,7 +114,13 @@ export default async function handler(req, res) {
         if (saveInbox && !dryRun) {
           await db.collection("users").doc(r.uid)
             .collection('inbox').add({
-              ts: Date.now(), tipo: 'push', templateId, titulo, cuerpo,
+              ts: Date.now(),
+              date: FieldValue.serverTimestamp(), // For PWA Sort
+              sentAt: FieldValue.serverTimestamp(),
+              read: false, // For PWA Counter
+              tipo: 'push',
+              titulo,
+              cuerpo,
               meta: { jobId, requestedBy }
             });
         }

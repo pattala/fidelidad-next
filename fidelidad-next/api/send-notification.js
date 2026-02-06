@@ -163,6 +163,7 @@ async function createInboxSent({ db, clienteId, notifId, dataForDoc, token }) {
     source: dataForDoc.source || "simple",
     campaignId: dataForDoc.campaignId || null,
     status: "sent",
+    read: false, // Important for the PWA notification counter
     sentAt: admin.firestore.FieldValue.serverTimestamp(),
     date: admin.firestore.FieldValue.serverTimestamp(),
     expireAt: admin.firestore.Timestamp.fromDate(

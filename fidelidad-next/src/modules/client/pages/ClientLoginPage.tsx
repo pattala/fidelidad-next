@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../../../lib/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { collection, query, where, getDocs, setDoc, deleteDoc, doc } from 'firebase/firestore';
+import { collection, query, where, getDocs, setDoc, deleteDoc, doc, onSnapshot } from 'firebase/firestore';
 import { Mail, Lock, LogIn, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { ConfigService } from '../../../services/configService';
@@ -17,6 +17,23 @@ export const ClientLoginPage = () => {
 
     useEffect(() => {
         ConfigService.get().then(setConfig);
+
+        // Update Favicon dynamically
+        const unsubConfig = onSnapshot(doc(db, 'config', 'general'), (snap) => {
+            if (snap.exists()) {
+                const data = snap.data();
+                if (data.logoUrl) {
+                    let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+                    if (!link) {
+                        link = document.createElement('link');
+                        link.rel = 'icon';
+                        document.getElementsByTagName('head')[0].appendChild(link);
+                    }
+                    link.href = data.logoUrl;
+                }
+            }
+        });
+        return () => unsubConfig();
     }, []);
 
     const handleLogin = async (e: React.FormEvent) => {

@@ -3,7 +3,7 @@ import { ConfigService } from '../../../services/configService';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../../../lib/firebase';
 import { createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, getDoc, query, where, getDocs, collection } from 'firebase/firestore';
+import { doc, setDoc, getDoc, query, where, getDocs, collection, onSnapshot } from 'firebase/firestore';
 import { Mail, Lock, User, Phone, ArrowLeft, ArrowRight, MapPin, Building, Home } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { ARGENTINA_LOCATIONS } from '../../../data/locations';
@@ -33,6 +33,23 @@ export const ClientRegisterPage = () => {
 
     useEffect(() => {
         ConfigService.get().then(setConfig);
+
+        // Update Favicon dynamically
+        const unsubConfig = onSnapshot(doc(db, 'config', 'general'), (snap) => {
+            if (snap.exists()) {
+                const data = snap.data();
+                if (data.logoUrl) {
+                    let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+                    if (!link) {
+                        link = document.createElement('link');
+                        link.rel = 'icon';
+                        document.getElementsByTagName('head')[0].appendChild(link);
+                    }
+                    link.href = data.logoUrl;
+                }
+            }
+        });
+        return () => unsubConfig();
     }, []);
 
     const handleNextStep = (e: React.FormEvent) => {

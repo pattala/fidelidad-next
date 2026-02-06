@@ -46,10 +46,10 @@ function chunkArray(arr = [], size = 500) {
 }
 function isInvalidTokenError(code = "") {
   return code.includes("registration-token-not-registered")
-      || code.includes("invalid-registration-token")
-      || code.includes("messaging/registration-token-not-registered")
-      || code.includes("messaging/invalid-registration-token")
-      || code.includes("invalid-argument"); // Admin SDK puede mapear así
+    || code.includes("invalid-registration-token")
+    || code.includes("messaging/registration-token-not-registered")
+    || code.includes("messaging/invalid-registration-token")
+    || code.includes("invalid-argument"); // Admin SDK puede mapear así
 }
 
 // ---------- Utilidades CORS / Auth ----------
@@ -156,10 +156,10 @@ async function resolveDestinatarios({ db, tokens = [], audience, clienteId }) {
 async function createInboxSent({ db, clienteId, notifId, dataForDoc, token }) {
   const ref = db.collection("users").doc(clienteId).collection("inbox").doc(notifId);
   const base = {
-    title:  dataForDoc.title || "",
-    body:   dataForDoc.body  || "",
-    url:    dataForDoc.url   || "/notificaciones",
-    tag:    dataForDoc.tag   || null,
+    title: dataForDoc.title || "",
+    body: dataForDoc.body || "",
+    url: dataForDoc.url || "/notificaciones",
+    tag: dataForDoc.tag || null,
     source: dataForDoc.source || "simple",
     campaignId: dataForDoc.campaignId || null,
     status: "sent",
@@ -234,7 +234,7 @@ export default async function handler(req, res) {
   }
 
   // Tokens para envío = tokens de entrada (si hay) + tokens resueltos por audience/cliente
-  let sendTokens = unique([ ...tokens, ...destinatarios.map(d => d.token) ]);
+  let sendTokens = unique([...tokens, ...destinatarios.map(d => d.token)]);
 
   if (!sendTokens.length) {
     return res.status(400).json({ ok: false, error: "Faltan tokens o audience.docIds." });
@@ -250,7 +250,7 @@ export default async function handler(req, res) {
     body: msgBody,
     click_action,
     url: (extraData && extraData.url) ? extraData.url : click_action,
-    icon:  icon  || process.env.PUSH_ICON_URL  || "",
+    icon: icon || process.env.PUSH_ICON_URL || "",
     badge: badge || process.env.PUSH_BADGE_URL || "",
     type: "simple",
     ...extraData,
@@ -258,10 +258,28 @@ export default async function handler(req, res) {
 
   // Config común a todos los lotes
   const baseMsg = {
+    notification: {
+      title,
+      body: msgBody
+    },
     data,
     webpush: {
+      notification: {
+        title,
+        body: msgBody,
+        icon: icon || process.env.PUSH_ICON_URL || '/pwa-192x192.png',
+        badge: badge || process.env.PUSH_BADGE_URL || '/pwa-192x192.png',
+        requireInteraction: true, // Mantiene la notificación en Windows
+      },
       fcmOptions: { link: data.url || "/notificaciones" },
-      headers: { TTL: "2419200" } // 28 días
+      headers: { TTL: "2419200", Urgency: "high" }
+    },
+    android: {
+      priority: "high",
+      notification: {
+        sound: "default",
+        clickAction: "OPEN_ACTIVITY_1"
+      }
     }
   };
 
@@ -324,9 +342,9 @@ export default async function handler(req, res) {
   try {
     const dataForDoc = {
       title: data.title,
-      body:  data.body,
-      url:   data.url || data.click_action || "/notificaciones",
-      tag:   data.tag || null,
+      body: data.body,
+      url: data.url || data.click_action || "/notificaciones",
+      tag: data.tag || null,
       source: extraData?.source || "simple",
       campaignId: extraData?.campaignId || null,
     };

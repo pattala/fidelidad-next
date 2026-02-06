@@ -1,5 +1,5 @@
-import { addDoc, collection } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { collection } from 'firebase/firestore';
+import { db, auth } from '../lib/firebase';
 
 const PUSH_API_URL = '/api/send-push'; // Next.js rewrites should handle this to server-api
 
@@ -25,33 +25,44 @@ export const NotificationService = {
         try {
             console.log(`[NotificationService] Sending to ${clientId}`, payload);
 
-            // 1. Call Backend API for Real Push (FCM)
-            // UPDATE: We are now using Firestore Triggers (firebase-functions-trigger.js)
-            // When the doc is written to 'inbox', the Cloud Function detects it and sends the FCM Push.
-            // NO need to call /api/send-push anymore from client.
+            // 1. Obtener Token del usuario para la API
+            const user = auth.currentUser;
+            if (!user) return;
+            const idToken = await user.getIdToken();
 
-            /* 
-            try {
-                await fetch(PUSH_API_URL, {
-                     // ... (Legacy Direct Call)
-                });
-            } catch (err) { ... } 
-            */
-
-            // 2. Save to Inbox (Firestore)
-            if (clientId) {
-                await addDoc(collection(db, `users/${clientId}/inbox`), {
+            // 2. Llamar a la API de Vercel
+            // Usamos /api/send-notification que ahora está configurada para Windows
+            const response = await fetch('/api/send-notification', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${idToken}`,
+                    'x-api-key': import.meta.env.VITE_API_KEY || ''
+                },
+                body: JSON.stringify({
+                    clienteId: clientId,
                     title: payload.title,
                     body: payload.body,
-                    date: new Date(),
-                    type: payload.type || 'system',
-                    read: false
-                });
+                    click_action: payload.link || '/inbox',
+                    extraData: {
+                        type: payload.type || 'system',
+                        url: payload.link || '/inbox'
+                    },
+                    icon: payload.icon
+                })
+            });
+
+            if (!response.ok) {
+                const errData = await response.json();
+                console.error('[NotificationService] API Error:', errData);
             }
+
+            // NOTA: No hacemos addDoc aquí porque /api/send-notification 
+            // ya lo guarda en el 'inbox' automáticamente.
 
         } catch (error) {
             console.error('[NotificationService] Error in sendToClient:', error);
-            throw error; // Propagate to caller if main logic fails
+            throw error;
         }
     },
 

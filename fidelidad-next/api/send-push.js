@@ -89,7 +89,14 @@ export default async function handler(req, res) {
                 body: cuerpo,
                 icon: 'https://rampet.vercel.app/images/mi_logo_192.png' // ⚡ ABSOLUTE URL
               },
-              webpush: { headers: { Urgency: "high" } } // ⚡ Force instant delivery
+              webpush: {
+                notification: {
+                  requireInteraction: true,
+                  icon: '/pwa-192x192.png',
+                  badge: '/pwa-192x192.png'
+                },
+                headers: { Urgency: "high" }
+              }
             });
             resp.responses.forEach((it, idx) => {
               if (!it.success) {

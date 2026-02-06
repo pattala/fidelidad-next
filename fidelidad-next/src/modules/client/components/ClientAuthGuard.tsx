@@ -9,12 +9,30 @@ export const ClientAuthGuard = ({ children }: { children: React.ReactNode }) => 
     const navigate = useNavigate();
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+        const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
             if (!currentUser) {
-                // If not logged in, redirect to Client Login Page
                 navigate('/login');
             } else {
-                setUser(currentUser);
+                // Verify Firestore Document Existence
+                try {
+                    const { doc, getDoc } = await import('firebase/firestore');
+                    const { db } = await import('../../../lib/firebase');
+                    const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
+
+                    if (!userSnap.exists()) {
+                        console.warn("Authed user has no Firestore document. Logging out.");
+                        const { signOut } = await import('firebase/auth');
+                        await signOut(auth);
+                        navigate('/login');
+                        return;
+                    }
+                    setUser(currentUser);
+                } catch (e) {
+                    console.error("Error verifying user doc:", e);
+                    // Fallback to allowing auth if Firestore is temporarily down? 
+                    // No, safe default is logout/login
+                    setUser(currentUser);
+                }
             }
             setLoading(false);
         });

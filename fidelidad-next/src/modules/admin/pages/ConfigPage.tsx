@@ -111,7 +111,8 @@ export const ConfigPage = () => {
     const [showCalculator, setShowCalculator] = useState(false);
     const [autoPointValue, setAutoPointValue] = useState<number>(0);
 
-    const insertVar = (field: 'pointsAdded' | 'redemption' | 'welcome' | 'campaign' | 'offer', variable: string) => {
+    // Updated type definition in insertVar to include 'birthday'
+    const insertVar = (field: 'pointsAdded' | 'redemption' | 'welcome' | 'campaign' | 'offer' | 'birthday', variable: string) => {
         const currentTemplates = config.messaging?.templates || {};
         const currentValue = currentTemplates[field] || '';
         setConfig({
@@ -375,6 +376,19 @@ export const ConfigPage = () => {
                                                 className="w-32 p-3 rounded-lg border border-gray-200 outline-none focus:ring-2 focus:ring-blue-100 transition font-bold text-gray-700"
                                             />
                                             <span className="text-gray-500 text-sm">puntos regalados al registrarse.</span>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">🎂 Puntos de Cumpleaños</label>
+                                        <div className="flex items-center gap-3">
+                                            <input
+                                                type="number"
+                                                value={config.birthdayPoints}
+                                                onChange={e => setConfig({ ...config, birthdayPoints: parseInt(e.target.value) || 0 })}
+                                                className="w-32 p-3 rounded-lg border border-gray-200 outline-none focus:ring-2 focus:ring-blue-100 transition font-bold text-gray-700"
+                                            />
+                                            <span className="text-gray-500 text-sm">puntos de regalo por cumpleaños.</span>
                                         </div>
                                     </div>
 
@@ -1163,6 +1177,38 @@ export const ConfigPage = () => {
                                         onChange={(newChannels) => setConfig({
                                             ...config,
                                             messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, offer: { channels: newChannels } } }
+                                        })}
+                                    />
+                                </div>
+
+                                {/* Birthday Template */}
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Saludo de Cumpleaños</label>
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">🎂</span>
+                                            <textarea
+                                                rows={2}
+                                                value={config.messaging?.templates?.birthday || ''}
+                                                onChange={e => setConfig({
+                                                    ...config,
+                                                    messaging: {
+                                                        ...config.messaging!,
+                                                        templates: { ...config.messaging?.templates, birthday: e.target.value }
+                                                    }
+                                                })}
+                                                placeholder={DEFAULT_TEMPLATES.birthday}
+                                                className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none resize-none"
+                                            />
+                                        </div>
+                                        <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, birthday: DEFAULT_TEMPLATES.birthday } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition">↺</button>
+                                    </div>
+                                    <VariableChips vars={['nombre', 'nombre_completo', 'puntos']} onSelect={v => insertVar('birthday', v)} />
+                                    <ChannelSelector
+                                        channels={config.messaging?.eventConfigs?.birthday?.channels || []}
+                                        onChange={(newChannels) => setConfig({
+                                            ...config,
+                                            messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, birthday: { channels: newChannels } } }
                                         })}
                                     />
                                 </div>

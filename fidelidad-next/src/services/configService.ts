@@ -25,6 +25,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
     pointsMoneyBase: 100,
     pointValue: 10,
     welcomePoints: 100,
+    birthdayPoints: 100,
     expirationRules: [],
     messaging: {
         emailEnabled: true,
@@ -35,7 +36,8 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
             pointsAdded: { channels: ['push'] },
             redemption: { channels: ['email'] },
             campaign: { channels: ['push'] },
-            offer: { channels: ['push'] }
+            offer: { channels: ['push'] },
+            birthday: { channels: ['push', 'whatsapp'] }
         }
     },
 };
@@ -86,5 +88,6 @@ export const DEFAULT_TEMPLATES = {
     redemption: "¡Felicidades {nombre}! 🎁 Canjeaste {premio}. Código: {codigo}. ¡Que lo disfrutes! ✨",
     welcome: "¡Bienvenido al Club, {nombre}! 👋 Ya tienes {puntos} puntos de regalo. 🎁",
     campaign: "🚀 ¡Nueva Campaña!: {titulo}. {descripcion}. ¡No te la pierdas! 🔥",
-    offer: "🔥 ¡Oferta Especial! {titulo}: {detalle}. Válido hasta el {vencimiento}. 📢"
+    offer: "🔥 ¡Oferta Especial! {titulo}: {detalle}. Válido hasta el {vencimiento}. 📢",
+    birthday: "¡Feliz cumpleaños, {nombre}! 🎂🎉 Te regalamos {puntos} puntos para que lo disfrutes. ¡Que pases un gran día! ✨"
 };

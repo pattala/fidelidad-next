@@ -2,6 +2,7 @@ import { db } from '../lib/firebase';
 import { doc, getDoc, updateDoc, increment, collection, addDoc, query, where, getDocs, limit, serverTimestamp } from 'firebase/firestore';
 import { TimeService } from './timeService';
 import { NotificationService } from './notificationService';
+import { DEFAULT_TEMPLATES } from './configService';
 import toast from 'react-hot-toast';
 
 export const BirthdayService = {
@@ -25,10 +26,9 @@ export const BirthdayService = {
         console.log("🎉 It's your birthday! Assigning gifts...");
 
         try {
-            // 1. Assign Points (if configured)
-            // For now, let's use a default of 50 points or something from config if we add it later
-            // Since there's no explicit config field yet in AppConfig, I'll use 100 as default 
-            const birthdayPoints = 100;
+            // 1. Get Dynamic Config
+            const birthdayPoints = config?.birthdayPoints || 100;
+            const birthdayTemplate = config?.messaging?.templates?.birthday || DEFAULT_TEMPLATES.birthday;
 
             const userRef = doc(db, 'users', uid);
             const historyRef = collection(db, 'users', uid, 'points_history');
@@ -51,16 +51,19 @@ export const BirthdayService = {
             });
 
             // 2. Send Notifications
-            const msg = `¡Feliz cumpleaños, ${userData.name}! 🎉 Te regalamos ${birthdayPoints} puntos para celebrar tu día. ¡Que lo pases increíble!`;
+            const msg = birthdayTemplate
+                .replace(/{nombre}/g, userData.name.split(' ')[0])
+                .replace(/{nombre_completo}/g, userData.name)
+                .replace(/{puntos}/g, birthdayPoints.toString());
 
             await NotificationService.sendToClient(uid, {
                 title: '¡Feliz Cumpleaños! 🎂',
                 body: msg,
-                type: 'offer',
+                type: 'birthday',
                 icon: config?.logoUrl || '/logo.png'
             });
 
-            toast.success("¡Feliz Cumpleaños! Te hemos regalado 100 puntos. 🎂", { duration: 6000, icon: '🎉' });
+            toast.success(`¡Feliz Cumpleaños! Te hemos regalado ${birthdayPoints} puntos. 🎂`, { duration: 6000, icon: '🎉' });
 
         } catch (error) {
             console.error("Error processing birthday gift:", error);

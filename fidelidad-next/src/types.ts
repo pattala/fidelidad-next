@@ -95,6 +95,7 @@ export interface AppConfig {
     linkColor?: string;
 
     welcomePoints?: number;
+    birthdayPoints?: number;
 
     // Vencimiento por Rangos
     expirationRules?: Array<{
@@ -117,6 +118,7 @@ export interface AppConfig {
             redemption?: { channels: MessagingChannel[] };
             campaign?: { channels: MessagingChannel[] };
             offer?: { channels: MessagingChannel[] };
+            birthday?: { channels: MessagingChannel[] };
         };
 
         templates?: {
@@ -125,6 +127,7 @@ export interface AppConfig {
             welcome?: string;
             campaign?: string;
             offer?: string;
+            birthday?: string;
         };
     };
 

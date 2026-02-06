@@ -132,6 +132,8 @@ service cloud.firestore {
         isEditor() ||
         (isSignedIn() && request.auth.uid == clienteId);
 
+      allow list: if true;
+
       allow read, update, delete: if
         isAdmin() && (
           isEditor() ||

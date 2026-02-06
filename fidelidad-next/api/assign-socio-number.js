@@ -81,6 +81,7 @@ function getSelfBaseUrl(req) {
 
 // ---------- Handler ----------
 export default async function handler(req, res) {
+  initFirebaseAdmin(); // Ensure admin is initialized for all subsequent calls
   const allowOrigin = getAllowedOrigin(req);
   setCors(res, allowOrigin);
 
@@ -118,8 +119,8 @@ export default async function handler(req, res) {
       if (decodedToken.uid === docId) {
         isAuthorized = true;
       } else {
-        // Optional: Check if decodedToken has admin claims or is in MASTER_ADMINS
-        const masterAdmins = (process.env.MASTER_ADMINS || "").split(",").map(e => e.trim().toLowerCase());
+        // Use environment variable for Master Admins in API
+        const masterAdmins = (process.env.MASTER_ADMINS || "pablo_attala@yahoo.com.ar").split(",").map(e => e.trim().toLowerCase());
         if (masterAdmins.includes(decodedToken.email?.toLowerCase())) {
           isAuthorized = true;
         }
@@ -130,7 +131,7 @@ export default async function handler(req, res) {
   }
 
   if (!isAuthorized && process.env.API_SECRET_KEY) {
-    console.warn("Unauthorized attempt to assign-socio-number");
+    console.warn("Unauthorized attempt to assign-socio-number. docId:", docId);
     return res.status(401).json({ ok: false, error: "Unauthorized" });
   }
 

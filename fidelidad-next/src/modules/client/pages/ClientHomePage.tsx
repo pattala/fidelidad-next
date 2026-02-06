@@ -86,6 +86,14 @@ export const ClientHomePage = () => {
         }
     };
 
+    const displayData = userData || {
+        name: user?.displayName || 'Invitado',
+        points: 0,
+        accumulated_balance: 0
+    };
+
+    const displayName = userData?.name || userData?.nombre || user?.displayName || 'Invitado';
+
     useEffect(() => {
         const unsubscribeAuth = auth.onAuthStateChanged(async (u) => {
             setUser(u);
@@ -101,6 +109,10 @@ export const ClientHomePage = () => {
                 if (!lastPing || (nowMs - Number(lastPing) > 30 * 60 * 1000)) {
                     try {
                         const { updateDoc, increment, serverTimestamp, collection, addDoc } = await import('firebase/firestore');
+
+                        // We need the latest name if possible
+                        const currentName = userData?.name || userData?.nombre || u.displayName || 'Socio';
+
                         await updateDoc(userRef, {
                             lastActive: serverTimestamp(),
                             visitCount: increment(1)
@@ -109,7 +121,7 @@ export const ClientHomePage = () => {
                         await addDoc(collection(db, 'users', u.uid, 'visit_history'), {
                             date: serverTimestamp(),
                             type: 'app_open',
-                            clientName: displayName,
+                            clientName: currentName,
                             clientEmail: u.email,
                             platform: 'pwa',
                             location: userData?.lastLocation || null
@@ -128,7 +140,7 @@ export const ClientHomePage = () => {
             }
         });
         return () => unsubscribeAuth();
-    }, []);
+    }, [userData?.name, userData?.nombre]);
 
     useEffect(() => {
         const fetchCampaigns = async () => {
@@ -155,14 +167,6 @@ export const ClientHomePage = () => {
     }, [user?.uid]);
 
     const homeBanners = campaigns.filter(c => c.showInHomeBanner);
-
-    const displayData = userData || {
-        name: user?.displayName || 'Invitado',
-        points: 0,
-        accumulated_balance: 0
-    };
-
-    const displayName = userData?.name || userData?.nombre || user?.displayName || 'Invitado';
 
     const pointsRatio = Number(config?.pointsPerPeso || 1);
     const moneyBase = Number(config?.pointsMoneyBase || 100);

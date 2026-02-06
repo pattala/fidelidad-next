@@ -121,11 +121,13 @@ export const ClientRegisterPage = () => {
             const finalPhone = `+549${cleanPhone}`;
 
             // 3. Crear documento en Firestore (Base + Dirección)
-            const fullAddress = `${street} ${number} ${floor ? 'Piso ' + floor : ''} ${apt ? 'Dpto ' + apt : ''}, ${localidad}, ${partido}, ${province}`;
+            const fullCalle = `${street} ${number}`.trim();
+            const fullAddress = `${fullCalle} ${floor ? 'Piso ' + floor : ''} ${apt ? 'Dpto ' + apt : ''}, ${localidad}, ${partido}, ${province}`;
 
             // Sync structure with Admin Panel (using 'components' nesting)
             await setDoc(doc(db, 'users', user.uid), {
                 name: name,
+                nombre: name, // Duplicate for compatibility with some older APIs/functions
                 dni: dni,
                 email: email,
                 phone: finalPhone,
@@ -135,7 +137,7 @@ export const ClientRegisterPage = () => {
                     status: 'complete',
                     addressLine: fullAddress,
                     components: {
-                        calle: street,
+                        calle: fullCalle, // Combined here too for the Admin Panel Edit modal
                         numero: number,
                         piso: floor,
                         depto: apt,
@@ -149,7 +151,7 @@ export const ClientRegisterPage = () => {
                 localidad,
                 partido,
                 provincia: province,
-                calle: `${street} ${number}`,
+                calle: fullCalle,
                 numero: number,
                 piso: floor,
                 depto: apt,
@@ -171,7 +173,7 @@ export const ClientRegisterPage = () => {
                 source: 'pwa',
                 socioNumber: null,
                 numeroSocio: null,
-                metadata: { createdFrom: 'pwa', version: '2.2-unified' }
+                metadata: { createdFrom: 'pwa', version: '2.5-fixed-address' }
             });
 
             // 4. Llamadas al Backend (Serverless APIs) para finalización robusta

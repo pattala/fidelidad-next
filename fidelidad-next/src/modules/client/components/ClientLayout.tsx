@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Home, Gift, User, X, Mail, MapPin, Clock } from 'lucide-react';
+import { Home, Gift, User, X, Mail, MapPin, Clock, Bell } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { doc, onSnapshot, collection, query, where } from 'firebase/firestore';
@@ -116,13 +116,13 @@ export const ClientLayout = () => {
                 <div className="w-10 flex justify-end">
                     <button
                         onClick={() => navigate('/inbox')}
-                        className="relative p-1"
+                        className={`relative p-2 rounded-xl transition-all active:scale-95 ${unreadCount > 0 ? 'animate-pulse bg-white/10' : ''}`}
                     >
-                        <span className="text-2xl drop-shadow-sm">🔔</span>
+                        <Bell size={22} className={unreadCount > 0 ? 'text-yellow-400' : 'text-white'} />
                         {unreadCount > 0 && (
                             <span
-                                className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full border-2 flex items-center justify-center text-[8px] font-black shadow-sm"
-                                style={{ borderColor: config.primaryColor || '#4a148c', color: config.primaryColor || '#4a148c' }}
+                                className="absolute -top-1 -right-1 w-5 h-5 bg-pink-600 rounded-full border-2 flex items-center justify-center text-[10px] font-black shadow-lg animate-bounce"
+                                style={{ borderColor: config.primaryColor || '#4a148c', color: 'white' }}
                             >
                                 {unreadCount > 9 ? '9+' : unreadCount}
                             </span>

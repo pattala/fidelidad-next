@@ -35,6 +35,34 @@ export const CampaignCarousel = () => {
         return () => clearInterval(interval);
     }, [campaigns.length]);
 
+    const [touchStart, setTouchStart] = useState<number | null>(null);
+    const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+    // Min swipe distance
+    const minSwipeDistance = 50;
+
+    const onTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
+        setTouchEnd(null);
+        setTouchStart('targetTouches' in e ? e.targetTouches[0].clientX : e.clientX);
+    };
+
+    const onTouchMove = (e: React.TouchEvent | React.MouseEvent) => {
+        setTouchEnd('targetTouches' in e ? e.targetTouches[0].clientX : e.clientX);
+    };
+
+    const onTouchEnd = () => {
+        if (!touchStart || !touchEnd) return;
+        const distance = touchStart - touchEnd;
+        const isLeftSwipe = distance > minSwipeDistance;
+        const isRightSwipe = distance < -minSwipeDistance;
+
+        if (isLeftSwipe) {
+            setCurrentIndex(prev => (prev + 1) % campaigns.length);
+        } else if (isRightSwipe) {
+            setCurrentIndex(prev => (prev - 1 + campaigns.length) % campaigns.length);
+        }
+    };
+
     if (loading) return <div className="h-40 bg-gray-100 animate-pulse rounded-2xl mx-4 mb-6"></div>;
 
     // Empty State: Show generic welcome slide if no campaigns
@@ -71,10 +99,19 @@ export const CampaignCarousel = () => {
                 <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Destacados</h3>
             </div>
 
-            <div className="relative overflow-hidden rounded-[2.5rem] shadow-sm h-48 transition-all duration-500 border border-gray-100 bg-gray-50">
+            <div
+                className="relative overflow-hidden rounded-[2.5rem] shadow-sm h-48 transition-all duration-500 border border-gray-100 bg-gray-50 cursor-grab active:cursor-grabbing"
+                onTouchStart={onTouchStart}
+                onTouchMove={onTouchMove}
+                onTouchEnd={onTouchEnd}
+                onMouseDown={onTouchStart}
+                onMouseMove={(e) => touchStart && onTouchMove(e)}
+                onMouseUp={onTouchEnd}
+                onMouseLeave={() => touchStart && onTouchEnd()}
+            >
                 {/* SLIDES CONTAINER */}
                 <div
-                    className="flex transition-transform duration-700 ease-in-out h-full w-full"
+                    className="flex transition-transform duration-700 ease-in-out h-full w-full pointer-events-none"
                     style={{ transform: `translateX(-${currentIndex * 100}%)` }}
                 >
                     {campaigns.map((camp) => {

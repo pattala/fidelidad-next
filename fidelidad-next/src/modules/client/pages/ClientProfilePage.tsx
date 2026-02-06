@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { db, auth } from '../../../lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { signOut, updatePassword } from 'firebase/auth';
-import { LogOut, Key, ChevronRight, QrCode, FileText, X, ExternalLink, Eye, EyeOff } from 'lucide-react';
+import { LogOut, Key, ChevronRight, QrCode, FileText, X, ExternalLink, Eye, EyeOff, MapPin, Phone, User as UserIcon, Building } from 'lucide-react';
 import QRCode from "react-qr-code";
 import toast from 'react-hot-toast';
 import { useNavigate, useOutletContext } from 'react-router-dom';
@@ -19,6 +19,11 @@ export const ClientProfilePage = () => {
     const [showPass, setShowPass] = useState(false);
     const [loadingPass, setLoadingPass] = useState(false);
     const [isTermsOpen, setIsTermsOpen] = useState(false);
+
+    // Edit Profile State
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editData, setEditData] = useState<any>({});
+    const [loadingEdit, setLoadingEdit] = useState(false);
 
     useEffect(() => {
         const unsub = auth.onAuthStateChanged(u => {
@@ -40,6 +45,39 @@ export const ClientProfilePage = () => {
         navigate('/login');
     };
 
+    const handleUpdateProfile = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!userAuth || !userData) return;
+        setLoadingEdit(true);
+        try {
+            const { updateDoc } = await import('firebase/firestore');
+            const userRef = doc(db, 'users', userAuth.uid);
+
+            const fullCalle = `${editData.street || ''} ${editData.number || ''}`.trim();
+            const updates = {
+                name: editData.name,
+                nombre: editData.name,
+                phone: editData.phone,
+                calle: fullCalle,
+                piso: editData.piso || '',
+                depto: editData.depto || '',
+                'domicilio.components.calle': fullCalle,
+                'domicilio.components.numero': editData.number || '',
+                'domicilio.components.piso': editData.piso || '',
+                'domicilio.components.depto': editData.depto || '',
+            };
+
+            await updateDoc(userRef, updates);
+            toast.success("Perfil actualizado");
+            setIsEditModalOpen(false);
+        } catch (error: any) {
+            console.error(error);
+            toast.error("Error al actualizar");
+        } finally {
+            setLoadingEdit(false);
+        }
+    };
+
     const handleChangePassword = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoadingPass(true);
@@ -53,13 +91,49 @@ export const ClientProfilePage = () => {
         } catch (error: any) {
             console.error(error);
             toast.error("Error: " + error.message);
-            // Re-auth might be needed if session is old, handling basic case here
             if (error.code === 'auth/requires-recent-login') {
                 toast.error("Por seguridad, vuelve a iniciar sesión para cambiar la clave.");
                 handleLogout();
             }
         } finally {
             setLoadingPass(false);
+        }
+    };
+
+    const handleTogglePermission = async (type: 'notifications' | 'geolocation') => {
+        if (!userAuth || !userData) return;
+
+        const currentStatus = userData.permissions?.[type]?.status;
+        const newStatus = currentStatus === 'granted' ? 'denied' : 'granted';
+
+        // If trying to grant, we should probably ask browser again
+        if (newStatus === 'granted') {
+            if (type === 'notifications') {
+                const p = await Notification.requestPermission();
+                if (p !== 'granted') {
+                    toast.error("Permiso bloqueado en el navegador");
+                    return;
+                }
+            } else {
+                // simple check for geo
+                const p = await new Promise((resolve) => {
+                    navigator.geolocation.getCurrentPosition(() => resolve('granted'), () => resolve('denied'));
+                });
+                if (p !== 'granted') {
+                    toast.error("Permiso de ubicación denegado");
+                    return;
+                }
+            }
+        }
+
+        try {
+            const { updateDoc } = await import('firebase/firestore');
+            await updateDoc(doc(db, 'users', userAuth.uid), {
+                [`permissions.${type}.status`]: newStatus
+            });
+            toast.success(`${type === 'notifications' ? 'Notificaciones' : 'Ubicación'} ${newStatus === 'granted' ? 'activadas' : 'desactivadas'}`);
+        } catch (e) {
+            console.error(e);
         }
     };
 
@@ -92,17 +166,34 @@ export const ClientProfilePage = () => {
                     {/* Stats Row */}
                     <div className="flex justify-center gap-6 mt-6 border-t border-gray-100 pt-4">
                         <div className="text-center">
-                            <span className="block text-2xl font-black text-purple-600">{userData.points}</span>
+                            <span className="block text-2xl font-black text-purple-600">{userData.points || 0}</span>
                             <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Puntos</span>
                         </div>
                         <div className="w-px bg-gray-100"></div>
                         <div className="text-center">
                             <span className="block text-2xl font-black text-indigo-600">
-                                {userData.socioNumber ? `#${userData.socioNumber}` : '-'}
+                                {userData.socioNumber || userData.numeroSocio ? `#${userData.socioNumber || userData.numeroSocio}` : '-'}
                             </span>
                             <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">N° Socio</span>
                         </div>
                     </div>
+
+                    <button
+                        onClick={() => {
+                            setEditData({
+                                name: userData.name || '',
+                                phone: userData.phone || '',
+                                street: userData.calle?.split(' ')[0] || '',
+                                number: userData.calle?.split(' ')[1] || '',
+                                piso: userData.piso || '',
+                                depto: userData.depto || ''
+                            });
+                            setIsEditModalOpen(true);
+                        }}
+                        className="mt-4 text-xs font-bold text-indigo-600 bg-indigo-50 px-4 py-2 rounded-full hover:bg-indigo-100 transition"
+                    >
+                        Editar Datos Personales
+                    </button>
                 </div>
             </div>
 
@@ -133,35 +224,45 @@ export const ClientProfilePage = () => {
             {/* SETTINGS GROUP */}
             <div className="px-6 mt-6 space-y-3">
 
-                {/* Notification Toggle (New) */}
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-4">
-                    <button
-                        onClick={async () => {
-                            const permission = await Notification.requestPermission();
-                            if (permission === 'granted') {
-                                toast.success('Notificaciones activadas');
-                                // Force re-render or logic could handle state
-                            } else {
-                                toast.error('Permiso denegado. Actívalo en config.');
-                            }
-                        }}
-                        className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition"
-                    >
+                {/* Permissions Toggles */}
+                <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-4 space-y-4">
+                    <h3 className="text-gray-400 font-bold text-xs uppercase tracking-wider ml-2">Permisos y Privacidad</h3>
+
+                    <div className="flex items-center justify-between p-2">
                         <div className="flex items-center gap-3">
-                            <div className="bg-purple-50 p-2 rounded-full text-purple-600">
+                            <div className="bg-purple-100 p-2 rounded-2xl text-purple-600">
                                 <span className="text-xl">🔔</span>
                             </div>
-                            <div className="text-left">
+                            <div>
                                 <span className="font-bold text-gray-700 text-sm block">Notificaciones</span>
-                                <span className="text-xs text-gray-400 font-medium">
-                                    {Notification.permission === 'granted' ? 'Activadas' : 'Toca para activar'}
-                                </span>
+                                <span className="text-[10px] text-gray-400 font-medium">Alertas de puntos y premios</span>
                             </div>
                         </div>
-                        <div className={`w-10 h-6 rounded-full p-1 transition-colors ${Notification.permission === 'granted' ? 'bg-green-500' : 'bg-gray-300'}`}>
-                            <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${Notification.permission === 'granted' ? 'translate-x-4' : ''}`}></div>
+                        <button
+                            onClick={() => handleTogglePermission('notifications')}
+                            className={`w-12 h-6 rounded-full p-1 transition-colors ${userData.permissions?.notifications?.status === 'granted' ? 'bg-green-500' : 'bg-gray-300'}`}
+                        >
+                            <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${userData.permissions?.notifications?.status === 'granted' ? 'translate-x-6' : ''}`}></div>
+                        </button>
+                    </div>
+
+                    <div className="flex items-center justify-between p-2">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-blue-100 p-2 rounded-2xl text-blue-600">
+                                <MapPin size={20} />
+                            </div>
+                            <div>
+                                <span className="font-bold text-gray-700 text-sm block">Geolocalización</span>
+                                <span className="text-[10px] text-gray-400 font-medium">Búsqueda de sucursales cercanas</span>
+                            </div>
                         </div>
-                    </button>
+                        <button
+                            onClick={() => handleTogglePermission('geolocation')}
+                            className={`w-12 h-6 rounded-full p-1 transition-colors ${userData.permissions?.geolocation?.status === 'granted' ? 'bg-green-500' : 'bg-gray-300'}`}
+                        >
+                            <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${userData.permissions?.geolocation?.status === 'granted' ? 'translate-x-6' : ''}`}></div>
+                        </button>
+                    </div>
                 </div>
 
                 <h3 className="text-gray-400 font-bold text-xs uppercase tracking-wider ml-2">Cuenta</h3>
@@ -253,35 +354,124 @@ export const ClientProfilePage = () => {
                     {/* Header */}
                     <div className="flex items-center justify-between px-4 py-4 bg-white border-b border-gray-100 shadow-sm flex-none z-10">
                         <h2 className="text-lg font-black text-gray-800">Términos y Condiciones</h2>
-                        <div className="flex items-center gap-2">
-                            <a
-                                href={config.contact.termsAndConditions}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-2 text-blue-500 hover:bg-blue-50 rounded-full transition"
-                                title="Abrir en navegador"
-                            >
-                                <ExternalLink size={20} />
-                            </a>
-                            <button
-                                onClick={() => setIsTermsOpen(false)}
-                                className="p-2 text-gray-400 hover:text-gray-800 hover:bg-gray-100 rounded-full transition"
-                            >
-                                <X size={24} />
-                            </button>
-                        </div>
+                        <button
+                            onClick={() => setIsTermsOpen(false)}
+                            className="p-2 text-gray-400 hover:text-gray-800 hover:bg-gray-100 rounded-full transition"
+                        >
+                            <X size={24} />
+                        </button>
                     </div>
-                    {/* Content */}
-                    <div className="flex-1 bg-gray-50 relative overflow-hidden">
-                        <iframe
-                            src={config.contact.termsAndConditions}
-                            className="w-full h-full border-0"
-                            title="Términos y Condiciones"
-                            sandbox="allow-scripts allow-same-origin allow-popups"
-                        />
-                        <div className="absolute inset-0 -z-10 flex items-center justify-center text-gray-400 text-sm font-medium">
-                            Cargando documento...
+                    {/* Content (Internal restored text) */}
+                    <div className="flex-1 overflow-y-auto p-6 space-y-6 text-sm text-gray-600 scrollbar-hide">
+                        <div>
+                            <h4 className="font-bold text-gray-800 mb-2">1. Generalidades</h4>
+                            <p>El programa de fidelización "{config?.siteName || 'Club'}" es un beneficio exclusivo para nuestros clientes. La participación en el programa es gratuita e implica la aceptación total de los presentes términos y condiciones.</p>
                         </div>
+                        <div>
+                            <h4 className="font-bold text-gray-800 mb-2">2. Privacidad y Datos</h4>
+                            <p>Tus datos (Nombre, DNI, Teléfono y Dirección) se utilizan exclusivamente para identificarte como socio, validar tus canjes en el local y enviarte avisos importantes sobre tus puntos. No vendemos ni compartimos tu información con terceros.</p>
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-gray-800 mb-2">3. Consentimiento de Comunicaciones</h4>
+                            <p>Al registrarte y/o aceptar los términos en la aplicación, otorgas tu consentimiento explícito para recibir comunicaciones transaccionales y promocionales. Estas comunicaciones incluyen, entre otros, avisos sobre puntos ganados, premios canjeados y vencimiento de puntos.</p>
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-gray-800 mb-2">4. Acumulación de Puntos</h4>
+                            <p>Los puntos se acumularán según la tasa de conversión vigente establecida por el comercio. Los puntos no tienen valor monetario ni son canjeables por efectivo.</p>
+                        </div>
+                        <p className="text-xs text-center opacity-50 pt-8 pb-12">Última actualización: 8 de Agosto de 2025</p>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Profile Modal */}
+            {isEditModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/50 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white w-full max-w-sm rounded-[2rem] shadow-2xl overflow-hidden flex flex-col">
+                        <div className="p-6 border-b border-gray-50 flex justify-between items-center bg-indigo-50/50">
+                            <h3 className="font-black text-indigo-900 uppercase tracking-tight">Editar Mi Perfil</h3>
+                            <button onClick={() => setIsEditModalOpen(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+                        </div>
+                        <form onSubmit={handleUpdateProfile} className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">Nombre Completo</label>
+                                <div className="relative">
+                                    <UserIcon className="absolute left-3 top-3 text-indigo-400" size={16} />
+                                    <input
+                                        type="text"
+                                        className="w-full bg-gray-50 pl-10 pr-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-indigo-200 outline-none text-sm font-bold"
+                                        value={editData.name}
+                                        onChange={e => setEditData({ ...editData, name: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">Teléfono</label>
+                                <div className="relative">
+                                    <Phone className="absolute left-3 top-3 text-indigo-400" size={16} />
+                                    <input
+                                        type="text"
+                                        className="w-full bg-gray-50 pl-10 pr-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-indigo-200 outline-none text-sm font-bold"
+                                        value={editData.phone}
+                                        onChange={e => setEditData({ ...editData, phone: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2">
+                                <div className="col-span-2">
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">Calle</label>
+                                    <div className="relative">
+                                        <Building className="absolute left-3 top-3 text-indigo-400" size={16} />
+                                        <input
+                                            type="text"
+                                            className="w-full bg-gray-50 pl-10 pr-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-indigo-200 outline-none text-sm font-bold"
+                                            value={editData.street}
+                                            onChange={e => setEditData({ ...editData, street: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">N°</label>
+                                    <input
+                                        type="text"
+                                        className="w-full bg-gray-50 px-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-indigo-200 outline-none text-sm font-bold text-center"
+                                        value={editData.number}
+                                        onChange={e => setEditData({ ...editData, number: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">Piso</label>
+                                    <input
+                                        type="text"
+                                        className="w-full bg-gray-50 px-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-indigo-200 outline-none text-sm font-bold text-center"
+                                        value={editData.piso}
+                                        onChange={e => setEditData({ ...editData, piso: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">Depto</label>
+                                    <input
+                                        type="text"
+                                        className="w-full bg-gray-50 px-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-indigo-200 outline-none text-sm font-bold text-center"
+                                        value={editData.depto}
+                                        onChange={e => setEditData({ ...editData, depto: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+                            <button
+                                type="submit"
+                                disabled={loadingEdit}
+                                className="w-full bg-indigo-600 text-white py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-100 hover:bg-indigo-700 active:scale-95 transition mt-4"
+                            >
+                                {loadingEdit ? 'Guardando...' : 'Guardar Cambios'}
+                            </button>
+                        </form>
                     </div>
                 </div>
             )}

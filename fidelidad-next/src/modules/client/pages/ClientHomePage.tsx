@@ -199,9 +199,9 @@ export const ClientHomePage = () => {
                     <div>
                         <div className="flex items-center gap-2">
                             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">Hola,</span>
-                            {userData?.socioNumber && (
+                            {(userData?.socioNumber || userData?.numeroSocio) && (
                                 <span className="bg-purple-100 text-purple-700 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter">
-                                    Socio #{userData.socioNumber}
+                                    Socio #{userData.socioNumber || userData.numeroSocio}
                                 </span>
                             )}
                         </div>
@@ -209,28 +209,6 @@ export const ClientHomePage = () => {
                             {displayName}
                         </h2>
                     </div>
-                </div>
-                <div className="flex items-center gap-2">
-                    <div className="relative">
-                        <button
-                            onClick={() => navigate('/activity')}
-                            className={`p-2.5 bg-white rounded-2xl shadow-sm border border-gray-100 text-gray-400 transition-all active:scale-95 ${campaigns.length > 0 ? 'animate-pulse text-purple-600' : ''}`}
-                        >
-                            <Bell size={20} />
-                        </button>
-                        {campaigns.length > 0 && (
-                            <span className="absolute -top-1 -right-1 w-5 h-5 bg-pink-600 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white animate-bounce">
-                                1
-                            </span>
-                        )}
-                    </div>
-                    <button
-                        onClick={handleLogout}
-                        className="bg-white/60 backdrop-blur-md border border-gray-200 p-2.5 rounded-2xl text-red-500 shadow-sm active:scale-95 transition"
-                        title="Salir"
-                    >
-                        <LogOut size={20} />
-                    </button>
                 </div>
             </div>
 

@@ -41,9 +41,7 @@ export const LoginPage = () => {
                     setIsFirstRun(true);
                 }
             } catch (e: any) {
-                // Si falla por permisos, asumimos que NO es la primera vez (el sistema ya tiene reglas)
-                // o simplemente ignoramos para no bloquear el login.
-                console.warn("Estado del sistema: No se pudo verificar si hay administradores (posiblemente ya configurado).", e.message);
+                // Si falla por permisos, es normal cuando el sistema ya tiene reglas restrictivas
                 setIsFirstRun(false);
             }
         };

@@ -33,16 +33,16 @@ export const ClientInboxPage = () => {
             // orderBy('date', 'desc') // Removed to prevent filtering out docs without 'date'
         );
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
+        const unsubscribe = onSnapshot(q, { includeMetadataChanges: true }, (snapshot) => {
             const msgs = snapshot.docs.map(doc => ({
                 id: doc.id,
-                ...doc.data()
+                ...doc.data({ serverTimestamps: 'estimate' })
             })) as InboxMessage[];
 
             // Client-side sort to handle missing dates safely
             msgs.sort((a, b) => {
-                const dateA = a.date?.seconds || 0;
-                const dateB = b.date?.seconds || 0;
+                const dateA = (a.date?.seconds || (a as any).sentAt?.seconds || 0);
+                const dateB = (b.date?.seconds || (b as any).sentAt?.seconds || 0);
                 return dateB - dateA;
             });
 

@@ -89,6 +89,7 @@ service cloud.firestore {
     // COLECCIÓN DE ADMINISTRADORES
     match /admins/{adminId} {
       allow read: if isSignedIn();
+      allow list: if isSignedIn() || (request.query.limit <= 1); // Permitir check de existencia inicial
       allow write: if isAdmin();
     }
 

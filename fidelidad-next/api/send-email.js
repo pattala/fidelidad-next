@@ -61,24 +61,26 @@ async function authCheck(req) {
   return { ok: false, reason: token ? 'token-mismatch' : 'no-auth-header', origin };
 }
 
-function buildHtmlLayout(innerHtml) {
+function buildHtmlLayout(innerHtml, config = {}) {
   const base = process.env.PWA_URL || `https://${process.env.VERCEL_URL}`;
-  const logo = process.env.PUSH_ICON_URL || `${base}/images/mi_logo.png`;
+  const logo = config.logoUrl || process.env.PUSH_ICON_URL || `${base}/images/mi_logo.png`;
+  const siteName = config.siteName || 'Club Fidelidad';
   const terms = process.env.URL_TERMINOS_Y_CONDICIONES || '#';
+
   return `<!doctype html>
   <html lang="es">
-    <head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Club RAMPET</title></head>
+    <head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${siteName}</title></head>
     <body style="background:#f7f7f7;padding:0;margin:0;font-family:Arial,Helvetica,sans-serif;color:#111;">
       <table width="100%" cellspacing="0" cellpadding="0" style="background:#f7f7f7;padding:24px 0;">
         <tr><td align="center">
           <table width="600" cellspacing="0" cellpadding="0" style="background:#fff;border-radius:8px;overflow:hidden;border:1px solid #eee;">
             <tr><td style="background:#0ea5e9;height:6px;"></td></tr>
-            <tr><td style="padding:16px;text-align:center;"><img src="${logo}" alt="Logo" style="max-width:140px;height:auto"/></td></tr>
+            <tr><td style="padding:16px;text-align:center;"><img src="${logo}" alt="${siteName}" style="max-width:140px;height:auto"/></td></tr>
             <tr><td style="padding:16px 24px;font-size:16px;line-height:1.5;">${innerHtml}</td></tr>
             <tr><td style="padding:16px 24px;text-align:center;color:#666;font-size:12px;">
               <a href="${base}" style="color:#0ea5e9;text-decoration:none;">Abrir App</a> · 
               <a href="${terms}" style="color:#0ea5e9;text-decoration:none;">Términos</a> · 
-              © ${new Date().getFullYear()} RAMPET
+              © ${new Date().getFullYear()} ${siteName}
             </td></tr>
           </table>
         </td></tr>
@@ -111,17 +113,30 @@ export default async function handler(req, res) {
 
     if (templateId === 'manual_override') {
       subject = templateData.subject || 'Notificación';
-      html = templateData.htmlContent || '<p>Sin contenido</p>';
+      html = buildHtmlLayout(templateData.htmlContent || '<p>Sin contenido</p>', appConfig);
     } else {
-      const tpl = await resolveTemplate(db, templateId, 'email');
-      subject = applyBlocksAndVars(tpl.titulo, { ...templateData, email: to });
-      const htmlInner = applyBlocksAndVars(tpl.cuerpo, { ...templateData, email: to });
+      let tpl = await resolveTemplate(db, templateId, 'email');
 
-      // We could use buildHtmlLayout with dynamic config if we refactored it, 
-      // but let's keep it simple and inject dynamic names directly
-      html = buildHtmlLayout(htmlInner)
-        .replace(/Club RAMPET/g, siteName)
-        .replace(/RAMPET/g, siteName);
+      // HARDCODED FALLBACK FOR BIENVENIDA if empty
+      if (templateId === 'bienvenida' && (!tpl.cuerpo || tpl.cuerpo.trim() === "")) {
+        tpl = {
+          titulo: "¡Bienvenido a {siteName}!",
+          cuerpo: `<p>Hola <strong>{nombre}</strong>,</p>
+                   <p>¡Gracias por sumarte a nuestro programa de fidelidad! Estamos felices de tenerte con nosotros.</p>
+                   <p>Tu <strong>Número de Socio</strong> es: <span style="font-size: 18px; color: #0ea5e9;">#{numero_socio}</span></p>
+                   [BLOQUE_PUNTOS_BIENVENIDA]
+                   <p>Como regalo de bienvenida, te hemos asignado <strong>{puntos_ganados} puntos</strong> para que empieces a disfrutar de tus beneficios.</p>
+                   [/BLOQUE_PUNTOS_BIENVENIDA]
+                   <p>Ya puedes empezar a sumar puntos con tus compras y canjearlos por premios increíbles.</p>
+                   <p>¡Nos vemos pronto!</p>`
+        };
+      }
+
+      const mergedData = { ...templateData, email: to, siteName };
+      subject = applyBlocksAndVars(tpl.titulo, mergedData);
+      const htmlInner = applyBlocksAndVars(tpl.cuerpo, mergedData);
+
+      html = buildHtmlLayout(htmlInner, appConfig);
     }
 
     // 3) Validar Credenciales SMTP

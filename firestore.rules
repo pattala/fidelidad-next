@@ -17,6 +17,17 @@ service cloud.firestore {
       );
     }
 
+    function isEditor() {
+      return isAdmin() && (
+        (request.auth.token.email != null && request.auth.token.email.toLower() == 'pablo_attala@yahoo.com.ar') ||
+        (request.auth.token.email != null && request.auth.token.email.toLower() == 'admin@admin.com') ||
+        (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role != 'viewer') ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
     function isOwnerCliente(clienteId) {
       return isSignedIn() &&
              get(/databases/$(database)/documents/users/$(clienteId)).data.authUID == request.auth.uid;
@@ -76,62 +87,68 @@ service cloud.firestore {
 
     // CATÁLOGOS
     match /campanas/{id} { 
-      allow read: if true;
-      allow write: if isAdmin();
+      allow read: if isAdmin();
+      allow write: if isEditor();
     }
     // Suporting both Spanish (legacy/rules) and English (code) names
     match /premios/{id}  { 
       allow read: if true; 
-      allow write: if isAdmin();
+      allow write: if isEditor();
     }
     match /prizes/{id}  { 
       allow read: if true; 
-      allow write: if isAdmin();
+      allow write: if isEditor();
     }
 
     // Bonos (admin)
     match /bonos/{id} {
-      allow read, write: if isAdmin();
+      allow read: if isAdmin();
+      allow write: if isEditor();
     }
 
     // Configuración (usuarios logueados leen; admin escribe)
     match /configuracion/{docId} {
       allow read: if true; 
-      allow write: if isAdmin();
+      allow write: if isEditor();
     }
     match /config/{docId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow write: if isEditor();
     }
 
     // Plantillas (admin)
     match /plantillas_mensajes/{docId} {
-      allow read, write: if isAdmin();
+      allow read: if isAdmin();
+      allow write: if isEditor();
     }
 
     // CLIENTES
     match /users/{clienteId} {
       allow create: if
-        isAdmin() ||
+        isEditor() ||
         (isSignedIn() && request.auth.uid == clienteId);
 
       allow read, update, delete: if
-        isAdmin() ||
-        (isSignedIn() && request.auth.uid == clienteId);
+        isAdmin() && (
+          isEditor() ||
+          (isSignedIn() && request.auth.uid == clienteId)
+        );
 
       match /inbox/{docId} {
-        allow read, write: if isAdmin() || (isSignedIn() && request.auth.uid == clienteId);
+        allow read: if isAdmin() || (isSignedIn() && request.auth.uid == clienteId);
+        allow write: if isEditor();
       }
 
       match /{sub=**}/{doc} {
-        allow read, write: if isAdmin() || (isSignedIn() && request.auth.uid == clienteId);
+        allow read: if isAdmin() || (isSignedIn() && request.auth.uid == clienteId);
+        allow write: if isEditor();
       }
     }
 
     // LISTADO DE ADMINISTRADORES
     match /admins/{adminId} {
       allow read: if isSignedIn() && (request.auth.uid == adminId || isAdmin());
-      allow write: if isAdmin();
+      allow write: if isEditor();
       allow list: if isAdmin(); 
     }
 

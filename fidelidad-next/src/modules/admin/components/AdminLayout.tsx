@@ -237,7 +237,9 @@ export const AdminLayout = () => {
                         >
                             <Menu size={24} />
                         </button>
-                        <h2 className="text-gray-800 font-bold text-lg md:text-xl truncate">Fidelidad V2</h2>
+                        <h2 className="text-gray-800 font-bold text-lg md:text-xl truncate">
+                            {config?.siteName || 'Panel de Control'}
+                        </h2>
                     </div>
 
                     <div className="text-sm text-gray-500 hidden md:block">

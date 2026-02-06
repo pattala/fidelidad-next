@@ -917,13 +917,13 @@ export const ClientsPage = () => {
                                             <Coins size={14} />
                                             {client.points || 0}
                                         </div>
-                                        {client.expirationDetails && client.expirationDetails.length > 0 ? (
+                                        {client.expirationDetails && client.expirationDetails.filter(e => e.points > 0).length > 0 ? (
                                             <div className="space-y-1 mt-1">
-                                                {client.expirationDetails.map((exp, idx) => (
+                                                {client.expirationDetails.filter(e => e.points > 0).map((exp, idx) => (
                                                     <div
                                                         key={idx}
                                                         className="flex items-center justify-center gap-1 text-[9px] font-bold text-orange-600 bg-orange-50 py-0.5 px-1.5 rounded border border-orange-100"
-                                                        title={`Vencimiento ${idx + 1}`}
+                                                        title={`Vencimiento`}
                                                     >
                                                         <History size={10} />
                                                         {exp.points} ({exp.date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })})

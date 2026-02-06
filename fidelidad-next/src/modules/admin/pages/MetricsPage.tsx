@@ -3,7 +3,7 @@ import { BarChart3, TrendingUp, Users, DollarSign, Award, Sparkles } from 'lucid
 import { collection, query, where, getDocs, collectionGroup, orderBy, limit, documentId } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import {
-    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer,
+    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
     BarChart, Bar
 } from 'recharts';
 
@@ -16,6 +16,7 @@ export const MetricsPage = () => {
     const [topSpenders, setTopSpenders] = useState<any[]>([]);
     const [topVisitors, setTopVisitors] = useState<any[]>([]);
     const [registrationSources, setRegistrationSources] = useState<{ pwa: number, local: number }>({ pwa: 0, local: 0 });
+    const [totalStats, setTotalStats] = useState({ emitted: 0, redeemed: 0, expired: 0 });
     const [loading, setLoading] = useState(true);
     const [config, setConfig] = useState<any>(null);
 
@@ -49,7 +50,7 @@ export const MetricsPage = () => {
                 }));
 
                 // 3. Process Data for Charts and Rankings
-                const groupedData = new Map<string, { emitted: number, redeemed: number, money: number }>();
+                const groupedData = new Map<string, { emitted: number, redeemed: number, expired: number, money: number }>();
                 const spendersMap = new Map<string, number>();
 
                 movements.forEach((mov: any) => {
@@ -57,7 +58,7 @@ export const MetricsPage = () => {
                         ? mov.date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
                         : mov.date.toLocaleDateString('es-AR', { month: 'short', year: '2-digit' });
 
-                    const current = groupedData.get(key) || { emitted: 0, redeemed: 0, money: 0 };
+                    const current = groupedData.get(key) || { emitted: 0, redeemed: 0, expired: 0, money: 0 };
 
                     if (mov.type === 'credit') {
                         current.emitted += (mov.amount || 0);
@@ -80,11 +81,32 @@ export const MetricsPage = () => {
                             }
                         }
                     } else if (mov.type === 'debit') {
-                        current.redeemed += Math.abs(mov.amount || 0);
-                        current.money += (mov.redeemedValue || 0);
+                        const concept = (mov.concept || '').toLowerCase();
+                        // Fix: Check for known expiration concepts
+                        const isExpiration =
+                            mov.isExpirationAdjustment === true ||
+                            concept.includes('vencimiento') ||
+                            concept.includes('vencidos') ||
+                            concept.includes('expirados');
+
+                        if (isExpiration) {
+                            current.expired += Math.abs(mov.amount || 0);
+                        } else {
+                            current.redeemed += Math.abs(mov.amount || 0);
+                            current.money += (mov.redeemedValue || 0);
+                        }
                     }
                     groupedData.set(key, current);
                 });
+
+                // Calculate Totals
+                let tEmitted = 0, tRedeemed = 0, tExpired = 0;
+                groupedData.forEach(d => {
+                    tEmitted += d.emitted;
+                    tRedeemed += d.redeemed;
+                    tExpired += d.expired;
+                });
+                setTotalStats({ emitted: tEmitted, redeemed: tRedeemed, expired: tExpired });
 
                 setChartData(Array.from(groupedData.entries()).map(([name, data]) => ({ name, ...data })));
 
@@ -195,6 +217,37 @@ export const MetricsPage = () => {
                 </div>
             </div>
 
+            {/* KPI Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-blue-100 flex items-center justify-between">
+                    <div>
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Puntos Emitidos</p>
+                        <p className="text-2xl font-black text-blue-600">{totalStats.emitted.toLocaleString()}</p>
+                    </div>
+                    <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+                        <TrendingUp size={24} />
+                    </div>
+                </div>
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-orange-100 flex items-center justify-between">
+                    <div>
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Puntos Canjeados</p>
+                        <p className="text-2xl font-black text-orange-600">{totalStats.redeemed.toLocaleString()}</p>
+                    </div>
+                    <div className="p-3 bg-orange-50 text-orange-600 rounded-xl">
+                        <Award size={24} />
+                    </div>
+                </div>
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-red-100 flex items-center justify-between">
+                    <div>
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Puntos Vencidos</p>
+                        <p className="text-2xl font-black text-red-600">{totalStats.expired.toLocaleString()}</p>
+                    </div>
+                    <div className="p-3 bg-red-50 text-red-600 rounded-xl">
+                        <TrendingUp size={24} className="rotate-180" />
+                    </div>
+                </div>
+            </div>
+
             {/* Charts Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Points Evolution */}
@@ -208,10 +261,11 @@ export const MetricsPage = () => {
                                 <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                                 <XAxis dataKey="name" fontSize={12} tickMargin={10} />
                                 <YAxis fontSize={12} />
-                                <RechartsTooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                                <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
                                 <Legend />
                                 <Line type="monotone" dataKey="emitted" name="Emitidos" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                                 <Line type="monotone" dataKey="redeemed" name="Canjeados" stroke="#f97316" strokeWidth={3} dot={{ r: 4 }} />
+                                <Line type="monotone" dataKey="expired" name="Vencidos" stroke="#ef4444" strokeWidth={3} dot={{ r: 4 }} />
                             </LineChart>
                         </ResponsiveContainer>
                     </div>
@@ -228,7 +282,7 @@ export const MetricsPage = () => {
                                 <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                                 <XAxis dataKey="name" fontSize={12} />
                                 <YAxis fontSize={12} />
-                                <RechartsTooltip cursor={{ fill: '#f3f4f6' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                                <Tooltip cursor={{ fill: '#f3f4f6' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
                                 <Legend />
                                 <Bar dataKey="money" name="Dinero ($)" fill="#22c55e" radius={[4, 4, 0, 0]} barSize={40} />
                             </BarChart>

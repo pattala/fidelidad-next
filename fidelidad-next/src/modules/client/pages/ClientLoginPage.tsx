@@ -5,12 +5,19 @@ import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'fire
 import { collection, query, where, getDocs, setDoc, deleteDoc, doc } from 'firebase/firestore';
 import { Mail, Lock, LogIn, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { ConfigService } from '../../../services/configService';
+import { useEffect } from 'react';
 
 export const ClientLoginPage = () => {
     const [email, setEmail] = useState('');
     const [pass, setPass] = useState('');
     const [loading, setLoading] = useState(false);
+    const [config, setConfig] = useState<any>(null);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        ConfigService.get().then(setConfig);
+    }, []);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -80,10 +87,16 @@ export const ClientLoginPage = () => {
 
                 {/* Logo / Brand */}
                 <div className="mb-10 text-center">
-                    <div className="w-20 h-20 bg-gradient-to-tr from-purple-600 to-indigo-600 rounded-3xl mx-auto shadow-xl shadow-purple-500/30 flex items-center justify-center mb-4 transform -rotate-3">
-                        <span className="text-4xl">🚀</span>
+                    <div className="w-20 h-20 bg-white rounded-3xl mx-auto shadow-xl shadow-purple-500/10 flex items-center justify-center mb-4 transform -rotate-3 overflow-hidden p-2">
+                        {config?.logoUrl ? (
+                            <img src={config.logoUrl} alt="Logo" className="w-full h-full object-contain" />
+                        ) : (
+                            <span className="text-4xl">🚀</span>
+                        )}
                     </div>
-                    <h1 className="text-3xl font-black text-gray-800 tracking-tight">Club Fidelidad</h1>
+                    <h1 className="text-3xl font-black text-gray-800 tracking-tight">
+                        {config?.siteName || 'Club Fidelidad'}
+                    </h1>
                     <p className="text-gray-500 font-medium mt-1">Tu programa de recompensas</p>
                 </div>
 

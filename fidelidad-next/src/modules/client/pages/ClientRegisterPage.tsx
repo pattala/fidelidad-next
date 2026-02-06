@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { ConfigService } from '../../../services/configService';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../../../lib/firebase';
 import { createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword } from 'firebase/auth';
@@ -27,7 +28,12 @@ export const ClientRegisterPage = () => {
     const [termsAccepted, setTermsAccepted] = useState(false);
 
     const [loading, setLoading] = useState(false);
+    const [config, setConfig] = useState<any>(null);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        ConfigService.get().then(setConfig);
+    }, []);
 
     const handleNextStep = (e: React.FormEvent) => {
         e.preventDefault();
@@ -189,6 +195,19 @@ export const ClientRegisterPage = () => {
                     <ArrowLeft size={18} /> {step === 1 ? 'Volver al Login' : 'Volver a Datos Personales'}
                 </button>
 
+                <div className="mb-8 text-center">
+                    <div className="w-16 h-16 bg-white rounded-2xl mx-auto shadow-lg shadow-purple-500/5 flex items-center justify-center mb-4 overflow-hidden p-1.5">
+                        {config?.logoUrl ? (
+                            <img src={config.logoUrl} alt="Logo" className="w-full h-full object-contain" />
+                        ) : (
+                            <span className="text-3xl">🚀</span>
+                        )}
+                    </div>
+                    <h1 className="text-xl font-black text-gray-800 tracking-tight">
+                        {config?.siteName || 'Club Fidelidad'}
+                    </h1>
+                </div>
+
                 <div className="bg-white p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 border border-gray-100 backdrop-blur-sm animate-fade-in">
                     <div className="mb-6 text-center">
                         <h2 className="text-xl font-bold text-gray-800">
@@ -347,7 +366,12 @@ export const ClientRegisterPage = () => {
                                     className="w-5 h-5 rounded border-gray-300 text-purple-600 focus:ring-purple-500 transition cursor-pointer"
                                 />
                                 <label htmlFor="terms" className="text-xs text-gray-600">
-                                    Acepto los <a href="#" className="font-bold text-purple-600 hover:underline">Términos y Condiciones</a> y la <a href="#" className="font-bold text-purple-600 hover:underline">Política de Privacidad</a>
+                                    Acepto los <a
+                                        href={config?.contact?.termsAndConditions || "#"}
+                                        target={config?.contact?.termsAndConditions ? "_blank" : "_self"}
+                                        rel="noopener noreferrer"
+                                        className="font-bold text-purple-600 hover:underline"
+                                    >Términos y Condiciones</a> y la <a href="#" className="font-bold text-purple-600 hover:underline">Política de Privacidad</a>
                                 </label>
                             </div>
 

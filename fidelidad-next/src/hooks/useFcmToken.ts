@@ -3,7 +3,7 @@ import { getToken } from 'firebase/messaging';
 import { messaging, db, auth } from '../lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 
-const VAPID_KEY = 'BHmqZhSCc-QcEmLflzdu228dg_dkTRmUm3jRb7mQjIw05sMTioOuc_MdZgOD_u1bHtAHegsNrkRziYNQIAuwirk';
+const VAPID_KEY = 'BHmqZhSCc-QcEmLflzdu228dg_dkTRmUm3jRb7mQjlw05sMTio0uc_MdZg0D_u1bHtAHegsNrkRziYNQIAuwirk';
 
 export const useFcmToken = () => {
     const [token, setToken] = useState<string | null>(null);

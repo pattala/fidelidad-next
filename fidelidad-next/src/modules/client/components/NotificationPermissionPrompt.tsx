@@ -191,21 +191,41 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
                                 : 'Activa los avisos para enterarte al instante cuando sumes puntos o ganes un premio.'}
                     </p>
 
-                    {isTerms && (
-                        <div className="bg-gray-50/80 rounded-3xl p-5 text-left text-[11px] h-48 overflow-y-auto border border-gray-100 mb-8 scrollbar-hide">
-                            <div className="flex items-center gap-2 mb-4 text-blue-600">
-                                <ShieldCheck size={16} />
-                                <span className="font-black uppercase tracking-widest">Resumen de Contrato</span>
+                    <div className="bg-gray-50/80 rounded-3xl p-5 text-left text-[11px] h-64 overflow-y-auto border border-gray-100 mb-8 scrollbar-hide">
+                        <div className="flex items-center gap-2 mb-4 text-blue-600">
+                            <ShieldCheck size={16} />
+                            <span className="font-black uppercase tracking-widest">Contrato Club RAMPET</span>
+                        </div>
+                        <div className="space-y-4 text-gray-600 font-medium overflow-y-auto pr-2">
+                            <div className="section">
+                                <h4 className="font-bold text-gray-800 mb-1">1. Generalidades</h4>
+                                <p>El programa de fidelización "Club RAMPET" es un beneficio exclusivo para nuestros clientes. La participación en el programa es gratuita e implica la aceptación total de los presentes términos y condiciones.</p>
                             </div>
-                            <div className="space-y-4 text-gray-600 font-medium">
-                                <p><span className="font-bold text-gray-800">1. Privacidad:</span> Sus datos personales son tratados con protocolos de seguridad bancaria y no se comparten con terceros.</p>
-                                <p><span className="font-bold text-gray-800">2. Puntos:</span> La acumulación de puntos está sujeta a la validación de la compra por parte del comercio.</p>
-                                <p><span className="font-bold text-gray-800">3. Vencimiento:</span> Los puntos tienen una validez de 365 días desde su obtención, salvo campañas especiales.</p>
-                                <p><span className="font-bold text-gray-800">4. Uso:</span> La cuenta es personal e intransferible. El uso indebido causará la baja del socio.</p>
-                                <p><span className="font-bold text-gray-800">5. Modificaciones:</span> La empresa se reserva el derecho de modificar la tabla de premios avisando con 30 días.</p>
+                            <div className="section">
+                                <h4 className="font-bold text-gray-800 mb-1">2. Consentimiento de Comunicaciones</h4>
+                                <p>Al registrarte y/o aceptar los términos en la aplicación, otorgas tu consentimiento explícito para recibir comunicaciones transaccionales y promocionales del Club RAMPET a través de correo electrónico y notificaciones push. Estas comunicaciones son parte integral del programa de fidelización e incluyen, entre otros, avisos sobre puntos ganados, premios canjeados, promociones especiales y vencimiento de puntos. Puedes gestionar tus preferencias de notificaciones en cualquier momento.</p>
+                            </div>
+                            <div className="section">
+                                <h4 className="font-bold text-gray-800 mb-1">3. Acumulación de Puntos</h4>
+                                <p>Los puntos se acumularán según la tasa de conversión vigente establecida por RAMPET. Los puntos no tienen valor monetario, no son transferibles a otras personas ni canjeables por dinero en efectivo.</p>
+                            </div>
+                            <div className="section">
+                                <h4 className="font-bold text-gray-800 mb-1">4. Canje de Premios</h4>
+                                <p>El canje de premios se realiza exclusivamente en el local físico y será procesado por un administrador del sistema. La PWA sirve como un catálogo para consultar los premios disponibles y los puntos necesarios. Para realizar un canje, el cliente debe presentar una identificación válida.</p>
+                            </div>
+                            <div className="section">
+                                <h4 className="font-bold text-gray-800 mb-1">5. Validez y Caducidad</h4>
+                                <p>Los puntos acumulados tienen una fecha de caducidad que se rige por las reglas definidas en el sistema. El cliente será notificado de los vencimientos próximos a través de los canales de comunicación aceptados para que pueda utilizarlos a tiempo.</p>
+                            </div>
+                            <div className="section">
+                                <h4 className="font-bold text-gray-800 mb-1">6. Modificaciones del Programa</h4>
+                                <p>RAMPET se reserva el derecho de modificar los términos y condiciones, la tasa de conversión, el catálogo de premios o cualquier otro aspecto del programa de fidelización, inclusive su finalización, en cualquier momento y sin previo aviso.</p>
+                            </div>
+                            <div className="pt-4 border-t border-gray-200 mt-2">
+                                <p className="text-[9px] text-gray-400 text-center font-bold italic">Última actualización: 8 de Agosto de 2025</p>
                             </div>
                         </div>
-                    )}
+                    </div>
 
                     <div className="space-y-3">
                         <button

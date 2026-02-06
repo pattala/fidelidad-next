@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { auth, db } from '../../../lib/firebase';
 import { doc, onSnapshot, collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { LogOut, Calendar, Sparkles } from 'lucide-react';
+import { LogOut, Calendar, Sparkles, Bell } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import toast from 'react-hot-toast';
 import { CampaignService, type BonusRule } from '../../../services/campaignService';
@@ -188,19 +188,50 @@ export const ClientHomePage = () => {
 
             {/* GREETING LINE */}
             <div className="flex justify-between items-center px-2">
-                <div>
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">Hola,</span>
-                    <h2 className="text-2xl font-black uppercase tracking-tight text-[#4a148c] leading-none">
-                        {displayName}
-                    </h2>
+                <div className="flex items-center gap-3">
+                    <div className="bg-white/80 backdrop-blur-md w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm border border-purple-50">
+                        <img
+                            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${displayName}`}
+                            alt="Avatar"
+                            className="w-9 h-9 rounded-full"
+                        />
+                    </div>
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">Hola,</span>
+                            {userData?.socioNumber && (
+                                <span className="bg-purple-100 text-purple-700 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter">
+                                    Socio #{userData.socioNumber}
+                                </span>
+                            )}
+                        </div>
+                        <h2 className="text-2xl font-black uppercase tracking-tight text-[#4a148c] leading-none mt-1">
+                            {displayName}
+                        </h2>
+                    </div>
                 </div>
-                <button
-                    onClick={handleLogout}
-                    className="bg-white/60 backdrop-blur-md border border-gray-200 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2 active:scale-95 transition text-red-500 shadow-sm"
-                >
-                    <LogOut size={14} />
-                    Salir
-                </button>
+                <div className="flex items-center gap-2">
+                    <div className="relative">
+                        <button
+                            onClick={() => navigate('/activity')}
+                            className={`p-2.5 bg-white rounded-2xl shadow-sm border border-gray-100 text-gray-400 transition-all active:scale-95 ${campaigns.length > 0 ? 'animate-pulse text-purple-600' : ''}`}
+                        >
+                            <Bell size={20} />
+                        </button>
+                        {campaigns.length > 0 && (
+                            <span className="absolute -top-1 -right-1 w-5 h-5 bg-pink-600 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white animate-bounce">
+                                1
+                            </span>
+                        )}
+                    </div>
+                    <button
+                        onClick={handleLogout}
+                        className="bg-white/60 backdrop-blur-md border border-gray-200 p-2.5 rounded-2xl text-red-500 shadow-sm active:scale-95 transition"
+                        title="Salir"
+                    >
+                        <LogOut size={20} />
+                    </button>
+                </div>
             </div>
 
             {/* HERO CAROUSEL */}

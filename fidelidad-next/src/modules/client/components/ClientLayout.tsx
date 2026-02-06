@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Home, Gift, User, X, Mail, MapPin, Clock, Bell } from 'lucide-react';
+import { Home, Gift, User, X, Mail, MapPin, Clock, Bell, LogOut } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { doc, onSnapshot, collection, query, where } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, where, addDoc } from 'firebase/firestore';
 import { db, auth } from '../../../lib/firebase';
 import { useFcmToken } from '../../../hooks/useFcmToken'; // Import Hook
+import { signOut } from 'firebase/auth'; // Added for Logout
 
 export const ClientLayout = () => {
     const [isContactOpen, setIsContactOpen] = useState(false);
@@ -139,7 +140,18 @@ export const ClientLayout = () => {
                 className="px-4 py-5 flex-none z-20 flex items-center justify-between text-white shadow-xl transition-all duration-500"
                 style={{ background: `linear-gradient(to right, ${config.primaryColor || '#4a148c'}, ${config.secondaryColor || '#880e4f'})` }}
             >
-                <div className="w-10">
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => {
+                            if (window.confirm('¿Deseas cerrar sesión?')) {
+                                signOut(auth).then(() => navigate('/login'));
+                            }
+                        }}
+                        className="p-2 hover:bg-white/10 rounded-xl transition-all active:scale-95 text-white/80"
+                        title="Cerrar Sesión"
+                    >
+                        <LogOut size={20} />
+                    </button>
                     <div className="bg-white p-0.5 rounded-full shadow-lg">
                         <img
                             src={config.logoUrl || "/logo.png"}

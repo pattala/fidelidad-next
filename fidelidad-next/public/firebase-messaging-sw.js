@@ -18,20 +18,28 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
     console.log('[firebase-messaging-sw.js] Background message: ', payload);
 
-    // Customizamos la notificación por si viene sin formato
-    const notificationTitle = payload.notification?.title || payload.data?.title || 'Fidelidad';
+    const notificationTitle = payload.notification?.title || payload.data?.title || 'Club de Fidelidad';
     const notificationOptions = {
-        body: payload.notification?.body || payload.data?.body || 'Tienes un nuevo aviso',
-        icon: '/pwa-192x192.png',
+        body: payload.notification?.body || payload.data?.body || 'Tienes una novedad en tu cuenta',
+        icon: payload.notification?.icon || payload.data?.icon || '/pwa-192x192.png',
         badge: '/pwa-192x192.png',
-        data: payload.data || { url: '/inbox' } // Default to inbox
+        vibrate: [100, 50, 100],
+        data: {
+            url: payload.data?.url || '/inbox',
+            ...payload.data
+        }
     };
 
-    // Si el payload ya trae 'notification', el navegador la muestra auto.
-    // Si es 'data only', forzamos mostrarla aquí.
+    // FCM automatically displays a notification if the 'notification' property is present in the payload.
+    // If it's data-only, we call showNotification manually.
     if (!payload.notification) {
         self.registration.showNotification(notificationTitle, notificationOptions);
     }
+});
+
+self.addEventListener('push', (event) => {
+    console.log('[SW] Push event received');
+    // If the browser doesn't support FCM background handlers well, showing it here is a fallback
 });
 
 // Handler para clicks en la notificación

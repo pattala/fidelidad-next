@@ -7,6 +7,7 @@ import { doc, setDoc, getDoc, query, where, getDocs, collection, onSnapshot, lim
 import { Mail, Lock, User, Phone, ArrowLeft, ArrowRight, MapPin, Building, Home, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { ARGENTINA_LOCATIONS } from '../../../data/locations';
+import { NotificationService } from '../../../services/notificationService';
 
 export const ClientRegisterPage = () => {
     // Step 1: Personal Data
@@ -181,22 +182,36 @@ export const ClientRegisterPage = () => {
             const token = await user.getIdToken();
             const apiKey = import.meta.env.VITE_API_KEY;
 
+            // Prepare for sequential steps with informative toast/loading
             // A. Asignar N° Socio (Secuencial seguro)
-            fetch('/api/assign-socio-number', {
+            await fetch('/api/assign-socio-number', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'x-api-key': apiKey },
                 body: JSON.stringify({ docId: user.uid, sendWelcome: true })
             }).catch(e => console.warn('Error asignando socio:', e));
 
             // B. Asignar Puntos de Bienvenida
-            fetch('/api/assign-points', {
+            await fetch('/api/assign-points', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'x-api-key': apiKey },
                 body: JSON.stringify({
-                    uid: user.uid, // Aseguramos UID para modo Admin
+                    uid: user.uid,
                     reason: 'welcome_signup'
                 })
             }).catch(e => console.warn('Error asignando puntos:', e));
+
+            // NEW: Send Welcome Notification to Inbox (for the bell icon)
+            try {
+                const pts = Number(config?.welcomePoints || 0);
+                await NotificationService.sendToClient(user.uid, {
+                    title: '¡Bienvenido al Club! 🎉',
+                    body: `Gracias por registrarte, ${name.split(' ')[0]}. ¡Ya tienes ${pts} puntos de regalo!`,
+                    type: 'welcome',
+                    icon: config?.logoUrl || '/logo.png'
+                });
+            } catch (notiError) {
+                console.warn("No se pudo enviar la notificación inbox:", notiError);
+            }
 
             toast.success('¡Registro completo! Bienvenido.');
             navigate('/');
@@ -220,6 +235,19 @@ export const ClientRegisterPage = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 relative overflow-hidden">
+            {/* Loading Overlay */}
+            {loading && (
+                <div className="fixed inset-0 z-[200] bg-white/80 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in">
+                    <div className="relative w-24 h-24 mb-6">
+                        <div className="absolute inset-0 border-4 border-purple-100 rounded-full"></div>
+                        <div className="absolute inset-0 border-4 border-purple-600 rounded-full border-t-transparent animate-spin"></div>
+                        <div className="absolute inset-0 flex items-center justify-center text-2xl">✨</div>
+                    </div>
+                    <h3 className="text-xl font-black text-gray-800 animate-pulse">Procesando Registro...</h3>
+                    <p className="text-sm text-gray-500 font-medium mt-2">Estamos preparando tu cuenta y tus puntos</p>
+                </div>
+            )}
+
             {/* Background Decoration */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-purple-200/50 rounded-full blur-3xl -mr-20 -mt-20"></div>
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-teal-200/50 rounded-full blur-3xl -ml-16 -mb-16"></div>

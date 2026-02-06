@@ -2,107 +2,111 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // FUNCIONES DE APOYO
     function isSignedIn() {
       return request.auth != null;
     }
 
     function isAdmin() {
       return isSignedIn() && (
-        (request.auth.token.email != null && request.auth.token.email.toLower() == 'pablo_attala@yahoo.com.ar') ||
-        (request.auth.token.email != null && request.auth.token.email.toLower() == 'admin@admin.com') ||
-        request.auth.token.admin == true ||
-        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+        (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'admin') ||
+        request.auth.token.email.matches('.*@admin\\.com') ||
+        request.auth.token.email == 'pablo_attala@yahoo.com.ar'
       );
     }
 
     function isEditor() {
-      return isAdmin() && (
-        (request.auth.token.email != null && request.auth.token.email.toLower() == 'pablo_attala@yahoo.com.ar') ||
-        (request.auth.token.email != null && request.auth.token.email.toLower() == 'admin@admin.com') ||
-        (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) && 
-         get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role != 'viewer') ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      return isSignedIn() && (
+        isAdmin() || 
+        (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'editor')
       );
     }
 
-    // CATÁLOGOS - PÚBLICOS
-    match /campanas/{id} { 
-      allow read: if true;
-      allow write: if isEditor();
-    }
-    match /premios/{id}  { 
-      allow read: if true; 
-      allow write: if isEditor();
-    }
-    match /prizes/{id}  { 
-      allow read: if true; 
-      allow write: if isEditor();
-    }
-
-    // Configuración (Pública para Branding/Logos)
-    match /configuracion/{docId} {
-      allow read: if true; 
-      allow write: if isEditor();
-    }
-    match /config/general {
-      allow read: if true;
-      allow write: if isEditor();
-    }
-    match /config/{docId} {
-      allow read: if true; // Permitir lectura de config general para branding
-      allow write: if isEditor();
-    }
-    
-    // Plantillas (admin)
-    match /plantillas_mensajes/{docId} {
-      allow read: if isAdmin();
-      allow write: if isEditor();
-    }
-
-    // CLIENTES
-    match /users/{clienteId} {
-      // Necesario para que el cliente cree su propio perfil al registrarse
-      allow create: if
-        isEditor() ||
-        (isSignedIn() && request.auth.uid == clienteId);
-
-      // Necesario para validar unicidad de DNI o Teléfono durante el registro
-      allow list: if true;
-
-      // El usuario puede leer y modificar su propio perfil. Admin puede todo.
-      allow read, update: if
-        isAdmin() || (isSignedIn() && request.auth.uid == clienteId);
+    // REGLAS PARA USUARIOS (CLIENTES)
+    match /users/{userId} {
+      // El admin lee/escribe todo, el usuario solo su propio perfil
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
       
+      // Permitir la búsqueda por email para la migración de login (limit 1)
+      allow list: if (request.query.limit <= 1); 
+
+      allow create: if true; // Permitir registro
+      allow update: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
       allow delete: if isAdmin();
 
-      // Subcolecciones del usuario (historial, inbox, etc)
-      match /{sub=**}/{doc} {
-        allow read: if isAdmin() || (isSignedIn() && request.auth.uid == clienteId);
-        allow write: if isAdmin() || isEditor() || (isSignedIn() && request.auth.uid == clienteId);
+      // Inbox (Para la campanita de la PWA)
+      match /inbox/{msgId} {
+        // El usuario puede leer, marcar como leído (update) y borrar sus mensajes
+        allow read, update, delete: if isSignedIn() && request.auth.uid == userId;
+        allow create: if isAdmin(); // Solo el admin manda mensajes
+      }
+      
+      // Historial de Puntos
+      match /points_history/{docId} {
+        allow read: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+        allow write: if isAdmin();
+      }
+
+      // Historial de Visitas / Actividad
+      match /visit_history/{docId} {
+        allow read: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+        allow create: if isSignedIn() && request.auth.uid == userId;
+        allow update, delete: if isAdmin();
       }
     }
 
-    // ADMINISTRADORES
-    match /admins/{adminId} {
-      allow read: if isSignedIn() && (request.auth.uid == adminId || isAdmin());
-      allow write: if isEditor();
-      allow list: if isAdmin(); 
+    // CONFIGURACIÓN GLOBAL
+    match /config/{document} {
+      allow read: if true; // Público para que la PWA cargue logo/colores
+      allow write: if isAdmin();
     }
 
-    // REGLAS PARA COLLECTION GROUPS
-    match /{path=**}/points_history/{docId} {
-      allow read: if isAdmin() || (isSignedIn() && request.auth.uid in path);
+    // PRODUCTOS Y PREMIOS
+    match /prizes/{prizeId} {
+      allow read: if true;
+      allow write: if isEditor();
     }
+
+    // COLECCION PARA CATALOGO DE PREMIOS (LEGACY O ALIAS)
+    match /prizes_catalog/{id} {
+        allow read: if true;
+    }
+
+    // CAMPAÑAS Y PROMOS (IMPORTANTE: Colección se llama 'campanas')
+    match /campanas/{campaignId} {
+      allow read: if true;
+      allow write: if isEditor();
+    }
+
+    // CANJES (REDEMPTIONS)
+    match /redemptions/{id} {
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.clientId);
+      allow create: if isAdmin() || isSignedIn();
+      allow update, delete: if isAdmin();
+    }
+
+    // COLECCIÓN DE ADMINISTRADORES
+    match /admins/{adminId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // GEOLOCALIZACIÓN Y MAPAS
+    match /public_geo/{uid} {
+      allow read: if true;
+      match /samples/{docId} {
+        allow read: if true;
+        allow create: if isSignedIn() && request.auth.uid == uid;
+      }
+    }
+    
+    // REGLA PARA BUSQUEDAS DE POINT HISTORY (Admin Panel)
+    match /{path=**}/points_history/{docId} {
+      allow read: if isAdmin();
+    }
+    
     match /{path=**}/visit_history/{docId} {
       allow read: if isAdmin();
     }
-
-    // REGLAS PÚBLICAS DE MAPAS / GEOLOC (si se usan)
-    match /public_heatmap/{uid} { allow read: if true; allow write: if isSignedIn() && request.auth.uid == uid; }
-    match /public_geo/{uid} { allow read: if true; match /samples/{docId} { allow read: if true; allow create: if isSignedIn() && request.auth.uid == uid; } }
-
   }
 }

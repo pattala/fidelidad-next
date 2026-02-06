@@ -41,6 +41,7 @@ export const ClientsPage = () => {
     // Estados
     const [clients, setClients] = useState<Client[]>([]);
     const [loading, setLoading] = useState(false);
+    const [actionLoading, setActionLoading] = useState(false); // New state for buttons/modals
     const [searchTerm, setSearchTerm] = useState('');
     const [config, setConfig] = useState<any>(null); // Config global
 
@@ -165,6 +166,8 @@ export const ClientsPage = () => {
         } catch (error) {
             console.error("Error cargando datos:", error);
             toast.error("Error de conexión");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -194,7 +197,7 @@ export const ClientsPage = () => {
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         if (isReadOnly) return;
-        setLoading(true);
+        setActionLoading(true); // Use actionLoading
 
         const safeDni = formData.dni.trim();
         const safeEmail = formData.email.trim();
@@ -203,7 +206,7 @@ export const ClientsPage = () => {
 
         if (!safeEmail.includes('@')) {
             toast.error('El email debe ser válido');
-            setLoading(false);
+            setActionLoading(false);
             return;
         }
 
@@ -439,7 +442,7 @@ export const ClientsPage = () => {
             console.error("Error General al guardar:", error);
             toast.error(error.message || "Error al guardar");
         } finally {
-            setLoading(false);
+            setActionLoading(false);
         }
     };
 
@@ -476,7 +479,7 @@ export const ClientsPage = () => {
         e.preventDefault();
         if (isReadOnly || !selectedClientForPoints) return;
 
-        setLoading(true);
+        setActionLoading(true);
         try {
             const currentConfig = await ConfigService.get();
             const inputVal = parseFloat(pointsData.amount);
@@ -582,7 +585,7 @@ export const ClientsPage = () => {
             }
 
             toast.success(`¡Se asignaron ${finalPoints} puntos!`);
-            setLoading(false); // Ensure loading is cleared BEFORE closing
+            setActionLoading(false);
             closePointsModal();
             fetchData();
         } catch (error) {
@@ -1161,10 +1164,10 @@ export const ClientsPage = () => {
                                 <button type="button" onClick={closeModal} className="px-8 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition">Cancelar</button>
                                 <button
                                     type="submit"
-                                    disabled={loading}
+                                    disabled={actionLoading}
                                     className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-100 disabled:opacity-50 flex items-center justify-center gap-2"
                                 >
-                                    {loading ? (
+                                    {actionLoading ? (
                                         <>Cargando...</>
                                     ) : (!editingId && formStep === 1 ? (
                                         <>Siguiente <ArrowRight size={18} /></>
@@ -1279,8 +1282,8 @@ export const ClientsPage = () => {
                                 </label>
                             </div>
 
-                            <button type="submit" disabled={loading} className="w-full py-4 bg-green-600 text-white rounded-2xl font-bold text-lg hover:bg-green-700 transition shadow-lg shadow-green-100 disabled:opacity-50">
-                                {loading ? 'Procesando...' : 'Asignar Puntos'}
+                            <button type="submit" disabled={actionLoading} className="w-full py-4 bg-green-600 text-white rounded-2xl font-bold text-lg hover:bg-green-700 transition shadow-lg shadow-green-100 disabled:opacity-50">
+                                {actionLoading ? 'Procesando...' : 'Asignar Puntos'}
                             </button>
                         </form>
                     </div>

@@ -378,23 +378,44 @@ export const ClientProfilePage = () => {
                         </div>
                         {/* Content (Internal restored text) */}
                         <div className="flex-1 overflow-y-auto p-6 space-y-6 text-sm text-gray-600 scrollbar-hide">
-                            <div>
-                                <h4 className="font-bold text-gray-800 mb-2">1. Generalidades</h4>
+                            <div className="section">
+                                <h4 className="font-bold text-gray-800 mb-2 uppercase tracking-widest text-[10px]">1. Generalidades</h4>
                                 <p>El programa de fidelización "{config?.siteName || 'Club'}" es un beneficio exclusivo para nuestros clientes. La participación en el programa es gratuita e implica la aceptación total de los presentes términos y condiciones.</p>
                             </div>
-                            <div>
-                                <h4 className="font-bold text-gray-800 mb-2">2. Privacidad y Datos</h4>
+
+                            <div className="section">
+                                <h4 className="font-bold text-gray-800 mb-2 uppercase tracking-widest text-[10px]">2. Privacidad y Datos</h4>
                                 <p>Tus datos (Nombre, DNI, Teléfono y Dirección) se utilizan exclusivamente para identificarte como socio, validar tus canjes en el local y enviarte avisos importantes sobre tus puntos. No vendemos ni compartimos tu información con terceros.</p>
                             </div>
-                            <div>
-                                <h4 className="font-bold text-gray-800 mb-2">3. Consentimiento de Comunicaciones</h4>
-                                <p>Al registrarte y/o aceptar los términos en la aplicación, otorgas tu consentimiento explícito para recibir comunicaciones transaccionales y promocionales. Estas comunicaciones incluyen, entre otros, avisos sobre puntos ganados, premios canjeados y vencimiento de puntos.</p>
+
+                            <div className="section">
+                                <h4 className="font-bold text-gray-800 mb-2 uppercase tracking-widest text-[10px]">3. Consentimiento de Comunicaciones</h4>
+                                <p>Al registrarte y/o aceptar los términos en la aplicación, otorgas tu consentimiento explícito para recibir comunicaciones transaccionales y promocionales del {config?.siteName || 'Club'} a través de correo electrónico y notificaciones push. Estas comunicaciones son parte integral del programa de fidelización e incluyen, entre otros, avisos sobre puntos ganados, premios canjeados, promociones especiales y vencimiento de puntos. Puedes gestionar tus preferencias de notificaciones en cualquier momento.</p>
                             </div>
-                            <div>
-                                <h4 className="font-bold text-gray-800 mb-2">4. Acumulación de Puntos</h4>
-                                <p>Los puntos se acumularán según la tasa de conversión vigente establecida por el comercio. Los puntos no tienen valor monetario ni son canjeables por efectivo.</p>
+
+                            <div className="section">
+                                <h4 className="font-bold text-gray-800 mb-2 uppercase tracking-widest text-[10px]">4. Acumulación de Puntos</h4>
+                                <p>Los puntos se acumularán según la tasa de conversión vigente establecida por el comercio. Los puntos no tienen valor monetario, no son transferibles a otras personas ni canjeables por dinero en efectivo.</p>
                             </div>
-                            <p className="text-xs text-center opacity-50 pt-8 pb-12">Última actualización: 8 de Agosto de 2025</p>
+
+                            <div className="section">
+                                <h4 className="font-bold text-gray-800 mb-2 uppercase tracking-widest text-[10px]">5. Canje de Premios</h4>
+                                <p>El canje de premios se realiza exclusivamente en el local físico y será procesado por un administrador del sistema. La PWA sirve como un catálogo para consultar los premios disponibles y los puntos necesarios. Para realizar un canje, el cliente debe presentar una identificación válida.</p>
+                            </div>
+
+                            <div className="section">
+                                <h4 className="font-bold text-gray-800 mb-2 uppercase tracking-widest text-[10px]">6. Validez y Caducidad</h4>
+                                <p>Los puntos acumulados tienen una fecha de caducidad que se rige por las reglas definidas en el sistema. El cliente será notificado de los vencimientos próximos a través de los canales de comunicación aceptados para que pueda utilizarlos a tiempo.</p>
+                            </div>
+
+                            <div className="section">
+                                <h4 className="font-bold text-gray-800 mb-2 uppercase tracking-widest text-[10px]">7. Modificaciones del Programa</h4>
+                                <p>{config?.siteName || 'El comercio'} se reserva el derecho de modificar los términos y condiciones, la tasa de conversión, el catálogo de premios o cualquier otro aspecto del programa de fidelización, inclusive su finalización, en cualquier momento y sin previo aviso.</p>
+                            </div>
+
+                            <div className="pt-4 border-t border-gray-100 text-center opacity-50">
+                                <p>Última actualización: 8 de Agosto de 2025</p>
+                            </div>
                         </div>
                     </div>
                 )

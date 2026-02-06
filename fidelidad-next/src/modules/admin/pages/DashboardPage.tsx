@@ -385,13 +385,12 @@ export const DashboardPage = () => {
                                                         🎁 {config?.birthdayPoints || 100} Pts
                                                     </button>
                                                 ) : (
-                                                    <button
-                                                        disabled
-                                                        className="flex-1 bg-gray-100 text-gray-400 text-[10px] font-bold py-1.5 rounded-lg flex items-center justify-center gap-1 cursor-not-allowed border border-gray-200"
-                                                        title="Puntos ya regalados este año"
+                                                    <div
+                                                        className="flex-1 bg-gray-50 text-gray-400 text-[10px] font-bold py-1.5 rounded-lg flex items-center justify-center gap-1 border border-gray-100 select-none"
+                                                        title="Los puntos de cumpleaños de este año ya fueron enviados"
                                                     >
-                                                        ✅ Puntos
-                                                    </button>
+                                                        ✅ Puntos Enviados
+                                                    </div>
                                                 )}
                                             </div>
                                         </div>

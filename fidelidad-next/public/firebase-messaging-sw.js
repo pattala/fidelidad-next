@@ -39,29 +39,40 @@ messaging.onBackgroundMessage((payload) => {
 
 self.addEventListener('push', (event) => {
     console.log('[SW] Push event received');
+
+    let title = 'Club de Fidelidad';
+    let options = {
+        body: 'Tienes una novedad en tu cuenta',
+        icon: '/pwa-192x192.png',
+        badge: '/pwa-192x192.png',
+        vibrate: [100, 50, 100],
+        requireInteraction: true,
+        data: { url: '/inbox' }
+    };
+
     if (event.data) {
         try {
             const payload = event.data.json();
-            console.log('[SW] Payload:', payload);
+            console.log('[SW] Full Payload:', payload);
 
-            // Si la notificación no viene estructurada de forma standard para el navegador, 
-            // la forzamos aquí para asegurar que Windows la muestre.
-            if (payload.data && !payload.notification) {
-                const title = payload.data.title || 'Club de Fidelidad';
-                const options = {
-                    body: payload.data.body || 'Tienes una novedad en tu cuenta',
-                    icon: '/pwa-192x192.png',
-                    badge: '/pwa-192x192.png',
-                    vibrate: [100, 50, 100],
-                    requireInteraction: true,
-                    data: payload.data
-                };
-                event.waitUntil(self.registration.showNotification(title, options));
-            }
+            // Extraer info de 'notification' o de 'data'
+            const notification = payload.notification || {};
+            const data = payload.data || {};
+
+            title = notification.title || data.title || title;
+            options.body = notification.body || data.body || options.body;
+            options.data.url = data.url || data.click_action || options.data.url;
+
+            if (data.icon) options.icon = data.icon;
+            if (payload.fcmMessageId) options.tag = payload.fcmMessageId;
+
         } catch (e) {
-            console.warn('[SW] Push event error or non-json data');
+            console.warn('[SW] Push event non-json data:', event.data.text());
+            options.body = event.data.text() || options.body;
         }
     }
+
+    event.waitUntil(self.registration.showNotification(title, options));
 });
 
 // Handler para clicks en la notificación

@@ -15,35 +15,46 @@ chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
 let isManualAmount = false;
 
 function detectAmount() {
-    if (isManualAmount) return; // Si el usuario lo cambió a mano, no lo pisamos
+    const pageText = document.body.innerText.toUpperCase();
+    const hasConfirmScreen = pageText.includes('CONFIRMAR FACTURA');
+    const panel = document.getElementById('fidelidad-panel');
+
+    // Si NO estamos en la pantalla de confirmación, quitamos el panel
+    if (!hasConfirmScreen) {
+        if (panel && !isManualAmount) {
+            panel.remove();
+            detectedAmount = 0;
+        }
+        return;
+    }
 
     let amount = 0;
 
-    // 1. Prioridad Máxima: El texto exacto que nos dijo el usuario
-    const allElements = document.querySelectorAll('h1, h2, h3, h4, h5, div, span, b, td, label');
+    // 1. Buscamos específicamente la frase clave para extraer el monto
+    const allElements = document.querySelectorAll('h1, h2, h3, h4, h5, div, span, b, td, label, p');
     for (let cand of allElements) {
         const text = cand.innerText.trim().toUpperCase();
         if (text.includes('TOTAL A PAGAR $:')) {
             let extracted = parseValue(text);
             if (extracted > 0) {
                 amount = extracted;
-                console.log("🎯 [Club Fidelidad] Match Exacto Detectado:", amount);
                 break;
             }
         }
     }
 
-    // 2. Fallback: El ID que sospechábamos por si no encuentra el texto
-    if (!amount) {
-        let el = document.getElementById('cpbtc_total') || document.querySelector('input[name="cpbtc_total"]');
-        if (el && el.value) {
-            amount = parseValue(el.value);
-        }
-    }
-
+    // 2. Si encontramos el monto, mostramos o actualizamos el panel
     if (amount > 0 && amount !== detectedAmount) {
         detectedAmount = amount;
-        updatePanelAmount();
+        if (panel) {
+            const input = document.getElementById('fidelidad-amount-input');
+            if (input && !isManualAmount) input.value = detectedAmount;
+        } else {
+            showFidelidadPanel();
+        }
+    } else if (amount > 0 && !panel) {
+        // Por si el monto es el mismo pero el panel se cerró
+        showFidelidadPanel();
     }
 }
 

@@ -95,12 +95,19 @@ export default async function handler(req, res) {
                 });
             }
 
-            // 4. Obtener ratio de conversión para la extensión
-            const gamifSnap = await db.collection('config').doc('gamification').get();
-            const gamif = gamifSnap.exists ? gamifSnap.data() : {};
-            const ratio = Number(gamif.pointsToCurrency) || 1;
+            // 4. Obtener ratio de conversión oficial (config/general)
+            const configSnap = await db.collection('config').doc('general').get();
+            const configData = configSnap.exists ? configSnap.data() : {};
 
-            return res.status(200).json({ ok: true, clients: Array.from(results.values()), ratio });
+            const pointsMoneyBase = Number(configData.pointsMoneyBase) || 100;
+            const pointsPerPeso = Number(configData.pointsPerPeso) || 1;
+
+            return res.status(200).json({
+                ok: true,
+                clients: Array.from(results.values()),
+                pointsMoneyBase,
+                pointsPerPeso
+            });
         } catch (err) {
             return res.status(500).json({ ok: false, error: err.message });
         }
@@ -143,25 +150,25 @@ export default async function handler(req, res) {
         }
 
         // 3. Chequeo de Integración Externa
+        const configSnap = await db.collection('config').doc('general').get();
+        const config = configSnap.exists ? configSnap.data() : {};
+
         if (reason === 'external_integration') {
-            const configSnap = await db.collection('config').doc('general').get();
-            const config = configSnap.exists ? configSnap.data() : {};
             if (config.enableExternalIntegration === false) {
                 return res.status(403).json({ ok: false, error: "External integration is disabled in settings" });
             }
         }
 
-        // 4. Determinar Monto
+        // 4. Determinar Monto de Puntos
         let points = 0;
         const finalAmount = amountOverride || amount;
 
         if (isAdmin && finalAmount) {
             if (reason === 'external_integration') {
-                // APLICAR CONVERSIÓN DE PUNTOS
-                const gamifSnap = await db.collection('config').doc('gamification').get();
-                const gamif = gamifSnap.exists ? gamifSnap.data() : {};
-                const ratio = Number(gamif.pointsToCurrency) || 1; // Ej: 1 punto cada $100 -> ratio = 100
-                points = Math.floor(Number(finalAmount) / ratio);
+                // APLICAR CONVERSIÓN OFICIAL
+                const base = Number(config.pointsMoneyBase) || 100;
+                const multiplier = Number(config.pointsPerPeso) || 1;
+                points = Math.floor((Number(finalAmount) / base) * multiplier);
             } else {
                 points = Number(finalAmount); // Manual force
             }
@@ -172,9 +179,7 @@ export default async function handler(req, res) {
                 const cfg = cfgSnap.exists ? cfgSnap.data() : {};
                 points = Number(cfg.pointsForAddress) || 50;
             } else if (reason === 'welcome_signup') {
-                const cfgSnap = await db.collection('config').doc('general').get();
-                const cfg = cfgSnap.exists ? cfgSnap.data() : {};
-                points = Number(cfg.welcomePoints) || 0;
+                points = Number(config.welcomePoints) || 0;
             } else {
                 return res.status(400).json({ ok: false, error: "Unknown reason or missing amount" });
             }

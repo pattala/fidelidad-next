@@ -1,1 +1,139 @@
-/* Estilos inyectados dinámicamente desde content.js */
+.fidelidad-panel {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 320px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    z-index: 2147483647;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    border: 1px solid #e0e0e0;
+    overflow: hidden;
+    animation: fidelidad-slide-up 0.3s ease-out;
+}
+
+@keyframes fidelidad-slide-up {
+    from {
+        transform: translateY(100px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.fidelidad-header {
+    background: #6200ee;
+    color: white;
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.fidelidad-header h1 {
+    font-size: 14px;
+    margin: 0;
+    font-weight: 600;
+}
+
+.fidelidad-body {
+    padding: 16px;
+}
+
+.fidelidad-amount {
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+.fidelidad-search-container {
+    margin-bottom: 12px;
+}
+
+.fidelidad-input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-sizing: border-box;
+    font-size: 13px;
+    outline: none;
+    background: white !important;
+    color: black !important;
+}
+
+.fidelidad-input:focus {
+    border-color: #6200ee;
+}
+
+.fidelidad-results {
+    max-height: 150px;
+    overflow-y: auto;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    margin-top: 4px;
+    background: white;
+}
+
+.fidelidad-result-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    border-bottom: 1px solid #f9f9f9;
+    color: #333;
+}
+
+.fidelidad-result-item:hover {
+    background: #f5f5f5;
+}
+
+.fidelidad-result-item .dni {
+    font-size: 11px;
+    color: #888;
+}
+
+.fidelidad-button {
+    width: 100%;
+    padding: 12px;
+    background: #6200ee;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+}
+
+.fidelidad-button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.fidelidad-success {
+    text-align: center;
+    color: #4caf50;
+    padding: 20px;
+}
+
+.fidelidad-close {
+    cursor: pointer;
+    font-size: 18px;
+}
+
+.fidelidad-wa-link {
+    display: block;
+    text-align: center;
+    background: #25d366;
+    color: white;
+    text-decoration: none;
+    padding: 10px;
+    border-radius: 8px;
+    margin-top: 10px;
+    font-weight: bold;
+}

@@ -41,7 +41,7 @@ export default async function handler(req, res) {
 
     try {
         const db = getDb();
-        const { uid, reason, amountOverride } = req.body || {};
+        const { uid, reason, amountOverride, amount, concept, metadata } = req.body || {};
 
         // 1. Autenticación (DUAL MODE)
         let isAdmin = false;
@@ -51,7 +51,7 @@ export default async function handler(req, res) {
         const authHeader = req.headers["authorization"];
 
         if (apiKey && process.env.API_SECRET_KEY && apiKey === process.env.API_SECRET_KEY) {
-            isAdmin = true; // Modo Admin
+            isAdmin = true; // Modo Admin (Panel o Extensión)
         } else if (authHeader && authHeader.startsWith("Bearer ")) {
             const token = authHeader.split("Bearer ")[1];
             try {
@@ -68,16 +68,26 @@ export default async function handler(req, res) {
         const targetUid = isAdmin ? uid : requestUid; // Admin elige a quien, Usuario solo a sí mismo
         if (!targetUid) return res.status(400).json({ ok: false, error: "Missing Target UID" });
 
-        // Si es Usuario intentando asignarse a otro (aunque envíe body uid, lo ignoramos arriba, pero validamos coherencia)
+        // Si es Usuario intentando asignarse a otro
         if (!isAdmin && uid && uid !== requestUid) {
             return res.status(403).json({ ok: false, error: "Forbidden: Can only assign to self" });
         }
 
-        // 3. Determinar Monto
-        let points = 0;
+        // 3. Chequeo de Integración Externa
+        if (reason === 'external_integration') {
+            const configSnap = await db.collection('config').doc('general').get();
+            const config = configSnap.exists ? configSnap.data() : {};
+            if (config.enableExternalIntegration === false) {
+                return res.status(403).json({ ok: false, error: "External integration is disabled in settings" });
+            }
+        }
 
-        if (isAdmin && amountOverride) {
-            points = Number(amountOverride); // Admin puede forzar monto
+        // 4. Determinar Monto
+        let points = 0;
+        const finalAmount = amountOverride || amount;
+
+        if (isAdmin && finalAmount) {
+            points = Number(finalAmount); // Admin puede forzar monto
         } else {
             // Modo Reglas de Negocio
             if (reason === 'profile_address') {
@@ -95,7 +105,7 @@ export default async function handler(req, res) {
 
         if (points <= 0) return res.status(200).json({ ok: true, pointsAdded: 0, message: "No points to add" });
 
-        // 4. Idempotencia & Transacción
+        // 5. Idempotencia & Transacción
         const clientRef = db.collection("users").doc(targetUid);
 
         let result = { ok: false };
@@ -105,8 +115,8 @@ export default async function handler(req, res) {
             if (!docSnapshot.exists) throw new Error("Client not found");
             const data = docSnapshot.data();
 
-            // Chequeo de duplicados
-            if (data.rewards_awarded && data.rewards_awarded[reason]) {
+            // Chequeo de duplicados (solo para razones fijas, no para integraciones externas)
+            if (reason !== 'external_integration' && data.rewards_awarded && data.rewards_awarded[reason]) {
                 throw new Error("ALREADY_AWARDED");
             }
 
@@ -115,7 +125,7 @@ export default async function handler(req, res) {
 
             tx.update(clientRef, {
                 points: newPoints,
-                puntos: newPoints, // Keep legacy for safety but update points
+                puntos: newPoints,
                 [`rewards_awarded.${reason}`]: true,
                 updatedAt: admin.firestore.FieldValue.serverTimestamp()
             });
@@ -131,7 +141,8 @@ export default async function handler(req, res) {
                 amount: points,
                 type: 'credit',
                 reason: reason || 'manual',
-                concept: reason === 'welcome_signup' ? 'Puntos de Bienvenida' : (reason === 'profile_address' ? 'Premio por completar dirección' : 'Asignación automática'),
+                concept: concept || (reason === 'welcome_signup' ? 'Puntos de Bienvenida' : (reason === 'profile_address' ? 'Premio por completar dirección' : 'Asignación automática')),
+                metadata: metadata || {},
                 date: admin.firestore.FieldValue.serverTimestamp(),
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
                 expiresAt: admin.firestore.Timestamp.fromDate(expirationDate),
@@ -139,19 +150,32 @@ export default async function handler(req, res) {
                 balanceAfter: newPoints
             });
 
-            // Opcional: Crear mensaje en Inbox si es bienvenida
-            if (reason === 'welcome_signup') {
+            // Opcional: Crear mensaje en Inbox
+            if (reason === 'welcome_signup' || reason === 'external_integration') {
                 const inboxRef = clientRef.collection('inbox').doc();
+                const title = reason === 'welcome_signup' ? '¡Te damos la bienvenida!' : '¡Sumaste Puntos! 💰';
+                const body = reason === 'welcome_signup'
+                    ? `Gracias por registrarte. Ya tienes ${points} puntos para empezar a disfrutar nuestros beneficios.`
+                    : `Has sumado ${points} puntos por tu compra. Tu nuevo saldo es de ${newPoints} pts.`;
+
                 tx.set(inboxRef, {
-                    title: '¡Te damos la bienvenida!',
-                    body: `Gracias por registrarte. Ya tienes ${points} puntos para empezar a disfrutar nuestros beneficios.`,
-                    type: 'welcome',
+                    title,
+                    body,
+                    type: reason === 'welcome_signup' ? 'welcome' : 'points_earned',
                     createdAt: admin.firestore.FieldValue.serverTimestamp(),
                     isRead: false
                 });
             }
 
             result = { ok: true, pointsAdded: points, newBalance: newPoints };
+
+            // Agregar WhatsApp Link si hay teléfono
+            const phone = data.phone || data.telefono;
+            if (phone && reason === 'external_integration') {
+                const cleanPhone = String(phone).replace(/\D/g, '');
+                const msg = `¡Hola! 👋 Sumaste ${points} puntos en tu última compra. ¡Gracias por elegirnos! 🎁`;
+                result.whatsappLink = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msg)}`;
+            }
         });
 
         return res.status(200).json(result);

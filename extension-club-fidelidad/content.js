@@ -1,132 +1,126 @@
-// Club Fidelidad - Integrador PRO v6 (The "Visible" Fix)
-console.log("🚀 [Club Fidelidad] v6 iniciando...");
+// Integrador Fidelidad v7 - Reconstrucción Total
+console.log("🚀 [Club Fidelidad] Integrador v7 (Clean Boot) iniciado");
 
-let config = { apiUrl: '', apiKey: '' };
-let detectedAmount = 0;
-let selectedClient = null;
-let pointsMoneyBase = 100;
-let pointsPerPeso = 1;
-let activePromotions = [];
+let state = {
+    detectedAmount: 0,
+    selectedClient: null,
+    pointsMoneyBase: 100,
+    pointsPerPeso: 1,
+    activePromotions: [],
+    apiUrl: '',
+    apiKey: ''
+};
 
 // Carga de configuración
 chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
-    config = res;
-    console.log("📦 [Club Fidelidad] Configuración cargada");
-    if (config.apiUrl) fetchInitData();
+    state.apiUrl = res.apiUrl;
+    state.apiKey = res.apiKey;
+    if (state.apiUrl) fetchInitData();
 });
 
-async function fetchInitData() {
-    if (!config.apiUrl || !config.apiKey) return;
-    try {
-        console.log("📡 [Club Fidelidad] Intentando conectar con API...");
-        const res = await fetch(`${config.apiUrl}/api/assign-points?q=___`, {
-            method: 'GET',
-            headers: { 'x-api-key': config.apiKey }
+async function apiProxy(url, method = 'GET', body = null) {
+    return new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({
+            type: 'API_CALL',
+            params: {
+                url,
+                method,
+                headers: { 'x-api-key': state.apiKey },
+                body
+            }
+        }, response => {
+            if (chrome.runtime.lastError) return reject(chrome.runtime.lastError);
+            if (response.ok) resolve(response.data);
+            else reject(new Error(response.error));
         });
-        const data = await res.json();
+    });
+}
+
+async function fetchInitData() {
+    try {
+        const data = await apiProxy(`${state.apiUrl}/api/assign-points?q=___`);
         if (data.ok) {
-            pointsMoneyBase = Number(data.pointsMoneyBase) || 100;
-            pointsPerPeso = Number(data.pointsPerPeso) || 1;
-            activePromotions = data.activePromotions || [];
-            console.log("✅ [Club Fidelidad] Datos de promociones cargados");
+            state.pointsMoneyBase = Number(data.pointsMoneyBase) || 100;
+            state.pointsPerPeso = Number(data.pointsPerPeso) || 1;
+            state.activePromotions = data.activePromotions || [];
             updateUI();
         }
     } catch (e) {
-        console.error("❌ [Club Fidelidad] Error API:", e);
+        console.error("❌ Error inicialización:", e);
     }
 }
 
 function calculatePoints() {
-    let basePoints = Math.floor((detectedAmount / pointsMoneyBase) * pointsPerPeso);
-    let totalBonus = 0;
-    let totalMultiplier = 1;
+    let base = Math.floor((state.detectedAmount / state.pointsMoneyBase) * state.pointsPerPeso);
+    let bonus = 0;
+    let mult = 1;
 
-    const host = document.getElementById('fidelidad-pro-host');
-    if (host?.shadowRoot) {
-        const checks = host.shadowRoot.querySelectorAll('.promo-checkbox:checked');
-        checks.forEach(chk => {
-            const promo = activePromotions.find(p => p.id === chk.dataset.id);
-            if (promo) {
-                if (promo.rewardType === 'FIXED') totalBonus += Number(promo.rewardValue);
-                if (promo.rewardType === 'MULTIPLIER') totalMultiplier *= Number(promo.rewardValue);
-            }
-        });
-    }
-    return Math.floor(basePoints * totalMultiplier) + totalBonus;
+    document.querySelectorAll('.cf-promo-chk:checked').forEach(chk => {
+        const p = state.activePromotions.find(x => x.id === chk.dataset.id);
+        if (p) {
+            if (p.rewardType === 'FIXED') bonus += Number(p.rewardValue);
+            if (p.rewardType === 'MULTIPLIER') mult *= Number(p.rewardValue);
+        }
+    });
+
+    return Math.floor(base * mult) + bonus;
 }
 
 function updateUI() {
-    const host = document.getElementById('fidelidad-pro-host');
-    if (host?.shadowRoot) {
-        const ptsEl = host.shadowRoot.getElementById('pts-preview');
-        if (ptsEl) ptsEl.innerText = `Equivale a ${calculatePoints()} puntos`;
+    const ptsEl = document.getElementById('cf-pts-preview');
+    if (ptsEl) ptsEl.innerText = `Equivale a ${calculatePoints()} puntos`;
 
-        // Render promos if they were empty before
-        const promoContainer = host.shadowRoot.getElementById('promo-container');
-        if (promoContainer && activePromotions.length > 0 && promoContainer.innerHTML.includes('No hay promociones')) {
-            renderPromosInContainer(promoContainer);
-        }
+    const container = document.getElementById('cf-promo-container');
+    if (container && state.activePromotions.length > 0 && container.getAttribute('data-loaded') !== 'true') {
+        container.innerHTML = state.activePromotions.map(p => `
+            <label class="cf-promo-item">
+                <input type="checkbox" class="cf-promo-chk" data-id="${p.id}" checked>
+                <span>${p.title}</span>
+                <span class="cf-promo-badge">${p.rewardType === 'MULTIPLIER' ? 'x' + p.rewardValue : '+' + p.rewardValue}</span>
+            </label>
+        `).join('');
+        container.setAttribute('data-loaded', 'true');
+        container.querySelectorAll('.cf-promo-chk').forEach(c => c.onchange = updateUI);
     }
 }
 
-function renderPromosInContainer(container) {
-    container.innerHTML = activePromotions.map(p => `
-        <label class="promo-item">
-            <input type="checkbox" class="promo-checkbox" data-id="${p.id}" checked>
-            <span>${p.title}</span>
-            <span class="promo-badge">${p.rewardType === 'MULTIPLIER' ? 'x' + p.rewardValue : '+' + p.rewardValue}</span>
-        </label>
-    `).join('');
-    container.querySelectorAll('.promo-checkbox').forEach(c => c.onchange = updateUI);
-}
-
-// Detector Mejorado
+// Detector de Factura
 function detectBilling() {
-    const pageText = document.body.innerText.toUpperCase();
-    const hasTotal = pageText.includes('TOTAL A PAGAR') || pageText.includes('CONFIRMAR FACTURA');
-    const host = document.getElementById('fidelidad-pro-host');
+    const text = document.body.innerText.toUpperCase();
+    const isBilling = text.includes('CONFIRMAR FACTURA') || text.includes('TOTAL A PAGAR');
+    const panel = document.getElementById('cf-main-panel');
 
-    if (!hasTotal) {
-        if (host) {
-            console.log("👋 [Club Fidelidad] Removiendo panel (fuera de pantalla)");
-            host.remove();
-        }
-        detectedAmount = 0;
+    if (!isBilling) {
+        if (panel) panel.remove();
+        state.detectedAmount = 0;
         return;
     }
 
-    // Buscar monto
     let amount = 0;
-    const items = document.querySelectorAll('h1, h2, h3, h4, h5, div, span, b, td, label, p');
-    for (let el of items) {
-        const text = el.innerText.trim();
-        if (text.toUpperCase().includes('TOTAL A PAGAR $:')) {
-            amount = parseAmount(text);
+    const Els = document.querySelectorAll('h1, h2, h3, h4, h5, div, span, b, td, label, p');
+    for (let el of Els) {
+        const t = el.innerText.trim();
+        if (t.toUpperCase().includes('TOTAL A PAGAR $:')) {
+            amount = parseVal(t);
             if (amount > 0) break;
         }
     }
 
     if (amount > 0) {
-        if (Math.abs(amount - detectedAmount) > 0.1) {
-            console.log("💰 [Club Fidelidad] Nuevo monto:", amount);
-            detectedAmount = amount;
-            if (host) {
-                const inp = host.shadowRoot.getElementById('amount-input');
-                if (inp) inp.value = String(detectedAmount).replace('.', ',');
+        if (Math.abs(amount - state.detectedAmount) > 0.1) {
+            state.detectedAmount = amount;
+            if (panel) {
+                const inp = document.getElementById('cf-amount-input');
+                if (inp) inp.value = String(amount).replace('.', ',');
                 updateUI();
             }
         }
-
-        if (!host) {
-            console.log("✨ [Club Fidelidad] Inyectando panel...");
-            injectProPanel();
-        }
+        if (!panel) injectPanel();
     }
 }
 
-function parseAmount(t) {
-    let p = t.split('$');
-    let s = p.length > 1 ? p[1] : p[0];
+function parseVal(t) {
+    let s = t.split('$')[1] || t.split('$')[0];
     let c = s.replace(/[^0-9,.]/g, '').trim();
     if (!c) return 0;
     if (c.includes('.') && c.includes(',')) c = c.replace(/\./g, '').replace(',', '.');
@@ -136,253 +130,229 @@ function parseAmount(t) {
 
 setInterval(detectBilling, 1000);
 
-function injectProPanel() {
-    if (document.getElementById('fidelidad-pro-host')) return;
-
-    const host = document.createElement('div');
-    host.id = 'fidelidad-pro-host';
-    // Estilos de alto impacto para visibilidad
-    host.style.cssText = `
-        position: fixed !important;
-        top: 30px !important;
-        right: 30px !important;
-        z-index: 2147483647 !important;
-        width: 320px !important;
-        display: block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        all: initial;
-    `;
-    document.documentElement.appendChild(host); // Root level
-
-    const shadow = host.attachShadow({ mode: 'open' });
-
-    const style = document.createElement('style');
-    style.textContent = `
-        :host { pointer-events: auto !important; }
-        .panel {
-            width: 320px;
-            background: #ffffff;
-            border-radius: 18px;
-            box-shadow: 0 30px 60px -12px rgba(0,0,0,0.4), 0 0 0 1px rgba(0,0,0,0.05);
-            font-family: 'Inter', -apple-system, system-ui, sans-serif;
-            overflow: hidden;
-            border: 2px solid #10b981;
-            display: flex;
-            flex-direction: column;
-            pointer-events: auto !important;
-        }
-        .header {
-            background: #10b981;
-            padding: 16px;
-            color: white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: move;
-            font-weight: 800;
-        }
-        .header h2 { margin: 0; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; color: white !important; }
-        .close { cursor: pointer; font-size: 18px; background: rgba(0,0,0,0.1); width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
-
-        .content { padding: 20px; background: white; }
-
-        label.top-label { display: block; font-size: 10px; font-weight: 900; color: #9ca3af; text-transform: uppercase; margin-bottom: 6px; }
-        
-        input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #f3f4f6;
-            border-radius: 12px;
-            box-sizing: border-box;
-            font-size: 14px;
-            outline: none;
-            background: #f9fafb;
-            color: #111827;
-            margin-bottom: 15px;
-            user-select: text !important;
-        }
-        input:focus { border-color: #10b981; background: white; }
-
-        .amount-display { font-size: 24px; font-weight: 900; text-align: center; color: #059669; }
-        .pts-preview { margin-top: -8px; margin-bottom: 15px; font-size: 13px; font-weight: 800; color: #059669; text-align: center; background: #ecfdf5; padding: 4px; border-radius: 6px; }
-
-        .promo-list { background: #f9fafb; border-radius: 14px; padding: 12px; border: 1px solid #f3f4f6; margin-bottom: 15px; }
-        .promo-item { display: flex; align-items: center; gap: 10px; font-size: 12px; margin-bottom: 8px; color: #374151; cursor: pointer; }
-        .promo-item:last-child { margin-bottom: 0; }
-        .promo-item input { width: 16px; height: 16px; margin: 0; cursor: pointer; }
-        .promo-badge { font-size: 9px; background: #10b981; color: white; padding: 2px 6px; border-radius: 4px; font-weight: 900; margin-left: auto; }
-
-        .results {
-            background: white; border: 1px solid #e5e7eb; border-radius: 12px;
-            max-height: 160px; overflow-y: auto; position: absolute; width: calc(100% - 40px); z-index: 100;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-        }
-        .result-item { padding: 12px; border-bottom: 1px solid #f3f4f6; cursor: pointer; }
-        .result-item:hover { background: #f0fdf4; }
-        .result-item b { display: block; font-size: 14px; color: #111827; }
-
-        .btn-submit {
-            width: 100%; padding: 16px; background: #10b981; color: white; border: none;
-            border-radius: 14px; font-size: 15px; font-weight: 800; cursor: pointer;
-            box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.4);
-        }
-        .btn-submit:disabled { background: #d1d5db; box-shadow: none; cursor: not-allowed; }
-
-        .whatsapp-row { display: flex; align-items: center; gap: 8px; margin-top: 15px; font-size: 13px; font-weight: 700; color: #059669; }
-        .whatsapp-row input { width: 16px; height: 16px; }
-
-        .status-bar { text-align: center; margin-top: 12px; font-size: 11px; color: #6b7280; font-weight: 600; }
-    `;
-    shadow.appendChild(style);
+function injectPanel() {
+    if (document.getElementById('cf-main-panel')) return;
 
     const panel = document.createElement('div');
-    panel.className = 'panel';
+    panel.id = 'cf-main-panel';
+    panel.className = 'cf-panel-root';
     panel.innerHTML = `
-        <div class="header" id="drag-handle">
-            <h2>Integrador Fidelidad</h2>
-            <div class="close" id="close-x">✕</div>
+        <div class="cf-header" id="cf-drag-handle">
+            <span>INTEGRADOR FIDELIDAD</span>
+            <div id="cf-close-btn" class="cf-close">✕</div>
         </div>
-        <div class="content">
-            <label class="top-label">Total a Cobrar</label>
-            <input type="text" id="amount-input" class="amount-display" value="${String(detectedAmount).replace('.', ',')}">
-            <div id="pts-preview" class="pts-preview">Puntos: 0</div>
-
-            <label class="top-label">Cliente</label>
-            <input type="text" id="search-input" placeholder="DNI o Nombre..." autocomplete="off">
-            <div id="results-list" class="results" style="display:none;"></div>
-            <div id="selected-info" style="display:none; margin-top:-10px; margin-bottom:12px; padding:10px; background:#f0fdf4; border:1.5px solid #10b981; border-radius:12px; text-align:center; font-weight:800; color:#065f46; font-size:13px;"></div>
-
-            <div class="promo-list" id="promo-container">
-                <div style="text-align:center; font-size:11px; color:#999; padding:5px;">Cargando promociones...</div>
+        <div class="cf-body">
+            <div class="cf-group">
+                <label>TOTAL A COBRAR</label>
+                <input type="text" id="cf-amount-input" class="cf-amount" value="${String(state.detectedAmount).replace('.', ',')}">
+                <div id="cf-pts-preview" class="cf-pts">Calculando puntos...</div>
             </div>
 
-            <label class="whatsapp-row">
-                <input type="checkbox" id="w-check" checked>
+            <div class="cf-group" style="position:relative;">
+                <label>BUSCAR CLIENTE</label>
+                <input type="text" id="cf-search-input" placeholder="DNI o Nombre..." autocomplete="off">
+                <div id="cf-results" class="cf-results-box" style="display:none;"></div>
+                <div id="cf-selected" class="cf-selected-pill" style="display:none;"></div>
+            </div>
+
+            <div class="cf-promos">
+                <div class="cf-promo-title">PROMOCIONES VIGENTES</div>
+                <div id="cf-promo-container" class="cf-promo-list">
+                    <div style="font-size:11px; color:#999; text-align:center;">Cargando...</div>
+                </div>
+            </div>
+
+            <label class="cf-whatsapp">
+                <input type="checkbox" id="cf-w-notify" checked>
                 <span>Notificar por WhatsApp</span>
             </label>
 
-            <button id="submit-btn" class="btn-submit" disabled>CONFIRMAR PUNTOS</button>
-            <div id="status-msg" class="status-bar"></div>
+            <button id="cf-submit" class="cf-btn" disabled>CONFIRMAR PUNTOS</button>
+            <div id="cf-status" class="cf-status-text"></div>
         </div>
     `;
-    shadow.appendChild(panel);
 
-    const cBtn = shadow.getElementById('close-x');
-    const sInp = shadow.getElementById('search-input');
-    const aInp = shadow.getElementById('amount-input');
-    const rList = shadow.getElementById('results-list');
-    const subBtn = shadow.getElementById('submit-btn');
-    const statEl = shadow.getElementById('status-msg');
-    const selBox = shadow.getElementById('selected-info');
-    const wCheck = shadow.getElementById('w-check');
-    const promoBox = shadow.getElementById('promo-container');
+    // Inyectar Estilos Directos (Sin Shadow DOM)
+    const style = document.createElement('style');
+    style.id = 'cf-styles';
+    style.textContent = `
+        .cf-panel-root {
+            position: fixed !important; top: 20px !important; right: 20px !important;
+            width: 320px !important; background: white !important; z-index: 999999999 !important;
+            border-radius: 16px !important; border: 2px solid #10b981 !important;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3) !important; font-family: sans-serif !important;
+            display: flex !important; flex-direction: column !important; overflow: hidden !important;
+            color: #1f2937 !important; user-select: auto !important;
+        }
+        .cf-header { background: #10b981; padding: 12px 18px; color: white; display: flex; justify-content: space-between; align-items: center; cursor: move; font-weight: 800; font-size: 13px; }
+        .cf-close { cursor: pointer; padding: 4px; }
+        .cf-body { padding: 18px; }
+        .cf-group { margin-bottom: 15px; }
+        .cf-group label { display: block; font-size: 10px; font-weight: 800; color: #9ca3af; margin-bottom: 6px; }
+        .cf-amount { width: 100%; border: 2px solid #f3f4f6; border-radius: 10px; background: #f9fafb; padding: 10px; font-size: 24px; font-weight: 900; text-align: center; color: #059669; outline: none; box-sizing: border-box; }
+        .cf-pts { text-align: center; margin-top: 6px; color: #059669; font-weight: 700; font-size: 12px; }
+        
+        .cf-panel-root input[type="text"] {
+            width: 100% !important; border: 2px solid #f3f4f6 !important; border-radius: 10px !important;
+            background: #f9fafb !important; padding: 10px !important; font-size: 14px !important;
+            box-sizing: border-box !important; outline: none !important;
+        }
+        .cf-panel-root input:focus { border-color: #10b981 !important; background: white !important; }
 
-    cBtn.onclick = () => host.remove();
+        .cf-results-box { position: absolute; background: white; border: 1px solid #e5e7eb; border-radius: 10px; width: 100%; max-height: 150px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-top: 2px; }
+        .cf-res-item { padding: 10px; border-bottom: 1px solid #f3f4f6; cursor: pointer; }
+        .cf-res-item:hover { background: #f0fdf4; }
+        .cf-res-item b { display: block; font-size: 13px; }
+        .cf-res-item span { font-size: 10px; color: #6b7280; }
 
-    // INTERACTION ISOLATION
-    ['mousedown', 'mouseup', 'click', 'keydown', 'keyup', 'keypress'].forEach(e => {
-        panel.addEventListener(e, (ev) => ev.stopPropagation(), { capture: true });
+        .cf-selected-pill { margin-top: 10px; padding: 8px; background: #ecfdf5; border: 1px solid #10b981; border-radius: 8px; text-align: center; font-weight: 700; color: #065f46; font-size: 12px; }
+
+        .cf-promos { background: #f9fafb; border-radius: 12px; padding: 10px; border: 1px solid #f3f4f6; margin-bottom: 15px; }
+        .cf-promo-title { font-size: 9px; font-weight: 900; color: #9ca3af; margin-bottom: 8px; }
+        .cf-promo-item { display: flex; align-items: center; gap: 8px; font-size: 12px; margin-bottom: 6px; cursor: pointer; }
+        .cf-promo-badge { margin-left: auto; background: #10b981; color: white; padding: 1px 4px; border-radius: 4px; font-size: 9px; font-weight: 800; }
+        
+        .cf-whatsapp { display: flex; align-items: center; gap: 8px; margin-bottom: 15px; color: #059669; font-weight: 700; font-size: 12px; cursor: pointer; }
+        .cf-btn { width: 100%; background: #10b981; color: white; border: none; padding: 14px; border-radius: 12px; font-weight: 800; cursor: pointer; font-size: 14px; box-shadow: 0 4px 10px rgba(16,185,129,0.3); }
+        .cf-btn:disabled { background: #d1d5db; box-shadow: none; cursor: not-allowed; }
+        .cf-status-text { margin-top: 10px; text-align: center; font-size: 11px; color: #6b7280; }
+    `;
+
+    document.head.appendChild(style);
+    document.body.appendChild(panel);
+
+    // Lógica de Eventos con PROTECCIÓN ELECTRÓNICA
+    const sInp = document.getElementById('cf-search-input');
+    const aInp = document.getElementById('cf-amount-input');
+    const rBox = document.getElementById('cf-results');
+    const sBtn = document.getElementById('cf-submit');
+    const wInp = document.getElementById('cf-w-notify');
+    const cBtn = document.getElementById('cf-close-btn');
+
+    cBtn.onclick = () => panel.remove();
+
+    // BLOQUEO ABSOLUTO DE PROPAGACIÓN
+    // Esto evita que el sitio "robe" las teclas o clicks
+    const block = (e) => {
+        e.stopPropagation();
+        // Solo bloqueamos shortcuts del sitio si estamos escribiendo
+        if (e.type === 'keydown' && (e.target.tagName === 'INPUT')) {
+            // Permitimos Backspace, Flechas, Enter, Letras, Números
+            // Pero evitamos que el sitio detecte F1-F12 o atajos raros
+        }
+    };
+
+    [panel, sInp, aInp].forEach(el => {
+        el.addEventListener('keydown', block, true);
+        el.addEventListener('keyup', block, true);
+        el.addEventListener('mousedown', block, true);
+        el.addEventListener('click', block, true);
+    });
+
+    // Forzar foco cuando se clickea un input
+    [sInp, aInp].forEach(inp => {
+        inp.onfocus = () => {
+            console.log("🎯 Foco forzado en", inp.id);
+            // El sitio podría tener un intervalo que roba el foco. Lo peleamos:
+            // inp.focus(); 
+        };
     });
 
     aInp.oninput = (e) => {
-        detectedAmount = parseFloat(e.target.value.replace(',', '.')) || 0;
+        state.detectedAmount = parseFloat(e.target.value.replace(',', '.')) || 0;
         updateUI();
     };
-
-    if (activePromotions.length > 0) renderPromosInContainer(promoBox);
 
     let deb;
     sInp.oninput = (e) => {
         const q = e.target.value;
         clearTimeout(deb);
-        if (q.length < 2) { rList.style.display = 'none'; return; }
+        if (q.length < 2) { rBox.style.display = 'none'; return; }
         deb = setTimeout(async () => {
             try {
-                const r = await fetch(`${config.apiUrl}/api/assign-points?q=${encodeURIComponent(q)}`, {
-                    headers: { 'x-api-key': config.apiKey }
-                });
-                const d = await r.json();
-                if (d.ok) renderResults(d.clients);
-            } catch (e) { }
+                const data = await apiProxy(`${state.apiUrl}/api/assign-points?q=${encodeURIComponent(q)}`);
+                if (data.ok) renderResults(data.clients);
+            } catch (e) {
+                console.error(e);
+            }
         }, 300);
     };
 
-    function renderResults(cls) {
-        if (!cls.length) { rList.innerHTML = '<div class="result-item"><span>Sin resultados</span></div>'; }
+    function renderResults(clients) {
+        if (!clients.length) { rBox.innerHTML = '<div class="cf-res-item">Sin resultados</div>'; }
         else {
-            rList.innerHTML = cls.map(c => `
-                <div class="result-item" data-id="${c.id}" data-name="${c.name}">
+            rBox.innerHTML = clients.map(c => `
+                <div class="cf-res-item" data-id="${c.id}" data-name="${c.name}">
                     <b>${c.name}</b>
-                    <small>DNI: ${c.dni} ${c.socio_number ? '| #' + c.socio_number : ''}</small>
+                    <span>DNI: ${c.dni} ${c.socio_number ? '| #' + c.socio_number : ''}</span>
                 </div>
             `).join('');
         }
-        rList.style.display = 'block';
-        rList.querySelectorAll('.result-item').forEach(it => {
+        rBox.style.display = 'block';
+        rBox.querySelectorAll('.cf-res-item').forEach(it => {
             it.onmousedown = (e) => {
-                e.stopPropagation();
-                selectedClient = { id: it.dataset.id, name: it.dataset.name };
-                selBox.innerText = `Beneficiario: ${selectedClient.name}`;
-                selBox.style.display = 'block';
-                rList.style.display = 'none';
-                sInp.value = selectedClient.name;
-                subBtn.disabled = false;
+                e.preventDefault(); e.stopPropagation();
+                state.selectedClient = { id: it.dataset.id, name: it.dataset.name };
+                const sPill = document.getElementById('cf-selected');
+                sPill.innerText = `Cliente: ${state.selectedClient.name}`;
+                sPill.style.display = 'block';
+                rBox.style.display = 'none';
+                sInp.value = state.selectedClient.name;
+                sBtn.disabled = false;
             };
         });
     }
 
-    subBtn.onclick = async () => {
-        subBtn.disabled = true;
-        subBtn.innerText = 'ENVIANDO...';
-        statEl.innerText = 'Sincronizando puntos...';
-        const bIds = Array.from(shadow.querySelectorAll('.promo-checkbox:checked')).map(c => c.dataset.id);
+    sBtn.onclick = async () => {
+        sBtn.disabled = true;
+        sBtn.innerText = 'PROCESANDO...';
+        const st = document.getElementById('cf-status');
+        st.innerText = 'Sincronizando puntos...';
+
+        const bonusIds = Array.from(document.querySelectorAll('.cf-promo-chk:checked')).map(c => c.dataset.id);
+
         try {
-            const r = await fetch(`${config.apiUrl}/api/assign-points`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey },
-                body: JSON.stringify({
-                    uid: selectedClient.id,
-                    amount: detectedAmount,
-                    reason: 'external_integration',
-                    concept: 'Venta facturador',
-                    bonusIds: bIds,
-                    applyWhatsApp: wCheck.checked
-                })
+            const res = await apiProxy(`${state.apiUrl}/api/assign-points`, 'POST', {
+                uid: state.selectedClient.id,
+                amount: state.detectedAmount,
+                reason: 'external_integration',
+                concept: 'Venta local',
+                bonusIds,
+                applyWhatsApp: wInp.checked
             });
-            const d = await r.json();
-            if (d.ok) renderSuccess(d); else {
-                statEl.innerText = `❌ ${d.error}`; subBtn.disabled = false; subBtn.innerText = 'REINTENTAR';
+            if (res.ok) renderSuccess(res);
+            else {
+                st.innerText = `❌ ${res.error}`; sBtn.disabled = false; sBtn.innerText = 'REINTENTAR';
             }
-        } catch (e) { statEl.innerText = '❌ Error de red'; subBtn.disabled = false; }
+        } catch (e) {
+            st.innerText = '❌ Error de red'; sBtn.disabled = false;
+        }
     };
 
     function renderSuccess(d) {
-        shadow.querySelector('.content').innerHTML = `
-            <div style="text-align:center; padding:10px 0;">
-                <div style="font-size:40px; margin-bottom:15px;">🌟</div>
-                <div style="font-weight:900; font-size:18px; color:#10b981;">¡Operación Exitosa!</div>
-                <div style="margin:10px 0 20px; font-size:14px; color:#4b5563;">Asignaste <b>${d.pointsAdded}</b> puntos.</div>
-                ${d.whatsappLink ? `<a href="${d.whatsappLink}" target="_blank" style="display:block; background:#25d366; color:white; padding:16px; border-radius:14px; font-weight:800; text-decoration:none; margin-bottom:10px;">NOTIFICAR WHATSAPP</a>` : ''}
-                <button onclick="document.getElementById('fidelidad-pro-host').remove()" style="width:100%; padding:12px; background:#f3f4f6; border:none; border-radius:12px; font-weight:700; color:#6b7280; pointer-events:auto !important;">CERRAR VENTANA</button>
+        document.querySelector('.cf-body').innerHTML = `
+            <div style="text-align:center; padding: 20px 0;">
+                <div style="font-size:40px; margin-bottom:15px;">✅</div>
+                <div style="font-weight:900; font-size:18px; color:#10b981;">¡Puntos Otorgaods!</div>
+                <div style="margin:10px 0 20px; font-size:14px; color:#4b5563;">Se asignaron <b>${d.pointsAdded}</b> puntos.</div>
+                ${d.whatsappLink ? `<a href="${d.whatsappLink}" target="_blank" style="display:block; background:#25d366; color:white; padding:15px; border-radius:12px; font-weight:700; text-decoration:none; margin-bottom:10px;">ENVIAR WHATSAPP</a>` : ''}
+                <button onclick="document.getElementById('cf-main-panel').remove()" style="width:100%; padding:12px; background:#f3f4f6; border:none; border-radius:12px; font-weight:700; color:#6b7280; cursor:pointer;">CERRAR</button>
             </div>
         `;
     }
 
-    // Drag Logic
-    const dH = shadow.getElementById('drag-handle');
-    let isD = false, sx, sy, il, it;
-    dH.onmousedown = (e) => {
-        isD = true; sx = e.clientX; sy = e.clientY; il = host.offsetLeft; it = host.offsetTop;
+    // Drag simple
+    let isD = false, ox, oy;
+    document.getElementById('cf-drag-handle').onmousedown = e => {
+        isD = true; ox = e.clientX - panel.offsetLeft; oy = e.clientY - panel.offsetTop;
         e.preventDefault(); e.stopPropagation();
     };
-    document.addEventListener('mousemove', (e) => {
+    document.onmousemove = e => {
         if (!isD) return;
-        host.style.left = (il + (e.clientX - sx)) + 'px';
-        host.style.top = (it + (e.clientY - sy)) + 'px';
-        host.style.right = 'auto';
-    }, true);
-    document.addEventListener('mouseup', () => isD = false, true);
+        panel.style.left = (e.clientX - ox) + 'px';
+        panel.style.top = (e.clientY - oy) + 'px';
+    };
+    document.onmouseup = () => isD = false;
 
     updateUI();
 }

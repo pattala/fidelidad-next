@@ -19,30 +19,25 @@ function detectAmount() {
 
     let amount = 0;
 
-    // 1. Intentar por el ID que conocemos
-    let el = document.getElementById('cpbtc_total') || document.querySelector('input[name="cpbtc_total"]');
-    if (el && el.value) {
-        amount = parseValue(el.value);
+    // 1. Prioridad Máxima: El texto exacto que nos dijo el usuario
+    const allElements = document.querySelectorAll('h1, h2, h3, h4, h5, div, span, b, td, label');
+    for (let cand of allElements) {
+        const text = cand.innerText.trim().toUpperCase();
+        if (text.includes('TOTAL A PAGAR $:')) {
+            let extracted = parseValue(text);
+            if (extracted > 0) {
+                amount = extracted;
+                console.log("🎯 [Club Fidelidad] Match Exacto Detectado:", amount);
+                break;
+            }
+        }
     }
 
-    // 2. Búsqueda por Texto Visible más precisa
+    // 2. Fallback: El ID que sospechábamos por si no encuentra el texto
     if (!amount) {
-        const candidates = document.querySelectorAll('h1, h2, h3, h4, h5, div, span, b, td, label');
-        for (let cand of candidates) {
-            const text = cand.innerText.trim().toUpperCase();
-
-            // Filtros para evitar "basura":
-            // Debe contener TOTAL pero NO debe contener palabras que confundan
-            const blacklist = ['ARTICULOS', 'CANTIDAD', 'VUELTO', 'ITEM'];
-            const hasBlacklist = blacklist.some(word => text.includes(word));
-
-            if (text.includes('TOTAL') && !hasBlacklist && (text.includes('$') || text.match(/\d/))) {
-                let extracted = parseValue(text);
-                if (extracted > 0) {
-                    amount = extracted;
-                    break;
-                }
-            }
+        let el = document.getElementById('cpbtc_total') || document.querySelector('input[name="cpbtc_total"]');
+        if (el && el.value) {
+            amount = parseValue(el.value);
         }
     }
 

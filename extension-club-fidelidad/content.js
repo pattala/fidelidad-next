@@ -1,6 +1,6 @@
 
-// Club Fidelidad - Content Script (VERSIÓN 25 - SUPER AGGRESSIVE TYPING FIX)
-console.log("🚀 [Club Fidelidad] v25: Iniciando versión con fijación de escritura agresiva");
+// Club Fidelidad - Content Script (VERSIÓN 26 - AGGRESSIVE DETECTION)
+console.log("🚀 [Club Fidelidad] v26: Iniciando versión con detección mejorada");
 
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;
@@ -31,15 +31,27 @@ function detectAmount() {
         if (input) break;
     }
 
+    let val = 0;
     if (input && input.value) {
-        let val = parseFloat(input.value.replace(/[^0-9.,]/g, '').replace(',', '.'));
-        if (!isNaN(val) && val > 0) {
-            const panelExists = document.getElementById('fidelidad-panel');
-            if (val !== detectedAmount || !panelExists) {
-                console.log(`💰 [Club Fidelidad] Monto detectado: ${val} (Input: ${input.id || input.name || 'class'})`);
-                detectedAmount = val;
-                showFidelidadPanel();
-            }
+        val = parseFloat(input.value.replace(/[^0-9.,]/g, '').replace(',', '.'));
+    } else {
+        // FALLBACK: Detectar por texto en el documento (ej: "Total a pagar $: 9799.00")
+        const bodyContent = document.body.innerText;
+        const match = bodyContent.match(/Total a pagar \$:\s*([0-9.,]+)/i) ||
+            bodyContent.match(/Total a pagar\s*\$?:\s*([0-9.,]+)/i) ||
+            bodyContent.match(/Monto Total\s*\$?:\s*([0-9.,]+)/i);
+
+        if (match && match[1]) {
+            val = parseFloat(match[1].replace(/[^0-9.,]/g, '').replace(',', '.'));
+        }
+    }
+
+    if (!isNaN(val) && val > 0) {
+        const panelExists = document.getElementById('fidelidad-panel');
+        if (val !== detectedAmount || !panelExists) {
+            console.log(`💰 [Club Fidelidad] Monto detectado: ${val} (Source: ${input ? (input.id || input.name || 'node') : 'Text Fallback'})`);
+            detectedAmount = val;
+            showFidelidadPanel();
         }
     }
 }

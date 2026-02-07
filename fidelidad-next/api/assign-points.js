@@ -102,11 +102,40 @@ export default async function handler(req, res) {
             const pointsMoneyBase = Number(configData.pointsMoneyBase) || 100;
             const pointsPerPeso = Number(configData.pointsPerPeso) || 1;
 
+            // 5. Obtener Campañas Activas (Promociones)
+            const now = new Date();
+            const todayDay = now.getDay();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const todayStr = `${year}-${month}-${day}`;
+
+            const campSnap = await db.collection('campanas').where('active', '==', true).get();
+            const activePromotions = [];
+            campSnap.docs.forEach(doc => {
+                const b = doc.data();
+                // Validar fecha y día
+                if (b.startDate && b.startDate > todayStr) return;
+                if (b.endDate && b.endDate < todayStr) return;
+                if (b.daysOfWeek && b.daysOfWeek.length > 0 && !b.daysOfWeek.includes(todayDay)) return;
+
+                if (b.rewardType === 'FIXED' || b.rewardType === 'MULTIPLIER') {
+                    activePromotions.push({
+                        id: doc.id,
+                        name: b.name,
+                        title: b.title || b.name,
+                        rewardType: b.rewardType,
+                        rewardValue: b.rewardValue
+                    });
+                }
+            });
+
             return res.status(200).json({
                 ok: true,
                 clients: Array.from(results.values()),
                 pointsMoneyBase,
-                pointsPerPeso
+                pointsPerPeso,
+                activePromotions
             });
         } catch (err) {
             return res.status(500).json({ ok: false, error: err.message });
@@ -117,7 +146,7 @@ export default async function handler(req, res) {
 
     try {
         const db = getDb();
-        const { uid, reason, amountOverride, amount, concept, metadata } = req.body || {};
+        const { uid, reason, amountOverride, amount, concept, metadata, bonusIds, applyWhatsApp } = req.body || {};
 
         // 1. Autenticación (DUAL MODE)
         let isAdmin = false;
@@ -168,7 +197,26 @@ export default async function handler(req, res) {
                 // APLICAR CONVERSIÓN OFICIAL
                 const base = Number(config.pointsMoneyBase) || 100;
                 const multiplier = Number(config.pointsPerPeso) || 1;
-                points = Math.floor((Number(finalAmount) / base) * multiplier);
+                let basePoints = Math.floor((Number(finalAmount) / base) * multiplier);
+
+                // Aplicar Bonos/Promociones seleccionadas
+                if (bonusIds && Array.isArray(bonusIds) && bonusIds.length > 0) {
+                    let totalBonus = 0;
+                    let totalMultiplier = 1;
+
+                    const bonusSnaps = await Promise.all(bonusIds.map(bid => db.collection('campanas').doc(bid).get()));
+                    bonusSnaps.forEach(bsnap => {
+                        if (bsnap.exists) {
+                            const b = bsnap.data();
+                            if (b.rewardType === 'FIXED') totalBonus += (Number(b.rewardValue) || 0);
+                            if (b.rewardType === 'MULTIPLIER') totalMultiplier *= (Number(b.rewardValue) || 1);
+                        }
+                    });
+
+                    points = Math.floor(basePoints * totalMultiplier) + totalBonus;
+                } else {
+                    points = basePoints;
+                }
             } else {
                 points = Number(finalAmount); // Manual force
             }

@@ -1,118 +1,184 @@
-// Integrador Fidelidad - Versión BÁSICA v12
-console.log("🚀 [Club Fidelidad] Cargando Versión Básica v12...");
+// Integrador Fidelidad - BACK TO BASICS v13
+console.log("🚀 [Club Fidelidad] v13: Reconstrucción desde Cero");
 
 let config = { apiUrl: '', apiKey: '' };
+let detectedAmount = 0;
 
 // Cargar configuración
 chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
     config = res;
-    console.log("📦 [Club Fidelidad] Configuración:", config.apiUrl ? "URL OK" : "URL Vacía");
 });
 
-function detect() {
+// Función de detección periódica
+function runLoop() {
     const text = document.body.innerText.toUpperCase();
-    const isBilling = text.includes('TOTAL A PAGAR') || text.includes('CONFIRMAR FACTURA');
-    const panel = document.getElementById('cf-basic-panel');
+    const isVisible = text.includes('TOTAL A PAGAR $:');
+    const existing = document.getElementById('fidelidad-panel');
 
-    if (!isBilling) {
-        if (panel) panel.remove();
+    if (!isVisible) {
+        if (existing) existing.remove();
+        detectedAmount = 0;
         return;
     }
 
-    if (!panel) inject();
+    // Detectar monto del sitio
+    let amountFound = 0;
+    const allElements = document.querySelectorAll('h1, h2, h3, h4, h5, div, span, b, td, label, p');
+    for (let el of allElements) {
+        const content = el.innerText.trim();
+        if (content.toUpperCase().includes('TOTAL A PAGAR $:')) {
+            amountFound = parseValue(content);
+            if (amountFound > 0) break;
+        }
+    }
+
+    if (amountFound > 0) {
+        detectedAmount = amountFound;
+        if (!existing) {
+            injectPanel();
+        } else {
+            // Actualizar monto si el panel ya existe
+            const valEl = document.getElementById('cf-amount-val');
+            if (valEl) valEl.innerText = `$${detectedAmount}`;
+        }
+    }
 }
 
-function inject() {
-    if (document.getElementById('cf-basic-panel')) return;
+function parseValue(t) {
+    let parts = t.split('$');
+    let str = parts.length > 1 ? parts[1] : parts[0];
+    let clean = str.replace(/[^0-9,.]/g, '').trim();
+    if (clean.includes('.') && clean.includes(',')) clean = clean.replace(/\./g, '').replace(',', '.');
+    else if (clean.includes(',')) clean = clean.replace(',', '.');
+    return parseFloat(clean) || 0;
+}
 
-    const div = document.createElement('div');
-    div.id = 'cf-basic-panel';
-    div.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 9999999;
-        width: 300px;
-        background: white;
-        border: 2px solid #10b981;
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        font-family: Arial, sans-serif;
-    `;
+function injectPanel() {
+    if (document.getElementById('fidelidad-panel')) return;
 
-    div.innerHTML = `
-        <h3 style="margin:0 0 15px 0; color:#10b981; text-align:center;">FIDELIDAD</h3>
-        
-        <div style="margin-bottom:15px;">
-            <label style="font-size:12px; font-weight:bold; color:#666;">DNI O NOMBRE:</label>
-            <input type="text" id="cf-dni" placeholder="Escribir aquí..." style="width:100%; padding:10px; margin-top:5px; border:1px solid #ccc; border-radius:5px; box-sizing:border-box;">
+    const panel = document.createElement('div');
+    panel.id = 'fidelidad-panel';
+    // Estilo ultra-básico directo
+    panel.setAttribute('style', 'position:fixed; top:20px; right:20px; z-index:2147483647; background:white; border:3px solid #10b981; border-radius:15px; width:300px; padding:20px; box-shadow:0 15px 40px rgba(0,0,0,0.5); font-family:Arial, sans-serif; display:block !important;');
+
+    panel.innerHTML = `
+        <div style="text-align:center; margin-bottom:15px;">
+            <h2 style="margin:0; color:#10b981; font-size:18px;">SUMAR PUNTOS</h2>
+            <div id="cf-amount-val" style="font-size:32px; font-weight:bold; color:#059669; margin-top:5px;">$${detectedAmount}</div>
         </div>
 
-        <button id="cf-btn" style="width:100%; padding:12px; background:#10b981; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">BUSCAR Y ASIGNAR</button>
+        <div style="margin-bottom:15px;">
+            <label style="font-size:11px; font-weight:bold; color:#666; display:block; margin-bottom:5px;">CLIENTE (DNI o Nombre)</label>
+            <input type="text" id="cf-search-input" placeholder="Escribir aquí..." 
+                   style="width:100% !important; height:40px !important; border:1px solid #ccc !important; border-radius:8px !important; padding:0 10px !important; box-sizing:border-box !important; font-size:14px !important; display:block !important; background:white !important; color:black !important;">
+            <div id="cf-results-list" style="display:none; background:white; border:1px solid #ddd; border-radius:8px; margin-top:5px; max-height:150px; overflow-y:auto;"></div>
+        </div>
+
+        <button id="cf-assign-btn" style="width:100%; background:#10b981; color:white; border:none; padding:15px; border-radius:10px; font-weight:bold; font-size:14px; cursor:pointer;">ASIGNAR PUNTOS</button>
         
-        <div id="cf-msg" style="margin-top:10px; font-size:12px; text-align:center; color:#666;"></div>
+        <div id="cf-status-msg" style="margin-top:10px; font-size:12px; text-align:center; color:#666;"></div>
     `;
 
-    document.body.appendChild(div);
+    document.body.appendChild(panel);
 
-    const btn = document.getElementById('cf-btn');
-    const input = document.getElementById('cf-dni');
-    const msg = document.getElementById('cf-msg');
+    const input = document.getElementById('cf-search-input');
+    const results = document.getElementById('cf-results-list');
+    const btn = document.getElementById('cf-assign-btn');
+    const status = document.getElementById('cf-status-msg');
 
-    // SOLUCIÓN PARA PODER ESCRIBIR:
-    // Solo detenemos la propagación del teclado si el foco está en nuestro input
-    input.onkeydown = (e) => e.stopPropagation();
-    input.onkeyup = (e) => e.stopPropagation();
+    let selectedClient = null;
+
+    // EL SECRETO: Forzar el foco y no bloquear nada globalmente
+    input.addEventListener('click', () => input.focus());
+
+    // Evitar que el sitio intercepte las teclas MIENTRAS estamos en el input
+    const stopSiteInput = (e) => e.stopPropagation();
+    input.addEventListener('keydown', stopSiteInput);
+    input.addEventListener('keyup', stopSiteInput);
+
+    let searchTimer;
+    input.addEventListener('input', (e) => {
+        const q = e.target.value;
+        clearTimeout(searchTimer);
+        if (q.length < 2) {
+            results.style.display = 'none';
+            return;
+        }
+        searchTimer = setTimeout(async () => {
+            if (!config.apiUrl) return;
+            try {
+                const res = await fetch(`${config.apiUrl}/api/assign-points?q=${encodeURIComponent(q)}`, {
+                    headers: { 'x-api-key': config.apiKey }
+                });
+                const data = await res.json();
+                if (data.ok && data.clients.length > 0) {
+                    renderSearch(data.clients);
+                } else {
+                    results.innerHTML = '<div style="padding:10px; font-size:12px;">Sin resultados</div>';
+                    results.style.display = 'block';
+                }
+            } catch (err) { }
+        }, 300);
+    });
+
+    function renderSearch(clients) {
+        results.innerHTML = clients.map(c => `
+            <div class="cf-item" data-id="${c.id}" data-name="${c.name}" style="padding:10px; border-bottom:1px solid #eee; cursor:pointer;">
+                <b style="display:block; font-size:13px;">${c.name}</b>
+                <small style="color:#888">DNI: ${c.dni}</small>
+            </div>
+        `).join('');
+        results.style.display = 'block';
+
+        results.querySelectorAll('.cf-item').forEach(item => {
+            item.onclick = (e) => {
+                e.stopPropagation();
+                selectedClient = { id: item.dataset.id, name: item.dataset.name };
+                input.value = selectedClient.name;
+                results.style.display = 'none';
+                status.innerHTML = `<span style="color:#059669; font-weight:bold;">Seleccionado: ${selectedClient.name}</span>`;
+            };
+        });
+    }
 
     btn.onclick = async () => {
-        const q = input.value;
-        if (!q) return alert("Por favor ingresá un DNI o Nombre");
-        if (!config.apiUrl) return alert("Falta configurar la URL del sistema en la extensión");
+        if (!selectedClient) return alert("Primero buscá y seleccioná un cliente");
+        if (!config.apiUrl) return alert("Falta configurar la URL");
 
-        msg.innerText = "Buscando cliente...";
         btn.disabled = true;
+        btn.innerText = "PROCESANDO...";
+        status.innerText = "Sincronizando puntos...";
 
         try {
-            // 1. Buscar Cliente
-            const res = await fetch(`${config.apiUrl}/api/assign-points?q=${encodeURIComponent(q)}`, {
-                headers: { 'x-api-key': config.apiKey }
+            const res = await fetch(`${config.apiUrl}/api/assign-points`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': config.apiKey
+                },
+                body: JSON.stringify({
+                    uid: selectedClient.id,
+                    amount: detectedAmount,
+                    reason: 'external_integration',
+                    concept: 'Venta Facturador',
+                    applyWhatsApp: true // Por defecto en esta versión básica
+                })
             });
             const data = await res.json();
-
-            if (data.ok && data.clients.length > 0) {
-                const client = data.clients[0];
-                msg.innerText = `Asignando a ${client.name}...`;
-
-                // 2. Intentar asignar 1 punto (Prueba básica)
-                const resAsig = await fetch(`${config.apiUrl}/api/assign-points`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-api-key': config.apiKey
-                    },
-                    body: JSON.stringify({
-                        uid: client.id,
-                        amount: 1,
-                        reason: 'external_integration',
-                        concept: 'Prueba Extensión'
-                    })
-                });
-                const dataAsig = await resAsig.json();
-
-                if (dataAsig.ok) {
-                    msg.innerHTML = `<b style="color:green;">✅ ¡Éxito! +1 punto a ${client.name}</b>`;
-                } else {
-                    msg.innerHTML = `<b style="color:red;">❌ Error: ${dataAsig.error}</b>`;
-                }
+            if (data.ok) {
+                status.innerHTML = `<b style="color:#10b981; font-size:14px;">✅ ¡PUNTOS ASIGNADOS! (+${data.pointsAdded})</b>`;
+                setTimeout(() => panel.remove(), 3000);
             } else {
-                msg.innerHTML = `<b style="color:red;">❌ Cliente no encontrado</b>`;
+                status.innerHTML = `<b style="color:red;">❌ Error: ${data.error}</b>`;
+                btn.disabled = false;
+                btn.innerText = "REINTENTAR";
             }
         } catch (e) {
-            msg.innerHTML = `<b style="color:red;">❌ Error de conexión</b>`;
+            status.innerHTML = '<b style="color:red;">❌ Error de conexión</b>';
+            btn.disabled = false;
         }
-        btn.disabled = false;
     };
 }
 
-setInterval(detect, 2000);
+// Ejecutar cada segundo
+setInterval(runLoop, 1000);

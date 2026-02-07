@@ -104,20 +104,34 @@ export default async function handler(req, res) {
 
             const campSnap = await db.collection('campanas').where('active', '==', true).get();
             const activePromotions = [];
+
             campSnap.docs.forEach(doc => {
                 const b = doc.data();
-                // Validar fecha y día
-                if (b.startDate && b.startDate > todayStr) return;
-                if (b.endDate && b.endDate < todayStr) return;
-                if (b.daysOfWeek && b.daysOfWeek.length > 0 && !b.daysOfWeek.includes(todayDay)) return;
+
+                // Filtro de fechas opcional pero robusto
+                if (b.startDate && typeof b.startDate === 'string' && b.startDate > todayStr) return;
+                if (b.endDate && typeof b.endDate === 'string' && b.endDate < todayStr) return;
+
+                // Si es timestamp de Firestore
+                if (b.startDate && typeof b.startDate?.toDate === 'function') {
+                    if (b.startDate.toDate() > now) return;
+                }
+                if (b.endDate && typeof b.endDate?.toDate === 'function') {
+                    if (b.endDate.toDate() < now) return;
+                }
+
+                if (b.daysOfWeek && Array.isArray(b.daysOfWeek) && b.daysOfWeek.length > 0) {
+                    // Ajuste domingo=0 para JS
+                    if (!b.daysOfWeek.includes(todayDay)) return;
+                }
 
                 if (b.rewardType === 'FIXED' || b.rewardType === 'MULTIPLIER') {
                     activePromotions.push({
                         id: doc.id,
-                        name: b.name,
-                        title: b.title || b.name,
+                        name: b.name || 'Sin nombre',
+                        title: b.title || b.name || 'Promoción',
                         rewardType: b.rewardType,
-                        rewardValue: b.rewardValue
+                        rewardValue: Number(b.rewardValue) || 0
                     });
                 }
             });

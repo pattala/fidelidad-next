@@ -1,5 +1,5 @@
-// Integrador Fidelidad v8 - Reconstrucción de Alta Fidelidad
-console.log("🚀 [Club Fidelidad] Iniciando Integrador v8...");
+// Integrador Fidelidad v9 - AGGRESSIVE DETECTOR
+console.log("🚀 [Club Fidelidad] Iniciando Integrador v9 (Detector Agresivo)...");
 
 let state = {
     detectedAmount: 0,
@@ -11,14 +11,14 @@ let state = {
     apiKey: ''
 };
 
-// Carga de configuración desde storage
+// Carga de configuración
 chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
     state.apiUrl = res.apiUrl;
     state.apiKey = res.apiKey;
+    console.log("📦 [Club Fidelidad] Configuración cargada satisfactoriamente");
     if (state.apiUrl) fetchInitData();
 });
 
-// Proxy de Mensajería para evitar CORS
 async function apiCall(url, method = 'GET', body = null) {
     return new Promise((resolve, reject) => {
         chrome.runtime.sendMessage({
@@ -26,8 +26,8 @@ async function apiCall(url, method = 'GET', body = null) {
             params: { url, method, body }
         }, response => {
             if (chrome.runtime.lastError) return reject(chrome.runtime.lastError);
-            if (response.ok) resolve(response.data);
-            else reject(new Error(response.error));
+            if (response && response.ok) resolve(response.data);
+            else reject(new Error(response?.error || 'Unknown error'));
         });
     });
 }
@@ -39,10 +39,11 @@ async function fetchInitData() {
             state.pointsMoneyBase = Number(data.pointsMoneyBase) || 100;
             state.pointsPerPeso = Number(data.pointsPerPeso) || 1;
             state.activePromotions = data.activePromotions || [];
+            console.log("✅ [Club Fidelidad] Promociones obtenidas:", state.activePromotions.length);
             updateUI();
         }
     } catch (e) {
-        console.error("❌ Error API:", e);
+        console.error("❌ [Club Fidelidad] Error al cargar promos:", e);
     }
 }
 
@@ -89,21 +90,34 @@ function updateUI() {
     }
 }
 
-// Detección de factura en pantalla
+// DETECTOR AGRESIVO
+// Esta función busca cualquier señal de que estamos en la confirmación de factura
 function detectBilling() {
-    const text = document.body.innerText.toUpperCase();
-    const isConfirming = text.includes('CONFIRMAR FACTURA') || text.includes('TOTAL A PAGAR');
+    const pageHTML = document.documentElement.innerHTML.toUpperCase();
+    const pageText = document.body.innerText.toUpperCase();
+
+    // Buscamos "CONFIRMAR FACTURA" o directamente el input que suele estar en esa pantalla
+    const isBilling = pageText.includes('CONFIRMAR FACTURA') ||
+        pageText.includes('TOTAL A PAGAR') ||
+        document.querySelector('input[placeholder="Paga con $"]') !== null;
+
     const host = document.getElementById('cf-host');
 
-    if (!isConfirming) {
-        if (host) host.remove();
+    if (!isBilling) {
+        if (host) {
+            console.log("👋 [Club Fidelidad] Pantalla de facturación cerrada");
+            host.remove();
+        }
         state.detectedAmount = 0;
         return;
     }
 
+    // Intentar detectar el monto de múltiples formas
     let amount = 0;
-    const items = document.querySelectorAll('h1, h2, h3, h4, h5, div, span, b, td, label, p');
-    for (let el of items) {
+
+    // Forma 1: Por el texto "Total a pagar $: 9800.00"
+    const candidates = document.querySelectorAll('h1, h2, h3, h4, h5, div, span, b, td, label, p');
+    for (let el of candidates) {
         const val = el.innerText.trim();
         if (val.toUpperCase().includes('TOTAL A PAGAR $:')) {
             amount = parseVal(val);
@@ -111,21 +125,33 @@ function detectBilling() {
         }
     }
 
+    // Forma 2: Si la forma 1 falla, buscar el valor del input "Paga con"
+    if (amount === 0) {
+        const pagaConInp = document.querySelector('input[placeholder="Paga con $"]');
+        if (pagaConInp && pagaConInp.value) {
+            amount = parseVal(pagaConInp.value);
+        }
+    }
+
     if (amount > 0) {
         if (Math.abs(amount - state.detectedAmount) > 0.01) {
             state.detectedAmount = amount;
+            console.log("💰 [Club Fidelidad] Monto detectado:", amount);
             if (host?.shadowRoot) {
                 const inp = host.shadowRoot.getElementById('amount-inp');
                 if (inp) inp.value = String(amount).replace('.', ',');
                 updateUI();
             }
         }
-        if (!host) injectPanel();
+        if (!host) {
+            console.log("✨ [Club Fidelidad] Inyectando Panel...");
+            injectPanel();
+        }
     }
 }
 
 function parseVal(t) {
-    let s = t.split('$')[1] || t.split('$')[0];
+    let s = t.includes('$') ? t.split('$')[1] : t;
     let c = s.replace(/[^0-9,.]/g, '').trim();
     if (!c) return 0;
     if (c.includes('.') && c.includes(',')) c = c.replace(/\./g, '').replace(',', '.');
@@ -133,6 +159,7 @@ function parseVal(t) {
     return parseFloat(c) || 0;
 }
 
+// Intervalo rápido para que no se escape nada
 setInterval(detectBilling, 1000);
 
 function injectPanel() {
@@ -160,7 +187,7 @@ function injectPanel() {
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             font-family: 'Segoe UI', system-ui, sans-serif;
             overflow: hidden;
-            border: 1px solid #e5e7eb;
+            border: 1px solid #10b981;
             display: flex;
             flex-direction: column;
             pointer-events: auto !important;
@@ -177,8 +204,7 @@ function injectPanel() {
             font-weight: 700;
         }
         .header h2 { margin: 0; font-size: 14px; text-transform: uppercase; }
-        .close { cursor: pointer; font-size: 20px; opacity: 0.8; }
-        .close:hover { opacity: 1; }
+        .close { cursor: pointer; font-size: 20px; }
 
         .body { padding: 20px; }
 
@@ -196,6 +222,7 @@ function injectPanel() {
             color: #111827;
             margin-bottom: 15px;
             pointer-events: auto !important;
+            user-select: text !important;
         }
         input:focus { border-color: #10b981; background: #fff; }
 
@@ -260,7 +287,7 @@ function injectPanel() {
             <div class="promo-section">
                 <div class="label" style="margin-bottom:10px;">Promociones Activas</div>
                 <div id="promo-list" class="promo-list">
-                    <div style="font-size:11px; color:#999; text-align:center;">Cargando...</div>
+                    <div style="font-size:11px; color:#999; text-align:center;">Cargando promos...</div>
                 </div>
             </div>
 
@@ -283,19 +310,13 @@ function injectPanel() {
 
     closeBtn.onclick = () => host.remove();
 
-    // INTERACTION FIX: Prevent keys from bubbling to the site only if typed in our inputs
-    const killKeys = (e) => {
-        e.stopPropagation();
-    };
-    [sInp, aInp].forEach(inp => {
-        inp.addEventListener('keydown', killKeys);
-        inp.addEventListener('keyup', killKeys);
-        inp.addEventListener('keypress', killKeys);
-    });
-
-    // Ensure clicks within the panel don't bubble
-    panel.addEventListener('mousedown', (e) => e.stopPropagation());
-    panel.addEventListener('click', (e) => e.stopPropagation());
+    // INTERACTION ISOLATION: Stop propagation inside the panel
+    const killEv = (e) => e.stopPropagation();
+    panel.addEventListener('keydown', killEv, true);
+    panel.addEventListener('keyup', killEv, true);
+    panel.addEventListener('keypress', killEv, true);
+    panel.addEventListener('mousedown', killEv, true);
+    panel.addEventListener('click', killEv, true);
 
     aInp.oninput = (e) => {
         state.detectedAmount = parseFloat(e.target.value.replace(',', '.')) || 0;
@@ -343,7 +364,7 @@ function injectPanel() {
         cBtn.disabled = true;
         cBtn.innerText = 'PROCESANDO...';
         const st = shadow.getElementById('status-txt');
-        st.innerText = 'Guardando en la base de datos...';
+        st.innerText = 'Guardando puntos...';
 
         const bIds = Array.from(shadow.querySelectorAll('.promo-chk:checked')).map(c => c.dataset.id);
         const wChk = shadow.getElementById('wa-chk').checked;
@@ -368,43 +389,30 @@ function injectPanel() {
 
     function renderFinal(d) {
         shadow.querySelector('.body').innerHTML = `
-            <div style="text-align:center; padding: 15px 0;">
-                <div style="font-size:50px; margin-bottom:15px;">👏</div>
-                <div style="font-weight:900; font-size:20px; color:#10b981; margin-bottom:5px;">¡Listo!</div>
+            <div style="text-align:center; padding: 20px 0;">
+                <div style="font-size:40px; margin-bottom:15px;">🎉</div>
+                <div style="font-weight:900; font-size:18px; color:#10b981;">¡Operación Exitosa!</div>
                 <div style="margin-bottom:20px; font-size:14px; color:#4b5563;">Sumaste <b>${d.pointsAdded}</b> puntos.</div>
-                ${d.whatsappLink ? `<a href="${d.whatsappLink}" target="_blank" style="display:block; background:#25d366; color:white; padding:16px; border-radius:14px; font-weight:800; text-decoration:none; margin-bottom:12px;">ENVIAR WHATSAPP</a>` : ''}
+                ${d.whatsappLink ? `<a href="${d.whatsappLink}" target="_blank" style="display:block; background:#25d366; color:white; padding:15px; border-radius:14px; font-weight:800; text-decoration:none; margin-bottom:10px;">ENVIAR WHATSAPP</a>` : ''}
                 <button onclick="document.getElementById('cf-host').remove()" style="width:100%; padding:12px; background:#f3f4f6; border:none; border-radius:12px; font-weight:700; color:#6b7280; cursor:pointer;">CERRAR</button>
             </div>
         `;
     }
 
-    // ARRASTRE (DRAG) ROBUSTO
+    // ARRASTRE
     const handle = shadow.getElementById('drag-h');
-    let isDragging = false;
-    let startX, startY, initialHostLeft, initialHostTop;
-
+    let isDragging = false, sx, sy, il, it;
     handle.onmousedown = (e) => {
-        isDragging = true;
-        startX = e.clientX;
-        startY = e.clientY;
-        initialHostLeft = host.offsetLeft;
-        initialHostTop = host.offsetTop;
-        e.preventDefault();
-        e.stopPropagation();
+        isDragging = true; sx = e.clientX; sy = e.clientY; il = host.offsetLeft; it = host.offsetTop;
+        e.preventDefault(); e.stopPropagation();
     };
-
     document.addEventListener('mousemove', (e) => {
         if (!isDragging) return;
-        const dx = e.clientX - startX;
-        const dy = e.clientY - startY;
-        host.style.left = (initialHostLeft + dx) + 'px';
-        host.style.top = (initialHostTop + dy) + 'px';
-        host.style.right = 'auto'; // Disable fixed right positioning
+        host.style.left = (il + (e.clientX - sx)) + 'px';
+        host.style.top = (it + (e.clientY - sy)) + 'px';
+        host.style.right = 'auto';
     });
-
-    document.addEventListener('mouseup', () => {
-        isDragging = false;
-    });
+    document.addEventListener('mouseup', () => isDragging = false);
 
     updateUI();
 }

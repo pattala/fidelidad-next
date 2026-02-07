@@ -1,6 +1,6 @@
 
-// Club Fidelidad - Content Script (VERSIÓN 26 - AGGRESSIVE DETECTION)
-console.log("🚀 [Club Fidelidad] v26: Iniciando versión con detección mejorada");
+// Club Fidelidad - Content Script (VERSIÓN 27 - SUPER AGGRESSIVE FOCUS)
+console.log("🚀 [Club Fidelidad] v27: Iniciando versión con fijación de escritura y foco reforzado");
 
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;
@@ -95,23 +95,28 @@ function showFidelidadPanel() {
     const selectedInfo = document.getElementById('fidelidad-selected-info');
     const statusDiv = document.getElementById('fidelidad-status');
 
-    document.getElementById('fidelidad-close').onclick = () => panel.remove();
+    document.getElementById('fidelidad-close').onclick = () => {
+        window.removeEventListener('keydown', killEvent, true);
+        window.removeEventListener('keyup', killEvent, true);
+        window.removeEventListener('keypress', killEvent, true);
+        panel.remove();
+    };
 
-    // --- FIX ESCRITURA AGRESIVO (v25) ---
-    // Atrapamos TODOS los eventos de teclado antes de que lleguen al sistema de facturación
-    const killEvent = (e) => {
+    // --- FIX ESCRITURA AGRESIVO (v27) ---
+    function killEvent(e) {
         if (document.activeElement === searchInput) {
             e.stopPropagation();
             e.stopImmediatePropagation();
-            // Permitimos que el evento siga su curso normal dentro del input, 
-            // pero que nadie más lo vea.
         }
-    };
+    }
 
-    // Usamos 'true' para la fase de CAPTURA (antes que nadie)
     window.addEventListener('keydown', killEvent, true);
     window.addEventListener('keyup', killEvent, true);
     window.addEventListener('keypress', killEvent, true);
+
+    // FOCO INICIAL FORZADO
+    setTimeout(() => { searchInput.focus(); }, 100);
+    setTimeout(() => { searchInput.focus(); }, 500);
 
     // PROTECCIÓN DE FOCO: Si el sitio nos intenta sacar el foco, lo recuperamos
     searchInput.addEventListener('blur', () => {

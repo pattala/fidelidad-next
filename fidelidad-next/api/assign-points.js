@@ -26,18 +26,8 @@ function getAuth() {
     return admin.auth();
 }
 
-// ---------- CORS ----------
-function setCors(res, origin) {
-    // Si queremos ser 100% abiertos (necesario para la extensión en múltiples dominios)
-    res.setHeader("Access-Control-Allow-Origin", origin || "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-api-key, Authorization");
-    res.setHeader("Vary", "Origin");
-}
-
 // ---------- Handler ----------
 export default async function handler(req, res) {
-    setCors(res, req.headers.origin);
     if (req.method === "OPTIONS") return res.status(204).end();
 
     // MODO BÚSQUEDA (Para la Extensión)

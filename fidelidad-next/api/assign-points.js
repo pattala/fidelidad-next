@@ -37,6 +37,51 @@ function setCors(res, origin) {
 export default async function handler(req, res) {
     setCors(res, req.headers.origin);
     if (req.method === "OPTIONS") return res.status(204).end();
+
+    // MODO BÚSQUEDA (Para la Extensión)
+    if (req.method === "GET") {
+        try {
+            const db = getDb();
+            const { q } = req.query;
+            const apiKey = req.headers["x-api-key"];
+
+            if (!apiKey || !process.env.API_SECRET_KEY || apiKey !== process.env.API_SECRET_KEY) {
+                return res.status(401).json({ ok: false, error: "Unauthorized" });
+            }
+
+            if (!q || q.length < 3) return res.status(200).json({ ok: true, clients: [] });
+
+            // Búsqueda simple por DNI exacto o prefijo de nombre corregido
+            // Nota: Firestore es limitado para búsqueda de texto. 
+            // Buscamos por DNI exacto primero
+            const dniSnap = await db.collection('users').where('dni', '==', q).limit(1).get();
+            if (!dniSnap.empty) {
+                return res.status(200).json({
+                    ok: true,
+                    clients: dniSnap.docs.map(d => ({ id: d.id, name: d.data().name || d.data().nombre, dni: d.data().dni, phone: d.data().phone || d.data().telefono }))
+                });
+            }
+
+            // Si no es DNI, buscamos por nombre (prefijo)
+            const nameSnap = await db.collection('users')
+                .where('name', '>=', q)
+                .where('name', '<=', q + '\uf8ff')
+                .limit(5)
+                .get();
+
+            const clients = nameSnap.docs.map(d => ({
+                id: d.id,
+                name: d.data().name || d.data().nombre,
+                dni: d.data().dni,
+                phone: d.data().phone || d.data().telefono
+            }));
+
+            return res.status(200).json({ ok: true, clients });
+        } catch (err) {
+            return res.status(500).json({ ok: false, error: err.message });
+        }
+    }
+
     if (req.method !== "POST") return res.status(405).json({ ok: false, error: "Method Not Allowed" });
 
     try {

@@ -164,18 +164,27 @@ function showFidelidadPanel() {
     const selectedInfo = document.getElementById('fidelidad-selected-info');
     const statusDiv = document.getElementById('fidelidad-status');
 
-    // Forzar el foco para permitir escribir
-    setTimeout(() => searchInput.focus(), 500);
+    // Forzar el foco y evitar que el sitio interfiera
+    [searchInput, amountInput].forEach(inp => {
+        const stopAll = (e) => {
+            e.stopImmediatePropagation();
+        };
+        inp.addEventListener('keydown', stopAll, true);
+        inp.addEventListener('keyup', stopAll, true);
+        inp.addEventListener('keypress', stopAll, true);
 
-    // Evitar que el sitio "robe" las teclas (shortcuts del facturador)
-    const stopKeys = (e) => e.stopPropagation();
-    searchInput.onkeydown = stopKeys;
-    searchInput.onkeyup = stopKeys;
-    searchInput.onkeypress = stopKeys;
+        // Asegurar foco al hacer click
+        inp.onclick = (e) => {
+            e.stopPropagation();
+            inp.focus();
+        };
+    });
 
-    amountInput.onkeydown = stopKeys;
-    amountInput.onkeyup = stopKeys;
-    amountInput.onkeypress = stopKeys;
+    // Auto-foco con un delay para ganarle al cargado del modal del sitio
+    setTimeout(() => {
+        searchInput.focus();
+        console.log("⌨️ [Club Fidelidad] Foco forzado en buscador");
+    }, 1000);
 
     amountInput.oninput = (e) => {
         isManualAmount = true;

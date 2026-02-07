@@ -99,10 +99,13 @@
     font-size: 13px;
     outline: none;
     user-select: text !important;
+    pointer-events: auto !important;
+    background: white !important;
 }
 
 .fidelidad-input:focus {
-    border-color: #6200ee;
+    border-color: #6200ee !important;
+    box-shadow: 0 0 0 2px rgba(98, 0, 238, 0.2) !important;
 }
 
 .fidelidad-results {

@@ -6,7 +6,8 @@
     background: white;
     border-radius: 16px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-    z-index: 999999;
+    z-index: 2147483647 !important;
+    pointer-events: all !important;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     border: 1px solid #e0e0e0;
     overflow: hidden;
@@ -67,7 +68,9 @@
 }
 
 .fidelidad-input:focus {
-    border-color: #6200ee;
+    border-color: #6200ee !important;
+    box-shadow: 0 0 0 3px rgba(98, 0, 238, 0.1) !important;
+    background: white !important;
 }
 
 .fidelidad-results {

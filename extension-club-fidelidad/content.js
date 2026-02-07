@@ -1,6 +1,6 @@
 
-// Club Fidelidad - Content Script (VERSIÓN 27 - SUPER AGGRESSIVE FOCUS)
-console.log("🚀 [Club Fidelidad] v27: Iniciando versión con fijación de escritura y foco reforzado");
+// Club Fidelidad - Content Script (VERSIÓN 28 - MAX Z-INDEX & FOCUS LOCK)
+console.log("🚀 [Club Fidelidad] v28: Reparando bloqueo de teclado por modal");
 
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;
@@ -102,7 +102,7 @@ function showFidelidadPanel() {
         panel.remove();
     };
 
-    // --- FIX ESCRITURA AGRESIVO (v27) ---
+    // --- FIX ESCRITURA AGRESIVO (v28) ---
     function killEvent(e) {
         if (document.activeElement === searchInput) {
             e.stopPropagation();
@@ -114,21 +114,25 @@ function showFidelidadPanel() {
     window.addEventListener('keyup', killEvent, true);
     window.addEventListener('keypress', killEvent, true);
 
-    // FOCO INICIAL FORZADO
-    setTimeout(() => { searchInput.focus(); }, 100);
-    setTimeout(() => { searchInput.focus(); }, 500);
+    // FOCO FORZADO Y PERSISTENTE
+    searchInput.focus();
 
-    // PROTECCIÓN DE FOCO: Si el sitio nos intenta sacar el foco, lo recuperamos
-    searchInput.addEventListener('blur', () => {
-        // Solo si el panel sigue existiendo, re-enfocamos después de un breve delay
-        // si el usuario está interactuando con el componente.
-        setTimeout(() => {
-            if (document.getElementById('fidelidad-panel') && searchInput.value.length > 0) {
-                // Si hay texto, es muy probable que el usuario siga queriendo escribir
-                // searchInput.focus(); // Comentado por seguridad, activar si blur es el problema
+    // Si el sitio intenta robar el foco (tab-trap del modal), lo recuperamos si el usuario está interactuando con el panel
+    panel.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+        setTimeout(() => searchInput.focus(), 0);
+    }, true);
+
+    // Escuchar focusin global para detectar robos de foco
+    document.addEventListener('focusin', (e) => {
+        if (document.getElementById('fidelidad-panel') && e.target !== searchInput) {
+            // Si el foco se fue a otra parte y el buscador tiene contenido,
+            // o si el usuario clickeó recientemente el panel, lo forzamos.
+            if (searchInput.value.length > 0) {
+                // searchInput.focus(); // Ojo: puede ser molesto, lo activamos solo bajo demanda
             }
-        }, 10);
-    });
+        }
+    }, true);
 
     let searchTimeout;
     searchInput.oninput = (e) => {

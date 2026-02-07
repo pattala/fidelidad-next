@@ -1346,6 +1346,7 @@ export const ClientsPage = () => {
                     client={selectedClientForHistory}
                     isOpen={historyModalOpen}
                     onClose={() => setHistoryModalOpen(false)}
+                    onClientUpdated={fetchData}
                 />
             )}
 

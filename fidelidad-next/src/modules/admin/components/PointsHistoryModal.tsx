@@ -152,12 +152,40 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
             batch.delete(historyRef);
 
             // 2. Adjust User Balance
-            // 'amount' is stored signed (+ for credit, - for debit).
-            // To reverse any operation, we simply subtract the stored amount from the balance.
-            // Example 1: Deleting a credit of +100. increment(-100). Correct.
-            // Example 2: Deleting a redemption of -200. increment(-(-200)) = increment(+200). Correct.
-
             const adjustment = -item.amount;
+
+            // 3. LEGACY SYNC: Try to remove from the arrays in the user document
+            // We fetch the current document to filtered out the matching entry
+            const userSnap = await getDoc(userRef);
+            if (userSnap.exists()) {
+                const userData = userSnap.data();
+
+                if (item.type === 'credit') {
+                    const legacyHistory = userData.historialPuntos || [];
+                    const filtered = legacyHistory.filter((h: any) => {
+                        // Match by amount and a reasonably close date (within 1 minute)
+                        const hDate = h.fechaObtencion?.toDate ? h.fechaObtencion.toDate().getTime() : new Date(h.fechaObtencion).getTime();
+                        const itemDate = item.date.getTime();
+                        const timeDiff = Math.abs(hDate - itemDate);
+                        return !(h.puntosObtenidos === item.amount && timeDiff < 60000);
+                    });
+                    if (filtered.length !== legacyHistory.length) {
+                        batch.update(userRef, { historialPuntos: filtered });
+                    }
+                } else if (item.type === 'debit') {
+                    const legacyRedemptions = userData.historialCanjes || [];
+                    const filtered = legacyRedemptions.filter((h: any) => {
+                        const hDate = h.fecha?.toDate ? h.fecha.toDate().getTime() : new Date(h.fecha).getTime();
+                        const itemDate = item.date.getTime();
+                        const timeDiff = Math.abs(hDate - itemDate);
+                        // Debit amount is stored negative in subcollection but likely positive in legacy array
+                        return !(Math.abs(h.puntosCanjeados) === Math.abs(item.amount) && timeDiff < 60000);
+                    });
+                    if (filtered.length !== legacyRedemptions.length) {
+                        batch.update(userRef, { historialCanjes: filtered });
+                    }
+                }
+            }
 
             batch.update(userRef, {
                 points: increment(adjustment)
@@ -165,12 +193,9 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
 
             await batch.commit();
 
-            // Note: We are NOT removing from 'historialPuntos' array in 'users' doc 
-            // because we lack a unique ID mapping. PWA might show stale history until logic is unified.
-            // But 'points' balance will be correct.
-
             toast.success('Movimiento eliminado y saldo ajustado.');
             fetchData();
+            if (onClientUpdated) onClientUpdated();
 
         } catch (e) {
             console.error("Error deleting item:", e);

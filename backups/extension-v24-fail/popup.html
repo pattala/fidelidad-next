@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { width: 300px; padding: 15px; font-family: sans-serif; }
+        h1 { font-size: 16px; margin-top: 0; color: #6200ee; }
+        .field { margin-bottom: 12px; }
+        label { display: block; font-size: 12px; color: #666; margin-bottom: 4px; }
+        input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: #6200ee; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .status { margin-top: 10px; font-size: 11px; text-align: center; color: #4caf50; }
+    </style>
+</head>
+<body>
+    <h1>Configuración</h1>
+    <div class="field">
+        <label>URL de tu App (ej: https://pwa.com)</label>
+        <input type="text" id="apiUrl" placeholder="https://tu-app.vercel.app">
+    </div>
+    <div class="field">
+        <label>API Key (Secreta)</label>
+        <input type="password" id="apiKey">
+    </div>
+    <button id="save">GUARDAR CONFIGURACIÓN</button>
+    <div id="status" class="status"></div>
+
+    <script src="popup.js"></script>
+</body>
+</html>

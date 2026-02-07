@@ -1,7 +1,5 @@
 
-// Club Fidelidad - Content Script (VERSIÓN 25 - SUPER AGGRESSIVE TYPING FIX)
-console.log("🚀 [Club Fidelidad] v25: Iniciando versión con fijación de escritura agresiva");
-
+// Club Fidelidad - Content Script
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;
 let selectedClient = null;
@@ -13,7 +11,7 @@ chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
 
 // Función para buscar el monto en el sitio
 function detectAmount() {
-    const input = document.getElementById('cpbtc_total') || document.querySelector('input[name="cpbtc_total"]');
+    const input = document.getElementById('cpbtc_total');
     if (input && input.value) {
         let val = parseFloat(input.value.replace(/[^0-9.,]/g, '').replace(',', '.'));
         if (!isNaN(val) && val > 0 && val !== detectedAmount) {
@@ -23,16 +21,16 @@ function detectAmount() {
     }
 }
 
-const observer = new MutationObserver(() => detectAmount());
+// Observar cambios en el DOM para detectar cuando aparece el input
+const observer = new MutationObserver(() => {
+    detectAmount();
+});
+
 observer.observe(document.body, { childList: true, subtree: true });
-detectAmount();
 
 function showFidelidadPanel() {
-    if (document.getElementById('fidelidad-panel')) {
-        const amountEl = document.querySelector('.fidelidad-amount');
-        if (amountEl) amountEl.innerText = `$ ${detectedAmount.toLocaleString('es-AR')}`;
-        return;
-    }
+    // Evitar duplicados
+    if (document.getElementById('fidelidad-panel')) return;
 
     const panel = document.createElement('div');
     panel.id = 'fidelidad-panel';
@@ -44,8 +42,8 @@ function showFidelidadPanel() {
         </div>
         <div class="fidelidad-body">
             <div class="fidelidad-amount">$ ${detectedAmount.toLocaleString('es-AR')}</div>
-            <div class="fidelidad-search-container" style="position:relative;">
-                <input type="text" id="fidelidad-search" class="fidelidad-input" placeholder="Buscar por Nombre o DNI..." autocomplete="off">
+            <div class="fidelidad-search-container">
+                <input type="text" id="fidelidad-search" class="fidelidad-input" placeholder="Buscar por Nombre o DNI (mín 3 carac.)...">
                 <div id="fidelidad-results" class="fidelidad-results" style="display:none;"></div>
             </div>
             <div id="fidelidad-selected-info" style="display:none; margin-bottom: 10px; font-size: 13px; color: #6200ee; font-weight: bold;"></div>
@@ -56,41 +54,20 @@ function showFidelidadPanel() {
 
     document.body.appendChild(panel);
 
+    // Eventos
+    document.getElementById('fidelidad-close').onclick = () => panel.remove();
+
     const searchInput = document.getElementById('fidelidad-search');
     const resultsDiv = document.getElementById('fidelidad-results');
     const submitBtn = document.getElementById('fidelidad-submit');
     const selectedInfo = document.getElementById('fidelidad-selected-info');
     const statusDiv = document.getElementById('fidelidad-status');
 
-    document.getElementById('fidelidad-close').onclick = () => panel.remove();
-
-    // --- FIX ESCRITURA AGRESIVO (v25) ---
-    // Atrapamos TODOS los eventos de teclado antes de que lleguen al sistema de facturación
-    const killEvent = (e) => {
-        if (document.activeElement === searchInput) {
-            e.stopPropagation();
-            e.stopImmediatePropagation();
-            // Permitimos que el evento siga su curso normal dentro del input, 
-            // pero que nadie más lo vea.
-        }
-    };
-
-    // Usamos 'true' para la fase de CAPTURA (antes que nadie)
-    window.addEventListener('keydown', killEvent, true);
-    window.addEventListener('keyup', killEvent, true);
-    window.addEventListener('keypress', killEvent, true);
-
-    // PROTECCIÓN DE FOCO: Si el sitio nos intenta sacar el foco, lo recuperamos
-    searchInput.addEventListener('blur', () => {
-        // Solo si el panel sigue existiendo, re-enfocamos después de un breve delay
-        // si el usuario está interactuando con el componente.
-        setTimeout(() => {
-            if (document.getElementById('fidelidad-panel') && searchInput.value.length > 0) {
-                // Si hay texto, es muy probable que el usuario siga queriendo escribir
-                // searchInput.focus(); // Comentado por seguridad, activar si blur es el problema
-            }
-        }, 10);
-    });
+    // FIX ESCRITURA: stopPropagation para que el facturador no controle el teclado
+    const stopKey = (e) => e.stopPropagation();
+    searchInput.addEventListener('keydown', stopKey, true);
+    searchInput.addEventListener('keyup', stopKey, true);
+    searchInput.addEventListener('keypress', stopKey, true);
 
     let searchTimeout;
     searchInput.oninput = (e) => {
@@ -100,14 +77,16 @@ function showFidelidadPanel() {
             resultsDiv.style.display = 'none';
             return;
         }
+
         searchTimeout = setTimeout(() => searchClients(q), 500);
     };
 
     async function searchClients(q) {
         if (!config.apiUrl || !config.apiKey) {
-            statusDiv.innerText = '⚠️ Configura la API';
+            statusDiv.innerText = '⚠️ Configura la API en la extensión';
             return;
         }
+
         try {
             const res = await fetch(`${config.apiUrl}/api/assign-points?q=${encodeURIComponent(q)}`, {
                 headers: { 'x-api-key': config.apiKey }
@@ -135,8 +114,7 @@ function showFidelidadPanel() {
 
         const items = resultsDiv.getElementsByClassName('fidelidad-result-item');
         for (let item of items) {
-            item.onclick = (e) => {
-                e.stopPropagation();
+            item.onclick = () => {
                 selectedClient = { id: item.dataset.id, name: item.dataset.name };
                 selectedInfo.innerText = `Cliente: ${selectedClient.name}`;
                 selectedInfo.style.display = 'block';
@@ -151,18 +129,22 @@ function showFidelidadPanel() {
         if (!selectedClient) return;
         submitBtn.disabled = true;
         submitBtn.innerText = 'PROCESANDO...';
+
         try {
             const res = await fetch(`${config.apiUrl}/api/assign-points`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': config.apiKey
+                },
                 body: JSON.stringify({
                     uid: selectedClient.id,
                     amount: detectedAmount,
-                    reason: 'v25_aggressive_fix',
-                    concept: 'Compra en local',
-                    applyWhatsApp: true
+                    reason: 'external_integration',
+                    concept: 'Compra en local'
                 })
             });
+
             const data = await res.json();
             if (data.ok) {
                 renderSuccess(data);
@@ -172,22 +154,22 @@ function showFidelidadPanel() {
                 submitBtn.innerText = 'REINTENTAR';
             }
         } catch (e) {
-            statusDiv.innerText = '❌ Error de conexión';
+            statusDiv.innerText = '❌ Error de conexión final';
             submitBtn.disabled = false;
+            submitBtn.innerText = 'REINTENTAR';
         }
     };
 
     function renderSuccess(data) {
         const body = document.querySelector('.fidelidad-body');
         body.innerHTML = `
-            <div class="fidelidad-success" style="text-align: center; color: #4caf50; padding: 10px;">
-                <div style="font-size: 30px;">✅</div>
-                <div style="font-weight: bold; margin: 5px 0;">¡Éxito!</div>
-                <div style="font-size: 12px; color: #666;">Se sumaron ${data.pointsAdded} puntos.</div>
-                ${data.whatsappLink ? `<a href="${data.whatsappLink}" target="_blank" class="fidelidad-wa-link">WHATSAPP</a>` : ''}
-                <button class="fidelidad-button" style="background:#eee; color:#333; margin-top:15px;" id="cf-final-close">CERRAR</button>
+            <div class="fidelidad-success">
+                <div style="font-size: 40px;">✅</div>
+                <div style="font-weight: bold; margin: 10px 0;">¡Puntos Asignados!</div>
+                <div style="font-size: 13px; color: #666;">Se sumaron ${data.pointsAdded} puntos a ${selectedClient.name}.</div>
+                ${data.whatsappLink ? `<a href="${data.whatsappLink}" target="_blank" class="fidelidad-wa-link">ABRIR WHATSAPP</a>` : ''}
+                <button class="fidelidad-button" style="background:#eee; color:#333; margin-top:20px;" onclick="document.getElementById('fidelidad-panel').remove()">CERRAR</button>
             </div>
         `;
-        document.getElementById('cf-final-close').onclick = () => panel.remove();
     }
 }

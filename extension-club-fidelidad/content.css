@@ -1,16 +1,17 @@
 .fidelidad-panel {
     position: fixed;
-    bottom: 20px;
+    top: 50px;
     right: 20px;
-    width: 320px;
+    width: 260px;
     background: white;
-    border-radius: 16px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
     z-index: 999999;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     border: 1px solid #e0e0e0;
     overflow: hidden;
     animation: fidelidad-slide-up 0.3s ease-out;
+    user-select: none;
 }
 
 @keyframes fidelidad-slide-up {
@@ -28,10 +29,11 @@
 .fidelidad-header {
     background: #6200ee;
     color: white;
-    padding: 12px 16px;
+    padding: 10px 14px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    cursor: move;
 }
 
 .fidelidad-header h1 {
@@ -41,14 +43,14 @@
 }
 
 .fidelidad-body {
-    padding: 16px;
+    padding: 12px;
 }
 
 .fidelidad-amount {
-    font-size: 24px;
+    font-size: 20px;
     font-weight: bold;
     color: #333;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     text-align: center;
 }
 

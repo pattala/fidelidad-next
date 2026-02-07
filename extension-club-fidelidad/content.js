@@ -15,47 +15,39 @@ chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
 function detectAmount() {
     let amount = 0;
 
-    // 1. Intentar por el ID que conocemos
+    // Heartbeat log opcional (cada 5 escaneos para no saturar)
+    if (window.scanCount === undefined) window.scanCount = 0;
+    window.scanCount++;
+    if (window.scanCount % 5 === 0) console.log("👀 [Club Fidelidad] Escaneando pantalla en busca de montos...");
+
+    // 1. Intentar por el ID que conocemos (campo oculto o visible)
     let el = document.getElementById('cpbtc_total') || document.querySelector('input[name="cpbtc_total"]');
-
-    if (el) {
-        console.log("🔍 [Club Fidelidad] Encontrado elemento cpbtc_total. Valor actual:", el.value);
+    if (el && el.value) {
         amount = parseValue(el.value);
+        if (amount > 0) console.log("🔍 [Club Fidelidad] Input detectado:", amount);
     }
 
-    // 2. Si no hay monto, buscar cualquier input que contenga "total" en su ID o nombre
+    // 2. Búsqueda por Texto Visible (Ej: "Total a pagar $: 2.00")
     if (!amount) {
-        const allInputs = Array.from(document.querySelectorAll('input'));
-        const totalInput = allInputs.find(i => (i.id && i.id.toLowerCase().includes('total')) || (i.name && i.name.toLowerCase().includes('total')));
-        if (totalInput && totalInput.value) {
-            console.log("🔍 [Club Fidelidad] Encontrado posible input de total (" + totalInput.id + "):", totalInput.value);
-            amount = parseValue(totalInput.value);
-        }
-    }
-
-    // 3. Fallback: Buscar en el texto de la pantalla (Tablas/Grillas)
-    if (!amount) {
-        // Buscamos en todas las celdas de tabla o divs que parezcan montos
-        const elements = Array.from(document.querySelectorAll('td, span, b, strong'));
-        for (let i = 0; i < elements.length; i++) {
-            const text = elements[i].innerText.trim();
-            if (text.toUpperCase() === 'TOTAL' || text.toUpperCase() === 'TOTAL:') {
-                // El valor suele estar en el siguiente elemento o el siguiente <td>
-                const next = elements[i].nextElementSibling || (elements[i].parentElement && elements[i].parentElement.nextElementSibling);
-                if (next) {
-                    let val = parseValue(next.innerText);
-                    if (val > 0) {
-                        console.log("🔍 [Club Fidelidad] Encontrado texto 'TOTAL' y valor al lado:", val);
-                        amount = val;
-                        break;
-                    }
+        // Buscamos en TODOS los elementos de texto corto (h1, h2, h3, div, span, b)
+        const candidates = document.querySelectorAll('h1, h2, h3, h4, h5, div, span, b, td, label');
+        for (let cand of candidates) {
+            const text = cand.innerText.toUpperCase();
+            if (text.includes('TOTAL') && (text.includes('$') || text.match(/\d/))) {
+                // Intentamos extraer el número de ese mismo texto
+                let extracted = parseValue(text);
+                if (extracted > 0) {
+                    amount = extracted;
+                    console.log("🎯 [Club Fidelidad] Texto con monto detectado:", text, "->", amount);
+                    break;
                 }
             }
         }
     }
 
+    // 3. Si encontramos algo válido...
     if (amount > 0 && amount !== detectedAmount) {
-        console.log("💰 [Club Fidelidad] ¡EXCELENTE! Monto detectado: $", amount);
+        console.log("💰 [Club Fidelidad] ¡NUEVO MONTO!: $", amount);
         detectedAmount = amount;
         showFidelidadPanel();
     }
@@ -63,9 +55,23 @@ function detectAmount() {
 
 function parseValue(text) {
     if (!text) return 0;
-    // Quitamos "$" y limpiamos formato decimal (cambiamos , por .)
-    let cleaned = text.replace(/[^0-9,.]/g, '').replace(',', '.');
-    return parseFloat(cleaned) || 0;
+    // Eliminamos todo lo que no sea número, coma o punto
+    // Pero ojo: si hay un "$", queremos lo que está después
+    let cleaning = text.split('$');
+    let toParse = cleaning.length > 1 ? cleaning[1] : cleaning[0];
+
+    // Quitamos espacios y caracteres raros, dejamos solo digitos y separadores
+    let valClean = toParse.replace(/[^0-9,.]/g, '').trim();
+
+    // Caso especial: si tiene coma y punto (ej: 1.250,50)
+    if (valClean.includes('.') && valClean.includes(',')) {
+        valClean = valClean.replace(/\./g, '').replace(',', '.');
+    } else {
+        // Si solo tiene coma, es el decimal (formato AR)
+        valClean = valClean.replace(',', '.');
+    }
+
+    return parseFloat(valClean) || 0;
 }
 
 // Escaneo continuo
@@ -97,6 +103,31 @@ function showFidelidadPanel() {
     `;
 
     document.body.appendChild(panel);
+
+    // --- Lógica de Arrastre (Drag and Drop) ---
+    const header = panel.querySelector('.fidelidad-header');
+    let isDragging = false;
+    let offset = { x: 0, y: 0 };
+
+    header.onmousedown = (e) => {
+        isDragging = true;
+        offset.x = e.clientX - panel.offsetLeft;
+        offset.y = e.clientY - panel.offsetTop;
+        header.style.cursor = 'grabbing';
+    };
+
+    document.onmousemove = (e) => {
+        if (!isDragging) return;
+        panel.style.left = (e.clientX - offset.x) + 'px';
+        panel.style.top = (e.clientY - offset.y) + 'px';
+        panel.style.bottom = 'auto';
+        panel.style.right = 'auto';
+    };
+
+    document.onmouseup = () => {
+        isDragging = false;
+        header.style.cursor = 'move';
+    };
 
     // Eventos
     document.getElementById('fidelidad-close').onclick = () => panel.remove();

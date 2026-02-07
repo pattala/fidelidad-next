@@ -103,7 +103,8 @@ export const ConfigPage = () => {
                 campaign: { channels: ['push', 'email'] },
                 offer: { channels: ['push', 'email'] }
             }
-        }
+        },
+        enableExternalIntegration: true
     });
 
     const [activeTab, setActiveTab] = useState<'branding' | 'rules' | 'messaging'>('rules'); // Empezar en Reglas por petición del usuario
@@ -571,6 +572,33 @@ export const ConfigPage = () => {
                                             </table>
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+
+                            {/* Tarjeta de Integraciones Externas */}
+                            <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 mt-6">
+                                <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
+                                    <span className="bg-purple-100 text-purple-600 p-2 rounded-lg"><Monitor size={20} /></span>
+                                    Integraciones Externas
+                                </h3>
+
+                                <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-100">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex-1">
+                                            <span className="text-sm font-bold text-gray-800">Habilitar Extensión de Navegador</span>
+                                            <p className="text-xs text-gray-500">Permitir que la extensión de Chrome capture montos de tu sistema de facturación.</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setConfig({ ...config, enableExternalIntegration: !config.enableExternalIntegration })}
+                                            className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.enableExternalIntegration !== false ? 'bg-purple-600' : 'bg-gray-200'}`}
+                                        >
+                                            <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enableExternalIntegration !== false ? 'translate-x-5' : 'translate-x-0'}`} />
+                                        </button>
+                                    </div>
+                                    <p className="text-[10px] text-purple-400 mt-3 italic">
+                                        * Esta opción controla si el servidor procesa puntos enviados desde herramientas externas como el facturador.
+                                    </p>
                                 </div>
                             </div>
                         </div>

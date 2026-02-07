@@ -100,6 +100,7 @@ export interface AppConfig {
     birthdayPoints?: number;
     enableBirthdayBonus?: boolean;
     enableBirthdayMessage?: boolean;
+    enableExternalIntegration?: boolean;
 
     // Vencimiento por Rangos
     expirationRules?: Array<{

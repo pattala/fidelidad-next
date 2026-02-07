@@ -1,98 +1,151 @@
-// VERSIÓN 14 - RETORNO AL ORIGEN ABSOLUTO
-console.log("🔌 [Club Fidelidad] v14: Modo Supervivencia (Original)");
+// VERSIÓN 15 - EL MANTRA DE LA SIMPLICIDAD (Basado en el éxito de la Imagen 1)
+console.log("🎯 [Club Fidelidad] v15: Rompiendo el bloqueo del modal");
 
-// 1. ELIMINAR CUALQUIER RASTRO PREVIO
-const old = document.getElementById('cf-panel-v14');
-if (old) old.remove();
+// 1. LIMPIEZA TOTAL
+if (document.getElementById('cf-panel-v15')) document.getElementById('cf-panel-v15').remove();
 
-// 2. CREAR PANEL SIN ESTILOS COMPLEJOS
+// 2. CREACIÓN DEL PANEL (Igual al que te dejó escribir en la Imagen 1)
 const panel = document.createElement('div');
-panel.id = 'cf-panel-v14';
+panel.id = 'cf-panel-v15';
 panel.style.cssText = `
     position: fixed !important;
-    top: 50px !important;
+    top: 60px !important;
     right: 20px !important;
-    width: 300px !important;
-    padding: 20px !important;
-    background: #ffffff !important;
-    border: 4px solid #10b981 !important;
-    border-radius: 10px !important;
+    width: 320px !important;
+    background: white !important;
+    border: 3px solid #10b981 !important;
+    border-radius: 15px !important;
     z-index: 2147483647 !important;
-    box-shadow: 0 0 20px rgba(0,0,0,0.5) !important;
-    display: block !important;
+    padding: 20px !important;
+    box-shadow: 0 10px 50px rgba(0,0,0,0.6) !important;
+    font-family: Arial, sans-serif !important;
+    color: black !important;
 `;
 
 panel.innerHTML = `
-    <h2 style="color:#10b981; margin:0 0 10px 0; font-family:sans-serif;">FIDELIDAD</h2>
-    <div id="cf-monto-label" style="font-size:24px; font-weight:bold; margin-bottom:10px; font-family:sans-serif;">Intentando leer monto...</div>
-    <input type="text" id="cf-input-dni" placeholder="ESCRIBÍ DNI ACÁ" 
-           style="width:100% !important; height:40px !important; border:2px solid #ccc !important; padding:5px !important; font-size:16px !important; margin-bottom:10px !important; display:block !important; background:white !important; color:black !important; pointer-events:auto !important;">
-    <button id="cf-btn-asignar" style="width:100%; height:40px; background:#10b981; color:white; border:none; font-weight:bold; cursor:pointer;">BUSCAR Y ASIGNAR</button>
-    <div id="cf-info" style="margin-top:10px; font-family:sans-serif; font-size:12px; color:#333;"></div>
+    <div style="text-align:center; margin-bottom:15px;">
+        <h2 style="color:#10b981; margin:0; font-size:20px;">FIDELIDAD</h2>
+        <div id="cf-monto" style="font-size:30px; font-weight:900; color:#059669; margin:5px 0;">$0.00</div>
+    </div>
+
+    <div style="margin-bottom:15px;">
+        <label style="font-size:11px; font-weight:bold; color:#666; display:block; margin-bottom:5px;">BUSCAR CLIENTE (DNI O NOMBRE)</label>
+        <input type="text" id="cf-search" placeholder="Escribí acá..." 
+               style="width:100% !important; height:45px !important; border:2px solid #ddd !important; border-radius:8px !important; padding:0 10px !important; font-size:16px !important; display:block !important; background:white !important; color:black !important;">
+        <div id="cf-res" style="display:none; border:1px solid #ccc; border-radius:8px; margin-top:5px; max-height:120px; overflow-y:auto; background:white;"></div>
+    </div>
+
+    <button id="cf-btn" style="width:100%; background:#10b981; color:white; border:none; padding:15px; border-radius:10px; font-weight:bold; font-size:14px; cursor:pointer;">OTORGAR PUNTOS</button>
+    <div id="cf-status" style="margin-top:10px; text-align:center; font-size:12px; color:#666;"></div>
 `;
 
 document.body.appendChild(panel);
 
-const input = document.getElementById('cf-input-dni');
-const btn = document.getElementById('cf-btn-asignar');
-const label = document.getElementById('cf-monto-label');
-const info = document.getElementById('cf-info');
+const input = document.getElementById('cf-search');
+const btn = document.getElementById('cf-btn');
+const montoEl = document.getElementById('cf-monto');
+const resBox = document.getElementById('cf-res');
+const status = document.getElementById('cf-status');
 
-// CARGAR CONFIGURACIÓN
-let apiUrl = '', apiKey = '';
+let config = { apiUrl: '', apiKey: '' };
+let selectedClient = null;
+let currentAmount = 0;
+
+// Cargar config
 chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
-    apiUrl = res.apiUrl;
-    apiKey = res.apiKey;
+    config = res;
 });
 
-// DETECTOR DE MONTO ULTRA SIMPLE
+// DETECTOR DE MONTO (Imagen 2 detectada!)
 setInterval(() => {
-    const txt = document.body.innerText.toUpperCase();
-    if (txt.includes('TOTAL A PAGAR $:')) {
-        const matches = document.body.innerText.match(/TOTAL A PAGAR \$: ([0-9.,]+)/i);
-        if (matches && matches[1]) {
-            label.innerText = "$" + matches[1];
+    const labels = document.querySelectorAll('h1, h2, h3, h4, h5, div, span, b, p');
+    for (let l of labels) {
+        const t = l.innerText.toUpperCase();
+        if (t.includes('TOTAL A PAGAR $:')) {
+            let val = t.split('$')[1] || t;
+            let clean = val.replace(/[^0-9,.]/g, '').trim();
+            if (clean.includes('.') && clean.includes(',')) clean = clean.replace(/\./g, '').replace(',', '.');
+            else if (clean.includes(',')) clean = clean.replace(',', '.');
+            currentAmount = parseFloat(clean) || 0;
+            montoEl.innerText = "$" + currentAmount;
+            break;
         }
     }
 }, 1000);
 
-// REGLA DE ORO PARA EL INPUT:
-// No bloqueamos nada excepto lo mínimo necesario
-input.onfocus = () => { console.log("Input enfocado"); };
-input.onclick = (e) => { e.stopPropagation(); input.focus(); };
+// 🛡️ SOLUCIÓN AL BLOQUEO DEL MODAL (Captura de teclado agresiva)
+// Esto evita que el sitio "robe" las letras cuando estás en el modal de confirmación
+const preventSteal = (e) => {
+    e.stopPropagation(); // Detiene al sitio
+};
+input.addEventListener('keydown', preventSteal, true); // true es la clave: fase de captura
+input.addEventListener('keyup', preventSteal, true);
+input.addEventListener('keypress', preventSteal, true);
+input.onclick = (e) => {
+    e.stopPropagation();
+    input.focus();
+};
 
+// BUSCADOR SIMPLE
+let timer;
+input.oninput = () => {
+    clearTimeout(timer);
+    if (input.value.length < 2) { resBox.style.display = 'none'; return; }
+    timer = setTimeout(async () => {
+        try {
+            const r = await fetch(`${config.apiUrl}/api/assign-points?q=${encodeURIComponent(input.value)}`, {
+                headers: { 'x-api-key': config.apiKey }
+            });
+            const d = await r.json();
+            if (d.ok && d.clients.length > 0) {
+                resBox.innerHTML = d.clients.map(c => `
+                    <div class="it" data-id="${c.id}" data-name="${c.name}" style="padding:10px; border-bottom:1px solid #eee; cursor:pointer; color:black;">
+                        <b>${c.name}</b><br><small>DNI: ${c.dni}</small>
+                    </div>
+                `).join('');
+                resBox.style.display = 'block';
+                resBox.querySelectorAll('.it').forEach(i => {
+                    i.onclick = (e) => {
+                        e.stopPropagation();
+                        selectedClient = { id: i.dataset.id, name: i.dataset.name };
+                        input.value = selectedClient.name;
+                        resBox.style.display = 'none';
+                        status.innerText = "Cliente seleccionado: " + selectedClient.name;
+                    };
+                });
+            }
+        } catch (e) { }
+    }, 300);
+};
+
+// BOTÓN FINAL
 btn.onclick = async () => {
-    const q = input.value;
-    if (!q) return alert("Ingresá un DNI");
-
+    if (!selectedClient) return alert("Buscá y seleccioná un cliente primero");
     btn.disabled = true;
-    info.innerText = "Buscando...";
+    status.innerText = "Sincronizando...";
 
     try {
-        const r = await fetch(`${apiUrl}/api/assign-points?q=${encodeURIComponent(q)}`, {
-            headers: { 'x-api-key': apiKey }
+        const r = await fetch(`${config.apiUrl}/api/assign-points`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey },
+            body: JSON.stringify({
+                uid: selectedClient.id,
+                amount: currentAmount,
+                reason: 'v15_fixed',
+                concept: 'Venta local',
+                applyWhatsApp: true
+            })
         });
         const d = await r.json();
-
-        if (d.ok && d.clients.length > 0) {
-            const c = d.clients[0];
-            info.innerText = "Asignando a: " + c.name;
-
-            let amt = parseFloat(label.innerText.replace('$', '').replace(/\./g, '').replace(',', '.')) || 1;
-
-            const r2 = await fetch(`${apiUrl}/api/assign-points`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
-                body: JSON.stringify({ uid: c.id, amount: amt, reason: 'v14_reversion', concept: 'Venta Directa' })
-            });
-            const d2 = await r2.json();
-            if (d2.ok) info.innerHTML = "<b style='color:green'>PUNTOS ASIGNADOS!</b>";
-            else info.innerText = "Error: " + d2.error;
+        if (d.ok) {
+            status.innerHTML = "<b style='color:green'>✅ ¡ÉXITO! PUNTOS ASIGNADOS</b>";
+            setTimeout(() => { if (document.getElementById('cf-panel-v15')) document.getElementById('cf-panel-v15').remove(); }, 3000);
         } else {
-            info.innerText = "Cliente no encontrado";
+            status.innerText = "Error: " + d.error;
+            btn.disabled = false;
         }
     } catch (e) {
-        info.innerText = "Error de conexión";
+        status.innerText = "Error de conexión";
+        btn.disabled = false;
     }
-    btn.disabled = false;
 };

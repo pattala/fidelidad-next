@@ -1,12 +1,12 @@
-// Integrador Fidelidad v10 - VISIBILITY & INTERACTION MASTER
-console.log("🚀 [Club Fidelidad] v10 iniciando...");
+// Integrador Fidelidad v11 - RECONSTRUCCIÓN SIMPLE (Volviendo a las raíces)
+console.log("🚀 [Club Fidelidad] Iniciando Integrador v11 (Versión Simple)");
 
 let state = {
-    detectedAmount: 0,
-    selectedClient: null,
-    pointsMoneyBase: 100,
-    pointsPerPeso: 1,
-    activePromotions: [],
+    amount: 0,
+    client: null,
+    base: 100,
+    ratio: 1,
+    promos: [],
     apiUrl: '',
     apiKey: ''
 };
@@ -15,331 +15,205 @@ let state = {
 chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
     state.apiUrl = res.apiUrl;
     state.apiKey = res.apiKey;
-    console.log("📦 [Club Fidelidad] Config cargada");
-    if (state.apiUrl) fetchInitData();
+    if (state.apiUrl) fetchBaseData();
 });
 
-async function apiCall(url, method = 'GET', body = null) {
-    return new Promise((resolve, reject) => {
+// Proxy para evitar CORS usando el Background script
+async function callApi(url, method = 'GET', body = null) {
+    return new Promise((resolve) => {
         chrome.runtime.sendMessage({
             type: 'API_CALL',
             params: { url, method, body }
-        }, response => {
-            if (chrome.runtime.lastError) return reject(chrome.runtime.lastError);
-            if (response && response.ok) resolve(response.data);
-            else reject(new Error(response?.error || 'Unknown error'));
-        });
+        }, res => resolve(res && res.ok ? res.data : { ok: false }));
     });
 }
 
-async function fetchInitData() {
-    if (!state.apiUrl) return;
-    try {
-        const data = await apiCall(`${state.apiUrl}/api/assign-points?q=___`);
-        if (data.ok) {
-            state.pointsMoneyBase = Number(data.pointsMoneyBase) || 100;
-            state.pointsPerPeso = Number(data.pointsPerPeso) || 1;
-            state.activePromotions = data.activePromotions || [];
-            console.log("✅ [Club Fidelidad] Promos cargadas:", state.activePromotions.length);
-            updateUI();
-        }
-    } catch (e) {
-        console.error("❌ [Club Fidelidad] Error API:", e);
+async function fetchBaseData() {
+    const data = await callApi(`${state.apiUrl}/api/assign-points?q=___`);
+    if (data.ok) {
+        state.base = Number(data.pointsMoneyBase) || 100;
+        state.ratio = Number(data.pointsPerPeso) || 1;
+        state.promos = data.activePromotions || [];
+        refreshPromos();
+        refreshPoints();
     }
 }
 
-function calculatePoints() {
-    let base = Math.floor((state.detectedAmount / state.pointsMoneyBase) * state.pointsPerPeso);
+function refreshPoints() {
+    const ptsEl = document.getElementById('cf-preview-pts');
+    if (!ptsEl) return;
+
+    let basePts = Math.floor((state.amount / state.base) * state.ratio);
     let bonus = 0;
     let mult = 1;
 
-    const host = document.getElementById('cf-host');
-    if (host && host.shadowRoot) {
-        const checks = host.shadowRoot.querySelectorAll('.promo-chk:checked');
-        checks.forEach(chk => {
-            const p = state.activePromotions.find(x => x.id === chk.dataset.id);
-            if (p) {
-                if (p.rewardType === 'FIXED') bonus += Number(p.rewardValue);
-                if (p.rewardType === 'MULTIPLIER') mult *= Number(p.rewardValue);
-            }
-        });
-    }
-    return Math.floor(base * mult) + bonus;
+    document.querySelectorAll('.cf-chk:checked').forEach(chk => {
+        const p = state.promos.find(x => x.id === chk.dataset.id);
+        if (p) {
+            if (p.rewardType === 'FIXED') bonus += Number(p.rewardValue);
+            if (p.rewardType === 'MULTIPLIER') mult *= Number(p.rewardValue);
+        }
+    });
+
+    ptsEl.innerText = `Equivale a ${Math.floor(basePts * mult) + bonus} puntos`;
 }
 
-function updateUI() {
-    const host = document.getElementById('cf-host');
-    if (!host || !host.shadowRoot) return;
-    const root = host.shadowRoot;
+function refreshPromos() {
+    const box = document.getElementById('cf-promo-box');
+    if (!box || !state.promos.length) return;
 
-    const ptsEl = root.getElementById('pts-preview');
-    if (ptsEl) ptsEl.innerText = `Equivale a ${calculatePoints()} puntos`;
+    box.innerHTML = state.promos.map(p => `
+        <label style="display:flex; align-items:center; gap:8px; margin-bottom:6px; cursor:pointer; font-size:12px;">
+            <input type="checkbox" class="cf-chk" data-id="${p.id}" checked style="width:16px; height:16px;">
+            <span style="flex:1">${p.title}</span>
+            <b style="background:#10b981; color:white; padding:2px 6px; border-radius:4px; font-size:10px;">${p.rewardType === 'MULTIPLIER' ? 'x' + p.rewardValue : '+' + p.rewardValue}</b>
+        </label>
+    `).join('');
 
-    const container = root.getElementById('promo-list');
-    if (container && state.activePromotions.length > 0 && container.getAttribute('data-loaded') !== 'true') {
-        container.innerHTML = state.activePromotions.map(p => `
-            <label class="promo-item">
-                <input type="checkbox" class="promo-chk" data-id="${p.id}" checked>
-                <div class="promo-info">
-                    <span class="promo-name">${p.title}</span>
-                    <span class="promo-badge">${p.rewardType === 'MULTIPLIER' ? 'x' + p.rewardValue : '+' + p.rewardValue}</span>
-                </div>
-            </label>
-        `).join('');
-        container.setAttribute('data-loaded', 'true');
-        container.querySelectorAll('.promo-chk').forEach(c => c.onchange = updateUI);
-    }
+    box.querySelectorAll('.cf-chk').forEach(c => c.onchange = refreshPoints);
 }
 
-// Detector
-function detectBilling() {
-    const pageText = document.body.innerText.toUpperCase();
-    const isBilling = pageText.includes('CONFIRMAR FACTURA') ||
-        pageText.includes('TOTAL A PAGAR') ||
-        document.querySelector('input[placeholder="Paga con $"]') !== null;
-
-    const host = document.getElementById('cf-host');
+function detect() {
+    const text = document.body.innerText.toUpperCase();
+    const isBilling = text.includes('TOTAL A PAGAR') || text.includes('CONFIRMAR FACTURA');
+    const panel = document.getElementById('cf-panel');
 
     if (!isBilling) {
-        if (host) host.remove();
-        state.detectedAmount = 0;
+        if (panel) panel.remove();
+        state.amount = 0;
         return;
     }
 
-    let amount = 0;
-    const items = document.querySelectorAll('h1, h2, h3, h4, h5, div, span, b, td, label, p');
-    for (let el of items) {
-        const val = el.innerText.trim();
-        if (val.toUpperCase().includes('TOTAL A PAGAR $:')) {
-            amount = parseVal(val);
-            if (amount > 0) break;
+    let val = 0;
+    const Els = document.querySelectorAll('h1, h2, h3, h4, h5, div, span, b, td, label, p');
+    for (let el of Els) {
+        const t = el.innerText.trim();
+        if (t.toUpperCase().includes('TOTAL A PAGAR $:')) {
+            val = parse(t);
+            break;
         }
     }
 
-    if (amount === 0) {
-        const pagaCon = document.querySelector('input[placeholder="Paga con $"]');
-        if (pagaCon && pagaCon.value) amount = parseVal(pagaCon.value);
-    }
-
-    if (amount > 0) {
-        if (Math.abs(amount - state.detectedAmount) > 0.1) {
-            state.detectedAmount = amount;
-            if (host && host.shadowRoot) {
-                const inp = host.shadowRoot.getElementById('amount-inp');
-                if (inp) inp.value = String(amount).replace('.', ',');
-                updateUI();
-            }
+    if (val > 0) {
+        if (Math.abs(val - state.amount) > 0.1) {
+            state.amount = val;
+            const inp = document.getElementById('cf-amount-input');
+            if (inp) inp.value = String(val).replace('.', ',');
+            refreshPoints();
         }
-        if (!host) injectPanel();
+        if (!panel) inject();
     }
 }
 
-function parseVal(t) {
-    let s = t.includes('$') ? t.split('$')[1] : t;
+function parse(t) {
+    let s = t.split('$')[1] || t;
     let c = s.replace(/[^0-9,.]/g, '').trim();
-    if (!c) return 0;
     if (c.includes('.') && c.includes(',')) c = c.replace(/\./g, '').replace(',', '.');
     else if (c.includes(',')) c = c.replace(',', '.');
     return parseFloat(c) || 0;
 }
 
-setInterval(detectBilling, 1000);
+setInterval(detect, 1000);
 
-function injectPanel() {
-    if (document.getElementById('cf-host')) return;
+function inject() {
+    if (document.getElementById('cf-panel')) return;
 
-    console.log("💉 [Club Fidelidad] Inyectando panel...");
-
-    const host = document.createElement('div');
-    host.id = 'cf-host';
-    // Estilos ultra-agresivos para asegurar visibilidad
-    host.style.cssText = `
-        position: fixed !important;
-        top: 20px !important;
-        right: 20px !important;
-        width: 340px !important;
-        height: auto !important;
-        z-index: 2147483647 !important;
-        display: block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        background: transparent !important;
-        pointer-events: auto !important;
-        margin: 0 !important;
+    const div = document.createElement('div');
+    div.id = 'cf-panel';
+    // Estilos simples pero elegantes (Inyección directa, sin Shadow DOM para máxima compatibilidad)
+    div.style.cssText = `
+        position: fixed; top: 20px; right: 20px; width: 320px; 
+        background: white; z-index: 2147483647; border: 2px solid #10b981; 
+        border-radius: 16px; padding: 0; box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        font-family: sans-serif; display: block; color: #1f2937;
     `;
 
-    // Inyectar en document.body si existe, sino en documentElement
-    (document.body || document.documentElement).appendChild(host);
-
-    const shadow = host.attachShadow({ mode: 'open' });
-
-    const style = document.createElement('style');
-    style.textContent = `
-        .panel {
-            width: 320px;
-            background: #ffffff;
-            border-radius: 20px;
-            box-shadow: 0 30px 60px -12px rgba(0,0,0,0.45), 0 0 1px rgba(0,0,0,0.3);
-            font-family: 'Inter', system-ui, sans-serif;
-            border: 2px solid #10b981;
-            overflow: hidden;
-            color: #111827;
-            pointer-events: auto !important;
-        }
-        .header {
-            background: #10b981;
-            padding: 14px 18px;
-            color: white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: move;
-            user-select: none;
-        }
-        .header h2 { margin: 0; font-size: 14px; font-weight: 800; text-transform: uppercase; }
-        .close { cursor: pointer; font-size: 20px; }
-
-        .content { padding: 20px; }
-
-        .label { display: block; font-size: 10px; font-weight: 800; color: #9ca3af; text-transform: uppercase; margin-bottom: 6px; }
-        
-        input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #f3f4f6;
-            border-radius: 12px;
-            box-sizing: border-box;
-            font-size: 14px;
-            outline: none;
-            background: #f9fafb;
-            color: #111827;
-            margin-bottom: 15px;
-            pointer-events: auto !important;
-            user-select: text !important;
-        }
-        input:focus { border-color: #10b981; background: #fff; }
-
-        .amount-inp { font-size: 24px; font-weight: 900; text-align: center; color: #059669; }
-        .pts-box { margin-top: -10px; margin-bottom: 20px; text-align: center; font-size: 13px; font-weight: 800; color: #059669; background: #ecfdf5; padding: 8px; border-radius: 10px; }
-
-        .promo-list { background: #f9fafb; border-radius: 15px; padding: 12px; border: 1px solid #f3f4f6; margin-bottom: 15px; }
-        .promo-item { display: flex; align-items: center; gap: 10px; font-size: 12px; margin-bottom: 8px; cursor: pointer; color: #374151; }
-        .promo-item:last-child { margin-bottom: 0; }
-        .promo-item input { width: 18px; height: 18px; cursor: pointer; margin: 0; }
-        .promo-info { flex: 1; display: flex; justify-content: space-between; align-items: center; }
-        .promo-badge { font-size: 10px; font-weight: 800; color: white; background: #10b981; padding: 2px 6px; border-radius: 6px; }
-
-        .results {
-            background: white; border: 1px solid #e5e7eb; border-radius: 12px;
-            max-height: 180px; overflow-y: auto; position: absolute; width: 280px; z-index: 1000;
-            box-shadow: 0 15px 30px rgba(0,0,0,0.15); margin-top: -12px;
-        }
-        .res-item { padding: 12px; border-bottom: 1px solid #f3f4f6; cursor: pointer; }
-        .res-item:hover { background: #f0fdf4; }
-
-        .selected-pill { margin-bottom: 15px; padding: 10px; background: #ecfdf5; border: 2px solid #10b981; border-radius: 12px; text-align: center; font-weight: 800; color: #065f46; font-size: 13px; }
-
-        .btn-confirm {
-            width: 100%; padding: 16px; background: #10b981; color: white; border: none;
-            border-radius: 15px; font-size: 15px; font-weight: 800; cursor: pointer;
-            box-shadow: 0 10px 15px rgba(16, 185, 129, 0.4);
-        }
-        .btn-confirm:disabled { background: #d1d5db; box-shadow: none; cursor: not-allowed; }
-
-        .wa-row { display: flex; align-items: center; gap: 8px; margin-top: 15px; font-size: 13px; font-weight: 700; color: #059669; cursor: pointer; }
-        .wa-row input { width: 18px; height: 18px; }
-        .status { text-align: center; margin-top: 10px; font-size: 11px; color: #6b7280; font-weight: 600; }
-    `;
-    shadow.appendChild(style);
-
-    const panel = document.createElement('div');
-    panel.className = 'panel';
-    panel.innerHTML = `
-        <div class="header" id="drag-zone">
-            <h2>Integrador Fidelidad</h2>
-            <div class="close" id="close-btn">✕</div>
+    div.innerHTML = `
+        <div id="cf-drag" style="background:#10b981; color:white; padding:12px 18px; border-radius:14px 14px 0 0; font-weight:800; font-size:13px; cursor:move; display:flex; justify-content:space-between;">
+            <span>CLUB FIDELIDAD</span>
+            <span onclick="this.closest('#cf-panel').remove()" style="cursor:pointer">✕</span>
         </div>
-        <div class="content">
-            <label class="label">Total Venta</label>
-            <input type="text" id="amount-inp" class="amount-inp" value="${String(state.detectedAmount).replace('.', ',')}">
-            <div id="pts-preview" class="pts-box">Calculando...</div>
+        <div style="padding:18px;">
+            <label style="font-size:10px; font-weight:800; color:#9ca3af; display:block; margin-bottom:5px;">TOTAL VENTA</label>
+            <input type="text" id="cf-amount-input" value="${String(state.amount).replace('.', ',')}" 
+                style="width:100%; border:2px solid #f3f4f6; border-radius:10px; padding:10px; font-size:20px; font-weight:900; text-align:center; color:#059669; margin-bottom:10px; box-sizing:border-box;">
+            <div id="cf-preview-pts" style="text-align:center; color:#059669; font-weight:700; font-size:13px; margin-bottom:15px; background:#ecfdf5; padding:6px; border-radius:8px;">Calculando...</div>
 
-            <div style="position:relative;">
-                <label class="label">Cliente</label>
-                <input type="text" id="search-inp" placeholder="DNI o Nombre..." autocomplete="off">
-                <div id="res-box" class="results" style="display:none;"></div>
-                <div id="sel-info" class="selected-pill" style="display:none;"></div>
+            <label style="font-size:10px; font-weight:800; color:#9ca3af; display:block; margin-bottom:5px;">BUSCAR CLIENTE</label>
+            <input type="text" id="cf-search" placeholder="Escribir DNI o Nombre..." 
+                style="width:100%; border:2px solid #f3f4f6; border-radius:10px; padding:12px; font-size:14px; margin-bottom:10px; box-sizing:border-box; outline:none;">
+            <div id="cf-results" style="display:none; position:absolute; background:white; border:1px solid #ddd; border-radius:8px; width:284px; max-height:150px; overflow-y:auto; z-index:10; box-shadow:0 4px 10px rgba(0,0,0,0.1);"></div>
+            <div id="cf-sel-box" style="display:none; padding:10px; border:2px solid #10b981; border-radius:10px; background:#ecfdf5; color:#065f46; font-weight:800; text-align:center; margin-bottom:15px; font-size:13px;"></div>
+
+            <div style="background:#f9fafb; border-radius:10px; padding:10px; border:1px solid #f3f4f6; margin-bottom:15px;">
+                <div style="font-size:9px; font-weight:900; color:#9ca3af; margin-bottom:8px;">PROMOS ACTIVAS</div>
+                <div id="cf-promo-box">
+                    <div style="font-size:11px; color:#999; text-align:center;">Cargando...</div>
+                </div>
             </div>
 
-            <div class="promo-list" id="promo-list">
-                <div style="text-align:center; font-size:11px; color:#999;">Buscando promociones...</div>
-            </div>
-
-            <label class="wa-row">
-                <input type="checkbox" id="wa-chk" checked>
-                <span>Avisar por WhatsApp</span>
+            <label style="display:flex; align-items:center; gap:8px; margin-bottom:15px; cursor:pointer; font-weight:700; color:#059669; font-size:12px;">
+                <input type="checkbox" id="cf-wa" checked style="width:16px; height:16px;">
+                <span>Informar por WhatsApp</span>
             </label>
 
-            <button id="sub-btn" class="btn-confirm" disabled>OTORGAR PUNTOS</button>
-            <div id="stat-txt" class="status"></div>
+            <button id="cf-confirm" disabled style="width:100%; background:#10b981; color:white; border:none; padding:15px; border-radius:12px; font-weight:800; font-size:14px; cursor:pointer;">OTORGAR PUNTOS</button>
+            <div id="cf-status" style="text-align:center; margin-top:10px; font-size:11px; color:#6b7280;"></div>
         </div>
     `;
-    shadow.appendChild(panel);
 
-    // Eventos
-    const sInp = shadow.getElementById('search-inp');
-    const aInp = shadow.getElementById('amount-inp');
-    const rBox = shadow.getElementById('res-box');
-    const sBtn = shadow.getElementById('sub-btn');
-    const closeBtn = shadow.getElementById('close-btn');
+    document.body.appendChild(div);
 
-    closeBtn.onclick = () => host.remove();
+    // LOGICA DE INTERACCION SIMPLE
+    const sInp = document.getElementById('cf-search');
+    const aInp = document.getElementById('cf-amount-input');
+    const rBox = document.getElementById('cf-results');
+    const sBtn = document.getElementById('cf-confirm');
+    const drag = document.getElementById('cf-drag');
 
-    // INTERACTION FIX: Kill propagation to avoid site steal
-    const stop = (e) => e.stopPropagation();
-    panel.addEventListener('keydown', stop, true);
-    panel.addEventListener('keyup', stop, true);
-    panel.addEventListener('mousedown', stop, true);
-    panel.addEventListener('click', stop, true);
+    // Detener la propagación solo cuando el usuario interactúa para no interferir con el sitio
+    [div, sInp, aInp].forEach(el => {
+        el.addEventListener('keydown', e => e.stopPropagation(), true);
+        el.addEventListener('keyup', e => e.stopPropagation(), true);
+        el.addEventListener('mousedown', e => e.stopPropagation(), true);
+    });
 
     aInp.oninput = (e) => {
-        state.detectedAmount = parseFloat(e.target.value.replace(',', '.')) || 0;
-        updateUI();
+        state.amount = parseFloat(e.target.value.replace(',', '.')) || 0;
+        refreshPoints();
     };
 
-    let deb;
+    let t;
     sInp.oninput = (e) => {
         const q = e.target.value;
-        clearTimeout(deb);
+        clearTimeout(t);
         if (q.length < 2) { rBox.style.display = 'none'; return; }
-        deb = setTimeout(async () => {
-            try {
-                const d = await apiCall(`${state.apiUrl}/api/assign-points?q=${encodeURIComponent(q)}`);
-                if (d.ok) renderResults(d.clients);
-            } catch (e) { }
+        t = setTimeout(async () => {
+            const res = await callApi(`${state.apiUrl}/api/assign-points?q=${encodeURIComponent(q)}`);
+            if (res.ok) showResults(res.clients);
         }, 300);
     };
 
-    function renderResults(cls) {
-        if (!cls.length) rBox.innerHTML = '<div class="res-item">Sin resultados</div>';
+    function showResults(cls) {
+        if (!cls.length) { rBox.innerHTML = '<div style="padding:10px; font-size:12px;">Sin resultados</div>'; }
         else {
             rBox.innerHTML = cls.map(c => `
-                <div class="res-item" data-id="${c.id}" data-name="${c.name}">
-                    <b>${c.name}</b>
-                    <div style="font-size:10px; color:#6b7280;">DNI: ${c.dni} ${c.socio_number ? '| #' + c.socio_number : ''}</div>
+                <div class="row" data-id="${c.id}" data-name="${c.name}" style="padding:10px; border-bottom:1px solid #eee; cursor:pointer;">
+                    <b style="font-size:13px; display:block;">${c.name}</b>
+                    <small style="color:#666">DNI: ${c.dni}</small>
                 </div>
             `).join('');
         }
         rBox.style.display = 'block';
-        rBox.querySelectorAll('.res-item').forEach(it => {
-            it.onmousedown = (e) => {
+        rBox.querySelectorAll('.row').forEach(row => {
+            row.onmousedown = (e) => {
                 e.preventDefault(); e.stopPropagation();
-                state.selectedClient = { id: it.dataset.id, name: it.dataset.name };
-                const sel = shadow.getElementById('sel-info');
-                sel.innerText = `Beneficiario: ${state.selectedClient.name}`;
+                state.client = { id: row.dataset.id, name: row.dataset.name };
+                const sel = document.getElementById('cf-sel-box');
+                sel.innerText = `Beneficiario: ${state.client.name}`;
                 sel.style.display = 'block';
                 rBox.style.display = 'none';
-                sInp.value = state.selectedClient.name;
+                sInp.value = state.client.name;
                 sBtn.disabled = false;
             };
         });
@@ -348,56 +222,46 @@ function injectPanel() {
     sBtn.onclick = async () => {
         sBtn.disabled = true;
         sBtn.innerText = 'PROCESANDO...';
-        const st = shadow.getElementById('stat-txt');
-        st.innerText = 'Asignando puntos...';
+        const st = document.getElementById('cf-status');
+        st.innerText = 'Sincronizando...';
 
-        const bIds = Array.from(shadow.querySelectorAll('.promo-chk:checked')).map(c => c.dataset.id);
-        const wChk = shadow.getElementById('wa-chk').checked;
+        const bIds = Array.from(document.querySelectorAll('.cf-chk:checked')).map(c => c.dataset.id);
+        const res = await callApi(`${state.apiUrl}/api/assign-points`, 'POST', {
+            uid: state.client.id,
+            amount: state.amount,
+            reason: 'external_integration',
+            concept: 'Venta facturador',
+            bonusIds: bIds,
+            applyWhatsApp: document.getElementById('cf-wa').checked
+        });
 
-        try {
-            const r = await apiCall(`${state.apiUrl}/api/assign-points`, 'POST', {
-                uid: state.selectedClient.id,
-                amount: state.detectedAmount,
-                reason: 'external_integration',
-                concept: 'Venta facturador',
-                bonusIds: bIds,
-                applyWhatsApp: wChk
-            });
-            if (r.ok) renderSuccess(r);
-            else {
-                st.innerText = `❌ ${r.error}`; sBtn.disabled = false; sBtn.innerText = 'REINTENTAR';
-            }
-        } catch (e) {
-            st.innerText = '❌ Error de red'; sBtn.disabled = false;
+        if (res.ok) {
+            document.querySelector('#cf-panel .padding').innerHTML = `
+                <div style="text-align:center; padding:20px 0;">
+                    <div style="font-size:40px; margin-bottom:10px;">✅</div>
+                    <div style="font-weight:800; font-size:18px; color:#10b981;">¡Éxito!</div>
+                    <p style="font-size:13px; color:#666;">Sumaste ${res.pointsAdded} puntos.</p>
+                    ${res.whatsappLink ? `<a href="${res.whatsappLink}" target="_blank" style="display:block; background:#25d366; color:white; padding:14px; border-radius:10px; font-weight:800; text-decoration:none; margin-bottom:10px; font-size:13px;">ENVIAR WHATSAPP</a>` : ''}
+                    <button onclick="document.getElementById('cf-panel').remove()" style="width:100%; padding:10px; border:none; border-radius:8px; cursor:pointer;">CERRAR</button>
+                </div>
+            `;
+        } else {
+            st.innerText = '❌ Error al asignar'; sBtn.disabled = false; sBtn.innerText = 'REINTENTAR';
         }
     };
 
-    function renderSuccess(d) {
-        shadow.querySelector('.content').innerHTML = `
-            <div style="text-align:center; padding: 20px 0;">
-                <div style="font-size:50px; margin-bottom:15px;">💸</div>
-                <div style="font-weight:900; font-size:20px; color:#10b981;">¡Puntos Asignados!</div>
-                <div style="margin:10px 0 20px; font-size:14px; color:#4b5563;">Sumaste <b>${d.pointsAdded}</b> puntos.</div>
-                ${d.whatsappLink ? `<a href="${d.whatsappLink}" target="_blank" style="display:block; background:#25d366; color:white; padding:16px; border-radius:15px; font-weight:800; text-decoration:none; margin-bottom:12px;">INFORMAR POR WHATSAPP</a>` : ''}
-                <button onclick="document.getElementById('cf-host').remove()" style="width:100%; padding:12px; background:#f3f4f6; border:none; border-radius:12px; font-weight:800; color:#6b7280; cursor:pointer;">CERRAR</button>
-            </div>
-        `;
-    }
-
-    // DRAG
-    const dragZone = shadow.getElementById('drag-zone');
-    let isD = false, sx, sy, il, it;
-    dragZone.onmousedown = (e) => {
-        isD = true; sx = e.clientX; sy = e.clientY; il = host.offsetLeft; it = host.offsetTop;
+    // Arrastre simple
+    let isD = false, ox, oy;
+    drag.onmousedown = e => {
+        isD = true; ox = e.clientX - div.offsetLeft; oy = e.clientY - div.offsetTop;
         e.preventDefault(); e.stopPropagation();
     };
-    document.addEventListener('mousemove', (e) => {
+    document.onmousemove = e => {
         if (!isD) return;
-        host.style.left = (il + (e.clientX - sx)) + 'px';
-        host.style.top = (it + (e.clientY - sy)) + 'px';
-        host.style.right = 'auto';
-    });
-    document.addEventListener('mouseup', () => isD = false);
+        div.style.left = (e.clientX - ox) + 'px';
+        div.style.top = (e.clientY - oy) + 'px';
+    };
+    document.onmouseup = () => isD = false;
 
-    updateUI();
+    if (state.promos.length) refreshPromos();
 }

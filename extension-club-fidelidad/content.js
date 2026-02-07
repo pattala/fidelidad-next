@@ -164,6 +164,19 @@ function showFidelidadPanel() {
     const selectedInfo = document.getElementById('fidelidad-selected-info');
     const statusDiv = document.getElementById('fidelidad-status');
 
+    // Forzar el foco para permitir escribir
+    setTimeout(() => searchInput.focus(), 500);
+
+    // Evitar que el sitio "robe" las teclas (shortcuts del facturador)
+    const stopKeys = (e) => e.stopPropagation();
+    searchInput.onkeydown = stopKeys;
+    searchInput.onkeyup = stopKeys;
+    searchInput.onkeypress = stopKeys;
+
+    amountInput.onkeydown = stopKeys;
+    amountInput.onkeyup = stopKeys;
+    amountInput.onkeypress = stopKeys;
+
     amountInput.oninput = (e) => {
         isManualAmount = true;
         detectedAmount = parseFloat(e.target.value) || 0;

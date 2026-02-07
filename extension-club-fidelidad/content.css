@@ -6,12 +6,12 @@
     background: white;
     border-radius: 12px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-    z-index: 999999;
+    z-index: 2147483647;
+    /* Máximo posible para estar siempre encima */
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     border: 1px solid #e0e0e0;
     overflow: hidden;
     animation: fidelidad-slide-up 0.3s ease-out;
-    user-select: none;
 }
 
 @keyframes fidelidad-slide-up {
@@ -98,6 +98,7 @@
     box-sizing: border-box;
     font-size: 13px;
     outline: none;
+    user-select: text !important;
 }
 
 .fidelidad-input:focus {

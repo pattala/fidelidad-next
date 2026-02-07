@@ -95,7 +95,12 @@ export default async function handler(req, res) {
                 });
             }
 
-            return res.status(200).json({ ok: true, clients: Array.from(results.values()) });
+            // 4. Obtener ratio de conversión para la extensión
+            const gamifSnap = await db.collection('config').doc('gamification').get();
+            const gamif = gamifSnap.exists ? gamifSnap.data() : {};
+            const ratio = Number(gamif.pointsToCurrency) || 1;
+
+            return res.status(200).json({ ok: true, clients: Array.from(results.values()), ratio });
         } catch (err) {
             return res.status(500).json({ ok: false, error: err.message });
         }

@@ -4,12 +4,29 @@ console.log("🚀 [Club Fidelidad] Integrador activado en: " + window.location.h
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;
 let selectedClient = null;
+let conversionRatio = 1; // Ratio por defecto
 
 // Cargar configuración de storage
 chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
     config = res;
     console.log("⚙️ [Club Fidelidad] Configuración cargada:", config.apiUrl ? "URL: " + config.apiUrl : "URL NO CONFIGURADA");
+    fetchRatio();
 });
+
+async function fetchRatio() {
+    if (!config.apiUrl || !config.apiKey) return;
+    try {
+        const res = await fetch(`${config.apiUrl}/api/assign-points?q=___`, {
+            headers: { 'x-api-key': config.apiKey }
+        });
+        const data = await res.json();
+        if (data.ratio) {
+            conversionRatio = data.ratio;
+            console.log("📊 [Club Fidelidad] Ratio de conversión:", conversionRatio);
+            updatePanelPoints();
+        }
+    } catch (e) { }
+}
 
 // Función para buscar el monto en el sitio
 let isManualAmount = false;
@@ -52,24 +69,24 @@ function detectAmount() {
             const input = document.getElementById('fidelidad-amount-input');
             if (input && !isManualAmount) {
                 input.value = detectedAmount;
+                updatePanelPoints();
             }
         } else {
             showFidelidadPanel();
         }
     } else if (amount > 0 && !panel) {
-        // Por si el monto es el mismo pero el panel se cerró
         showFidelidadPanel();
     }
 }
 
-function updatePanelAmount() {
-    const input = document.getElementById('fidelidad-amount-input');
-    if (input) {
-        input.value = detectedAmount;
-    } else {
-        showFidelidadPanel();
+function updatePanelPoints() {
+    const ptsEl = document.getElementById('fidelidad-points-preview');
+    if (ptsEl) {
+        const pts = Math.floor(detectedAmount / conversionRatio);
+        ptsEl.innerText = `Equivale a ${pts} puntos`;
     }
 }
+
 
 function parseValue(text) {
     if (!text) return 0;
@@ -116,6 +133,7 @@ function showFidelidadPanel() {
             <div class="fidelidad-amount-container">
                 <div class="fidelidad-amount-label">Monto de la venta</div>
                 <input type="number" id="fidelidad-amount-input" class="fidelidad-amount-input" value="${detectedAmount}" step="0.01">
+                <div id="fidelidad-points-preview" style="font-size: 11px; color: #666; margin-top: 5px; font-weight: 600;">Calculando puntos...</div>
             </div>
             <div class="fidelidad-search-container">
                 <input type="text" id="fidelidad-search" class="fidelidad-input" placeholder="Nombre, DNI o Nº Socio...">
@@ -155,7 +173,10 @@ function showFidelidadPanel() {
     };
 
     // Eventos
-    document.getElementById('fidelidad-close').onclick = () => panel.remove();
+    document.getElementById('fidelidad-close').onclick = () => {
+        document.removeEventListener('focus', focusShield, true);
+        panel.remove();
+    };
 
     const searchInput = document.getElementById('fidelidad-search');
     const amountInput = document.getElementById('fidelidad-amount-input');
@@ -164,31 +185,40 @@ function showFidelidadPanel() {
     const selectedInfo = document.getElementById('fidelidad-selected-info');
     const statusDiv = document.getElementById('fidelidad-status');
 
-    // Forzar el foco y evitar que el sitio interfiera
-    [searchInput, amountInput].forEach(inp => {
-        const stopAll = (e) => {
-            e.stopImmediatePropagation();
-        };
-        inp.addEventListener('keydown', stopAll, true);
-        inp.addEventListener('keyup', stopAll, true);
-        inp.addEventListener('keypress', stopAll, true);
+    // ESCUDO NUCLEAR DE FOCO: Si el foco está en la extensión, no dejamos que el sitio lo mueva
+    const focusShield = (e) => {
+        if (panel.contains(document.activeElement)) {
+            e.stopPropagation();
+        }
+    };
+    document.addEventListener('focus', focusShield, true);
 
-        // Asegurar foco al hacer click
+    [searchInput, amountInput].forEach(inp => {
+        const intercept = (e) => {
+            // Evitamos que el sitio web robe las teclas o cancele el evento
+            e.stopPropagation();
+        };
+        inp.addEventListener('keydown', intercept, true);
+        inp.addEventListener('keyup', intercept, true);
+        inp.addEventListener('keypress', intercept, true);
+        inp.addEventListener('mousedown', intercept, true);
+
         inp.onclick = (e) => {
             e.stopPropagation();
             inp.focus();
         };
     });
 
-    // Auto-foco con un delay para ganarle al cargado del modal del sitio
     setTimeout(() => {
         searchInput.focus();
-        console.log("⌨️ [Club Fidelidad] Foco forzado en buscador");
-    }, 1000);
+        updatePanelPoints();
+        console.log("⌨️ [Club Fidelidad] Foco y puntos inicializados");
+    }, 1200);
 
     amountInput.oninput = (e) => {
         isManualAmount = true;
         detectedAmount = parseFloat(e.target.value) || 0;
+        updatePanelPoints();
     };
 
     let searchTimeout;

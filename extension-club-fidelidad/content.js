@@ -1,190 +1,180 @@
 
-// Club Fidelidad - Content Script (VERSIÓN 22 - CALCO DEL ORIGINAL)
-console.log("🔌 [Club Fidelidad] v22: Restauración Manual de la Versión que Funciona");
+// Integrador Fidelidad v23 - EL INTEGRAL FINAL
+console.log("🔵 [Club Fidelidad] v23: Iniciando versión azul con detección de texto y drag");
 
 let config = { apiUrl: '', apiKey: '' };
-let detectedAmount = 0;
-let selectedClient = null;
+let state = {
+    amount: 0,
+    client: null,
+    isDragging: false,
+    offsetX: 0,
+    offsetY: 0
+};
 
-// Cargar configuración de storage
+// Cargar Config
 chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
     config = res;
 });
 
-// Función para buscar el monto en el sitio (IDEM ORIGINAL)
-function detectAmount() {
-    // Buscamos el input por ID (como en la original) o por NAME (por si las dudas)
-    let input = document.getElementById('cpbtc_total') || document.querySelector('input[name="cpbtc_total"]');
+// DETECTOR AGRESIVO POR TEXTO (Para que aparezca siempre)
+function runDetection() {
+    const text = document.body.innerText.toUpperCase();
+    const isVisible = text.includes('TOTAL A PAGAR') || text.includes('CONFIRMAR FACTURA');
+    const existing = document.getElementById('cf-final-panel');
 
-    if (input && input.value) {
-        let val = parseFloat(input.value.replace(/[^0-9.,]/g, '').replace(',', '.'));
-        if (!isNaN(val) && val > 0 && val !== detectedAmount) {
-            detectedAmount = val;
-            console.log("💰 [Club Fidelidad] Monto:", detectedAmount);
-            showFidelidadPanel();
-        }
-    }
-}
-
-// Observar cambios en el DOM
-const observer = new MutationObserver(() => {
-    detectAmount();
-});
-observer.observe(document.body, { childList: true, subtree: true });
-
-// Detección inicial
-detectAmount();
-
-function showFidelidadPanel() {
-    // Evitar duplicados
-    if (document.getElementById('fidelidad-panel')) {
-        const amountEl = document.querySelector('.fidelidad-amount');
-        if (amountEl) amountEl.innerText = `$ ${detectedAmount.toLocaleString('es-AR')}`;
+    if (!isVisible) {
+        if (existing) existing.remove();
         return;
     }
 
-    console.log("✨ [Club Fidelidad] Mostrando panel...");
+    // Buscar el monto en el texto de la página
+    let valFound = 0;
+    const all = document.querySelectorAll('div, span, b, td, h1, h2, h3, label');
+    for (let el of all) {
+        const t = el.innerText.trim();
+        if (t.toUpperCase().includes('TOTAL A PAGAR $:')) {
+            const parts = t.split('$');
+            const clean = (parts[1] || parts[0]).replace(/[^0-9,.]/g, '').replace(',', '.');
+            valFound = parseFloat(clean) || 0;
+            break;
+        }
+    }
 
-    const panel = document.createElement('div');
-    panel.id = 'fidelidad-panel';
-    panel.className = 'fidelidad-panel';
-    panel.innerHTML = `
-        <div class="fidelidad-header">
-            <h1>Sumar Puntos</h1>
-            <span class="fidelidad-close" id="fidelidad-close">×</span>
+    if (valFound > 0) {
+        state.amount = valFound;
+        if (!existing) inject();
+        else {
+            const amtEl = existing.querySelector('#cf-amt-display');
+            if (amtEl) amtEl.innerText = `$ ${valFound.toLocaleString('es-AR')}`;
+        }
+    }
+}
+
+function inject() {
+    if (document.getElementById('cf-final-panel')) return;
+
+    const div = document.createElement('div');
+    div.id = 'cf-final-panel';
+    div.style.cssText = `
+        position: fixed !important; top: 40px !important; right: 20px !important;
+        width: 320px !important; background: #f0f7ff !important; border: 3px solid #1e40af !important;
+        border-radius: 12px !important; z-index: 2147483647 !important; padding: 0 !important;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.5) !important; font-family: sans-serif !important;
+    `;
+
+    div.innerHTML = `
+        <div id="cf-blue-header" style="background:#1e40af; color:white; padding:10px 15px; border-radius:8px 8px 0 0; cursor:move; display:flex; justify-content:space-between; font-weight:bold; font-size:14px;">
+            <span>CLUB FIDELIDAD</span>
+            <span onclick="this.closest('#cf-final-panel').remove()" style="cursor:pointer">✕</span>
         </div>
-        <div class="fidelidad-body">
-            <div class="fidelidad-amount">$ ${detectedAmount.toLocaleString('es-AR')}</div>
-            <div class="fidelidad-search-container" style="position:relative;">
-                <input type="text" id="fidelidad-search" class="fidelidad-input" placeholder="Buscar por Nombre o DNI (mín 3 carac.)..." autocomplete="off">
-                <div id="fidelidad-results" class="fidelidad-results" style="display:none;"></div>
+        <div style="padding:20px;">
+            <div style="text-align:center; margin-bottom:15px;">
+                <div style="font-size:10px; color:#1e40af; font-weight:bold; text-transform:uppercase;">Monto de Venta</div>
+                <div id="cf-amt-display" style="font-size:28px; font-weight:900; color:#1e3a8a;">$ ${state.amount.toLocaleString('es-AR')}</div>
             </div>
-            <div id="fidelidad-selected-info" style="display:none; margin-bottom: 10px; font-size: 13px; color: #6200ee; font-weight: bold;"></div>
-            <button id="fidelidad-submit" class="fidelidad-button" disabled>SUMAR PUNTOS</button>
-            <div id="fidelidad-status" style="margin-top:10px; font-size: 12px; text-align: center;"></div>
+
+            <div style="margin-bottom:15px;">
+                <label style="font-size:11px; font-weight:bold; color:#1e40af; display:block; margin-bottom:5px;">BUSCAR CLIENTE</label>
+                <input type="text" id="cf-blue-input" placeholder="Nombre o DNI..." 
+                    style="width:100% !important; height:42px !important; border:2px solid #1e40af !important; border-radius:8px !important; padding:0 12px !important; box-sizing:border-box !important; font-size:15px !important; display:block !important; background:white !important; color:black !important;">
+                <div id="cf-blue-results" style="display:none; background:white; border:1px solid #1e40af; border-radius:8px; margin-top:5px; max-height:140px; overflow-y:auto; z-index:99999;"></div>
+            </div>
+
+            <button id="cf-blue-confirm" style="width:100%; height:48px; background:#1e40af; color:white; border:none; border-radius:8px; font-weight:bold; font-size:15px; cursor:pointer;">OTORGAR PUNTOS</button>
+            <div id="cf-blue-status" style="margin-top:12px; text-align:center; font-size:12px; color:#1e3a8a;"></div>
         </div>
     `;
 
-    document.body.appendChild(panel);
+    document.body.appendChild(div);
 
-    // Eventos
-    document.getElementById('fidelidad-close').onclick = () => panel.remove();
+    const input = document.getElementById('cf-blue-input');
+    const results = document.getElementById('cf-blue-results');
+    const btn = document.getElementById('cf-blue-confirm');
+    const status = document.getElementById('cf-blue-status');
+    const header = document.getElementById('cf-blue-header');
 
-    const searchInput = document.getElementById('fidelidad-search');
-    const resultsDiv = document.getElementById('fidelidad-results');
-    const submitBtn = document.getElementById('fidelidad-submit');
-    const selectedInfo = document.getElementById('fidelidad-selected-info');
-    const statusDiv = document.getElementById('fidelidad-status');
+    // ARREGLO DE ESCRITURA (CAPTURA FRONTAL)
+    const stopProp = (e) => { if (document.activeElement === input) e.stopPropagation(); };
+    input.addEventListener('keydown', stopProp, true);
+    input.addEventListener('keyup', stopProp, true);
+    input.addEventListener('keypress', stopProp, true);
 
-    // FIX ESCRITURA: Para que el sistema de facturación no bloquee las teclas
-    const preventSiteFocusTrap = (e) => e.stopPropagation();
-    searchInput.addEventListener('keydown', preventSiteFocusTrap, true);
-    searchInput.addEventListener('keyup', preventSiteFocusTrap, true);
-    searchInput.addEventListener('keypress', preventSiteFocusTrap, true);
-
-    let searchTimeout;
-    searchInput.oninput = (e) => {
-        clearTimeout(searchTimeout);
-        const q = e.target.value;
-        if (q.length < 3) {
-            resultsDiv.style.display = 'none';
-            return;
-        }
-        searchTimeout = setTimeout(() => searchClients(q), 500);
+    // BÚSQUEDA
+    let timer;
+    input.oninput = () => {
+        const q = input.value;
+        clearTimeout(timer);
+        if (q.length < 2) { results.style.display = 'none'; return; }
+        timer = setTimeout(async () => {
+            try {
+                const r = await fetch(`${config.apiUrl}/api/assign-points?q=${encodeURIComponent(q)}`, {
+                    headers: { 'x-api-key': config.apiKey }
+                });
+                const data = await r.json();
+                if (data.ok && data.clients.length > 0) {
+                    results.innerHTML = data.clients.map(c => `
+                        <div class="row" data-id="${c.id}" data-name="${c.name}" style="padding:10px; border-bottom:1px solid #eee; cursor:pointer; color:black;">
+                            <b>${c.name}</b><br><small style="color:#666">DNI: ${c.dni}</small>
+                        </div>
+                    `).join('');
+                    results.style.display = 'block';
+                    results.querySelectorAll('.row').forEach(row => {
+                        row.onclick = (e) => {
+                            e.stopPropagation();
+                            state.client = { id: row.dataset.id, name: row.dataset.name };
+                            input.value = state.client.name;
+                            results.style.display = 'none';
+                            status.innerHTML = `Cliente: <b>${state.client.name}</b>`;
+                        };
+                    });
+                }
+            } catch (err) { }
+        }, 300);
     };
 
-    async function searchClients(q) {
-        if (!config.apiUrl || !config.apiKey) {
-            statusDiv.innerText = '⚠️ Configura la API en la extensión';
-            return;
-        }
-
+    // BOTÓN ASIGNAR
+    btn.onclick = async () => {
+        if (!state.client) return alert("Por favor seleccioná un cliente");
+        btn.disabled = true;
+        btn.innerText = "Sincronizando...";
         try {
-            const res = await fetch(`${config.apiUrl}/api/assign-points?q=${encodeURIComponent(q)}`, {
-                headers: { 'x-api-key': config.apiKey }
-            });
-            const data = await res.json();
-            if (data.ok && data.clients.length > 0) {
-                renderResults(data.clients);
-            } else {
-                resultsDiv.innerHTML = '<div class="fidelidad-result-item">No se encontraron clientes</div>';
-                resultsDiv.style.display = 'block';
-            }
-        } catch (e) {
-            statusDiv.innerText = '❌ Error de conexión';
-        }
-    }
-
-    function renderResults(clients) {
-        resultsDiv.innerHTML = clients.map(c => `
-            <div class="fidelidad-result-item" data-id="${c.id}" data-name="${c.name}" data-dni="${c.dni}">
-                <div>${c.name}</div>
-                <div class="dni">DNI: ${c.dni}</div>
-            </div>
-        `).join('');
-        resultsDiv.style.display = 'block';
-
-        const items = resultsDiv.getElementsByClassName('fidelidad-result-item');
-        for (let item of items) {
-            item.onclick = (e) => {
-                e.stopPropagation();
-                selectedClient = { id: item.dataset.id, name: item.dataset.name };
-                selectedInfo.innerText = `Cliente: ${selectedClient.name}`;
-                selectedInfo.style.display = 'block';
-                resultsDiv.style.display = 'none';
-                searchInput.value = selectedClient.name;
-                submitBtn.disabled = false;
-            };
-        }
-    }
-
-    submitBtn.onclick = async () => {
-        if (!selectedClient) return;
-        submitBtn.disabled = true;
-        submitBtn.innerText = 'PROCESANDO...';
-
-        try {
-            const res = await fetch(`${config.apiUrl}/api/assign-points`, {
+            const r = await fetch(`${config.apiUrl}/api/assign-points`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': config.apiKey
-                },
+                headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey },
                 body: JSON.stringify({
-                    uid: selectedClient.id,
-                    amount: detectedAmount,
-                    reason: 'external_integration',
-                    concept: 'Compra en local',
+                    uid: state.client.id,
+                    amount: state.amount,
+                    reason: 'v23_final_blue',
+                    concept: 'Venta local',
                     applyWhatsApp: true
                 })
             });
-
-            const data = await res.json();
-            if (data.ok) {
-                renderSuccess(data);
+            const d = await r.json();
+            if (d.ok) {
+                status.innerHTML = "<b style='color:green'>✅ ¡PUNTOS ASIGNADOS!</b>";
+                setTimeout(() => div.remove(), 3000);
             } else {
-                statusDiv.innerText = `❌ Error: ${data.error}`;
-                submitBtn.disabled = false;
-                submitBtn.innerText = 'REINTENTAR';
+                status.innerText = "Error: " + d.error; btn.disabled = false; btn.innerText = "OTORGAR PUNTOS";
             }
         } catch (e) {
-            statusDiv.innerText = '❌ Error de conexión';
-            submitBtn.disabled = false;
-            submitBtn.innerText = 'REINTENTAR';
+            status.innerText = "Error de conexión"; btn.disabled = false;
         }
     };
 
-    function renderSuccess(data) {
-        const body = panel.querySelector('.fidelidad-body');
-        body.innerHTML = `
-            <div class="fidelidad-success" style="text-align: center; color: #4caf50; padding: 10px;">
-                <div style="font-size: 30px;">✅</div>
-                <div style="font-weight: bold; margin: 5px 0;">¡Puntos Asignados!</div>
-                <div style="font-size: 12px; color: #666; margin-bottom: 10px;">Sumaste ${data.pointsAdded} puntos.</div>
-                ${data.whatsappLink ? `<a href="${data.whatsappLink}" target="_blank" class="fidelidad-wa-link">ABRIR WHATSAPP</a>` : ''}
-                <button class="fidelidad-button" style="background:#eee; color:#333; margin-top:15px;" id="cf-final-close">CERRAR</button>
-            </div>
-        `;
-        document.getElementById('cf-final-close').onclick = () => panel.remove();
-    }
+    // FUNCIÓN DRAG (ARRASTRAR)
+    header.onmousedown = (e) => {
+        state.isDragging = true;
+        state.offsetX = e.clientX - div.offsetLeft;
+        state.offsetY = e.clientY - div.offsetTop;
+        e.preventDefault();
+    };
+    document.addEventListener('mousemove', (e) => {
+        if (!state.isDragging) return;
+        div.style.left = (e.clientX - state.offsetX) + 'px';
+        div.style.top = (e.clientY - state.offsetY) + 'px';
+        div.style.right = 'auto';
+    });
+    document.addEventListener('mouseup', () => { state.isDragging = false; });
 }
+
+setInterval(runDetection, 1500);

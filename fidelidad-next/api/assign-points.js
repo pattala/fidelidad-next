@@ -28,9 +28,11 @@ function getAuth() {
 
 // ---------- CORS ----------
 function setCors(res, origin) {
+    // Si queremos ser 100% abiertos (necesario para la extensión en múltiples dominios)
     res.setHeader("Access-Control-Allow-Origin", origin || "*");
-    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-api-key, Authorization");
+    res.setHeader("Vary", "Origin");
 }
 
 // ---------- Handler ----------

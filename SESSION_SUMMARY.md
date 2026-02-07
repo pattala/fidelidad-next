@@ -1,17 +1,12 @@
 # Resumen de Sesión - 07/02/2026
 
 ## Estado Actual
-- Se restauró la **Versión 24 (Violeta)** basada en el código original del escritorio.
-- A pesar de la restauración y del fix técnico (`stopPropagation`), el usuario reporta que **no se puede escribir** en el buscador cuando el modal de cobro está activo.
-- Se realizó un backup de la versión actual en `backups/extension-v24-fail`.
+- **Extensión v25 (Implementada):** Se aplicó el fix de escritura agresiva (`stopImmediatePropagation` y fase de captura) para asegurar el teclado en el buscador.
+- **Sincronización Admin (Implementada):** Ahora, al borrar movimientos en el historial del cliente, se limpian también los arrays legacy (`historialPuntos`/`historialCanjes`). Esto garantiza que el Tablero Principal se actualice correctamente.
+- **Git:** Todos los cambios están en la rama `main` de GitHub.
 
-## Pendientes para Mañana
-1. **Problema de Escritura**: 
-   - Investigar por qué el modal del facturador sigue bloqueando el teclado a pesar de la captura de eventos.
-   - Probar inyección directa en el DOM del modal (si es posible sin que lo limpie) o Focus Recovery agresivo.
-2. **Admin Panel**:
-   - Revisar la funcionalidad de borrado de puntos en el panel principal (reportado por el usuario como pendiente).
+## Próximos Pasos (Tras Reiniciar)
+1. Verificar si la escritura en la extensión v25 funciona en el ambiente del facturador.
+2. Confirmar que el borrado de puntos se refleja en tiempo real en los totales del Admin.
 
-## Archivos de Interés
-- `extension-club-fidelidad/content.js`: Lógica de la extensión actual.
-- `backups/extension-v24-fail`: Backup de seguridad.
+¡Todo guardado! Listo para el reinicio.

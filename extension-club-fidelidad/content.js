@@ -13,12 +13,33 @@ chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
 
 // Función para buscar el monto en el sitio
 function detectAmount() {
-    const input = document.getElementById('cpbtc_total') || document.querySelector('input[name="cpbtc_total"]');
+    const selectors = [
+        '#cpbtc_total',
+        'input[name="cpbtc_total"]',
+        '#total_pago',
+        'input[name="total_pago"]',
+        '#monto_pago',
+        'input[name="monto_pago"]',
+        '#importe_total',
+        'input[name="importe_total"]',
+        '.total-import'
+    ];
+
+    let input = null;
+    for (let s of selectors) {
+        input = document.querySelector(s);
+        if (input) break;
+    }
+
     if (input && input.value) {
         let val = parseFloat(input.value.replace(/[^0-9.,]/g, '').replace(',', '.'));
-        if (!isNaN(val) && val > 0 && val !== detectedAmount) {
-            detectedAmount = val;
-            showFidelidadPanel();
+        if (!isNaN(val) && val > 0) {
+            const panelExists = document.getElementById('fidelidad-panel');
+            if (val !== detectedAmount || !panelExists) {
+                console.log(`💰 [Club Fidelidad] Monto detectado: ${val} (Input: ${input.id || input.name || 'class'})`);
+                detectedAmount = val;
+                showFidelidadPanel();
+            }
         }
     }
 }

@@ -1,6 +1,6 @@
 
-// Club Fidelidad - Content Script (VERSIÓN 21 - RESTAURACIÓN TOTAL)
-console.log("🔌 [Club Fidelidad] v21: Restaurando versión original (Violeta)");
+// Club Fidelidad - Content Script (VERSIÓN 22 - CALCO DEL ORIGINAL)
+console.log("🔌 [Club Fidelidad] v22: Restauración Manual de la Versión que Funciona");
 
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;
@@ -9,55 +9,41 @@ let selectedClient = null;
 // Cargar configuración de storage
 chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
     config = res;
-    console.log("📦 [Club Fidelidad] Configuración cargada");
 });
 
-// Función para buscar el monto en el sitio
+// Función para buscar el monto en el sitio (IDEM ORIGINAL)
 function detectAmount() {
-    // Usamos el ID original que sabemos que funciona en tu facturador
-    const input = document.getElementById('cpbtc_total');
+    // Buscamos el input por ID (como en la original) o por NAME (por si las dudas)
+    let input = document.getElementById('cpbtc_total') || document.querySelector('input[name="cpbtc_total"]');
 
     if (input && input.value) {
         let val = parseFloat(input.value.replace(/[^0-9.,]/g, '').replace(',', '.'));
-
-        // Si el valor es válido y mayor a cero
-        if (!isNaN(val) && val > 0) {
-            // Si el monto cambió o el panel no existe, lo mostramos
-            if (val !== detectedAmount || !document.getElementById('fidelidad-panel')) {
-                detectedAmount = val;
-                console.log("💰 [Club Fidelidad] Monto detectado:", detectedAmount);
-                showFidelidadPanel();
-            }
-        }
-    } else {
-        // Si no está el input del monto, removemos el panel
-        const existing = document.getElementById('fidelidad-panel');
-        if (existing) {
-            existing.remove();
-            detectedAmount = 0;
-            selectedClient = null;
+        if (!isNaN(val) && val > 0 && val !== detectedAmount) {
+            detectedAmount = val;
+            console.log("💰 [Club Fidelidad] Monto:", detectedAmount);
+            showFidelidadPanel();
         }
     }
 }
 
-// Observar el DOM para detectar apariciones del modal
+// Observar cambios en el DOM
 const observer = new MutationObserver(() => {
     detectAmount();
 });
 observer.observe(document.body, { childList: true, subtree: true });
 
-// Ejecución inicial
+// Detección inicial
 detectAmount();
 
 function showFidelidadPanel() {
-    // Si ya existe, solo actualizamos el monto
+    // Evitar duplicados
     if (document.getElementById('fidelidad-panel')) {
         const amountEl = document.querySelector('.fidelidad-amount');
         if (amountEl) amountEl.innerText = `$ ${detectedAmount.toLocaleString('es-AR')}`;
         return;
     }
 
-    console.log("✨ [Club Fidelidad] Inyectando panel violeta original");
+    console.log("✨ [Club Fidelidad] Mostrando panel...");
 
     const panel = document.createElement('div');
     panel.id = 'fidelidad-panel';
@@ -69,7 +55,7 @@ function showFidelidadPanel() {
         </div>
         <div class="fidelidad-body">
             <div class="fidelidad-amount">$ ${detectedAmount.toLocaleString('es-AR')}</div>
-            <div class="fidelidad-search-container">
+            <div class="fidelidad-search-container" style="position:relative;">
                 <input type="text" id="fidelidad-search" class="fidelidad-input" placeholder="Buscar por Nombre o DNI (mín 3 carac.)..." autocomplete="off">
                 <div id="fidelidad-results" class="fidelidad-results" style="display:none;"></div>
             </div>
@@ -82,9 +68,7 @@ function showFidelidadPanel() {
     document.body.appendChild(panel);
 
     // Eventos
-    document.getElementById('fidelidad-close').onclick = () => {
-        panel.remove();
-    };
+    document.getElementById('fidelidad-close').onclick = () => panel.remove();
 
     const searchInput = document.getElementById('fidelidad-search');
     const resultsDiv = document.getElementById('fidelidad-results');
@@ -92,11 +76,11 @@ function showFidelidadPanel() {
     const selectedInfo = document.getElementById('fidelidad-selected-info');
     const statusDiv = document.getElementById('fidelidad-status');
 
-    // ARREGLO PARA ESCRIBIR: stopPropagation para saltar el bloqueo del facturador
-    const stopPropagation = (e) => e.stopPropagation();
-    searchInput.addEventListener('keydown', stopPropagation, true);
-    searchInput.addEventListener('keyup', stopPropagation, true);
-    searchInput.addEventListener('keypress', stopPropagation, true);
+    // FIX ESCRITURA: Para que el sistema de facturación no bloquee las teclas
+    const preventSiteFocusTrap = (e) => e.stopPropagation();
+    searchInput.addEventListener('keydown', preventSiteFocusTrap, true);
+    searchInput.addEventListener('keyup', preventSiteFocusTrap, true);
+    searchInput.addEventListener('keypress', preventSiteFocusTrap, true);
 
     let searchTimeout;
     searchInput.oninput = (e) => {
@@ -169,7 +153,7 @@ function showFidelidadPanel() {
                 body: JSON.stringify({
                     uid: selectedClient.id,
                     amount: detectedAmount,
-                    reason: 'v21_legacy_restored',
+                    reason: 'external_integration',
                     concept: 'Compra en local',
                     applyWhatsApp: true
                 })
@@ -184,22 +168,23 @@ function showFidelidadPanel() {
                 submitBtn.innerText = 'REINTENTAR';
             }
         } catch (e) {
-            statusDiv.innerText = '❌ Error de conexión final';
+            statusDiv.innerText = '❌ Error de conexión';
             submitBtn.disabled = false;
             submitBtn.innerText = 'REINTENTAR';
         }
     };
 
     function renderSuccess(data) {
-        const body = document.querySelector('.fidelidad-body');
+        const body = panel.querySelector('.fidelidad-body');
         body.innerHTML = `
-            <div class="fidelidad-success">
-                <div style="font-size: 40px;">✅</div>
-                <div style="font-weight: bold; margin: 10px 0;">¡Puntos Asignados!</div>
-                <div style="font-size: 13px; color: #666;">Se sumaron ${data.pointsAdded} puntos a ${selectedClient.name}.</div>
+            <div class="fidelidad-success" style="text-align: center; color: #4caf50; padding: 10px;">
+                <div style="font-size: 30px;">✅</div>
+                <div style="font-weight: bold; margin: 5px 0;">¡Puntos Asignados!</div>
+                <div style="font-size: 12px; color: #666; margin-bottom: 10px;">Sumaste ${data.pointsAdded} puntos.</div>
                 ${data.whatsappLink ? `<a href="${data.whatsappLink}" target="_blank" class="fidelidad-wa-link">ABRIR WHATSAPP</a>` : ''}
-                <button class="fidelidad-button" style="background:#eee; color:#333; margin-top:20px;" onclick="document.getElementById('fidelidad-panel').remove()">CERRAR</button>
+                <button class="fidelidad-button" style="background:#eee; color:#333; margin-top:15px;" id="cf-final-close">CERRAR</button>
             </div>
         `;
+        document.getElementById('cf-final-close').onclick = () => panel.remove();
     }
 }

@@ -10,9 +10,6 @@
         "https://*.facturacion.com.ar/*",
         "https://*.vercel.app/*"
     ],
-    "background": {
-        "service_worker": "background.js"
-    },
     "action": {
         "default_popup": "popup.html"
     },
@@ -26,8 +23,7 @@
             ],
             "css": [
                 "content.css"
-            ],
-            "all_frames": true
+            ]
         }
     ]
 }

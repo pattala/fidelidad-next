@@ -51,32 +51,51 @@ export default async function handler(req, res) {
 
             if (!q || q.length < 3) return res.status(200).json({ ok: true, clients: [] });
 
-            // Búsqueda simple por DNI exacto o prefijo de nombre corregido
-            // Nota: Firestore es limitado para búsqueda de texto. 
-            // Buscamos por DNI exacto primero
-            const dniSnap = await db.collection('users').where('dni', '==', q).limit(1).get();
-            if (!dniSnap.empty) {
-                return res.status(200).json({
-                    ok: true,
-                    clients: dniSnap.docs.map(d => ({ id: d.id, name: d.data().name || d.data().nombre, dni: d.data().dni, phone: d.data().phone || d.data().telefono }))
-                });
-            }
+            const results = new Map();
 
-            // Si no es DNI, buscamos por nombre (prefijo)
-            const nameSnap = await db.collection('users')
-                .where('name', '>=', q)
-                .where('name', '<=', q + '\uf8ff')
-                .limit(5)
-                .get();
-
-            const clients = nameSnap.docs.map(d => ({
+            // 1. Buscar por Socio Número (exacto)
+            const socioSnap = await db.collection('users').where('socio_number', '==', q).limit(5).get();
+            socioSnap.docs.forEach(d => results.set(d.id, {
                 id: d.id,
                 name: d.data().name || d.data().nombre,
                 dni: d.data().dni,
+                socio_number: d.data().socio_number,
                 phone: d.data().phone || d.data().telefono
             }));
 
-            return res.status(200).json({ ok: true, clients });
+            // 2. Buscar por DNI (exacto)
+            if (results.size < 5) {
+                const dniSnap = await db.collection('users').where('dni', '==', q).limit(5).get();
+                dniSnap.docs.forEach(d => {
+                    if (!results.has(d.id)) results.set(d.id, {
+                        id: d.id,
+                        name: d.data().name || d.data().nombre,
+                        dni: d.data().dni,
+                        socio_number: d.data().socio_number,
+                        phone: d.data().phone || d.data().telefono
+                    });
+                });
+            }
+
+            // 3. Buscar por Nombre (prefijo)
+            if (results.size < 5) {
+                const nameSnap = await db.collection('users')
+                    .where('name', '>=', q)
+                    .where('name', '<=', q + '\uf8ff')
+                    .limit(5)
+                    .get();
+                nameSnap.docs.forEach(d => {
+                    if (!results.has(d.id)) results.set(d.id, {
+                        id: d.id,
+                        name: d.data().name || d.data().nombre,
+                        dni: d.data().dni,
+                        socio_number: d.data().socio_number,
+                        phone: d.data().phone || d.data().telefono
+                    });
+                });
+            }
+
+            return res.status(200).json({ ok: true, clients: Array.from(results.values()) });
         } catch (err) {
             return res.status(500).json({ ok: false, error: err.message });
         }
@@ -132,7 +151,15 @@ export default async function handler(req, res) {
         const finalAmount = amountOverride || amount;
 
         if (isAdmin && finalAmount) {
-            points = Number(finalAmount); // Admin puede forzar monto
+            if (reason === 'external_integration') {
+                // APLICAR CONVERSIÓN DE PUNTOS
+                const gamifSnap = await db.collection('config').doc('gamification').get();
+                const gamif = gamifSnap.exists ? gamifSnap.data() : {};
+                const ratio = Number(gamif.pointsToCurrency) || 1; // Ej: 1 punto cada $100 -> ratio = 100
+                points = Math.floor(Number(finalAmount) / ratio);
+            } else {
+                points = Number(finalAmount); // Manual force
+            }
         } else {
             // Modo Reglas de Negocio
             if (reason === 'profile_address') {

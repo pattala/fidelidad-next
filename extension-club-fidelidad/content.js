@@ -21,9 +21,11 @@ function detectAmount() {
 
     // Si NO estamos en la pantalla de confirmación, quitamos el panel
     if (!hasConfirmScreen) {
-        if (panel && !isManualAmount) {
+        if (panel) {
             panel.remove();
             detectedAmount = 0;
+            isManualAmount = false;
+            selectedClient = null;
         }
         return;
     }
@@ -48,7 +50,9 @@ function detectAmount() {
         detectedAmount = amount;
         if (panel) {
             const input = document.getElementById('fidelidad-amount-input');
-            if (input && !isManualAmount) input.value = detectedAmount;
+            if (input && !isManualAmount) {
+                input.value = detectedAmount;
+            }
         } else {
             showFidelidadPanel();
         }
@@ -94,8 +98,8 @@ function parseValue(text) {
     return parseFloat(clean) || 0;
 }
 
-// Escaneo continuo
-setInterval(detectAmount, 2000);
+// Escaneo continuo acelerado para que se sienta reactivo
+setInterval(detectAmount, 1000);
 
 function showFidelidadPanel() {
     if (document.getElementById('fidelidad-panel')) return;
@@ -114,7 +118,7 @@ function showFidelidadPanel() {
                 <input type="number" id="fidelidad-amount-input" class="fidelidad-amount-input" value="${detectedAmount}" step="0.01">
             </div>
             <div class="fidelidad-search-container">
-                <input type="text" id="fidelidad-search" class="fidelidad-input" placeholder="Buscar por Nombre o DNI (mín 3 carac.)...">
+                <input type="text" id="fidelidad-search" class="fidelidad-input" placeholder="Nombre, DNI o Nº Socio...">
                 <div id="fidelidad-results" class="fidelidad-results" style="display:none;"></div>
             </div>
             <div id="fidelidad-selected-info" style="display:none; margin-bottom: 10px; font-size: 13px; color: #6200ee; font-weight: bold;"></div>
@@ -169,12 +173,12 @@ function showFidelidadPanel() {
     searchInput.oninput = (e) => {
         clearTimeout(searchTimeout);
         const q = e.target.value;
-        if (q.length < 3) {
+        if (q.length < 2) {
             resultsDiv.style.display = 'none';
             return;
         }
-
-        searchTimeout = setTimeout(() => searchClients(q), 500);
+        // Predictive feel: faster debounce
+        searchTimeout = setTimeout(() => searchClients(q), 300);
     };
 
     async function searchClients(q) {
@@ -201,9 +205,9 @@ function showFidelidadPanel() {
 
     function renderResults(clients) {
         resultsDiv.innerHTML = clients.map(c => `
-            <div class="fidelidad-result-item" data-id="${c.id}" data-name="${c.name}" data-dni="${c.dni}">
-                <div>${c.name}</div>
-                <div class="dni">DNI: ${c.dni}</div>
+            <div class="fidelidad-result-item" data-id="${c.id}" data-name="${c.name}" data-dni="${c.dni}" data-socio="${c.socio_number || ''}">
+                <div style="font-weight:bold;">${c.name}</div>
+                <div class="dni">DNI: ${c.dni} ${c.socio_number ? ` | Socio: #${c.socio_number}` : ''}</div>
             </div>
         `).join('');
         resultsDiv.style.display = 'block';

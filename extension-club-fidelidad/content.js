@@ -1,6 +1,6 @@
 
-// Club Fidelidad - Content Script (VERSIÓN 28 - MAX Z-INDEX & FOCUS LOCK)
-console.log("🚀 [Club Fidelidad] v28: Reparando bloqueo de teclado por modal");
+// Club Fidelidad - Content Script (VERSIÓN 29 - MODAL INFILTRATION)
+console.log("🚀 [Club Fidelidad] v29: Iniciando versión con infiltración en modal");
 
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;
@@ -35,7 +35,6 @@ function detectAmount() {
     if (input && input.value) {
         val = parseFloat(input.value.replace(/[^0-9.,]/g, '').replace(',', '.'));
     } else {
-        // FALLBACK: Detectar por texto en el documento (ej: "Total a pagar $: 9799.00")
         const bodyContent = document.body.innerText;
         const match = bodyContent.match(/Total a pagar \$:\s*([0-9.,]+)/i) ||
             bodyContent.match(/Total a pagar\s*\$?:\s*([0-9.,]+)/i) ||
@@ -49,7 +48,7 @@ function detectAmount() {
     if (!isNaN(val) && val > 0) {
         const panelExists = document.getElementById('fidelidad-panel');
         if (val !== detectedAmount || !panelExists) {
-            console.log(`💰 [Club Fidelidad] Monto detectado: ${val} (Source: ${input ? (input.id || input.name || 'node') : 'Text Fallback'})`);
+            console.log(`💰 [Club Fidelidad] Monto detectado: ${val}`);
             detectedAmount = val;
             showFidelidadPanel();
         }
@@ -87,7 +86,19 @@ function showFidelidadPanel() {
         </div>
     `;
 
-    document.body.appendChild(panel);
+    // --- ESTRATEGIA DE INFILTRACIÓN (v29) ---
+    // Buscamos el modal para inyectarnos ADENTRO y saltar el focus-trap
+    const modalSelectors = ['.modal-content', '.modal-body', '.bootbox', '.ui-dialog-content', '.sky-modal', '[role="dialog"]'];
+    let injector = document.body;
+    for (let sel of modalSelectors) {
+        const found = document.querySelector(sel);
+        if (found) {
+            injector = found;
+            console.log("🎯 [Club Fidelidad] Infiltrando en modal:", sel);
+            break;
+        }
+    }
+    injector.appendChild(panel);
 
     const searchInput = document.getElementById('fidelidad-search');
     const resultsDiv = document.getElementById('fidelidad-results');
@@ -95,14 +106,6 @@ function showFidelidadPanel() {
     const selectedInfo = document.getElementById('fidelidad-selected-info');
     const statusDiv = document.getElementById('fidelidad-status');
 
-    document.getElementById('fidelidad-close').onclick = () => {
-        window.removeEventListener('keydown', killEvent, true);
-        window.removeEventListener('keyup', killEvent, true);
-        window.removeEventListener('keypress', killEvent, true);
-        panel.remove();
-    };
-
-    // --- FIX ESCRITURA AGRESIVO (v28) ---
     function killEvent(e) {
         if (document.activeElement === searchInput) {
             e.stopPropagation();
@@ -114,25 +117,25 @@ function showFidelidadPanel() {
     window.addEventListener('keyup', killEvent, true);
     window.addEventListener('keypress', killEvent, true);
 
-    // FOCO FORZADO Y PERSISTENTE
-    searchInput.focus();
+    document.getElementById('fidelidad-close').onclick = () => {
+        window.removeEventListener('keydown', killEvent, true);
+        window.removeEventListener('keyup', killEvent, true);
+        window.removeEventListener('keypress', killEvent, true);
+        panel.remove();
+    };
 
-    // Si el sitio intenta robar el foco (tab-trap del modal), lo recuperamos si el usuario está interactuando con el panel
-    panel.addEventListener('mousedown', (e) => {
-        e.stopPropagation();
-        setTimeout(() => searchInput.focus(), 0);
-    }, true);
-
-    // Escuchar focusin global para detectar robos de foco
-    document.addEventListener('focusin', (e) => {
-        if (document.getElementById('fidelidad-panel') && e.target !== searchInput) {
-            // Si el foco se fue a otra parte y el buscador tiene contenido,
-            // o si el usuario clickeó recientemente el panel, lo forzamos.
-            if (searchInput.value.length > 0) {
-                // searchInput.focus(); // Ojo: puede ser molesto, lo activamos solo bajo demanda
+    // FOCO PERSISTENTE MIENTRAS ESTÉ ACTIVO
+    let focusInterval;
+    searchInput.onfocus = () => {
+        focusInterval = setInterval(() => {
+            if (document.activeElement !== searchInput && document.getElementById('fidelidad-panel')) {
+                searchInput.focus();
             }
-        }
-    }, true);
+        }, 50);
+    };
+    searchInput.onblur = () => clearInterval(focusInterval);
+
+    setTimeout(() => searchInput.focus(), 300);
 
     let searchTimeout;
     searchInput.oninput = (e) => {
@@ -200,7 +203,7 @@ function showFidelidadPanel() {
                 body: JSON.stringify({
                     uid: selectedClient.id,
                     amount: detectedAmount,
-                    reason: 'v25_aggressive_fix',
+                    reason: 'v29_modal_infiltration',
                     concept: 'Compra en local',
                     applyWhatsApp: true
                 })

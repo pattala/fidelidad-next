@@ -136,21 +136,28 @@ export const ClientHomePage = () => {
                     }
                 }
 
-                const unsubDb = onSnapshot(userRef, async (document) => {
+                const unsubDb = onSnapshot(userRef, (document) => {
                     const data = document.data();
                     setUserData(data);
-
-                    // --- BIRTHDAY CHECK ---
-                    if (data && config) {
-                        const { BirthdayService } = await import('../../../services/birthdayService');
-                        BirthdayService.checkAndProcessBirthday(u.uid, data, config);
-                    }
                 });
                 return () => unsubDb();
             }
         });
         return () => unsubscribeAuth();
-    }, [userData?.name, userData?.nombre]);
+    }, []);
+
+    // CHEQUEO DE CUMPLEAÑOS (UNA SOLA VEZ AL CARGAR)
+    const [birthdayChecked, setBirthdayChecked] = useState(false);
+    useEffect(() => {
+        if (userData && user?.uid && config && !birthdayChecked) {
+            setBirthdayChecked(true);
+            const runCheck = async () => {
+                const { BirthdayService } = await import('../../../services/birthdayService');
+                await BirthdayService.checkAndProcessBirthday(user.uid, userData, config);
+            };
+            runCheck();
+        }
+    }, [user?.uid, !!userData, !!config, birthdayChecked]);
 
     useEffect(() => {
         const handleSimChange = () => {

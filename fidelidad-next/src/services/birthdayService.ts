@@ -10,27 +10,36 @@ export const BirthdayService = {
         if (!userData?.birthDate) return;
 
         const now = TimeService.now();
+        const currentYear = now.getFullYear().toString();
         const todayMD = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-        const birthMD = userData.birthDate.substring(5); // Assumes YYYY-MM-DD
+        const birthMD = userData.birthDate.substring(5); // YYYY-MM-DD
 
+        // 1. Validar si es el cumpleaños
         if (todayMD !== birthMD) return;
 
-        const currentYear = now.getFullYear().toString();
-        const lastBirthdayPointsYear = userData.lastBirthdayPointsYear || "";
-
-        // 1. Process Points (if enabled and not already given)
-        if (config?.enableBirthdayBonus !== false && lastBirthdayPointsYear !== currentYear) {
-            await this.giveBirthdayPoints(uid, userData, config);
+        // 2. FRENO DE MANO: Si ya se saludó este año, SALIR INMEDIATAMENTE.
+        // Esto evita el bucle de notificaciones que se ve en la imagen.
+        if (userData.lastBirthdayGreetingYear === currentYear) {
+            console.log("Cumpleaños ya procesado hoy. Abortando auto-proceso.");
+            return;
         }
 
-        // 2. Process Message (if enabled)
-        // Check if message is already sent today? We don't track message sent specifically in user doc, maybe we should?
-        // For now, relies on 'enableBirthdayMessage' config.
-        if (config?.enableBirthdayMessage !== false) {
-            // We don't want to spam, but client side check runs once per session/day ideally.
-            // We can check local storage or just rely on the fact checking happens on login.
-            // But if we want to support manual sending from dashboard, we should separate this.
-            await this.sendBirthdayGreeting(uid, userData, config);
+        console.log("Procesando cumpleaños automático para:", userData.name);
+
+        // 3. Lógica según CONFIGURACIÓN
+        const autoBonusEnabled = config?.enableBirthdayBonus === true; // Solo si es TRUE explícito
+        const autoMessageEnabled = config?.enableBirthdayMessage !== false; // Default true
+
+        // 4. Ejecutar acciones
+        if (autoBonusEnabled && userData.lastBirthdayPointsYear !== currentYear) {
+            await this.giveBirthdayPoints(uid, userData, config);
+            // Si regalamos, mandamos saludo con puntos
+            if (autoMessageEnabled) {
+                await this.sendBirthdayGreeting(uid, userData, config, { mode: 'full' });
+            }
+        } else if (autoMessageEnabled) {
+            // Si NO regalamos puntos, el saludo DEBE ser limpio
+            await this.sendBirthdayGreeting(uid, userData, config, { mode: 'clean' });
         }
     },
 
@@ -38,11 +47,7 @@ export const BirthdayService = {
         const now = TimeService.now();
         const currentYear = now.getFullYear().toString();
 
-        // Double check to be safe, though Dashboard might bypass
-        if (userData.lastBirthdayPointsYear === currentYear) {
-            console.log("Points already given for this year.");
-            return false;
-        }
+        if (userData.lastBirthdayPointsYear === currentYear) return false;
 
         try {
             const birthdayPoints = config?.birthdayPoints || 100;
@@ -66,121 +71,98 @@ export const BirthdayService = {
                 lastBirthdayPointsYear: currentYear
             });
 
-            toast.success(`Se regalaron ${birthdayPoints} puntos a ${userData.name}`);
+            toast.success(`Se regalaron ${birthdayPoints} puntos.`);
             return true;
         } catch (e) {
-            console.error(e);
+            console.error("Error giving points:", e);
             return false;
         }
     },
 
     async sendBirthdayGreeting(uid: string, userData: any, config: any, options: { mode?: 'full' | 'clean' | 'gift_only' } = {}) {
         try {
+            const now = TimeService.now();
+            const currentYear = now.getFullYear().toString();
             const birthdayPoints = config?.birthdayPoints || 100;
             const birthdayTemplate = config?.messaging?.templates?.birthday || DEFAULT_TEMPLATES.birthday;
 
-            const now = TimeService.now();
-            const currentYear = now.getFullYear().toString();
-
             let msg = "";
 
-            // 1. CONSTRUCT MESSAGE ACCORDING TO MODE
+            // --- CONSTRUCCIÓN DE MENSAJE ---
             if (options.mode === 'gift_only') {
                 msg = `¡{nombre}! 🎁 Te acabamos de acreditar {puntos} puntos de regalo por tu cumple. ¡Disfrútalos! 🥳`;
             } else {
                 msg = birthdayTemplate;
-
-                // Ensure Emojis exist
-                if (msg.includes("Feliz cumpleaños") && !msg.includes("🎂")) {
-                    msg = msg.replace("Feliz cumpleaños", "¡Feliz cumpleaños 🎂🎉");
-                }
-                if (msg.includes("gran día") && !msg.includes("✨")) {
-                    msg = msg.replace("gran día", "gran día ✨");
-                }
+                // Emojis default si faltan
+                if (msg.includes("Feliz cumpleaños") && !msg.includes("🎂")) msg = msg.replace("Feliz cumpleaños", "¡Feliz cumpleaños 🎂🎉");
+                if (msg.includes("gran día") && !msg.includes("✨")) msg = msg.replace("gran día", "gran día ✨");
 
                 if (options.mode === 'clean') {
-                    // Remove "Te regalamos..." sentence efficiently.
+                    // LIMPIEZA AGRESIVA: Borrar cualquier mención a regalos/puntos/difrutes
                     msg = msg.replace(/Te regalamos.*?[\.!¡]/gi, '');
                     msg = msg.replace(/Te regalamos.*?puntos.*?difrutes/gi, '');
                     msg = msg.replace(/Te regalamos.*?puntos.*?disfrutes/gi, '');
                     msg = msg.replace(/{puntos}/gi, '');
                 } else {
-                    // Default or 'full'
                     msg = msg.replace(/{puntos}/g, birthdayPoints.toString());
                 }
             }
 
-            // 2. Personalize Name
-            msg = msg
-                .replace(/{nombre}/g, userData.name.split(' ')[0])
-                .replace(/{nombre_completo}/g, userData.name)
+            // --- PERSONALIZACIÓN ---
+            msg = msg.replace(/{nombre}/g, (userData.name || '').split(' ')[0])
+                .replace(/{nombre_completo}/g, userData.name || '')
                 .replace(/{puntos}/g, birthdayPoints.toString());
 
-            // 3. Final Cleanup
-            msg = msg.replace(/\s+/g, ' ')
-                .replace(/\s+([\.!¡\?,])/g, '$1')
-                .replace(/\.\./g, '.')
-                .trim();
+            msg = msg.replace(/\s+/g, ' ').replace(/\s+([\.!¡\?,])/g, '$1').trim();
 
+            // --- CANALES ---
             let pushSent = false;
             let emailSent = false;
             let whatsappLink = undefined;
 
-            // 4. Send Channels
-            if (NotificationService.isChannelEnabled(config, 'birthday', 'push')) {
-                await NotificationService.sendToClient(uid, {
-                    title: '¡Feliz Cumpleaños! 🎂',
-                    body: msg,
-                    type: 'birthday',
-                    icon: config?.logoUrl || '/logo.png'
-                });
-                pushSent = true;
-            }
+            // Push (Guardamos en inbox)
+            await NotificationService.sendToClient(uid, {
+                title: '¡Feliz Cumpleaños! 🎂',
+                body: msg,
+                type: 'birthday',
+                icon: config?.logoUrl || '/logo.png'
+            });
+            pushSent = true;
 
-            if (NotificationService.isChannelEnabled(config, 'birthday', 'email') && userData.email) {
+            // Email
+            if (userData.email) {
                 try {
-                    const auth = (await import('../lib/firebase')).auth;
-                    const token = await auth.currentUser?.getIdToken();
+                    const token = await (await import('../lib/firebase')).auth.currentUser?.getIdToken();
                     if (token) {
                         await fetch('/api/send-email', {
                             method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${token}`
-                            },
+                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                             body: JSON.stringify({
                                 to: userData.email,
                                 templateId: 'manual_override',
-                                templateData: {
-                                    subject: '¡Feliz Cumpleaños! 🎂',
-                                    htmlContent: `<p>${msg}</p>`
-                                }
+                                templateData: { subject: '¡Feliz Cumpleaños! 🎂', htmlContent: `<p>${msg}</p>` }
                             })
                         });
                         emailSent = true;
                     }
-                } catch (e) {
-                    console.error("Error sending birthday email:", e);
-                }
+                } catch (e) { }
             }
 
-            if (NotificationService.isChannelEnabled(config, 'birthday', 'whatsapp') && (userData.phone || userData.telefono)) {
-                const rawPhone = userData.phone || userData.telefono;
-                const cleanPhone = rawPhone.replace(/\D/g, '');
-                if (cleanPhone) {
-                    whatsappLink = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msg)}`;
-                }
+            // WhatsApp
+            const phone = userData.phone || userData.telefono;
+            if (phone) {
+                const cleanPhone = phone.replace(/\D/g, '');
+                if (cleanPhone) whatsappLink = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msg)}`;
             }
 
-            // 5. Persist Greeting State in DB
-            const userRef = doc(db, 'users', uid);
-            await updateDoc(userRef, {
+            // MARCAR SALUDO EN DB (CRÍTICO)
+            await updateDoc(doc(db, 'users', uid), {
                 lastBirthdayGreetingYear: currentYear
             });
 
             return { success: true, pushSent, emailSent, whatsappLink, message: msg };
         } catch (e) {
-            console.error(e);
+            console.error("Error sending greeting:", e);
             return { success: false, error: e };
         }
     }

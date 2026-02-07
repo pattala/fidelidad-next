@@ -46,12 +46,44 @@
     padding: 12px;
 }
 
-.fidelidad-amount {
-    font-size: 20px;
+.fidelidad-amount-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.fidelidad-amount-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    color: #999;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.fidelidad-amount-input {
+    width: 140px;
+    font-size: 24px;
     font-weight: bold;
     color: #333;
-    margin-bottom: 10px;
     text-align: center;
+    border: 2px solid #f0f0f0;
+    border-radius: 8px;
+    padding: 5px;
+    background: #fdfdfd;
+    outline: none;
+}
+
+.fidelidad-amount-input:focus {
+    border-color: #6200ee;
+    background: white;
+}
+
+/* Ocultar flechitas de input number */
+.fidelidad-amount-input::-webkit-outer-spin-button,
+.fidelidad-amount-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }
 
 .fidelidad-search-container {

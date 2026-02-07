@@ -12,74 +12,86 @@ chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
 });
 
 // Función para buscar el monto en el sitio
+let isManualAmount = false;
+
 function detectAmount() {
+    if (isManualAmount) return; // Si el usuario lo cambió a mano, no lo pisamos
+
     let amount = 0;
 
-    // Heartbeat log opcional (cada 5 escaneos para no saturar)
-    if (window.scanCount === undefined) window.scanCount = 0;
-    window.scanCount++;
-    if (window.scanCount % 5 === 0) console.log("👀 [Club Fidelidad] Escaneando pantalla en busca de montos...");
-
-    // 1. Intentar por el ID que conocemos (campo oculto o visible)
+    // 1. Intentar por el ID que conocemos
     let el = document.getElementById('cpbtc_total') || document.querySelector('input[name="cpbtc_total"]');
     if (el && el.value) {
         amount = parseValue(el.value);
-        if (amount > 0) console.log("🔍 [Club Fidelidad] Input detectado:", amount);
     }
 
-    // 2. Búsqueda por Texto Visible (Ej: "Total a pagar $: 2.00")
+    // 2. Búsqueda por Texto Visible más precisa
     if (!amount) {
-        // Buscamos en TODOS los elementos de texto corto (h1, h2, h3, div, span, b)
         const candidates = document.querySelectorAll('h1, h2, h3, h4, h5, div, span, b, td, label');
         for (let cand of candidates) {
-            const text = cand.innerText.toUpperCase();
-            if (text.includes('TOTAL') && (text.includes('$') || text.match(/\d/))) {
-                // Intentamos extraer el número de ese mismo texto
+            const text = cand.innerText.trim().toUpperCase();
+
+            // Filtros para evitar "basura":
+            // Debe contener TOTAL pero NO debe contener palabras que confundan
+            const blacklist = ['ARTICULOS', 'CANTIDAD', 'VUELTO', 'ITEM'];
+            const hasBlacklist = blacklist.some(word => text.includes(word));
+
+            if (text.includes('TOTAL') && !hasBlacklist && (text.includes('$') || text.match(/\d/))) {
                 let extracted = parseValue(text);
                 if (extracted > 0) {
                     amount = extracted;
-                    console.log("🎯 [Club Fidelidad] Texto con monto detectado:", text, "->", amount);
                     break;
                 }
             }
         }
     }
 
-    // 3. Si encontramos algo válido...
     if (amount > 0 && amount !== detectedAmount) {
-        console.log("💰 [Club Fidelidad] ¡NUEVO MONTO!: $", amount);
         detectedAmount = amount;
+        updatePanelAmount();
+    }
+}
+
+function updatePanelAmount() {
+    const input = document.getElementById('fidelidad-amount-input');
+    if (input) {
+        input.value = detectedAmount;
+    } else {
         showFidelidadPanel();
     }
 }
 
 function parseValue(text) {
     if (!text) return 0;
-    // Eliminamos todo lo que no sea número, coma o punto
-    // Pero ojo: si hay un "$", queremos lo que está después
-    let cleaning = text.split('$');
-    let toParse = cleaning.length > 1 ? cleaning[1] : cleaning[0];
+    // Eliminamos texto y nos quedamos con la parte numérica después del $ o al final
+    let parts = text.split('$');
+    let target = parts.length > 1 ? parts[1] : parts[0];
 
-    // Quitamos espacios y caracteres raros, dejamos solo digitos y separadores
-    let valClean = toParse.replace(/[^0-9,.]/g, '').trim();
+    // Limpieza agresiva: solo números, puntos y comas
+    let clean = target.replace(/[^0-9,.]/g, '').trim();
 
-    // Caso especial: si tiene coma y punto (ej: 1.250,50)
-    if (valClean.includes('.') && valClean.includes(',')) {
-        valClean = valClean.replace(/\./g, '').replace(',', '.');
-    } else {
-        // Si solo tiene coma, es el decimal (formato AR)
-        valClean = valClean.replace(',', '.');
+    if (!clean) return 0;
+
+    // Lógica para detectar miles vs decimales (AR: 1.250,50 o 1250,50)
+    if (clean.includes('.') && clean.includes(',')) {
+        // Formato con ambos: el punto es miles, la coma es decimal
+        clean = clean.replace(/\./g, '').replace(',', '.');
+    } else if (clean.includes(',')) {
+        // Solo coma: es decimal
+        clean = clean.replace(',', '.');
+    } else if (clean.includes('.') && clean.split('.').pop().length !== 2) {
+        // Si hay punto pero la parte final no tiene 2 dígitos, probable es miles
+        // (Ej: 1.500 -> 1500)
+        clean = clean.replace(/\./g, '');
     }
 
-    return parseFloat(valClean) || 0;
+    return parseFloat(clean) || 0;
 }
 
 // Escaneo continuo
-setInterval(detectAmount, 3000);
-detectAmount();
+setInterval(detectAmount, 2000);
 
 function showFidelidadPanel() {
-    // Evitar duplicados
     if (document.getElementById('fidelidad-panel')) return;
 
     const panel = document.createElement('div');
@@ -91,7 +103,10 @@ function showFidelidadPanel() {
             <span class="fidelidad-close" id="fidelidad-close">×</span>
         </div>
         <div class="fidelidad-body">
-            <div class="fidelidad-amount">$ ${detectedAmount.toLocaleString('es-AR')}</div>
+            <div class="fidelidad-amount-container">
+                <div class="fidelidad-amount-label">Monto de la venta</div>
+                <input type="number" id="fidelidad-amount-input" class="fidelidad-amount-input" value="${detectedAmount}" step="0.01">
+            </div>
             <div class="fidelidad-search-container">
                 <input type="text" id="fidelidad-search" class="fidelidad-input" placeholder="Buscar por Nombre o DNI (mín 3 carac.)...">
                 <div id="fidelidad-results" class="fidelidad-results" style="display:none;"></div>
@@ -133,10 +148,16 @@ function showFidelidadPanel() {
     document.getElementById('fidelidad-close').onclick = () => panel.remove();
 
     const searchInput = document.getElementById('fidelidad-search');
+    const amountInput = document.getElementById('fidelidad-amount-input');
     const resultsDiv = document.getElementById('fidelidad-results');
     const submitBtn = document.getElementById('fidelidad-submit');
     const selectedInfo = document.getElementById('fidelidad-selected-info');
     const statusDiv = document.getElementById('fidelidad-status');
+
+    amountInput.oninput = (e) => {
+        isManualAmount = true;
+        detectedAmount = parseFloat(e.target.value) || 0;
+    };
 
     let searchTimeout;
     searchInput.oninput = (e) => {

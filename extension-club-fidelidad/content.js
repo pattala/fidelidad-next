@@ -1,118 +1,120 @@
-// VERSIÓN 16 - MÁXIMO AISLAMIENTO (EL ÚLTIMO RECURSO)
-console.log("🚀 [Club Fidelidad] Iniciando Versión 16 - Aislamiento Total");
-
-// 1. Limpieza absoluta
-if (document.getElementById('cf-host')) document.getElementById('cf-host').remove();
-
-// 2. Crear un HOST para el Shadow DOM
-// El Shadow DOM es la ÚNICA forma de que el sitio NO pueda ver nuestras teclas.
-const host = document.createElement('div');
-host.id = 'cf-host';
-host.style.cssText = `
-    position: fixed !important;
-    top: 50px !important;
-    right: 20px !important;
-    z-index: 2147483647 !important;
-    display: block !important;
-    pointer-events: auto !important;
-`;
-document.documentElement.appendChild(host);
-
-const shadow = host.attachShadow({ mode: 'open' });
-
-// 3. Estilos dentro de la burbuja
-const style = document.createElement('style');
-style.textContent = `
-    .panel {
-        width: 320px;
-        background: white;
-        border: 4px solid #10b981;
-        border-radius: 15px;
-        padding: 20px;
-        box-shadow: 0 10px 50px rgba(0,0,0,0.5);
-        font-family: Arial, sans-serif;
-    }
-    .monto { font-size: 32px; font-weight: 900; color: #059669; text-align: center; margin: 10px 0; }
-    input { 
-        width: 100%; height: 45px; border: 2px solid #ccc; border-radius: 8px; 
-        padding: 0 10px; font-size: 16px; box-sizing: border-box; margin-bottom: 20px; 
-        display: block !important; visibility: visible !important;
-    }
-    button { 
-        width: 100%; background: #10b981; color: white; border: none; 
-        padding: 15px; border-radius: 10px; font-weight: bold; cursor: pointer; 
-    }
-`;
-shadow.appendChild(style);
-
-const panel = document.createElement('div');
-panel.className = 'panel';
-panel.innerHTML = `
-    <div style="text-align:center; color:#10b981; font-weight:bold;">FIDELIDAD</div>
-    <div id="monto-val" class="monto">$0.00</div>
-    <input type="text" id="dni-input" placeholder="ESCRIBÍ DNI ACÁ" autocomplete="off">
-    <button id="btn-save">ASIGNAR PUNTOS</button>
-    <div id="status" style="margin-top:10px; text-align:center; font-size:12px;"></div>
-`;
-shadow.appendChild(panel);
-
-// 4. Lógica de Negocio
-const input = shadow.getElementById('dni-input');
-const btn = shadow.getElementById('btn-save');
-const montoEl = shadow.getElementById('monto-val');
-const status = shadow.getElementById('status');
+// VERSIÓN 17 - INYECCIÓN INTRAMODAL (Adaptación al bloqueo del sitio)
+console.log("💉 [Club Fidelidad] v17: Iniciando Inyección Intramodal...");
 
 let config = { apiUrl: '', apiKey: '' };
 chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => { config = res; });
 
-// Detector de monto agresivo
-setInterval(() => {
-    const labels = document.querySelectorAll('h1, h2, h3, h4, h5, div, span, b, p');
-    for (let l of labels) {
-        if (l.innerText.toUpperCase().includes('TOTAL A PAGAR $:')) {
-            const matches = l.innerText.match(/TOTAL A PAGAR \$: ([0-9.,]+)/i);
-            if (matches) montoEl.innerText = "$" + matches[1];
+function run() {
+    // 1. Buscamos el modal de facturación (el cuadro blanco)
+    const allDivs = document.querySelectorAll('div');
+    let modalCobro = null;
+    let targetEl = null;
+
+    for (let div of allDivs) {
+        if (div.innerText.toUpperCase().includes('TOTAL A PAGAR $:') && div.style.display !== 'none') {
+            // Encontramos el elemento que tiene el monto
+            targetEl = div;
+            // Subimos hasta encontrar el contenedor blanco (el modal)
+            modalCobro = div.closest('div[style*="background-color: white"]') || div.parentElement;
             break;
         }
     }
-}, 1000);
 
-// SOLUCIÓN AL TECLADO:
-// Detener la propagación en el Shadow Host evita que los eventos suban a la página de facturación.
-input.onkeydown = (e) => e.stopPropagation();
-input.onkeyup = (e) => e.stopPropagation();
-input.onkeypress = (e) => e.stopPropagation();
+    const existing = document.getElementById('cf-internal-panel');
 
-btn.onclick = async () => {
-    const q = input.value;
-    if (!q) return alert("Ingresá un DNI");
-
-    btn.disabled = true;
-    status.innerText = "Procesando...";
-
-    try {
-        const r = await fetch(`${config.apiUrl}/api/assign-points?q=${encodeURIComponent(q)}`, {
-            headers: { 'x-api-key': config.apiKey }
-        });
-        const d = await r.json();
-
-        if (d.ok && d.clients.length > 0) {
-            const c = d.clients[0];
-            const amt = parseFloat(montoEl.innerText.replace('$', '').replace(/\./g, '').replace(',', '.')) || 0;
-
-            const r2 = await fetch(`${config.apiUrl}/api/assign-points`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey },
-                body: JSON.stringify({ uid: c.id, amount: amt, reason: 'v16_shadow_fix', concept: 'Venta local' })
-            });
-            const d2 = await r2.json();
-            if (d2.ok) status.innerHTML = "<b style='color:green'>✅ ¡ÉXITO!</b>";
-            else status.innerText = "Error: " + d2.error;
-        } else {
-            status.innerText = "Cliente no encontrado";
-        }
-    } catch (e) {
-        status.innerText = "Error de red";
+    if (!targetEl) {
+        if (existing) existing.remove();
+        return;
     }
-    btn.disabled = false;
-};
+
+    // 2. Si ya encontramos el lugar y no está el panel, lo inyectamos ADENTRO
+    if (!existing) {
+        injectInside(targetEl);
+    }
+}
+
+function injectInside(parent) {
+    console.log("✨ [Club Fidelidad] Inyectando dentro del modal...");
+
+    const container = document.createElement('div');
+    container.id = 'cf-internal-panel';
+    container.style.cssText = `
+        margin-top: 20px !important;
+        padding: 15px !important;
+        background: #f0fdf4 !important;
+        border: 2px solid #10b981 !important;
+        border-radius: 12px !important;
+        font-family: sans-serif !important;
+        display: block !important;
+    `;
+
+    container.innerHTML = `
+        <div style="font-weight:bold; color:#065f46; margin-bottom:10px; text-align:center; font-size:14px;">FIDELIDAD: ASIGNAR PUNTOS</div>
+        <div style="margin-bottom:10px;">
+            <input type="text" id="cf-dni-input" placeholder="DNI DEL CLIENTE..." 
+                   style="width:100% !important; height:40px !important; border:1px solid #10b981 !important; border-radius:6px !important; padding:0 10px !important; font-size:16px !important; background:white !important; color:black !important; display:block !important;">
+        </div>
+        <button id="cf-save-btn" style="width:100%; height:40px; background:#10b981; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">SUMAR PUNTOS</button>
+        <div id="cf-res-msg" style="margin-top:8px; text-align:center; font-size:12px; color:#333;"></div>
+    `;
+
+    // Insertamos el panel justo después del texto del monto
+    parent.after(container);
+
+    const input = document.getElementById('cf-dni-input');
+    const btn = document.getElementById('cf-save-btn');
+    const msg = document.getElementById('cf-res-msg');
+
+    // Al estar ADENTRO del modal, el sitio ya no bloquea el foco.
+    input.onclick = (e) => { e.stopPropagation(); input.focus(); };
+
+    btn.onclick = async () => {
+        const dni = input.value;
+        if (!dni) return alert("Ingresá un DNI");
+
+        btn.disabled = true;
+        msg.innerText = "Procesando...";
+
+        try {
+            // Buscamos monto
+            const textoMonto = parent.innerText;
+            const match = textoMonto.match(/([0-9.,]+)/);
+            let monto = 1;
+            if (match) {
+                let s = match[0];
+                if (s.includes('.') && s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+                else if (s.includes(',')) s = s.replace(',', '.');
+                monto = parseFloat(s);
+            }
+
+            // 1. Buscar
+            const r1 = await fetch(`${config.apiUrl}/api/assign-points?q=${encodeURIComponent(dni)}`, {
+                headers: { 'x-api-key': config.apiKey }
+            });
+            const d1 = await r1.json();
+
+            if (d1.ok && d1.clients.length > 0) {
+                const c = d1.clients[0];
+                msg.innerText = "Asignando a " + c.name + "...";
+
+                // 2. Asignar
+                const r2 = await fetch(`${config.apiUrl}/api/assign-points`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey },
+                    body: JSON.stringify({ uid: c.id, amount: monto, reason: 'v17_internal', concept: 'Venta Facturador' })
+                });
+                const d2 = await r2.json();
+                if (d2.ok) msg.innerHTML = "<b style='color:green'>✅ ¡PUNTOS ASIGNADOS!</b>";
+                else msg.innerText = "Error: " + d2.error;
+            } else {
+                msg.innerText = "Cliente no encontrado";
+            }
+        } catch (e) {
+            msg.innerText = "Error de red";
+        }
+        btn.disabled = false;
+    };
+}
+
+// Ejecución periódica para detectar el modal
+setInterval(run, 1500);

@@ -74,74 +74,59 @@ export const BirthdayService = {
         }
     },
 
-    async sendBirthdayGreeting(uid: string, userData: any, config: any, options: { forcePointsText?: boolean, cleanMessage?: boolean } = {}) {
+    async sendBirthdayGreeting(uid: string, userData: any, config: any, options: { mode?: 'full' | 'clean' | 'gift_only' } = {}) {
         try {
             const birthdayPoints = config?.birthdayPoints || 100;
             const birthdayTemplate = config?.messaging?.templates?.birthday || DEFAULT_TEMPLATES.birthday;
 
             const now = TimeService.now();
             const currentYear = now.getFullYear().toString();
-            const pointsGivenThisYear = userData.lastBirthdayPointsYear === currentYear;
-            const willGivePointsAuto = config?.enableBirthdayBonus !== false; // If auto is ON, we assume points are/will be there.
 
-            let msg = birthdayTemplate;
+            let msg = "";
 
-            // 1. Ensure Emojis exist (if using old default template text)
-            // If the message looks like the old default but misses emojis, let's upgrade it on the fly for display.
-            if (msg.includes("Feliz cumpleaños") && !msg.includes("🎂")) {
-                msg = msg.replace("Feliz cumpleaños", "¡Feliz cumpleaños 🎂🎉");
-            }
-            if (msg.includes("gran día") && !msg.includes("✨")) {
-                msg = msg.replace("gran día", "gran día ✨");
+            // 1. CONSTRUCT MESSAGE ACCORDING TO MODE
+            if (options.mode === 'gift_only') {
+                msg = `¡{nombre}! 🎁 Te acabamos de acreditar {puntos} puntos de regalo por tu cumple. ¡Disfrútalos! 🥳`;
+            } else {
+                msg = birthdayTemplate;
+
+                // Ensure Emojis exist
+                if (msg.includes("Feliz cumpleaños") && !msg.includes("🎂")) {
+                    msg = msg.replace("Feliz cumpleaños", "¡Feliz cumpleaños 🎂🎉");
+                }
+                if (msg.includes("gran día") && !msg.includes("✨")) {
+                    msg = msg.replace("gran día", "gran día ✨");
+                }
+
+                if (options.mode === 'clean') {
+                    // Remove "Te regalamos..." sentence efficiently.
+                    msg = msg.replace(/Te regalamos.*?[\.!¡]/gi, '');
+                    msg = msg.replace(/Te regalamos.*?puntos.*?difrutes/gi, '');
+                    msg = msg.replace(/Te regalamos.*?puntos.*?disfrutes/gi, '');
+                    msg = msg.replace(/{puntos}/gi, '');
+                } else {
+                    // Default or 'full'
+                    msg = msg.replace(/{puntos}/g, birthdayPoints.toString());
+                }
             }
 
             // 2. Personalize Name
             msg = msg
                 .replace(/{nombre}/g, userData.name.split(' ')[0])
-                .replace(/{nombre_completo}/g, userData.name);
+                .replace(/{nombre_completo}/g, userData.name)
+                .replace(/{puntos}/g, birthdayPoints.toString());
 
-            // 3. Conditional Points Text
-            let shouldShowPoints = false;
-
-            if (options.cleanMessage) {
-                shouldShowPoints = false; // Forced Clean
-            } else if (options.forcePointsText) {
-                shouldShowPoints = true; // Forced Points
-            } else {
-                // Default auto behavior
-                shouldShowPoints = pointsGivenThisYear || willGivePointsAuto;
-            }
-
-            if (!shouldShowPoints) {
-                // Remove "Te regalamos..." sentence efficiently.
-                // Matches: "Te regalamos" ... (anything) ... end of sentence (. or ! or next capitalized start if missing punct?)
-                // We use a broader match that kills the phrase "Te regalamos" and everything up to the next dot/exclamation.
-                msg = msg.replace(/Te regalamos.*?[\.!]/gi, '');
-
-                // Fallback: If regex failed due to missing punctuation in user config:
-                // Remove common variations specifically
-                msg = msg.replace(/Te regalamos.*?puntos.*?disfrutes/gi, '');
-                msg = msg.replace(/Te regalamos.*?puntos.*?difrutes/gi, ''); // Handle typo "difrutes"
-
-                // Cleanup loose vars if any remain
-                msg = msg.replace(/{puntos} puntos/gi, '');
-                msg = msg.replace(/{puntos}/g, '');
-            } else {
-                msg = msg.replace(/{puntos}/g, birthdayPoints.toString());
-            }
-
-            // 4. Cleanup
-            // Fix double spaces and ensure spacing around punctuation is correct
+            // 3. Final Cleanup
             msg = msg.replace(/\s+/g, ' ')
-                .replace(/\s+([\.!¡\?,])/g, '$1') // remove space before dots/exclamations
-                .replace(/\.\./g, '.') // fix double dots
+                .replace(/\s+([\.!¡\?,])/g, '$1')
+                .replace(/\.\./g, '.')
                 .trim();
 
             let pushSent = false;
             let emailSent = false;
             let whatsappLink = undefined;
 
-            // 1. Send Push/Inbox (Default or if enabled)
+            // 4. Send Channels
             if (NotificationService.isChannelEnabled(config, 'birthday', 'push')) {
                 await NotificationService.sendToClient(uid, {
                     title: '¡Feliz Cumpleaños! 🎂',
@@ -152,12 +137,10 @@ export const BirthdayService = {
                 pushSent = true;
             }
 
-            // 2. Send Email
             if (NotificationService.isChannelEnabled(config, 'birthday', 'email') && userData.email) {
                 try {
                     const auth = (await import('../lib/firebase')).auth;
                     const token = await auth.currentUser?.getIdToken();
-
                     if (token) {
                         await fetch('/api/send-email', {
                             method: 'POST',
@@ -181,17 +164,19 @@ export const BirthdayService = {
                 }
             }
 
-            // 3. Prepare WhatsApp Link
             if (NotificationService.isChannelEnabled(config, 'birthday', 'whatsapp') && (userData.phone || userData.telefono)) {
                 const rawPhone = userData.phone || userData.telefono;
                 const cleanPhone = rawPhone.replace(/\D/g, '');
-
-                // Ensure proper encoding for URL
                 if (cleanPhone) {
-                    // Use api.whatsapp.com/send for broader compatibility (web + mobile)
                     whatsappLink = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msg)}`;
                 }
             }
+
+            // 5. Persist Greeting State in DB
+            const userRef = doc(db, 'users', uid);
+            await updateDoc(userRef, {
+                lastBirthdayGreetingYear: currentYear
+            });
 
             return { success: true, pushSent, emailSent, whatsappLink, message: msg };
         } catch (e) {

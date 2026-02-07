@@ -325,6 +325,7 @@ export const DashboardPage = () => {
                                 {birthdaysOfToday.map(client => {
                                     const currentYear = TimeService.now().getFullYear().toString();
                                     const alreadyGifted = client.lastBirthdayPointsYear === currentYear;
+                                    const alreadyGreeted = client.lastBirthdayGreetingYear === currentYear;
 
                                     return (
                                         <div key={client.id} className="flex flex-col gap-3 p-3 bg-pink-50/50 rounded-xl border border-pink-100 hover:bg-pink-50 transition-colors group">
@@ -340,94 +341,165 @@ export const DashboardPage = () => {
                                                 </div>
                                             </div>
 
-                                            {/* Actions */}
+                                            {/* Actions Component */}
                                             <div className="flex flex-col gap-2 mt-2">
-                                                {!alreadyGifted ? (
+
+                                                {/* CASE 1: NOTHING DONE */}
+                                                {!alreadyGifted && !alreadyGreeted && (
                                                     <div className="flex gap-2">
-                                                        {/* Opción 1: Solo Saludar (Sin Puntos) */}
                                                         <button
                                                             onClick={async () => {
                                                                 if (!config) return;
-                                                                // Enviamos 'userData' tal cual. El servicio detectará que NO se dieron puntos
-                                                                // y ajustará el mensaje (quitando la parte de "te regalamos puntos").
-                                                                const result: any = await BirthdayService.sendBirthdayGreeting(client.id, client, config, { cleanMessage: true });
-
-                                                                if (result?.success) {
-                                                                    const parts = [];
-                                                                    if (result.pushSent) parts.push('Push');
-                                                                    if (result.emailSent) parts.push('Email');
-
-                                                                    if (result.whatsappLink) {
-                                                                        window.open(result.whatsappLink, '_blank');
-                                                                        toast.success(`Saludo enviado (${parts.join('+')}) y abriendo WhatsApp...`);
-                                                                    } else {
-                                                                        toast.success(`Saludo enviado (${parts.join('+')})`);
-                                                                    }
+                                                                const res: any = await BirthdayService.sendBirthdayGreeting(client.id, client, config, { mode: 'clean' });
+                                                                if (res?.success) {
+                                                                    setBirthdaysOfToday(prev => prev.map(p => p.id === client.id ? { ...p, lastBirthdayGreetingYear: currentYear } : p));
+                                                                    if (res.whatsappLink) window.open(res.whatsappLink, '_blank');
+                                                                    toast.success("Saludo enviado (sin puntos)");
                                                                 }
                                                             }}
-                                                            className="flex-1 bg-white border border-yellow-400 text-yellow-600 text-[10px] font-bold py-2 rounded-lg hover:bg-yellow-50 transition flex items-center justify-center gap-1 shadow-sm"
-                                                            title="Enviar 'Feliz Cumpleaños' sin regalar puntos hoy"
+                                                            className="flex-1 bg-white border border-yellow-400 text-yellow-600 text-[10px] font-bold py-2 rounded-lg hover:bg-yellow-50 transition shadow-sm"
+                                                            title="Envía solo el mensaje de Feliz Cumpleaños. NO entrega puntos ni los menciona."
                                                         >
                                                             👋 Solo Saludar
                                                         </button>
-
-                                                        {/* Opción 2: Regalar Puntos Y Saludar */}
                                                         <button
                                                             onClick={async () => {
                                                                 if (!config) return;
-                                                                const pointsToGift = config.birthdayPoints || 100;
-                                                                if (!confirm(`¿Confirmas enviar REGALO + SALUDO?\n\n- Se acreditarán ${pointsToGift} puntos.\n- Se enviará notificación de aviso.`)) return;
-
-                                                                // 1. Regalar Puntos
+                                                                if (!confirm("¿Dar puntos y saludar ahora?")) return;
                                                                 const giftSuccess = await BirthdayService.giveBirthdayPoints(client.id, client, config);
-
                                                                 if (giftSuccess) {
-                                                                    // Actualizamos estado local inmediatamente para bloquear botón
-                                                                    setBirthdaysOfToday(prev => prev.map(p => p.id === client.id ? { ...p, lastBirthdayPointsYear: currentYear } : p));
-
-                                                                    // 2. Saludar (Simulamos que el usuario YA tiene los puntos actualizados para que el mensaje salga completo)
                                                                     const updatedClient = { ...client, lastBirthdayPointsYear: currentYear };
-                                                                    const greetResult: any = await BirthdayService.sendBirthdayGreeting(client.id, updatedClient, config, { forcePointsText: true });
-
-                                                                    if (greetResult?.whatsappLink) {
-                                                                        window.open(greetResult.whatsappLink, '_blank');
-                                                                        toast.success(`¡Regalo acreditado! Abriendo WhatsApp...`);
-                                                                    } else {
-                                                                        toast.success(`¡Regalo acreditado y notificado!`);
-                                                                    }
+                                                                    const res: any = await BirthdayService.sendBirthdayGreeting(client.id, updatedClient, config, { mode: 'full' });
+                                                                    setBirthdaysOfToday(prev => prev.map(p => p.id === client.id ? { ...p, lastBirthdayPointsYear: currentYear, lastBirthdayGreetingYear: currentYear } : p));
+                                                                    if (res.whatsappLink) window.open(res.whatsappLink, '_blank');
+                                                                    toast.success("Puntos y Saludo enviados");
                                                                 }
                                                             }}
-                                                            className="flex-1 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-[10px] font-bold py-2 rounded-lg hover:shadow-md transition flex items-center justify-center gap-1 shadow-sm shadow-pink-200"
-                                                            title={`Acreditar ${config?.birthdayPoints || 100} pts y avisar al cliente`}
+                                                            className="flex-1 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-[10px] font-bold py-2 rounded-lg hover:shadow-md transition shadow-sm shadow-pink-200"
+                                                            title="Acredita los puntos ahora y envía el saludo completo avisando del regalo."
                                                         >
                                                             🎁 Regalar y Saludar
                                                         </button>
                                                     </div>
-                                                ) : (
-                                                    <div className="flex gap-2">
-                                                        <div
-                                                            className="flex-1 bg-green-50 text-green-600 text-[10px] font-bold py-2 rounded-lg flex items-center justify-center gap-1 border border-green-200 select-none"
-                                                            title="Los puntos ya fueron acreditados en la base de datos"
-                                                        >
-                                                            ✅ Puntos Enviados
+                                                )}
+
+                                                {/* CASE 2: GIFTED BUT NOT GREETED (Maybe auto-gifted) */}
+                                                {alreadyGifted && !alreadyGreeted && (
+                                                    <div className="flex flex-col gap-2">
+                                                        <div className="text-[9px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded text-center border border-green-100" title="Los puntos ya fueron entregados (quizás automáticamente)">
+                                                            ✅ Puntos Acreditados (Aviso Pendiente)
                                                         </div>
-                                                        <button
-                                                            onClick={async () => {
-                                                                if (!config) return;
-                                                                // Re-envío: Auto-detectar (Si ya tiene puntos, mostrará el texto de puntos)
-                                                                const result: any = await BirthdayService.sendBirthdayGreeting(client.id, client, config);
-                                                                if (result?.whatsappLink) window.open(result.whatsappLink, '_blank');
-                                                                toast.success("Saludo re-enviado");
-                                                            }}
-                                                            className="px-3 bg-white border border-gray-200 text-gray-500 text-[10px] font-bold rounded-lg hover:bg-gray-50 transition"
-                                                            title="Volver a enviar la notificación/mensaje"
-                                                        >
-                                                            📩 Re-enviar
-                                                        </button>
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                onClick={async () => {
+                                                                    if (!config) return;
+                                                                    const res: any = await BirthdayService.sendBirthdayGreeting(client.id, client, config, { mode: 'full' });
+                                                                    if (res?.success) {
+                                                                        setBirthdaysOfToday(prev => prev.map(p => p.id === client.id ? { ...p, lastBirthdayGreetingYear: currentYear } : p));
+                                                                        if (res.whatsappLink) window.open(res.whatsappLink, '_blank');
+                                                                        toast.success("Aviso de regalo enviado");
+                                                                    }
+                                                                }}
+                                                                className="flex-1 bg-pink-500 text-white text-[10px] font-bold py-2 rounded-lg hover:bg-pink-600 transition"
+                                                                title="Envía el mensaje avisando que ya tiene sus puntos y saludándolo."
+                                                            >
+                                                                📩 Avisar Regalo + Saludo
+                                                            </button>
+                                                            <button
+                                                                onClick={async () => {
+                                                                    if (!config) return;
+                                                                    const res: any = await BirthdayService.sendBirthdayGreeting(client.id, client, config, { mode: 'clean' });
+                                                                    if (res?.success) {
+                                                                        setBirthdaysOfToday(prev => prev.map(p => p.id === client.id ? { ...p, lastBirthdayGreetingYear: currentYear } : p));
+                                                                        if (res.whatsappLink) window.open(res.whatsappLink, '_blank');
+                                                                        toast.success("Solo saludo enviado");
+                                                                    }
+                                                                }}
+                                                                className="px-2 bg-white border border-gray-200 text-gray-500 text-[10px] font-bold rounded-lg hover:bg-gray-50 transition"
+                                                                title="Envía solo saludo afectuoso sin mencionar puntos."
+                                                            >
+                                                                👋 Solo Saludo
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* CASE 3: GREETED BUT NOT GIFTED (Admin chose 'Solo Saludar' earlier) */}
+                                                {!alreadyGifted && alreadyGreeted && (
+                                                    <div className="flex flex-col gap-2">
+                                                        <div className="text-[9px] font-bold text-yellow-600 bg-yellow-50 px-2 py-1 rounded text-center border border-yellow-100" title="El saludo ya se envió pero sin puntos hoy">
+                                                            📩 Saludo Enviado (Sin Regalo)
+                                                        </div>
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                onClick={async () => {
+                                                                    if (!config) return;
+                                                                    const giftSuccess = await BirthdayService.giveBirthdayPoints(client.id, client, config);
+                                                                    if (giftSuccess) {
+                                                                        const res: any = await BirthdayService.sendBirthdayGreeting(client.id, client, config, { mode: 'gift_only' });
+                                                                        setBirthdaysOfToday(prev => prev.map(p => p.id === client.id ? { ...p, lastBirthdayPointsYear: currentYear } : p));
+                                                                        if (res.whatsappLink) window.open(res.whatsappLink, '_blank');
+                                                                        toast.success("Regalo enviado");
+                                                                    }
+                                                                }}
+                                                                className="flex-1 bg-gradient-to-r from-orange-400 to-pink-500 text-white text-[10px] font-bold py-2 rounded-lg hover:shadow-md transition"
+                                                                title="Acredita los puntos ahora y envía aviso específico del regalo."
+                                                            >
+                                                                🎁 Entregar Premio Faltante
+                                                            </button>
+                                                            <button
+                                                                onClick={async () => {
+                                                                    if (!config) return;
+                                                                    const res: any = await BirthdayService.sendBirthdayGreeting(client.id, client, config, { mode: 'clean' });
+                                                                    if (res?.whatsappLink) window.open(res.whatsappLink, '_blank');
+                                                                    toast.success("Re-enviando saludo...");
+                                                                }}
+                                                                className="px-2 bg-white border border-gray-200 text-gray-500 text-[10px] font-bold rounded-lg transition"
+                                                                title="Vuelve a mandar el saludo cariñoso (sin puntos)."
+                                                            >
+                                                                📩 Re-enviar Saludo
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* CASE 4: EVERYTHING DONE */}
+                                                {alreadyGifted && alreadyGreeted && (
+                                                    <div className="flex flex-col gap-2">
+                                                        <div className="text-[9px] font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded text-center border border-gray-100 shadow-inner flex items-center justify-center gap-1">
+                                                            🎉 Saludo y Puntos Enviados
+                                                        </div>
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                onClick={async () => {
+                                                                    if (!config) return;
+                                                                    const res: any = await BirthdayService.sendBirthdayGreeting(client.id, client, config, { mode: 'full' });
+                                                                    if (res?.whatsappLink) window.open(res.whatsappLink, '_blank');
+                                                                    toast.success("Re-enviando aviso completo...");
+                                                                }}
+                                                                className="flex-1 bg-white border border-pink-200 text-pink-600 text-[10px] font-bold py-2 rounded-lg hover:bg-pink-50 transition"
+                                                                title="Vuelve a enviar el aviso completo (Saludo + Regalo)."
+                                                            >
+                                                                📩 Re-enviar Aviso Regalo
+                                                            </button>
+                                                            <button
+                                                                onClick={async () => {
+                                                                    if (!config) return;
+                                                                    const res: any = await BirthdayService.sendBirthdayGreeting(client.id, client, config, { mode: 'clean' });
+                                                                    if (res?.whatsappLink) window.open(res.whatsappLink, '_blank');
+                                                                    toast.success("Re-enviando saludo limpio...");
+                                                                }}
+                                                                className="px-2 bg-white border border-gray-200 text-gray-500 text-[10px] font-bold rounded-lg transition"
+                                                                title="Manda solo el Feliz Cumpleaños limpio (sin mención de puntos)."
+                                                            >
+                                                                👋 Solo Saludo
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 )}
                                             </div>
                                         </div>
+
                                     );
                                 })}
                             </div>

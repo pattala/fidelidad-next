@@ -1,6 +1,5 @@
-
 // Club Fidelidad - Content Script
-console.log("🚀 [Club Fidelidad] Integrador cargado.");
+console.log("🚀 [Club Fidelidad] Integrador activado en: " + window.location.href);
 
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;
@@ -9,36 +8,69 @@ let selectedClient = null;
 // Cargar configuración de storage
 chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
     config = res;
-    console.log("⚙️ [Club Fidelidad] Configuración cargada:", config.apiUrl ? "URL OK" : "URL Pendiente");
+    console.log("⚙️ [Club Fidelidad] Configuración cargada:", config.apiUrl ? "URL: " + config.apiUrl : "URL NO CONFIGURADA");
 });
 
 // Función para buscar el monto en el sitio
 function detectAmount() {
-    // Intentamos buscar por ID (el que nos dio el usuario)
-    let input = document.getElementById('cpbtc_total');
+    let amount = 0;
 
-    // Si no está por ID, buscamos por name (algunos sistemas cambian)
-    if (!input) input = document.querySelector('input[name="cpbtc_total"]');
+    // 1. Intentar por el ID que conocemos
+    let el = document.getElementById('cpbtc_total') || document.querySelector('input[name="cpbtc_total"]');
 
-    if (input && input.value) {
-        let val = parseFloat(input.value.replace(/[^0-9.,]/g, '').replace(',', '.'));
-        if (!isNaN(val) && val > 0 && val !== detectedAmount) {
-            console.log("💰 [Club Fidelidad] Monto detectado:", val);
-            detectedAmount = val;
-            showFidelidadPanel();
+    if (el) {
+        console.log("🔍 [Club Fidelidad] Encontrado elemento cpbtc_total. Valor actual:", el.value);
+        amount = parseValue(el.value);
+    }
+
+    // 2. Si no hay monto, buscar cualquier input que contenga "total" en su ID o nombre
+    if (!amount) {
+        const allInputs = Array.from(document.querySelectorAll('input'));
+        const totalInput = allInputs.find(i => (i.id && i.id.toLowerCase().includes('total')) || (i.name && i.name.toLowerCase().includes('total')));
+        if (totalInput && totalInput.value) {
+            console.log("🔍 [Club Fidelidad] Encontrado posible input de total (" + totalInput.id + "):", totalInput.value);
+            amount = parseValue(totalInput.value);
         }
+    }
+
+    // 3. Fallback: Buscar en el texto de la pantalla (Tablas/Grillas)
+    if (!amount) {
+        // Buscamos en todas las celdas de tabla o divs que parezcan montos
+        const elements = Array.from(document.querySelectorAll('td, span, b, strong'));
+        for (let i = 0; i < elements.length; i++) {
+            const text = elements[i].innerText.trim();
+            if (text.toUpperCase() === 'TOTAL' || text.toUpperCase() === 'TOTAL:') {
+                // El valor suele estar en el siguiente elemento o el siguiente <td>
+                const next = elements[i].nextElementSibling || (elements[i].parentElement && elements[i].parentElement.nextElementSibling);
+                if (next) {
+                    let val = parseValue(next.innerText);
+                    if (val > 0) {
+                        console.log("🔍 [Club Fidelidad] Encontrado texto 'TOTAL' y valor al lado:", val);
+                        amount = val;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    if (amount > 0 && amount !== detectedAmount) {
+        console.log("💰 [Club Fidelidad] ¡EXCELENTE! Monto detectado: $", amount);
+        detectedAmount = amount;
+        showFidelidadPanel();
     }
 }
 
-// Ejecutar cada 2 segundos por si el MutationObserver no captura algún cambio dinámico
-setInterval(detectAmount, 2000);
+function parseValue(text) {
+    if (!text) return 0;
+    // Quitamos "$" y limpiamos formato decimal (cambiamos , por .)
+    let cleaned = text.replace(/[^0-9,.]/g, '').replace(',', '.');
+    return parseFloat(cleaned) || 0;
+}
 
-// Observar cambios en el DOM
-const observer = new MutationObserver(() => {
-    detectAmount();
-});
-observer.observe(document.body, { childList: true, subtree: true });
-detectAmount(); // Ejecución inicial
+// Escaneo continuo
+setInterval(detectAmount, 3000);
+detectAmount();
 
 function showFidelidadPanel() {
     // Evitar duplicados

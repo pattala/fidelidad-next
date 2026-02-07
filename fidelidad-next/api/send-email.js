@@ -96,7 +96,7 @@ function buildHtmlLayout(innerHtml, config = {}) {
             </td></tr>
             <tr><td style="padding:0 32px 32px;font-size:16px;line-height:1.6;text-align:left;color:#4b5563;">${innerHtml}</td></tr>
             
-            ${socialIcons}
+            ${socialIcons ? `<tr><td style="padding: 0 32px 32px; text-align: center;">${socialIcons}</td></tr>` : ''}
 
             <tr><td style="background-color:#f8fafc;padding:24px;text-align:center;border-top:1px solid #e2e8f0;">
               <p style="margin:0 0 16px 0;font-size:14px;">

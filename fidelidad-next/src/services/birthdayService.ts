@@ -79,7 +79,7 @@ export const BirthdayService = {
         }
     },
 
-    async sendBirthdayGreeting(uid: string, userData: any, config: any, options: { mode?: 'full' | 'clean' | 'gift_only' } = {}) {
+    async sendBirthdayGreeting(uid: string, userData: any, config: any, options: { mode?: 'full' | 'clean' | 'gift_only', whatsappOnly?: boolean } = {}) {
         try {
             const now = TimeService.now();
             const currentYear = now.getFullYear().toString();
@@ -93,12 +93,10 @@ export const BirthdayService = {
                 msg = `¡{nombre}! 🎁 Te acabamos de acreditar {puntos} puntos de regalo por tu cumple. ¡Disfrútalos! 🥳`;
             } else {
                 msg = birthdayTemplate;
-                // Emojis default si faltan
                 if (msg.includes("Feliz cumpleaños") && !msg.includes("🎂")) msg = msg.replace("Feliz cumpleaños", "¡Feliz cumpleaños 🎂🎉");
                 if (msg.includes("gran día") && !msg.includes("✨")) msg = msg.replace("gran día", "gran día ✨");
 
                 if (options.mode === 'clean') {
-                    // LIMPIEZA AGRESIVA: Borrar cualquier mención a regalos/puntos/difrutes
                     msg = msg.replace(/Te regalamos.*?[\.!¡]/gi, '');
                     msg = msg.replace(/Te regalamos.*?puntos.*?difrutes/gi, '');
                     msg = msg.replace(/Te regalamos.*?puntos.*?disfrutes/gi, '');
@@ -108,57 +106,58 @@ export const BirthdayService = {
                 }
             }
 
-            // --- PERSONALIZACIÓN ---
             msg = msg.replace(/{nombre}/g, (userData.name || '').split(' ')[0])
                 .replace(/{nombre_completo}/g, userData.name || '')
                 .replace(/{puntos}/g, birthdayPoints.toString());
 
             msg = msg.replace(/\s+/g, ' ').replace(/\s+([\.!¡\?,])/g, '$1').trim();
 
-            // --- CANALES ---
             let pushSent = false;
             let emailSent = false;
             let whatsappLink = undefined;
 
-            // Push (Guardamos en inbox)
-            await NotificationService.sendToClient(uid, {
-                title: '¡Feliz Cumpleaños! 🎂',
-                body: msg,
-                type: 'birthday',
-                icon: config?.logoUrl || '/logo.png'
-            });
-            pushSent = true;
+            // --- CANALES ---
+            if (!options.whatsappOnly) {
+                // Push (Guardamos en inbox)
+                await NotificationService.sendToClient(uid, {
+                    title: '¡Feliz Cumpleaños! 🎂',
+                    body: msg,
+                    type: 'birthday',
+                    icon: config?.logoUrl || '/logo.png'
+                });
+                pushSent = true;
 
-            // Email
-            if (userData.email) {
-                try {
-                    const token = await (await import('../lib/firebase')).auth.currentUser?.getIdToken();
-                    if (token) {
-                        await fetch('/api/send-email', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                            body: JSON.stringify({
-                                to: userData.email,
-                                templateId: 'manual_override',
-                                templateData: { subject: '¡Feliz Cumpleaños! 🎂', htmlContent: `<p>${msg}</p>` }
-                            })
-                        });
-                        emailSent = true;
-                    }
-                } catch (e) { }
+                // Email
+                if (userData.email) {
+                    try {
+                        const token = await (await import('../lib/firebase')).auth.currentUser?.getIdToken();
+                        if (token) {
+                            await fetch('/api/send-email', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                body: JSON.stringify({
+                                    to: userData.email,
+                                    templateId: 'manual_override',
+                                    templateData: { subject: '¡Feliz Cumpleaños! 🎂', htmlContent: `<p>${msg}</p>` }
+                                })
+                            });
+                            emailSent = true;
+                        }
+                    } catch (e) { }
+                }
+
+                // MARCAR SALUDO EN DB (CRÍTICO) - Solo si mandamos canales automáticos
+                await updateDoc(doc(db, 'users', uid), {
+                    lastBirthdayGreetingYear: currentYear
+                });
             }
 
-            // WhatsApp
+            // WhatsApp link (Siempre se genera si hay teléfono)
             const phone = userData.phone || userData.telefono;
             if (phone) {
                 const cleanPhone = phone.replace(/\D/g, '');
                 if (cleanPhone) whatsappLink = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msg)}`;
             }
-
-            // MARCAR SALUDO EN DB (CRÍTICO)
-            await updateDoc(doc(db, 'users', uid), {
-                lastBirthdayGreetingYear: currentYear
-            });
 
             return { success: true, pushSent, emailSent, whatsappLink, message: msg };
         } catch (e) {

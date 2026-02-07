@@ -1,5 +1,7 @@
 
 // Club Fidelidad - Content Script
+console.log("🚀 [Club Fidelidad] Integrador cargado.");
+
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;
 let selectedClient = null;
@@ -7,26 +9,36 @@ let selectedClient = null;
 // Cargar configuración de storage
 chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
     config = res;
+    console.log("⚙️ [Club Fidelidad] Configuración cargada:", config.apiUrl ? "URL OK" : "URL Pendiente");
 });
 
 // Función para buscar el monto en el sitio
 function detectAmount() {
-    const input = document.getElementById('cpbtc_total');
+    // Intentamos buscar por ID (el que nos dio el usuario)
+    let input = document.getElementById('cpbtc_total');
+
+    // Si no está por ID, buscamos por name (algunos sistemas cambian)
+    if (!input) input = document.querySelector('input[name="cpbtc_total"]');
+
     if (input && input.value) {
         let val = parseFloat(input.value.replace(/[^0-9.,]/g, '').replace(',', '.'));
         if (!isNaN(val) && val > 0 && val !== detectedAmount) {
+            console.log("💰 [Club Fidelidad] Monto detectado:", val);
             detectedAmount = val;
             showFidelidadPanel();
         }
     }
 }
 
-// Observar cambios en el DOM para detectar cuando aparece el input
+// Ejecutar cada 2 segundos por si el MutationObserver no captura algún cambio dinámico
+setInterval(detectAmount, 2000);
+
+// Observar cambios en el DOM
 const observer = new MutationObserver(() => {
     detectAmount();
 });
-
 observer.observe(document.body, { childList: true, subtree: true });
+detectAmount(); // Ejecución inicial
 
 function showFidelidadPanel() {
     // Evitar duplicados

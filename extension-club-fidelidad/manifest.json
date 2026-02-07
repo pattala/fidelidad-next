@@ -7,28 +7,24 @@
         "storage"
     ],
     "host_permissions": [
-        "https://facturacion.com.ar/*",
+        "https://*.facturacion.com.ar/*",
         "https://*.vercel.app/*"
     ],
     "action": {
-        "default_popup": "popup.html",
-        "default_icon": {
-            "16": "icons/icon16.png",
-            "48": "icons/icon48.png",
-            "128": "icons/icon128.png"
-        }
+        "default_popup": "popup.html"
     },
     "content_scripts": [
         {
             "matches": [
-                "https://facturacion.com.ar/*"
+                "https://*.facturacion.com.ar/*"
             ],
             "js": [
                 "content.js"
             ],
             "css": [
                 "content.css"
-            ]
+            ],
+            "all_frames": true
         }
     ]
 }

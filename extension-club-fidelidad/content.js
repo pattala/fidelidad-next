@@ -1,151 +1,118 @@
-// VERSIÓN 15 - EL MANTRA DE LA SIMPLICIDAD (Basado en el éxito de la Imagen 1)
-console.log("🎯 [Club Fidelidad] v15: Rompiendo el bloqueo del modal");
+// VERSIÓN 16 - MÁXIMO AISLAMIENTO (EL ÚLTIMO RECURSO)
+console.log("🚀 [Club Fidelidad] Iniciando Versión 16 - Aislamiento Total");
 
-// 1. LIMPIEZA TOTAL
-if (document.getElementById('cf-panel-v15')) document.getElementById('cf-panel-v15').remove();
+// 1. Limpieza absoluta
+if (document.getElementById('cf-host')) document.getElementById('cf-host').remove();
 
-// 2. CREACIÓN DEL PANEL (Igual al que te dejó escribir en la Imagen 1)
-const panel = document.createElement('div');
-panel.id = 'cf-panel-v15';
-panel.style.cssText = `
+// 2. Crear un HOST para el Shadow DOM
+// El Shadow DOM es la ÚNICA forma de que el sitio NO pueda ver nuestras teclas.
+const host = document.createElement('div');
+host.id = 'cf-host';
+host.style.cssText = `
     position: fixed !important;
-    top: 60px !important;
+    top: 50px !important;
     right: 20px !important;
-    width: 320px !important;
-    background: white !important;
-    border: 3px solid #10b981 !important;
-    border-radius: 15px !important;
     z-index: 2147483647 !important;
-    padding: 20px !important;
-    box-shadow: 0 10px 50px rgba(0,0,0,0.6) !important;
-    font-family: Arial, sans-serif !important;
-    color: black !important;
+    display: block !important;
+    pointer-events: auto !important;
 `;
+document.documentElement.appendChild(host);
 
+const shadow = host.attachShadow({ mode: 'open' });
+
+// 3. Estilos dentro de la burbuja
+const style = document.createElement('style');
+style.textContent = `
+    .panel {
+        width: 320px;
+        background: white;
+        border: 4px solid #10b981;
+        border-radius: 15px;
+        padding: 20px;
+        box-shadow: 0 10px 50px rgba(0,0,0,0.5);
+        font-family: Arial, sans-serif;
+    }
+    .monto { font-size: 32px; font-weight: 900; color: #059669; text-align: center; margin: 10px 0; }
+    input { 
+        width: 100%; height: 45px; border: 2px solid #ccc; border-radius: 8px; 
+        padding: 0 10px; font-size: 16px; box-sizing: border-box; margin-bottom: 20px; 
+        display: block !important; visibility: visible !important;
+    }
+    button { 
+        width: 100%; background: #10b981; color: white; border: none; 
+        padding: 15px; border-radius: 10px; font-weight: bold; cursor: pointer; 
+    }
+`;
+shadow.appendChild(style);
+
+const panel = document.createElement('div');
+panel.className = 'panel';
 panel.innerHTML = `
-    <div style="text-align:center; margin-bottom:15px;">
-        <h2 style="color:#10b981; margin:0; font-size:20px;">FIDELIDAD</h2>
-        <div id="cf-monto" style="font-size:30px; font-weight:900; color:#059669; margin:5px 0;">$0.00</div>
-    </div>
-
-    <div style="margin-bottom:15px;">
-        <label style="font-size:11px; font-weight:bold; color:#666; display:block; margin-bottom:5px;">BUSCAR CLIENTE (DNI O NOMBRE)</label>
-        <input type="text" id="cf-search" placeholder="Escribí acá..." 
-               style="width:100% !important; height:45px !important; border:2px solid #ddd !important; border-radius:8px !important; padding:0 10px !important; font-size:16px !important; display:block !important; background:white !important; color:black !important;">
-        <div id="cf-res" style="display:none; border:1px solid #ccc; border-radius:8px; margin-top:5px; max-height:120px; overflow-y:auto; background:white;"></div>
-    </div>
-
-    <button id="cf-btn" style="width:100%; background:#10b981; color:white; border:none; padding:15px; border-radius:10px; font-weight:bold; font-size:14px; cursor:pointer;">OTORGAR PUNTOS</button>
-    <div id="cf-status" style="margin-top:10px; text-align:center; font-size:12px; color:#666;"></div>
+    <div style="text-align:center; color:#10b981; font-weight:bold;">FIDELIDAD</div>
+    <div id="monto-val" class="monto">$0.00</div>
+    <input type="text" id="dni-input" placeholder="ESCRIBÍ DNI ACÁ" autocomplete="off">
+    <button id="btn-save">ASIGNAR PUNTOS</button>
+    <div id="status" style="margin-top:10px; text-align:center; font-size:12px;"></div>
 `;
+shadow.appendChild(panel);
 
-document.body.appendChild(panel);
-
-const input = document.getElementById('cf-search');
-const btn = document.getElementById('cf-btn');
-const montoEl = document.getElementById('cf-monto');
-const resBox = document.getElementById('cf-res');
-const status = document.getElementById('cf-status');
+// 4. Lógica de Negocio
+const input = shadow.getElementById('dni-input');
+const btn = shadow.getElementById('btn-save');
+const montoEl = shadow.getElementById('monto-val');
+const status = shadow.getElementById('status');
 
 let config = { apiUrl: '', apiKey: '' };
-let selectedClient = null;
-let currentAmount = 0;
+chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => { config = res; });
 
-// Cargar config
-chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
-    config = res;
-});
-
-// DETECTOR DE MONTO (Imagen 2 detectada!)
+// Detector de monto agresivo
 setInterval(() => {
     const labels = document.querySelectorAll('h1, h2, h3, h4, h5, div, span, b, p');
     for (let l of labels) {
-        const t = l.innerText.toUpperCase();
-        if (t.includes('TOTAL A PAGAR $:')) {
-            let val = t.split('$')[1] || t;
-            let clean = val.replace(/[^0-9,.]/g, '').trim();
-            if (clean.includes('.') && clean.includes(',')) clean = clean.replace(/\./g, '').replace(',', '.');
-            else if (clean.includes(',')) clean = clean.replace(',', '.');
-            currentAmount = parseFloat(clean) || 0;
-            montoEl.innerText = "$" + currentAmount;
+        if (l.innerText.toUpperCase().includes('TOTAL A PAGAR $:')) {
+            const matches = l.innerText.match(/TOTAL A PAGAR \$: ([0-9.,]+)/i);
+            if (matches) montoEl.innerText = "$" + matches[1];
             break;
         }
     }
 }, 1000);
 
-// 🛡️ SOLUCIÓN AL BLOQUEO DEL MODAL (Captura de teclado agresiva)
-// Esto evita que el sitio "robe" las letras cuando estás en el modal de confirmación
-const preventSteal = (e) => {
-    e.stopPropagation(); // Detiene al sitio
-};
-input.addEventListener('keydown', preventSteal, true); // true es la clave: fase de captura
-input.addEventListener('keyup', preventSteal, true);
-input.addEventListener('keypress', preventSteal, true);
-input.onclick = (e) => {
-    e.stopPropagation();
-    input.focus();
-};
+// SOLUCIÓN AL TECLADO:
+// Detener la propagación en el Shadow Host evita que los eventos suban a la página de facturación.
+input.onkeydown = (e) => e.stopPropagation();
+input.onkeyup = (e) => e.stopPropagation();
+input.onkeypress = (e) => e.stopPropagation();
 
-// BUSCADOR SIMPLE
-let timer;
-input.oninput = () => {
-    clearTimeout(timer);
-    if (input.value.length < 2) { resBox.style.display = 'none'; return; }
-    timer = setTimeout(async () => {
-        try {
-            const r = await fetch(`${config.apiUrl}/api/assign-points?q=${encodeURIComponent(input.value)}`, {
-                headers: { 'x-api-key': config.apiKey }
-            });
-            const d = await r.json();
-            if (d.ok && d.clients.length > 0) {
-                resBox.innerHTML = d.clients.map(c => `
-                    <div class="it" data-id="${c.id}" data-name="${c.name}" style="padding:10px; border-bottom:1px solid #eee; cursor:pointer; color:black;">
-                        <b>${c.name}</b><br><small>DNI: ${c.dni}</small>
-                    </div>
-                `).join('');
-                resBox.style.display = 'block';
-                resBox.querySelectorAll('.it').forEach(i => {
-                    i.onclick = (e) => {
-                        e.stopPropagation();
-                        selectedClient = { id: i.dataset.id, name: i.dataset.name };
-                        input.value = selectedClient.name;
-                        resBox.style.display = 'none';
-                        status.innerText = "Cliente seleccionado: " + selectedClient.name;
-                    };
-                });
-            }
-        } catch (e) { }
-    }, 300);
-};
-
-// BOTÓN FINAL
 btn.onclick = async () => {
-    if (!selectedClient) return alert("Buscá y seleccioná un cliente primero");
+    const q = input.value;
+    if (!q) return alert("Ingresá un DNI");
+
     btn.disabled = true;
-    status.innerText = "Sincronizando...";
+    status.innerText = "Procesando...";
 
     try {
-        const r = await fetch(`${config.apiUrl}/api/assign-points`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey },
-            body: JSON.stringify({
-                uid: selectedClient.id,
-                amount: currentAmount,
-                reason: 'v15_fixed',
-                concept: 'Venta local',
-                applyWhatsApp: true
-            })
+        const r = await fetch(`${config.apiUrl}/api/assign-points?q=${encodeURIComponent(q)}`, {
+            headers: { 'x-api-key': config.apiKey }
         });
         const d = await r.json();
-        if (d.ok) {
-            status.innerHTML = "<b style='color:green'>✅ ¡ÉXITO! PUNTOS ASIGNADOS</b>";
-            setTimeout(() => { if (document.getElementById('cf-panel-v15')) document.getElementById('cf-panel-v15').remove(); }, 3000);
+
+        if (d.ok && d.clients.length > 0) {
+            const c = d.clients[0];
+            const amt = parseFloat(montoEl.innerText.replace('$', '').replace(/\./g, '').replace(',', '.')) || 0;
+
+            const r2 = await fetch(`${config.apiUrl}/api/assign-points`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey },
+                body: JSON.stringify({ uid: c.id, amount: amt, reason: 'v16_shadow_fix', concept: 'Venta local' })
+            });
+            const d2 = await r2.json();
+            if (d2.ok) status.innerHTML = "<b style='color:green'>✅ ¡ÉXITO!</b>";
+            else status.innerText = "Error: " + d2.error;
         } else {
-            status.innerText = "Error: " + d.error;
-            btn.disabled = false;
+            status.innerText = "Cliente no encontrado";
         }
     } catch (e) {
-        status.innerText = "Error de conexión";
-        btn.disabled = false;
+        status.innerText = "Error de red";
     }
+    btn.disabled = false;
 };

@@ -150,6 +150,33 @@ function showFidelidadPanel() {
     }
     injector.appendChild(panel);
 
+    // --- DRAGGABLE LOGIC ---
+    let isDragging = false;
+    let offset = { x: 0, y: 0 };
+    const header = panel.querySelector('.fidelidad-header');
+
+    header.onmousedown = (e) => {
+        if (e.target.id === 'fidelidad-close') return;
+        isDragging = true;
+        offset.x = e.clientX - panel.offsetLeft;
+        offset.y = e.clientY - panel.offsetTop;
+        panel.style.transition = 'none';
+        header.style.cursor = 'grabbing';
+    };
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        panel.style.left = (e.clientX - offset.x) + 'px';
+        panel.style.top = (e.clientY - offset.y) + 'px';
+        panel.style.bottom = 'auto';
+        panel.style.right = 'auto';
+    });
+
+    document.addEventListener('mouseup', () => {
+        isDragging = false;
+        header.style.cursor = 'move';
+    });
+
     // ELEMENTOS
     const searchInput = document.getElementById('fidelidad-search');
     const resultsDiv = document.getElementById('fidelidad-results');
@@ -207,6 +234,8 @@ function showFidelidadPanel() {
             resultsDiv.style.display = 'none';
             return;
         }
+        resultsDiv.innerHTML = '<div class="fidelidad-result-item" style="text-align:center; color:#888;">Buscando...</div>';
+        resultsDiv.style.display = 'block';
         searchTimeout = setTimeout(() => searchClients(q), 400);
     };
 
@@ -232,19 +261,21 @@ function showFidelidadPanel() {
     }
 
     function renderResults(clients, promotions) {
-        resultsDiv.innerHTML = clients.map(c => `
-            <div class="fidelidad-result-item" data-id="${c.id}" data-name="${c.name}" data-dni="${c.dni}">
-                <div>${c.name}</div>
-                <div class="dni">DNI: ${c.dni} | Socio: ${c.socio_number || 'N/A'}</div>
-            </div>
-        `).join('');
-        resultsDiv.style.display = 'block';
-
-        const items = resultsDiv.getElementsByClassName('fidelidad-result-item');
-        for (let item of items) {
+        resultsDiv.innerHTML = '';
+        clients.forEach(c => {
+            const item = document.createElement('div');
+            item.className = 'fidelidad-result-item';
+            item.style.cursor = 'pointer';
+            item.innerHTML = `
+                <div style="pointer-events:none;">${c.name}</div>
+                <div class="dni" style="pointer-events:none;">DNI: ${c.dni} | Socio: ${c.socio_number || 'N/A'}</div>
+            `;
             item.onclick = (e) => {
+                e.preventDefault();
                 e.stopPropagation();
-                selectedClient = { id: item.dataset.id, name: item.dataset.name };
+
+                selectedClient = { id: c.id, name: c.name };
+                console.log("✅ Cliente seleccionado:", selectedClient);
 
                 // Actualizar UI
                 clientHeader.innerText = `Cliente: ${selectedClient.name}`;
@@ -252,13 +283,13 @@ function showFidelidadPanel() {
                 resultsDiv.style.display = 'none';
                 pointsForm.style.display = 'block';
 
-                // Cargar Promociones en el checklist
-                if (promotions.length > 0) {
+                // Cargar Promociones
+                if (promotions && promotions.length > 0) {
                     promosList.innerHTML = promotions.map(p => `
                         <label class="cf-promo-item">
                             <input type="checkbox" class="cf-promo-check" value="${p.id}" checked>
                             <div class="cf-promo-info">
-                                <span class="cf-promo-name">${p.name}</span>
+                                <span class="cf-promo-name">${p.name || p.title}</span>
                                 <span class="cf-promo-desc">${p.rewardType === 'MULTIPLIER' ? 'Multiplicador x' + p.rewardValue : 'Bonus +' + p.rewardValue + ' pts'}</span>
                             </div>
                         </label>
@@ -267,7 +298,9 @@ function showFidelidadPanel() {
                     promosList.innerHTML = '<div style="font-size:10px; color:#888;">No hay promociones activas hoy.</div>';
                 }
             };
-        }
+            resultsDiv.appendChild(item);
+        });
+        resultsDiv.style.display = 'block';
     }
 
     submitBtn.onclick = async () => {

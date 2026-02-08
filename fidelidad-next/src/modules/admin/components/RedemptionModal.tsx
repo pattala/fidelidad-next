@@ -125,6 +125,7 @@ export const RedemptionModal = ({ client, onClose, onRedeemSuccess }: Redemption
 
             batch.update(userRef, {
                 points: increment(-pointsNeeded),
+                puntos: increment(-pointsNeeded),
                 // Array for "Mis Canjes" / Rewards
                 historialCanjes: arrayUnion({
                     fechaCanje: now,

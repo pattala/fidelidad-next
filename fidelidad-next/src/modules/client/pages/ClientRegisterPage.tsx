@@ -165,6 +165,7 @@ export const ClientRegisterPage = () => {
                 fechaInscripcion: new Date().toISOString(),
 
                 points: 0,
+                puntos: 0,
                 accumulated_balance: 0,
 
                 permissions: {

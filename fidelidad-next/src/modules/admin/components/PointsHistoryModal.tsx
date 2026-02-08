@@ -188,7 +188,8 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
             }
 
             batch.update(userRef, {
-                points: increment(adjustment)
+                points: increment(adjustment),
+                puntos: increment(adjustment)
             });
 
             await batch.commit();
@@ -221,6 +222,7 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
             const userRef = doc(db, 'users', client.id);
             batch.update(userRef, {
                 points: 0,
+                puntos: 0,
                 accumulated_balance: 0,
                 historialPuntos: [],
                 historialCanjes: []
@@ -229,7 +231,7 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
             await batch.commit();
 
             // Update local state to reflect 0 points immediately
-            setCurrentClient({ ...currentClient, points: 0, accumulated_balance: 0 });
+            setCurrentClient({ ...currentClient, points: 0, puntos: 0, accumulated_balance: 0 });
             setHistory([]);
             setNextExpirations([]);
             toast.success('Historial reseteado correctamente');

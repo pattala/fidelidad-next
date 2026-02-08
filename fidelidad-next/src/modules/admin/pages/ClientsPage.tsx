@@ -147,7 +147,7 @@ export const ClientsPage = () => {
                     email: data.email || '',
                     dni: data.dni || '',
                     phone: data.phone || data.telefono || '',
-                    points: data.points || data.puntos || 0,
+                    points: data.points ?? data.puntos ?? 0,
                     socioNumber: String(data.socioNumber || data.numeroSocio || ''),
                     expiringPoints: metrics.expiring,
                     expirationDetails: sortedExpirations,
@@ -545,6 +545,7 @@ export const ClientsPage = () => {
 
                 await updateDoc(doc(db, 'users', selectedClientForPoints.id), {
                     points: increment(finalPoints),
+                    puntos: increment(finalPoints),
                     historialPuntos: arrayUnion({
                         fechaObtencion: selectedDate,
                         puntosObtenidos: finalPoints,

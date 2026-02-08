@@ -49,7 +49,7 @@ export const DashboardPage = () => {
                 const d = doc.data();
                 if (d.role !== 'admin') {
                     clientCount++;
-                    points += ((d.points || d.puntos) || 0);
+                    points += (d.points ?? d.puntos ?? 0);
 
                     if (d.birthDate) {
                         const bDate = d.birthDate; // YYYY-MM-DD

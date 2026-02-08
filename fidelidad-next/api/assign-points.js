@@ -45,8 +45,12 @@ export default async function handler(req, res) {
 
             const results = new Map();
 
-            // 1. Buscar por Socio Número (exacto)
-            const socioSnap = await db.collection('users').where('socio_number', '==', q).limit(5).get();
+            // 1. Buscar por Socio Número (prefijo)
+            const socioSnap = await db.collection('users')
+                .where('socio_number', '>=', q)
+                .where('socio_number', '<=', q + '\uf8ff')
+                .limit(5)
+                .get();
             socioSnap.docs.forEach(d => results.set(d.id, {
                 id: d.id,
                 name: d.data().name || d.data().nombre,
@@ -55,9 +59,13 @@ export default async function handler(req, res) {
                 phone: d.data().phone || d.data().telefono
             }));
 
-            // 2. Buscar por DNI (exacto)
+            // 2. Buscar por DNI (prefijo)
             if (results.size < 5) {
-                const dniSnap = await db.collection('users').where('dni', '==', q).limit(5).get();
+                const dniSnap = await db.collection('users')
+                    .where('dni', '>=', q)
+                    .where('dni', '<=', q + '\uf8ff')
+                    .limit(5)
+                    .get();
                 dniSnap.docs.forEach(d => {
                     if (!results.has(d.id)) results.set(d.id, {
                         id: d.id,
@@ -69,22 +77,29 @@ export default async function handler(req, res) {
                 });
             }
 
-            // 3. Buscar por Nombre (prefijo)
+            // 3. Buscar por Nombre (prefijo - intentar capitalizado)
             if (results.size < 5) {
-                const nameSnap = await db.collection('users')
-                    .where('name', '>=', q)
-                    .where('name', '<=', q + '\uf8ff')
-                    .limit(5)
-                    .get();
-                nameSnap.docs.forEach(d => {
-                    if (!results.has(d.id)) results.set(d.id, {
-                        id: d.id,
-                        name: d.data().name || d.data().nombre,
-                        dni: d.data().dni,
-                        socio_number: d.data().socio_number,
-                        phone: d.data().phone || d.data().telefono
+                // Firestore prefix search is case-sensitive, so we try raw and capitalized
+                const queryParts = [q];
+                const capitalized = q.charAt(0).toUpperCase() + q.slice(1);
+                if (capitalized !== q) queryParts.push(capitalized);
+
+                for (const qp of queryParts) {
+                    const nameSnap = await db.collection('users')
+                        .where('name', '>=', qp)
+                        .where('name', '<=', qp + '\uf8ff')
+                        .limit(5)
+                        .get();
+                    nameSnap.docs.forEach(d => {
+                        if (results.size < 10 && !results.has(d.id)) results.set(d.id, {
+                            id: d.id,
+                            name: d.data().name || d.data().nombre,
+                            dni: d.data().dni,
+                            socio_number: d.data().socio_number,
+                            phone: d.data().phone || d.data().telefono
+                        });
                     });
-                });
+                }
             }
 
             // 4. Obtener ratio de conversión oficial (config/general)

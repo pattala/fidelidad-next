@@ -249,10 +249,10 @@ function showFidelidadPanel() {
                 headers: { 'x-api-key': config.apiKey }
             });
             const data = await res.json();
-            if (data.ok && data.clients.length > 0) {
+            if (data.ok && data.clients && data.clients.length > 0) {
                 renderResults(data.clients, data.activePromotions || []);
             } else {
-                resultsDiv.innerHTML = '<div class="fidelidad-result-item">No se encontraron clientes</div>';
+                resultsDiv.innerHTML = '<div class="fidelidad-result-item" style="cursor:default; color:#666; text-align:center;">No se encontraron socios</div>';
                 resultsDiv.style.display = 'block';
             }
         } catch (e) {
@@ -265,25 +265,29 @@ function showFidelidadPanel() {
         clients.forEach(c => {
             const item = document.createElement('div');
             item.className = 'fidelidad-result-item';
-            item.style.cursor = 'pointer';
             item.innerHTML = `
-                <div style="pointer-events:none;">${c.name}</div>
-                <div class="dni" style="pointer-events:none;">DNI: ${c.dni} | Socio: ${c.socio_number || 'N/A'}</div>
+                <div style="font-weight: 700; color: #111827; pointer-events: none;">${c.name}</div>
+                <div class="dni" style="font-size: 11px; color: #6b7280; margin-top: 2px; pointer-events: none;">
+                    DNI: ${c.dni || 'S/D'} | Socio: ${c.socio_number || 'N/A'}
+                </div>
             `;
             item.onclick = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
 
                 selectedClient = { id: c.id, name: c.name };
-                console.log("✅ Cliente seleccionado:", selectedClient);
+                console.log("🎯 Socio seleccionado:", selectedClient);
 
-                // Actualizar UI
-                clientHeader.innerText = `Cliente: ${selectedClient.name}`;
+                // UI Update
+                clientHeader.innerText = `Socio: ${selectedClient.name}`;
                 searchInput.value = selectedClient.name;
                 resultsDiv.style.display = 'none';
-                pointsForm.style.display = 'block';
 
-                // Cargar Promociones
+                // Show Form & All Options
+                pointsForm.style.display = 'block';
+                statusDiv.innerText = '';
+
+                // Render Promos
                 if (promotions && promotions.length > 0) {
                     promosList.innerHTML = promotions.map(p => `
                         <label class="cf-promo-item">
@@ -295,8 +299,14 @@ function showFidelidadPanel() {
                         </label>
                     `).join('');
                 } else {
-                    promosList.innerHTML = '<div style="font-size:10px; color:#888;">No hay promociones activas hoy.</div>';
+                    promosList.innerHTML = '<div style="font-size:10px; color:#999; padding: 5px 0;">No hay promociones activas.</div>';
                 }
+
+                // Focus amount input
+                setTimeout(() => {
+                    const amountInput = document.getElementById('cf-input-amount');
+                    if (amountInput) amountInput.focus();
+                }, 100);
             };
             resultsDiv.appendChild(item);
         });

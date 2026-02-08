@@ -185,24 +185,33 @@ function showFidelidadPanel() {
     const statusDiv = document.getElementById('fidelidad-status');
     const clientHeader = document.getElementById('cf-client-name-header');
     const promosList = document.getElementById('cf-promos-list');
+    const tabMonto = document.getElementById('tab-monto');
+    const tabDirecto = document.getElementById('tab-directo');
+    const labelMonto = document.getElementById('cf-amount-label');
+    const inputMonto = document.getElementById('cf-input-amount');
+    const currencySymbol = document.getElementById('cf-currency-symbol');
+    const promosContainer = document.getElementById('cf-promos-container');
+
 
     // TABS LOGIC
     let isPesos = true;
-    document.getElementById('tab-monto').onclick = () => {
+    tabMonto.onclick = () => {
         isPesos = true;
-        document.getElementById('tab-monto').classList.add('active');
-        document.getElementById('tab-directo').classList.remove('active');
-        document.getElementById('cf-amount-label').innerText = 'Monto de la Compra ($)';
-        document.getElementById('cf-currency-symbol').innerText = '$';
-        document.getElementById('cf-promos-container').style.display = 'block';
+        tabMonto.classList.add('active');
+        tabDirecto.classList.remove('active');
+        labelMonto.innerText = 'Monto de la Compra ($)';
+        currencySymbol.innerText = '$';
+        inputMonto.placeholder = ''; // Clear placeholder
+        promosContainer.style.display = 'block';
     };
-    document.getElementById('tab-directo').onclick = () => {
+    tabDirecto.onclick = () => {
         isPesos = false;
-        document.getElementById('tab-monto').classList.remove('active');
-        document.getElementById('tab-directo').classList.add('active');
-        document.getElementById('cf-amount-label').innerText = 'Cantidad de Puntos';
-        document.getElementById('cf-currency-symbol').innerText = 'pts';
-        document.getElementById('cf-promos-container').style.display = 'none';
+        tabMonto.classList.remove('active');
+        tabDirecto.classList.add('active');
+        labelMonto.innerText = 'Puntos Directos:';
+        currencySymbol.innerText = 'pts';
+        inputMonto.placeholder = 'Puntos a asignar...';
+        promosContainer.style.display = 'block'; // Keep visible
     };
 
     function killEvent(e) {
@@ -287,17 +296,26 @@ function showFidelidadPanel() {
                 pointsForm.style.display = 'block';
                 statusDiv.innerText = '';
 
-                // Render Promos
+                // Renderizar Promos
                 if (promotions && promotions.length > 0) {
-                    promosList.innerHTML = promotions.map(p => `
-                        <label class="cf-promo-item">
-                            <input type="checkbox" class="cf-promo-check" value="${p.id}" checked>
-                            <div class="cf-promo-info">
-                                <span class="cf-promo-name">${p.name || p.title}</span>
-                                <span class="cf-promo-desc">${p.rewardType === 'MULTIPLIER' ? 'Multiplicador x' + p.rewardValue : 'Bonus +' + p.rewardValue + ' pts'}</span>
-                            </div>
-                        </label>
-                    `).join('');
+                    promosList.innerHTML = promotions.map(p => {
+                        const isInfo = p.rewardType === 'INFO';
+                        const label = isInfo ? '📢 INFO' : (p.rewardType === 'MULTIPLIER' ? `x${p.rewardValue}` : `+${p.rewardValue} pts`);
+                        const title = p.title || p.name;
+
+                        return `
+                            <label class="cf-promo-item" style="${isInfo ? 'opacity: 0.8; cursor: default;' : ''}">
+                                ${isInfo ?
+                                `<div style="font-size: 10px; margin-right: 5px;">📢</div>` :
+                                `<input type="checkbox" class="cf-promo-check" value="${p.id}" checked>`
+                            }
+                                <div class="cf-promo-info">
+                                    <span class="cf-promo-name" style="font-size: 11px;">${title}</span>
+                                    <span class="cf-promo-desc" style="color: ${isInfo ? '#2563eb' : '#059669'}; font-weight: bold;">${label}</span>
+                                </div>
+                            </label>
+                        `;
+                    }).join('');
                 } else {
                     promosList.innerHTML = '<div style="font-size:10px; color:#999; padding: 5px 0;">No hay promociones activas.</div>';
                 }

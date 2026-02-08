@@ -111,10 +111,14 @@ export default async function handler(req, res) {
 
             // 5. Obtener Campañas Activas (Promociones)
             const now = new Date();
-            const todayDay = now.getDay();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
+            // AJUSTE TIMEZONE: Argentina es UTC-3. 
+            // Usamos UTC methods sobre un objeto desplazado para obtener la fecha local de AR de forma consistente en el servidor.
+            const nowArg = new Date(now.getTime() - (3 * 60 * 60 * 1000));
+
+            const todayDay = nowArg.getUTCDay();
+            const year = nowArg.getUTCFullYear();
+            const month = String(nowArg.getUTCMonth() + 1).padStart(2, '0');
+            const day = String(nowArg.getUTCDate()).padStart(2, '0');
             const todayStr = `${year}-${month}-${day}`;
 
             const campSnap = await db.collection('campanas').where('active', '==', true).get();
@@ -123,24 +127,17 @@ export default async function handler(req, res) {
             campSnap.docs.forEach(doc => {
                 const b = doc.data();
 
-                // Filtro de fechas opcional pero robusto
+                // Filtro de fechas (comparación de strings YYYY-MM-DD)
                 if (b.startDate && typeof b.startDate === 'string' && b.startDate > todayStr) return;
                 if (b.endDate && typeof b.endDate === 'string' && b.endDate < todayStr) return;
 
-                // Si es timestamp de Firestore
-                if (b.startDate && typeof b.startDate?.toDate === 'function') {
-                    if (b.startDate.toDate() > now) return;
-                }
-                if (b.endDate && typeof b.endDate?.toDate === 'function') {
-                    if (b.endDate.toDate() < now) return;
-                }
-
+                // Filtro por día de la semana
                 if (b.daysOfWeek && Array.isArray(b.daysOfWeek) && b.daysOfWeek.length > 0) {
-                    // Ajuste domingo=0 para JS
                     if (!b.daysOfWeek.includes(todayDay)) return;
                 }
 
-                if (b.rewardType === 'FIXED' || b.rewardType === 'MULTIPLIER') {
+                // Tipos permitidos
+                if (b.rewardType === 'FIXED' || b.rewardType === 'MULTIPLIER' || b.rewardType === 'INFO') {
                     activePromotions.push({
                         id: doc.id,
                         name: b.name || 'Sin nombre',
@@ -156,7 +153,8 @@ export default async function handler(req, res) {
                 clients: Array.from(results.values()),
                 pointsMoneyBase,
                 pointsPerPeso,
-                activePromotions
+                activePromotions,
+                todayStr // Para debugging
             });
         } catch (err) {
             return res.status(500).json({ ok: false, error: err.message });
@@ -239,7 +237,24 @@ export default async function handler(req, res) {
                     points = basePoints;
                 }
             } else {
-                points = Number(finalAmount); // Manual force
+                let directPoints = Number(finalAmount);
+                // También aplicar Bonos/Promociones si vienen en modo manual
+                if (bonusIds && Array.isArray(bonusIds) && bonusIds.length > 0) {
+                    let totalBonus = 0;
+                    let totalMultiplier = 1;
+
+                    const bonusSnaps = await Promise.all(bonusIds.map(bid => db.collection('campanas').doc(bid).get()));
+                    bonusSnaps.forEach(bsnap => {
+                        if (bsnap.exists) {
+                            const b = bsnap.data();
+                            if (b.rewardType === 'FIXED') totalBonus += (Number(b.rewardValue) || 0);
+                            if (b.rewardType === 'MULTIPLIER') totalMultiplier *= (Number(b.rewardValue) || 1);
+                        }
+                    });
+                    points = Math.floor(directPoints * totalMultiplier) + totalBonus;
+                } else {
+                    points = directPoints;
+                }
             }
         } else {
             // Modo Reglas de Negocio

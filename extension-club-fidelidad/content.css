@@ -2,10 +2,12 @@
     position: fixed;
     bottom: 20px;
     right: 20px;
-    width: 360px;
+    width: 330px;
+    /* Reduced from 360 */
     background: white;
-    border-radius: 24px;
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+    border-radius: 20px;
+    /* Slights reduced */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
     z-index: 2147483647 !important;
     pointer-events: all !important;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -18,7 +20,7 @@
 
 @keyframes fidelidad-slide-up {
     from {
-        transform: translateY(50px);
+        transform: translateY(30px);
         opacity: 0;
     }
 
@@ -30,9 +32,9 @@
 
 .fidelidad-header {
     background: #16a34a;
-    /* GREEN THEME */
     color: white;
-    padding: 20px;
+    padding: 12px 16px;
+    /* Reduced from 20 */
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -41,14 +43,16 @@
 }
 
 .fidelidad-header h1 {
-    font-size: 18px;
+    font-size: 15px;
+    /* Reduced from 18 */
     margin: 0;
     font-weight: 800;
-    letter-spacing: -0.5px;
+    letter-spacing: -0.3px;
 }
 
 .fidelidad-body {
-    padding: 20px;
+    padding: 16px;
+    /* Reduced from 20 */
     overflow-y: auto;
     max-height: 80vh;
 }
@@ -56,23 +60,25 @@
 /* TABS */
 .cf-tabs {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     background: #f3f4f6;
-    padding: 4px;
-    border-radius: 12px;
-    margin-bottom: 20px;
+    padding: 3px;
+    border-radius: 10px;
+    margin-bottom: 16px;
 }
 
 .cf-tab {
     flex: 1;
     border: none;
     background: transparent;
-    padding: 8px;
-    font-size: 12px;
+    padding: 6px;
+    /* Reduced */
+    font-size: 11px;
+    /* Reduced */
     font-weight: 700;
     color: #6b7280;
     cursor: pointer;
-    border-radius: 8px;
+    border-radius: 6px;
     transition: all 0.2s;
 }
 
@@ -85,23 +91,26 @@
 /* FORM ELEMENTS */
 .cf-label {
     display: block;
-    font-size: 12px;
+    font-size: 11px;
+    /* Reduced */
     font-weight: 700;
     color: #374151;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 }
 
 .cf-field {
-    margin-bottom: 16px;
+    margin-bottom: 12px;
+    /* Reduced */
 }
 
 .fidelidad-input {
     width: 100%;
-    padding: 12px;
+    padding: 10px;
+    /* Reduced */
     border: 1.5px solid #e5e7eb;
-    border-radius: 12px;
+    border-radius: 10px;
     box-sizing: border-box;
-    font-size: 14px;
+    font-size: 13px;
     outline: none;
     transition: border-color 0.2s;
 }
@@ -112,9 +121,10 @@
 }
 
 .cf-input-big {
-    font-size: 24px;
+    font-size: 20px;
+    /* Reduced from 24 */
     font-weight: 900;
-    padding: 12px 16px;
+    padding: 10px 14px;
 }
 
 .cf-input-group {
@@ -125,35 +135,35 @@
 
 .cf-addon {
     position: absolute;
-    left: 16px;
+    left: 14px;
     font-weight: 900;
     color: #9ca3af;
-    font-size: 18px;
+    font-size: 16px;
 }
 
 .cf-input-group input {
-    padding-left: 36px;
+    padding-left: 32px;
 }
 
 .cf-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    gap: 10px;
 }
 
 /* SEARCH RESULTS */
 .fidelidad-results {
     background: white;
     border: 1px solid #e5e7eb;
-    border-radius: 12px;
+    border-radius: 10px;
     margin-top: 4px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    max-height: 200px;
+    max-height: 180px;
     overflow-y: auto;
 }
 
 .fidelidad-result-item {
-    padding: 12px 16px;
+    padding: 10px 14px;
     cursor: pointer;
     border-bottom: 1px solid #f3f4f6;
     transition: background 0.2s;
@@ -166,10 +176,11 @@
 .fidelidad-result-item div {
     font-weight: 700;
     color: #111827;
+    font-size: 13px;
 }
 
 .fidelidad-result-item .dni {
-    font-size: 11px;
+    font-size: 10px;
     color: #6b7280;
     margin-top: 2px;
 }
@@ -177,19 +188,20 @@
 /* PROMOS BOX */
 .cf-promos-box {
     background: #f8fafc;
-    padding: 16px;
-    border-radius: 20px;
+    padding: 12px;
+    /* Reduced */
+    border-radius: 16px;
     border: 1px solid #f1f5f9;
 }
 
 .cf-promos-list {
-    margin-top: 10px;
-    padding-left: 16px;
+    margin-top: 8px;
+    padding-left: 14px;
     border-left: 2px solid #e2e8f0;
     margin-left: 8px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
 }
 
 /* Subtle green line if active */
@@ -200,7 +212,7 @@
 .cf-promo-item {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     cursor: pointer;
     transition: transform 0.1s;
 }
@@ -212,18 +224,18 @@
 .cf-promo-info {
     display: flex;
     flex-direction: column;
-    line-height: 1.2;
+    line-height: 1.1;
 }
 
 .cf-promo-name {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 800;
     color: #1e293b;
     text-transform: uppercase;
 }
 
 .cf-promo-desc {
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 600;
     color: #94a3b8;
 }
@@ -231,8 +243,9 @@
 .cf-checkbox-label {
     display: flex;
     align-items: center;
-    gap: 12px;
-    font-size: 14px;
+    gap: 10px;
+    font-size: 12px;
+    /* Reduced from 14 */
     font-weight: 700;
     color: #334155;
     cursor: pointer;
@@ -241,8 +254,9 @@
 
 /* Custom Checkbox Look */
 input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    /* Reduced */
+    height: 16px;
     accent-color: #16a34a;
     cursor: pointer;
 }
@@ -250,15 +264,17 @@ input[type="checkbox"] {
 /* BUTTONS */
 .fidelidad-button {
     width: 100%;
-    padding: 16px;
+    padding: 12px;
+    /* Reduced from 16 */
     background: #16a34a;
     color: white;
     border: none;
-    border-radius: 16px;
+    border-radius: 12px;
     font-weight: 800;
-    font-size: 14px;
+    font-size: 13px;
+    /* Reduced */
     cursor: pointer;
-    margin-top: 20px;
+    margin-top: 16px;
     transition: transform 0.2s, background 0.2s;
 }
 
@@ -279,7 +295,7 @@ input[type="checkbox"] {
 
 .fidelidad-close {
     cursor: pointer;
-    font-size: 24px;
+    font-size: 20px;
     line-height: 1;
     opacity: 0.7;
     transition: opacity 0.2s;
@@ -295,9 +311,9 @@ input[type="checkbox"] {
     background: #25d366;
     color: white;
     text-decoration: none;
-    padding: 14px;
-    border-radius: 12px;
-    margin-top: 12px;
+    padding: 12px;
+    border-radius: 10px;
+    margin-top: 10px;
     font-weight: 800;
-    font-size: 14px;
+    font-size: 13px;
 }

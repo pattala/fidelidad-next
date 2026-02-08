@@ -307,27 +307,25 @@ function showFidelidadPanel() {
                 statusDiv.innerText = '';
 
                 // Renderizar Promos
-                if (promotions && promotions.length > 0) {
-                    promosList.innerHTML = promotions.map(p => {
-                        const isInfo = p.rewardType === 'INFO';
-                        const label = isInfo ? '📢 INFO' : (p.rewardType === 'MULTIPLIER' ? `x${p.rewardValue}` : `+${p.rewardValue} pts`);
+                const activePromos = promotions ? promotions.filter(p => p.rewardType !== 'INFO') : [];
+
+                if (activePromos.length > 0) {
+                    promosList.innerHTML = activePromos.map(p => {
+                        const label = p.rewardType === 'MULTIPLIER' ? `x${p.rewardValue}` : `+${p.rewardValue} pts`;
                         const title = p.title || p.name;
 
                         return `
-                            <label class="cf-promo-item" style="${isInfo ? 'opacity: 0.8; cursor: default;' : ''}">
-                                ${isInfo ?
-                                `<div style="font-size: 10px; margin-right: 5px;">📢</div>` :
-                                `<input type="checkbox" class="cf-promo-check" value="${p.id}" checked>`
-                            }
+                            <label class="cf-promo-item">
+                                <input type="checkbox" class="cf-promo-check" value="${p.id}" checked>
                                 <div class="cf-promo-info">
                                     <span class="cf-promo-name" style="font-size: 11px;">${title}</span>
-                                    <span class="cf-promo-desc" style="color: ${isInfo ? '#2563eb' : '#059669'}; font-weight: bold;">${label}</span>
+                                    <span class="cf-promo-desc" style="color: #059669; font-weight: bold;">${label}</span>
                                 </div>
                             </label>
                         `;
                     }).join('');
                 } else {
-                    promosList.innerHTML = '<div style="font-size:10px; color:#999; padding: 5px 0;">No hay promociones activas.</div>';
+                    promosList.innerHTML = '<div style="font-size:10px; color:#999; padding: 5px 0;">No hay promociones disponibles para aplicar.</div>';
                 }
 
                 // Focus amount input

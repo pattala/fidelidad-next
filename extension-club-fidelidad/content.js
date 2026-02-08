@@ -61,55 +61,127 @@ detectAmount();
 
 function showFidelidadPanel() {
     if (document.getElementById('fidelidad-panel')) {
-        const amountEl = document.querySelector('.fidelidad-amount');
+        const amountEl = document.getElementById('cf-display-amount');
         if (amountEl) amountEl.innerText = `$ ${detectedAmount.toLocaleString('es-AR')}`;
+        const inputMonto = document.getElementById('cf-input-amount');
+        if (inputMonto && !inputMonto.value) inputMonto.value = detectedAmount;
         return;
     }
 
     const panel = document.createElement('div');
     panel.id = 'fidelidad-panel';
     panel.className = 'fidelidad-panel';
+
+    const today = new Date().toISOString().split('T')[0];
+
     panel.innerHTML = `
         <div class="fidelidad-header">
-            <h1>Sumar Puntos</h1>
+            <div class="fidelidad-header-title">
+                <h1>Sumar Puntos</h1>
+                <span id="cf-client-name-header" style="font-size: 10px; opacity: 0.8; display: block;">Seleccione un cliente</span>
+            </div>
             <span class="fidelidad-close" id="fidelidad-close">×</span>
         </div>
         <div class="fidelidad-body">
-            <div class="fidelidad-amount">$ ${detectedAmount.toLocaleString('es-AR')}</div>
-            <div class="fidelidad-search-container" style="position:relative;">
-                <input type="text" id="fidelidad-search" class="fidelidad-input" placeholder="Buscar por Nombre o DNI..." autocomplete="off">
+            <!-- PESTAÑAS -->
+            <div class="cf-tabs">
+                <button id="tab-monto" class="cf-tab active">Por Monto ($)</button>
+                <button id="tab-directo" class="cf-tab">Puntos Directos</button>
+            </div>
+
+            <!-- BUSCADOR PREDICTIVO -->
+            <div class="fidelidad-search-container">
+                <label class="cf-label">Buscar Socio (Nombre, DNI o ID)</label>
+                <input type="text" id="fidelidad-search" class="fidelidad-input" placeholder="Escriba para buscar..." autocomplete="off">
                 <div id="fidelidad-results" class="fidelidad-results" style="display:none;"></div>
             </div>
-            <div id="fidelidad-selected-info" style="display:none; margin-bottom: 10px; font-size: 13px; color: #6200ee; font-weight: bold;"></div>
-            <button id="fidelidad-submit" class="fidelidad-button" disabled>SUMAR PUNTOS</button>
+
+            <!-- FORMULARIO DE PUNTOS -->
+            <div id="cf-points-form" style="display:none;">
+                <div class="cf-field">
+                    <label id="cf-amount-label" class="cf-label font-bold">Monto de la Compra ($)</label>
+                    <div class="cf-input-group">
+                        <span id="cf-currency-symbol" class="cf-addon">$</span>
+                        <input type="number" id="cf-input-amount" class="fidelidad-input cf-input-big" value="${detectedAmount}">
+                    </div>
+                </div>
+
+                <div class="cf-grid">
+                    <div class="cf-field">
+                        <label class="cf-label">Concepto</label>
+                        <input type="text" id="cf-concept" class="fidelidad-input" value="Compra en local">
+                    </div>
+                    <div class="cf-field">
+                        <label class="cf-label">Fecha</label>
+                        <input type="date" id="cf-date" class="fidelidad-input" value="${today}">
+                    </div>
+                </div>
+
+                <!-- PROMOCIONES -->
+                <div id="cf-promos-container" class="cf-promos-box">
+                    <label class="cf-checkbox-label">
+                        <input type="checkbox" id="cf-apply-promos" checked> Aplicar Promociones / Bonus
+                    </label>
+                    <div id="cf-promos-list" class="cf-promos-list">
+                        <!-- Se llena vía API -->
+                    </div>
+                </div>
+
+                <label class="cf-checkbox-label" style="margin-top: 10px;">
+                    <input type="checkbox" id="cf-notify-wa" checked> Notificar por WhatsApp
+                </label>
+
+                <button id="fidelidad-submit" class="fidelidad-button">ASIGNAR PUNTOS</button>
+            </div>
+
             <div id="fidelidad-status" style="margin-top:10px; font-size: 12px; text-align: center;"></div>
         </div>
     `;
 
     // --- ESTRATEGIA DE INFILTRACIÓN (v29) ---
-    // Buscamos el modal para inyectarnos ADENTRO y saltar el focus-trap
     const modalSelectors = ['.modal-content', '.modal-body', '.bootbox', '.ui-dialog-content', '.sky-modal', '[role="dialog"]'];
     let injector = document.body;
     for (let sel of modalSelectors) {
         const found = document.querySelector(sel);
         if (found) {
             injector = found;
-            console.log("🎯 [Club Fidelidad] Infiltrando en modal:", sel);
             break;
         }
     }
     injector.appendChild(panel);
 
+    // ELEMENTOS
     const searchInput = document.getElementById('fidelidad-search');
     const resultsDiv = document.getElementById('fidelidad-results');
+    const pointsForm = document.getElementById('cf-points-form');
     const submitBtn = document.getElementById('fidelidad-submit');
-    const selectedInfo = document.getElementById('fidelidad-selected-info');
     const statusDiv = document.getElementById('fidelidad-status');
+    const clientHeader = document.getElementById('cf-client-name-header');
+    const promosList = document.getElementById('cf-promos-list');
+
+    // TABS LOGIC
+    let isPesos = true;
+    document.getElementById('tab-monto').onclick = () => {
+        isPesos = true;
+        document.getElementById('tab-monto').classList.add('active');
+        document.getElementById('tab-directo').classList.remove('active');
+        document.getElementById('cf-amount-label').innerText = 'Monto de la Compra ($)';
+        document.getElementById('cf-currency-symbol').innerText = '$';
+        document.getElementById('cf-promos-container').style.display = 'block';
+    };
+    document.getElementById('tab-directo').onclick = () => {
+        isPesos = false;
+        document.getElementById('tab-monto').classList.remove('active');
+        document.getElementById('tab-directo').classList.add('active');
+        document.getElementById('cf-amount-label').innerText = 'Cantidad de Puntos';
+        document.getElementById('cf-currency-symbol').innerText = 'pts';
+        document.getElementById('cf-promos-container').style.display = 'none';
+    };
 
     function killEvent(e) {
-        if (document.activeElement === searchInput) {
+        if (document.activeElement === searchInput || document.activeElement.tagName === 'INPUT') {
             e.stopPropagation();
-            e.stopImmediatePropagation();
+            // No stopImmediatePropagation to allow default typing but block sitewide shortcuts
         }
     }
 
@@ -124,17 +196,7 @@ function showFidelidadPanel() {
         panel.remove();
     };
 
-    // FOCO PERSISTENTE MIENTRAS ESTÉ ACTIVO
-    let focusInterval;
-    searchInput.onfocus = () => {
-        focusInterval = setInterval(() => {
-            if (document.activeElement !== searchInput && document.getElementById('fidelidad-panel')) {
-                searchInput.focus();
-            }
-        }, 50);
-    };
-    searchInput.onblur = () => clearInterval(focusInterval);
-
+    // FOCO PERSISTENTE SOLO EN EL SEARCH INICIAL
     setTimeout(() => searchInput.focus(), 300);
 
     let searchTimeout;
@@ -145,7 +207,7 @@ function showFidelidadPanel() {
             resultsDiv.style.display = 'none';
             return;
         }
-        searchTimeout = setTimeout(() => searchClients(q), 500);
+        searchTimeout = setTimeout(() => searchClients(q), 400);
     };
 
     async function searchClients(q) {
@@ -159,7 +221,7 @@ function showFidelidadPanel() {
             });
             const data = await res.json();
             if (data.ok && data.clients.length > 0) {
-                renderResults(data.clients);
+                renderResults(data.clients, data.activePromotions || []);
             } else {
                 resultsDiv.innerHTML = '<div class="fidelidad-result-item">No se encontraron clientes</div>';
                 resultsDiv.style.display = 'block';
@@ -169,11 +231,11 @@ function showFidelidadPanel() {
         }
     }
 
-    function renderResults(clients) {
+    function renderResults(clients, promotions) {
         resultsDiv.innerHTML = clients.map(c => `
             <div class="fidelidad-result-item" data-id="${c.id}" data-name="${c.name}" data-dni="${c.dni}">
                 <div>${c.name}</div>
-                <div class="dni">DNI: ${c.dni}</div>
+                <div class="dni">DNI: ${c.dni} | Socio: ${c.socio_number || 'N/A'}</div>
             </div>
         `).join('');
         resultsDiv.style.display = 'block';
@@ -183,29 +245,61 @@ function showFidelidadPanel() {
             item.onclick = (e) => {
                 e.stopPropagation();
                 selectedClient = { id: item.dataset.id, name: item.dataset.name };
-                selectedInfo.innerText = `Cliente: ${selectedClient.name}`;
-                selectedInfo.style.display = 'block';
-                resultsDiv.style.display = 'none';
+
+                // Actualizar UI
+                clientHeader.innerText = `Cliente: ${selectedClient.name}`;
                 searchInput.value = selectedClient.name;
-                submitBtn.disabled = false;
+                resultsDiv.style.display = 'none';
+                pointsForm.style.display = 'block';
+
+                // Cargar Promociones en el checklist
+                if (promotions.length > 0) {
+                    promosList.innerHTML = promotions.map(p => `
+                        <label class="cf-promo-item">
+                            <input type="checkbox" class="cf-promo-check" value="${p.id}" checked>
+                            <div class="cf-promo-info">
+                                <span class="cf-promo-name">${p.name}</span>
+                                <span class="cf-promo-desc">${p.rewardType === 'MULTIPLIER' ? 'Multiplicador x' + p.rewardValue : 'Bonus +' + p.rewardValue + ' pts'}</span>
+                            </div>
+                        </label>
+                    `).join('');
+                } else {
+                    promosList.innerHTML = '<div style="font-size:10px; color:#888;">No hay promociones activas hoy.</div>';
+                }
             };
         }
     }
 
     submitBtn.onclick = async () => {
         if (!selectedClient) return;
+
+        const amount = parseFloat(document.getElementById('cf-input-amount').value);
+        if (isNaN(amount) || amount <= 0) {
+            statusDiv.innerText = '❌ Ingrese un monto válido';
+            return;
+        }
+
+        const bonusIds = Array.from(document.querySelectorAll('.cf-promo-check:checked')).map(el => el.value);
+        const concept = document.getElementById('cf-concept').value;
+        const date = document.getElementById('cf-date').value;
+        const applyWhatsApp = document.getElementById('cf-notify-wa').checked;
+        const applyPromos = document.getElementById('cf-apply-promos').checked;
+
         submitBtn.disabled = true;
         submitBtn.innerText = 'PROCESANDO...';
+
         try {
             const res = await fetch(`${config.apiUrl}/api/assign-points`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey },
                 body: JSON.stringify({
                     uid: selectedClient.id,
-                    amount: detectedAmount,
-                    reason: 'v29_modal_infiltration',
-                    concept: 'Compra en local',
-                    applyWhatsApp: true
+                    amount: amount,
+                    reason: isPesos ? 'external_integration' : 'manual',
+                    concept: concept,
+                    date: date,
+                    bonusIds: applyPromos ? bonusIds : [],
+                    applyWhatsApp: applyWhatsApp
                 })
             });
             const data = await res.json();
@@ -225,12 +319,12 @@ function showFidelidadPanel() {
     function renderSuccess(data) {
         const body = document.querySelector('.fidelidad-body');
         body.innerHTML = `
-            <div class="fidelidad-success" style="text-align: center; color: #4caf50; padding: 10px;">
-                <div style="font-size: 30px;">✅</div>
-                <div style="font-weight: bold; margin: 5px 0;">¡Éxito!</div>
-                <div style="font-size: 12px; color: #666;">Se sumaron ${data.pointsAdded} puntos.</div>
-                ${data.whatsappLink ? `<a href="${data.whatsappLink}" target="_blank" class="fidelidad-wa-link">WHATSAPP</a>` : ''}
-                <button class="fidelidad-button" style="background:#eee; color:#333; margin-top:15px;" id="cf-final-close">CERRAR</button>
+            <div class="fidelidad-success" style="text-align: center; color: #16a34a; padding: 10px;">
+                <div style="font-size: 40px;">✅</div>
+                <div style="font-weight: bold; font-size: 18px; margin: 5px 0;">¡Puntos Asignados!</div>
+                <div style="font-size: 14px; color: #666; margin-bottom: 15px;">Se sumaron ${data.pointsAdded} puntos a ${selectedClient.name}.</div>
+                ${data.whatsappLink ? `<a href="${data.whatsappLink}" target="_blank" class="fidelidad-wa-link">ENVIAR WHATSAPP</a>` : ''}
+                <button class="fidelidad-button" style="background:#f3f4f6; color:#374151; margin-top:15px; border: 1px solid #d1d5db;" id="cf-final-close">CERRAR</button>
             </div>
         `;
         document.getElementById('cf-final-close').onclick = () => panel.remove();

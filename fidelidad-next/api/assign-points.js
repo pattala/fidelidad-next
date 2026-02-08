@@ -269,17 +269,21 @@ export default async function handler(req, res) {
             // Log Historial (Subcollection points_history)
             const histRef = clientRef.collection('points_history').doc();
 
+            // Support custom purchase date
+            const recordDate = req.body?.date ? new Date(req.body.date + (req.body.date.includes('T') ? '' : 'T12:00:00')) : new Date();
+
             // Default expiration: 365 days
-            const expirationDate = new Date();
+            const expirationDate = new Date(recordDate);
             expirationDate.setDate(expirationDate.getDate() + 365);
 
             tx.set(histRef, {
                 amount: points,
+                moneySpent: req.body?.moneySpent || (reason === 'external_integration' && finalAmount ? Number(finalAmount) : 0),
                 type: 'credit',
                 reason: reason || 'manual',
                 concept: concept || (reason === 'welcome_signup' ? 'Puntos de Bienvenida' : (reason === 'profile_address' ? 'Premio por completar dirección' : 'Asignación automática')),
                 metadata: metadata || {},
-                date: admin.firestore.FieldValue.serverTimestamp(),
+                date: recordDate,
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
                 expiresAt: admin.firestore.Timestamp.fromDate(expirationDate),
                 remainingPoints: points,

@@ -117,21 +117,20 @@ function showFidelidadPanel() {
                     </div>
                 </div>
 
-                <!-- PROMOCIONES -->
-                <div id="cf-promos-container" class="cf-promos-box">
+                <!-- PROMOCIONES Y OPCIONES -->
+                <div id="cf-promos-container" class="cf-promos-box" style="margin-top: 20px;">
                     <label class="cf-checkbox-label">
                         <input type="checkbox" id="cf-apply-promos" checked> Aplicar Promociones / Bonus
                     </label>
                     <div id="cf-promos-list" class="cf-promos-list">
                         <!-- Se llena vía API -->
                     </div>
+                    <label class="cf-checkbox-label" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #f3f4f6;">
+                        <input type="checkbox" id="cf-notify-wa"> Notificar por WhatsApp
+                    </label>
                 </div>
 
-                <label class="cf-checkbox-label" style="margin-top: 10px;">
-                    <input type="checkbox" id="cf-notify-wa" checked> Notificar por WhatsApp
-                </label>
-
-                <button id="fidelidad-submit" class="fidelidad-button">ASIGNAR PUNTOS</button>
+                <button id="fidelidad-submit" class="fidelidad-button">Asignar Puntos</button>
             </div>
 
             <div id="fidelidad-status" style="margin-top:10px; font-size: 12px; text-align: center;"></div>
@@ -212,6 +211,17 @@ function showFidelidadPanel() {
         currencySymbol.innerText = 'pts';
         inputMonto.placeholder = 'Puntos a asignar...';
         promosContainer.style.display = 'block'; // Keep visible
+    };
+
+    // MASTER TOGGLE PROMOS
+    const masterApply = document.getElementById('cf-apply-promos');
+    masterApply.onchange = (e) => {
+        const active = e.target.checked;
+        promosList.style.opacity = active ? '1' : '0.4';
+        promosList.style.pointerEvents = active ? 'all' : 'none';
+        // Disable individual checkboxes to stay in sync with UI
+        const checks = promosList.querySelectorAll('.cf-promo-check');
+        checks.forEach(c => c.disabled = !active);
     };
 
     function killEvent(e) {
@@ -388,6 +398,11 @@ function showFidelidadPanel() {
                 <button class="fidelidad-button" style="background:#f3f4f6; color:#374151; margin-top:15px; border: 1px solid #d1d5db;" id="cf-final-close">CERRAR</button>
             </div>
         `;
-        document.getElementById('cf-final-close').onclick = () => panel.remove();
+        document.getElementById('cf-final-close').onclick = () => {
+            window.removeEventListener('keydown', killEvent, true);
+            window.removeEventListener('keyup', killEvent, true);
+            window.removeEventListener('keypress', killEvent, true);
+            panel.remove();
+        };
     }
 }

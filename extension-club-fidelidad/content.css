@@ -176,51 +176,74 @@
 
 /* PROMOS BOX */
 .cf-promos-box {
-    background: #f9fafb;
-    padding: 12px;
-    border-radius: 16px;
-    border: 1px solid #f3f4f6;
+    background: #f8fafc;
+    padding: 16px;
+    border-radius: 20px;
+    border: 1px solid #f1f5f9;
 }
 
 .cf-promos-list {
-    margin-top: 8px;
-    padding-left: 12px;
-    border-left: 2px solid #dcfce7;
+    margin-top: 10px;
+    padding-left: 16px;
+    border-left: 2px solid #e2e8f0;
+    margin-left: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Subtle green line if active */
+#cf-apply-promos:checked~.cf-promos-list {
+    border-left-color: #dcfce7;
 }
 
 .cf-promo-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
+    gap: 10px;
     cursor: pointer;
+    transition: transform 0.1s;
+}
+
+.cf-promo-item:active {
+    transform: scale(0.98);
 }
 
 .cf-promo-info {
     display: flex;
     flex-direction: column;
+    line-height: 1.2;
 }
 
 .cf-promo-name {
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 800;
-    color: #374151;
+    color: #1e293b;
     text-transform: uppercase;
 }
 
 .cf-promo-desc {
-    font-size: 9px;
-    font-weight: 700;
-    color: #16a34a;
+    font-size: 10px;
+    font-weight: 600;
+    color: #94a3b8;
 }
 
 .cf-checkbox-label {
     display: flex;
     align-items: center;
-    gap: 10px;
-    font-size: 13px;
-    font-weight: 600;
-    color: #4b5563;
+    gap: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #334155;
+    cursor: pointer;
+    user-select: none;
+}
+
+/* Custom Checkbox Look */
+input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #16a34a;
     cursor: pointer;
 }
 

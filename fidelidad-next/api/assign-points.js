@@ -196,16 +196,24 @@ export default async function handler(req, res) {
             }
         }
 
-        // 4. Determinar Monto de Puntos
+        // 4. Determinar Monto de Puntos y Saldo Acumulado
         let points = 0;
+        let newAccumulatedBalance = 0;
         const finalAmount = amountOverride || amount;
 
         if (isAdmin && finalAmount) {
+            // Obtener saldo acumulado actual del cliente para el cálculo
+            const clientSnap = await db.collection('users').doc(targetUid).get();
+            const currentAccumulated = clientSnap.exists ? Number(clientSnap.data().accumulated_balance || 0) : 0;
+
             if (reason === 'external_integration') {
-                // APLICAR CONVERSIÓN OFICIAL
+                // APLICAR CONVERSIÓN OFICIAL CON SALDO ACUMULADO
                 const base = Number(config.pointsMoneyBase) || 100;
-                const multiplier = Number(config.pointsPerPeso) || 1;
-                let basePoints = Math.floor((Number(finalAmount) / base) * multiplier);
+                const ratio = Number(config.pointsPerPeso) || 1;
+
+                const totalVal = Number(finalAmount) + currentAccumulated;
+                let basePoints = Math.floor((totalVal / base) * ratio);
+                newAccumulatedBalance = totalVal % base;
 
                 // Aplicar Bonos/Promociones seleccionadas
                 if (bonusIds && Array.isArray(bonusIds) && bonusIds.length > 0) {
@@ -226,27 +234,16 @@ export default async function handler(req, res) {
                     points = basePoints;
                 }
             } else {
-                let directPoints = Number(finalAmount);
-                // También aplicar Bonos/Promociones si vienen en modo manual
-                if (bonusIds && Array.isArray(bonusIds) && bonusIds.length > 0) {
-                    let totalBonus = 0;
-                    let totalMultiplier = 1;
-
-                    const bonusSnaps = await Promise.all(bonusIds.map(bid => db.collection('campanas').doc(bid).get()));
-                    bonusSnaps.forEach(bsnap => {
-                        if (bsnap.exists) {
-                            const b = bsnap.data();
-                            if (b.rewardType === 'FIXED') totalBonus += (Number(b.rewardValue) || 0);
-                            if (b.rewardType === 'MULTIPLIER') totalMultiplier *= (Number(b.rewardValue) || 1);
-                        }
-                    });
-                    points = Math.floor(directPoints * totalMultiplier) + totalBonus;
-                } else {
-                    points = directPoints;
-                }
+                // Modo Manual (ya viene en puntos, pero el usuario puede enviar 'moneySpent')
+                // NOTA: Si es manual directo en puntos, no solemos tocar el accumulated_balance 
+                // a menos que el usuario especifique que es una carga por monto.
+                points = Number(finalAmount);
+                // Si el cliente envió moneySpent en el body, podríamos resetear o ajustar el balance, 
+                // pero por ahora mantenemos lo existente si es manual directo.
+                newAccumulatedBalance = currentAccumulated;
             }
         } else {
-            // Modo Reglas de Negocio
+            // Modo Reglas de Negocio (Bienvenida, Dirección, etc)
             if (reason === 'profile_address') {
                 const cfgSnap = await db.collection('config').doc('gamification').get();
                 const cfg = cfgSnap.exists ? cfgSnap.data() : {};
@@ -281,6 +278,7 @@ export default async function handler(req, res) {
             tx.update(clientRef, {
                 points: newPoints,
                 puntos: newPoints,
+                accumulated_balance: newAccumulatedBalance,
                 [`rewards_awarded.${reason}`]: true,
                 updatedAt: admin.firestore.FieldValue.serverTimestamp()
             });

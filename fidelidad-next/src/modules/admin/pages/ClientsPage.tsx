@@ -561,6 +561,7 @@ export const ClientsPage = () => {
                 await updateDoc(doc(db, 'users', selectedClientForPoints.id), {
                     points: increment(finalPoints),
                     puntos: increment(finalPoints),
+                    accumulated_balance: newAccumulatedBalance, // PERSISTIR EL SALDO RESTANTE
                     historialPuntos: arrayUnion({
                         fechaObtencion: selectedDate,
                         puntosObtenidos: finalPoints,
@@ -941,6 +942,11 @@ export const ClientsPage = () => {
                                             <Coins size={14} />
                                             {client.points || 0}
                                         </div>
+                                        {client.accumulated_balance > 0 && (
+                                            <div className="text-[10px] font-bold text-gray-400 mt-1" title="Monto remanente para el próximo punto">
+                                                +${client.accumulated_balance.toLocaleString()} a favor
+                                            </div>
+                                        )}
                                         {client.expirationDetails && client.expirationDetails.filter(e => e.points > 0).length > 0 ? (
                                             <div className="space-y-1 mt-1">
                                                 {client.expirationDetails.filter(e => e.points > 0).map((exp, idx) => (
@@ -1020,367 +1026,377 @@ export const ClientsPage = () => {
             </div>
 
             {/* MODAL: CRUD Cliente */}
-            {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
-                        <div className="bg-blue-600 p-6 flex justify-between items-center text-white">
-                            <div>
-                                <h2 className="text-xl font-bold">{editingId ? 'Editar Cliente' : 'Nuevo Cliente'}</h2>
-                                {!editingId && (
-                                    <p className="text-blue-100 text-xs mt-1">
-                                        Paso {formStep} de 2: {formStep === 1 ? 'Datos Personales' : 'Dirección y Domicilio'}
-                                    </p>
-                                )}
-                            </div>
-                            <button onClick={closeModal} className="p-2 hover:bg-white/10 rounded-full transition"><X size={20} /></button>
-                        </div>
-
-                        <form onSubmit={(e) => {
-                            if (!editingId && formStep === 1) {
-                                e.preventDefault();
-                                if (!formData.name || !formData.email || !formData.dni || !formData.phone) {
-                                    toast.error("Completá todos los campos obligatorios");
-                                    return;
-                                }
-                                setFormStep(2);
-                            } else {
-                                handleSave(e);
-                            }
-                        }} className="p-8 space-y-6 overflow-y-auto">
-
-                            {!editingId && (
-                                <div className="flex justify-center gap-3 mb-4">
-                                    <div className={`h-2 w-16 rounded-full transition-all ${formStep === 1 ? 'bg-blue-600' : 'bg-blue-100'}`}></div>
-                                    <div className={`h-2 w-16 rounded-full transition-all ${formStep === 2 ? 'bg-blue-600' : 'bg-blue-100'}`}></div>
+            {
+                isModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+                        <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+                            <div className="bg-blue-600 p-6 flex justify-between items-center text-white">
+                                <div>
+                                    <h2 className="text-xl font-bold">{editingId ? 'Editar Cliente' : 'Nuevo Cliente'}</h2>
+                                    {!editingId && (
+                                        <p className="text-blue-100 text-xs mt-1">
+                                            Paso {formStep} de 2: {formStep === 1 ? 'Datos Personales' : 'Dirección y Domicilio'}
+                                        </p>
+                                    )}
                                 </div>
-                            )}
+                                <button onClick={closeModal} className="p-2 hover:bg-white/10 rounded-full transition"><X size={20} /></button>
+                            </div>
 
-                            {(editingId || formStep === 1) && (
-                                <div className="animate-fade-in">
-                                    <h3 className="font-bold text-gray-800 flex items-center gap-2 mb-4"><Users size={16} /> Datos del Socio</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div>
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">Nombre y Apellido *</label>
-                                            <input
-                                                type="text"
-                                                required
-                                                className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
-                                                value={formData.name}
-                                                onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">DNI *</label>
-                                            <input
-                                                type="text"
-                                                required
-                                                placeholder="Será su contraseña"
-                                                className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
-                                                value={formData.dni}
-                                                onChange={e => setFormData({ ...formData, dni: e.target.value })}
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">Email *</label>
-                                            <input
-                                                type="email"
-                                                required
-                                                className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
-                                                value={formData.email}
-                                                onChange={e => setFormData({ ...formData, email: e.target.value })}
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">Teléfono *</label>
-                                            <input
-                                                type="text"
-                                                required
-                                                placeholder="Ej: 1122334455"
-                                                className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
-                                                value={formData.phone}
-                                                onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">Cumpleaños</label>
-                                            <input
-                                                type="date"
-                                                className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
-                                                value={formData.birthDate}
-                                                onChange={e => setFormData({ ...formData, birthDate: e.target.value })}
-                                            />
-                                        </div>
-                                        {editingId && (
+                            <form onSubmit={(e) => {
+                                if (!editingId && formStep === 1) {
+                                    e.preventDefault();
+                                    if (!formData.name || !formData.email || !formData.dni || !formData.phone) {
+                                        toast.error("Completá todos los campos obligatorios");
+                                        return;
+                                    }
+                                    setFormStep(2);
+                                } else {
+                                    handleSave(e);
+                                }
+                            }} className="p-8 space-y-6 overflow-y-auto">
+
+                                {!editingId && (
+                                    <div className="flex justify-center gap-3 mb-4">
+                                        <div className={`h-2 w-16 rounded-full transition-all ${formStep === 1 ? 'bg-blue-600' : 'bg-blue-100'}`}></div>
+                                        <div className={`h-2 w-16 rounded-full transition-all ${formStep === 2 ? 'bg-blue-600' : 'bg-blue-100'}`}></div>
+                                    </div>
+                                )}
+
+                                {(editingId || formStep === 1) && (
+                                    <div className="animate-fade-in">
+                                        <h3 className="font-bold text-gray-800 flex items-center gap-2 mb-4"><Users size={16} /> Datos del Socio</h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div>
-                                                <label className="block text-sm font-bold text-gray-700 mb-2">N° de Socio</label>
+                                                <label className="block text-sm font-bold text-gray-700 mb-2">Nombre y Apellido *</label>
                                                 <input
                                                     type="text"
-                                                    disabled
-                                                    className="w-full p-3 rounded-xl border border-gray-100 bg-gray-50 text-gray-500 outline-none"
-                                                    value={formData.socioNumber}
+                                                    required
+                                                    className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
+                                                    value={formData.name}
+                                                    onChange={e => setFormData({ ...formData, name: e.target.value })}
                                                 />
                                             </div>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-
-                            {(editingId || formStep === 2) && (
-                                <div className="animate-fade-in space-y-6">
-                                    <hr className="border-gray-100" />
-                                    <h3 className="font-bold text-gray-800 flex items-center gap-2"><MapPin size={16} /> Ubicación</h3>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                        <div className="md:col-span-2 lg:col-span-2">
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">Calle y Número</label>
-                                            <input
-                                                type="text"
-                                                className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
-                                                placeholder="Ej: Av. Rivadavia 1234"
-                                                value={formData.calle}
-                                                onChange={e => setFormData({ ...formData, calle: e.target.value })}
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">Piso</label>
-                                            <input
-                                                type="text"
-                                                className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
-                                                placeholder="Ej: 2"
-                                                value={formData.piso}
-                                                onChange={e => setFormData({ ...formData, piso: e.target.value })}
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">Depto</label>
-                                            <input
-                                                type="text"
-                                                className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
-                                                placeholder="Ej: B"
-                                                value={formData.depto}
-                                                onChange={e => setFormData({ ...formData, depto: e.target.value })}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">Provincia</label>
-                                            <select
-                                                className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
-                                                value={formData.provincia}
-                                                onChange={e => setFormData({ ...formData, provincia: e.target.value, partido: '', localidad: '' })}
-                                            >
-                                                <option value="">Seleccionar...</option>
-                                                {Object.keys(ARGENTINA_LOCATIONS).map(p => <option key={p} value={p}>{p}</option>)}
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">Localidad / Partido</label>
-                                            <select
-                                                className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
-                                                value={formData.partido}
-                                                onChange={e => setFormData({ ...formData, partido: e.target.value, localidad: '' })}
-                                                disabled={!formData.provincia}
-                                            >
-                                                <option value="">Seleccionar...</option>
-                                                {formData.provincia && Object.keys((ARGENTINA_LOCATIONS as any)[formData.provincia]).map(p => <option key={p} value={p}>{p}</option>)}
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">Barrio / Ciudad</label>
-                                            <select
-                                                className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
-                                                value={formData.localidad}
-                                                onChange={e => setFormData({ ...formData, localidad: e.target.value })}
-                                                disabled={!formData.partido}
-                                            >
-                                                <option value="">Seleccionar...</option>
-                                                {formData.partido && (ARGENTINA_LOCATIONS as any)[formData.provincia][formData.partido].map((l: string) => <option key={l} value={l}>{l}</option>)}
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">Cód. Postal</label>
-                                            <input
-                                                type="text"
-                                                className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
-                                                placeholder="Ej: 1425"
-                                                value={formData.cp}
-                                                onChange={e => setFormData({ ...formData, cp: e.target.value })}
-                                            />
+                                            <div>
+                                                <label className="block text-sm font-bold text-gray-700 mb-2">DNI *</label>
+                                                <input
+                                                    type="text"
+                                                    required
+                                                    placeholder="Será su contraseña"
+                                                    className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
+                                                    value={formData.dni}
+                                                    onChange={e => setFormData({ ...formData, dni: e.target.value })}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-bold text-gray-700 mb-2">Email *</label>
+                                                <input
+                                                    type="email"
+                                                    required
+                                                    className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
+                                                    value={formData.email}
+                                                    onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-bold text-gray-700 mb-2">Teléfono *</label>
+                                                <input
+                                                    type="text"
+                                                    required
+                                                    placeholder="Ej: 1122334455"
+                                                    className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
+                                                    value={formData.phone}
+                                                    onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-bold text-gray-700 mb-2">Cumpleaños</label>
+                                                <input
+                                                    type="date"
+                                                    className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
+                                                    value={formData.birthDate}
+                                                    onChange={e => setFormData({ ...formData, birthDate: e.target.value })}
+                                                />
+                                            </div>
+                                            {editingId && (
+                                                <div>
+                                                    <label className="block text-sm font-bold text-gray-700 mb-2">N° de Socio</label>
+                                                    <input
+                                                        type="text"
+                                                        disabled
+                                                        className="w-full p-3 rounded-xl border border-gray-100 bg-gray-50 text-gray-500 outline-none"
+                                                        value={formData.socioNumber}
+                                                    />
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
-                                </div>
-                            )}
-
-                            <div className="mt-8 flex justify-end gap-3 pt-6 border-t border-gray-50">
-                                {formStep === 2 && !editingId && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setFormStep(1)}
-                                        className="px-8 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition border border-gray-100"
-                                    >
-                                        Atrás
-                                    </button>
                                 )}
-                                <button type="button" onClick={closeModal} className="px-8 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition">Cancelar</button>
-                                <button
-                                    type="submit"
-                                    disabled={actionLoading}
-                                    className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-100 disabled:opacity-50 flex items-center justify-center gap-2"
-                                >
-                                    {actionLoading ? (
-                                        <>Cargando...</>
-                                    ) : (!editingId && formStep === 1 ? (
-                                        <>Siguiente <ArrowRight size={18} /></>
-                                    ) : (
-                                        'Guardar Cliente'
-                                    ))}
-                                </button>
-                            </div>
-                        </form>
+
+                                {(editingId || formStep === 2) && (
+                                    <div className="animate-fade-in space-y-6">
+                                        <hr className="border-gray-100" />
+                                        <h3 className="font-bold text-gray-800 flex items-center gap-2"><MapPin size={16} /> Ubicación</h3>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                            <div className="md:col-span-2 lg:col-span-2">
+                                                <label className="block text-sm font-bold text-gray-700 mb-2">Calle y Número</label>
+                                                <input
+                                                    type="text"
+                                                    className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
+                                                    placeholder="Ej: Av. Rivadavia 1234"
+                                                    value={formData.calle}
+                                                    onChange={e => setFormData({ ...formData, calle: e.target.value })}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-bold text-gray-700 mb-2">Piso</label>
+                                                <input
+                                                    type="text"
+                                                    className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
+                                                    placeholder="Ej: 2"
+                                                    value={formData.piso}
+                                                    onChange={e => setFormData({ ...formData, piso: e.target.value })}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-bold text-gray-700 mb-2">Depto</label>
+                                                <input
+                                                    type="text"
+                                                    className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
+                                                    placeholder="Ej: B"
+                                                    value={formData.depto}
+                                                    onChange={e => setFormData({ ...formData, depto: e.target.value })}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-bold text-gray-700 mb-2">Provincia</label>
+                                                <select
+                                                    className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
+                                                    value={formData.provincia}
+                                                    onChange={e => setFormData({ ...formData, provincia: e.target.value, partido: '', localidad: '' })}
+                                                >
+                                                    <option value="">Seleccionar...</option>
+                                                    {Object.keys(ARGENTINA_LOCATIONS).map(p => <option key={p} value={p}>{p}</option>)}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-bold text-gray-700 mb-2">Localidad / Partido</label>
+                                                <select
+                                                    className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
+                                                    value={formData.partido}
+                                                    onChange={e => setFormData({ ...formData, partido: e.target.value, localidad: '' })}
+                                                    disabled={!formData.provincia}
+                                                >
+                                                    <option value="">Seleccionar...</option>
+                                                    {formData.provincia && Object.keys((ARGENTINA_LOCATIONS as any)[formData.provincia]).map(p => <option key={p} value={p}>{p}</option>)}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-bold text-gray-700 mb-2">Barrio / Ciudad</label>
+                                                <select
+                                                    className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
+                                                    value={formData.localidad}
+                                                    onChange={e => setFormData({ ...formData, localidad: e.target.value })}
+                                                    disabled={!formData.partido}
+                                                >
+                                                    <option value="">Seleccionar...</option>
+                                                    {formData.partido && (ARGENTINA_LOCATIONS as any)[formData.provincia][formData.partido].map((l: string) => <option key={l} value={l}>{l}</option>)}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-bold text-gray-700 mb-2">Cód. Postal</label>
+                                                <input
+                                                    type="text"
+                                                    className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
+                                                    placeholder="Ej: 1425"
+                                                    value={formData.cp}
+                                                    onChange={e => setFormData({ ...formData, cp: e.target.value })}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="mt-8 flex justify-end gap-3 pt-6 border-t border-gray-50">
+                                    {formStep === 2 && !editingId && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormStep(1)}
+                                            className="px-8 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition border border-gray-100"
+                                        >
+                                            Atrás
+                                        </button>
+                                    )}
+                                    <button type="button" onClick={closeModal} className="px-8 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition">Cancelar</button>
+                                    <button
+                                        type="submit"
+                                        disabled={actionLoading}
+                                        className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-100 disabled:opacity-50 flex items-center justify-center gap-2"
+                                    >
+                                        {actionLoading ? (
+                                            <>Cargando...</>
+                                        ) : (!editingId && formStep === 1 ? (
+                                            <>Siguiente <ArrowRight size={18} /></>
+                                        ) : (
+                                            'Guardar Cliente'
+                                        ))}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* MODAL: Asignar Puntos */}
-            {pointsModalOpen && selectedClientForPoints && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden">
-                        <div className="bg-green-600 p-6 flex justify-between items-center text-white">
-                            <div>
-                                <h2 className="text-xl font-bold">Sumar Puntos</h2>
-                                <p className="text-green-100 text-xs">{selectedClientForPoints.name}</p>
-                            </div>
-                            <button onClick={closePointsModal} className="p-2 hover:bg-white/10 rounded-full transition"><X size={20} /></button>
-                        </div>
-                        <form onSubmit={handleAssignPoints} className="p-8 space-y-6">
-                            <div className="flex gap-4 p-1 bg-gray-50 rounded-xl mb-4">
-                                <button type="button" onClick={() => setPointsData({ ...pointsData, isPesos: true })} className={`flex-1 py-2 rounded-lg font-bold text-sm transition ${pointsData.isPesos ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400'}`}>Por Monto ($)</button>
-                                <button type="button" onClick={() => setPointsData({ ...pointsData, isPesos: false })} className={`flex-1 py-2 rounded-lg font-bold text-sm transition ${!pointsData.isPesos ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400'}`}>Puntos Directos</button>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">{pointsData.isPesos ? 'Monto de la Compra ($)' : 'Cantidad de Puntos'}</label>
-                                <div className="relative">
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">{pointsData.isPesos ? '$' : 'pts'}</span>
-                                    <input
-                                        type="number"
-                                        required
-                                        autoFocus
-                                        className="w-full pl-10 pr-4 py-4 rounded-xl border border-gray-200 text-2xl font-black focus:ring-2 focus:ring-green-100 outline-none"
-                                        value={pointsData.amount}
-                                        onChange={e => setPointsData({ ...pointsData, amount: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
+            {
+                pointsModalOpen && selectedClientForPoints && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+                        <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden">
+                            <div className="bg-green-600 p-6 flex justify-between items-center text-white">
                                 <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Concepto / Motivo</label>
-                                    <input
-                                        type="text"
-                                        className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none"
-                                        value={pointsData.concept}
-                                        onChange={e => setPointsData({ ...pointsData, concept: e.target.value })}
-                                    />
+                                    <h2 className="text-xl font-bold">Sumar Puntos</h2>
+                                    <p className="text-green-100 text-xs">{selectedClientForPoints.name}</p>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Fecha de Compra</label>
-                                    <input
-                                        type="date"
-                                        className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none"
-                                        value={pointsData.purchaseDate}
-                                        onChange={e => setPointsData({ ...pointsData, purchaseDate: e.target.value })}
-                                    />
-                                </div>
+                                <button onClick={closePointsModal} className="p-2 hover:bg-white/10 rounded-full transition"><X size={20} /></button>
                             </div>
+                            <form onSubmit={handleAssignPoints} className="p-8 space-y-6">
+                                <div className="flex gap-4 p-1 bg-gray-50 rounded-xl mb-4">
+                                    <button type="button" onClick={() => setPointsData({ ...pointsData, isPesos: true })} className={`flex-1 py-2 rounded-lg font-bold text-sm transition ${pointsData.isPesos ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400'}`}>Por Monto ($)</button>
+                                    <button type="button" onClick={() => setPointsData({ ...pointsData, isPesos: false })} className={`flex-1 py-2 rounded-lg font-bold text-sm transition ${!pointsData.isPesos ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400'}`}>Puntos Directos</button>
+                                </div>
 
-                            <div className="space-y-3 p-4 bg-gray-50 rounded-2xl">
-                                <label className="flex items-center gap-3 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        className="w-5 h-5 rounded border-gray-300 text-green-600 focus:ring-green-500"
-                                        checked={applyPromotions}
-                                        onChange={e => setApplyPromotions(e.target.checked)}
-                                    />
-                                    <span className="text-sm font-medium text-gray-700">Aplicar Promociones / Bonus</span>
-                                </label>
-
-                                {applyPromotions && availablePromotions.length > 0 && (
-                                    <div className="mt-2 pl-8 space-y-2 border-l-2 border-green-100 ml-2 animate-fade-in">
-                                        {availablePromotions.map(promo => (
-                                            <label key={promo.id} className="flex items-center gap-2 cursor-pointer group">
-                                                <input
-                                                    type="checkbox"
-                                                    className="w-4 h-4 rounded border-gray-300 text-green-500 focus:ring-green-400"
-                                                    checked={selectedPromos.includes(promo.id)}
-                                                    onChange={e => {
-                                                        if (e.target.checked) setSelectedPromos([...selectedPromos, promo.id]);
-                                                        else setSelectedPromos(selectedPromos.filter(id => id !== promo.id));
-                                                    }}
-                                                />
-                                                <div className="flex flex-col">
-                                                    <span className="text-[10px] font-bold text-gray-700 uppercase group-hover:text-green-600 transition">
-                                                        {promo.name || promo.title}
-                                                    </span>
-                                                    <span className="text-[9px] text-gray-400 font-bold">
-                                                        {promo.rewardType === 'MULTIPLIER' ? `Multiplicador x${promo.rewardValue}` : `Bonus +${promo.rewardValue} pts`}
-                                                    </span>
-                                                </div>
-                                            </label>
-                                        ))}
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">{pointsData.isPesos ? 'Monto de la Compra ($)' : 'Cantidad de Puntos'}</label>
+                                    <div className="relative">
+                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">{pointsData.isPesos ? '$' : 'pts'}</span>
+                                        <input
+                                            type="number"
+                                            required
+                                            autoFocus
+                                            className="w-full pl-10 pr-4 py-4 rounded-xl border border-gray-200 text-2xl font-black focus:ring-2 focus:ring-green-100 outline-none"
+                                            value={pointsData.amount}
+                                            onChange={e => setPointsData({ ...pointsData, amount: e.target.value })}
+                                        />
                                     </div>
-                                )}
+                                </div>
 
-                                <label className="flex items-center gap-3 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        className="w-5 h-5 rounded border-gray-300 text-green-600 focus:ring-green-500"
-                                        checked={notifyWhatsapp}
-                                        onChange={e => setNotifyWhatsapp(e.target.checked)}
-                                    />
-                                    <span className="text-sm font-medium text-gray-700">Notificar por WhatsApp</span>
-                                </label>
-                            </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">Concepto / Motivo</label>
+                                        <input
+                                            type="text"
+                                            className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none"
+                                            value={pointsData.concept}
+                                            onChange={e => setPointsData({ ...pointsData, concept: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">Fecha de Compra</label>
+                                        <input
+                                            type="date"
+                                            className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none"
+                                            value={pointsData.purchaseDate}
+                                            onChange={e => setPointsData({ ...pointsData, purchaseDate: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
 
-                            <button type="submit" disabled={actionLoading} className="w-full py-4 bg-green-600 text-white rounded-2xl font-bold text-lg hover:bg-green-700 transition shadow-lg shadow-green-100 disabled:opacity-50">
-                                {actionLoading ? 'Procesando...' : 'Asignar Puntos'}
-                            </button>
-                        </form>
+                                <div className="space-y-3 p-4 bg-gray-50 rounded-2xl">
+                                    <label className="flex items-center gap-3 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            className="w-5 h-5 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                                            checked={applyPromotions}
+                                            onChange={e => setApplyPromotions(e.target.checked)}
+                                        />
+                                        <span className="text-sm font-medium text-gray-700">Aplicar Promociones / Bonus</span>
+                                    </label>
+
+                                    {applyPromotions && availablePromotions.length > 0 && (
+                                        <div className="mt-2 pl-8 space-y-2 border-l-2 border-green-100 ml-2 animate-fade-in">
+                                            {availablePromotions.map(promo => (
+                                                <label key={promo.id} className="flex items-center gap-2 cursor-pointer group">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="w-4 h-4 rounded border-gray-300 text-green-500 focus:ring-green-400"
+                                                        checked={selectedPromos.includes(promo.id)}
+                                                        onChange={e => {
+                                                            if (e.target.checked) setSelectedPromos([...selectedPromos, promo.id]);
+                                                            else setSelectedPromos(selectedPromos.filter(id => id !== promo.id));
+                                                        }}
+                                                    />
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[10px] font-bold text-gray-700 uppercase group-hover:text-green-600 transition">
+                                                            {promo.name || promo.title}
+                                                        </span>
+                                                        <span className="text-[9px] text-gray-400 font-bold">
+                                                            {promo.rewardType === 'MULTIPLIER' ? `Multiplicador x${promo.rewardValue}` : `Bonus +${promo.rewardValue} pts`}
+                                                        </span>
+                                                    </div>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    <label className="flex items-center gap-3 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            className="w-5 h-5 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                                            checked={notifyWhatsapp}
+                                            onChange={e => setNotifyWhatsapp(e.target.checked)}
+                                        />
+                                        <span className="text-sm font-medium text-gray-700">Notificar por WhatsApp</span>
+                                    </label>
+                                </div>
+
+                                <button type="submit" disabled={actionLoading} className="w-full py-4 bg-green-600 text-white rounded-2xl font-bold text-lg hover:bg-green-700 transition shadow-lg shadow-green-100 disabled:opacity-50">
+                                    {actionLoading ? 'Procesando...' : 'Asignar Puntos'}
+                                </button>
+                            </form>
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* MODAL: Canje */}
-            {redemptionModalOpen && selectedClientForRedemption && (
-                <RedemptionModal
-                    client={selectedClientForRedemption}
-                    onClose={() => setRedemptionModalOpen(false)}
-                    onRedeemSuccess={() => {
-                        setRedemptionModalOpen(false);
-                        fetchData();
-                    }}
-                />
-            )}
+            {
+                redemptionModalOpen && selectedClientForRedemption && (
+                    <RedemptionModal
+                        client={selectedClientForRedemption}
+                        onClose={() => setRedemptionModalOpen(false)}
+                        onRedeemSuccess={() => {
+                            setRedemptionModalOpen(false);
+                            fetchData();
+                        }}
+                    />
+                )
+            }
 
             {/* MODAL: Historial */}
-            {historyModalOpen && selectedClientForHistory && (
-                <PointsHistoryModal
-                    client={selectedClientForHistory}
-                    isOpen={historyModalOpen}
-                    onClose={() => setHistoryModalOpen(false)}
-                    onClientUpdated={fetchData}
-                />
-            )}
+            {
+                historyModalOpen && selectedClientForHistory && (
+                    <PointsHistoryModal
+                        client={selectedClientForHistory}
+                        isOpen={historyModalOpen}
+                        onClose={() => setHistoryModalOpen(false)}
+                        onClientUpdated={fetchData}
+                    />
+                )
+            }
 
-            {visitHistoryModalOpen && selectedClientForHistory && (
-                <VisitHistoryModal
-                    isOpen={visitHistoryModalOpen}
-                    client={selectedClientForHistory}
-                    onClose={() => setVisitHistoryModalOpen(false)}
-                />
-            )}
-        </div>
+            {
+                visitHistoryModalOpen && selectedClientForHistory && (
+                    <VisitHistoryModal
+                        isOpen={visitHistoryModalOpen}
+                        client={selectedClientForHistory}
+                        onClose={() => setVisitHistoryModalOpen(false)}
+                    />
+                )
+            }
+        </div >
     );
 };

@@ -86,6 +86,11 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    // TRANSACCIONES GLOBALES (Estadísticas)
+    match /transactions/{id} {
+      allow read, write: if isEditor();
+    }
+
     // COLECCIÓN DE ADMINISTRADORES
     match /admins/{adminId} {
       allow read: if isSignedIn();

@@ -5,10 +5,10 @@
     *   **Regla de Oro**: Siempre debo CONSULTARTE y pedir confirmación antes de ejecutar el `push` o una secuencia de deploy.
     *   No debo pedirte que tú escribas los comandos; yo los preparo y los ejecuto tras tu "sí".
 
-## Estado Actual del Proyecto (Fidelidad Next) - 06/02/2026
-**Última acción**: Corrección integral de la PWA (campanita, edición de perfil completo, estabilidad de sesión) y panel de administración en tiempo real.
+## Estado Actual del Proyecto (Fidelidad Next) - 09/02/2026
+**Última acción**: Despliegue de correcciones de Métricas (filtros Hoy/Total, Ticket Promedio monetario) y resolución de error de compilación Vercel (TS18048).
 
-### Retomando la Sesión (Logros al 06/02/2026):
+### Retomando la Sesión (Logros al 09/02/2026):
 1.  **Mejoras Críticas en PWA**:
     *   **Notificaciones**: Campanita funcional con contador real de mensajes (`inbox`) y animación de pulso. Se vinculó la carga de puntos del admin con el envío automático de notificación al inbox.
     *   **Edición de Perfil**: El usuario ahora puede editar todos sus datos (Nombre, Teléfono, Provincia, Localidad, CP, Dirección completa) desde la App.

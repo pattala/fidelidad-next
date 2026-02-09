@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Gift, CheckCircle } from 'lucide-react';
 import { PrizeService } from '../../../services/prizeService';
 import type { Prize } from '../../../types';
-import { collection, addDoc, updateDoc, doc, increment, arrayUnion, query, where, orderBy, getDocs, writeBatch } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc, increment, arrayUnion, query, where, orderBy, getDocs, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import { NotificationService } from '../../../services/notificationService';
 import { TimeService } from '../../../services/timeService';
@@ -118,6 +118,23 @@ export const RedemptionModal = ({ client, onClose, onRedeemSuccess }: Redemption
                 type: 'debit',
                 prizeId: selectedPrize.id,
                 redeemedValue: selectedPrize.cashValue || 0
+            });
+
+            // 2b. Global Transaction for Stats
+            const globalTransRef = doc(collection(db, 'transactions'));
+            batch.set(globalTransRef, {
+                uid: cleanClientId,
+                clientName: client.name,
+                socioNumber: client.socioNumber || client.numeroSocio || 'N/A',
+                points: -pointsNeeded,
+                amount: 0,
+                redeemedValue: selectedPrize.cashValue || 0,
+                type: 'debit',
+                reason: 'redemption',
+                concept: `Canje: ${selectedPrize.name}`,
+                prizeId: selectedPrize.id,
+                date: now,
+                createdAt: serverTimestamp()
             });
 
             // 3. User Updates (Global Balance & Arrays)

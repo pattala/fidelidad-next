@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { X, Calendar, ArrowUpRight, ArrowDownLeft, Clock, History, AlertTriangle, TrendingUp, Trash2, DollarSign, Check } from 'lucide-react';
-import { collection, query, orderBy, getDocs, limit, where, doc, writeBatch, increment, getDoc } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, limit, where, doc, writeBatch, increment, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import toast from 'react-hot-toast';
 
@@ -192,6 +192,21 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
                 puntos: increment(adjustment)
             });
 
+            // --- ESCRITURA GLOBAL PARA ESTADÍSTICAS ---
+            const globalTransRef = doc(collection(db, 'transactions'));
+            batch.set(globalTransRef, {
+                uid: client.id,
+                clientName: currentClient.name,
+                socioNumber: currentClient.socioNumber || currentClient.numeroSocio || 'N/A',
+                points: adjustment,
+                amount: item.type === 'credit' ? -(item.moneySpent || 0) : 0,
+                type: 'adjustment',
+                reason: 'deletion',
+                concept: `Eliminación: ${item.concept}`,
+                date: TimeService.now(),
+                createdAt: serverTimestamp()
+            });
+
             await batch.commit();
 
             toast.success('Movimiento eliminado y saldo ajustado.');
@@ -226,6 +241,21 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
                 accumulated_balance: 0,
                 historialPuntos: [],
                 historialCanjes: []
+            });
+
+            // --- ESCRITURA GLOBAL PARA ESTADÍSTICAS (RESETEO) ---
+            const globalResetRef = doc(collection(db, 'transactions'));
+            batch.set(globalResetRef, {
+                uid: client.id,
+                clientName: currentClient.name,
+                socioNumber: currentClient.socioNumber || currentClient.numeroSocio || 'N/A',
+                points: -currentClient.points,
+                amount: 0,
+                type: 'adjustment',
+                reason: 'reset_all',
+                concept: 'RESETEO TOTAL DE HISTORIAL',
+                date: TimeService.now(),
+                createdAt: serverTimestamp()
             });
 
             await batch.commit();

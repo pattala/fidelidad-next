@@ -309,6 +309,21 @@ export default async function handler(req, res) {
                 balanceAfter: newPoints
             });
 
+            // --- ESCRITURA GLOBAL PARA ESTADÍSTICAS ---
+            const globalTransRef = db.collection('transactions').doc();
+            tx.set(globalTransRef, {
+                uid: targetUid,
+                clientName: data.name || data.nombre || 'Sin nombre',
+                socioNumber: data.socioNumber || data.numeroSocio || 'N/A',
+                points: points,
+                amount: req.body?.moneySpent || (reason === 'external_integration' && finalAmount ? Number(finalAmount) : 0),
+                type: 'credit',
+                reason: reason || 'manual',
+                concept: concept || (reason === 'welcome_signup' ? 'Puntos de Bienvenida' : (reason === 'profile_address' ? 'Premio por completar dirección' : 'Asignación automática')),
+                date: recordDate,
+                createdAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+
             // Opcional: Crear mensaje en Inbox
             if (reason === 'welcome_signup' || reason === 'external_integration') {
                 const inboxRef = clientRef.collection('inbox').doc();

@@ -7,7 +7,7 @@ import {
     FileDown, MessageCircle, Edit
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { collection, addDoc, getDocs, query, orderBy, doc, deleteDoc, updateDoc, increment, runTransaction, arrayUnion, where, setDoc, collectionGroup, onSnapshot } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, orderBy, doc, deleteDoc, updateDoc, increment, runTransaction, arrayUnion, where, setDoc, collectionGroup, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import { ConfigService, DEFAULT_TEMPLATES } from '../../../services/configService';
 import { NotificationService } from '../../../services/notificationService';
@@ -541,6 +541,21 @@ export const ClientsPage = () => {
                     type: 'credit',
                     expiresAt: expiresAt,
                     remainingPoints: finalPoints
+                });
+
+                // --- ESCRITURA GLOBAL PARA ESTADÍSTICAS ---
+                const globalTransRef = collection(db, 'transactions');
+                await addDoc(globalTransRef, {
+                    uid: selectedClientForPoints.id,
+                    clientName: selectedClientForPoints.name,
+                    socioNumber: selectedClientForPoints.socioNumber || 'N/A',
+                    points: finalPoints,
+                    amount: pointsData.isPesos ? inputVal : 0,
+                    type: 'credit',
+                    reason: 'manual_admin',
+                    concept: pointsData.concept,
+                    date: selectedDate,
+                    createdAt: serverTimestamp()
                 });
 
                 await updateDoc(doc(db, 'users', selectedClientForPoints.id), {

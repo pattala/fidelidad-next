@@ -12,9 +12,11 @@ export const DashboardPage = () => {
     const [stats, setStats] = useState({
         usersCount: 0,
         totalPoints: 0,
+        todayPointsEmitted: 0,
         redeemedPoints: 0,
         redeemedMoney: 0,
         totalMoneyGenerated: 0,
+        todayMoneyGenerated: 0,
         circulatingValue: 0,
         budgetLimit: 0,
         isBudgetMode: false,
@@ -89,9 +91,22 @@ export const DashboardPage = () => {
             const qGenerated = query(collectionGroup(db, 'points_history'), where('type', '==', 'credit'));
             const snapGenerated = await getDocs(qGenerated);
             let totalMoneyGenerated = 0;
+            let todayMoneyGenerated = 0;
+            let todayPointsEmitted = 0;
+
+            const startOfToday = new Date(TimeService.now());
+            startOfToday.setHours(0, 0, 0, 0);
+
             snapGenerated.forEach(doc => {
                 const data = doc.data();
-                totalMoneyGenerated += (data.moneySpent || 0);
+                const money = (data.moneySpent || 0);
+                totalMoneyGenerated += money;
+
+                const date = data.date?.toDate ? data.date.toDate() : new Date();
+                if (date >= startOfToday) {
+                    todayMoneyGenerated += money;
+                    todayPointsEmitted += (data.amount || 0);
+                }
             });
 
             const retrievedConfig = await ConfigService.get();
@@ -133,9 +148,11 @@ export const DashboardPage = () => {
             setStats({
                 usersCount: clientCount,
                 totalPoints: points,
+                todayPointsEmitted,
                 redeemedPoints,
                 redeemedMoney,
                 totalMoneyGenerated,
+                todayMoneyGenerated,
                 circulatingValue: points * finalPointValue,
                 budgetLimit: remainingBudget,
                 isBudgetMode: method === 'budget',
@@ -227,9 +244,14 @@ export const DashboardPage = () => {
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between transition hover:shadow-md">
                     <div>
                         <h3 className="text-gray-500 text-sm font-medium mb-1">Puntos en Circulación</h3>
-                        <p className="text-3xl font-bold text-indigo-600">
-                            {loading ? '...' : stats.totalPoints.toLocaleString()}
-                        </p>
+                        <div className="flex flex-col">
+                            <p className="text-3xl font-bold text-indigo-600">
+                                {loading ? '...' : stats.totalPoints.toLocaleString()}
+                            </p>
+                            <span className="text-[10px] font-bold text-indigo-400 mt-1 uppercase tracking-tight">
+                                Hoy: +{stats.todayPointsEmitted.toLocaleString()}
+                            </span>
+                        </div>
                     </div>
                     <div className="bg-indigo-50 p-3 rounded-xl text-indigo-600">
                         <TrendingUp size={24} />
@@ -304,9 +326,14 @@ export const DashboardPage = () => {
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between transition hover:shadow-md">
                     <div>
                         <h3 className="text-gray-500 text-sm font-medium mb-1">Ventas Totales</h3>
-                        <p className="text-3xl font-bold text-green-600">
-                            {loading ? '...' : `$${stats.totalMoneyGenerated.toLocaleString()}`}
-                        </p>
+                        <div className="flex flex-col">
+                            <p className="text-3xl font-bold text-green-600">
+                                {loading ? '...' : `$${stats.totalMoneyGenerated.toLocaleString()}`}
+                            </p>
+                            <span className="text-[10px] font-bold text-green-500 mt-1 uppercase tracking-tight">
+                                Hoy: ${stats.todayMoneyGenerated.toLocaleString()}
+                            </span>
+                        </div>
                     </div>
                     <div className="bg-green-50 p-3 rounded-xl text-green-600">
                         <TrendingUp size={24} />

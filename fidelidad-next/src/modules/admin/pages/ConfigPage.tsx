@@ -935,18 +935,29 @@ export const ConfigPage = () => {
                                                     }
                                                 };
 
-                                                // A. Resetear usuarios (Puntos a 0)
+                                                // A. Resetear usuarios (Balance a 0)
                                                 for (const userDoc of usersSnap.docs) {
-                                                    await addToBatch((b) => b.update(userDoc.ref, { points: 0, accumulated_balance: 0 }));
+                                                    await addToBatch((b) => b.update(userDoc.ref, {
+                                                        points: 0,
+                                                        puntos: 0,
+                                                        accumulated_balance: 0,
+                                                        redeemedPoints: 0,
+                                                        redeemedValue: 0
+                                                    }));
                                                 }
 
-                                                // B. Borrar TODO el historial (Incluyendo huérfanos)
-                                                // Usamos collectionGroup para encontrar todas las subcolecciones 'points_history'
+                                                // B. Borrar TODO el historial (Subcolecciones)
                                                 const historyQuery = query(collectionGroup(db, 'points_history'));
                                                 const historySnap = await getDocs(historyQuery);
 
                                                 for (const hDoc of historySnap.docs) {
                                                     await addToBatch((b) => b.delete(hDoc.ref));
+                                                }
+
+                                                // C. Borrar Colección Global de Transacciones (Métricas)
+                                                const transSnap = await getDocs(collection(db, 'transactions'));
+                                                for (const tDoc of transSnap.docs) {
+                                                    await addToBatch((b) => b.delete(tDoc.ref));
                                                 }
 
                                                 // Commit final si quedó algo pendiente

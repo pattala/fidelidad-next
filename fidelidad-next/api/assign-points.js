@@ -47,17 +47,33 @@ export default async function handler(req, res) {
 
             // 1. Buscar por Socio Número (prefijo)
             const socioSnap = await db.collection('users')
+                .where('socioNumber', '>=', q)
+                .where('socioNumber', '<=', q + '\uf8ff')
+                .limit(5)
+                .get();
+
+            const numeroSocioSnap = await db.collection('users')
+                .where('numeroSocio', '>=', q)
+                .where('numeroSocio', '<=', q + '\uf8ff')
+                .limit(5)
+                .get();
+
+            const legacySocioSnap = await db.collection('users')
                 .where('socio_number', '>=', q)
                 .where('socio_number', '<=', q + '\uf8ff')
                 .limit(5)
                 .get();
-            socioSnap.docs.forEach(d => results.set(d.id, {
-                id: d.id,
-                name: d.data().name || d.data().nombre,
-                dni: d.data().dni,
-                socio_number: d.data().socio_number,
-                phone: d.data().phone || d.data().telefono
-            }));
+
+            [...socioSnap.docs, ...numeroSocioSnap.docs, ...legacySocioSnap.docs].forEach(d => {
+                const data = d.data();
+                results.set(d.id, {
+                    id: d.id,
+                    name: data.name || data.nombre,
+                    dni: data.dni,
+                    socioNumber: data.socioNumber || data.numeroSocio || data.socio_number,
+                    phone: data.phone || data.telefono
+                });
+            });
 
             // 2. Buscar por DNI (prefijo)
             if (results.size < 5) {
@@ -67,12 +83,13 @@ export default async function handler(req, res) {
                     .limit(5)
                     .get();
                 dniSnap.docs.forEach(d => {
+                    const data = d.data();
                     if (!results.has(d.id)) results.set(d.id, {
                         id: d.id,
-                        name: d.data().name || d.data().nombre,
-                        dni: d.data().dni,
-                        socio_number: d.data().socio_number,
-                        phone: d.data().phone || d.data().telefono
+                        name: data.name || data.nombre,
+                        dni: data.dni,
+                        socioNumber: data.socioNumber || data.numeroSocio || data.socio_number,
+                        phone: data.phone || data.telefono
                     });
                 });
             }
@@ -91,12 +108,13 @@ export default async function handler(req, res) {
                         .limit(5)
                         .get();
                     nameSnap.docs.forEach(d => {
+                        const data = d.data();
                         if (results.size < 10 && !results.has(d.id)) results.set(d.id, {
                             id: d.id,
-                            name: d.data().name || d.data().nombre,
-                            dni: d.data().dni,
-                            socio_number: d.data().socio_number,
-                            phone: d.data().phone || d.data().telefono
+                            name: data.name || data.nombre,
+                            dni: data.dni,
+                            socioNumber: data.socioNumber || data.numeroSocio || data.socio_number,
+                            phone: data.phone || data.telefono
                         });
                     });
                 }

@@ -217,13 +217,13 @@ export const ClientsPage = () => {
 
         if (!safeDni || safeDni.length < 6) {
             toast.error('El DNI es obligatorio y debe tener al menos 6 caracteres (se usará como contraseña)');
-            setLoading(false);
+            setActionLoading(false);
             return;
         }
 
         if (!formData.phone) {
             toast.error('El teléfono es obligatorio');
-            setLoading(false);
+            setActionLoading(false);
             return;
         }
 
@@ -238,7 +238,7 @@ export const ClientsPage = () => {
                 const duplicateDni = snapDni.docs.find(d => d.id !== editingId);
                 if (duplicateDni) {
                     toast.error(`Ya existe un cliente con el DNI ${safeDni}`);
-                    setLoading(false);
+                    setActionLoading(false);
                     return;
                 }
             }
@@ -250,7 +250,7 @@ export const ClientsPage = () => {
                 const duplicateEmail = snapEmail.docs.find(d => d.id !== editingId);
                 if (duplicateEmail) {
                     toast.error(`Ya existe un cliente con el email ${safeEmail}`);
-                    setLoading(false);
+                    setActionLoading(false);
                     return;
                 }
             }
@@ -345,7 +345,7 @@ export const ClientsPage = () => {
                     } else if (res.status === 400 || res.status === 401) {
                         const err = await res.json();
                         toast.error(err.error || "Error de validación");
-                        setLoading(false);
+                        setActionLoading(false);
                         return;
                     }
                 } catch (e) {
@@ -370,7 +370,7 @@ export const ClientsPage = () => {
                     } catch (errLocal) {
                         console.error("Error local:", errLocal);
                         toast.error("Error al guardar cliente");
-                        setLoading(false);
+                        setActionLoading(false);
                         return;
                     }
                 }
@@ -515,7 +515,7 @@ export const ClientsPage = () => {
 
             if (finalPoints <= 0 && !pointsData.isPesos) {
                 toast.error("La cantidad de puntos debe ser mayor a 0");
-                setLoading(false);
+                setActionLoading(false);
                 return;
             }
 
@@ -573,12 +573,16 @@ export const ClientsPage = () => {
 
                 if (notifyWhatsapp && selectedClientForPoints.phone) {
                     const pointsTemplate = currentConfig?.messaging?.templates?.pointsAdded || DEFAULT_TEMPLATES.pointsAdded;
+                    const cUser = selectedClientForPoints;
+                    const cName = cUser.name || 'Cliente';
+                    const sPoints = cUser.points || 0;
+
                     const msg = pointsTemplate
-                        .replace(/{nombre}/g, selectedClientForPoints.name.split(' ')[0])
-                        .replace(/{nombre_completo}/g, selectedClientForPoints.name)
+                        .replace(/{nombre}/g, cName.split(' ')[0])
+                        .replace(/{nombre_completo}/g, cName)
                         .replace(/{puntos}/g, finalPoints.toString())
-                        .replace(/{saldo}/g, (selectedClientForPoints.points + finalPoints).toString())
-                        .replace(/{total_puntos}/g, (selectedClientForPoints.points + finalPoints).toString())
+                        .replace(/{saldo}/g, (sPoints + finalPoints).toString())
+                        .replace(/{total_puntos}/g, (sPoints + finalPoints).toString())
                         .replace(/{vence}/g, expiresAt.toLocaleDateString())
                         .replace(/{concepto}/g, pointsData.concept);
 
@@ -593,12 +597,15 @@ export const ClientsPage = () => {
                 // NEW: Send Inbox Notification for the PWA Bell
                 try {
                     const pointsTemplate = currentConfig?.messaging?.templates?.pointsAdded || DEFAULT_TEMPLATES.pointsAdded;
+                    const cName = selectedClientForPoints.name || 'Cliente';
+                    const currentClientPoints = selectedClientForPoints.points || 0;
+
                     const msg = pointsTemplate
-                        .replace(/{nombre}/g, selectedClientForPoints.name.split(' ')[0])
-                        .replace(/{nombre_completo}/g, selectedClientForPoints.name)
+                        .replace(/{nombre}/g, cName.split(' ')[0])
+                        .replace(/{nombre_completo}/g, cName)
                         .replace(/{puntos}/g, finalPoints.toString())
-                        .replace(/{saldo}/g, (selectedClientForPoints.points + finalPoints).toString())
-                        .replace(/{total_puntos}/g, (selectedClientForPoints.points + finalPoints).toString())
+                        .replace(/{saldo}/g, (currentClientPoints + finalPoints).toString())
+                        .replace(/{total_puntos}/g, (currentClientPoints + finalPoints).toString())
                         .replace(/{vence}/g, expiresAt.toLocaleDateString())
                         .replace(/{concepto}/g, pointsData.concept);
 
@@ -614,7 +621,8 @@ export const ClientsPage = () => {
             }
 
             if (pointsData.isPesos && newAccumulatedBalance !== undefined) {
-                await updateDoc(doc(db, 'users', selectedClientForPoints.id), {
+                const cId = selectedClientForPoints.id;
+                await updateDoc(doc(db, 'users', cId), {
                     accumulated_balance: newAccumulatedBalance
                 });
             }
@@ -625,8 +633,8 @@ export const ClientsPage = () => {
             fetchData();
         } catch (error) {
             console.error("Error al asignar puntos:", error);
-            toast.error("Error al asignar puntos");
-            setLoading(false);
+            toast.error("Error al asignar puntos. Verifique los datos o intente más tarde.");
+            setActionLoading(false);
         }
     };
 

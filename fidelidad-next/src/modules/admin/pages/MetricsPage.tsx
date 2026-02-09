@@ -123,12 +123,26 @@ export const MetricsPage = () => {
                     }
                 });
 
+                // Calcular Valor Real del Punto basado en premios ACTIVOS (Reality Check)
+                const qPrizes = query(collection(db, 'prizes'), where('active', '==', true));
+                const snapPrizes = await getDocs(qPrizes);
+                let totalPrizeRatio = 0;
+                let validPrizesCount = 0;
+                snapPrizes.forEach(doc => {
+                    const p = doc.data();
+                    if (p.cashValue && p.pointsRequired > 0) {
+                        totalPrizeRatio += (p.cashValue / p.pointsRequired);
+                        validPrizesCount++;
+                    }
+                });
+                const realPointValue = validPrizesCount > 0 ? (totalPrizeRatio / validPrizesCount) : (appConfig.pointValue || 10);
+
                 setHeatmapData(heatmap);
                 setAdvancedStats({
                     averageTicket: creditCount > 0 ? totalAmount / creditCount : 0,
                     frequency: activeUids.size > 0 ? creditCount / activeUids.size : 0,
                     activeCustomers: activeUids.size,
-                    potentialRevenue: tEmitted * (appConfig.pointValue || 10) // Valor deuda técnica basado en emitidos
+                    potentialRevenue: tEmitted * realPointValue // Inversión en puntos EMITIDOS en el PERIODO
                 });
 
                 const qFullUsers = query(collection(db, 'users'), where('createdAt', '>=', startDate));
@@ -284,32 +298,34 @@ export const MetricsPage = () => {
 
                     {/* KPIs AVANZADOS */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 transition hover:shadow-md">
                             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Ticket Promedio</p>
                             <div className="flex items-baseline gap-2">
                                 <span className="text-2xl font-black text-gray-800">${Math.round(advancedStats.averageTicket).toLocaleString('es-AR')}</span>
                                 <span className="text-xs text-green-500 font-bold">por compra</span>
                             </div>
                         </div>
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 transition hover:shadow-md">
                             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Frecuencia</p>
                             <div className="flex items-baseline gap-2">
                                 <span className="text-2xl font-black text-gray-800">{advancedStats.frequency.toFixed(1)}</span>
                                 <span className="text-xs text-blue-500 font-bold">visitas/periodo</span>
                             </div>
                         </div>
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Clientes Activos</p>
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 transition hover:shadow-md">
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Tasa de Canje</p>
                             <div className="flex items-baseline gap-2">
-                                <span className="text-2xl font-black text-gray-800">{advancedStats.activeCustomers}</span>
-                                <span className="text-xs text-purple-500 font-bold">en total</span>
+                                <span className="text-2xl font-black text-gray-800">
+                                    {totalStats.emitted > 0 ? Math.round((totalStats.redeemed / totalStats.emitted) * 100) : 0}%
+                                </span>
+                                <span className="text-xs text-purple-500 font-bold">interés (%)</span>
                             </div>
                         </div>
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Deuda en Puntos</p>
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 transition hover:shadow-md">
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1" title="Costo estimado de los puntos otorgados en este periodo">Inversión en Puntos (Coste)</p>
                             <div className="flex items-baseline gap-2">
-                                <span className="text-2xl font-black text-red-600">${Math.round(advancedStats.potentialRevenue).toLocaleString('es-AR')}</span>
-                                <span title="Valor estimado si todos canjean sus puntos" className="text-[10px] text-gray-400 cursor-help">ℹ️</span>
+                                <span className="text-2xl font-black text-red-500">${Math.round(advancedStats.potentialRevenue).toLocaleString('es-AR')}</span>
+                                <span title="Basado en el valor real de tus premios activos. Este es el coste de lo que emitiste en las fechas seleccionadas." className="text-[10px] text-gray-400 cursor-help">ℹ️</span>
                             </div>
                         </div>
                     </div>

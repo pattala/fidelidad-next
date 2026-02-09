@@ -11,7 +11,7 @@ import toast from 'react-hot-toast';
 import { ConfigService } from '../../../services/configService';
 
 export const MetricsPage = () => {
-    const [timeRange, setTimeRange] = useState<'30_days' | '6_months' | 'year' | 'custom'>('30_days');
+    const [timeRange, setTimeRange] = useState<'today' | '30_days' | '6_months' | 'year' | 'total' | 'custom'>('30_days');
     const [customDates, setCustomDates] = useState({
         start: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0],
         end: new Date().toISOString().split('T')[0]
@@ -57,23 +57,33 @@ export const MetricsPage = () => {
                 if (timeRange === '30_days') startDate.setDate(now.getDate() - 30);
                 else if (timeRange === '6_months') startDate.setMonth(now.getMonth() - 6);
                 else if (timeRange === 'year') startDate.setFullYear(now.getFullYear() - 1);
-                else if (timeRange === 'custom') {
+                if (timeRange === 'today') {
+                    startDate.setHours(0, 0, 0, 0);
+                    endDate.setHours(23, 59, 59, 999);
+                } else if (timeRange === '30_days') {
+                    startDate.setDate(now.getDate() - 30);
+                } else if (timeRange === '6_months') {
+                    startDate.setMonth(now.getMonth() - 6);
+                } else if (timeRange === 'year') {
+                    startDate.setFullYear(now.getFullYear() - 1);
+                } else if (timeRange === 'custom') {
                     startDate = new Date(customDates.start + 'T00:00:00');
                     endDate = new Date(customDates.end + 'T23:59:59');
+                } else if (timeRange === 'total') {
+                    startDate = new Date(2020, 0, 1);
                 }
 
-                // Calcular Periodo Anterior para MoM
+                const isTotal = timeRange === 'total';
                 const duration = endDate.getTime() - startDate.getTime();
                 const prevEndDate = new Date(startDate.getTime() - 1000);
                 const prevStartDate = new Date(prevEndDate.getTime() - duration);
 
-                const fetchRangeData = async (start: Date, end: Date) => {
-                    const q = query(
-                        collection(db, 'transactions'),
-                        where('date', '>=', start),
-                        where('date', '<=', end),
-                        orderBy('date', 'asc')
-                    );
+                const fetchRangeData = async (start: Date, end: Date, isTotalMode = false) => {
+                    const constraints: any[] = [orderBy('date', 'asc')];
+                    if (!isTotalMode) {
+                        constraints.push(where('date', '>=', start), where('date', '<=', end));
+                    }
+                    const q = query(collection(db, 'transactions'), ...constraints);
                     const snap = await getDocs(q);
                     return snap.docs.map(d => {
                         const data = d.data();
@@ -81,15 +91,15 @@ export const MetricsPage = () => {
                             ...data,
                             id: d.id,
                             date: data.date?.toDate ? data.date.toDate() : new Date(),
-                            amount: data.points || data.amount || 0,
-                            moneySpent: data.amount || 0
+                            points: data.points || 0,
+                            moneySpent: data.moneySpent || (data.type === 'credit' ? data.amount : 0) || 0
                         };
                     });
                 };
 
                 const [currentMovements, prevMovements] = await Promise.all([
-                    fetchRangeData(startDate, endDate),
-                    fetchRangeData(prevStartDate, prevEndDate)
+                    fetchRangeData(startDate, endDate, isTotal),
+                    isTotal ? Promise.resolve([]) : fetchRangeData(prevStartDate, prevEndDate)
                 ]);
 
                 setMovementsData(currentMovements);
@@ -103,18 +113,18 @@ export const MetricsPage = () => {
                     const heatmap = Array(7).fill(0).map(() => Array(24).fill(0));
 
                     movements.forEach((mov: any) => {
-                        const key = (timeRange === '30_days' || timeRange === 'custom')
+                        const key = (timeRange === 'today' || timeRange === '30_days' || timeRange === 'custom')
                             ? mov.date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
                             : mov.date.toLocaleDateString('es-AR', { month: 'short', year: '2-digit' });
 
                         const current = grouped.get(key) || { emitted: 0, redeemed: 0, expired: 0, money: 0 };
 
                         if (mov.type === 'credit') {
-                            const pts = Number(mov.points || mov.amount || 0);
+                            const pts = Number(mov.points || 0);
                             current.emitted += pts;
                             tEmitted += pts;
 
-                            const money = Number(mov.amount || 0);
+                            const money = Number(mov.moneySpent || 0);
                             if (money > 0) {
                                 totalMoneySpent += money;
                                 creditCount++;
@@ -124,7 +134,7 @@ export const MetricsPage = () => {
                             activeUids.add(mov.uid || mov.userId);
                             heatmap[mov.date.getDay()][mov.date.getHours()]++;
                         } else {
-                            const pts = Math.abs(Number(mov.points || mov.amount || 0));
+                            const pts = Math.abs(Number(mov.points || 0));
                             const concept = (mov.concept || '').toLowerCase();
                             const isEx = concept.includes('vencimiento') || concept.includes('vencidos') || concept.includes('expirados');
 
@@ -228,14 +238,24 @@ export const MetricsPage = () => {
                     </h1>
                     <p className="text-gray-500 mt-1">Analiza el rendimiento de tu programa de fidelidad.</p>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex flex-wrap items-center gap-4">
                     <button onClick={handleCSVExport} className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-100 font-bold hover:bg-emerald-100 transition shadow-sm">
-                        <Download size={18} /> Exportar CSV
+                        <Download size={18} /> Exportar
                     </button>
                     <div className="flex bg-white rounded-xl shadow-sm border border-gray-200 p-1">
-                        {['30_days', '6_months', 'year'].map((range) => (
-                            <button key={range} onClick={() => setTimeRange(range as any)} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${timeRange === range ? 'bg-purple-100 text-purple-700' : 'text-gray-500 hover:bg-gray-50'}`}>
-                                {range === '30_days' ? '30 Días' : range === '6_months' ? '6 Meses' : 'Año'}
+                        {[
+                            { id: 'today', label: 'Hoy' },
+                            { id: '30_days', label: '30 Días' },
+                            { id: '6_months', label: '6 Meses' },
+                            { id: 'total', label: 'Acumulado' },
+                            { id: 'custom', label: 'Personalizado' }
+                        ].map((range) => (
+                            <button
+                                key={range.id}
+                                onClick={() => setTimeRange(range.id as any)}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${timeRange === range.id ? 'bg-purple-100 text-purple-700' : 'text-gray-500 hover:bg-gray-50'}`}
+                            >
+                                {range.label}
                             </button>
                         ))}
                     </div>
@@ -328,31 +348,32 @@ export const MetricsPage = () => {
                                     </div>
                                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 transition hover:shadow-md">
                                         <div className="flex justify-between items-start mb-1">
-                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Frecuencia</p>
-                                            <TrendIndicator current={advancedStats.frequency} prev={prevAdvancedStats.frequency} />
+                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Ventas Totales</p>
+                                            <TrendIndicator current={advancedStats.creditCount} prev={prevAdvancedStats.creditCount} />
                                         </div>
                                         <div className="flex items-baseline gap-2">
-                                            <span className="text-2xl font-black text-gray-800">{advancedStats.frequency.toFixed(1)}</span>
+                                            <span className="text-2xl font-black text-gray-800">{advancedStats.creditCount}</span>
                                             <span className="text-xs text-blue-500 font-bold">visitas</span>
                                         </div>
                                     </div>
                                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 transition hover:shadow-md">
-                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Tasa de Canje</p>
+                                        <div className="flex justify-between items-start mb-1">
+                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Clientes Activos</p>
+                                            <TrendIndicator current={advancedStats.activeCustomers} prev={prevAdvancedStats.activeCustomers} />
+                                        </div>
                                         <div className="flex items-baseline gap-2">
-                                            <span className="text-2xl font-black text-gray-800">
-                                                {totalStats.emitted > 0 ? Math.round((totalStats.redeemed / totalStats.emitted) * 100) : 0}%
-                                            </span>
-                                            <span className="text-xs text-purple-500 font-bold">interés</span>
+                                            <span className="text-2xl font-black text-gray-800">{advancedStats.activeCustomers}</span>
+                                            <span className="text-xs text-purple-500 font-bold">socios</span>
                                         </div>
                                     </div>
                                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 transition hover:shadow-md">
                                         <div className="flex justify-between items-start mb-1">
-                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Inversión Puntos</p>
+                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Costo de Emisión</p>
                                             <TrendIndicator current={advancedStats.potentialRevenue} prev={prevAdvancedStats.potentialRevenue} />
                                         </div>
                                         <div className="flex items-baseline gap-2">
                                             <span className="text-2xl font-black text-red-500">${Math.round(advancedStats.potentialRevenue).toLocaleString('es-AR')}</span>
-                                            <span title="Basado en el valor real de tus premios activos." className="text-[10px] text-gray-400 cursor-help">ℹ️</span>
+                                            <span title="Costo teórico basado en el valor real de tus premios activos." className="text-[10px] text-gray-400 cursor-help">ℹ️</span>
                                         </div>
                                     </div>
                                 </>

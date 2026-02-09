@@ -106,7 +106,8 @@ export const DashboardPage = () => {
                 let validPrizesCount = 0;
                 snapPrizes.forEach(doc => {
                     const p = doc.data();
-                    if (p.cashValue && p.pointsRequired > 0) {
+                    // Safeguard: pointsRequired must be at least 1 to be used in average calculation
+                    if (p.cashValue && p.pointsRequired >= 1) {
                         totalRatio += (p.cashValue / p.pointsRequired);
                         validPrizesCount++;
                     }
@@ -115,8 +116,16 @@ export const DashboardPage = () => {
             }
 
             const method = retrievedConfig.pointCalculationMethod || (retrievedConfig.useAutomaticPointValue ? 'average' : 'manual');
-            if (method === 'manual') finalPointValue = retrievedConfig.pointValue || 10;
-            else finalPointValue = averagePrizeValue;
+
+            if (method === 'manual') {
+                finalPointValue = retrievedConfig.pointValue || 10;
+            } else if (method === 'budget') {
+                const totalBudget = retrievedConfig.pointValueBudget || 0;
+                // Si estamos en modo presupuesto, el valor del punto es literalmente Presupuesto / Puntos Totales
+                finalPointValue = points > 0 ? (totalBudget / points) : 0;
+            } else {
+                finalPointValue = averagePrizeValue;
+            }
 
             const totalBudget = retrievedConfig.pointValueBudget || 0;
             const remainingBudget = Math.max(0, totalBudget - redeemedMoney);

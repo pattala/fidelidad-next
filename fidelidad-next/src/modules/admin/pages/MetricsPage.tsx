@@ -33,13 +33,15 @@ export const MetricsPage = () => {
         averageTicket: 0,
         frequency: 0,
         activeCustomers: 0,
-        potentialRevenue: 0
+        potentialRevenue: 0,
+        creditCount: 0
     });
     const [prevAdvancedStats, setPrevAdvancedStats] = useState({
         averageTicket: 0,
         frequency: 0,
         activeCustomers: 0,
-        potentialRevenue: 0
+        potentialRevenue: 0,
+        creditCount: 0
     });
     const [heatmapData, setHeatmapData] = useState<number[][]>(Array(7).fill(0).map(() => Array(24).fill(0)));
 
@@ -170,14 +172,16 @@ export const MetricsPage = () => {
                     averageTicket: currentResults.creditCount > 0 ? currentResults.totalMoneySpent / currentResults.creditCount : 0,
                     frequency: currentResults.activeUids.size > 0 ? currentResults.creditCount / currentResults.activeUids.size : 0,
                     activeCustomers: currentResults.activeUids.size,
-                    potentialRevenue: currentResults.tEmitted * realPV
+                    potentialRevenue: currentResults.tEmitted * realPV,
+                    creditCount: currentResults.creditCount
                 });
 
                 setPrevAdvancedStats({
                     averageTicket: prevResults.creditCount > 0 ? prevResults.totalMoneySpent / prevResults.creditCount : 0,
                     frequency: prevResults.activeUids.size > 0 ? prevResults.creditCount / prevResults.activeUids.size : 0,
                     activeCustomers: prevResults.activeUids.size,
-                    potentialRevenue: prevResults.tEmitted * realPV
+                    potentialRevenue: prevResults.tEmitted * realPV,
+                    creditCount: prevResults.creditCount
                 });
 
                 const qVisitors = query(collection(db, 'users'), orderBy('visitCount', 'desc'), limit(5));

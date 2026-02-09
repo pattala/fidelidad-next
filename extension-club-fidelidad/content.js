@@ -249,13 +249,13 @@ function showFidelidadPanel() {
     searchInput.oninput = (e) => {
         clearTimeout(searchTimeout);
         const q = e.target.value;
-        if (q.length < 3) {
+        if (q.length < 2) {
             resultsDiv.style.display = 'none';
             return;
         }
         resultsDiv.innerHTML = '<div class="fidelidad-result-item" style="text-align:center; color:#888;">Buscando...</div>';
         resultsDiv.style.display = 'block';
-        searchTimeout = setTimeout(() => searchClients(q), 400);
+        searchTimeout = setTimeout(() => searchClients(q), 150);
     };
 
     async function searchClients(q) {
@@ -287,7 +287,7 @@ function showFidelidadPanel() {
             item.innerHTML = `
                 <div style="font-weight: 700; color: #111827; pointer-events: none;">${c.name}</div>
                 <div class="dni" style="font-size: 11px; color: #6b7280; margin-top: 2px; pointer-events: none;">
-                    DNI: ${c.dni || 'S/D'} | Socio: ${c.socio_number || 'N/A'}
+                    DNI: ${c.dni || 'S/D'} | Socio: ${c.socioNumber || 'N/A'}
                 </div>
             `;
             item.onclick = (e) => {

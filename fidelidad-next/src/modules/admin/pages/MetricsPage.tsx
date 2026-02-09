@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { BarChart3, TrendingUp, Users, DollarSign, Award, Sparkles } from 'lucide-react';
-import { collection, query, where, getDocs, collectionGroup, orderBy, limit, documentId } from 'firebase/firestore';
+import { BarChart3, TrendingUp, Users, DollarSign, Award, Sparkles, Download } from 'lucide-react';
+import { collection, query, where, getDocs, orderBy, limit, documentId } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
     BarChart, Bar
 } from 'recharts';
+import toast from 'react-hot-toast';
 
 import { ConfigService } from '../../../services/configService';
 
@@ -19,6 +20,7 @@ export const MetricsPage = () => {
     const [totalStats, setTotalStats] = useState({ emitted: 0, redeemed: 0, expired: 0 });
     const [loading, setLoading] = useState(true);
     const [config, setConfig] = useState<any>(null);
+    const [movementsData, setMovementsData] = useState<any[]>([]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -35,19 +37,26 @@ export const MetricsPage = () => {
                 if (timeRange === '6_months') startDate.setMonth(now.getMonth() - 6);
                 if (timeRange === 'year') startDate.setFullYear(now.getFullYear() - 1);
 
-                // 2. Fetch History (Global) with Collection Group
-                const qHistory = query(
-                    collectionGroup(db, 'points_history'),
+                // 2. Fetch Transactions (Global) - Optimized
+                const qTrans = query(
+                    collection(db, 'transactions'),
                     where('date', '>=', startDate),
                     orderBy('date', 'asc')
                 );
 
-                const snapHistory = await getDocs(qHistory);
-                const movements = snapHistory.docs.map(d => ({
-                    ...d.data(),
-                    date: d.data().date?.toDate ? d.data().date.toDate() : new Date(),
-                    userId: d.ref.parent.parent?.id
-                }));
+                const snapTrans = await getDocs(qTrans);
+                const movements = snapTrans.docs.map(d => {
+                    const data = d.data();
+                    return {
+                        ...data,
+                        id: d.id,
+                        date: data.date?.toDate ? data.date.toDate() : new Date(),
+                        // Legacy mapping for existing chart processing
+                        amount: data.points || data.amount || 0,
+                        moneySpent: data.amount || 0
+                    };
+                });
+                setMovementsData(movements);
 
                 // 3. Process Data for Charts and Rankings
                 const groupedData = new Map<string, { emitted: number, redeemed: number, expired: number, money: number }>();
@@ -61,38 +70,23 @@ export const MetricsPage = () => {
                     const current = groupedData.get(key) || { emitted: 0, redeemed: 0, expired: 0, money: 0 };
 
                     if (mov.type === 'credit') {
-                        current.emitted += (mov.amount || 0);
-                        if (mov.userId) {
-                            let pesoValue = 0;
-                            if (mov.moneySpent !== undefined) {
-                                pesoValue = mov.moneySpent;
-                            } else {
-                                const concept = (mov.concept || '').toLowerCase();
-                                const isGift = concept.includes('regalo') || concept.includes('bienvenida') || concept.includes('bono');
-                                if (!isGift && mov.amount > 0) {
-                                    const ratio = config?.pointsPerPeso || 1;
-                                    const safeRatio = ratio > 0 ? ratio : 1;
-                                    pesoValue = Math.round((mov.amount * 100) / safeRatio);
-                                }
-                            }
+                        current.emitted += Number(mov.points || mov.amount || 0);
+                        const userId = mov.uid || mov.userId;
+                        if (userId) {
+                            const pesoValue = Number(mov.amount || 0);
                             if (pesoValue > 0) {
-                                const currentTotal = spendersMap.get(mov.userId) || 0;
-                                spendersMap.set(mov.userId, currentTotal + pesoValue);
+                                const currentTotal = spendersMap.get(userId) || 0;
+                                spendersMap.set(userId, currentTotal + pesoValue);
                             }
                         }
-                    } else if (mov.type === 'debit') {
+                    } else if (mov.type === 'debit' || mov.type === 'adjustment') {
                         const concept = (mov.concept || '').toLowerCase();
-                        // Fix: Check for known expiration concepts
-                        const isExpiration =
-                            mov.isExpirationAdjustment === true ||
-                            concept.includes('vencimiento') ||
-                            concept.includes('vencidos') ||
-                            concept.includes('expirados');
+                        const isExpiration = concept.includes('vencimiento') || concept.includes('vencidos') || concept.includes('expirados');
 
                         if (isExpiration) {
-                            current.expired += Math.abs(mov.amount || 0);
+                            current.expired += Math.abs(Number(mov.points || mov.amount || 0));
                         } else {
-                            current.redeemed += Math.abs(mov.amount || 0);
+                            current.redeemed += Math.abs(Number(mov.points || mov.amount || 0));
                             current.money += (mov.redeemedValue || 0);
                         }
                     }
@@ -107,7 +101,6 @@ export const MetricsPage = () => {
                     tExpired += d.expired;
                 });
                 setTotalStats({ emitted: tEmitted, redeemed: tRedeemed, expired: tExpired });
-
                 setChartData(Array.from(groupedData.entries()).map(([name, data]) => ({ name, ...data })));
 
                 // 4. Fetch Users and Sources
@@ -138,13 +131,13 @@ export const MetricsPage = () => {
                 // 5. Process Top Spenders Names
                 const sortedSpendersIds = Array.from(spendersMap.entries())
                     .sort(([, a], [, b]) => b - a)
-                    .slice(0, 5);
+                    .slice(0, 10);
 
                 const spendersData = await Promise.all(sortedSpendersIds.map(async ([uid, total]) => {
                     const existing = snapUsers.docs.find(d => d.id === uid);
                     if (existing) {
                         const uData = existing.data();
-                        return { id: uid, name: uData.name, dni: uData.dni, socioNumber: uData.socioNumber, total };
+                        return { id: uid, name: uData.name || uData.nombre, dni: uData.dni, socioNumber: uData.socioNumber || uData.numeroSocio, total };
                     }
                     try {
                         const qUser = query(collection(db, 'users'), where(documentId(), '==', uid));
@@ -160,7 +153,7 @@ export const MetricsPage = () => {
                             };
                         }
                     } catch (e) { }
-                    return { id: uid, name: 'Socio sin N° asignado', total };
+                    return { id: uid, name: 'Socio #' + uid.substring(0, 5), total };
                 }));
                 setTopSpenders(spendersData);
 
@@ -180,6 +173,7 @@ export const MetricsPage = () => {
 
             } catch (error) {
                 console.error("Error metrics:", error);
+                toast.error("Error al cargar las métricas");
             } finally {
                 setLoading(false);
             }
@@ -187,6 +181,35 @@ export const MetricsPage = () => {
 
         fetchData();
     }, [timeRange]);
+
+    const handleCSVExport = () => {
+        if (movementsData.length === 0) {
+            toast.error("No hay datos para exportar en este periodo.");
+            return;
+        }
+        const headers = ["Fecha", "Cliente", "Socio #", "Tipo", "Concepto", "Puntos", "Monto $"];
+        const rows = movementsData.map(m => [
+            m.date.toLocaleString(),
+            m.clientName || 'N/A',
+            m.socioNumber || 'N/A',
+            m.type,
+            m.concept || '',
+            m.points || m.amount || 0,
+            m.amount || 0
+        ]);
+
+        const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `transacciones_${timeRange}_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast.success("CSV exportado correctamente");
+    };
 
     if (loading) {
         return <div className="p-10 text-center text-gray-400">Cargando métricas...</div>;
@@ -203,17 +226,26 @@ export const MetricsPage = () => {
                     <p className="text-gray-500 mt-1">Analiza el rendimiento de tu programa de fidelidad.</p>
                 </div>
 
-                {/* Time Filter */}
-                <div className="flex bg-white rounded-xl shadow-sm border border-gray-200 p-1">
-                    {['30_days', '6_months', 'year'].map((range) => (
-                        <button
-                            key={range}
-                            onClick={() => setTimeRange(range as any)}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${timeRange === range ? 'bg-purple-100 text-purple-700' : 'text-gray-500 hover:bg-gray-50'}`}
-                        >
-                            {range === '30_days' ? '30 Días' : range === '6_months' ? '6 Meses' : 'Año'}
-                        </button>
-                    ))}
+                {/* Time Filter & Export */}
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={handleCSVExport}
+                        className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-100 font-bold hover:bg-emerald-100 transition shadow-sm"
+                    >
+                        <Download size={18} /> Exportar CSV
+                    </button>
+
+                    <div className="flex bg-white rounded-xl shadow-sm border border-gray-200 p-1">
+                        {['30_days', '6_months', 'year'].map((range) => (
+                            <button
+                                key={range}
+                                onClick={() => setTimeRange(range as any)}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${timeRange === range ? 'bg-purple-100 text-purple-700' : 'text-gray-500 hover:bg-gray-50'}`}
+                            >
+                                {range === '30_days' ? '30 Días' : range === '6_months' ? '6 Meses' : 'Año'}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 
@@ -344,7 +376,7 @@ export const MetricsPage = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
-                                {topUsers.map((user, i) => (
+                                {topUsers.map((user: any, i: number) => (
                                     <tr key={user.id} className="hover:bg-purple-50/30 transition">
                                         <td className="p-4 pl-6 font-medium text-gray-700 flex items-center gap-3">
                                             <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${i < 3 ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-500'}`}>
@@ -391,7 +423,7 @@ export const MetricsPage = () => {
                                         </td>
                                     </tr>
                                 ) : (
-                                    topSpenders.map((user, i) => {
+                                    topSpenders.map((user: any, i: number) => {
                                         return (
                                             <tr key={user.id} className="hover:bg-green-50/30 transition">
                                                 <td className="p-4 pl-6 font-medium text-gray-700 flex items-center gap-3">
@@ -434,7 +466,7 @@ export const MetricsPage = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
-                                {topVisitors.map((user, i) => (
+                                {topVisitors.map((user: any, i: number) => (
                                     <tr key={user.id} className="hover:bg-orange-50/30 transition">
                                         <td className="p-4 pl-6 font-medium text-gray-700 flex items-center gap-3">
                                             <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${i < 3 ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-500'}`}>

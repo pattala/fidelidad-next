@@ -942,9 +942,9 @@ export const ClientsPage = () => {
                                             <Coins size={14} />
                                             {client.points || 0}
                                         </div>
-                                        {client.accumulated_balance > 0 && (
+                                        {(client.accumulated_balance || 0) > 0 && (
                                             <div className="text-[10px] font-bold text-gray-400 mt-1" title="Monto remanente para el próximo punto">
-                                                +${client.accumulated_balance.toLocaleString()} a favor
+                                                +${(client.accumulated_balance || 0).toLocaleString()} a favor
                                             </div>
                                         )}
                                         {client.expirationDetails && client.expirationDetails.filter(e => e.points > 0).length > 0 ? (

@@ -44,81 +44,52 @@ export default async function handler(req, res) {
             if (!q || q.length < 3) return res.status(200).json({ ok: true, clients: [] });
 
             const results = new Map();
+            const searchPromises = [];
 
-            // 1. Buscar por Socio Número (prefijo)
-            const socioSnap = await db.collection('users')
-                .where('socioNumber', '>=', q)
-                .where('socioNumber', '<=', q + '\uf8ff')
-                .limit(5)
-                .get();
+            // Determinar si la búsqueda es puramente numérica
+            const isNumeric = /^\d+$/.test(q);
+            const qNum = isNumeric ? Number(q) : null;
 
-            const numeroSocioSnap = await db.collection('users')
-                .where('numeroSocio', '>=', q)
-                .where('numeroSocio', '<=', q + '\uf8ff')
-                .limit(5)
-                .get();
+            // 1. Búsquedas por Socio (Paralelo)
+            // Búsqueda por prefijo de texto (si existe como texto)
+            searchPromises.push(db.collection('users').where('socioNumber', '>=', q).where('socioNumber', '<=', q + '\uf8ff').limit(5).get());
+            searchPromises.push(db.collection('users').where('numeroSocio', '>=', q).where('numeroSocio', '<=', q + '\uf8ff').limit(5).get());
+            searchPromises.push(db.collection('users').where('socio_number', '>=', q).where('socio_number', '<=', q + '\uf8ff').limit(5).get());
 
-            const legacySocioSnap = await db.collection('users')
-                .where('socio_number', '>=', q)
-                .where('socio_number', '<=', q + '\uf8ff')
-                .limit(5)
-                .get();
-
-            [...socioSnap.docs, ...numeroSocioSnap.docs, ...legacySocioSnap.docs].forEach(d => {
-                const data = d.data();
-                results.set(d.id, {
-                    id: d.id,
-                    name: data.name || data.nombre,
-                    dni: data.dni,
-                    socioNumber: data.socioNumber || data.numeroSocio || data.socio_number,
-                    phone: data.phone || data.telefono
-                });
-            });
-
-            // 2. Buscar por DNI (prefijo)
-            if (results.size < 5) {
-                const dniSnap = await db.collection('users')
-                    .where('dni', '>=', q)
-                    .where('dni', '<=', q + '\uf8ff')
-                    .limit(5)
-                    .get();
-                dniSnap.docs.forEach(d => {
-                    const data = d.data();
-                    if (!results.has(d.id)) results.set(d.id, {
-                        id: d.id,
-                        name: data.name || data.nombre,
-                        dni: data.dni,
-                        socioNumber: data.socioNumber || data.numeroSocio || data.socio_number,
-                        phone: data.phone || data.telefono
-                    });
-                });
+            // 2. Búsqueda por coincidencia exacta de NÚMERO (Importante para tipos numéricos)
+            if (isNumeric) {
+                searchPromises.push(db.collection('users').where('socioNumber', '==', qNum).limit(5).get());
+                searchPromises.push(db.collection('users').where('numeroSocio', '==', qNum).limit(5).get());
+                searchPromises.push(db.collection('users').where('socio_number', '==', qNum).limit(5).get());
             }
 
-            // 3. Buscar por Nombre (prefijo - intentar capitalizado)
-            if (results.size < 5) {
-                // Firestore prefix search is case-sensitive, so we try raw and capitalized
-                const queryParts = [q];
-                const capitalized = q.charAt(0).toUpperCase() + q.slice(1);
-                if (capitalized !== q) queryParts.push(capitalized);
+            // 3. Búsqueda por DNI (prefijo)
+            searchPromises.push(db.collection('users').where('dni', '>=', q).where('dni', '<=', q + '\uf8ff').limit(5).get());
 
-                for (const qp of queryParts) {
-                    const nameSnap = await db.collection('users')
-                        .where('name', '>=', qp)
-                        .where('name', '<=', qp + '\uf8ff')
-                        .limit(5)
-                        .get();
-                    nameSnap.docs.forEach(d => {
-                        const data = d.data();
-                        if (results.size < 10 && !results.has(d.id)) results.set(d.id, {
+            // 4. Búsqueda por Nombre (intentar raw y capitalizado)
+            searchPromises.push(db.collection('users').where('name', '>=', q).where('name', '<=', q + '\uf8ff').limit(5).get());
+            const capitalized = q.charAt(0).toUpperCase() + q.slice(1);
+            if (capitalized !== q) {
+                searchPromises.push(db.collection('users').where('name', '>=', capitalized).where('name', '<=', capitalized + '\uf8ff').limit(5).get());
+            }
+
+            // Ejecutar todas las búsquedas en PARALELO
+            const statusSnaps = await Promise.all(searchPromises);
+
+            statusSnaps.forEach(snap => {
+                snap.docs.forEach(d => {
+                    const data = d.data();
+                    if (!results.has(d.id)) {
+                        results.set(d.id, {
                             id: d.id,
                             name: data.name || data.nombre,
                             dni: data.dni,
                             socioNumber: data.socioNumber || data.numeroSocio || data.socio_number,
                             phone: data.phone || data.telefono
                         });
-                    });
-                }
-            }
+                    }
+                });
+            });
 
             // 4. Obtener ratio de conversión oficial (config/general)
             const configSnap = await db.collection('config').doc('general').get();

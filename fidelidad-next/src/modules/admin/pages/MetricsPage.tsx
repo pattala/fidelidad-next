@@ -11,17 +11,31 @@ import toast from 'react-hot-toast';
 import { ConfigService } from '../../../services/configService';
 
 export const MetricsPage = () => {
-    const [timeRange, setTimeRange] = useState<'30_days' | '6_months' | 'year'>('6_months');
+    const [timeRange, setTimeRange] = useState<'30_days' | '6_months' | 'year' | 'custom'>('30_days');
+    const [customDates, setCustomDates] = useState({
+        start: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0],
+        end: new Date().toISOString().split('T')[0]
+    });
+
     const [chartData, setChartData] = useState<any[]>([]);
+    const [prevChartData, setPrevChartData] = useState<any[]>([]); // Para comparativas
     const [topUsers, setTopUsers] = useState<any[]>([]);
     const [topSpenders, setTopSpenders] = useState<any[]>([]);
     const [topVisitors, setTopVisitors] = useState<any[]>([]);
     const [registrationSources, setRegistrationSources] = useState<{ pwa: number, local: number }>({ pwa: 0, local: 0 });
     const [totalStats, setTotalStats] = useState({ emitted: 0, redeemed: 0, expired: 0 });
+    const [prevTotalStats, setPrevTotalStats] = useState({ emitted: 0, redeemed: 0, expired: 0 });
     const [loading, setLoading] = useState(true);
     const [config, setConfig] = useState<any>(null);
     const [movementsData, setMovementsData] = useState<any[]>([]);
+
     const [advancedStats, setAdvancedStats] = useState({
+        averageTicket: 0,
+        frequency: 0,
+        activeCustomers: 0,
+        potentialRevenue: 0
+    });
+    const [prevAdvancedStats, setPrevAdvancedStats] = useState({
         averageTicket: 0,
         frequency: 0,
         activeCustomers: 0,
@@ -37,155 +51,124 @@ export const MetricsPage = () => {
                 setConfig(appConfig);
 
                 const now = new Date();
-                const startDate = new Date();
+                let startDate = new Date();
+                let endDate = new Date();
+
                 if (timeRange === '30_days') startDate.setDate(now.getDate() - 30);
-                if (timeRange === '6_months') startDate.setMonth(now.getMonth() - 6);
-                if (timeRange === 'year') startDate.setFullYear(now.getFullYear() - 1);
+                else if (timeRange === '6_months') startDate.setMonth(now.getMonth() - 6);
+                else if (timeRange === 'year') startDate.setFullYear(now.getFullYear() - 1);
+                else if (timeRange === 'custom') {
+                    startDate = new Date(customDates.start + 'T00:00:00');
+                    endDate = new Date(customDates.end + 'T23:59:59');
+                }
 
-                const qTrans = query(
-                    collection(db, 'transactions'),
-                    where('date', '>=', startDate),
-                    orderBy('date', 'asc')
-                );
+                // Calcular Periodo Anterior para MoM
+                const duration = endDate.getTime() - startDate.getTime();
+                const prevEndDate = new Date(startDate.getTime() - 1000);
+                const prevStartDate = new Date(prevEndDate.getTime() - duration);
 
-                const snapTrans = await getDocs(qTrans);
-                const movements = snapTrans.docs.map(d => {
-                    const data = d.data();
-                    return {
-                        ...data,
-                        id: d.id,
-                        date: data.date?.toDate ? data.date.toDate() : new Date(),
-                        amount: data.points || data.amount || 0,
-                        moneySpent: data.amount || 0
-                    };
-                });
-                setMovementsData(movements);
+                const fetchRangeData = async (start: Date, end: Date) => {
+                    const q = query(
+                        collection(db, 'transactions'),
+                        where('date', '>=', start),
+                        where('date', '<=', end),
+                        orderBy('date', 'asc')
+                    );
+                    const snap = await getDocs(q);
+                    return snap.docs.map(d => {
+                        const data = d.data();
+                        return {
+                            ...data,
+                            id: d.id,
+                            date: data.date?.toDate ? data.date.toDate() : new Date(),
+                            amount: data.points || data.amount || 0,
+                            moneySpent: data.amount || 0
+                        };
+                    });
+                };
 
-                const groupedData = new Map<string, { emitted: number, redeemed: number, expired: number, money: number }>();
-                const spendersMap = new Map<string, number>();
+                const [currentMovements, prevMovements] = await Promise.all([
+                    fetchRangeData(startDate, endDate),
+                    fetchRangeData(prevStartDate, prevEndDate)
+                ]);
 
-                movements.forEach((mov: any) => {
-                    const key = timeRange === '30_days'
-                        ? mov.date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
-                        : mov.date.toLocaleDateString('es-AR', { month: 'short', year: '2-digit' });
+                setMovementsData(currentMovements);
 
-                    const current = groupedData.get(key) || { emitted: 0, redeemed: 0, expired: 0, money: 0 };
+                const processStats = (movements: any[]) => {
+                    const grouped = new Map<string, { emitted: number, redeemed: number, expired: number, money: number }>();
+                    const spenders = new Map<string, number>();
+                    let tEmitted = 0, tRedeemed = 0, tExpired = 0, tMoneyRedeemed = 0;
+                    let totalMoneySpent = 0, creditCount = 0;
+                    const activeUids = new Set<string>();
+                    const heatmap = Array(7).fill(0).map(() => Array(24).fill(0));
 
-                    if (mov.type === 'credit') {
-                        current.emitted += Number(mov.points || mov.amount || 0);
-                        const userId = mov.uid || mov.userId;
-                        if (userId) {
-                            const pesoValue = Number(mov.amount || 0);
-                            if (pesoValue > 0) {
-                                const currentTotal = spendersMap.get(userId) || 0;
-                                spendersMap.set(userId, currentTotal + pesoValue);
+                    movements.forEach((mov: any) => {
+                        const key = (timeRange === '30_days' || timeRange === 'custom')
+                            ? mov.date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
+                            : mov.date.toLocaleDateString('es-AR', { month: 'short', year: '2-digit' });
+
+                        const current = grouped.get(key) || { emitted: 0, redeemed: 0, expired: 0, money: 0 };
+
+                        if (mov.type === 'credit') {
+                            const pts = Number(mov.points || mov.amount || 0);
+                            current.emitted += pts;
+                            tEmitted += pts;
+
+                            const money = Number(mov.amount || 0);
+                            if (money > 0) {
+                                totalMoneySpent += money;
+                                creditCount++;
+                                const userId = mov.uid || mov.userId;
+                                if (userId) spenders.set(userId, (spenders.get(userId) || 0) + money);
+                            }
+                            activeUids.add(mov.uid || mov.userId);
+                            heatmap[mov.date.getDay()][mov.date.getHours()]++;
+                        } else {
+                            const pts = Math.abs(Number(mov.points || mov.amount || 0));
+                            const concept = (mov.concept || '').toLowerCase();
+                            const isEx = concept.includes('vencimiento') || concept.includes('vencidos') || concept.includes('expirados');
+
+                            if (isEx) { current.expired += pts; tExpired += pts; }
+                            else {
+                                current.redeemed += pts; tRedeemed += pts;
+                                const val = (mov.redeemedValue || 0);
+                                current.money += val; tMoneyRedeemed += val;
                             }
                         }
-                    } else if (mov.type === 'debit' || mov.type === 'adjustment') {
-                        const concept = (mov.concept || '').toLowerCase();
-                        const isExpiration = concept.includes('vencimiento') || concept.includes('vencidos') || concept.includes('expirados');
+                        grouped.set(key, current);
+                    });
 
-                        if (isExpiration) {
-                            current.expired += Math.abs(Number(mov.points || mov.amount || 0));
-                        } else {
-                            current.redeemed += Math.abs(Number(mov.points || mov.amount || 0));
-                            current.money += (mov.redeemedValue || 0);
-                        }
-                    }
-                    groupedData.set(key, current);
-                });
+                    return { grouped, spenders, tEmitted, tRedeemed, tExpired, tMoneyRedeemed, totalMoneySpent, creditCount, activeUids, heatmap };
+                };
 
-                let tEmitted = 0, tRedeemed = 0, tExpired = 0;
-                groupedData.forEach(d => {
-                    tEmitted += d.emitted;
-                    tRedeemed += d.redeemed;
-                    tExpired += d.expired;
-                });
+                const currentResults = processStats(currentMovements);
+                const prevResults = processStats(prevMovements);
 
-                setTotalStats({ emitted: tEmitted, redeemed: tRedeemed, expired: tExpired });
-                setChartData(Array.from(groupedData.entries()).map(([name, data]) => ({ name, ...data })));
+                // Calcular Valor Real del Punto (Reality Check)
+                const qPr = query(collection(db, 'prizes'), where('active', '==', true));
+                const snapPr = await getDocs(qPr);
+                let totalRatio = 0, pCount = 0;
+                snapPr.forEach(d => { const p = d.data(); if (p.cashValue && p.pointsRequired > 0) { totalRatio += (p.cashValue / p.pointsRequired); pCount++; } });
+                const realPV = pCount > 0 ? (totalRatio / pCount) : (appConfig.pointValue || 10);
 
-                // --- PROCESAMIENTO AVANZADO ---
-                const heatmap = Array(7).fill(0).map(() => Array(24).fill(0));
-                let totalAmount = 0;
-                let creditCount = 0;
-                const activeUids = new Set<string>();
+                setTotalStats({ emitted: currentResults.tEmitted, redeemed: currentResults.tRedeemed, expired: currentResults.tExpired });
+                setPrevTotalStats({ emitted: prevResults.tEmitted, redeemed: prevResults.tRedeemed, expired: prevResults.tExpired });
+                setChartData(Array.from(currentResults.grouped.entries()).map(([name, data]) => ({ name, ...data })));
+                setHeatmapData(currentResults.heatmap);
 
-                movements.forEach((mov: any) => {
-                    if (mov.type === 'credit') {
-                        const d = mov.date;
-                        heatmap[d.getDay()][d.getHours()]++;
-                        if (mov.moneySpent > 0) {
-                            totalAmount += mov.moneySpent;
-                            creditCount++;
-                        }
-                        if (mov.uid) activeUids.add(mov.uid);
-                    }
-                });
-
-                // Calcular Valor Real del Punto basado en premios ACTIVOS (Reality Check)
-                const qPrizes = query(collection(db, 'prizes'), where('active', '==', true));
-                const snapPrizes = await getDocs(qPrizes);
-                let totalPrizeRatio = 0;
-                let validPrizesCount = 0;
-                snapPrizes.forEach(doc => {
-                    const p = doc.data();
-                    if (p.cashValue && p.pointsRequired > 0) {
-                        totalPrizeRatio += (p.cashValue / p.pointsRequired);
-                        validPrizesCount++;
-                    }
-                });
-                const realPointValue = validPrizesCount > 0 ? (totalPrizeRatio / validPrizesCount) : (appConfig.pointValue || 10);
-
-                setHeatmapData(heatmap);
                 setAdvancedStats({
-                    averageTicket: creditCount > 0 ? totalAmount / creditCount : 0,
-                    frequency: activeUids.size > 0 ? creditCount / activeUids.size : 0,
-                    activeCustomers: activeUids.size,
-                    potentialRevenue: tEmitted * realPointValue // Inversión en puntos EMITIDOS en el PERIODO
+                    averageTicket: currentResults.creditCount > 0 ? currentResults.totalMoneySpent / currentResults.creditCount : 0,
+                    frequency: currentResults.activeUids.size > 0 ? currentResults.creditCount / currentResults.activeUids.size : 0,
+                    activeCustomers: currentResults.activeUids.size,
+                    potentialRevenue: currentResults.tEmitted * realPV
                 });
 
-                const qFullUsers = query(collection(db, 'users'), where('createdAt', '>=', startDate));
-                const snapFullUsers = await getDocs(qFullUsers);
-                const sources = { pwa: 0, local: 0 };
-                snapFullUsers.docs.forEach(d => {
-                    const data = d.data();
-                    if (data.source === 'pwa') sources.pwa++;
-                    else sources.local++;
+                setPrevAdvancedStats({
+                    averageTicket: prevResults.creditCount > 0 ? prevResults.totalMoneySpent / prevResults.creditCount : 0,
+                    frequency: prevResults.activeUids.size > 0 ? prevResults.creditCount / prevResults.activeUids.size : 0,
+                    activeCustomers: prevResults.activeUids.size,
+                    potentialRevenue: prevResults.tEmitted * realPV
                 });
-                setRegistrationSources(sources);
-
-                const qUsers = query(collection(db, 'users'), orderBy('points', 'desc'), limit(5));
-                const snapUsers = await getDocs(qUsers);
-                setTopUsers(snapUsers.docs.map(d => {
-                    const data = d.data();
-                    return {
-                        id: d.id,
-                        ...data,
-                        name: data.name || data.nombre || '',
-                        points: data.points || data.puntos || 0,
-                        socioNumber: data.socioNumber || data.numeroSocio || ''
-                    };
-                }));
-
-                const sortedSpendersIds = Array.from(spendersMap.entries()).sort(([, a], [, b]) => b - a).slice(0, 10);
-                const spendersData = await Promise.all(sortedSpendersIds.map(async ([uid, total]) => {
-                    const existing = snapUsers.docs.find(d => d.id === uid);
-                    if (existing) {
-                        const uData = existing.data();
-                        return { id: uid, name: uData.name || uData.nombre, dni: uData.dni, socioNumber: uData.socioNumber || uData.numeroSocio, total };
-                    }
-                    try {
-                        const qUser = query(collection(db, 'users'), where(documentId(), '==', uid));
-                        const userSnap = await getDocs(qUser);
-                        if (!userSnap.empty) {
-                            const uData = userSnap.docs[0].data();
-                            return { id: uid, name: uData.name || uData.nombre || 'Desconocido', dni: uData.dni, socioNumber: uData.socioNumber || uData.numeroSocio, total };
-                        }
-                    } catch (e) { }
-                    return { id: uid, name: 'Socio #' + uid.substring(0, 5), total };
-                }));
-                setTopSpenders(spendersData);
 
                 const qVisitors = query(collection(db, 'users'), orderBy('visitCount', 'desc'), limit(5));
                 const snapVisitors = await getDocs(qVisitors);
@@ -202,7 +185,7 @@ export const MetricsPage = () => {
             }
         };
         fetchData();
-    }, [timeRange]);
+    }, [timeRange, customDates]);
 
     const handleCSVExport = () => {
         if (movementsData.length === 0) {
@@ -273,61 +256,108 @@ export const MetricsPage = () => {
             ) : (
                 <>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-blue-100 flex items-center justify-between">
-                            <div>
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Puntos Emitidos</p>
-                                <p className="text-2xl font-black text-blue-600">{totalStats.emitted.toLocaleString()}</p>
-                            </div>
-                            <div className="p-3 bg-blue-50 text-blue-600 rounded-xl"><TrendingUp size={24} /></div>
-                        </div>
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-orange-100 flex items-center justify-between">
-                            <div>
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Puntos Canjeados</p>
-                                <p className="text-2xl font-black text-orange-600">{totalStats.redeemed.toLocaleString()}</p>
-                            </div>
-                            <div className="p-3 bg-orange-50 text-orange-600 rounded-xl"><Award size={24} /></div>
-                        </div>
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-red-100 flex items-center justify-between">
-                            <div>
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Puntos Vencidos</p>
-                                <p className="text-2xl font-black text-red-600">{totalStats.expired.toLocaleString()}</p>
-                            </div>
-                            <div className="p-3 bg-red-50 text-red-600 rounded-xl"><TrendingUp size={24} className="rotate-180" /></div>
-                        </div>
+                        {(() => {
+                            const TrendIndicator = ({ current, prev, isRed = false }: { current: number, prev: number, isRed?: boolean }) => {
+                                if (prev === 0) return null;
+                                const diff = ((current - prev) / prev) * 100;
+                                const isPositive = diff > 0;
+                                const colorClass = isRed ? (isPositive ? 'text-red-500' : 'text-green-500') : (isPositive ? 'text-green-500' : 'text-red-500');
+                                return (
+                                    <div className={`flex items-center gap-1 text-[11px] font-bold ${colorClass} mt-1`}>
+                                        {isPositive ? '↑' : '↓'} {Math.abs(Math.round(diff))}% <span className="text-gray-400 font-normal">vs anterior</span>
+                                    </div>
+                                );
+                            };
+
+                            return (
+                                <>
+                                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-blue-100 flex items-center justify-between">
+                                        <div>
+                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Puntos Emitidos</p>
+                                            <p className="text-2xl font-black text-blue-600">{totalStats.emitted.toLocaleString()}</p>
+                                            <TrendIndicator current={totalStats.emitted} prev={prevTotalStats.emitted} />
+                                        </div>
+                                        <div className="p-3 bg-blue-50 text-blue-600 rounded-xl"><TrendingUp size={24} /></div>
+                                    </div>
+                                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-orange-100 flex items-center justify-between">
+                                        <div>
+                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Puntos Canjeados</p>
+                                            <p className="text-2xl font-black text-orange-600">{totalStats.redeemed.toLocaleString()}</p>
+                                            <TrendIndicator current={totalStats.redeemed} prev={prevTotalStats.redeemed} />
+                                        </div>
+                                        <div className="p-3 bg-orange-50 text-orange-600 rounded-xl"><Award size={24} /></div>
+                                    </div>
+                                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-red-100 flex items-center justify-between">
+                                        <div>
+                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Puntos Vencidos</p>
+                                            <p className="text-2xl font-black text-red-600">{totalStats.expired.toLocaleString()}</p>
+                                            <TrendIndicator current={totalStats.expired} prev={prevTotalStats.expired} isRed />
+                                        </div>
+                                        <div className="p-3 bg-red-50 text-red-600 rounded-xl"><TrendingUp size={24} className="rotate-180" /></div>
+                                    </div>
+                                </>
+                            );
+                        })()}
                     </div>
 
                     {/* KPIs AVANZADOS */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 transition hover:shadow-md">
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Ticket Promedio</p>
-                            <div className="flex items-baseline gap-2">
-                                <span className="text-2xl font-black text-gray-800">${Math.round(advancedStats.averageTicket).toLocaleString('es-AR')}</span>
-                                <span className="text-xs text-green-500 font-bold">por compra</span>
-                            </div>
-                        </div>
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 transition hover:shadow-md">
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Frecuencia</p>
-                            <div className="flex items-baseline gap-2">
-                                <span className="text-2xl font-black text-gray-800">{advancedStats.frequency.toFixed(1)}</span>
-                                <span className="text-xs text-blue-500 font-bold">visitas/periodo</span>
-                            </div>
-                        </div>
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 transition hover:shadow-md">
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Tasa de Canje</p>
-                            <div className="flex items-baseline gap-2">
-                                <span className="text-2xl font-black text-gray-800">
-                                    {totalStats.emitted > 0 ? Math.round((totalStats.redeemed / totalStats.emitted) * 100) : 0}%
-                                </span>
-                                <span className="text-xs text-purple-500 font-bold">interés (%)</span>
-                            </div>
-                        </div>
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 transition hover:shadow-md">
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1" title="Costo estimado de los puntos otorgados en este periodo">Inversión en Puntos (Coste)</p>
-                            <div className="flex items-baseline gap-2">
-                                <span className="text-2xl font-black text-red-500">${Math.round(advancedStats.potentialRevenue).toLocaleString('es-AR')}</span>
-                                <span title="Basado en el valor real de tus premios activos. Este es el coste de lo que emitiste en las fechas seleccionadas." className="text-[10px] text-gray-400 cursor-help">ℹ️</span>
-                            </div>
-                        </div>
+                        {(() => {
+                            const TrendIndicator = ({ current, prev }: { current: number, prev: number }) => {
+                                if (prev === 0) return null;
+                                const diff = ((current - prev) / prev) * 100;
+                                const isPositive = diff > 0;
+                                return (
+                                    <div className={`flex items-center gap-1 text-[10px] font-bold ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
+                                        {isPositive ? '↑' : '↓'} {Math.abs(Math.round(diff))}%
+                                    </div>
+                                );
+                            };
+
+                            return (
+                                <>
+                                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 transition hover:shadow-md">
+                                        <div className="flex justify-between items-start mb-1">
+                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Ticket Promedio</p>
+                                            <TrendIndicator current={advancedStats.averageTicket} prev={prevAdvancedStats.averageTicket} />
+                                        </div>
+                                        <div className="flex items-baseline gap-2">
+                                            <span className="text-2xl font-black text-gray-800">${Math.round(advancedStats.averageTicket).toLocaleString('es-AR')}</span>
+                                            <span className="text-xs text-green-500 font-bold">compra</span>
+                                        </div>
+                                    </div>
+                                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 transition hover:shadow-md">
+                                        <div className="flex justify-between items-start mb-1">
+                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Frecuencia</p>
+                                            <TrendIndicator current={advancedStats.frequency} prev={prevAdvancedStats.frequency} />
+                                        </div>
+                                        <div className="flex items-baseline gap-2">
+                                            <span className="text-2xl font-black text-gray-800">{advancedStats.frequency.toFixed(1)}</span>
+                                            <span className="text-xs text-blue-500 font-bold">visitas</span>
+                                        </div>
+                                    </div>
+                                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 transition hover:shadow-md">
+                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Tasa de Canje</p>
+                                        <div className="flex items-baseline gap-2">
+                                            <span className="text-2xl font-black text-gray-800">
+                                                {totalStats.emitted > 0 ? Math.round((totalStats.redeemed / totalStats.emitted) * 100) : 0}%
+                                            </span>
+                                            <span className="text-xs text-purple-500 font-bold">interés</span>
+                                        </div>
+                                    </div>
+                                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 transition hover:shadow-md">
+                                        <div className="flex justify-between items-start mb-1">
+                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Inversión Puntos</p>
+                                            <TrendIndicator current={advancedStats.potentialRevenue} prev={prevAdvancedStats.potentialRevenue} />
+                                        </div>
+                                        <div className="flex items-baseline gap-2">
+                                            <span className="text-2xl font-black text-red-500">${Math.round(advancedStats.potentialRevenue).toLocaleString('es-AR')}</span>
+                                            <span title="Basado en el valor real de tus premios activos." className="text-[10px] text-gray-400 cursor-help">ℹ️</span>
+                                        </div>
+                                    </div>
+                                </>
+                            );
+                        })()}
                     </div>
 
                     {/* MAPA DE CALOR */}
@@ -342,12 +372,12 @@ export const MetricsPage = () => {
                             <div className="flex items-center gap-2 text-xs font-bold text-gray-400">
                                 <span>Menos</span>
                                 <div className="flex gap-1">
-                                    <div className="w-3 h-3 rounded bg-purple-50"></div>
-                                    <div className="w-3 h-3 rounded bg-purple-200"></div>
-                                    <div className="w-3 h-3 rounded bg-purple-400"></div>
-                                    <div className="w-3 h-3 rounded bg-purple-600"></div>
+                                    <div className="w-3 h-3 rounded bg-purple-600 opacity-20"></div>
+                                    <div className="w-3 h-3 rounded bg-purple-600 opacity-50"></div>
+                                    <div className="w-3 h-3 rounded bg-purple-600 opacity-80"></div>
+                                    <div className="w-3 h-3 rounded bg-purple-600 opacity-100"></div>
                                 </div>
-                                <span>Más</span>
+                                <span>Más ({Math.max(...heatmapData.flat()) || 0} máx)</span>
                             </div>
                         </div>
 

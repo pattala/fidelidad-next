@@ -22,6 +22,12 @@ Este checklist detalla las correcciones de estabilidad y la nueva arquitectura d
 - [ ] **Búsqueda y Filtros**:
     - [ ] Buscar por **Número de Socio** en la tabla. Verificar que sea robusto y coincida con el campo visible.
 
+## 💰 3. Saldo a Favor (Acumulado)
+- [ ] **Visualización en Admin**: Verificar que en la tabla de clientes aparezca "+$X a favor" debajo de los puntos si el cliente tiene un remanente.
+- [ ] **Persistencia en Carga Manual**: Asignar puntos por monto (ej: $150). Verificar que se asigne 1 punto y queden $50 a favor.
+- [ ] **Persistencia en API**: Usar la extensión para cargar un monto con remanente y verificar que se actualice correctamente en el Panel Admin.
+- [ ] **Consumo Automático**: Realizar una segunda carga. Verificar que se sume el saldo previo al nuevo monto para el cálculo de puntos.
+
 ## 👥 3. Gestión de Clientes (CRUD)
 - [ ] **Validaciones**: Intentar crear un cliente con un DNI que ya existe. Verificar que el toast avise del duplicado y **permita corregir** sin cerrar el modal ni bloquearlo.
 - [ ] **Número de Socio Automático**: Crear un cliente nuevo sin especificar número. Verificar que el sistema asigne el siguiente ID disponible (ej: 1001, 1002).

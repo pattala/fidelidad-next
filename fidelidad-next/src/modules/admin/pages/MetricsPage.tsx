@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BarChart3, TrendingUp, Users, DollarSign, Award, Sparkles, Download } from 'lucide-react';
+import { BarChart3, TrendingUp, Users, DollarSign, Award, Sparkles, Download, Clock, Calendar } from 'lucide-react';
 import { collection, query, where, getDocs, orderBy, limit, documentId } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import {
@@ -21,6 +21,13 @@ export const MetricsPage = () => {
     const [loading, setLoading] = useState(true);
     const [config, setConfig] = useState<any>(null);
     const [movementsData, setMovementsData] = useState<any[]>([]);
+    const [advancedStats, setAdvancedStats] = useState({
+        averageTicket: 0,
+        frequency: 0,
+        activeCustomers: 0,
+        potentialRevenue: 0
+    });
+    const [heatmapData, setHeatmapData] = useState<number[][]>(Array(7).fill(0).map(() => Array(24).fill(0)));
 
     useEffect(() => {
         const fetchData = async () => {
@@ -94,8 +101,35 @@ export const MetricsPage = () => {
                     tRedeemed += d.redeemed;
                     tExpired += d.expired;
                 });
+
                 setTotalStats({ emitted: tEmitted, redeemed: tRedeemed, expired: tExpired });
                 setChartData(Array.from(groupedData.entries()).map(([name, data]) => ({ name, ...data })));
+
+                // --- PROCESAMIENTO AVANZADO ---
+                const heatmap = Array(7).fill(0).map(() => Array(24).fill(0));
+                let totalAmount = 0;
+                let creditCount = 0;
+                const activeUids = new Set<string>();
+
+                movements.forEach((mov: any) => {
+                    if (mov.type === 'credit') {
+                        const d = mov.date;
+                        heatmap[d.getDay()][d.getHours()]++;
+                        if (mov.moneySpent > 0) {
+                            totalAmount += mov.moneySpent;
+                            creditCount++;
+                        }
+                        if (mov.uid) activeUids.add(mov.uid);
+                    }
+                });
+
+                setHeatmapData(heatmap);
+                setAdvancedStats({
+                    averageTicket: creditCount > 0 ? totalAmount / creditCount : 0,
+                    frequency: activeUids.size > 0 ? creditCount / activeUids.size : 0,
+                    activeCustomers: activeUids.size,
+                    potentialRevenue: tEmitted * (appConfig.pointValue || 10) // Valor deuda técnica basado en emitidos
+                });
 
                 const qFullUsers = query(collection(db, 'users'), where('createdAt', '>=', startDate));
                 const snapFullUsers = await getDocs(qFullUsers);
@@ -248,6 +282,94 @@ export const MetricsPage = () => {
                         </div>
                     </div>
 
+                    {/* KPIs AVANZADOS */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Ticket Promedio</p>
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-2xl font-black text-gray-800">${Math.round(advancedStats.averageTicket).toLocaleString('es-AR')}</span>
+                                <span className="text-xs text-green-500 font-bold">por compra</span>
+                            </div>
+                        </div>
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Frecuencia</p>
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-2xl font-black text-gray-800">{advancedStats.frequency.toFixed(1)}</span>
+                                <span className="text-xs text-blue-500 font-bold">visitas/periodo</span>
+                            </div>
+                        </div>
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Clientes Activos</p>
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-2xl font-black text-gray-800">{advancedStats.activeCustomers}</span>
+                                <span className="text-xs text-purple-500 font-bold">en total</span>
+                            </div>
+                        </div>
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Deuda en Puntos</p>
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-2xl font-black text-red-600">${Math.round(advancedStats.potentialRevenue).toLocaleString('es-AR')}</span>
+                                <span title="Valor estimado si todos canjean sus puntos" className="text-[10px] text-gray-400 cursor-help">ℹ️</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* MAPA DE CALOR */}
+                    <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+                        <div className="flex justify-between items-center mb-8">
+                            <div>
+                                <h3 className="text-xl font-black text-gray-800 flex items-center gap-2">
+                                    <Clock className="text-purple-600" /> Mapa de Calor: Actividad por Día y Hora
+                                </h3>
+                                <p className="text-sm text-gray-500">Detecta tus momentos de mayor tráfico de ventas.</p>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs font-bold text-gray-400">
+                                <span>Menos</span>
+                                <div className="flex gap-1">
+                                    <div className="w-3 h-3 rounded bg-purple-50"></div>
+                                    <div className="w-3 h-3 rounded bg-purple-200"></div>
+                                    <div className="w-3 h-3 rounded bg-purple-400"></div>
+                                    <div className="w-3 h-3 rounded bg-purple-600"></div>
+                                </div>
+                                <span>Más</span>
+                            </div>
+                        </div>
+
+                        <div className="overflow-x-auto">
+                            <div className="min-w-[800px]">
+                                <div className="grid grid-cols-[100px_repeat(24,1fr)] gap-1">
+                                    {/* Header Horas */}
+                                    <div className="h-8"></div>
+                                    {Array.from({ length: 24 }).map((_, h) => (
+                                        <div key={h} className="text-[10px] font-bold text-gray-400 text-center">{h}h</div>
+                                    ))}
+
+                                    {/* Filas Días */}
+                                    {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map((day, dIdx) => (
+                                        <>
+                                            <div key={day} className="flex items-center text-sm font-bold text-gray-500 h-8">{day}</div>
+                                            {heatmapData[dIdx].map((val, hIdx) => {
+                                                const max = Math.max(...heatmapData.flat()) || 1;
+                                                const opacity = val === 0 ? 0.05 : (val / max);
+                                                return (
+                                                    <div
+                                                        key={`${dIdx}-${hIdx}`}
+                                                        title={`${day} ${hIdx}hs: ${val} transacciones`}
+                                                        className="h-8 rounded-sm transition-all hover:ring-2 ring-purple-400 cursor-help"
+                                                        style={{
+                                                            backgroundColor: `rgba(147, 51, 234, ${opacity})`,
+                                                            border: val > 0 ? '1px solid rgba(147, 51, 234, 0.1)' : '1px solid transparent'
+                                                        }}
+                                                    />
+                                                );
+                                            })}
+                                        </>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 min-w-0">
                             <h3 className="text-lg font-bold text-gray-700 mb-6 flex items-center gap-2">
@@ -380,7 +502,8 @@ export const MetricsPage = () => {
                         </div>
                     </div>
                 </>
-            )}
-        </div>
+            )
+            }
+        </div >
     );
 };

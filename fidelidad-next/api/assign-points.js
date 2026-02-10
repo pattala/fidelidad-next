@@ -85,7 +85,8 @@ export default async function handler(req, res) {
                             name: data.name || data.nombre,
                             dni: data.dni,
                             socioNumber: data.socioNumber || data.numeroSocio || data.socio_number,
-                            phone: data.phone || data.telefono
+                            phone: data.phone || data.telefono,
+                            accumulated_balance: data.accumulated_balance || 0
                         });
                     }
                 });
@@ -125,8 +126,8 @@ export default async function handler(req, res) {
                     if (!b.daysOfWeek.includes(todayDay)) return;
                 }
 
-                // Tipos permitidos
-                if (b.rewardType === 'FIXED' || b.rewardType === 'MULTIPLIER' || b.rewardType === 'INFO') {
+                // Tipos permitidos (SOLO FIXED y MULTIPLIER en este contexto)
+                if (b.rewardType === 'FIXED' || b.rewardType === 'MULTIPLIER') {
                     activePromotions.push({
                         id: doc.id,
                         name: b.name || 'Sin nombre',

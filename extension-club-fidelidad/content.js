@@ -3,8 +3,10 @@
 console.log("🚀 [Club Fidelidad] v29: Iniciando versión con infiltración en modal");
 
 let config = { apiUrl: '', apiKey: '' };
+let apiRatios = { base: 100, perPeso: 1 };
 let detectedAmount = 0;
 let selectedClient = null;
+let currentPromos = []; // Store calculable promos globally for this context
 
 // Cargar configuración de storage
 chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
@@ -104,6 +106,9 @@ function showFidelidadPanel() {
                         <span id="cf-currency-symbol" class="cf-addon">$</span>
                         <input type="number" id="cf-input-amount" class="fidelidad-input cf-input-big" value="${detectedAmount}">
                     </div>
+                    <div id="cf-preview-container" class="cf-preview-box" style="margin-top: 8px; font-size: 12px; color: #6b7280; display: none;">
+                        <!-- Preview text will be injected here -->
+                    </div>
                 </div>
 
                 <div class="cf-grid">
@@ -192,6 +197,45 @@ function showFidelidadPanel() {
     const promosContainer = document.getElementById('cf-promos-container');
 
 
+    inputMonto.oninput = () => updatePointsPreview();
+
+    function updatePointsPreview() {
+        const val = parseFloat(inputMonto.value);
+        const previewContainer = document.getElementById('cf-preview-container');
+        if (!previewContainer) return;
+
+        if (isNaN(val) || val <= 0 || !selectedClient) {
+            previewContainer.style.display = 'none';
+            return;
+        }
+
+        let ptsBase = 0;
+        if (isPesos) {
+            const curAcc = selectedClient.accumulated_balance || 0;
+            const total = val + curAcc;
+            ptsBase = Math.floor((total / (apiRatios.base || 100)) * (apiRatios.perPeso || 1));
+        } else {
+            ptsBase = Math.floor(val);
+        }
+
+        let bonus = 0;
+        const applyPromos = document.getElementById('cf-apply-promos').checked;
+        if (applyPromos) {
+            const selectedIds = Array.from(document.querySelectorAll('.cf-promo-check:checked')).map(el => el.value);
+            currentPromos.filter(p => selectedIds.includes(p.id)).forEach(b => {
+                if (b.rewardType === 'MULTIPLIER') bonus += Math.floor(ptsBase * (b.rewardValue - 1));
+                else bonus += (b.rewardValue || 0);
+            });
+        }
+
+        const totalFinal = ptsBase + bonus;
+        previewContainer.style.display = 'block';
+        previewContainer.innerHTML = `
+            <span style="font-weight: bold; color: #374151;">✨ Se asignarán: <strong style="color: #059669;">${totalFinal} puntos</strong></span>
+            ${bonus > 0 ? `<div style="font-size: 10px; color: #9ca3af;">(Base: ${ptsBase} + Bonus: ${bonus})</div>` : ''}
+        `;
+    }
+
     // TABS LOGIC
     let isPesos = true;
     tabMonto.onclick = () => {
@@ -202,6 +246,7 @@ function showFidelidadPanel() {
         currencySymbol.innerText = '$';
         inputMonto.placeholder = ''; // Clear placeholder
         promosContainer.style.display = 'block';
+        updatePointsPreview();
     };
     tabDirecto.onclick = () => {
         isPesos = false;
@@ -211,6 +256,7 @@ function showFidelidadPanel() {
         currencySymbol.innerText = 'pts';
         inputMonto.placeholder = 'Puntos a asignar...';
         promosContainer.style.display = 'block'; // Keep visible
+        updatePointsPreview();
     };
 
     // MASTER TOGGLE PROMOS
@@ -221,7 +267,10 @@ function showFidelidadPanel() {
         promosList.style.pointerEvents = active ? 'all' : 'none';
         // Disable individual checkboxes to stay in sync with UI
         const checks = promosList.querySelectorAll('.cf-promo-check');
-        checks.forEach(c => c.disabled = !active);
+        checks.forEach(c => {
+            c.disabled = !active;
+        });
+        updatePointsPreview();
     };
 
     function killEvent(e) {
@@ -269,6 +318,8 @@ function showFidelidadPanel() {
             });
             const data = await res.json();
             if (data.ok && data.clients && data.clients.length > 0) {
+                apiRatios.base = data.pointsMoneyBase || 100;
+                apiRatios.perPeso = data.pointsPerPeso || 1;
                 renderResults(data.clients, data.activePromotions || []);
             } else {
                 resultsDiv.innerHTML = '<div class="fidelidad-result-item" style="cursor:default; color:#666; text-align:center;">No se encontraron socios</div>';
@@ -294,7 +345,7 @@ function showFidelidadPanel() {
                 e.preventDefault();
                 e.stopPropagation();
 
-                selectedClient = { id: c.id, name: c.name };
+                selectedClient = { id: c.id, name: c.name, accumulated_balance: c.accumulated_balance || 0 };
                 console.log("🎯 Socio seleccionado:", selectedClient);
 
                 // UI Update
@@ -307,7 +358,8 @@ function showFidelidadPanel() {
                 statusDiv.innerText = '';
 
                 // Renderizar Promos
-                const activePromos = promotions ? promotions.filter(p => p.rewardType !== 'INFO') : [];
+                currentPromos = promotions || [];
+                const activePromos = currentPromos.filter(p => p.rewardType !== 'INFO');
 
                 if (activePromos.length > 0) {
                     promosList.innerHTML = activePromos.map(p => {
@@ -324,9 +376,17 @@ function showFidelidadPanel() {
                             </label>
                         `;
                     }).join('');
+
+                    // Add listeners to new checkboxes
+                    const checks = promosList.querySelectorAll('.cf-promo-check');
+                    checks.forEach(check => {
+                        check.onchange = () => updatePointsPreview();
+                    });
                 } else {
                     promosList.innerHTML = '<div style="font-size:10px; color:#999; padding: 5px 0;">No hay promociones disponibles para aplicar.</div>';
                 }
+
+                updatePointsPreview();
 
                 // Focus amount input
                 setTimeout(() => {

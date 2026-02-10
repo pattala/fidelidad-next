@@ -263,6 +263,29 @@ export const MetricsPage = () => {
                             </button>
                         ))}
                     </div>
+                    {timeRange === 'custom' && (
+                        <div className="flex items-center gap-2 bg-white rounded-xl shadow-sm border border-gray-200 p-2 animate-fade-in">
+                            <div className="flex items-center gap-2">
+                                <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Desde</label>
+                                <input
+                                    type="date"
+                                    className="px-2 py-1 text-sm border-none focus:ring-0 outline-none font-medium text-gray-700"
+                                    value={customDates.start}
+                                    onChange={e => setCustomDates({ ...customDates, start: e.target.value })}
+                                />
+                            </div>
+                            <div className="w-px h-4 bg-gray-200"></div>
+                            <div className="flex items-center gap-2">
+                                <label className="text-[10px] font-bold text-gray-400 uppercase">Hasta</label>
+                                <input
+                                    type="date"
+                                    className="px-2 py-1 text-sm border-none focus:ring-0 outline-none font-medium text-gray-700"
+                                    value={customDates.end}
+                                    onChange={e => setCustomDates({ ...customDates, end: e.target.value })}
+                                />
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 

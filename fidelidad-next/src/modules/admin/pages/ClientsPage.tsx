@@ -506,7 +506,7 @@ export const ClientsPage = () => {
             const activeBonuses = applyPromotions ? availablePromotions.filter(p => selectedPromos.includes(p.id)) : [];
             let bonusPoints = 0;
             let promoDetails = "";
-            if (activeBonuses.length > 0 && finalPoints > 0) {
+            if (activeBonuses.length > 0) {
                 activeBonuses.forEach(b => {
                     if (b.rewardType === 'MULTIPLIER') bonusPoints += Math.floor(finalPoints * (b.rewardValue - 1));
                     else bonusPoints += (b.rewardValue || 0);

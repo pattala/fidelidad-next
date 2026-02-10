@@ -508,9 +508,10 @@ export const ClientsPage = () => {
             let promoDetails = "";
             if (activeBonuses.length > 0) {
                 activeBonuses.forEach(b => {
+                    const bonusAction = b.rewardType === 'MULTIPLIER' ? `x${b.rewardValue}` : `+${b.rewardValue}`;
                     if (b.rewardType === 'MULTIPLIER') bonusPoints += Math.floor(finalPoints * (b.rewardValue - 1));
                     else bonusPoints += (b.rewardValue || 0);
-                    promoDetails += (promoDetails ? ", " : " + Bono: ") + b.name;
+                    promoDetails += (promoDetails ? ", " : " + Bono: ") + b.name + ` (${bonusAction})`;
                 });
                 finalPoints += bonusPoints;
             }

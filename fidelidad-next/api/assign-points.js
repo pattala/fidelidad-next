@@ -228,7 +228,9 @@ export default async function handler(req, res) {
                             const b = bsnap.data();
                             if (b.rewardType === 'FIXED') totalBonus += (Number(b.rewardValue) || 0);
                             if (b.rewardType === 'MULTIPLIER') totalMultiplier *= (Number(b.rewardValue) || 1);
-                            promoDetails += (promoDetails ? ", " : " + Bono: ") + (b.name || b.title || "Promo");
+
+                            const bonusAction = b.rewardType === 'MULTIPLIER' ? `x${b.rewardValue}` : `+${b.rewardValue}`;
+                            promoDetails += (promoDetails ? ", " : " + Bono: ") + (b.name || b.title || "Promo") + ` (${bonusAction})`;
                         }
                     });
 

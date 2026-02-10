@@ -118,17 +118,19 @@ export const BirthdayService = {
 
             // --- CANALES ---
             if (!options.whatsappOnly) {
-                // Push (Guardamos en inbox)
-                await NotificationService.sendToClient(uid, {
-                    title: '¡Feliz Cumpleaños! 🎂',
-                    body: msg,
-                    type: 'birthday',
-                    icon: config?.logoUrl || '/logo.png'
-                });
-                pushSent = true;
+                // 1. Push (Guardamos en inbox)
+                if (NotificationService.isChannelEnabled(config, 'birthday', 'push')) {
+                    await NotificationService.sendToClient(uid, {
+                        title: '¡Feliz Cumpleaños! 🎂',
+                        body: msg,
+                        type: 'birthday',
+                        icon: config?.logoUrl || '/logo.png'
+                    });
+                    pushSent = true;
+                }
 
-                // Email
-                if (userData.email) {
+                // 2. Email
+                if (userData.email && NotificationService.isChannelEnabled(config, 'birthday', 'email')) {
                     try {
                         const token = await (await import('../lib/firebase')).auth.currentUser?.getIdToken();
                         if (token) {
@@ -147,6 +149,7 @@ export const BirthdayService = {
                 }
 
                 // MARCAR SALUDO EN DB (CRÍTICO) - Solo si mandamos canales automáticos
+                // Para evitar bucles infinitos si falla el envío pero se intenta.
                 await updateDoc(doc(db, 'users', uid), {
                     lastBirthdayGreetingYear: currentYear
                 });

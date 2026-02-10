@@ -141,7 +141,14 @@ export default async function handler(req, res) {
 
     if (templateId === 'manual_override') {
       subject = templateData.subject || 'Notificación';
-      html = buildHtmlLayout(templateData.htmlContent || '<p>Sin contenido</p>', appConfig);
+      // If we are in manual_override, we assume the caller provides the full HTML or we trust their layout.
+      // THE BUG: We were wrapping it in buildHtmlLayout again, causing double headers/footers.
+      html = templateData.htmlContent || '<p>Sin contenido</p>';
+
+      // If the html doesn't look like a full document, we wrap it, otherwise we use it raw.
+      if (!html.toLowerCase().includes('<html')) {
+        html = buildHtmlLayout(html, appConfig);
+      }
     } else {
       let tpl = await resolveTemplate(db, templateId, 'email');
 

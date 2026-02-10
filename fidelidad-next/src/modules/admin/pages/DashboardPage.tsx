@@ -32,73 +32,69 @@ export const DashboardPage = () => {
     const [birthdaysOfToday, setBirthdaysOfToday] = useState<any[]>([]);
     const [config, setConfig] = useState<any>(null);
 
-    const fetchStats = async (isManual = false) => {
-        if (isManual) setRefreshing(true);
-        else setLoading(true);
+    useEffect(() => {
+        setLoading(true);
 
-        try {
-            // 1. KPI Stats
-            const qUsers = query(collection(db, 'users'));
-            const snapUsers = await getDocs(qUsers);
+        // 1. Listen for Config
+        const unsubConfig = onSnapshot(doc(db, 'config', 'general'), (docSnap) => {
+            if (docSnap.exists()) {
+                const updatedConfig = docSnap.data();
+                setConfig(updatedConfig);
+            }
+        });
 
+        // 2. Listen for Users (Total Points, Client Count, Birthdays)
+        const unsubUsers = onSnapshot(query(collection(db, 'users')), (snap) => {
             let points = 0;
             let clientCount = 0;
             const today = TimeService.now();
-            const todayMonthDay = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            const todayMD = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
             const todaysSelectedBirthdays: any[] = [];
 
-            snapUsers.forEach(doc => {
-                const d = doc.data();
-                if (d.role !== 'admin') {
+            snap.forEach(d => {
+                const data = d.data();
+                if (data.role !== 'admin') {
                     clientCount++;
-                    points += (d.points ?? d.puntos ?? 0);
-
-                    if (d.birthDate) {
-                        const bDate = d.birthDate; // YYYY-MM-DD
-                        if (bDate.endsWith(todayMonthDay)) {
-                            todaysSelectedBirthdays.push({ id: doc.id, ...d });
-                        }
+                    points += (data.points ?? data.puntos ?? 0);
+                    if (data.birthDate?.endsWith(todayMD)) {
+                        todaysSelectedBirthdays.push({ id: d.id, ...data });
                     }
                 }
             });
+
             setBirthdaysOfToday(todaysSelectedBirthdays);
+            setStats(prev => ({ ...prev, usersCount: clientCount, totalPoints: points }));
+            setLoading(false);
+        });
 
-            const qDebits = query(collectionGroup(db, 'points_history'), where('type', '==', 'debit'));
-            const snapDebits = await getDocs(qDebits);
-
+        // 3. Listen for Debits (Redeemed)
+        const unsubDebits = onSnapshot(query(collectionGroup(db, 'points_history'), where('type', '==', 'debit')), (snap) => {
             let redeemedPoints = 0;
-            let redeemedMoney = 0; // Value of items redeemed
-            let expiredPoints = 0;
-
-            snapDebits.forEach(doc => {
-                const data = doc.data();
+            let redeemedMoney = 0;
+            snap.forEach(d => {
+                const data = d.data();
                 const concept = (data.concept || '').toLowerCase();
-                const isExpiration =
-                    data.isExpirationAdjustment === true ||
-                    concept.includes('vencimiento') ||
-                    concept.includes('vencidos') ||
-                    concept.includes('expirados') ||
-                    concept.includes('vencieron'); // From dashboard log "Vencieron -60 pts"
-
-                if (isExpiration) {
-                    expiredPoints += Math.abs(data.amount || 0);
-                } else {
+                const isEx = data.isExpirationAdjustment === true ||
+                    ['vencimiento', 'vencidos', 'expirados', 'vencieron'].some(w => concept.includes(w));
+                if (!isEx) {
                     redeemedPoints += Math.abs(data.amount || 0);
                     redeemedMoney += (data.redeemedValue || 0);
                 }
             });
+            setStats(prev => ({ ...prev, redeemedPoints, redeemedMoney }));
+        });
 
-            const qGenerated = query(collectionGroup(db, 'points_history'), where('type', '==', 'credit'));
-            const snapGenerated = await getDocs(qGenerated);
+        // 4. Listen for Credits (Generated Today & Total)
+        const startOfToday = new Date(TimeService.now());
+        startOfToday.setHours(0, 0, 0, 0);
+
+        const unsubCredits = onSnapshot(query(collectionGroup(db, 'points_history'), where('type', '==', 'credit')), (snap) => {
             let totalMoneyGenerated = 0;
             let todayMoneyGenerated = 0;
             let todayPointsEmitted = 0;
 
-            const startOfToday = new Date(TimeService.now());
-            startOfToday.setHours(0, 0, 0, 0);
-
-            snapGenerated.forEach(doc => {
-                const data = doc.data();
+            snap.forEach(d => {
+                const data = d.data();
                 const money = (data.moneySpent || 0);
                 totalMoneyGenerated += money;
 
@@ -108,77 +104,24 @@ export const DashboardPage = () => {
                     todayPointsEmitted += (data.amount || 0);
                 }
             });
+            setStats(prev => ({ ...prev, totalMoneyGenerated, todayMoneyGenerated, todayPointsEmitted }));
+        });
 
-            const retrievedConfig = await ConfigService.get();
-            setConfig(retrievedConfig);
-
-            let finalPointValue = retrievedConfig.pointValue || 10;
-            let averagePrizeValue = 0;
-            {
-                const qPrizes = query(collection(db, 'prizes'), where('active', '==', true));
-                const snapPrizes = await getDocs(qPrizes);
-                let totalRatio = 0;
-                let validPrizesCount = 0;
-                snapPrizes.forEach(doc => {
-                    const p = doc.data();
-                    // Safeguard: pointsRequired must be at least 1 to be used in average calculation
-                    if (p.cashValue && p.pointsRequired >= 1) {
-                        totalRatio += (p.cashValue / p.pointsRequired);
-                        validPrizesCount++;
-                    }
-                });
-                if (validPrizesCount > 0) averagePrizeValue = totalRatio / validPrizesCount;
-            }
-
-            const method = retrievedConfig.pointCalculationMethod || (retrievedConfig.useAutomaticPointValue ? 'average' : 'manual');
-
-            if (method === 'manual') {
-                finalPointValue = retrievedConfig.pointValue || 10;
-            } else if (method === 'budget') {
-                const totalBudget = retrievedConfig.pointValueBudget || 0;
-                // Si estamos en modo presupuesto, el valor del punto es literalmente Presupuesto / Puntos Totales
-                finalPointValue = points > 0 ? (totalBudget / points) : 0;
-            } else {
-                finalPointValue = averagePrizeValue;
-            }
-
-            const totalBudget = retrievedConfig.pointValueBudget || 0;
-            const remainingBudget = Math.max(0, totalBudget - redeemedMoney);
-
-            setStats({
-                usersCount: clientCount,
-                totalPoints: points,
-                todayPointsEmitted,
-                redeemedPoints,
-                redeemedMoney,
-                totalMoneyGenerated,
-                todayMoneyGenerated,
-                circulatingValue: points * finalPointValue,
-                budgetLimit: remainingBudget,
-                isBudgetMode: method === 'budget',
-                realLiability: points * averagePrizeValue,
-                calculationMethod: method,
-                pointValueConfigured: finalPointValue,
-                pointValueReal: averagePrizeValue
+        // 5. Listen for Prizes (Real Point Value)
+        const unsubPrizes = onSnapshot(query(collection(db, 'prizes'), where('active', '==', true)), (snap) => {
+            let totalRatio = 0, count = 0;
+            snap.forEach(d => {
+                const p = d.data();
+                if (p.cashValue && p.pointsRequired >= 1) {
+                    totalRatio += (p.cashValue / p.pointsRequired);
+                    count++;
+                }
             });
-        } catch (error) {
-            console.error("Error fetching dashboard stats:", error);
-        } finally {
-            setLoading(false);
-            setRefreshing(false);
-        }
-    };
+            const avg = count > 0 ? (totalRatio / count) : 0;
+            setStats(prev => ({ ...prev, pointValueReal: avg }));
+        });
 
-    useEffect(() => {
-        fetchStats();
-
-        // 2. Real-time Activity Feed (onSnapshot)
-        const qActivity = query(
-            collectionGroup(db, 'points_history'),
-            orderBy('date', 'desc'),
-            limit(activityLimit)
-        );
-
+        // 6. Activity Feed
         const userCache = new Map();
         const getUserName = async (uid: string) => {
             if (userCache.has(uid)) return userCache.get(uid);
@@ -188,43 +131,67 @@ export const DashboardPage = () => {
                 const name = d ? (d.name || d.nombre || 'Usuario Desconocido') : 'Usuario Desconocido';
                 userCache.set(uid, name);
                 return name;
-            } catch (e) {
-                return 'Usuario';
-            }
+            } catch (e) { return 'Usuario'; }
         };
 
-        const unsubscribe = onSnapshot(qActivity, async (snapshot) => {
-            const activities = await Promise.all(snapshot.docs.map(async (d) => {
+        const unsubActivity = onSnapshot(query(collectionGroup(db, 'points_history'), orderBy('date', 'desc'), limit(activityLimit)), async (snap) => {
+            const activities = await Promise.all(snap.docs.map(async (d) => {
                 const data = d.data();
                 const userId = d.ref.parent.parent?.id;
                 const userName = userId ? await getUserName(userId) : 'Sistema';
                 return {
-                    id: d.id,
-                    ...data,
+                    id: d.id, ...data,
                     date: data.date?.toDate ? data.date.toDate() : new Date(),
                     userName
                 };
             }));
             setRecentActivity(activities);
-        }, (error) => {
-            console.error("Activity stream error:", error);
         });
 
-        return () => unsubscribe();
+        return () => {
+            unsubConfig();
+            unsubUsers();
+            unsubDebits();
+            unsubCredits();
+            unsubPrizes();
+            unsubActivity();
+        };
     }, [activityLimit]);
+
+    // Handle derived stats update when dependencies change
+    useEffect(() => {
+        if (!config) return;
+
+        const method = config.pointCalculationMethod || (config.useAutomaticPointValue ? 'average' : 'manual');
+        let finalPointValue = config.pointValue || 10;
+
+        if (method === 'manual') {
+            finalPointValue = config.pointValue || 10;
+        } else if (method === 'budget') {
+            const totalBudget = config.pointValueBudget || 0;
+            finalPointValue = stats.totalPoints > 0 ? (totalBudget / stats.totalPoints) : 0;
+        } else {
+            finalPointValue = stats.pointValueReal;
+        }
+
+        const totalBudget = config.pointValueBudget || 0;
+        const remainingBudget = Math.max(0, totalBudget - stats.redeemedMoney);
+
+        setStats(prev => ({
+            ...prev,
+            circulatingValue: prev.totalPoints * finalPointValue,
+            budgetLimit: remainingBudget,
+            isBudgetMode: method === 'budget',
+            realLiability: prev.totalPoints * prev.pointValueReal,
+            calculationMethod: method,
+            pointValueConfigured: finalPointValue
+        }));
+    }, [config, stats.totalPoints, stats.pointValueReal, stats.redeemedMoney]);
 
     return (
         <div className="animate-fade-in pb-10">
             <div className="flex items-center justify-between mb-6">
                 <h1 className="text-2xl font-bold text-gray-800">Tablero Principal</h1>
-                <button
-                    onClick={() => fetchStats(true)}
-                    disabled={refreshing || loading}
-                    className={`flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition shadow-sm ${refreshing ? 'opacity-50' : ''}`}
-                >
-                    <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
-                    {refreshing ? 'ACTUALIZANDO...' : 'REFRESCAR'}
-                </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">

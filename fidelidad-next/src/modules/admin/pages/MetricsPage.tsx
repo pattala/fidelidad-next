@@ -206,22 +206,36 @@ export const MetricsPage = () => {
             toast.error("No hay datos para exportar en este periodo.");
             return;
         }
+
         const headers = ["Fecha", "Cliente", "Socio #", "Tipo", "Concepto", "Puntos", "Monto $"];
+
+        // Formateador para números en español (Argentina)
+        const numFormat = new Intl.NumberFormat('es-AR', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2
+        });
+
         const rows = movementsData.map(m => [
-            m.date.toLocaleString(),
+            m.date.toLocaleString('es-AR'),
             m.clientName || 'N/A',
             m.socioNumber || 'N/A',
-            m.type,
+            m.type === 'credit' ? 'Suma' : 'Canje/Baja',
             m.concept || '',
-            m.points || m.amount || 0,
-            m.amount || 0
+            m.points || 0,
+            numFormat.format(m.amount || 0)
         ]);
-        const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+
+        // Usamos punto y coma (;) para compatibilidad con Excel en español
+        const csvContent = [headers, ...rows].map(e => e.join(";")).join("\n");
+
+        // Agregar BOM para que Excel reconozca UTF-8 correctamente
+        const BOM = "\ufeff";
+        const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+
         const link = document.createElement("a");
         const url = URL.createObjectURL(blob);
         link.setAttribute("href", url);
-        link.setAttribute("download", `transacciones_${timeRange}_${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute("download", `metricas_${timeRange}_${new Date().toISOString().split('T')[0]}.csv`);
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();

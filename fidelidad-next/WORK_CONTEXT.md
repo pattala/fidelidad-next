@@ -20,6 +20,9 @@
     *   **Tiempo Real**: Implementado `onSnapshot` en la lista de clientes; los nuevos registros aparecen al instante sin refrescar.
     *   **Dirección unificada**: El campo `calle` ahora guarda automáticamente "Calle + Número" para facilitar la lectura del administrador.
     *   **Visualización de Socios**: Corrección en la visualización de `socioNumber` / `numeroSocio` en todas las tablas.
+    *   **Registro de Promociones**: Ahora el sistema concatena automáticamente el nombre de las promociones aplicadas al concepto del historial de puntos (ej: "Bono: Puntos Dobles").
+    *   **Métricas & Dashboard**: Implementados indicadores de "Hoy" y "Total" con filtros dinámicos. El Ticket Promedio ahora usa valores monetarios.
+    *   **Documentación**: Creada guía técnica sobre la metodología del Valor del Punto (Manual, Promedio y Presupuesto).
 
 3.  **Backend & Firebase (Seguridad)**:
     *   **Asignación de Socio**: La API `/api/assign-socio-number` ahora es compatible con registros directos desde la PWA mediante tokens de identidad de Firebase.

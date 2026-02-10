@@ -183,7 +183,28 @@ export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ ok: false, error: "Method not allowed. Use POST." });
   }
-  if (!ensureAuth(req)) return res.status(401).json({ ok: false, error: "Unauthorized." });
+
+  const apiKey = req.headers["x-api-key"] || req.headers["X-API-Key"];
+  const authHeader = req.headers["authorization"];
+
+  let isAuthorized = false;
+
+  if (apiKey && process.env.API_SECRET_KEY && apiKey === process.env.API_SECRET_KEY) {
+    isAuthorized = true;
+  } else if (authHeader && authHeader.startsWith("Bearer ")) {
+    const token = authHeader.split("Bearer ")[1];
+    try {
+      await getAuth().verifyIdToken(token);
+      isAuthorized = true;
+    } catch (e) {
+      console.error("Bearer token verification failed:", e.message);
+      return res.status(401).json({ ok: false, error: "Invalid Token" });
+    }
+  }
+
+  if (!isAuthorized) {
+    return res.status(401).json({ ok: false, error: "Unauthorized" });
+  }
 
   // Body
   let body;

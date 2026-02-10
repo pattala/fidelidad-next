@@ -381,9 +381,65 @@ export default async function handler(req, res) {
 
             result = { ok: true, pointsAdded: points, newBalance: newPoints };
 
+            // --- NOTIFICACIONES AUTOMÁTICAS (Push & Email) ---
+            try {
+                const messagingCfg = config.messaging;
+                if (messagingCfg) {
+                    const event = 'pointsAdded';
+                    const templates = messagingCfg.templates || {};
+                    const eventConfig = messagingCfg.eventConfigs?.[event];
+                    const channels = eventConfig?.channels || [];
+
+                    const isPushEnabled = messagingCfg.pushEnabled && channels.includes('push');
+                    const isEmailEnabled = messagingCfg.emailEnabled && channels.includes('email');
+
+                    if (isPushEnabled || isEmailEnabled) {
+                        let msg = templates[event] || "¡Sumaste {puntos} puntos! Tu saldo actual es {saldo}.";
+                        msg = msg.replace(/{nombre}/g, (data.name || data.nombre || '').split(' ')[0])
+                            .replace(/{nombre_completo}/g, data.name || data.nombre || '')
+                            .replace(/{puntos}/g, points.toString())
+                            .replace(/{saldo}/g, newPoints.toString());
+
+                        const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
+
+                        // 1. Push
+                        if (isPushEnabled) {
+                            fetch(`${baseUrl}/api/send-notification`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.API_SECRET_KEY },
+                                body: JSON.stringify({
+                                    clienteId: targetUid,
+                                    title: '¡Puntos Sumados! 💰',
+                                    body: msg,
+                                    icon: config.logoUrl || '/logo.png'
+                                })
+                            }).catch(err => console.error("Push notification error:", err));
+                        }
+
+                        // 2. Email
+                        if (isEmailEnabled && (data.email || data.correo)) {
+                            fetch(`${baseUrl}/api/send-email`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.API_SECRET_KEY },
+                                body: JSON.stringify({
+                                    to: data.email || data.correo,
+                                    templateId: 'manual_override', // Usamos el layout del servidor
+                                    templateData: {
+                                        subject: '¡Has sumado puntos! 💰',
+                                        htmlContent: msg // send-email ahora se encarga de no doble-envolver
+                                    }
+                                })
+                            }).catch(err => console.error("Email notification error:", err));
+                        }
+                    }
+                }
+            } catch (notifyErr) {
+                console.error("Error triggering notifications:", notifyErr);
+            }
+
             // Agregar WhatsApp Link si hay teléfono
             const phone = data.phone || data.telefono;
-            if (phone && reason === 'external_integration') {
+            if (phone && (reason === 'external_integration' || applyWhatsApp)) {
                 const cleanPhone = String(phone).replace(/\D/g, '');
                 const msg = `¡Hola! 👋 Sumaste ${points} puntos en tu última compra. ¡Gracias por elegirnos! 🎁`;
                 result.whatsappLink = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msg)}`;

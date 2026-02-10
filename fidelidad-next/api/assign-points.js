@@ -261,7 +261,7 @@ export default async function handler(req, res) {
         // 5. Idempotencia & Transacción
         const clientRef = db.collection("users").doc(targetUid);
 
-        result = { ok: false };
+        let result = { ok: false };
 
         const now = new Date();
         const argentinaOffset = -3 * 60 * 60 * 1000;

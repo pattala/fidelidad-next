@@ -188,21 +188,30 @@ export default async function handler(req, res) {
   const authHeader = req.headers["authorization"];
 
   let isAuthorized = false;
+  const SECRET = process.env.API_SECRET_KEY || process.env.VITE_API_KEY;
 
-  if (apiKey && process.env.API_SECRET_KEY && apiKey === process.env.API_SECRET_KEY) {
+  if (apiKey && SECRET && apiKey === SECRET) {
     isAuthorized = true;
   } else if (authHeader && authHeader.startsWith("Bearer ")) {
     const token = authHeader.split("Bearer ")[1];
-    try {
-      await getAuth().verifyIdToken(token);
+    if (token === SECRET) {
       isAuthorized = true;
-    } catch (e) {
-      console.error("Bearer token verification failed:", e.message);
-      return res.status(401).json({ ok: false, error: "Invalid Token" });
+    } else {
+      try {
+        await getAuth().verifyIdToken(token);
+        isAuthorized = true;
+      } catch (e) {
+        console.error("[send-notification] Bearer token verification failed:", e.message);
+      }
     }
   }
 
   if (!isAuthorized) {
+    console.warn("[send-notification] Unauthorized access attempt:", {
+      hasApiKey: !!apiKey,
+      hasAuthHeader: !!authHeader,
+      secretConfigured: !!SECRET
+    });
     return res.status(401).json({ ok: false, error: "Unauthorized" });
   }
 
@@ -362,32 +371,36 @@ export default async function handler(req, res) {
   // Si algunos tokens no tenían cliente mapeado, igual se enviaron,
   // pero acá sólo creamos inbox para los que sí mapean a clienteId.
   let createdInbox = 0;
-  try {
-    const dataForDoc = {
-      title: data.title,
-      body: data.body,
-      url: data.url || data.click_action || "/notificaciones",
-      tag: data.tag || null,
-      source: extraData?.source || "simple",
-      campaignId: extraData?.campaignId || null,
-    };
+  if (extraData?.skipInbox === true || extraData?.skipInbox === "true") {
+    console.log("[send-notification] Skipping inbox tracking as requested by skipInbox flag.");
+  } else {
+    try {
+      const dataForDoc = {
+        title: data.title,
+        body: data.body,
+        url: data.url || data.click_action || "/notificaciones",
+        tag: data.tag || null,
+        source: extraData?.source || "simple",
+        campaignId: extraData?.campaignId || null,
+      };
 
-    // Colapsar por cliente (primer token)
-    const byClient = new Map();
-    destinatarios.forEach(d => {
-      if (!byClient.has(d.id)) byClient.set(d.id, d.token || null);
-    });
+      // Colapsar por cliente (primer token)
+      const byClient = new Map();
+      destinatarios.forEach(d => {
+        if (!byClient.has(d.id)) byClient.set(d.id, d.token || null);
+      });
 
-    for (const [cid, anyToken] of byClient.entries()) {
-      try {
-        await createInboxSent({ db, clienteId: cid, notifId, dataForDoc, token: anyToken });
-        createdInbox++;
-      } catch (e) {
-        console.error("inbox sent error", { cid, anyToken }, e?.message || e);
+      for (const [cid, anyToken] of byClient.entries()) {
+        try {
+          await createInboxSent({ db, clienteId: cid, notifId, dataForDoc, token: anyToken });
+          createdInbox++;
+        } catch (e) {
+          console.error("inbox sent error", { cid, anyToken }, e?.message || e);
+        }
       }
+    } catch (e) {
+      console.error("resolve destinatarios (tracking) error:", e?.message || e);
     }
-  } catch (e) {
-    console.error("resolve destinatarios (tracking) error:", e?.message || e);
   }
 
   return res.status(200).json({

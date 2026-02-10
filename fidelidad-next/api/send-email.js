@@ -42,21 +42,32 @@ function cors(req, res) {
 // --- Auth ---
 async function authCheck(req) {
   const origin = req.headers.origin || '';
-  const apiKey = req.headers['x-api-key'] || null;
+  const apiKey = req.headers['x-api-key'] || req.headers['X-API-Key'] || null;
   const auth = req.headers.authorization || '';
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
 
-  if (apiKey && apiKey === process.env.API_SECRET_KEY) return { ok: true, mode: 'secret' };
-  if (token && (token === process.env.API_SECRET_KEY || token === process.env.MI_API_SECRET)) return { ok: true, mode: 'secret' };
+  const SECRET = process.env.API_SECRET_KEY || process.env.VITE_API_KEY;
+
+  if (apiKey && SECRET && apiKey === SECRET) return { ok: true, mode: 'secret' };
+  if (token && (token === SECRET || token === process.env.MI_API_SECRET)) return { ok: true, mode: 'secret' };
 
   if (token) {
     try {
       const decoded = await adminAuth.verifyIdToken(token);
       if (decoded) return { ok: true, mode: 'idToken' };
-    } catch { /* ignore */ }
+    } catch (e) {
+      console.warn('[send-email] ID Token verification failed:', e.message);
+    }
   }
 
   if (ALLOWED.includes(origin)) return { ok: true, mode: 'origin' };
+
+  console.warn('[send-email] Auth failed for:', {
+    hasApiKey: !!apiKey,
+    hasToken: !!token,
+    origin,
+    isAllowedOrigin: ALLOWED.includes(origin)
+  });
 
   return { ok: false, reason: token ? 'token-mismatch' : 'no-auth-header', origin };
 }

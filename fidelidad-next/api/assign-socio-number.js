@@ -199,13 +199,15 @@ export default async function handler(req, res) {
         const baseUrl = getSelfBaseUrl(req);
         console.log(`[AssignSocio] Intentando enviar email. URL: ${baseUrl}/api/send-email`);
 
+        const SECRET = process.env.API_SECRET_KEY || process.env.VITE_API_KEY;
+
         // Llamada interna a la API de email
         const startTime = Date.now();
         const r = await fetch(`${baseUrl}/api/send-email`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-api-key': process.env.API_SECRET_KEY || ''
+            'x-api-key': SECRET || ''
           },
           body: JSON.stringify({
             to: datosClienteParaEmail.email,

@@ -362,87 +362,88 @@ export default async function handler(req, res) {
                 createdAt: admin.firestore.FieldValue.serverTimestamp()
             });
 
-            // Opcional: Crear mensaje en Inbox
-            if (reason === 'welcome_signup' || reason === 'external_integration') {
-                const inboxRef = clientRef.collection('inbox').doc();
-                const title = reason === 'welcome_signup' ? '¡Te damos la bienvenida!' : '¡Sumaste Puntos! 💰';
-                const body = reason === 'welcome_signup'
-                    ? `Gracias por registrarte. Ya tienes ${points} puntos para empezar a disfrutar nuestros beneficios.`
-                    : `Has sumado ${points} puntos por tu compra. Tu nuevo saldo es de ${newPoints} pts.`;
+            // --- NOTIFICACIONES Y MENSAJERÍA ---
+            const messagingCfg = config.messaging || {};
+            const event = 'pointsAdded';
+            const templates = messagingCfg.templates || {};
+            const eventConfig = messagingCfg.eventConfigs?.[event];
+            const channels = eventConfig?.channels || [];
 
-                tx.set(inboxRef, {
-                    title,
-                    body,
-                    type: reason === 'welcome_signup' ? 'welcome' : 'points_earned',
-                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-                    isRead: false
-                });
-            }
+            // Construir MENSAJE UNIFICADO (desde plantilla del panel)
+            let unifiedMsg = templates[event] || "¡Sumaste {puntos} puntos! Tu saldo actual es {saldo}.";
+            const firstName = (data.name || data.nombre || '').split(' ')[0];
+            unifiedMsg = unifiedMsg.replace(/{nombre}/g, firstName)
+                .replace(/{nombre_completo}/g, data.name || data.nombre || '')
+                .replace(/{puntos}/g, points.toString())
+                .replace(/{saldo}/g, newPoints.toString())
+                .replace(/{siteName}/g, config.siteName || 'Club Fidelidad');
+
+            // 1. Inbox (Transaccional)
+            // Siempre guardamos en inbox para el historial del cliente en la PWA
+            const inboxRef = clientRef.collection('inbox').doc();
+            tx.set(inboxRef, {
+                title: '¡Puntos Sumados! 💰',
+                body: unifiedMsg,
+                type: 'points_earned',
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                isRead: false
+            });
 
             result = { ok: true, pointsAdded: points, newBalance: newPoints };
 
-            // --- NOTIFICACIONES AUTOMÁTICAS (Push & Email) ---
+            // 2. Canales Automáticos (Push & Email)
             try {
-                const messagingCfg = config.messaging;
-                if (messagingCfg) {
-                    const event = 'pointsAdded';
-                    const templates = messagingCfg.templates || {};
-                    const eventConfig = messagingCfg.eventConfigs?.[event];
-                    const channels = eventConfig?.channels || [];
+                const isPushEnabled = messagingCfg.pushEnabled && channels.includes('push');
+                const isEmailEnabled = messagingCfg.emailEnabled && channels.includes('email');
 
-                    const isPushEnabled = messagingCfg.pushEnabled && channels.includes('push');
-                    const isEmailEnabled = messagingCfg.emailEnabled && channels.includes('email');
+                if (isPushEnabled || isEmailEnabled) {
+                    const baseUrl = process.env.VERCEL_URL
+                        ? `https://${process.env.VERCEL_URL}`
+                        : (req.headers.host ? `http://${req.headers.host}` : 'http://localhost:3000');
 
-                    if (isPushEnabled || isEmailEnabled) {
-                        let msg = templates[event] || "¡Sumaste {puntos} puntos! Tu saldo actual es {saldo}.";
-                        msg = msg.replace(/{nombre}/g, (data.name || data.nombre || '').split(' ')[0])
-                            .replace(/{nombre_completo}/g, data.name || data.nombre || '')
-                            .replace(/{puntos}/g, points.toString())
-                            .replace(/{saldo}/g, newPoints.toString());
+                    const internalAuth = { 'x-api-key': process.env.API_SECRET_KEY || process.env.VITE_API_KEY };
 
-                        const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
+                    // Push
+                    if (isPushEnabled) {
+                        fetch(`${baseUrl}/api/send-notification`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', ...internalAuth },
+                            body: JSON.stringify({
+                                clienteId: targetUid,
+                                title: '¡Puntos Sumados! 💰',
+                                body: unifiedMsg,
+                                icon: config.logoUrl || '/logo.png',
+                                extraData: { skipInbox: true, source: 'extension_or_panel' } // Evitamos duplicidad en inbox
+                            })
+                        }).catch(err => console.error("Push notification error:", err));
+                    }
 
-                        // 1. Push
-                        if (isPushEnabled) {
-                            fetch(`${baseUrl}/api/send-notification`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.API_SECRET_KEY },
-                                body: JSON.stringify({
-                                    clienteId: targetUid,
-                                    title: '¡Puntos Sumados! 💰',
-                                    body: msg,
-                                    icon: config.logoUrl || '/logo.png'
-                                })
-                            }).catch(err => console.error("Push notification error:", err));
-                        }
-
-                        // 2. Email
-                        if (isEmailEnabled && (data.email || data.correo)) {
-                            fetch(`${baseUrl}/api/send-email`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.API_SECRET_KEY },
-                                body: JSON.stringify({
-                                    to: data.email || data.correo,
-                                    templateId: 'manual_override', // Usamos el layout del servidor
-                                    templateData: {
-                                        subject: '¡Has sumado puntos! 💰',
-                                        htmlContent: msg // send-email ahora se encarga de no doble-envolver
-                                    }
-                                })
-                            }).catch(err => console.error("Email notification error:", err));
-                        }
+                    // Email
+                    if (isEmailEnabled && (data.email || data.correo)) {
+                        fetch(`${baseUrl}/api/send-email`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', ...internalAuth },
+                            body: JSON.stringify({
+                                to: data.email || data.correo,
+                                templateId: 'manual_override',
+                                templateData: {
+                                    subject: '¡Has sumado puntos! 💰',
+                                    htmlContent: unifiedMsg
+                                }
+                            })
+                        }).catch(err => console.error("Email notification error:", err));
                     }
                 }
             } catch (notifyErr) {
                 console.error("Error triggering notifications:", notifyErr);
             }
 
-            // Agregar WhatsApp Link si hay teléfono
+            // 3. WhatsApp Link (Si aplica)
             const phone = data.phone || data.telefono;
             if (phone && (reason === 'external_integration' || applyWhatsApp)) {
                 const cleanPhone = String(phone).replace(/\D/g, '');
-                const msg = `¡Hola! 👋 Sumaste ${points} puntos en tu última compra. ¡Gracias por elegirnos! 🎁`;
-                result.whatsappLink = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msg)}`;
+                // WhatsApp usa el MISMO mensaje unificado
+                result.whatsappLink = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(unifiedMsg)}`;
             }
         });
 

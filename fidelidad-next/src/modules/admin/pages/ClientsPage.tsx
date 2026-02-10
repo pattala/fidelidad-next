@@ -703,8 +703,9 @@ export const ClientsPage = () => {
         setPointsData({ amount: '', concept: 'Compra en local', isPesos: true, purchaseDate: new Date().toISOString().split('T')[0] });
 
         const promos = await CampaignService.getActiveBonusesForToday();
-        setAvailablePromotions(promos);
-        setSelectedPromos(promos.map(p => p.id));
+        const calculablePromos = promos.filter(p => p.rewardType === 'FIXED' || p.rewardType === 'MULTIPLIER');
+        setAvailablePromotions(calculablePromos);
+        setSelectedPromos(calculablePromos.map(p => p.id));
         setPointsModalOpen(true);
     };
 
@@ -1285,6 +1286,38 @@ export const ClientsPage = () => {
                                             value={pointsData.amount}
                                             onChange={e => setPointsData({ ...pointsData, amount: e.target.value })}
                                         />
+                                    </div>
+                                    {/* PV PREVIEW */}
+                                    <div className="mt-2 ml-2">
+                                        {(() => {
+                                            const val = parseFloat(pointsData.amount);
+                                            if (isNaN(val) || val <= 0) return <span className="text-[11px] text-gray-400 font-medium italic">Ingresa un monto para ver los puntos</span>;
+
+                                            let ptsBase = 0;
+                                            if (pointsData.isPesos) {
+                                                const curAcc = selectedClientForPoints.accumulated_balance || 0;
+                                                const total = val + curAcc;
+                                                const ratio = config?.pointsPerPeso || 1;
+                                                ptsBase = Math.floor((total / 100) * ratio);
+                                            } else {
+                                                ptsBase = Math.floor(val);
+                                            }
+
+                                            let bonus = 0;
+                                            if (applyPromotions) {
+                                                availablePromotions.filter(p => selectedPromos.includes(p.id)).forEach(b => {
+                                                    if (b.rewardType === 'MULTIPLIER') bonus += Math.floor(ptsBase * (b.rewardValue - 1));
+                                                    else bonus += (b.rewardValue || 0);
+                                                });
+                                            }
+                                            const totalFinal = ptsBase + bonus;
+                                            return (
+                                                <span className="text-xs text-gray-500 font-bold flex items-center gap-1.5 animate-fade-in">
+                                                    ✨ Se asignarán: <strong className="text-green-600 font-black">{totalFinal} puntos</strong>
+                                                    {bonus > 0 && <span className="text-[10px] text-gray-400 font-medium">(Base: {ptsBase} + Bonus: {bonus})</span>}
+                                                </span>
+                                            );
+                                        })()}
                                     </div>
                                 </div>
 

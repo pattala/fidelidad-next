@@ -505,13 +505,17 @@ export const ClientsPage = () => {
 
             const activeBonuses = applyPromotions ? availablePromotions.filter(p => selectedPromos.includes(p.id)) : [];
             let bonusPoints = 0;
+            let promoDetails = "";
             if (activeBonuses.length > 0 && finalPoints > 0) {
                 activeBonuses.forEach(b => {
                     if (b.rewardType === 'MULTIPLIER') bonusPoints += Math.floor(finalPoints * (b.rewardValue - 1));
                     else bonusPoints += (b.rewardValue || 0);
+                    promoDetails += (promoDetails ? ", " : " + Bono: ") + b.name;
                 });
                 finalPoints += bonusPoints;
             }
+
+            const finalConcept = pointsData.concept + promoDetails;
 
             if (finalPoints <= 0 && !pointsData.isPesos) {
                 toast.error("La cantidad de puntos debe ser mayor a 0");
@@ -536,7 +540,7 @@ export const ClientsPage = () => {
                 await addDoc(historyRef, {
                     amount: finalPoints,
                     moneySpent: pointsData.isPesos ? inputVal : 0,
-                    concept: pointsData.concept,
+                    concept: finalConcept,
                     date: selectedDate,
                     type: 'credit',
                     expiresAt: expiresAt,
@@ -553,7 +557,7 @@ export const ClientsPage = () => {
                     amount: pointsData.isPesos ? inputVal : 0,
                     type: 'credit',
                     reason: 'manual_admin',
-                    concept: pointsData.concept,
+                    concept: finalConcept,
                     date: selectedDate,
                     createdAt: serverTimestamp()
                 });
@@ -567,7 +571,7 @@ export const ClientsPage = () => {
                         puntosObtenidos: finalPoints,
                         puntosDisponibles: finalPoints,
                         diasCaducidad: days,
-                        origen: pointsData.concept,
+                        origen: finalConcept,
                         estado: 'Activo'
                     })
                 });
@@ -585,7 +589,7 @@ export const ClientsPage = () => {
                         .replace(/{saldo}/g, (sPoints + finalPoints).toString())
                         .replace(/{total_puntos}/g, (sPoints + finalPoints).toString())
                         .replace(/{vence}/g, expiresAt.toLocaleDateString())
-                        .replace(/{concepto}/g, pointsData.concept);
+                        .replace(/{concepto}/g, finalConcept);
 
                     const cleanPhone = selectedClientForPoints.phone.replace(/\D/g, '');
                     if (cleanPhone.length > 5) {
@@ -608,7 +612,7 @@ export const ClientsPage = () => {
                         .replace(/{saldo}/g, (currentClientPoints + finalPoints).toString())
                         .replace(/{total_puntos}/g, (currentClientPoints + finalPoints).toString())
                         .replace(/{vence}/g, expiresAt.toLocaleDateString())
-                        .replace(/{concepto}/g, pointsData.concept);
+                        .replace(/{concepto}/g, finalConcept);
 
                     await NotificationService.sendToClient(selectedClientForPoints.id, {
                         title: '¡Puntos Sumados! 🎉',

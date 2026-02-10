@@ -216,6 +216,7 @@ export default async function handler(req, res) {
                 let basePoints = Math.floor((totalVal / base) * ratio);
                 newAccumulatedBalance = totalVal % base;
 
+                let promoDetails = "";
                 // Aplicar Bonos/Promociones seleccionadas
                 if (bonusIds && Array.isArray(bonusIds) && bonusIds.length > 0) {
                     let totalBonus = 0;
@@ -227,6 +228,7 @@ export default async function handler(req, res) {
                             const b = bsnap.data();
                             if (b.rewardType === 'FIXED') totalBonus += (Number(b.rewardValue) || 0);
                             if (b.rewardType === 'MULTIPLIER') totalMultiplier *= (Number(b.rewardValue) || 1);
+                            promoDetails += (promoDetails ? ", " : " + Bono: ") + (b.name || b.title || "Promo");
                         }
                     });
 
@@ -234,6 +236,9 @@ export default async function handler(req, res) {
                 } else {
                     points = basePoints;
                 }
+
+                // Expose it to the transaction logic
+                req.body.calculatedPromoDetails = promoDetails;
             } else {
                 // Modo Manual (ya viene en puntos, pero el usuario puede enviar 'moneySpent')
                 // NOTA: Si es manual directo en puntos, no solemos tocar el accumulated_balance 
@@ -297,10 +302,11 @@ export default async function handler(req, res) {
             const currentPoints = Number(data.points || data.puntos || 0);
             const newPoints = currentPoints + points;
 
-            const finalConcept = concept || (
+            const baseConcept = concept || (
                 reason === 'welcome_signup' ? 'Puntos de Bienvenida' :
-                    (reason === 'profile_address' ? 'Premio por completar dirección' : 'Asignación automática')
+                    (reason === 'profile_address' ? 'Premio por completar dirección' : 'Compra en local')
             );
+            const finalConcept = baseConcept + (req.body?.calculatedPromoDetails || "");
 
             // ACTUALIZACIÓN DE USUARIO (Incluyendo Sync Legado)
             tx.update(clientRef, {

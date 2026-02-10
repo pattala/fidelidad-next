@@ -261,7 +261,28 @@ export default async function handler(req, res) {
         // 5. Idempotencia & Transacción
         const clientRef = db.collection("users").doc(targetUid);
 
-        let result = { ok: false };
+        result = { ok: false };
+
+        const now = new Date();
+        const argentinaOffset = -3 * 60 * 60 * 1000;
+        const nowArg = new Date(now.getTime() + argentinaOffset);
+        const todayStr = nowArg.toISOString().split('T')[0];
+
+        // Support custom purchase date or default to now
+        let recordDate = new Date();
+        if (req.body?.date) {
+            // Si la fecha coincide con hoy, mantenemos la hora actual para precisión en heatmap
+            if (req.body.date === todayStr) {
+                recordDate = new Date(); // Hora actual
+            } else {
+                recordDate = new Date(req.body.date + 'T12:00:00');
+            }
+        }
+
+        // Default expiration: 365 days
+        const expirationDate = new Date(recordDate);
+        expirationDate.setDate(expirationDate.getDate() + 365);
+        const validityDays = 365; // Legacy field support
 
         await db.runTransaction(async (tx) => {
             const docSnapshot = await tx.get(clientRef);
@@ -276,32 +297,41 @@ export default async function handler(req, res) {
             const currentPoints = Number(data.points || data.puntos || 0);
             const newPoints = currentPoints + points;
 
+            const finalConcept = concept || (
+                reason === 'welcome_signup' ? 'Puntos de Bienvenida' :
+                    (reason === 'profile_address' ? 'Premio por completar dirección' : 'Asignación automática')
+            );
+
+            // ACTUALIZACIÓN DE USUARIO (Incluyendo Sync Legado)
             tx.update(clientRef, {
                 points: newPoints,
                 puntos: newPoints,
                 accumulated_balance: newAccumulatedBalance,
                 [`rewards_awarded.${reason}`]: true,
-                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                // Sincronizar con el array legado para que se vea en el dashboard/perfil viejo
+                historialPuntos: admin.firestore.FieldValue.arrayUnion({
+                    fechaObtencion: admin.firestore.Timestamp.fromDate(recordDate),
+                    puntosObtenidos: points,
+                    puntosDisponibles: points,
+                    diasCaducidad: validityDays,
+                    origen: finalConcept,
+                    estado: 'Activo'
+                })
             });
 
             // Log Historial (Subcollection points_history)
             const histRef = clientRef.collection('points_history').doc();
-
-            // Support custom purchase date
-            const recordDate = req.body?.date ? new Date(req.body.date + (req.body.date.includes('T') ? '' : 'T12:00:00')) : new Date();
-
-            // Default expiration: 365 days
-            const expirationDate = new Date(recordDate);
-            expirationDate.setDate(expirationDate.getDate() + 365);
+            const moneySpent = req.body?.moneySpent || (reason === 'external_integration' && finalAmount ? Number(finalAmount) : 0);
 
             tx.set(histRef, {
                 amount: points,
-                moneySpent: req.body?.moneySpent || (reason === 'external_integration' && finalAmount ? Number(finalAmount) : 0),
+                moneySpent: moneySpent,
                 type: 'credit',
                 reason: reason || 'manual',
-                concept: concept || (reason === 'welcome_signup' ? 'Puntos de Bienvenida' : (reason === 'profile_address' ? 'Premio por completar dirección' : 'Asignación automática')),
+                concept: finalConcept,
                 metadata: metadata || {},
-                date: recordDate,
+                date: admin.firestore.Timestamp.fromDate(recordDate),
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
                 expiresAt: admin.firestore.Timestamp.fromDate(expirationDate),
                 remainingPoints: points,
@@ -315,11 +345,12 @@ export default async function handler(req, res) {
                 clientName: data.name || data.nombre || 'Sin nombre',
                 socioNumber: data.socioNumber || data.numeroSocio || 'N/A',
                 points: points,
-                amount: req.body?.moneySpent || (reason === 'external_integration' && finalAmount ? Number(finalAmount) : 0),
+                amount: moneySpent, // IMPORTANTE: Mismo campo que el dashboard usa para 'Totales'
+                moneySpent: moneySpent, // Por si acaso
                 type: 'credit',
                 reason: reason || 'manual',
-                concept: concept || (reason === 'welcome_signup' ? 'Puntos de Bienvenida' : (reason === 'profile_address' ? 'Premio por completar dirección' : 'Asignación automática')),
-                date: recordDate,
+                concept: finalConcept,
+                date: admin.firestore.Timestamp.fromDate(recordDate),
                 createdAt: admin.firestore.FieldValue.serverTimestamp()
             });
 

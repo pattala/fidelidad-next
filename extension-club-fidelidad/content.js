@@ -85,12 +85,6 @@ function showFidelidadPanel() {
             <span class="fidelidad-close" id="fidelidad-close">×</span>
         </div>
         <div class="fidelidad-body">
-            <!-- PESTAÑAS -->
-            <div class="cf-tabs">
-                <button id="tab-monto" class="cf-tab active">Por Monto ($)</button>
-                <button id="tab-directo" class="cf-tab">Puntos Directos</button>
-            </div>
-
             <!-- BUSCADOR PREDICTIVO -->
             <div class="fidelidad-search-container">
                 <label class="cf-label">Buscar Socio (Nombre, DNI o ID)</label>
@@ -189,13 +183,11 @@ function showFidelidadPanel() {
     const statusDiv = document.getElementById('fidelidad-status');
     const clientHeader = document.getElementById('cf-client-name-header');
     const promosList = document.getElementById('cf-promos-list');
-    const tabMonto = document.getElementById('tab-monto');
-    const tabDirecto = document.getElementById('tab-directo');
-    const labelMonto = document.getElementById('cf-amount-label');
     const inputMonto = document.getElementById('cf-input-amount');
-    const currencySymbol = document.getElementById('cf-currency-symbol');
     const promosContainer = document.getElementById('cf-promos-container');
 
+    // MANTENER SIEMPRE EN PESOS EN LA EXTENSIÓN
+    let isPesos = true;
 
     inputMonto.oninput = () => updatePointsPreview();
 
@@ -235,29 +227,6 @@ function showFidelidadPanel() {
             ${bonus > 0 ? `<div style="font-size: 10px; color: #9ca3af;">(Base: ${ptsBase} + Bonus: ${bonus})</div>` : ''}
         `;
     }
-
-    // TABS LOGIC
-    let isPesos = true;
-    tabMonto.onclick = () => {
-        isPesos = true;
-        tabMonto.classList.add('active');
-        tabDirecto.classList.remove('active');
-        labelMonto.innerText = 'Monto de la Compra ($)';
-        currencySymbol.innerText = '$';
-        inputMonto.placeholder = ''; // Clear placeholder
-        promosContainer.style.display = 'block';
-        updatePointsPreview();
-    };
-    tabDirecto.onclick = () => {
-        isPesos = false;
-        tabMonto.classList.remove('active');
-        tabDirecto.classList.add('active');
-        labelMonto.innerText = 'Puntos Directos:';
-        currencySymbol.innerText = 'pts';
-        inputMonto.placeholder = 'Puntos a asignar...';
-        promosContainer.style.display = 'block'; // Keep visible
-        updatePointsPreview();
-    };
 
     // MASTER TOGGLE PROMOS
     const masterApply = document.getElementById('cf-apply-promos');

@@ -531,7 +531,11 @@ export const ClientsPage = () => {
                 if (rule) days = rule.validityDays;
             }
 
-            const selectedDate = new Date(pointsData.purchaseDate + 'T12:00:00');
+            const todayStr = new Date().toISOString().split('T')[0];
+            const selectedDate = pointsData.purchaseDate === todayStr
+                ? new Date()
+                : new Date(pointsData.purchaseDate + 'T12:00:00');
+
             const expiresAt = new Date(selectedDate);
             expiresAt.setDate(expiresAt.getDate() + days);
 

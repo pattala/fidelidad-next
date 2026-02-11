@@ -189,8 +189,16 @@ export default async function handler(req, res) {
 
   let isAuthorized = false;
   const SECRET = process.env.API_SECRET_KEY || process.env.VITE_API_KEY;
+  const receivedApiKey = req.headers["x-api-key"] || req.headers["X-API-Key"] || req.headers["x-api-secret"];
 
-  if (apiKey && SECRET && apiKey === SECRET) {
+  console.log(`[send-notification] Auth check:`, {
+    hasReceivedKey: !!receivedApiKey,
+    hasAuthHeader: !!authHeader,
+    secretConfigured: !!SECRET,
+    secretMatch: (receivedApiKey && SECRET && receivedApiKey === SECRET)
+  });
+
+  if (receivedApiKey && SECRET && receivedApiKey === SECRET) {
     isAuthorized = true;
   } else if (authHeader && authHeader.startsWith("Bearer ")) {
     const token = authHeader.split("Bearer ")[1];
@@ -198,7 +206,7 @@ export default async function handler(req, res) {
       isAuthorized = true;
     } else {
       try {
-        await getAuth().verifyIdToken(token);
+        await admin.auth().verifyIdToken(token);
         isAuthorized = true;
       } catch (e) {
         console.error("[send-notification] Bearer token verification failed:", e.message);
@@ -207,11 +215,6 @@ export default async function handler(req, res) {
   }
 
   if (!isAuthorized) {
-    console.warn("[send-notification] Unauthorized access attempt:", {
-      hasApiKey: !!apiKey,
-      hasAuthHeader: !!authHeader,
-      secretConfigured: !!SECRET
-    });
     return res.status(401).json({ ok: false, error: "Unauthorized" });
   }
 

@@ -47,8 +47,17 @@ async function authCheck(req) {
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
 
   const SECRET = process.env.API_SECRET_KEY || process.env.VITE_API_KEY;
+  const receivedApiKey = req.headers['x-api-key'] || req.headers['X-API-Key'] || req.headers['x-api-secret'] || null;
 
-  if (apiKey && SECRET && apiKey === SECRET) return { ok: true, mode: 'secret' };
+  console.log(`[send-email] Auth check:`, {
+    hasReceivedKey: !!receivedApiKey,
+    hasToken: !!token,
+    origin,
+    secretConfigured: !!SECRET,
+    secretMatch: (receivedApiKey && SECRET && receivedApiKey === SECRET)
+  });
+
+  if (receivedApiKey && SECRET && receivedApiKey === SECRET) return { ok: true, mode: 'secret' };
   if (token && (token === SECRET || token === process.env.MI_API_SECRET)) return { ok: true, mode: 'secret' };
 
   if (token) {
@@ -62,14 +71,7 @@ async function authCheck(req) {
 
   if (ALLOWED.includes(origin)) return { ok: true, mode: 'origin' };
 
-  console.warn('[send-email] Auth failed for:', {
-    hasApiKey: !!apiKey,
-    hasToken: !!token,
-    origin,
-    isAllowedOrigin: ALLOWED.includes(origin)
-  });
-
-  return { ok: false, reason: token ? 'token-mismatch' : 'no-auth-header', origin };
+  return { ok: false, reason: 'unauthorized', origin };
 }
 
 function buildHtmlLayout(innerHtml, config = {}) {

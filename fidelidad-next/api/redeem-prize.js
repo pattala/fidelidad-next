@@ -234,7 +234,10 @@ export default async function handler(req, res) {
                         ? `https://${process.env.VERCEL_URL}`
                         : (req.headers.host ? `http://${req.headers.host}` : 'http://localhost:3000');
 
-                    const internalAuth = { 'x-api-key': process.env.API_SECRET_KEY || process.env.VITE_API_KEY };
+                    const internalAuth = {
+                        'x-api-key': process.env.API_SECRET_KEY || process.env.VITE_API_KEY,
+                        'x-api-secret': process.env.API_SECRET_KEY || process.env.VITE_API_KEY
+                    };
                     const notifications = [];
 
                     if (isPushEnabled) {

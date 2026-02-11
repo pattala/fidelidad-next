@@ -359,6 +359,7 @@ export default async function handler(req, res) {
                 createdAt: admin.firestore.FieldValue.serverTimestamp()
             });
 
+            result = { ok: true, pointsAdded: points, newBalance: newPoints };
         });
 
         // 6. NOTIFICACIONES Y MENSAJERÍA (Fuera de la transacción para evitar re-intentos innecesarios)

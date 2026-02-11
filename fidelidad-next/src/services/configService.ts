@@ -19,7 +19,8 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
         instagram: '',
         facebook: '',
         website: '',
-        termsAndConditions: ''
+        termsAndConditions: '',
+        pwaUrl: 'https://fidelidad-next.vercel.app'
     },
     pointsPerPeso: 1,
     pointsMoneyBase: 100,

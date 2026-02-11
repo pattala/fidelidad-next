@@ -77,6 +77,7 @@ export interface AppConfig {
         facebook?: string;
         website?: string;
         termsAndConditions?: string; // URL for TyC
+        pwaUrl?: string; // URL for the client application
         address?: string; // Dirección del local
         openingHours?: string; // Horarios de atención
     };

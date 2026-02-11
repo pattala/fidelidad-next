@@ -798,6 +798,19 @@ export const ConfigPage = () => {
                                                 />
                                             </div>
                                             <div className="col-span-full">
+                                                <label className="block text-xs font-semibold text-gray-600 mb-1">URL de la App (para Botón de Email)</label>
+                                                <input
+                                                    type="url"
+                                                    placeholder="https://fidelidad-next.vercel.app/login"
+                                                    value={config.contact?.pwaUrl || ''}
+                                                    onChange={e => setConfig({
+                                                        ...config,
+                                                        contact: { ...config.contact!, pwaUrl: e.target.value }
+                                                    })}
+                                                    className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-gray-100 outline-none"
+                                                />
+                                            </div>
+                                            <div className="col-span-full">
                                                 <label className="block text-xs font-semibold text-gray-600 mb-1">Link Términos y Condiciones</label>
                                                 <input
                                                     type="text"

@@ -122,7 +122,11 @@ async function deleteByQueryPaged(db, makeQuery, label = "batch") {
   console.log(`[delete-user][cascade] ${label}: completo`);
 }
 
-async function deleteClienteSubcollections(db, docId) {
+async function deleteClienteSubcollections(db, docId, targetCollection = "users") {
+  if (targetCollection !== "users") {
+    console.log(`[delete-user][cascade] Skipping subcollections for non-user collection: ${targetCollection}`);
+    return;
+  }
   const subs = ["geo_raw", "points_history", "inbox", "notifications"];
   for (const sub of subs) {
     const makeQuery = () => db.collection(`users/${docId}/${sub}`).limit(500);
@@ -179,7 +183,7 @@ export default async function handler(req, res) {
 
   try {
     const db = getDb();
-    const { docId, numeroSocio, authUID, email } = payload || {};
+    const { docId, numeroSocio, authUID, email, targetCollection = "users" } = payload || {};
 
     if (!docId && !numeroSocio && !authUID && !email) {
       return res.status(400).json({
@@ -188,7 +192,29 @@ export default async function handler(req, res) {
       });
     }
 
-    const found = await findClienteDoc(db, { docId, numeroSocio, authUID, email });
+    const col = db.collection(targetCollection);
+    let found = null;
+
+    // Search logic based on targetCollection
+    if (docId) {
+      const snap = await col.doc(docId).get();
+      if (snap.exists) found = { id: snap.id, data: snap.data() };
+    }
+
+    if (!found && targetCollection === "users" && numeroSocio) {
+      const q = await col.where("numeroSocio", "==", Number(numeroSocio)).limit(1).get();
+      if (!q.empty) found = { id: q.docs[0].id, data: q.docs[0].data() };
+    }
+
+    if (!found && authUID) {
+      const q = await col.where("authUID", "==", authUID).limit(1).get();
+      if (!q.empty) found = { id: q.docs[0].id, data: q.docs[0].data() };
+    }
+
+    if (!found && email) {
+      const q = await col.where("email", "==", String(email).toLowerCase()).limit(1).get();
+      if (!q.empty) found = { id: q.docs[0].id, data: q.docs[0].data() };
+    }
 
     let deletedDocId = null;
     let matchedBy = null;
@@ -203,12 +229,16 @@ export default async function handler(req, res) {
       data = found.data;
       matchedBy = docId ? "docId" : authUID ? "authUID" : email ? "email" : "numeroSocio";
 
-      await deleteClienteSubcollections(db, found.id);
-      await deleteLooseCollections(db, {
-        uid: data?.authUID || resolvedAuthUID || "",
-        docId: found.id
-      });
-      await db.collection("users").doc(found.id).delete();
+      await deleteClienteSubcollections(db, found.id, targetCollection);
+
+      if (targetCollection === "users") {
+        await deleteLooseCollections(db, {
+          uid: data?.authUID || resolvedAuthUID || "",
+          docId: found.id
+        });
+      }
+
+      await col.doc(found.id).delete();
     } else {
       matchedBy = docId ? "docId" : authUID ? "authUID" : email ? "email" : "numeroSocio";
       if (resolvedDocId || resolvedAuthUID) {

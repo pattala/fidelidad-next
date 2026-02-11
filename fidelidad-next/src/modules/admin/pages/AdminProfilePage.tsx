@@ -212,13 +212,17 @@ const TeamManagement = () => {
         const toastId = toast.loading('Revocando acceso...');
 
         try {
-            const response = await fetch('/api/delete-admin', {
+            const response = await fetch('/api/delete-user', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'x-api-key': import.meta.env.VITE_API_KEY || ''
                 },
-                body: JSON.stringify({ uid: id, email })
+                body: JSON.stringify({
+                    uid: id,
+                    email,
+                    targetCollection: 'admins' // Unified endpoint support
+                })
             });
 
             const result = await response.json();

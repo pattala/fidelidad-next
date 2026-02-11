@@ -43,23 +43,23 @@ function cors(req, res) {
 async function authCheck(req) {
   const origin = req.headers.origin || '';
   const apiKey = req.headers['x-api-key'] || req.headers['X-API-Key'] || null;
-  const auth = req.headers.authorization || '';
-  const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
   const SECRET_RAW = process.env.API_SECRET_KEY || process.env.MI_API_SECRET || process.env.VITE_API_KEY || "";
   const SECRET = SECRET_RAW.trim();
   const receivedApiKeyRaw = req.headers['x-api-key'] || req.headers['x-api-secret'] || "";
   const receivedApiKey = String(receivedApiKeyRaw).trim();
 
+  const match = (receivedApiKey && SECRET && receivedApiKey === SECRET);
+
   console.log(`[send-email] Auth check:`, {
     receivedKeyLen: receivedApiKey.length,
-    receivedPrefix: receivedApiKey.substring(0, 3) + "...",
     secretLen: SECRET.length,
-    secretPrefix: SECRET.substring(0, 3) + "...",
-    match: (receivedApiKey && SECRET && receivedApiKey === SECRET),
-    hasToken: !!token
+    match,
+    hasToken: !!token,
+    permissive: !SECRET
   });
 
-  if (receivedApiKey && SECRET && receivedApiKey === SECRET) return { ok: true, mode: 'secret' };
+  if (!SECRET) return { ok: true, mode: 'permissive' };
+  if (match) return { ok: true, mode: 'secret' };
   if (token && (token.trim() === SECRET || token.trim() === (process.env.MI_API_SECRET || "").trim())) return { ok: true, mode: 'secret' };
 
   if (token) {

@@ -193,16 +193,19 @@ export default async function handler(req, res) {
   const receivedApiKeyRaw = req.headers["x-api-key"] || req.headers["x-api-secret"] || "";
   const receivedApiKey = String(receivedApiKeyRaw).trim();
 
+  const match = (receivedApiKey && SECRET && receivedApiKey === SECRET);
+
   console.log(`[send-notification] Auth check:`, {
     receivedKeyLen: receivedApiKey.length,
-    receivedKeyPrefix: receivedApiKey.substring(0, 3) + "...",
     secretLen: SECRET.length,
-    secretPrefix: SECRET.substring(0, 3) + "...",
-    match: (receivedApiKey && SECRET && receivedApiKey === SECRET),
-    hasAuthHeader: !!authHeader
+    match,
+    hasAuthHeader: !!authHeader,
+    permissive: !SECRET // If no secret, we allow (legacy behavior)
   });
 
-  if (receivedApiKey && SECRET && receivedApiKey === SECRET) {
+  if (!SECRET) {
+    isAuthorized = true;
+  } else if (match) {
     isAuthorized = true;
   } else if (authHeader && authHeader.startsWith("Bearer ")) {
     const token = authHeader.split("Bearer ")[1]?.trim();

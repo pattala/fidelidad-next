@@ -78,7 +78,8 @@ async function authCheck(req) {
 }
 
 function buildHtmlLayout(innerHtml, config = {}) {
-  const base = process.env.PWA_URL || `https://${process.env.VERCEL_URL}`;
+  // Use a reliable base URL, prioritizing the main production domain if available.
+  const base = process.env.PWA_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://fidelidad-next.vercel.app');
   const logo = config.logoUrl || process.env.PUSH_ICON_URL || `${base}/images/mi_logo.png`;
   const siteName = config.siteName || 'Club Fidelidad';
   const terms = process.env.URL_TERMINOS_Y_CONDICIONES || '#';

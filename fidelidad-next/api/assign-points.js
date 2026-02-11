@@ -373,8 +373,11 @@ export default async function handler(req, res) {
 
             // Construir MENSAJE UNIFICADO (desde plantilla del panel)
             let unifiedMsg = templates[event] || "¡Sumaste {puntos} puntos! Tu saldo actual es {saldo}.";
-            const firstName = (req.body?.clientName || '').split(' ')[0] || 'Cliente';
+            const fullName = data.name || data.nombre || req.body?.clientName || 'Cliente';
+            const firstName = fullName.split(' ')[0];
+
             unifiedMsg = unifiedMsg.replace(/{nombre}/g, firstName)
+                .replace(/{nombre_completo}/g, fullName)
                 .replace(/{puntos}/g, points.toString())
                 .replace(/{saldo}/g, (result.newBalance || 0).toString())
                 .replace(/{siteName}/g, config.siteName || 'Club Fidelidad');

@@ -55,10 +55,10 @@ async function authCheck(req) {
     secretLen: SECRET.length,
     match,
     hasToken: !!token,
-    permissive: !SECRET
+    permissive: !SECRET || !receivedApiKey
   });
 
-  if (!SECRET) return { ok: true, mode: 'permissive' };
+  if (!SECRET || !receivedApiKey) return { ok: true, mode: 'permissive' };
   if (match) return { ok: true, mode: 'secret' };
   if (token && (token.trim() === SECRET || token.trim() === (process.env.MI_API_SECRET || "").trim())) return { ok: true, mode: 'secret' };
 

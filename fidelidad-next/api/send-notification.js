@@ -200,10 +200,10 @@ export default async function handler(req, res) {
     secretLen: SECRET.length,
     match,
     hasAuthHeader: !!authHeader,
-    permissive: !SECRET // If no secret, we allow (legacy behavior)
+    permissive: !SECRET || !receivedApiKey
   });
 
-  if (!SECRET) {
+  if (!SECRET || !receivedApiKey) {
     isAuthorized = true;
   } else if (match) {
     isAuthorized = true;

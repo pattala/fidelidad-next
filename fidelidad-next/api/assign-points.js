@@ -369,6 +369,14 @@ export default async function handler(req, res) {
             const eventConfig = messagingCfg.eventConfigs?.[event];
             const channels = eventConfig?.channels || [];
 
+            console.log(`[assign-points] Messaging diagnostics:`, {
+                pushEnabledGlobal: !!messagingCfg.pushEnabled,
+                emailEnabledGlobal: !!messagingCfg.emailEnabled,
+                channelsForEvent: channels,
+                clientHasEmail: !!(data.email || data.correo),
+                clientEmail: data.email || data.correo || 'N/A'
+            });
+
             // Construir MENSAJE UNIFICADO (desde plantilla del panel)
             let unifiedMsg = templates[event] || "¡Sumaste {puntos} puntos! Tu saldo actual es {saldo}.";
             const firstName = (data.name || data.nombre || '').split(' ')[0];

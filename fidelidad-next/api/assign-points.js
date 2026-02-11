@@ -207,49 +207,46 @@ export default async function handler(req, res) {
             const clientSnap = await db.collection('users').doc(targetUid).get();
             const currentAccumulated = clientSnap.exists ? Number(clientSnap.data().accumulated_balance || 0) : 0;
 
+            let basePoints = 0;
             if (reason === 'external_integration') {
                 // APLICAR CONVERSIÓN OFICIAL CON SALDO ACUMULADO
                 const base = Number(config.pointsMoneyBase) || 100;
                 const ratio = Number(config.pointsPerPeso) || 1;
 
                 const totalVal = Number(finalAmount) + currentAccumulated;
-                let basePoints = Math.floor((totalVal / base) * ratio);
+                basePoints = Math.floor((totalVal / base) * ratio);
                 newAccumulatedBalance = totalVal % base;
-
-                let promoDetails = "";
-                // Aplicar Bonos/Promociones seleccionadas
-                if (bonusIds && Array.isArray(bonusIds) && bonusIds.length > 0) {
-                    let totalBonus = 0;
-                    let totalMultiplier = 1;
-
-                    const bonusSnaps = await Promise.all(bonusIds.map(bid => db.collection('campanas').doc(bid).get()));
-                    bonusSnaps.forEach(bsnap => {
-                        if (bsnap.exists) {
-                            const b = bsnap.data();
-                            if (b.rewardType === 'FIXED') totalBonus += (Number(b.rewardValue) || 0);
-                            if (b.rewardType === 'MULTIPLIER') totalMultiplier *= (Number(b.rewardValue) || 1);
-
-                            const bonusAction = b.rewardType === 'MULTIPLIER' ? `x${b.rewardValue}` : `+${b.rewardValue}`;
-                            promoDetails += (promoDetails ? ", " : " + Bono: ") + (b.name || b.title || "Promo") + ` (${bonusAction})`;
-                        }
-                    });
-
-                    points = Math.floor(basePoints * totalMultiplier) + totalBonus;
-                } else {
-                    points = basePoints;
-                }
-
-                // Expose it to the transaction logic
-                req.body.calculatedPromoDetails = promoDetails;
             } else {
-                // Modo Manual (ya viene en puntos, pero el usuario puede enviar 'moneySpent')
-                // NOTA: Si es manual directo en puntos, no solemos tocar el accumulated_balance 
-                // a menos que el usuario especifique que es una carga por monto.
-                points = Number(finalAmount);
-                // Si el cliente envió moneySpent en el body, podríamos resetear o ajustar el balance, 
-                // pero por ahora mantenemos lo existente si es manual directo.
+                // Modo Manual (ya viene en puntos)
+                basePoints = Number(finalAmount);
                 newAccumulatedBalance = currentAccumulated;
             }
+
+            let promoDetails = "";
+            // Aplicar Bonos/Promociones seleccionadas (ahora disponible para ambos modos desde el Admin)
+            if (bonusIds && Array.isArray(bonusIds) && bonusIds.length > 0) {
+                let totalBonus = 0;
+                let totalMultiplier = 1;
+
+                const bonusSnaps = await Promise.all(bonusIds.map(bid => db.collection('campanas').doc(bid).get()));
+                bonusSnaps.forEach(bsnap => {
+                    if (bsnap.exists) {
+                        const b = bsnap.data();
+                        if (b.rewardType === 'FIXED') totalBonus += (Number(b.rewardValue) || 0);
+                        if (b.rewardType === 'MULTIPLIER') totalMultiplier *= (Number(b.rewardValue) || 1);
+
+                        const bonusAction = b.rewardType === 'MULTIPLIER' ? `x${b.rewardValue}` : `+${b.rewardValue}`;
+                        promoDetails += (promoDetails ? ", " : " + Bono: ") + (b.name || b.title || "Promo") + ` (${bonusAction})`;
+                    }
+                });
+
+                points = Math.floor(basePoints * totalMultiplier) + totalBonus;
+            } else {
+                points = basePoints;
+            }
+
+            // Expose it to the transaction logic
+            req.body.calculatedPromoDetails = promoDetails;
         } else {
             // Modo Reglas de Negocio (Bienvenida, Dirección, etc)
             if (reason === 'profile_address') {

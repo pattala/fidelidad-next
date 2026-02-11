@@ -488,162 +488,46 @@ export const ClientsPage = () => {
 
         setActionLoading(true);
         try {
-            const currentConfig = await ConfigService.get();
             const inputVal = parseFloat(pointsData.amount);
-            let finalPoints = 0;
-            let newAccumulatedBalance = 0;
-
-            if (pointsData.isPesos) {
-                const currentBalance = selectedClientForPoints.accumulated_balance || 0;
-                const totalVal = inputVal + currentBalance;
-                const ratio = currentConfig?.pointsPerPeso || 1;
-                finalPoints = Math.floor((totalVal / 100) * ratio);
-                newAccumulatedBalance = totalVal % 100;
-            } else {
-                finalPoints = Math.floor(inputVal);
-            }
-
-            const activeBonuses = applyPromotions ? availablePromotions.filter(p => selectedPromos.includes(p.id)) : [];
-            let bonusPoints = 0;
-            let promoDetails = "";
-            if (activeBonuses.length > 0) {
-                activeBonuses.forEach(b => {
-                    const bonusAction = b.rewardType === 'MULTIPLIER' ? `x${b.rewardValue}` : `+${b.rewardValue}`;
-                    if (b.rewardType === 'MULTIPLIER') bonusPoints += Math.floor(finalPoints * (b.rewardValue - 1));
-                    else bonusPoints += (b.rewardValue || 0);
-                    promoDetails += (promoDetails ? ", " : " + Bono: ") + b.name + ` (${bonusAction})`;
-                });
-                finalPoints += bonusPoints;
-            }
-
-            const finalConcept = pointsData.concept + promoDetails;
-
-            if (finalPoints <= 0 && !pointsData.isPesos) {
-                toast.error("La cantidad de puntos debe ser mayor a 0");
+            if (isNaN(inputVal) || inputVal <= 0) {
+                toast.error("Ingrese un monto válido");
                 setActionLoading(false);
                 return;
             }
 
-            let days = 365;
-            if (currentConfig?.expirationRules) {
-                const rule = currentConfig.expirationRules.find((r: any) =>
-                    finalPoints >= Number(r.minPoints) && (!r.maxPoints || finalPoints <= Number(r.maxPoints))
-                );
-                if (rule) days = rule.validityDays;
-            }
-
-            const todayStr = new Date().toISOString().split('T')[0];
-            const selectedDate = pointsData.purchaseDate === todayStr
-                ? new Date()
-                : new Date(pointsData.purchaseDate + 'T12:00:00');
-
-            const expiresAt = new Date(selectedDate);
-            expiresAt.setDate(expiresAt.getDate() + days);
-
-            if (finalPoints > 0) {
-                const historyRef = collection(db, `users/${selectedClientForPoints.id}/points_history`);
-                await addDoc(historyRef, {
-                    amount: finalPoints,
-                    moneySpent: pointsData.isPesos ? inputVal : 0,
-                    concept: finalConcept,
-                    date: selectedDate,
-                    type: 'credit',
-                    expiresAt: expiresAt,
-                    remainingPoints: finalPoints
-                });
-
-                // --- ESCRITURA GLOBAL PARA ESTADÍSTICAS ---
-                const globalTransRef = collection(db, 'transactions');
-                await addDoc(globalTransRef, {
+            const res = await fetch('/api/assign-points', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': import.meta.env.VITE_API_KEY || ''
+                },
+                body: JSON.stringify({
                     uid: selectedClientForPoints.id,
-                    clientName: selectedClientForPoints.name,
-                    socioNumber: selectedClientForPoints.socioNumber || 'N/A',
-                    points: finalPoints,
-                    amount: pointsData.isPesos ? inputVal : 0,
-                    type: 'credit',
-                    reason: 'manual_admin',
-                    concept: finalConcept,
-                    date: selectedDate,
-                    createdAt: serverTimestamp()
-                });
+                    amount: inputVal,
+                    reason: pointsData.isPesos ? 'external_integration' : 'manual',
+                    concept: pointsData.concept,
+                    date: pointsData.purchaseDate,
+                    bonusIds: applyPromotions ? selectedPromos : [],
+                    applyWhatsApp: notifyWhatsapp
+                })
+            });
 
-                await updateDoc(doc(db, 'users', selectedClientForPoints.id), {
-                    points: increment(finalPoints),
-                    puntos: increment(finalPoints),
-                    accumulated_balance: newAccumulatedBalance, // PERSISTIR EL SALDO RESTANTE
-                    historialPuntos: arrayUnion({
-                        fechaObtencion: selectedDate,
-                        puntosObtenidos: finalPoints,
-                        puntosDisponibles: finalPoints,
-                        diasCaducidad: days,
-                        origen: finalConcept,
-                        estado: 'Activo'
-                    })
-                });
+            const data = await res.json();
 
-                if (notifyWhatsapp && selectedClientForPoints.phone) {
-                    const pointsTemplate = currentConfig?.messaging?.templates?.pointsAdded || DEFAULT_TEMPLATES.pointsAdded;
-                    const cUser = selectedClientForPoints;
-                    const cName = cUser.name || 'Cliente';
-                    const sPoints = cUser.points || 0;
-
-                    const msg = pointsTemplate
-                        .replace(/{nombre}/g, cName.split(' ')[0])
-                        .replace(/{nombre_completo}/g, cName)
-                        .replace(/{puntos}/g, finalPoints.toString())
-                        .replace(/{saldo}/g, (sPoints + finalPoints).toString())
-                        .replace(/{total_puntos}/g, (sPoints + finalPoints).toString())
-                        .replace(/{vence}/g, expiresAt.toLocaleDateString())
-                        .replace(/{concepto}/g, finalConcept);
-
-                    const cleanPhone = selectedClientForPoints.phone.replace(/\D/g, '');
-                    if (cleanPhone.length > 5) {
-                        const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msg.trim())}`;
-                        // Delay opening WhatsApp slightly to allow UI to update
-                        setTimeout(() => window.open(waUrl, '_blank'), 500);
-                    }
+            if (data.ok) {
+                toast.success(`¡Se asignaron ${data.pointsAdded} puntos!`);
+                if (data.whatsappLink && notifyWhatsapp) {
+                    setTimeout(() => window.open(data.whatsappLink, '_blank'), 500);
                 }
-
-                // NEW: Send Inbox Notification for the PWA Bell
-                try {
-                    const pointsTemplate = currentConfig?.messaging?.templates?.pointsAdded || DEFAULT_TEMPLATES.pointsAdded;
-                    const cName = selectedClientForPoints.name || 'Cliente';
-                    const currentClientPoints = selectedClientForPoints.points || 0;
-
-                    const msg = pointsTemplate
-                        .replace(/{nombre}/g, cName.split(' ')[0])
-                        .replace(/{nombre_completo}/g, cName)
-                        .replace(/{puntos}/g, finalPoints.toString())
-                        .replace(/{saldo}/g, (currentClientPoints + finalPoints).toString())
-                        .replace(/{total_puntos}/g, (currentClientPoints + finalPoints).toString())
-                        .replace(/{vence}/g, expiresAt.toLocaleDateString())
-                        .replace(/{concepto}/g, finalConcept);
-
-                    await NotificationService.sendToClient(selectedClientForPoints.id, {
-                        title: '¡Puntos Sumados! 🎉',
-                        body: msg,
-                        type: 'pointsAdded',
-                        icon: currentConfig?.logoUrl
-                    });
-                } catch (notiError) {
-                    console.warn("No se pudo enviar la notificación inbox:", notiError);
-                }
+                closePointsModal();
+                fetchData();
+            } else {
+                toast.error(`Error: ${data.error}`);
             }
-
-            if (pointsData.isPesos && newAccumulatedBalance !== undefined) {
-                const cId = selectedClientForPoints.id;
-                await updateDoc(doc(db, 'users', cId), {
-                    accumulated_balance: newAccumulatedBalance
-                });
-            }
-
-            toast.success(`¡Se asignaron ${finalPoints} puntos!`);
-            setActionLoading(false);
-            closePointsModal();
-            fetchData();
         } catch (error) {
             console.error("Error al asignar puntos:", error);
-            toast.error("Error al asignar puntos. Verifique los datos o intente más tarde.");
+            toast.error("Error de conexión al asignar puntos");
+        } finally {
             setActionLoading(false);
         }
     };

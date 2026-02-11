@@ -343,6 +343,18 @@ export default async function handler(req, res) {
                 balanceAfter: newPoints
             });
 
+            // --- PERSISTENCIA EN INBOX (Sistema) ---
+            const inboxRef = clientRef.collection('inbox').doc();
+            tx.set(inboxRef, {
+                title: '¡Puntos Sumados! 💰',
+                body: finalConcept,
+                url: '/mis-puntos',
+                type: 'pointsAdded',
+                read: false,
+                date: admin.firestore.FieldValue.serverTimestamp(),
+                sentAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+
             // --- ESCRITURA GLOBAL PARA ESTADÍSTICAS ---
             const globalTransRef = db.collection('transactions').doc();
             tx.set(globalTransRef, {

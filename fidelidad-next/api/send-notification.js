@@ -85,12 +85,13 @@ function asStringRecord(obj = {}) {
 
 // ---------- Resolución de destinatarios ----------
 // Devuelve una lista de { id: clienteId, token } (uno por token).
+// Devuelve una lista de { id: clienteId, token: string | null }
 async function resolveDestinatarios({ db, tokens = [], audience, clienteId }) {
   const out = [];
 
-  // Helper: trae tokens de una lista de docIds (en lotes de 10 por límite de IN)
+  // Helper: trae docs de una lista de ids
   async function fetchDocIds(docIds) {
-    const ids = docIds.map(String).filter(Boolean);
+    const ids = unique(docIds);
     for (let i = 0; i < ids.length; i += 10) {
       const batch = ids.slice(i, i + 10);
       const snap = await db.collection("users")
@@ -99,15 +100,19 @@ async function resolveDestinatarios({ db, tokens = [], audience, clienteId }) {
       snap.forEach(doc => {
         const data = doc.data() || {};
         const toks = Array.isArray(data.fcmTokens) ? data.fcmTokens : [];
-        toks.forEach(tk => {
-          const clean = String(tk || "").trim();
-          if (clean) out.push({ id: doc.id, token: clean });
-        });
+        if (toks.length === 0) {
+          out.push({ id: doc.id, token: null });
+        } else {
+          toks.forEach(tk => {
+            const clean = String(tk || "").trim();
+            if (clean) out.push({ id: doc.id, token: clean });
+          });
+        }
       });
     }
   }
 
-  // 1) Audience explícito (campañas con docIds)
+  // 1) Audience explícito
   if (audience && Array.isArray(audience.docIds) && audience.docIds.length) {
     await fetchDocIds(audience.docIds);
   }
@@ -118,14 +123,18 @@ async function resolveDestinatarios({ db, tokens = [], audience, clienteId }) {
     if (snap.exists) {
       const data = snap.data() || {};
       const toks = Array.isArray(data.fcmTokens) ? data.fcmTokens : [];
-      toks.forEach(tk => {
-        const clean = String(tk || "").trim();
-        if (clean) out.push({ id: snap.id, token: clean });
-      });
+      if (toks.length === 0) {
+        out.push({ id: snap.id, token: null });
+      } else {
+        toks.forEach(tk => {
+          const clean = String(tk || "").trim();
+          if (clean) out.push({ id: snap.id, token: clean });
+        });
+      }
     }
   }
 
-  // 3) Mapear token -> cliente (por fcmTokens)
+  // 3) Tokens explícitos (buscar dueño para tracking)
   if (Array.isArray(tokens) && tokens.length) {
     for (const tkRaw of tokens) {
       const tk = String(tkRaw || "").trim();
@@ -136,7 +145,8 @@ async function resolveDestinatarios({ db, tokens = [], audience, clienteId }) {
       if (!q.empty) {
         out.push({ id: q.docs[0].id, token: tk });
       } else {
-        console.warn("⚠️ Token sin cliente asociado:", tk);
+        // Token sin dueño conocido (pero se enviará igual por FCM)
+        out.push({ id: "unknown", token: tk });
       }
     }
   }
@@ -275,20 +285,8 @@ export default async function handler(req, res) {
     console.error("resolveDestinatarios error:", e?.message || e);
   }
 
-  // Tokens para envío = tokens de entrada (si hay) + tokens resueltos por audience/cliente
-  let sendTokens = unique([...tokens, ...destinatarios.map(d => d.token)]);
-
-  if (!sendTokens.length) {
-    console.log(`[send-notification] Skipping FCM transport: No tokens found for client ${clienteId || 'N/A'}`);
-    return res.status(200).json({
-      ok: true,
-      message: "No tokens found to send.",
-      successCount: 0,
-      failureCount: 0,
-      invalidTokens: [],
-      createdInbox: 0
-    });
-  }
+  // Tokens para envío FCM (solo los no nulos e únicos)
+  let sendTokens = unique([...tokens, ...destinatarios.filter(d => d.token).map(d => d.token)]);
 
   // ====== notifId (único por envío) ======
   const notifId = db.collection("_ids").doc().id;
@@ -306,59 +304,63 @@ export default async function handler(req, res) {
     ...extraData,
   });
 
-  // Config común a todos los lotes
-  const baseMsg = {
-    notification: {
-      title: title || "Club Fidelidad",
-      body: msgBody,
-    },
-    data,
-    webpush: {
-      notification: {
-        icon: icon || '/pwa-192x192.png',
-        badge: '/pwa-72x72.png',
-        requireInteraction: true
-      },
-      fcmOptions: { link: data.url || "/notificaciones" }
-    },
-    android: {
-      priority: "high",
-      notification: {
-        sound: "default",
-        clickAction: "OPEN_ACTIVITY_1"
-      }
-    }
-  };
-
-  console.log("FCM about to send:", JSON.stringify({ tokensCount: sendTokens.length, withAudience: !!(audience?.docIds?.length) }));
-
-  // ====== Envío en lotes (≤500) ======
-  const adminApp = initFirebaseAdmin();
-  const batches = chunkArray(sendTokens, 500);
-
+  // ====== Envío FCM (Transporte) ======
   let successCount = 0, failureCount = 0;
   const invalidTokens = new Set();
   const perToken = []; // { token, success, errorCode, errorMessage }
 
-  for (const batchTokens of batches) {
-    const message = { ...baseMsg, tokens: batchTokens };
-    const resp = await adminApp.messaging().sendEachForMulticast(message);
+  if (sendTokens.length > 0) {
+    // Config común a todos los lotes
+    const baseMsg = {
+      notification: {
+        title: title || "Club Fidelidad",
+        body: msgBody,
+      },
+      data,
+      webpush: {
+        notification: {
+          icon: icon || '/pwa-192x192.png',
+          badge: '/pwa-72x72.png',
+          requireInteraction: true
+        },
+        fcmOptions: { link: data.url || "/notificaciones" }
+      },
+      android: {
+        priority: "high",
+        notification: {
+          sound: "default",
+          clickAction: "OPEN_ACTIVITY_1"
+        }
+      }
+    };
 
-    successCount += resp.successCount || 0;
-    failureCount += resp.failureCount || 0;
+    console.log("FCM about to send:", JSON.stringify({ tokensCount: sendTokens.length, withAudience: !!(audience?.docIds?.length) }));
 
-    (resp.responses || []).forEach((r, idx) => {
-      const t = batchTokens[idx];
-      const code = r.error?.errorInfo?.code || r.error?.code || null;
-      if (!r.success && code && isInvalidTokenError(code)) invalidTokens.add(t);
+    const adminApp = initFirebaseAdmin();
+    const batches = chunkArray(sendTokens, 500);
 
-      perToken.push({
-        token: t,
-        success: !!r.success,
-        errorCode: code,
-        errorMessage: r.error?.message || null,
+    for (const batchTokens of batches) {
+      const message = { ...baseMsg, tokens: batchTokens };
+      const resp = await adminApp.messaging().sendEachForMulticast(message);
+
+      successCount += resp.successCount || 0;
+      failureCount += resp.failureCount || 0;
+
+      (resp.responses || []).forEach((r, idx) => {
+        const t = batchTokens[idx];
+        const code = r.error?.errorInfo?.code || r.error?.code || null;
+        if (!r.success && code && isInvalidTokenError(code)) invalidTokens.add(t);
+
+        perToken.push({
+          token: t,
+          success: !!r.success,
+          errorCode: code,
+          errorMessage: r.error?.message || null,
+        });
       });
-    });
+    }
+  } else {
+    console.log(`[send-notification] Skipping FCM transport: No tokens found for client ${clienteId || 'N/A'}`);
   }
 
   // ====== Limpieza de tokens inválidos en Firestore ======

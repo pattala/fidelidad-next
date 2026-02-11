@@ -359,115 +359,77 @@ export default async function handler(req, res) {
                 createdAt: admin.firestore.FieldValue.serverTimestamp()
             });
 
-            // --- NOTIFICACIONES Y MENSAJERÍA ---
+        });
+
+        // 6. NOTIFICACIONES Y MENSAJERÍA (Fuera de la transacción para evitar re-intentos innecesarios)
+        try {
             const messagingCfg = config.messaging || {};
             const event = 'pointsAdded';
             const templates = messagingCfg.templates || {};
             const eventConfig = messagingCfg.eventConfigs?.[event];
             const channels = eventConfig?.channels || [];
 
-            console.log(`[assign-points] Messaging diagnostics:`, {
-                pushEnabledGlobal: !!messagingCfg.pushEnabled,
-                emailEnabledGlobal: !!messagingCfg.emailEnabled,
-                channelsForEvent: channels,
-                clientHasEmail: !!(data.email || data.correo),
-                clientEmail: data.email || data.correo || 'N/A'
-            });
-
             // Construir MENSAJE UNIFICADO (desde plantilla del panel)
             let unifiedMsg = templates[event] || "¡Sumaste {puntos} puntos! Tu saldo actual es {saldo}.";
-            const firstName = (data.name || data.nombre || '').split(' ')[0];
+            const firstName = (req.body?.clientName || '').split(' ')[0] || 'Cliente';
             unifiedMsg = unifiedMsg.replace(/{nombre}/g, firstName)
-                .replace(/{nombre_completo}/g, data.name || data.nombre || '')
                 .replace(/{puntos}/g, points.toString())
-                .replace(/{saldo}/g, newPoints.toString())
+                .replace(/{saldo}/g, (result.newBalance || 0).toString())
                 .replace(/{siteName}/g, config.siteName || 'Club Fidelidad');
 
-            // 1. Inbox (Transaccional)
-            // Siempre guardamos en inbox para el historial del cliente en la PWA
-            const inboxRef = clientRef.collection('inbox').doc();
-            tx.set(inboxRef, {
-                title: '¡Puntos Sumados! 💰',
-                body: unifiedMsg,
-                type: 'points_earned',
-                date: admin.firestore.FieldValue.serverTimestamp(),
-                sentAt: admin.firestore.FieldValue.serverTimestamp(),
-                read: false
-            });
+            const isPushEnabled = messagingCfg.pushEnabled && channels.includes('push');
+            const isEmailEnabled = messagingCfg.emailEnabled && channels.includes('email');
 
-            result = { ok: true, pointsAdded: points, newBalance: newPoints };
+            if (isPushEnabled || isEmailEnabled) {
+                const baseUrl = process.env.VERCEL_URL
+                    ? `https://${process.env.VERCEL_URL}`
+                    : (req.headers.host ? `http://${req.headers.host}` : 'http://localhost:3000');
 
-            // 2. Canales Automáticos (Push & Email)
-            try {
-                const isPushEnabled = messagingCfg.pushEnabled && channels.includes('push');
-                const isEmailEnabled = messagingCfg.emailEnabled && channels.includes('email');
+                const SECRET = (process.env.API_SECRET_KEY || process.env.MI_API_SECRET || process.env.VITE_API_KEY || "").trim();
+                const internalAuth = { 'x-api-key': SECRET, 'x-api-secret': SECRET };
+                const notifications = [];
 
-                if (isPushEnabled || isEmailEnabled) {
-                    const baseUrl = process.env.VERCEL_URL
-                        ? `https://${process.env.VERCEL_URL}`
-                        : (req.headers.host ? `http://${req.headers.host}` : 'http://localhost:3000');
-
-                    const SECRET = (process.env.API_SECRET_KEY || process.env.MI_API_SECRET || process.env.VITE_API_KEY || "").trim();
-                    const internalAuth = {
-                        'x-api-key': SECRET,
-                        'x-api-secret': SECRET
-                    };
-                    const notifications = [];
-
-                    // Push
-                    if (isPushEnabled) {
-                        notifications.push(
-                            fetch(`${baseUrl}/api/send-notification`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json', ...internalAuth },
-                                body: JSON.stringify({
-                                    clienteId: targetUid,
-                                    title: '¡Puntos Sumados! 💰',
-                                    body: unifiedMsg,
-                                    icon: config.logoUrl || '/logo.png',
-                                    extraData: { skipInbox: true, source: 'extension_or_panel' }
-                                })
-                            }).catch(err => console.error("Push notification error:", err))
-                        );
-                    }
-
-                    // Email
-                    if (isEmailEnabled && (data.email || data.correo)) {
-                        notifications.push(
-                            fetch(`${baseUrl}/api/send-email`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json', ...internalAuth },
-                                body: JSON.stringify({
-                                    to: data.email || data.correo,
-                                    templateId: 'manual_override',
-                                    templateData: {
-                                        subject: '¡Has sumado puntos! 💰',
-                                        htmlContent: unifiedMsg
-                                    }
-                                })
-                            }).catch(err => console.error("Email notification error:", err))
-                        );
-                    }
-
-                    // CRITICAL: Await all notifications before ending the lambda
-                    if (notifications.length > 0) {
-                        const SECRET = (process.env.API_SECRET_KEY || process.env.MI_API_SECRET || process.env.VITE_API_KEY || "").trim();
-                        console.log(`[assign-points] Triggering ${notifications.length} notifications to ${baseUrl}. SecretLen: ${SECRET.length}`);
-                        await Promise.allSettled(notifications);
-                    }
+                if (isPushEnabled) {
+                    notifications.push(
+                        fetch(`${baseUrl}/api/send-notification`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', ...internalAuth },
+                            body: JSON.stringify({
+                                clienteId: targetUid,
+                                title: '¡Puntos Sumados! 💰',
+                                body: unifiedMsg,
+                                icon: config.logoUrl || '/logo.png',
+                                extraData: { skipInbox: true, source: 'extension_or_panel' }
+                            })
+                        }).then(r => r.json().then(d => console.log("[assign-points] Push result:", r.status, d))).catch(err => console.error("Push error:", err))
+                    );
                 }
-            } catch (notifyErr) {
-                console.error("Error triggering notifications:", notifyErr);
-            }
 
-            // 3. WhatsApp Link (Si aplica)
-            const phone = data.phone || data.telefono;
-            if (phone && (reason === 'external_integration' || applyWhatsApp)) {
-                const cleanPhone = String(phone).replace(/\D/g, '');
-                // WhatsApp usa el MISMO mensaje unificado
-                result.whatsappLink = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(unifiedMsg)}`;
+                if (isEmailEnabled && (req.body?.clientEmail)) {
+                    notifications.push(
+                        fetch(`${baseUrl}/api/send-email`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', ...internalAuth },
+                            body: JSON.stringify({
+                                to: req.body.clientEmail,
+                                templateId: 'manual_override',
+                                templateData: {
+                                    subject: '¡Has sumado puntos! 💰',
+                                    htmlContent: unifiedMsg
+                                }
+                            })
+                        }).then(r => r.json().then(d => console.log("[assign-points] Email result:", r.status, d))).catch(err => console.error("Email error:", err))
+                    );
+                }
+
+                if (notifications.length > 0) {
+                    console.log(`[assign-points] Triggering ${notifications.length} notifications. SecretLen: ${SECRET.length}`);
+                    await Promise.allSettled(notifications);
+                }
             }
-        });
+        } catch (notifyErr) {
+            console.error("Error triggering notifications outside tx:", notifyErr);
+        }
 
         return res.status(200).json(result);
 

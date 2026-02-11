@@ -309,20 +309,17 @@ export default async function handler(req, res) {
   // Config común a todos los lotes
   const baseMsg = {
     notification: {
-      title,
-      body: msgBody
+      title: title || "Club Fidelidad",
+      body: msgBody,
     },
     data,
     webpush: {
       notification: {
-        title,
-        body: msgBody,
-        icon: icon || process.env.PUSH_ICON_URL || 'https://fidelidad-next.vercel.app/pwa-192x192.png',
-        badge: badge || process.env.PUSH_BADGE_URL || 'https://fidelidad-next.vercel.app/pwa-72x72.png',
-        // 'requireInteraction' removido para comportamiento nativo profesional (desaparece tras unos segundos)
+        icon: icon || '/pwa-192x192.png',
+        badge: '/pwa-72x72.png',
+        requireInteraction: true
       },
-      fcmOptions: { link: data.url || "/notificaciones" },
-      headers: { TTL: "2419200", Urgency: "high" }
+      fcmOptions: { link: data.url || "/notificaciones" }
     },
     android: {
       priority: "high",

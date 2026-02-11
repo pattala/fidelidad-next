@@ -347,7 +347,7 @@ export default async function handler(req, res) {
             const inboxRef = clientRef.collection('inbox').doc();
             tx.set(inboxRef, {
                 title: '¡Puntos Sumados! 💰',
-                body: finalConcept,
+                body: `¡Has sumado ${points} puntos! (${finalConcept})`,
                 url: '/mis-puntos',
                 type: 'pointsAdded',
                 read: false,

@@ -311,26 +311,14 @@ export default async function handler(req, res) {
 
   if (sendTokens.length > 0) {
     // Config común a todos los lotes
+    // Enviamos solo DATA para evitar "Doble Notificación" (SW + Browser default)
     const baseMsg = {
-      notification: {
-        title: title || "Club Fidelidad",
-        body: msgBody,
-      },
       data,
       webpush: {
-        notification: {
-          icon: icon || '/pwa-192x192.png',
-          badge: '/pwa-72x72.png',
-          requireInteraction: true
-        },
         fcmOptions: { link: data.url || "/notificaciones" }
       },
       android: {
-        priority: "high",
-        notification: {
-          sound: "default",
-          clickAction: "OPEN_ACTIVITY_1"
-        }
+        priority: "high"
       }
     };
 

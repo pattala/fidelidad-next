@@ -450,7 +450,8 @@ export default async function handler(req, res) {
 
                     // CRITICAL: Await all notifications before ending the lambda
                     if (notifications.length > 0) {
-                        console.log(`[assign-points] Awaiting ${notifications.length} notifications...`);
+                        const sLen = (process.env.API_SECRET_KEY || process.env.VITE_API_KEY || "").trim().length;
+                        console.log(`[assign-points] Triggering ${notifications.length} notifications to ${baseUrl}. SecretLen: ${sLen}`);
                         await Promise.allSettled(notifications);
                     }
                 }

@@ -188,20 +188,24 @@ export default async function handler(req, res) {
   const authHeader = req.headers["authorization"];
 
   let isAuthorized = false;
-  const SECRET = process.env.API_SECRET_KEY || process.env.VITE_API_KEY;
-  const receivedApiKey = req.headers["x-api-key"] || req.headers["X-API-Key"] || req.headers["x-api-secret"];
+  const SECRET_RAW = process.env.API_SECRET_KEY || process.env.VITE_API_KEY || "";
+  const SECRET = SECRET_RAW.trim();
+  const receivedApiKeyRaw = req.headers["x-api-key"] || req.headers["x-api-secret"] || "";
+  const receivedApiKey = String(receivedApiKeyRaw).trim();
 
   console.log(`[send-notification] Auth check:`, {
-    hasReceivedKey: !!receivedApiKey,
-    hasAuthHeader: !!authHeader,
-    secretConfigured: !!SECRET,
-    secretMatch: (receivedApiKey && SECRET && receivedApiKey === SECRET)
+    receivedKeyLen: receivedApiKey.length,
+    receivedKeyPrefix: receivedApiKey.substring(0, 3) + "...",
+    secretLen: SECRET.length,
+    secretPrefix: SECRET.substring(0, 3) + "...",
+    match: (receivedApiKey && SECRET && receivedApiKey === SECRET),
+    hasAuthHeader: !!authHeader
   });
 
   if (receivedApiKey && SECRET && receivedApiKey === SECRET) {
     isAuthorized = true;
   } else if (authHeader && authHeader.startsWith("Bearer ")) {
-    const token = authHeader.split("Bearer ")[1];
+    const token = authHeader.split("Bearer ")[1]?.trim();
     if (token === SECRET) {
       isAuthorized = true;
     } else {

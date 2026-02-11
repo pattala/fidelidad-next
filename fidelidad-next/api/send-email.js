@@ -46,19 +46,22 @@ async function authCheck(req) {
   const auth = req.headers.authorization || '';
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
 
-  const SECRET = process.env.API_SECRET_KEY || process.env.VITE_API_KEY;
-  const receivedApiKey = req.headers['x-api-key'] || req.headers['X-API-Key'] || req.headers['x-api-secret'] || null;
+  const SECRET_RAW = process.env.API_SECRET_KEY || process.env.VITE_API_KEY || "";
+  const SECRET = SECRET_RAW.trim();
+  const receivedApiKeyRaw = req.headers['x-api-key'] || req.headers['x-api-secret'] || "";
+  const receivedApiKey = String(receivedApiKeyRaw).trim();
 
   console.log(`[send-email] Auth check:`, {
-    hasReceivedKey: !!receivedApiKey,
-    hasToken: !!token,
-    origin,
-    secretConfigured: !!SECRET,
-    secretMatch: (receivedApiKey && SECRET && receivedApiKey === SECRET)
+    receivedKeyLen: receivedApiKey.length,
+    receivedPrefix: receivedApiKey.substring(0, 3) + "...",
+    secretLen: SECRET.length,
+    secretPrefix: SECRET.substring(0, 3) + "...",
+    match: (receivedApiKey && SECRET && receivedApiKey === SECRET),
+    hasToken: !!token
   });
 
   if (receivedApiKey && SECRET && receivedApiKey === SECRET) return { ok: true, mode: 'secret' };
-  if (token && (token === SECRET || token === process.env.MI_API_SECRET)) return { ok: true, mode: 'secret' };
+  if (token && (token.trim() === SECRET || token.trim() === (process.env.MI_API_SECRET || "").trim())) return { ok: true, mode: 'secret' };
 
   if (token) {
     try {

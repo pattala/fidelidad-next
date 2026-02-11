@@ -188,7 +188,7 @@ export default async function handler(req, res) {
   const authHeader = req.headers["authorization"];
 
   let isAuthorized = false;
-  const SECRET_RAW = process.env.API_SECRET_KEY || process.env.VITE_API_KEY || "";
+  const SECRET_RAW = process.env.API_SECRET_KEY || process.env.MI_API_SECRET || process.env.VITE_API_KEY || "";
   const SECRET = SECRET_RAW.trim();
   const receivedApiKeyRaw = req.headers["x-api-key"] || req.headers["x-api-secret"] || "";
   const receivedApiKey = String(receivedApiKeyRaw).trim();

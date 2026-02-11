@@ -234,17 +234,18 @@ export default async function handler(req, res) {
                         ? `https://${process.env.VERCEL_URL}`
                         : (req.headers.host ? `http://${req.headers.host}` : 'http://localhost:3000');
 
+                    const SECRET = (process.env.API_SECRET_KEY || process.env.MI_API_SECRET || process.env.VITE_API_KEY || "").trim();
                     const internalAuth = {
-                        'x-api-key': process.env.API_SECRET_KEY || process.env.VITE_API_KEY,
-                        'x-api-secret': process.env.API_SECRET_KEY || process.env.VITE_API_KEY
+                        'x-api-key': SECRET,
+                        'x-api-secret': SECRET
                     };
                     const notifications = [];
 
                     if (isPushEnabled) {
                         notifications.push(
                             fetch(`${baseUrl}/api/send-notification`, {
-                                method: 'POST',
                                 headers: { 'Content-Type': 'application/json', ...internalAuth },
+                                method: 'POST',
                                 body: JSON.stringify({
                                     clienteId: targetUid,
                                     title: '¡Canje Exitoso! 🎁',

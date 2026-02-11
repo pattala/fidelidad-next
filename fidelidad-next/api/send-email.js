@@ -45,8 +45,7 @@ async function authCheck(req) {
   const apiKey = req.headers['x-api-key'] || req.headers['X-API-Key'] || null;
   const auth = req.headers.authorization || '';
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
-
-  const SECRET_RAW = process.env.API_SECRET_KEY || process.env.VITE_API_KEY || "";
+  const SECRET_RAW = process.env.API_SECRET_KEY || process.env.MI_API_SECRET || process.env.VITE_API_KEY || "";
   const SECRET = SECRET_RAW.trim();
   const receivedApiKeyRaw = req.headers['x-api-key'] || req.headers['x-api-secret'] || "";
   const receivedApiKey = String(receivedApiKeyRaw).trim();

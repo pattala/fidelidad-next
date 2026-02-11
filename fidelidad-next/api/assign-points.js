@@ -407,9 +407,10 @@ export default async function handler(req, res) {
                         ? `https://${process.env.VERCEL_URL}`
                         : (req.headers.host ? `http://${req.headers.host}` : 'http://localhost:3000');
 
+                    const SECRET = (process.env.API_SECRET_KEY || process.env.MI_API_SECRET || process.env.VITE_API_KEY || "").trim();
                     const internalAuth = {
-                        'x-api-key': process.env.API_SECRET_KEY || process.env.VITE_API_KEY,
-                        'x-api-secret': process.env.API_SECRET_KEY || process.env.VITE_API_KEY
+                        'x-api-key': SECRET,
+                        'x-api-secret': SECRET
                     };
                     const notifications = [];
 
@@ -450,8 +451,8 @@ export default async function handler(req, res) {
 
                     // CRITICAL: Await all notifications before ending the lambda
                     if (notifications.length > 0) {
-                        const sLen = (process.env.API_SECRET_KEY || process.env.VITE_API_KEY || "").trim().length;
-                        console.log(`[assign-points] Triggering ${notifications.length} notifications to ${baseUrl}. SecretLen: ${sLen}`);
+                        const SECRET = (process.env.API_SECRET_KEY || process.env.MI_API_SECRET || process.env.VITE_API_KEY || "").trim();
+                        console.log(`[assign-points] Triggering ${notifications.length} notifications to ${baseUrl}. SecretLen: ${SECRET.length}`);
                         await Promise.allSettled(notifications);
                     }
                 }

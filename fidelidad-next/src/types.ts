@@ -76,7 +76,8 @@ export interface AppConfig {
         instagram?: string;
         facebook?: string;
         website?: string;
-        termsAndConditions?: string; // URL for TyC
+        termsAndConditions?: string; // URL for TyC (Legacy/External)
+        termsContent?: string; // Markdown/Text content for internal TyC
         pwaUrl?: string; // URL for the client application
         address?: string; // Dirección del local
         openingHours?: string; // Horarios de atención

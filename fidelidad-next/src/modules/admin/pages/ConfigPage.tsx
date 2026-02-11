@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Plus, Trash2, Palette, Calculator, Monitor, Settings, Home, Gift, MessageCircle } from 'lucide-react';
+import { Save, Plus, Trash2, Palette, Calculator, Monitor, Settings, Home, Gift, MessageCircle, FileText } from 'lucide-react';
 import { ConfigService, DEFAULT_TEMPLATES } from '../../../services/configService';
 import { EmailService } from '../../../services/emailService';
 import { toast } from 'react-hot-toast';
@@ -107,7 +107,8 @@ export const ConfigPage = () => {
         enableExternalIntegration: true
     });
 
-    const [activeTab, setActiveTab] = useState<'branding' | 'rules' | 'messaging'>('rules'); // Empezar en Reglas por petición del usuario
+    const [activeTab, setActiveTab] = useState<'rules' | 'branding' | 'messaging' | 'legales'>('rules');
+    // Empezar en Reglas por petición del usuario
     const [loading, setLoading] = useState(false);
     const [showCalculator, setShowCalculator] = useState(false);
     const [autoPointValue, setAutoPointValue] = useState<number>(0);
@@ -238,6 +239,13 @@ export const ConfigPage = () => {
                         <span className="text-green-500 text-lg">💬</span>
                         Mensajería
                     </button>
+                    <button
+                        onClick={() => setActiveTab('legales')}
+                        className={`px-5 py-2.5 rounded-lg text-sm font-bold transition flex items-center gap-2 ${activeTab === 'legales' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                        <FileText size={18} />
+                        Legales
+                    </button>
                 </div>
             </div>
 
@@ -360,252 +368,309 @@ export const ConfigPage = () => {
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div className="space-y-6">
-                            {/* Tarjeta de Ajustes Generales */}
-                            <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 h-full">
-                                <h3 className="text-lg font-bold text-gray-800 mb-6">Políticas del Programa</h3>
-                                <div className="space-y-6">
-                                    <div>
-                                        <div className="flex items-center justify-between mb-2">
-                                            <label className="block text-sm font-semibold text-gray-700">🎁 Bienvenida (Nuevo Cliente)</label>
+                            <div className="space-y-6">
+                                {/* Tarjeta de Ajustes Generales */}
+                                <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 h-full">
+                                    <h3 className="text-lg font-bold text-gray-800 mb-6">Políticas del Programa</h3>
+                                    <div className="space-y-6">
+                                        <div>
+                                            <div className="flex items-center justify-between mb-2">
+                                                <label className="block text-sm font-semibold text-gray-700">🎁 Bienvenida (Nuevo Cliente)</label>
+                                            </div>
+
+                                            <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-200 space-y-4">
+                                                {/* 1. Automatic Points */}
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex-1">
+                                                        <span className="text-sm font-bold text-gray-800">Regalar Puntos al Registrarse</span>
+                                                        <p className="text-xs text-gray-500">El cliente recibe puntos automáticamente tras validar su cuenta.</p>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setConfig({ ...config, enableWelcomeBonus: !config.enableWelcomeBonus })}
+                                                        className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.enableWelcomeBonus ? 'bg-blue-600' : 'bg-gray-200'}`}
+                                                    >
+                                                        <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enableWelcomeBonus ? 'translate-x-5' : 'translate-x-0'}`} />
+                                                    </button>
+                                                </div>
+
+                                                {config.enableWelcomeBonus && (
+                                                    <div className="flex items-center gap-3 animate-fade-in pl-2 border-l-2 border-blue-200">
+                                                        <input
+                                                            type="number"
+                                                            value={config.welcomePoints}
+                                                            onChange={e => setConfig({ ...config, welcomePoints: parseInt(e.target.value) || 0 })}
+                                                            className="w-24 p-2 rounded-lg border border-gray-200 outline-none focus:ring-2 focus:ring-blue-100 font-bold text-gray-700 text-center"
+                                                        />
+                                                        <span className="text-gray-500 text-sm font-medium">puntos de bienvenida.</span>
+                                                    </div>
+                                                )}
+
+                                                {/* 2. Automatic Message */}
+                                                <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                                                    <div className="flex-1">
+                                                        <span className="text-sm font-bold text-gray-800">Enviar Mensaje de Bienvenida</span>
+                                                        <p className="text-xs text-gray-500">Enviar Email y notificación Push al completar registro.</p>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setConfig({ ...config, enableWelcomeMessage: config.enableWelcomeMessage === undefined ? true : !config.enableWelcomeMessage })}
+                                                        className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.enableWelcomeMessage !== false ? 'bg-indigo-500' : 'bg-gray-200'}`}
+                                                    >
+                                                        <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enableWelcomeMessage !== false ? 'translate-x-5' : 'translate-x-0'}`} />
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
 
-                                        <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-200 space-y-4">
-                                            {/* 1. Automatic Points */}
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex-1">
-                                                    <span className="text-sm font-bold text-gray-800">Regalar Puntos al Registrarse</span>
-                                                    <p className="text-xs text-gray-500">El cliente recibe puntos automáticamente tras validar su cuenta.</p>
+                                        <div>
+                                            <div className="flex items-center justify-between mb-2">
+                                                <label className="block text-sm font-semibold text-gray-700">🎂 Cumpleaños</label>
+                                            </div>
+
+                                            <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-200 space-y-4">
+                                                {/* 1. Automatic Points */}
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex-1">
+                                                        <span className="text-sm font-bold text-gray-800">Regalar Puntos Automáticamente</span>
+                                                        <p className="text-xs text-gray-500">El cliente recibe puntos al iniciar sesión en su cumple.</p>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setConfig({ ...config, enableBirthdayBonus: !config.enableBirthdayBonus })}
+                                                        className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.enableBirthdayBonus ? 'bg-pink-500' : 'bg-gray-200'}`}
+                                                    >
+                                                        <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enableBirthdayBonus ? 'translate-x-5' : 'translate-x-0'}`} />
+                                                    </button>
+                                                </div>
+
+                                                {config.enableBirthdayBonus && (
+                                                    <div className="flex items-center gap-3 animate-fade-in pl-2 border-l-2 border-pink-200">
+                                                        <input
+                                                            type="number"
+                                                            value={config.birthdayPoints}
+                                                            onChange={e => setConfig({ ...config, birthdayPoints: parseInt(e.target.value) || 0 })}
+                                                            className="w-24 p-2 rounded-lg border border-gray-200 outline-none focus:ring-2 focus:ring-pink-100 font-bold text-gray-700 text-center"
+                                                        />
+                                                        <span className="text-gray-500 text-sm font-medium">puntos de regalo.</span>
+                                                    </div>
+                                                )}
+
+                                                {/* 2. Automatic Message */}
+                                                <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                                                    <div className="flex-1">
+                                                        <span className="text-sm font-bold text-gray-800">Enviar Saludo Automático</span>
+                                                        <p className="text-xs text-gray-500">Enviar Push/Email/WhatsApp automáticamente.</p>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setConfig({ ...config, enableBirthdayMessage: config.enableBirthdayMessage === undefined ? true : !config.enableBirthdayMessage })}
+                                                        className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.enableBirthdayMessage !== false ? 'bg-blue-500' : 'bg-gray-200'}`}
+                                                    >
+                                                        <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enableBirthdayMessage !== false ? 'translate-x-5' : 'translate-x-0'}`} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="pt-6 border-t border-gray-100">
+                                            <div className="flex justify-between items-center mb-4">
+                                                <div>
+                                                    <label className="block text-sm font-semibold text-gray-700">📅 Vencimiento por Escalas</label>
+                                                    <p className="text-xs text-gray-400 mt-1">Define cuánto duran los puntos según la cantidad obtenida.</p>
                                                 </div>
                                                 <button
                                                     type="button"
-                                                    onClick={() => setConfig({ ...config, enableWelcomeBonus: !config.enableWelcomeBonus })}
-                                                    className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.enableWelcomeBonus ? 'bg-blue-600' : 'bg-gray-200'}`}
+                                                    onClick={() => setConfig({
+                                                        ...config,
+                                                        expirationRules: [
+                                                            ...(config.expirationRules || []),
+                                                            { minPoints: 0, maxPoints: null, validityDays: 30 }
+                                                        ]
+                                                    })}
+                                                    className="text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg font-bold hover:bg-blue-100 transition flex items-center gap-1"
                                                 >
-                                                    <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enableWelcomeBonus ? 'translate-x-5' : 'translate-x-0'}`} />
+                                                    <Plus size={14} /> Agregar Regla
                                                 </button>
                                             </div>
 
-                                            {config.enableWelcomeBonus && (
-                                                <div className="flex items-center gap-3 animate-fade-in pl-2 border-l-2 border-blue-200">
-                                                    <input
-                                                        type="number"
-                                                        value={config.welcomePoints}
-                                                        onChange={e => setConfig({ ...config, welcomePoints: parseInt(e.target.value) || 0 })}
-                                                        className="w-24 p-2 rounded-lg border border-gray-200 outline-none focus:ring-2 focus:ring-blue-100 font-bold text-gray-700 text-center"
-                                                    />
-                                                    <span className="text-gray-500 text-sm font-medium">puntos de bienvenida.</span>
-                                                </div>
-                                            )}
-
-                                            {/* 2. Automatic Message */}
-                                            <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                                                <div className="flex-1">
-                                                    <span className="text-sm font-bold text-gray-800">Enviar Mensaje de Bienvenida</span>
-                                                    <p className="text-xs text-gray-500">Enviar Email y notificación Push al completar registro.</p>
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setConfig({ ...config, enableWelcomeMessage: config.enableWelcomeMessage === undefined ? true : !config.enableWelcomeMessage })}
-                                                    className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.enableWelcomeMessage !== false ? 'bg-indigo-500' : 'bg-gray-200'}`}
-                                                >
-                                                    <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enableWelcomeMessage !== false ? 'translate-x-5' : 'translate-x-0'}`} />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <div className="flex items-center justify-between mb-2">
-                                            <label className="block text-sm font-semibold text-gray-700">🎂 Cumpleaños</label>
-                                        </div>
-
-                                        <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-200 space-y-4">
-                                            {/* 1. Automatic Points */}
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex-1">
-                                                    <span className="text-sm font-bold text-gray-800">Regalar Puntos Automáticamente</span>
-                                                    <p className="text-xs text-gray-500">El cliente recibe puntos al iniciar sesión en su cumple.</p>
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setConfig({ ...config, enableBirthdayBonus: !config.enableBirthdayBonus })}
-                                                    className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.enableBirthdayBonus ? 'bg-pink-500' : 'bg-gray-200'}`}
-                                                >
-                                                    <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enableBirthdayBonus ? 'translate-x-5' : 'translate-x-0'}`} />
-                                                </button>
-                                            </div>
-
-                                            {config.enableBirthdayBonus && (
-                                                <div className="flex items-center gap-3 animate-fade-in pl-2 border-l-2 border-pink-200">
-                                                    <input
-                                                        type="number"
-                                                        value={config.birthdayPoints}
-                                                        onChange={e => setConfig({ ...config, birthdayPoints: parseInt(e.target.value) || 0 })}
-                                                        className="w-24 p-2 rounded-lg border border-gray-200 outline-none focus:ring-2 focus:ring-pink-100 font-bold text-gray-700 text-center"
-                                                    />
-                                                    <span className="text-gray-500 text-sm font-medium">puntos de regalo.</span>
-                                                </div>
-                                            )}
-
-                                            {/* 2. Automatic Message */}
-                                            <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                                                <div className="flex-1">
-                                                    <span className="text-sm font-bold text-gray-800">Enviar Saludo Automático</span>
-                                                    <p className="text-xs text-gray-500">Enviar Push/Email/WhatsApp automáticamente.</p>
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setConfig({ ...config, enableBirthdayMessage: config.enableBirthdayMessage === undefined ? true : !config.enableBirthdayMessage })}
-                                                    className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.enableBirthdayMessage !== false ? 'bg-blue-500' : 'bg-gray-200'}`}
-                                                >
-                                                    <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enableBirthdayMessage !== false ? 'translate-x-5' : 'translate-x-0'}`} />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="pt-6 border-t border-gray-100">
-                                        <div className="flex justify-between items-center mb-4">
-                                            <div>
-                                                <label className="block text-sm font-semibold text-gray-700">📅 Vencimiento por Escalas</label>
-                                                <p className="text-xs text-gray-400 mt-1">Define cuánto duran los puntos según la cantidad obtenida.</p>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => setConfig({
-                                                    ...config,
-                                                    expirationRules: [
-                                                        ...(config.expirationRules || []),
-                                                        { minPoints: 0, maxPoints: null, validityDays: 30 }
-                                                    ]
-                                                })}
-                                                className="text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg font-bold hover:bg-blue-100 transition flex items-center gap-1"
-                                            >
-                                                <Plus size={14} /> Agregar Regla
-                                            </button>
-                                        </div>
-
-                                        <div className="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
-                                            <table className="w-full text-sm text-left">
-                                                <thead className="bg-gray-100 text-xs text-gray-500 uppercase font-bold">
-                                                    <tr>
-                                                        <th className="p-3 pl-4">Desde (Pts)</th>
-                                                        <th className="p-3">Hasta (Pts)</th>
-                                                        <th className="p-3">Validez (Días)</th>
-                                                        <th className="p-3 w-10"></th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-gray-200">
-                                                    {(config.expirationRules || []).map((rule, idx) => (
-                                                        <tr key={idx} className="bg-white">
-                                                            <td className="p-2 pl-4">
-                                                                <input
-                                                                    type="number" min="0"
-                                                                    className="w-full bg-transparent outline-none font-bold text-gray-700 placeholder-gray-300"
-                                                                    placeholder="0"
-                                                                    value={rule.minPoints}
-                                                                    onChange={e => {
-                                                                        const newRules = [...(config.expirationRules || [])];
-                                                                        newRules[idx].minPoints = parseInt(e.target.value) || 0;
-                                                                        setConfig({ ...config, expirationRules: newRules });
-                                                                    }}
-                                                                />
-                                                            </td>
-                                                            <td className="p-2">
-                                                                <div className="flex items-center gap-2">
+                                            <div className="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
+                                                <table className="w-full text-sm text-left">
+                                                    <thead className="bg-gray-100 text-xs text-gray-500 uppercase font-bold">
+                                                        <tr>
+                                                            <th className="p-3 pl-4">Desde (Pts)</th>
+                                                            <th className="p-3">Hasta (Pts)</th>
+                                                            <th className="p-3">Validez (Días)</th>
+                                                            <th className="p-3 w-10"></th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-gray-200">
+                                                        {(config.expirationRules || []).map((rule, idx) => (
+                                                            <tr key={idx} className="bg-white">
+                                                                <td className="p-2 pl-4">
                                                                     <input
                                                                         type="number" min="0"
-                                                                        className="w-full bg-transparent outline-none font-bold text-gray-700 placeholder-gray-300 disabled:opacity-50"
-                                                                        placeholder="Infinito"
-                                                                        value={rule.maxPoints === null ? '' : rule.maxPoints}
+                                                                        className="w-full bg-transparent outline-none font-bold text-gray-700 placeholder-gray-300"
+                                                                        placeholder="0"
+                                                                        value={rule.minPoints}
                                                                         onChange={e => {
-                                                                            const val = e.target.value === '' ? null : parseInt(e.target.value);
                                                                             const newRules = [...(config.expirationRules || [])];
-                                                                            newRules[idx].maxPoints = val;
+                                                                            newRules[idx].minPoints = parseInt(e.target.value) || 0;
                                                                             setConfig({ ...config, expirationRules: newRules });
                                                                         }}
                                                                     />
-                                                                    {rule.maxPoints === null && <span className="text-xs text-gray-400 font-mono">∞</span>}
-                                                                </div>
-                                                            </td>
-                                                            <td className="p-2">
-                                                                <div className="flex items-center gap-1">
-                                                                    <input
-                                                                        type="number" min="1"
-                                                                        className="w-16 bg-transparent outline-none font-bold text-blue-600"
-                                                                        value={rule.validityDays}
-                                                                        onChange={e => {
+                                                                </td>
+                                                                <td className="p-2">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <input
+                                                                            type="number" min="0"
+                                                                            className="w-full bg-transparent outline-none font-bold text-gray-700 placeholder-gray-300 disabled:opacity-50"
+                                                                            placeholder="Infinito"
+                                                                            value={rule.maxPoints === null ? '' : rule.maxPoints}
+                                                                            onChange={e => {
+                                                                                const val = e.target.value === '' ? null : parseInt(e.target.value);
+                                                                                const newRules = [...(config.expirationRules || [])];
+                                                                                newRules[idx].maxPoints = val;
+                                                                                setConfig({ ...config, expirationRules: newRules });
+                                                                            }}
+                                                                        />
+                                                                        {rule.maxPoints === null && <span className="text-xs text-gray-400 font-mono">∞</span>}
+                                                                    </div>
+                                                                </td>
+                                                                <td className="p-2">
+                                                                    <div className="flex items-center gap-1">
+                                                                        <input
+                                                                            type="number" min="1"
+                                                                            className="w-16 bg-transparent outline-none font-bold text-blue-600"
+                                                                            value={rule.validityDays}
+                                                                            onChange={e => {
+                                                                                const newRules = [...(config.expirationRules || [])];
+                                                                                newRules[idx].validityDays = parseInt(e.target.value) || 0;
+                                                                                setConfig({ ...config, expirationRules: newRules });
+                                                                            }}
+                                                                        />
+                                                                        <span className="text-xs text-gray-400">días</span>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="p-2 pr-4 text-right">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
                                                                             const newRules = [...(config.expirationRules || [])];
-                                                                            newRules[idx].validityDays = parseInt(e.target.value) || 0;
+                                                                            newRules.splice(idx, 1);
                                                                             setConfig({ ...config, expirationRules: newRules });
                                                                         }}
-                                                                    />
-                                                                    <span className="text-xs text-gray-400">días</span>
-                                                                </div>
-                                                            </td>
-                                                            <td className="p-2 pr-4 text-right">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        const newRules = [...(config.expirationRules || [])];
-                                                                        newRules.splice(idx, 1);
-                                                                        setConfig({ ...config, expirationRules: newRules });
-                                                                    }}
-                                                                    className="text-gray-400 hover:text-red-500 transition"
-                                                                >
-                                                                    <Trash2 size={16} />
-                                                                </button>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                    {(!config.expirationRules || config.expirationRules.length === 0) && (
-                                                        <tr>
-                                                            <td colSpan={4} className="p-4 text-center text-xs text-gray-400 italic">
-                                                                No hay reglas definidas. Los puntos no tendrán vencimiento específico (o usarán default).
-                                                            </td>
-                                                        </tr>
-                                                    )}
-                                                </tbody>
-                                            </table>
+                                                                        className="text-gray-400 hover:text-red-500 transition"
+                                                                    >
+                                                                        <Trash2 size={16} />
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                        {(!config.expirationRules || config.expirationRules.length === 0) && (
+                                                            <tr>
+                                                                <td colSpan={4} className="p-4 text-center text-xs text-gray-400 italic">
+                                                                    No hay reglas definidas. Los puntos no tendrán vencimiento específico (o usarán default).
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                    </tbody>
+                                                </table>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* Tarjeta de Integraciones Externas */}
+                                <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 mt-6">
+                                    <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
+                                        <span className="bg-purple-100 text-purple-600 p-2 rounded-lg"><Monitor size={20} /></span>
+                                        Integraciones Externas
+                                    </h3>
+
+                                    <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-100">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex-1">
+                                                <span className="text-sm font-bold text-gray-800">Habilitar Extensión de Navegador</span>
+                                                <p className="text-xs text-gray-500">Permitir que la extensión de Chrome capture montos de tu sistema de facturación.</p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setConfig({ ...config, enableExternalIntegration: !config.enableExternalIntegration })}
+                                                className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.enableExternalIntegration !== false ? 'bg-purple-600' : 'bg-gray-200'}`}
+                                            >
+                                                <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enableExternalIntegration !== false ? 'translate-x-5' : 'translate-x-0'}`} />
+                                            </button>
+                                        </div>
+                                        <p className="text-[10px] text-purple-400 mt-3 italic">
+                                            * Esta opción controla si el servidor procesa puntos enviados desde herramientas externas como el facturador.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'legales' && (
+                    <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 animate-in fade-in slide-in-from-bottom-4">
+                        <div className="max-w-4xl">
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="bg-blue-50 p-3 rounded-2xl text-blue-600">
+                                    <FileText size={24} />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-black text-gray-800 tracking-tight">Términos y Condiciones</h3>
+                                    <p className="text-gray-500 text-sm">Este texto aparecerá en el perfil de usuario de la PWA. Puedes usar formato simple.</p>
+                                </div>
                             </div>
 
-                            {/* Tarjeta de Integraciones Externas */}
-                            <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 mt-6">
-                                <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
-                                    <span className="bg-purple-100 text-purple-600 p-2 rounded-lg"><Monitor size={20} /></span>
-                                    Integraciones Externas
-                                </h3>
-
-                                <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-100">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex-1">
-                                            <span className="text-sm font-bold text-gray-800">Habilitar Extensión de Navegador</span>
-                                            <p className="text-xs text-gray-500">Permitir que la extensión de Chrome capture montos de tu sistema de facturación.</p>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => setConfig({ ...config, enableExternalIntegration: !config.enableExternalIntegration })}
-                                            className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.enableExternalIntegration !== false ? 'bg-purple-600' : 'bg-gray-200'}`}
-                                        >
-                                            <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enableExternalIntegration !== false ? 'translate-x-5' : 'translate-x-0'}`} />
-                                        </button>
+                            <div className="space-y-6">
+                                <div className="flex flex-col gap-2">
+                                    <div className="flex justify-between items-end">
+                                        <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Contenido de los Términos</label>
+                                        <div className="text-[10px] text-gray-400 bg-gray-50 px-2 py-1 rounded">Soporta Markdown Básico</div>
                                     </div>
-                                    <p className="text-[10px] text-purple-400 mt-3 italic">
-                                        * Esta opción controla si el servidor procesa puntos enviados desde herramientas externas como el facturador.
+                                    <textarea
+                                        rows={20}
+                                        className="w-full p-4 rounded-2xl border-2 border-gray-100 focus:border-blue-500 focus:ring-4 focus:ring-blue-50 outline-none transition text-sm font-medium leading-relaxed bg-gray-50/30"
+                                        placeholder="Escribe aquí los términos..."
+                                        value={config.contact?.termsContent || ''}
+                                        onChange={e => setConfig({
+                                            ...config,
+                                            contact: { ...config.contact!, termsContent: e.target.value }
+                                        })}
+                                    />
+                                </div>
+
+                                <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100 flex gap-3">
+                                    <div className="text-xl">💡</div>
+                                    <div className="text-xs text-blue-700 leading-relaxed pt-1">
+                                        <strong>Tip:</strong> Puedes usar variables como <code className="bg-white px-1 rounded">{"{siteName}"}</code> que se reemplazarán automáticamente por <strong>{config.siteName}</strong> en la PWA.
+                                    </div>
+                                </div>
+
+                                <div className="pt-4 border-t border-gray-100">
+                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Link Externo (Opcional)</label>
+                                    <input
+                                        type="text"
+                                        placeholder="https://..."
+                                        value={config.contact?.termsAndConditions || ''}
+                                        onChange={e => setConfig({
+                                            ...config,
+                                            contact: { ...config.contact!, termsAndConditions: e.target.value }
+                                        })}
+                                        className="w-full rounded-xl border-gray-200 border p-3 text-sm focus:ring-2 focus:ring-blue-100 outline-none bg-gray-50/50"
+                                    />
+                                    <p className="text-[10px] text-gray-400 mt-2 px-1">
+                                        <strong>⚠️ Prioridad:</strong> Si este link está presente, el botón de Términos redirigirá aquí. Si queda vacío, se mostrará el contenido de arriba en un cuadro interno.
                                     </p>
                                 </div>
                             </div>
                         </div>
                     </div>
-                )
-                }
-
+                )}
                 {
                     activeTab === 'branding' && (
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fade-in">

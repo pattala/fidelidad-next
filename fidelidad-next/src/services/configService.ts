@@ -57,6 +57,10 @@ export const ConfigService = {
                 return {
                     ...DEFAULT_APP_CONFIG,
                     ...data,
+                    contact: {
+                        ...DEFAULT_APP_CONFIG.contact,
+                        ...(data.contact || {})
+                    },
                     messaging: {
                         ...DEFAULT_APP_CONFIG.messaging,
                         ...(data.messaging || {}),

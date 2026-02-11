@@ -875,19 +875,6 @@ export const ConfigPage = () => {
                                                     className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-gray-100 outline-none"
                                                 />
                                             </div>
-                                            <div className="col-span-full">
-                                                <label className="block text-xs font-semibold text-gray-600 mb-1">Link Términos y Condiciones</label>
-                                                <input
-                                                    type="text"
-                                                    placeholder="https://..."
-                                                    value={config.contact?.termsAndConditions || ''}
-                                                    onChange={e => setConfig({
-                                                        ...config,
-                                                        contact: { ...config.contact!, termsAndConditions: e.target.value }
-                                                    })}
-                                                    className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-gray-100 outline-none"
-                                                />
-                                            </div>
                                         </div>
                                     </div>
                                 </div>

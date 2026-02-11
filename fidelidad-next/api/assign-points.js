@@ -288,7 +288,7 @@ export default async function handler(req, res) {
         expirationDate.setDate(expirationDate.getDate() + 365);
         const validityDays = 365; // Legacy field support
 
-        await db.runTransaction(async (tx) => {
+        const data = await db.runTransaction(async (tx) => {
             const docSnapshot = await tx.get(clientRef);
             if (!docSnapshot.exists) throw new Error("Client not found");
             const data = docSnapshot.data();
@@ -360,6 +360,7 @@ export default async function handler(req, res) {
             });
 
             result = { ok: true, pointsAdded: points, newBalance: newPoints };
+            return data;
         });
 
         // 6. NOTIFICACIONES Y MENSAJERÍA (Fuera de la transacción para evitar re-intentos innecesarios)
@@ -382,9 +383,9 @@ export default async function handler(req, res) {
             const isEmailEnabled = messagingCfg.emailEnabled && channels.includes('email');
 
             if (isPushEnabled || isEmailEnabled) {
-                const baseUrl = process.env.VERCEL_URL
-                    ? `https://${process.env.VERCEL_URL}`
-                    : (req.headers.host ? `http://${req.headers.host}` : 'http://localhost:3000');
+                // Prioritize CURRENT HOST to bypass Vercel Deployment Protection on unique URLs
+                const currentHost = req.headers.host;
+                const baseUrl = currentHost ? `https://${currentHost}` : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
                 const SECRET = (process.env.API_SECRET_KEY || process.env.MI_API_SECRET || process.env.VITE_API_KEY || "").trim();
                 const internalAuth = { 'x-api-key': SECRET, 'x-api-secret': SECRET };
@@ -406,13 +407,13 @@ export default async function handler(req, res) {
                     );
                 }
 
-                if (isEmailEnabled && (req.body?.clientEmail)) {
+                if (isEmailEnabled && (data.email || data.correo || req.body?.clientEmail)) {
                     notifications.push(
                         fetch(`${baseUrl}/api/send-email`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', ...internalAuth },
                             body: JSON.stringify({
-                                to: req.body.clientEmail,
+                                to: data.email || data.correo || req.body.clientEmail,
                                 templateId: 'manual_override',
                                 templateData: {
                                     subject: '¡Has sumado puntos! 💰',

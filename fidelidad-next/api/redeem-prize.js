@@ -230,9 +230,9 @@ export default async function handler(req, res) {
                 const isEmailEnabled = messagingCfg.emailEnabled && channels.includes('email');
 
                 if (isPushEnabled || isEmailEnabled) {
-                    const baseUrl = process.env.VERCEL_URL
-                        ? `https://${process.env.VERCEL_URL}`
-                        : (req.headers.host ? `http://${req.headers.host}` : 'http://localhost:3000');
+                    // Prioritize CURRENT HOST to bypass Vercel Deployment Protection
+                    const currentHost = req.headers.host;
+                    const baseUrl = currentHost ? `https://${currentHost}` : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
                     const SECRET = (process.env.API_SECRET_KEY || process.env.MI_API_SECRET || process.env.VITE_API_KEY || "").trim();
                     const internalAuth = {

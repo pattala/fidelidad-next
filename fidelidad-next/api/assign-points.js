@@ -390,8 +390,9 @@ export default async function handler(req, res) {
                 title: '¡Puntos Sumados! 💰',
                 body: unifiedMsg,
                 type: 'points_earned',
-                createdAt: admin.firestore.FieldValue.serverTimestamp(),
-                isRead: false
+                date: admin.firestore.FieldValue.serverTimestamp(),
+                sentAt: admin.firestore.FieldValue.serverTimestamp(),
+                read: false
             });
 
             result = { ok: true, pointsAdded: points, newBalance: newPoints };

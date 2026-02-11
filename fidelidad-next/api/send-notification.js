@@ -269,7 +269,15 @@ export default async function handler(req, res) {
   let sendTokens = unique([...tokens, ...destinatarios.map(d => d.token)]);
 
   if (!sendTokens.length) {
-    return res.status(400).json({ ok: false, error: "Faltan tokens o audience.docIds." });
+    console.log(`[send-notification] Skipping FCM transport: No tokens found for client ${clienteId || 'N/A'}`);
+    return res.status(200).json({
+      ok: true,
+      message: "No tokens found to send.",
+      successCount: 0,
+      failureCount: 0,
+      invalidTokens: [],
+      createdInbox: 0
+    });
   }
 
   // ====== notifId (único por envío) ======

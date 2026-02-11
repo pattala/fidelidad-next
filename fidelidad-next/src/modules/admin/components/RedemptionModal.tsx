@@ -44,211 +44,41 @@ export const RedemptionModal = ({ client, onClose, onRedeemSuccess }: Redemption
 
         setLoading(true);
         try {
-            const cleanClientId = client.id.trim();
-            if (!cleanClientId) throw new Error("ID de cliente inválido");
-
-            const now = new Date();
-            const pointsNeeded = selectedPrize.pointsRequired;
-            let pointsToDeduct = pointsNeeded;
-            const batchesUsed: string[] = [];
-            const writeBatchOps = import('firebase/firestore').then(mod => mod.writeBatch(db)).then(batch => batch);
-            const batch = await writeBatchOps;
-
-            // 1. FIFO Strategy: Fetch active credits sorted by expiration
-            const creditsQ = query(
-                collection(db, `users/${cleanClientId}/points_history`),
-                where('type', '==', 'credit'),
-                where('expiresAt', '>', now), // Only valid points
-                orderBy('expiresAt', 'asc') // Oldest expiration first
-            );
-            const creditsSnap = await getDocs(creditsQ);
-
-            // In-memory FIFO processing
-            for (const docSnap of creditsSnap.docs) {
-                if (pointsToDeduct <= 0) break;
-
-                const data = docSnap.data();
-                // Determine available points in this batch
-                // If 'remainingPoints' exists, use it. If not, fallback to 'amount' (Legacy migration)
-                const currentRemaining = data.remainingPoints !== undefined ? data.remainingPoints : data.amount;
-
-                if (currentRemaining <= 0) continue;
-
-                let deduction = 0;
-                if (currentRemaining >= pointsToDeduct) {
-                    // This batch covers the rest
-                    deduction = pointsToDeduct;
-                    pointsToDeduct = 0;
-                } else {
-                    // Consume this batch entirely
-                    deduction = currentRemaining;
-                    pointsToDeduct -= deduction;
-                }
-
-                // Update this batch doc
-                const newRemaining = currentRemaining - deduction;
-                batch.update(docSnap.ref, {
-                    remainingPoints: newRemaining,
-                    lastUsageDate: new Date() // Audit: When was this batch touched?
-                });
-
-                // Log for history
-                const dateStr = data.date?.toDate ? data.date.toDate().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : 'Fecha Desc.';
-                // Enhanced FIFO Log: Deducted / Original from Date
-                batchesUsed.push(`${deduction} pts del ${dateStr} (Orig: ${data.amount})`);
-            }
-
-            if (pointsToDeduct > 0) {
-                // Should not happen if validations pass, but safety check
-                console.warn("FIFO didn't find enough specific batches, forcing global deduction.");
-                // We proceed anyway because the global 'points' is the authority, FIFO is just for tracking.
-            }
-
-            // 2. Main History Record (Debit)
-            const debitRef = doc(collection(db, `users/${cleanClientId}/points_history`));
-            const historyDescription = batchesUsed.length > 0
-                ? `(Tomados: ${batchesUsed.join(', ')})`
-                : '';
-
-            batch.set(debitRef, {
-                amount: -pointsNeeded,
-                concept: `Canje: ${selectedPrize.name}`,
-                details: historyDescription, // New field for detailed breakdown
-                date: TimeService.now(),
-                type: 'debit',
-                prizeId: selectedPrize.id,
-                redeemedValue: selectedPrize.cashValue || 0
-            });
-
-            // 2b. Global Transaction for Stats
-            const globalTransRef = doc(collection(db, 'transactions'));
-            batch.set(globalTransRef, {
-                uid: cleanClientId,
-                clientName: client.name,
-                socioNumber: client.socioNumber || client.numeroSocio || 'N/A',
-                points: -pointsNeeded,
-                amount: 0,
-                redeemedValue: selectedPrize.cashValue || 0,
-                type: 'debit',
-                reason: 'redemption',
-                concept: `Canje: ${selectedPrize.name}`,
-                prizeId: selectedPrize.id,
-                date: now,
-                createdAt: serverTimestamp()
-            });
-
-            // 3. User Updates (Global Balance & Arrays)
-            const userRef = doc(db, 'users', cleanClientId);
-
-            batch.update(userRef, {
-                points: increment(-pointsNeeded),
-                puntos: increment(-pointsNeeded),
-                // Array for "Mis Canjes" / Rewards
-                historialCanjes: arrayUnion({
-                    fechaCanje: now,
-                    nombrePremio: selectedPrize.name,
-                    puntosCoste: pointsNeeded,
+            const res = await fetch('/api/redeem-prize', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': import.meta.env.VITE_API_KEY || ''
+                },
+                body: JSON.stringify({
+                    uid: client.id,
                     prizeId: selectedPrize.id
-                }),
-                // Array for "Mi Actividad" (PWA Feed)
-                historialPuntos: arrayUnion({
-                    fechaObtencion: now, // field name is legacy 'fechaObtencion' but acts as date
-                    puntosObtenidos: -pointsNeeded,
-                    puntosDisponibles: 0,
-                    diasCaducidad: 0,
-                    origen: `Canje: ${selectedPrize.name}`,
-                    estado: 'Canjeado'
                 })
             });
 
-            // 4. Prize Stock Update
-            const prizeRef = doc(db, 'prizes', selectedPrize.id);
-            batch.update(prizeRef, {
-                stock: increment(-1)
-            });
+            const data = await res.json();
 
-            await batch.commit();
+            if (data.ok) {
+                toast.success("¡Canje realizado con éxito!");
 
-            // 5. Notifications
-            // ... (Keep existing notification logic)
-            // Re-trigger notifications safely
-            try {
-                const { ConfigService, DEFAULT_TEMPLATES } = await import('../../../services/configService');
-                const config = await ConfigService.get();
-
-                if (NotificationService.isChannelEnabled(config, 'redemption', 'whatsapp') && client.phone) {
-                    const phone = client.phone.replace(/\D/g, '');
-                    if (phone) {
-                        const template = config?.messaging?.templates?.redemption || DEFAULT_TEMPLATES.redemption;
-                        const msg = template
-                            .replace(/{nombre}/g, client.name.split(' ')[0])
-                            .replace(/{nombre_completo}/g, client.name)
-                            .replace(/{premio}/g, selectedPrize.name)
-                            .replace(/{codigo}/g, selectedPrize.id.substring(0, 4).toUpperCase()); // Short code
-
-                        const waUrl = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(msg.trim())}`;
-                        const newWindow = window.open(waUrl, '_blank');
-
-                        if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
-                            toast((t) => (
-                                <span className="flex items-center gap-2">
-                                    WhatsApp bloqueado por el navegador
-                                    <button
-                                        onClick={() => {
-                                            window.open(waUrl, '_blank');
-                                            toast.dismiss(t.id);
-                                        }}
-                                        className="bg-green-500 text-white px-2 py-1 rounded text-xs font-bold"
-                                    >
-                                        REINTENTAR
-                                    </button>
-                                </span>
-                            ), { duration: 6000, icon: '📱' });
-                        }
-                    }
+                // WhatsApp notification handling (if requested by user flow or enabled in config)
+                // We assume if they have a phone, we might want to offer sending the WhatsApp
+                const phone = client.phone?.replace(/\D/g, '');
+                if (phone && data.unifiedMsg) {
+                    const waUrl = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(data.unifiedMsg.trim())}`;
+                    // We don't auto-open here to avoid blocking, the user can do it or we can add a button
+                    // But to match the previous behavior of "assignment", we can open it.
+                    setTimeout(() => window.open(waUrl, '_blank'), 500);
                 }
 
-                if (NotificationService.isChannelEnabled(config, 'redemption', 'push')) {
-                    const template = config?.messaging?.templates?.redemption || DEFAULT_TEMPLATES.redemption;
-                    const msg = template
-                        .replace(/{nombre}/g, client.name.split(' ')[0])
-                        .replace(/{nombre_completo}/g, client.name)
-                        .replace(/{premio}/g, selectedPrize.name)
-                        .replace(/{codigo}/g, selectedPrize.id.substring(0, 4).toUpperCase());
-
-                    await NotificationService.sendToClient(cleanClientId, {
-                        title: '¡Canje Exitoso!',
-                        body: msg,
-                        type: 'redemption',
-                        icon: config?.logoUrl
-                    });
-                }
-
-                // NOTIFICAR EMAIL (Granular Config)
-                if (client.email && NotificationService.isChannelEnabled(config, 'redemption', 'email')) {
-                    const template = config?.messaging?.templates?.redemption || DEFAULT_TEMPLATES.redemption;
-                    const msg = template
-                        .replace(/{nombre}/g, client.name.split(' ')[0])
-                        .replace(/{nombre_completo}/g, client.name)
-                        .replace(/{premio}/g, selectedPrize.name)
-                        .replace(/{codigo}/g, selectedPrize.id.substring(0, 4).toUpperCase());
-
-                    const { EmailService } = await import('../../../services/emailService');
-                    const htmlContent = EmailService.generateBrandedTemplate(config, '¡Canje Exitoso!', msg);
-                    EmailService.sendEmail(client.email, '¡Canje Exitoso!', htmlContent)
-                        .catch(e => console.error("Error enviando email de canje:", e));
-                }
-            } catch (e) {
-                console.error("Notif error", e);
+                onRedeemSuccess();
+                onClose();
+            } else {
+                toast.error(`Error: ${data.error}`);
             }
-
-            toast.success("¡Canje realizado con éxito!");
-            onRedeemSuccess();
-            onClose();
-
         } catch (error) {
-            console.error(error);
-            toast.error("Error al procesar canje");
+            console.error("Error al procesar canje:", error);
+            toast.error("Error de conexión al procesar canje");
         } finally {
             setLoading(false);
         }

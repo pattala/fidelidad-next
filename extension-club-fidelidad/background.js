@@ -14,8 +14,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             },
             body: body ? JSON.stringify(body) : undefined
         })
-            .then(response => response.json())
-            .then(data => sendResponse({ ok: true, data }))
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(errData => {
+                        sendResponse({ ok: false, error: errData.message || response.statusText });
+                    }).catch(() => {
+                        sendResponse({ ok: false, error: `Error HTTP: ${response.status}` });
+                    });
+                }
+                return response.json().then(data => sendResponse({ ok: true, data }));
+            })
             .catch(error => {
                 console.error("❌ Error en Proxy API:", error);
                 sendResponse({ ok: false, error: error.message });
@@ -23,4 +31,5 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         return true; // Mantener canal abierto para respuesta asincrónica
     }
+    // No devolvemos true para otros mensajes, cerrando el canal inmediatamente
 });

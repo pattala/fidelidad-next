@@ -5,33 +5,26 @@
     *   **Regla de Oro**: Siempre debo CONSULTARTE y pedir confirmación antes de ejecutar el `push` o una secuencia de deploy.
     *   No debo pedirte que tú escribas los comandos; yo los preparo y los ejecuto tras tu "sí".
 
-## Estado Actual del Proyecto (Fidelidad Next) - 09/02/2026
-**Última acción**: Despliegue de correcciones de Métricas (filtros Hoy/Total, Ticket Promedio monetario) y resolución de error de compilación Vercel (TS18048).
+## Estado Actual del Proyecto (Fidelidad Next) - 10/02/2026
+**Última acción**: Unificación de mensajería (Push, Email, WhatsApp e Inbox) y activación de Dashboard en tiempo real.
 
-### Retomando la Sesión (Logros al 09/02/2026):
-1.  **Mejoras Críticas en PWA**:
-    *   **Notificaciones**: Campanita funcional con contador real de mensajes (`inbox`) y animación de pulso. Se vinculó la carga de puntos del admin con el envío automático de notificación al inbox.
-    *   **Edición de Perfil**: El usuario ahora puede editar todos sus datos (Nombre, Teléfono, Provincia, Localidad, CP, Dirección completa) desde la App.
-    *   **Estabilidad de Sesión**: Se solucionó el "bucle de logout" al refrescar o cambiar de pestaña mejorando la sincronización de Auth y Roles.
-    *   **Términos y Condiciones**: Restaurado texto original en un modal interno (sin enlaces externos).
-    *   **Carrusel Táctil**: Implementado soporte para deslizamiento manual (swipe/drag).
+### Retomando la Sesión (Logros al 10/02/2026):
+1.  **Dashboard & Métricas**:
+    *   **Tiempo Real Total**: El Tablero Principal ahora es 100% reactivo usando `onSnapshot`. Se eliminó el botón de "Refrescar" ya que los KPIs (Puntos, Ventas, Usuarios) se actualizan al instante.
+    *   **Exportación Optimizada**: El reporte de métricas ahora se descarga con separador de punto y coma (`;`) y formato de números español (coma para decimales), listo para Excel sin configuraciones adicionales.
 
-2.  **Panel de Administración**:
-    *   **Tiempo Real**: Implementado `onSnapshot` en la lista de clientes; los nuevos registros aparecen al instante sin refrescar.
-    *   **Dirección unificada**: El campo `calle` ahora guarda automáticamente "Calle + Número" para facilitar la lectura del administrador.
-    *   **Visualización de Socios**: Corrección en la visualización de `socioNumber` / `numeroSocio` en todas las tablas.
-    *   **Registro de Promociones**: Ahora el sistema concatena automáticamente el nombre de las promociones aplicadas al concepto del historial de puntos (ej: "Bono: Puntos Dobles").
-    *   **Métricas & Dashboard**: Implementados indicadores de "Hoy" y "Total" con filtros dinámicos. El Ticket Promedio ahora usa valores monetarios.
-    *   **Documentación**: Creada guía técnica sobre la metodología del Valor del Punto (Manual, Promedio y Presupuesto).
+2.  **Mensajería & Notificaciones (UNIFICACIÓN)**:
+    *   **Plantillas Únicas**: Se refactorizó `assign-points.js` para que todos los canales (Push, Email, WhatsApp e Inbox) consuman la misma plantilla configurada en el panel administrador.
+    *   **Depuración de Código**: Eliminado el código "fantasma" que generaba mensajes duplicados en el Inbox o textos hardcodeados.
+    *   **Corrección de Auth (401)**: Solucionado el problema de autorización en las llamadas internas entre APIs (Vercel) que impedía el envío de Emails y Push.
+    *   **Emails**: Corregido el error de "doble layout" que rompía el diseño visual de los correos.
 
-3.  **Backend & Firebase (Seguridad)**:
-    *   **Asignación de Socio**: La API `/api/assign-socio-number` ahora es compatible con registros directos desde la PWA mediante tokens de identidad de Firebase.
-    *   **Firestore Rules (CRÍTICO)**: Se actualizaron las reglas para permitir acceso al `inbox`, `points_history` y subcolecciones de geolocalización.
-    *   **NOTA RECORDA**: Las reglas de Firestore deben pegarse MANUALLY en la consola de Firebase cada vez que se actualicen, ya que el asistente no tiene acceso directo a la publicación de reglas en la nube.
+3.  **Extensión de Chrome**:
+    *   **Paridad con el Panel**: La extensión ahora dispara los mismos eventos de notificación (Email/Push) que el panel administrativo, respetando las configuraciones globales.
 
-### Próximos Pasos (Pendiente):
-1.  **Limpieza de Base de Datos**: El usuario planea borrar la colección `users` y usuarios de Auth para empezar de cero una vez que el despliegue en Vercel sea 100% estable.
-2.  **Pruebas de Push Real**: Verificar que las notificaciones FCM (notificación de sistema del celular) lleguen incluso con la App cerrada.
+### Próximos Pasos (Pendiente de Verificación):
+1.  **Validación de Mensajería**: Verificar mañana con el usuario que los textos recibidos en todos los canales coinciden exactamente con lo configurado en el panel.
+2.  **Limpieza de Base de Datos**: Pendiente borrar la colección `users` y Auth para el lanzamiento final.
 
 ## Notas Técnicas
 - **Base de Datos**: Los roles de admin se almacenan en la colección `admins`. Los emails en `MASTER_ADMINS` (en `adminConfig.ts`) siempre tienen rol `admin`.

@@ -161,28 +161,23 @@ export default async function handler(req, res) {
         html = buildHtmlLayout(html, appConfig);
       }
     } else {
-      let tpl = await resolveTemplate(db, templateId, 'email');
+      const tpl = await resolveTemplate(db, templateId, 'email');
 
       // HARDCODED FALLBACK FOR BIENVENIDA if empty
-      if (templateId === 'bienvenida' && (!tpl.cuerpo || tpl.cuerpo.trim() === "")) {
-        tpl = {
-          titulo: "¡Bienvenido a {siteName}!",
-          cuerpo: `<p>Hola <strong>{nombre}</strong>,</p>
+      if (templateId === 'bienvenida' && (!tpl?.cuerpo || tpl.cuerpo.trim() === "")) {
+        subject = `¡Bienvenido a ${siteName}!`;
+        const htmlInner = `<p>Hola <strong>{nombre}</strong>,</p>
                    <p>¡Gracias por sumarte a nuestro programa de fidelidad! Estamos felices de tenerte con nosotros.</p>
                    <p>Tu <strong>Número de Socio</strong> es: <span style="font-size: 18px; color: #0ea5e9;">#{numero_socio}</span></p>
-                   [BLOQUE_PUNTOS_BIENVENIDA]
-                   <p>Como regalo de bienvenida, te hemos asignado <strong>{puntos_ganados} puntos</strong> para que empieces a disfrutar de tus beneficios.</p>
-                   [/BLOQUE_PUNTOS_BIENVENIDA]
                    <p>Ya puedes empezar a sumar puntos con tus compras y canjearlos por premios increíbles.</p>
-                   <p>¡Nos vemos pronto!</p>`
-        };
+                   <p>¡Nos vemos pronto!</p>`;
+        html = buildHtmlLayout(applyBlocksAndVars(htmlInner, { ...templateData, siteName }), appConfig);
+      } else {
+        const mergedData = { ...templateData, email: to, siteName };
+        subject = applyBlocksAndVars(tpl.titulo || 'Notificación', mergedData);
+        const htmlInner = applyBlocksAndVars(tpl.cuerpo || '', mergedData);
+        html = buildHtmlLayout(htmlInner, appConfig);
       }
-
-      const mergedData = { ...templateData, email: to, siteName };
-      subject = applyBlocksAndVars(tpl.titulo, mergedData);
-      const htmlInner = applyBlocksAndVars(tpl.cuerpo, mergedData);
-
-      html = buildHtmlLayout(htmlInner, appConfig);
     }
 
     // 3) Validar Credenciales SMTP
@@ -195,7 +190,12 @@ export default async function handler(req, res) {
     }
 
     // 4) Enviar con Nodemailer (Gmail)
-    console.log('[send-email] Attempting to send via Nodemailer...', { to, subject });
+    console.log('[send-email] Attempting to send...', {
+      to,
+      subject,
+      smtpUser: process.env.SMTP_USER ? (process.env.SMTP_USER.substring(0, 3) + '...') : 'MISSING',
+      hasPass: !!process.env.SMTP_PASS
+    });
 
     const info = await transporter.sendMail({
       from: `"${siteName}" <${process.env.SMTP_USER}>`,

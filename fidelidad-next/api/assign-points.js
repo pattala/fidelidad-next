@@ -402,36 +402,47 @@ export default async function handler(req, res) {
                         : (req.headers.host ? `http://${req.headers.host}` : 'http://localhost:3000');
 
                     const internalAuth = { 'x-api-key': process.env.API_SECRET_KEY || process.env.VITE_API_KEY };
+                    const notifications = [];
 
                     // Push
                     if (isPushEnabled) {
-                        fetch(`${baseUrl}/api/send-notification`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', ...internalAuth },
-                            body: JSON.stringify({
-                                clienteId: targetUid,
-                                title: '¡Puntos Sumados! 💰',
-                                body: unifiedMsg,
-                                icon: config.logoUrl || '/logo.png',
-                                extraData: { skipInbox: true, source: 'extension_or_panel' } // Evitamos duplicidad en inbox
-                            })
-                        }).catch(err => console.error("Push notification error:", err));
+                        notifications.push(
+                            fetch(`${baseUrl}/api/send-notification`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', ...internalAuth },
+                                body: JSON.stringify({
+                                    clienteId: targetUid,
+                                    title: '¡Puntos Sumados! 💰',
+                                    body: unifiedMsg,
+                                    icon: config.logoUrl || '/logo.png',
+                                    extraData: { skipInbox: true, source: 'extension_or_panel' }
+                                })
+                            }).catch(err => console.error("Push notification error:", err))
+                        );
                     }
 
                     // Email
                     if (isEmailEnabled && (data.email || data.correo)) {
-                        fetch(`${baseUrl}/api/send-email`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', ...internalAuth },
-                            body: JSON.stringify({
-                                to: data.email || data.correo,
-                                templateId: 'manual_override',
-                                templateData: {
-                                    subject: '¡Has sumado puntos! 💰',
-                                    htmlContent: unifiedMsg
-                                }
-                            })
-                        }).catch(err => console.error("Email notification error:", err));
+                        notifications.push(
+                            fetch(`${baseUrl}/api/send-email`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', ...internalAuth },
+                                body: JSON.stringify({
+                                    to: data.email || data.correo,
+                                    templateId: 'manual_override',
+                                    templateData: {
+                                        subject: '¡Has sumado puntos! 💰',
+                                        htmlContent: unifiedMsg
+                                    }
+                                })
+                            }).catch(err => console.error("Email notification error:", err))
+                        );
+                    }
+
+                    // CRITICAL: Await all notifications before ending the lambda
+                    if (notifications.length > 0) {
+                        console.log(`[assign-points] Awaiting ${notifications.length} notifications...`);
+                        await Promise.allSettled(notifications);
                     }
                 }
             } catch (notifyErr) {

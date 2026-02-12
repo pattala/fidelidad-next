@@ -1,8 +1,8 @@
 {
+  "name": "fidelidad-next-monorepo",
+  "private": true,
   "scripts": {
-    "build": "npm run build:demo",
-    "build:rampet": "node scripts/generate-client.js --client=rampet",
-    "build:demo": "node scripts/generate-client.js --client=demo"
+    "build": "cd fidelidad-next && npm install && npm run build"
   },
   "dependencies": {
     "firebase-admin": "^13.6.0",

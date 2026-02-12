@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Plus, Trash2, Palette, Calculator, Monitor, Settings, Home, Gift, MessageCircle, FileText } from 'lucide-react';
+import { Save, Plus, Trash2, Palette, Calculator, Monitor, Settings, Home, Gift, MessageCircle, FileText, AlertTriangle, RefreshCw } from 'lucide-react';
 import { ConfigService, DEFAULT_TEMPLATES } from '../../../services/configService';
 import { EmailService } from '../../../services/emailService';
 import { toast } from 'react-hot-toast';
@@ -113,7 +113,8 @@ export const ConfigPage = () => {
         }
     });
 
-    const [activeTab, setActiveTab] = useState<'rules' | 'branding' | 'messaging' | 'legales'>('rules');
+    const { isReadOnly } = useAdminAuth();
+    const [activeTab, setActiveTab] = useState<'rules' | 'branding' | 'messaging' | 'legales' | 'advanced'>('rules');
     // Empezar en Reglas por petición del usuario
     const [loading, setLoading] = useState(false);
     const [showCalculator, setShowCalculator] = useState(false);
@@ -162,15 +163,43 @@ export const ConfigPage = () => {
         fetchAutoValue();
     }, [activeTab]);
 
-    const handleTestEmail = () => {
-        if (!config) return;
-        const html = EmailService.generateBrandedTemplate(config, 'Prueba de Identidad Visual', 'Este es un correo de prueba para verificar que el logo y los colores se aplican correctamente en tus notificaciones por email.\n\nSi ves esto correctamente, ¡tu configuración de marca está lista!');
-        const win = window.open('', '_blank');
-        if (win) {
-            win.document.write(html);
-            win.document.close();
-        } else {
-            toast.error('Por favor permite ventanas emergentes para ver la previsualización');
+    const handleTestEmail = async () => {
+        if (!config.messaging?.emailEnabled) return;
+        const toastId = toast.loading('Enviando previsualización...');
+        try {
+            const html = EmailService.generateBrandedTemplate(config, 'Prueba de Diseño', 'Este es un mensaje de prueba para verificar cómo se ve tu marca en los correos electrónicos.');
+            const res = await EmailService.sendEmail(config.messaging.whatsappPhoneNumber || 'test@test.com', 'Previsualización de Email', html);
+            if (res.success) toast.success('Email enviado. Revisa tu bandeja de entrada.', { id: toastId });
+            else toast.error('Error al enviar. Verifica la configuración.', { id: toastId });
+        } catch (e) {
+            toast.error('Error de conexión', { id: toastId });
+        }
+    };
+
+    const handleResetFactory = async () => {
+        if (isReadOnly) return;
+        const confirm = window.prompt("⚠️ ¡PELIGRO! Esto borrará todos los clientes y transacciones. Escriba 'RESET' para confirmar:");
+        if (confirm !== 'RESET') {
+            if (confirm !== null) toast.error("Confirmación incorrecta.");
+            return;
+        }
+
+        const toastId = toast.loading('Reseteando sistema...');
+        try {
+            const res = await fetch('/api/reset-factory', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ confirmText: 'RESET' })
+            });
+            const data = await res.json();
+            if (data.ok) {
+                toast.success('¡Sistema reseteado a cero!', { id: toastId });
+                setTimeout(() => navigate('/admin/dashboard'), 2000);
+            } else {
+                toast.error(`Error: ${data.error}`, { id: toastId });
+            }
+        } catch (e) {
+            toast.error('Error de conexión', { id: toastId });
         }
     };
 
@@ -251,6 +280,13 @@ export const ConfigPage = () => {
                     >
                         <FileText size={18} />
                         Legales
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('advanced')}
+                        className={`px-5 py-2.5 rounded-lg text-sm font-bold transition flex items-center gap-2 ${activeTab === 'advanced' ? 'bg-white text-red-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                        <Settings size={18} />
+                        Avanzado
                     </button>
                 </div>
             </div>
@@ -1513,7 +1549,42 @@ export const ConfigPage = () => {
                 }
 
 
-                {/* Botón flotante de Guardar */}
+                {/* Pestaña: AVANZADO / RESET */}
+                {activeTab === 'advanced' && (
+                    <div className="max-w-2xl mx-auto py-12">
+                        <div className="bg-red-50 border-2 border-red-100 rounded-3xl p-10 text-center space-y-6">
+                            <div className="bg-white w-20 h-20 rounded-full flex items-center justify-center mx-auto shadow-sm border border-red-50">
+                                <AlertTriangle size={40} className="text-red-500" />
+                            </div>
+                            <div>
+                                <h3 className="text-2xl font-black text-gray-800 mb-2">Zona de Peligro</h3>
+                                <p className="text-gray-600">Este proceso es irreversible. Se borrarán todos los clientes, sus puntos, notificaciones e historiales para dejar el sistema totalmente a cero.</p>
+                            </div>
+
+                            <div className="bg-white p-6 rounded-2xl border border-red-50 text-left space-y-4">
+                                <h4 className="font-bold text-gray-800 flex items-center gap-2">
+                                    <RefreshCw size={18} className="text-red-500" /> ¿Qué hace el Reset Factory?
+                                </h4>
+                                <ul className="text-sm text-gray-500 space-y-2 list-disc pl-5">
+                                    <li>Borra todos los <strong>Socios</strong> registrados (excepto administradores).</li>
+                                    <li>Elimina todos los historiales de <strong>Puntos y Canjes</strong>.</li>
+                                    <li>Limpia todas las <strong>Notificaciones y Mensajes</strong> enviados.</li>
+                                    <li>Reinicia las <strong>Métricas y Estadísticas</strong> a cero.</li>
+                                </ul>
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={handleResetFactory}
+                                disabled={isReadOnly}
+                                className="w-full bg-red-600 hover:bg-black text-white py-4 rounded-xl font-black text-lg transition-all shadow-xl shadow-red-100 flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"
+                            >
+                                <Trash2 size={24} /> Resetear Todo (Factory Reset)
+                            </button>
+                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Se solicitará confirmación por escrito antes de proceder</p>
+                        </div>
+                    </div>
+                )}
                 <div className="fixed bottom-6 right-6 z-40">
                     <button
                         disabled={loading}

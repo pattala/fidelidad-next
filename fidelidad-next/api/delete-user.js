@@ -127,7 +127,7 @@ async function deleteClienteSubcollections(db, docId, targetCollection = "users"
     console.log(`[delete-user][cascade] Skipping subcollections for non-user collection: ${targetCollection}`);
     return;
   }
-  const subs = ["geo_raw", "points_history", "inbox", "notifications"];
+  const subs = ["geo_raw", "points_history", "inbox", "notifications", "interacciones", "visit_history"];
   for (const sub of subs) {
     const makeQuery = () => db.collection(`users/${docId}/${sub}`).limit(500);
     await deleteByQueryPaged(db, makeQuery, `users/${docId}/${sub}`);
@@ -135,11 +135,18 @@ async function deleteClienteSubcollections(db, docId, targetCollection = "users"
 }
 
 async function deleteLooseCollections(db, { uid, docId }) {
-  const makeQueryUid = () => db.collection("geo_raw").where("uid", "==", uid).limit(500);
-  await deleteByQueryPaged(db, makeQueryUid, `geo_raw where uid==${uid}`);
+  if (uid) {
+    const makeQueryUid = () => db.collection("geo_raw").where("uid", "==", uid).limit(500);
+    await deleteByQueryPaged(db, makeQueryUid, `geo_raw where uid==${uid}`);
+  }
 
-  const makeQueryDoc = () => db.collection("geo_raw").where("clienteId", "==", docId).limit(500);
-  await deleteByQueryPaged(db, makeQueryDoc, `geo_raw where clienteId==${docId}`);
+  if (docId) {
+    const makeQueryDoc = () => db.collection("geo_raw").where("clienteId", "==", docId).limit(500);
+    await deleteByQueryPaged(db, makeQueryDoc, `geo_raw where clienteId==${docId}`);
+
+    const makeQueryTransDoc = () => db.collection("transactions").where("uid", "==", docId).limit(500);
+    await deleteByQueryPaged(db, makeQueryTransDoc, `transactions where uid==${docId}`);
+  }
 }
 
 /* ─────────────────────────────────────────────────────────────

@@ -9,74 +9,87 @@ export const EmailService = {
 
         // Fallback or validation
         const safeLogo = logoUrl || 'https://via.placeholder.com/150?text=Logo';
-        const safeColor = primaryColor || '#3b82f6';
+        const safeColor = primaryColor || '#0ea5e9'; // Using the same blue as backend for consistency
+        const base = config.contact?.pwaUrl || 'https://fidelidad-next.vercel.app';
 
         // Social Links Logic
         const links: string[] = [];
         const contact = config.contact || {};
         const iconStyle = "width: 24px; height: 24px; vertical-align: middle; margin: 0 8px;";
 
+        if (contact.website) {
+            links.push(`<a href="${contact.website}" style="display:inline-block; margin: 0 5px; text-decoration: none;"><img src="https://img.icons8.com/ios-filled/50/0ea5e9/internet.png" width="24" height="24" alt="Web" title="Website"/></a>`);
+        }
         if (contact.whatsapp) {
             const num = contact.whatsapp.replace(/\D/g, '');
-            links.push(`<a href="https://api.whatsapp.com/send?phone=${num}"><img src="https://img.icons8.com/color/48/whatsapp--v1.png" alt="WhatsApp" style="${iconStyle}" title="WhatsApp" /></a>`);
+            links.push(`<a href="https://wa.me/${num}" style="display:inline-block; margin: 0 5px; text-decoration: none;"><img src="https://img.icons8.com/color/48/whatsapp--v1.png" width="24" height="24" alt="WhatsApp" title="WhatsApp"/></a>`);
         }
         if (contact.instagram) {
             const url = contact.instagram.startsWith('http') ? contact.instagram : `https://instagram.com/${contact.instagram.replace('@', '')}`;
-            links.push(`<a href="${url}"><img src="https://img.icons8.com/color/48/instagram-new--v1.png" alt="Instagram" style="${iconStyle}" title="Instagram" /></a>`);
+            links.push(`<a href="${url}" style="display:inline-block; margin: 0 5px; text-decoration: none;"><img src="https://img.icons8.com/color/48/instagram-new--v1.png" width="24" height="24" alt="Instagram" title="Instagram"/></a>`);
         }
         if (contact.facebook) {
-            links.push(`<a href="${contact.facebook}"><img src="https://img.icons8.com/color/48/facebook-new.png" alt="Facebook" style="${iconStyle}" title="Facebook" /></a>`);
-        }
-        if (contact.website) {
-            links.push(`<a href="${contact.website}" style="text-decoration: none; color: ${safeColor}; font-weight: bold; font-size: 14px; vertical-align: middle; margin: 0 8px;">🌐 Web</a>`);
+            links.push(`<a href="${contact.facebook}" style="display:inline-block; margin: 0 5px; text-decoration: none;"><img src="https://img.icons8.com/color/48/facebook-new.png" width="24" height="24" alt="Facebook" title="Facebook"/></a>`);
         }
         if (contact.email) {
-            links.push(`<a href="mailto:${contact.email}" style="text-decoration: none; font-size: 24px; vertical-align: middle; margin: 0 8px;" title="Email">✉️</a>`);
+            links.push(`<a href="mailto:${contact.email}" style="display:inline-block; margin: 0 5px; text-decoration: none;"><img src="https://img.icons8.com/color/48/gmail-new.png" width="24" height="24" alt="Email" title="Email"/></a>`);
         }
 
-        let footerContent = links.length > 0 ? `<div style="margin-top: 20px; text-align: center;">${links.join('')}</div>` : '';
-
-        if (contact.termsAndConditions) {
-            footerContent += `<div style="margin-top: 15px; font-size: 11px; text-align: center;"><a href="${contact.termsAndConditions}" style="color: #9ca3af; text-decoration: underline;">Ver Términos y Condiciones</a></div>`;
-        }
+        const socialContent = links.length > 0 ? `<div style="margin-top: 20px; text-align: center;">${links.join('')}</div>` : '';
+        const termsUrl = contact.termsAndConditions || '#';
 
         return `
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${siteName}</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f3f4f6; }
-        .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; margin-top: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .header { background-color: white; padding: 20px; text-align: center; border-bottom: 3px solid ${safeColor}; }
-        .header img { height: 60px; max-width: 200px; object-fit: contain; }
-        .content { padding: 30px; color: #374151; line-height: 1.6; }
-        .h1 { color: #111827; font-size: 24px; font-weight: bold; margin-bottom: 16px; }
-        .footer { background-color: #fafafa; padding: 20px; text-align: center; font-size: 12px; color: #9ca3af; border-top: 1px solid #e5e7eb; }
-        .btn { display: inline-block; background-color: ${safeColor}; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin-top: 20px; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f0f2f5; color: #333; }
+        .wrapper { background-color: #f0f2f5; padding: 40px 0; width: 100%; }
+        .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .header { padding: 32px 32px 24px; text-align: center; }
+        .header img { max-width: 120px; height: auto; border-radius: 12px; display: block; margin: 0 auto 12px; }
+        .site-name { font-size: 18px; font-weight: bold; color: #1e293b; }
+        .content { padding: 0 32px 32px; color: #4b5563; line-height: 1.6; font-size: 16px; text-align: left; }
+        .h1 { color: #111827; font-size: 24px; font-weight: bold; margin-bottom: 16px; text-align: center; }
+        .footer { background-color: #f8fafc; padding: 24px; text-align: center; border-top: 1px solid #e2e8f0; }
+        .btn { display: inline-block; background-color: #0ea5e9; color: #ffffff !important; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; margin-bottom: 20px; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Header with Logo -->
-        <div class="header">
-            <img src="${safeLogo}" alt="${siteName}" />
-        </div>
-
-        <!-- Main Content -->
-        <div class="content">
-            <div class="h1">${title}</div>
-            <div>
-                ${bodyContent.replace(/\n/g, '<br/>')}
+    <div class="wrapper">
+        <div class="container">
+            <div style="background:#0ea5e9;height:8px;"></div>
+            <!-- Header with Logo and Name -->
+            <div class="header">
+                <img src="${safeLogo}" alt="${siteName}" />
+                <div class="site-name">${siteName}</div>
             </div>
-        </div>
-
-        <!-- Footer -->
-        <div class="footer">
-            <p>Enviado por <b>${siteName}</b></p>
-            ${footerContent}
-            <p style="margin-top: 10px;">Este es un mensaje automático, por favor no responder.</p>
+    
+            <!-- Main Content -->
+            <div class="content">
+                <div class="h1">${title}</div>
+                <div>
+                    ${bodyContent.replace(/\n/g, '<br/>')}
+                </div>
+                <div style="text-align: center; margin-top: 30px;">
+                    <a href="${base}/login" class="btn">Abrir App Web</a>
+                </div>
+            </div>
+    
+            <!-- Social Media Icons Section -->
+            ${socialContent}
+    
+            <!-- Footer -->
+            <div class="footer">
+                <p style="margin:0;font-size:12px;color:#94a3b8;">
+                    <a href="${termsUrl}" style="color:#64748b;text-decoration:underline;">Términos y Condiciones</a>
+                </p>
+                <p style="margin:8px 0 0;font-size:11px;color:#cbd5e1;">&copy; ${new Date().getFullYear()} ${siteName}. Todos los derechos reservados.</p>
+                <p style="margin-top:24px;text-align:center;font-size:11px;color:#94a3b8;">Este correo fue enviado automáticamente por ${siteName}.</p>
+            </div>
         </div>
     </div>
 </body>

@@ -109,7 +109,8 @@ function buildHtmlLayout(innerHtml, config = {}) {
           <table width="600" cellspacing="0" cellpadding="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
             <tr><td style="background:#0ea5e9;height:8px;"></td></tr>
             <tr><td style="padding:32px 32px 24px;text-align:center;">
-                <img src="${logo}" alt="${siteName}" style="max-width:120px;height:auto;border-radius:12px;"/>
+                <img src="${logo}" alt="${siteName}" style="max-width:120px;height:auto;border-radius:12px;display:block;margin:0 auto 12px;"/>
+                <div style="font-size:18px;font-weight:bold;color:#1e293b;">${siteName}</div>
             </td></tr>
             <tr><td style="padding:0 32px 32px;font-size:16px;line-height:1.6;text-align:left;color:#4b5563;">${innerHtml}</td></tr>
             

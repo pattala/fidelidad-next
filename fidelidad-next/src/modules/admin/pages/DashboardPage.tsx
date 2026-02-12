@@ -23,7 +23,8 @@ export const DashboardPage = () => {
         realLiability: 0,
         calculationMethod: 'manual',
         pointValueConfigured: 0,
-        pointValueReal: 0
+        pointValueReal: 0,
+        referralCount: 0
     });
     const [recentActivity, setRecentActivity] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -92,11 +93,16 @@ export const DashboardPage = () => {
             let totalMoneyGenerated = 0;
             let todayMoneyGenerated = 0;
             let todayPointsEmitted = 0;
+            let referralCount = 0;
 
             snap.forEach(d => {
                 const data = d.data();
                 const money = (data.moneySpent || 0);
                 totalMoneyGenerated += money;
+
+                if (data.reason === 'referral_bonus') {
+                    referralCount++;
+                }
 
                 const date = data.date?.toDate ? data.date.toDate() : new Date();
                 if (date >= startOfToday) {
@@ -104,7 +110,7 @@ export const DashboardPage = () => {
                     todayPointsEmitted += (data.amount || 0);
                 }
             });
-            setStats(prev => ({ ...prev, totalMoneyGenerated, todayMoneyGenerated, todayPointsEmitted }));
+            setStats(prev => ({ ...prev, totalMoneyGenerated, todayMoneyGenerated, todayPointsEmitted, referralCount }));
         });
 
         // 5. Listen for Prizes (Real Point Value)
@@ -194,7 +200,7 @@ export const DashboardPage = () => {
                 <h1 className="text-2xl font-bold text-gray-800">Tablero Principal</h1>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
                 {/* KPI Cards */}
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between transition hover:shadow-md">
                     <div>
@@ -205,6 +211,18 @@ export const DashboardPage = () => {
                     </div>
                     <div className="bg-blue-50 p-3 rounded-xl text-blue-600">
                         <User size={24} />
+                    </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between transition hover:shadow-md">
+                    <div>
+                        <h3 className="text-gray-500 text-sm font-medium mb-1">Referidos</h3>
+                        <p className="text-3xl font-bold text-purple-600">
+                            {loading ? '...' : stats.referralCount}
+                        </p>
+                    </div>
+                    <div className="bg-purple-50 p-3 rounded-xl text-purple-600">
+                        <Gift size={24} />
                     </div>
                 </div>
 

@@ -34,14 +34,16 @@ export const MetricsPage = () => {
         frequency: 0,
         activeCustomers: 0,
         potentialRevenue: 0,
-        creditCount: 0
+        creditCount: 0,
+        referralCount: 0
     });
     const [prevAdvancedStats, setPrevAdvancedStats] = useState({
         averageTicket: 0,
         frequency: 0,
         activeCustomers: 0,
         potentialRevenue: 0,
-        creditCount: 0
+        creditCount: 0,
+        referralCount: 0
     });
     const [heatmapData, setHeatmapData] = useState<number[][]>(Array(7).fill(0).map(() => Array(24).fill(0)));
 
@@ -107,10 +109,10 @@ export const MetricsPage = () => {
                 setMovementsData(currentMovements);
 
                 const processStats = (movements: any[]) => {
-                    const grouped = new Map<string, { emitted: number, redeemed: number, expired: number, money: number }>();
+                    const grouped = new Map<string, { emitted: number, redeemed: number, expired: number, money: number, referrals: number }>();
                     const spenders = new Map<string, number>();
                     let tEmitted = 0, tRedeemed = 0, tExpired = 0, tMoneyRedeemed = 0;
-                    let totalMoneySpent = 0, creditCount = 0;
+                    let totalMoneySpent = 0, creditCount = 0, referralCount = 0;
                     const activeUids = new Set<string>();
                     const heatmap = Array(7).fill(0).map(() => Array(24).fill(0));
 
@@ -119,12 +121,17 @@ export const MetricsPage = () => {
                             ? mov.date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
                             : mov.date.toLocaleDateString('es-AR', { month: 'short', year: '2-digit' });
 
-                        const current = grouped.get(key) || { emitted: 0, redeemed: 0, expired: 0, money: 0 };
+                        const current = grouped.get(key) || { emitted: 0, redeemed: 0, expired: 0, money: 0, referrals: 0 };
 
                         if (mov.type === 'credit') {
                             const pts = Number(mov.points || 0);
                             current.emitted += pts;
                             tEmitted += pts;
+
+                            if (mov.reason === 'referral_bonus') {
+                                referralCount++;
+                                current.referrals = (current.referrals || 0) + 1;
+                            }
 
                             const money = Number(mov.moneySpent || 0);
                             if (money > 0) {
@@ -150,7 +157,7 @@ export const MetricsPage = () => {
                         grouped.set(key, current);
                     });
 
-                    return { grouped, spenders, tEmitted, tRedeemed, tExpired, tMoneyRedeemed, totalMoneySpent, creditCount, activeUids, heatmap };
+                    return { grouped, spenders, tEmitted, tRedeemed, tExpired, tMoneyRedeemed, totalMoneySpent, creditCount, activeUids, heatmap, referralCount };
                 };
 
                 const currentResults = processStats(currentMovements);
@@ -173,7 +180,8 @@ export const MetricsPage = () => {
                     frequency: currentResults.activeUids.size > 0 ? currentResults.creditCount / currentResults.activeUids.size : 0,
                     activeCustomers: currentResults.activeUids.size,
                     potentialRevenue: currentResults.tEmitted * realPV,
-                    creditCount: currentResults.creditCount
+                    creditCount: currentResults.creditCount,
+                    referralCount: currentResults.referralCount
                 });
 
                 setPrevAdvancedStats({
@@ -181,7 +189,8 @@ export const MetricsPage = () => {
                     frequency: prevResults.activeUids.size > 0 ? prevResults.creditCount / prevResults.activeUids.size : 0,
                     activeCustomers: prevResults.activeUids.size,
                     potentialRevenue: prevResults.tEmitted * realPV,
-                    creditCount: prevResults.creditCount
+                    creditCount: prevResults.creditCount,
+                    referralCount: prevResults.referralCount
                 });
 
                 const qVisitors = query(collection(db, 'users'), orderBy('visitCount', 'desc'), limit(5));
@@ -362,7 +371,7 @@ export const MetricsPage = () => {
                     </div>
 
                     {/* KPIs AVANZADOS */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
                         {(() => {
                             const TrendIndicator = ({ current, prev }: { current: number, prev: number }) => {
                                 if (prev === 0) return null;
@@ -399,12 +408,22 @@ export const MetricsPage = () => {
                                     </div>
                                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 transition hover:shadow-md">
                                         <div className="flex justify-between items-start mb-1">
+                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Referidos Exitosos</p>
+                                            <TrendIndicator current={advancedStats.referralCount} prev={prevAdvancedStats.referralCount} />
+                                        </div>
+                                        <div className="flex items-baseline gap-2">
+                                            <span className="text-2xl font-black text-purple-600">{advancedStats.referralCount}</span>
+                                            <span className="text-xs text-purple-500 font-bold">socios</span>
+                                        </div>
+                                    </div>
+                                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 transition hover:shadow-md">
+                                        <div className="flex justify-between items-start mb-1">
                                             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Clientes Activos</p>
                                             <TrendIndicator current={advancedStats.activeCustomers} prev={prevAdvancedStats.activeCustomers} />
                                         </div>
                                         <div className="flex items-baseline gap-2">
                                             <span className="text-2xl font-black text-gray-800">{advancedStats.activeCustomers}</span>
-                                            <span className="text-xs text-purple-500 font-bold">socios</span>
+                                            <span className="text-xs text-emerald-500 font-bold">totales</span>
                                         </div>
                                     </div>
                                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 transition hover:shadow-md">

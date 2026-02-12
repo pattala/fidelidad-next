@@ -20,6 +20,7 @@ import { ClientProfilePage } from "./modules/client/pages/ClientProfilePage";
 import { ClientActivityPage } from "./modules/client/pages/ClientActivityPage";
 import { ClientInboxPage } from "./modules/client/pages/ClientInboxPage";
 import { ClientPromosPage } from "./modules/client/pages/ClientPromosPage";
+import { ClientReferralsPage } from "./modules/client/pages/ClientReferralsPage";
 import { ClientAuthGuard } from "./modules/client/components/ClientAuthGuard";
 
 export const router = createBrowserRouter([
@@ -63,6 +64,10 @@ export const router = createBrowserRouter([
             {
                 path: "inbox",
                 element: <ClientInboxPage />
+            },
+            {
+                path: "referrals",
+                element: <ClientReferralsPage />
             },
         ]
     },

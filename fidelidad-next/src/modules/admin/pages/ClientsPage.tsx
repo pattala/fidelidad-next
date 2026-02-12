@@ -777,6 +777,16 @@ export const ClientsPage = () => {
                                                     <div className="text-[9px] text-blue-500 font-bold mt-0.5" title="Fecha en la que el usuario se registró en el Club">
                                                         Miembro desde: {client.registrationDate ? new Date(client.registrationDate?.toDate?.() || client.registrationDate).toLocaleDateString() : 'N/D'}
                                                     </div>
+                                                    {client.referredBy && (
+                                                        <div className="text-[9px] text-orange-600 font-black mt-1 flex items-center gap-1 bg-orange-50 w-fit px-1.5 py-0.5 rounded border border-orange-100">
+                                                            <Gift size={10} /> Invitado por: {clients.find(c => c.id === client.referredBy)?.name || 'Otro Socio'}
+                                                        </div>
+                                                    )}
+                                                    {client.referralStats && client.referralStats.count > 0 && (
+                                                        <div className="text-[9px] text-purple-600 font-black mt-1 flex items-center gap-1 bg-purple-50 w-fit px-1.5 py-0.5 rounded border border-purple-100">
+                                                            <Users size={10} /> Invitó a: {client.referralStats.count} {client.referralStats.count === 1 ? 'amigo' : 'amigos'} (+{client.referralStats.pointsEarned} pts)
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>

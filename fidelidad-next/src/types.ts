@@ -50,6 +50,13 @@ export interface Client {
     registrationDate?: any;
     source?: 'pwa' | 'local';
     birthDate?: string; // Format: YYYY-MM-DD
+    // Referrals
+    referralCode?: string;
+    referredBy?: string; // UID of the referrer
+    referralStats?: {
+        count: number;
+        pointsEarned: number;
+    };
 }
 
 export interface User {
@@ -138,6 +145,13 @@ export interface AppConfig {
         };
     };
 
+    // Sistema de Referidos
+    referrals?: {
+        enabled: boolean;
+        pointsForReferrer: number;
+        pointsForReferee: number;
+        rewardCriteria: 'first_transaction' | 'registration';
+    };
 }
 
 export interface Prize {

@@ -187,29 +187,38 @@ export const ClientProfilePage = () => {
                         </div>
                     </div>
 
-                    <button
-                        onClick={() => {
-                            setEditData({
-                                name: userData.name || '',
-                                email: userData.email || '',
-                                dni: userData.dni || '',
-                                phone: userData.phone || '',
-                                street: userData.domicilio?.components?.calle?.split(' ').slice(0, -1).join(' ') || userData.calle?.split(' ').slice(0, -1).join(' ') || '',
-                                number: userData.domicilio?.components?.numero || userData.calle?.split(' ').slice(-1)[0] || '',
-                                piso: userData.piso || '',
-                                depto: userData.depto || '',
-                                localidad: userData.localidad || '',
-                                partido: userData.partido || '',
-                                provincia: userData.provincia || '',
-                                cp: userData.cp || '',
-                                birthDate: userData.birthDate || ''
-                            });
-                            setIsEditModalOpen(true);
-                        }}
-                        className="mt-4 text-xs font-bold text-indigo-600 bg-indigo-50 px-4 py-2 rounded-full hover:bg-indigo-100 transition"
-                    >
-                        Editar Datos Personales
-                    </button>
+                    <div className="flex flex-col gap-2 mt-4 items-center">
+                        <button
+                            onClick={() => {
+                                setEditData({
+                                    name: userData.name || '',
+                                    email: userData.email || '',
+                                    dni: userData.dni || '',
+                                    phone: userData.phone || '',
+                                    street: userData.domicilio?.components?.calle?.split(' ').slice(0, -1).join(' ') || userData.calle?.split(' ').slice(0, -1).join(' ') || '',
+                                    number: userData.domicilio?.components?.numero || userData.calle?.split(' ').slice(-1)[0] || '',
+                                    piso: userData.piso || '',
+                                    depto: userData.depto || '',
+                                    localidad: userData.localidad || '',
+                                    partido: userData.partido || '',
+                                    provincia: userData.provincia || '',
+                                    cp: userData.cp || '',
+                                    birthDate: userData.birthDate || ''
+                                });
+                                setIsEditModalOpen(true);
+                            }}
+                            className="text-xs font-bold text-indigo-600 bg-indigo-50 px-4 py-2 rounded-full hover:bg-indigo-100 transition w-fit"
+                        >
+                            Editar Datos Personales
+                        </button>
+
+                        <button
+                            onClick={() => navigate('/referrals')}
+                            className="text-xs font-black text-white bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-2.5 rounded-full hover:shadow-lg active:scale-95 transition-all flex items-center gap-2"
+                        >
+                            <span className="animate-pulse">🎁</span> Invitar Amigos y Ganar Puntos
+                        </button>
+                    </div>
                 </div>
             </div>
 

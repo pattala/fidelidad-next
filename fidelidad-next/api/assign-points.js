@@ -372,6 +372,93 @@ export default async function handler(req, res) {
             });
 
             result = { ok: true, pointsAdded: points, newBalance: newPoints };
+
+            // --- LÓGICA DE REFERIDOS ---
+            // Solo se dispara si es una "compra" (external_integration) y el sistema está activo
+            if (reason === 'external_integration' && config.referrals?.enabled) {
+                const referredBy = data.referredBy;
+                const referralAlreadyProcessed = data.referralStats?.processed || false;
+
+                if (referredBy && !referralAlreadyProcessed) {
+                    // Marcar como procesado inmediatamente para evitar duplicados en re-intentos de la tx
+                    tx.update(clientRef, {
+                        'referralStats.processed': true,
+                        'referralStats.processedAt': admin.firestore.FieldValue.serverTimestamp()
+                    });
+
+                    const referrerRef = db.collection('users').doc(referredBy);
+                    const referrerSnap = await tx.get(referrerRef);
+
+                    if (referrerSnap.exists) {
+                        const rData = referrerSnap.data();
+                        const bonusAmount = Number(config.referrals.pointsForReferrer) || 200;
+                        const referrerName = rData.name || 'Referente';
+
+                        // 1. Sumar puntos al Referente
+                        const oldPoints = Number(rData.points || 0);
+                        const newReferrerPoints = oldPoints + bonusAmount;
+
+                        tx.update(referrerRef, {
+                            points: newReferrerPoints,
+                            puntos: newReferrerPoints,
+                            'referralStats.count': admin.firestore.FieldValue.increment(1),
+                            'referralStats.pointsEarned': admin.firestore.FieldValue.increment(bonusAmount),
+                            // Sincronizar historial legado
+                            historialPuntos: admin.firestore.FieldValue.arrayUnion({
+                                fechaObtencion: admin.firestore.Timestamp.fromDate(new Date()),
+                                puntosObtenidos: bonusAmount,
+                                puntosDisponibles: bonusAmount,
+                                diasCaducidad: 365,
+                                origen: `Bono Invitado: ${data.name || 'Amigo'}`,
+                                estado: 'Activo'
+                            })
+                        });
+
+                        // 2. Log en historial del Referente
+                        const refHistRef = referrerRef.collection('points_history').doc();
+                        tx.set(refHistRef, {
+                            amount: bonusAmount,
+                            type: 'credit',
+                            reason: 'referral_bonus',
+                            concept: `Bono Invitado: ${data.name || 'Amigo'}`,
+                            date: admin.firestore.Timestamp.fromDate(new Date()),
+                            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                            expiresAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 365 * 86400000)),
+                            remainingPoints: bonusAmount,
+                            balanceAfter: newReferrerPoints
+                        });
+
+                        // 3. Notificación Inbox al Referente
+                        const refInboxRef = referrerRef.collection('inbox').doc();
+                        tx.set(refInboxRef, {
+                            title: '¡Puntos por Referido! 🎁',
+                            body: `Tu amigo ${data.name || 'alguien'} realizó su primer consumo. ¡Ganaste ${bonusAmount} puntos!`,
+                            url: '/referrals',
+                            type: 'referralBonus',
+                            read: false,
+                            date: admin.firestore.FieldValue.serverTimestamp()
+                        });
+
+                        // Guardar en transacciones globales para auditoría
+                        tx.set(db.collection('transactions').doc(), {
+                            uid: referredBy,
+                            clientName: referrerName,
+                            points: bonusAmount,
+                            type: 'credit',
+                            reason: 'referral_bonus',
+                            concept: `Bono Invitado: ${data.name || 'Amigo'}`,
+                            date: admin.firestore.FieldValue.serverTimestamp()
+                        });
+
+                        // Agregar flag para disparar notificaciones push al referente después de la tx
+                        result.referrerToNotify = {
+                            uid: referredBy,
+                            msg: `¡Ganaste ${bonusAmount} puntos porque tu amigo ${data.name || 'alguien'} se sumó al club!`
+                        };
+                    }
+                }
+            }
+
             return data;
         });
 
@@ -442,6 +529,22 @@ export default async function handler(req, res) {
                 if (notifications.length > 0) {
                     console.log(`[assign-points] Triggering ${notifications.length} notifications. SecretLen: ${SECRET.length}`);
                     await Promise.allSettled(notifications);
+                }
+
+                // --- NOTIFICACIÓN ADICIONAL AL REFERIDOR ---
+                if (result.referrerToNotify) {
+                    const { uid: rUid, msg: rMsg } = result.referrerToNotify;
+                    await fetch(`${baseUrl}/api/send-notification`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', ...internalAuth },
+                        body: JSON.stringify({
+                            clienteId: rUid,
+                            title: '¡Bono de Referido! 🎁',
+                            body: rMsg,
+                            icon: config.logoUrl || '/logo.png',
+                            extraData: { skipInbox: true }
+                        })
+                    }).catch(e => console.error("Referrer notification error:", e));
                 }
             }
         } catch (notifyErr) {

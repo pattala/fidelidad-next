@@ -329,6 +329,25 @@ export const ClientHomePage = () => {
                 </div>
             </div>
 
+            {/* REFERRAL BANNER */}
+            <div
+                onClick={() => navigate('/referrals')}
+                className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-[2rem] p-6 shadow-xl text-white relative overflow-hidden active:scale-[0.98] transition cursor-pointer"
+            >
+                <div className="absolute top-0 right-0 p-4 opacity-10">
+                    <UserIcon size={80} />
+                </div>
+                <div className="relative z-10 flex items-center justify-between">
+                    <div>
+                        <h3 className="text-xl font-black tracking-tight mb-1">Invita y Gana 🎁</h3>
+                        <p className="text-[10px] font-bold opacity-90 uppercase tracking-widest">Regala puntos a tus amigos</p>
+                    </div>
+                    <div className="bg-white/20 backdrop-blur-md p-2 rounded-xl">
+                        <ChevronRight size={24} />
+                    </div>
+                </div>
+            </div>
+
             {/* PROMOS VIGENTES (MODERN UNIFIED) */}
             <section className="px-2 space-y-3">
                 <div className="flex justify-between items-center mb-1 px-2">

@@ -104,7 +104,13 @@ export const ConfigPage = () => {
                 offer: { channels: ['push', 'email'] }
             }
         },
-        enableExternalIntegration: true
+        enableExternalIntegration: true,
+        referrals: {
+            enabled: true,
+            pointsForReferrer: 200,
+            pointsForReferee: 0,
+            rewardCriteria: 'first_transaction'
+        }
     });
 
     const [activeTab, setActiveTab] = useState<'rules' | 'branding' | 'messaging' | 'legales'>('rules');
@@ -606,6 +612,71 @@ export const ConfigPage = () => {
                                         <p className="text-[10px] text-purple-400 mt-3 italic">
                                             * Esta opción controla si el servidor procesa puntos enviados desde herramientas externas como el facturador.
                                         </p>
+                                    </div>
+                                </div>
+
+                                {/* Tarjeta de Referidos */}
+                                <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 mt-6">
+                                    <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
+                                        <span className="bg-orange-100 text-orange-600 p-2 rounded-lg"><Gift size={20} /></span>
+                                        Programa de Referidos
+                                    </h3>
+
+                                    <div className="bg-orange-50/50 p-6 rounded-xl border border-orange-100 space-y-6">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex-1">
+                                                <span className="text-sm font-bold text-gray-800">Activar Sistema de Invitación</span>
+                                                <p className="text-xs text-gray-500">Permite que los socios inviten amigos y ganen puntos por ello.</p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setConfig({
+                                                    ...config,
+                                                    referrals: { ...config.referrals!, enabled: !config.referrals?.enabled }
+                                                })}
+                                                className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.referrals?.enabled ? 'bg-orange-600' : 'bg-gray-200'}`}
+                                            >
+                                                <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.referrals?.enabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                                            </button>
+                                        </div>
+
+                                        {config.referrals?.enabled && (
+                                            <div className="space-y-4 animate-fade-in pl-2 border-l-2 border-orange-200">
+                                                <div>
+                                                    <label className="block text-xs font-bold text-orange-700 uppercase mb-2">Puntos para el Referidor (Quien invita)</label>
+                                                    <div className="flex items-center gap-3">
+                                                        <input
+                                                            type="number"
+                                                            value={config.referrals.pointsForReferrer}
+                                                            onChange={e => setConfig({
+                                                                ...config,
+                                                                referrals: { ...config.referrals!, pointsForReferrer: parseInt(e.target.value) || 0 }
+                                                            })}
+                                                            className="w-24 p-2 rounded-lg border border-gray-200 outline-none focus:ring-2 focus:ring-orange-100 font-bold text-gray-700 text-center"
+                                                        />
+                                                        <span className="text-gray-500 text-sm font-medium">puntos por cada amigo que realice su primera compra.</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="pt-2">
+                                                    <label className="block text-xs font-bold text-orange-700 uppercase mb-2">Criterio de Recompensa</label>
+                                                    <select
+                                                        value={config.referrals.rewardCriteria}
+                                                        onChange={e => setConfig({
+                                                            ...config,
+                                                            referrals: { ...config.referrals!, rewardCriteria: e.target.value as any }
+                                                        })}
+                                                        className="w-full p-2.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-orange-100"
+                                                    >
+                                                        <option value="first_transaction">Tras el primer consumo en el local</option>
+                                                        <option value="registration" disabled>Al registrarse (Deshabilitado por fraude)</option>
+                                                    </select>
+                                                    <p className="text-[10px] text-gray-400 mt-2 italic">
+                                                        * Recomendamos 'Primer Consumo' para evitar cuentas falsas. El bono se asigna automáticamente cuando el invitado suma sus primeros puntos desde el facturador.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>

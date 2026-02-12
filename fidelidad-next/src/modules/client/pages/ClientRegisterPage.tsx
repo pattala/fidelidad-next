@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ConfigService } from '../../../services/configService';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { auth, db } from '../../../lib/firebase';
 import { createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, getDoc, query, where, getDocs, collection, onSnapshot, limit } from 'firebase/firestore';
@@ -35,6 +35,8 @@ export const ClientRegisterPage = () => {
     const [loading, setLoading] = useState(false);
     const [config, setConfig] = useState<any>(null);
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const refCode = searchParams.get('ref');
 
     useEffect(() => {
         ConfigService.get().then(setConfig);
@@ -110,6 +112,19 @@ export const ClientRegisterPage = () => {
                 return;
             }
 
+            // 0.6. Buscar Inviter si hay refCode
+            let inviterUid = null;
+            if (refCode) {
+                const qRef = query(collection(db, 'users'), where('referralCode', '==', refCode.toUpperCase()), limit(1));
+                const snapRef = await getDocs(qRef);
+                if (!snapRef.empty) {
+                    inviterUid = snapRef.docs[0].id;
+                }
+            }
+
+            // 0.7. Generar ReferralCode propio (ej: PABLO-A1B2)
+            const myRefCode = `${name.split(' ')[0].toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+
             // 1. Intentar crear usuario en Auth (Estricto)
             const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
             const user = userCredential.user;
@@ -177,7 +192,13 @@ export const ClientRegisterPage = () => {
                 source: 'pwa',
                 socioNumber: null,
                 numeroSocio: null,
-                metadata: { createdFrom: 'pwa', version: '2.5-fixed-address' }
+
+                // Referrals
+                referralCode: myRefCode,
+                referredBy: inviterUid,
+                referralStats: { count: 0, pointsEarned: 0 },
+
+                metadata: { createdFrom: 'pwa', version: '2.5-fixed-address', refCodeUsed: refCode }
             });
 
             // 4. Llamadas al Backend (Serverless APIs) para finalización robusta

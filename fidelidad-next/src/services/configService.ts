@@ -41,7 +41,8 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
             redemption: { channels: ['email'] },
             campaign: { channels: ['push'] },
             offer: { channels: ['push'] },
-            birthday: { channels: ['push', 'whatsapp'] }
+            birthday: { channels: ['push', 'whatsapp'] },
+            referralReward: { channels: ['email', 'push'] }
         }
     },
     referrals: {
@@ -107,5 +108,6 @@ export const DEFAULT_TEMPLATES = {
     welcome: "¡Bienvenido al Club, {nombre}! 👋 Ya tienes {puntos} puntos de regalo. 🎁",
     campaign: "🚀 ¡Nueva Campaña!: {titulo}. {descripcion}. ¡No te la pierdas! 🔥",
     offer: "🔥 ¡Oferta Especial! {titulo}: {detalle}. Válido hasta el {vencimiento}. 📢",
-    birthday: "¡Feliz cumpleaños, {nombre}! 🎂🎉 Te regalamos {puntos} puntos para que los disfrutes. ¡Que pases un gran día! ✨"
+    birthday: "¡Feliz cumpleaños, {nombre}! 🎂🎉 Te regalamos {puntos} puntos para que los disfrutes. ¡Que pases un gran día! ✨",
+    referralReward: "¡Hola {nombre}! 🎁 Ganaste {puntos} puntos porque tu amigo {amigo} comenzó a usar el club. ¡Gracias por recomendarnos! ✨"
 };

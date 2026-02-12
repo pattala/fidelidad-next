@@ -120,7 +120,7 @@ export const ConfigPage = () => {
     const [autoPointValue, setAutoPointValue] = useState<number>(0);
 
     // Updated type definition in insertVar to include 'birthday'
-    const insertVar = (field: 'pointsAdded' | 'redemption' | 'welcome' | 'campaign' | 'offer' | 'birthday', variable: string) => {
+    const insertVar = (field: 'pointsAdded' | 'redemption' | 'welcome' | 'campaign' | 'offer' | 'birthday' | 'referralReward', variable: string) => {
         const currentTemplates = config.messaging?.templates || {};
         const currentValue = currentTemplates[field] || '';
         setConfig({
@@ -1458,6 +1458,39 @@ export const ConfigPage = () => {
                                         onChange={(newChannels) => setConfig({
                                             ...config,
                                             messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, birthday: { channels: newChannels } } }
+                                        })}
+                                    />
+                                </div>
+                                <hr className="border-gray-50" />
+
+                                {/* Referral Reward Template */}
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Recompensa por Referido</label>
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">💎</span>
+                                            <textarea
+                                                rows={2}
+                                                value={config.messaging?.templates?.referralReward || ''}
+                                                onChange={e => setConfig({
+                                                    ...config,
+                                                    messaging: {
+                                                        ...config.messaging!,
+                                                        templates: { ...config.messaging?.templates, referralReward: e.target.value }
+                                                    }
+                                                })}
+                                                placeholder={DEFAULT_TEMPLATES.referralReward}
+                                                className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none resize-none"
+                                            />
+                                        </div>
+                                        <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, referralReward: DEFAULT_TEMPLATES.referralReward } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition">↺</button>
+                                    </div>
+                                    <VariableChips vars={['nombre', 'amigo', 'puntos']} onSelect={v => insertVar('referralReward', v)} />
+                                    <ChannelSelector
+                                        channels={config.messaging?.eventConfigs?.referralReward?.channels || []}
+                                        onChange={(newChannels) => setConfig({
+                                            ...config,
+                                            messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, referralReward: { channels: newChannels } } }
                                         })}
                                     />
                                 </div>

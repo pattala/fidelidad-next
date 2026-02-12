@@ -401,41 +401,53 @@ export default async function handler(req, res) {
                     reason: 'referral_bonus', concept: `Bono Invitado: ${cData.name || 'Amigo'}`, date: admin.firestore.FieldValue.serverTimestamp()
                 });
 
-                result.referrerToNotify = { uid: rRef.id, msg: `¡Ganaste ${bonusAmount} puntos gracias a ${cData.name || 'tu amigo'}!` };
+                result.referrerToNotify = {
+                    uid: rRef.id,
+                    email: rData.email || rData.correo,
+                    name: rData.name || 'Socio',
+                    friendName: cData.name || 'Tu amigo',
+                    bonusAmount: bonusAmount
+                };
                 result.referralProcessed = true;
             }
+
+            // Hacer disponibles los datos básicos para las notificaciones fuera de la tx
+            result.guestData = {
+                name: cData.name || 'Socio',
+                email: cData.email || cData.correo
+            };
         });
 
         // 6. NOTIFICACIONES Y MENSAJERÍA (Fuera de la transacción para evitar re-intentos innecesarios)
         try {
             const messagingCfg = config.messaging || {};
-            const event = 'pointsAdded';
-            const templates = messagingCfg.templates || {};
-            const eventConfig = messagingCfg.eventConfigs?.[event];
-            const channels = eventConfig?.channels || [];
+            const SECRET = (process.env.API_SECRET_KEY || process.env.MI_API_SECRET || process.env.VITE_API_KEY || "").trim();
+            const internalAuth = { 'x-api-key': SECRET, 'x-api-secret': SECRET };
 
-            // Construir MENSAJE UNIFICADO (desde plantilla del panel)
-            let unifiedMsg = templates[event] || "¡Sumaste {puntos} puntos! Tu saldo actual es {saldo}.";
-            const fullName = data.name || data.nombre || req.body?.clientName || 'Cliente';
-            const firstName = fullName.split(' ')[0];
+            const currentHost = req.headers.host;
+            const baseUrl = currentHost ? `https://${currentHost}` : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
-            unifiedMsg = unifiedMsg.replace(/{nombre}/g, firstName)
-                .replace(/{nombre_completo}/g, fullName)
-                .replace(/{puntos}/g, points.toString())
-                .replace(/{saldo}/g, (result.newBalance || 0).toString())
-                .replace(/{siteName}/g, config.siteName || 'Club Fidelidad');
+            const notifications = [];
 
-            const isPushEnabled = messagingCfg.pushEnabled && channels.includes('push');
-            const isEmailEnabled = messagingCfg.emailEnabled && channels.includes('email');
+            // --- 6.1 NOTIFICACIÓN AL CLIENTE (INVITADO) ---
+            if (points > 0) {
+                const event = 'pointsAdded';
+                const templates = messagingCfg.templates || {};
+                const eventConfig = messagingCfg.eventConfigs?.[event];
+                const channels = eventConfig?.channels || [];
 
-            if (isPushEnabled || isEmailEnabled) {
-                // Prioritize CURRENT HOST to bypass Vercel Deployment Protection on unique URLs
-                const currentHost = req.headers.host;
-                const baseUrl = currentHost ? `https://${currentHost}` : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+                let unifiedMsg = templates[event] || "¡Sumaste {puntos} puntos! Tu saldo actual es {saldo}.";
+                const fullName = result.guestData.name || 'Cliente';
+                const firstName = fullName.split(' ')[0];
 
-                const SECRET = (process.env.API_SECRET_KEY || process.env.MI_API_SECRET || process.env.VITE_API_KEY || "").trim();
-                const internalAuth = { 'x-api-key': SECRET, 'x-api-secret': SECRET };
-                const notifications = [];
+                unifiedMsg = unifiedMsg.replace(/{nombre}/g, firstName)
+                    .replace(/{nombre_completo}/g, fullName)
+                    .replace(/{puntos}/g, points.toString())
+                    .replace(/{saldo}/g, (result.newBalance || 0).toString())
+                    .replace(/{siteName}/g, config.siteName || 'Club Fidelidad');
+
+                const isPushEnabled = messagingCfg.pushEnabled && channels.includes('push');
+                const isEmailEnabled = messagingCfg.emailEnabled && channels.includes('email');
 
                 if (isPushEnabled) {
                     notifications.push(
@@ -443,53 +455,78 @@ export default async function handler(req, res) {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', ...internalAuth },
                             body: JSON.stringify({
-                                clienteId: targetUid,
-                                title: '¡Puntos Sumados! 💰',
-                                body: unifiedMsg,
-                                icon: config.logoUrl || '/logo.png',
-                                extraData: { skipInbox: true, source: 'extension_or_panel' }
+                                clienteId: targetUid, title: '¡Puntos Sumados! 💰', body: unifiedMsg,
+                                icon: config.logoUrl || '/logo.png', extraData: { skipInbox: true, source: 'extension_or_panel' }
                             })
-                        }).then(r => r.json().then(d => console.log("[assign-points] Push result:", r.status, d))).catch(err => console.error("Push error:", err))
+                        }).catch(err => console.error("Push error (guest):", err))
                     );
                 }
 
-                if (isEmailEnabled && (data.email || data.correo || req.body?.clientEmail)) {
+                if (isEmailEnabled && result.guestData.email) {
                     notifications.push(
                         fetch(`${baseUrl}/api/send-email`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', ...internalAuth },
                             body: JSON.stringify({
-                                to: data.email || data.correo || req.body.clientEmail,
+                                to: result.guestData.email,
                                 templateId: 'manual_override',
-                                templateData: {
-                                    subject: '¡Has sumado puntos! 💰',
-                                    htmlContent: unifiedMsg
-                                }
+                                templateData: { subject: '¡Has sumado puntos! 💰', htmlContent: unifiedMsg }
                             })
-                        }).then(r => r.json().then(d => console.log("[assign-points] Email result:", r.status, d))).catch(err => console.error("Email error:", err))
+                        }).catch(err => console.error("Email error (guest):", err))
+                    );
+                }
+            }
+
+            // --- 6.2 NOTIFICACIÓN AL REFERENTE (SI APLICA) ---
+            if (result.referrerToNotify) {
+                const rInfo = result.referrerToNotify;
+                const event = 'referralReward';
+                const templates = messagingCfg.templates || {};
+                const eventConfig = messagingCfg.eventConfigs?.[event];
+                const channels = eventConfig?.channels || ['push', 'email']; // Default if not set
+
+                let rMsg = templates[event] || "¡Hola {nombre}! 🎉 Ganaste {puntos} puntos porque tu amigo {amigo} comenzó a usar el club.";
+                const rFirstName = (rInfo.name || 'Socio').split(' ')[0];
+
+                rMsg = rMsg.replace(/{nombre}/g, rFirstName)
+                    .replace(/{amigo}/g, rInfo.friendName)
+                    .replace(/{puntos}/g, rInfo.bonusAmount.toString())
+                    .replace(/{siteName}/g, config.siteName || 'Club Fidelidad');
+
+                const isPushEnabled = messagingCfg.pushEnabled && channels.includes('push');
+                const isEmailEnabled = messagingCfg.emailEnabled && channels.includes('email');
+
+                if (isPushEnabled) {
+                    notifications.push(
+                        fetch(`${baseUrl}/api/send-notification`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', ...internalAuth },
+                            body: JSON.stringify({
+                                clienteId: rInfo.uid, title: '¡Bono de Referido! 🎁', body: rMsg,
+                                icon: config.logoUrl || '/logo.png', extraData: { skipInbox: true }
+                            })
+                        }).catch(err => console.error("Push error (referrer):", err))
                     );
                 }
 
-                if (notifications.length > 0) {
-                    console.log(`[assign-points] Triggering ${notifications.length} notifications. SecretLen: ${SECRET.length}`);
-                    await Promise.allSettled(notifications);
+                if (isEmailEnabled && rInfo.email) {
+                    notifications.push(
+                        fetch(`${baseUrl}/api/send-email`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', ...internalAuth },
+                            body: JSON.stringify({
+                                to: rInfo.email,
+                                templateId: 'manual_override',
+                                templateData: { subject: '¡Ganaste un premio de referido! 🎁', htmlContent: rMsg }
+                            })
+                        }).catch(err => console.error("Email error (referrer):", err))
+                    );
                 }
+            }
 
-                // --- NOTIFICACIÓN ADICIONAL AL REFERIDOR ---
-                if (result.referrerToNotify) {
-                    const { uid: rUid, msg: rMsg } = result.referrerToNotify;
-                    await fetch(`${baseUrl}/api/send-notification`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', ...internalAuth },
-                        body: JSON.stringify({
-                            clienteId: rUid,
-                            title: '¡Bono de Referido! 🎁',
-                            body: rMsg,
-                            icon: config.logoUrl || '/logo.png',
-                            extraData: { skipInbox: true }
-                        })
-                    }).catch(e => console.error("Referrer notification error:", e));
-                }
+            if (notifications.length > 0) {
+                console.log(`[assign-points] Triggering ${notifications.length} notifications.`);
+                await Promise.allSettled(notifications);
             }
         } catch (notifyErr) {
             console.error("Error triggering notifications outside tx:", notifyErr);

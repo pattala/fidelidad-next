@@ -133,6 +133,7 @@ export interface AppConfig {
             campaign?: { channels: MessagingChannel[] };
             offer?: { channels: MessagingChannel[] };
             birthday?: { channels: MessagingChannel[] };
+            referralReward?: { channels: MessagingChannel[] };
         };
 
         templates?: {
@@ -142,6 +143,7 @@ export interface AppConfig {
             campaign?: string;
             offer?: string;
             birthday?: string;
+            referralReward?: string;
         };
     };
 

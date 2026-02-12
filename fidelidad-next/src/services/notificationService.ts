@@ -1,7 +1,6 @@
 import { collection } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 
-const PUSH_API_URL = '/api/send-push'; // Next.js rewrites should handle this to server-api
 
 export interface NotificationPayload {
     title: string;

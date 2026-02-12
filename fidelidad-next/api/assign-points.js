@@ -298,6 +298,17 @@ export default async function handler(req, res) {
                 throw new Error("ALREADY_AWARDED");
             }
 
+            // PRE-READ REFERRER (Must be done before any writes)
+            let referrerSnap = null;
+            const referralEnabled = reason === 'external_integration' && config.referrals?.enabled;
+            const referredBy = data.referredBy;
+            const referralAlreadyProcessed = data.referralStats?.processed || false;
+
+            if (referralEnabled && referredBy && !referralAlreadyProcessed) {
+                referrerSnap = await tx.get(db.collection('users').doc(referredBy));
+            }
+
+            // --- CÁLCULO DE PUNTOS PARA EL CLIENTE ---
             const currentPoints = Number(data.points || data.puntos || 0);
             const newPoints = currentPoints + points;
 
@@ -307,14 +318,15 @@ export default async function handler(req, res) {
             );
             const finalConcept = baseConcept + (req.body?.calculatedPromoDetails || "");
 
-            // ACTUALIZACIÓN DE USUARIO (Incluyendo Sync Legado)
-            tx.update(clientRef, {
+            // --- ESCRITURAS (WRITES) ---
+
+            // 1. Actualización del Cliente (Invitado)
+            const clientUpdate = {
                 points: newPoints,
                 puntos: newPoints,
                 accumulated_balance: newAccumulatedBalance,
                 [`rewards_awarded.${reason}`]: true,
                 updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-                // Sincronizar con el array legado para que se vea en el dashboard/perfil viejo
                 historialPuntos: admin.firestore.FieldValue.arrayUnion({
                     fechaObtencion: admin.firestore.Timestamp.fromDate(recordDate),
                     puntosObtenidos: points,
@@ -323,12 +335,19 @@ export default async function handler(req, res) {
                     origen: finalConcept,
                     estado: 'Activo'
                 })
-            });
+            };
 
-            // Log Historial (Subcollection points_history)
+            // Si hay referido a procesar, agregarlo a la actualización del cliente
+            if (referrerSnap && referrerSnap.exists) {
+                clientUpdate['referralStats.processed'] = true;
+                clientUpdate['referralStats.processedAt'] = admin.firestore.FieldValue.serverTimestamp();
+            }
+
+            tx.update(clientRef, clientUpdate);
+
+            // 2. Log Historial Cliente
             const histRef = clientRef.collection('points_history').doc();
             const moneySpent = req.body?.moneySpent || (reason === 'external_integration' && finalAmount ? Number(finalAmount) : 0);
-
             tx.set(histRef, {
                 amount: points,
                 moneySpent: moneySpent,
@@ -343,9 +362,8 @@ export default async function handler(req, res) {
                 balanceAfter: newPoints
             });
 
-            // --- PERSISTENCIA EN INBOX (Sistema) ---
-            const inboxRef = clientRef.collection('inbox').doc();
-            tx.set(inboxRef, {
+            // 3. Inbox Cliente
+            tx.set(clientRef.collection('inbox').doc(), {
                 title: '¡Puntos Sumados! 💰',
                 body: `¡Has sumado ${points} puntos! (${finalConcept})`,
                 url: '/mis-puntos',
@@ -355,15 +373,14 @@ export default async function handler(req, res) {
                 sentAt: admin.firestore.FieldValue.serverTimestamp()
             });
 
-            // --- ESCRITURA GLOBAL PARA ESTADÍSTICAS ---
-            const globalTransRef = db.collection('transactions').doc();
-            tx.set(globalTransRef, {
+            // 4. Transacción Global
+            tx.set(db.collection('transactions').doc(), {
                 uid: targetUid,
                 clientName: data.name || data.nombre || 'Sin nombre',
                 socioNumber: data.socioNumber || data.numeroSocio || 'N/A',
                 points: points,
-                amount: moneySpent, // IMPORTANTE: Mismo campo que el dashboard usa para 'Totales'
-                moneySpent: moneySpent, // Por si acaso
+                amount: moneySpent,
+                moneySpent: moneySpent,
                 type: 'credit',
                 reason: reason || 'manual',
                 concept: finalConcept,
@@ -373,90 +390,71 @@ export default async function handler(req, res) {
 
             result = { ok: true, pointsAdded: points, newBalance: newPoints };
 
-            // --- LÓGICA DE REFERIDOS ---
-            // Solo se dispara si es una "compra" (external_integration) y el sistema está activo
-            if (reason === 'external_integration' && config.referrals?.enabled) {
-                const referredBy = data.referredBy;
-                const referralAlreadyProcessed = data.referralStats?.processed || false;
+            // --- LÓGICA DE RECOMPENSA AL REFERENTE (Escrituras) ---
+            if (referrerSnap && referrerSnap.exists) {
+                const rData = referrerSnap.data();
+                const bonusAmount = Number(config.referrals.pointsForReferrer) || 200;
+                const referrerName = rData.name || 'Referente';
+                const referrerRef = referrerSnap.ref;
 
-                if (referredBy && !referralAlreadyProcessed) {
-                    // Marcar como procesado inmediatamente para evitar duplicados en re-intentos de la tx
-                    tx.update(clientRef, {
-                        'referralStats.processed': true,
-                        'referralStats.processedAt': admin.firestore.FieldValue.serverTimestamp()
-                    });
+                // 1. Sumar puntos al Referente
+                const oldPoints = Number(rData.points || 0);
+                const newReferrerPoints = oldPoints + bonusAmount;
 
-                    const referrerRef = db.collection('users').doc(referredBy);
-                    const referrerSnap = await tx.get(referrerRef);
+                tx.update(referrerRef, {
+                    points: newReferrerPoints,
+                    puntos: newReferrerPoints,
+                    'referralStats.count': admin.firestore.FieldValue.increment(1),
+                    'referralStats.pointsEarned': admin.firestore.FieldValue.increment(bonusAmount),
+                    historialPuntos: admin.firestore.FieldValue.arrayUnion({
+                        fechaObtencion: admin.firestore.Timestamp.fromDate(new Date()),
+                        puntosObtenidos: bonusAmount,
+                        puntosDisponibles: bonusAmount,
+                        diasCaducidad: 365,
+                        origen: `Bono Invitado: ${data.name || 'Amigo'}`,
+                        estado: 'Activo'
+                    })
+                });
 
-                    if (referrerSnap.exists) {
-                        const rData = referrerSnap.data();
-                        const bonusAmount = Number(config.referrals.pointsForReferrer) || 200;
-                        const referrerName = rData.name || 'Referente';
+                // 2. Historial Referente
+                tx.set(referrerRef.collection('points_history').doc(), {
+                    amount: bonusAmount,
+                    type: 'credit',
+                    reason: 'referral_bonus',
+                    concept: `Bono Invitado: ${data.name || 'Amigo'}`,
+                    date: admin.firestore.Timestamp.fromDate(new Date()),
+                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                    expiresAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 365 * 86400000)),
+                    remainingPoints: bonusAmount,
+                    balanceAfter: newReferrerPoints
+                });
 
-                        // 1. Sumar puntos al Referente
-                        const oldPoints = Number(rData.points || 0);
-                        const newReferrerPoints = oldPoints + bonusAmount;
+                // 3. Inbox Referente
+                tx.set(referrerRef.collection('inbox').doc(), {
+                    title: '¡Puntos por Referido! 🎁',
+                    body: `Tu amigo ${data.name || 'alguien'} realizó su primer consumo. ¡Ganaste ${bonusAmount} puntos!`,
+                    url: '/referrals',
+                    type: 'referralBonus',
+                    read: false,
+                    date: admin.firestore.FieldValue.serverTimestamp()
+                });
 
-                        tx.update(referrerRef, {
-                            points: newReferrerPoints,
-                            puntos: newReferrerPoints,
-                            'referralStats.count': admin.firestore.FieldValue.increment(1),
-                            'referralStats.pointsEarned': admin.firestore.FieldValue.increment(bonusAmount),
-                            // Sincronizar historial legado
-                            historialPuntos: admin.firestore.FieldValue.arrayUnion({
-                                fechaObtencion: admin.firestore.Timestamp.fromDate(new Date()),
-                                puntosObtenidos: bonusAmount,
-                                puntosDisponibles: bonusAmount,
-                                diasCaducidad: 365,
-                                origen: `Bono Invitado: ${data.name || 'Amigo'}`,
-                                estado: 'Activo'
-                            })
-                        });
+                // 4. Transacción Global Bono
+                tx.set(db.collection('transactions').doc(), {
+                    uid: referredBy,
+                    clientName: referrerName,
+                    points: bonusAmount,
+                    type: 'credit',
+                    reason: 'referral_bonus',
+                    concept: `Bono Invitado: ${data.name || 'Amigo'}`,
+                    date: admin.firestore.FieldValue.serverTimestamp()
+                });
 
-                        // 2. Log en historial del Referente
-                        const refHistRef = referrerRef.collection('points_history').doc();
-                        tx.set(refHistRef, {
-                            amount: bonusAmount,
-                            type: 'credit',
-                            reason: 'referral_bonus',
-                            concept: `Bono Invitado: ${data.name || 'Amigo'}`,
-                            date: admin.firestore.Timestamp.fromDate(new Date()),
-                            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-                            expiresAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 365 * 86400000)),
-                            remainingPoints: bonusAmount,
-                            balanceAfter: newReferrerPoints
-                        });
-
-                        // 3. Notificación Inbox al Referente
-                        const refInboxRef = referrerRef.collection('inbox').doc();
-                        tx.set(refInboxRef, {
-                            title: '¡Puntos por Referido! 🎁',
-                            body: `Tu amigo ${data.name || 'alguien'} realizó su primer consumo. ¡Ganaste ${bonusAmount} puntos!`,
-                            url: '/referrals',
-                            type: 'referralBonus',
-                            read: false,
-                            date: admin.firestore.FieldValue.serverTimestamp()
-                        });
-
-                        // Guardar en transacciones globales para auditoría
-                        tx.set(db.collection('transactions').doc(), {
-                            uid: referredBy,
-                            clientName: referrerName,
-                            points: bonusAmount,
-                            type: 'credit',
-                            reason: 'referral_bonus',
-                            concept: `Bono Invitado: ${data.name || 'Amigo'}`,
-                            date: admin.firestore.FieldValue.serverTimestamp()
-                        });
-
-                        // Agregar flag para disparar notificaciones push al referente después de la tx
-                        result.referrerToNotify = {
-                            uid: referredBy,
-                            msg: `¡Ganaste ${bonusAmount} puntos porque tu amigo ${data.name || 'alguien'} se sumó al club!`
-                        };
-                    }
-                }
+                // Flag para notificar push luego
+                result.referrerToNotify = {
+                    uid: referredBy,
+                    msg: `¡Ganaste ${bonusAmount} puntos porque tu amigo ${data.name || 'alguien'} se sumó al club!`
+                };
             }
 
             return data;

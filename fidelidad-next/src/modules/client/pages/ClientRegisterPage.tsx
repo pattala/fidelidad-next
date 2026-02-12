@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { auth, db } from '../../../lib/firebase';
 import { createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, getDoc, query, where, getDocs, collection, onSnapshot, limit } from 'firebase/firestore';
-import { Mail, Lock, User, Phone, ArrowLeft, ArrowRight, MapPin, Building, Home, Eye, EyeOff, Check, Heart, ShieldCheck, Cake } from 'lucide-react';
+import { Mail, Lock, User, Phone, ArrowLeft, ArrowRight, MapPin, Building, Home, Eye, EyeOff, Check, Heart, ShieldCheck, Cake, Gift } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { ARGENTINA_LOCATIONS } from '../../../data/locations';
 import { NotificationService } from '../../../services/notificationService';
@@ -269,7 +269,7 @@ export const ClientRegisterPage = () => {
     const availableLocalidades = (province && partido) ? (ARGENTINA_LOCATIONS[province][partido] || []) : [];
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 relative overflow-hidden">
+        <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 relative">
             {/* Loading Overlay */}
             {loading && (
                 <div className="fixed inset-0 z-[200] bg-white/80 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in">
@@ -310,6 +310,14 @@ export const ClientRegisterPage = () => {
 
                 <div className="bg-white p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 border border-gray-100 backdrop-blur-sm animate-fade-in">
                     <div className="mb-6 text-center">
+                        {refCode && (
+                            <div className="mb-4 p-3 bg-purple-50 rounded-2xl border border-purple-100 animate-bounce-subtle">
+                                <p className="text-[10px] font-black uppercase text-purple-400 tracking-widest mb-1">¡Invitación Especial!</p>
+                                <p className="text-xs font-bold text-purple-700 flex items-center justify-center gap-1">
+                                    <Gift size={14} /> Te han invitado a sumarte al club
+                                </p>
+                            </div>
+                        )}
                         <h2 className="text-xl font-bold text-gray-800">
                             {step === 1 ? 'Crear Cuenta' : 'Tu Dirección'}
                         </h2>

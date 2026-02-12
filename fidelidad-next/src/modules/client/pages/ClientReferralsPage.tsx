@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { auth, db } from '../../../lib/firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { Share2, Copy, Users, Gift, ArrowRight, CheckCircle2, Megaphone } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -14,18 +14,32 @@ export const ClientReferralsPage = () => {
         const user = auth.currentUser;
         if (!user) return;
 
-        const unsub = onSnapshot(doc(db, 'users', user.uid), (snap) => {
+        const unsub = onSnapshot(doc(db, 'users', user.uid), async (snap) => {
             if (snap.exists()) {
-                setUserData(snap.data());
+                const data = snap.data();
+                setUserData(data);
+
+                // AUTO-GENERACIÓN para socios antiguos
+                if (!data.referralCode) {
+                    const namePart = (data.name || data.nombre || 'SOCIO').split(' ')[0].toUpperCase();
+                    const newCode = `${namePart}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+                    await updateDoc(doc(db, 'users', user.uid), {
+                        referralCode: newCode,
+                        referralStats: data.referralStats || { count: 0, pointsEarned: 0 }
+                    });
+                }
             }
         });
         return () => unsub();
     }, []);
 
-    const referralCode = userData?.referralCode || '';
-    const referralLink = `${config?.contact?.pwaUrl || window.location.origin}/register?ref=${referralCode}`;
+    const referralCode = userData?.referralCode || 'GENERANDO...';
+    // Usar la URL base de la config si existe, sino window.location
+    const baseUrl = config?.contact?.pwaUrl || window.location.origin;
+    const referralLink = `${baseUrl}/register?ref=${referralCode}`;
 
     const handleCopy = () => {
+        if (referralCode === 'GENERANDO...') return;
         navigator.clipboard.writeText(referralLink);
         setCopied(true);
         toast.success('¡Enlace copiado!');
@@ -33,7 +47,10 @@ export const ClientReferralsPage = () => {
     };
 
     const handleShare = () => {
-        const text = `¡Hola! 👋 Te invito a sumarte a ${config?.siteName || 'nuestro Club'}. Registrate con mi link y ganá ${config?.referrals?.pointsForReferee || 100} puntos de regalo para tu primer premio: ${referralLink}`;
+        if (referralCode === 'GENERANDO...') return;
+        const siteName = config?.siteName || 'Club Fidelidad';
+        const points = config?.referrals?.pointsForReferee || 100;
+        const text = `¡Hola! 👋 Te invito a sumarte a ${siteName}. Registrate con mi link y ganá ${points} puntos de regalo para tu primer premio: ${referralLink}`;
         const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
         window.open(whatsappUrl, '_blank');
     };
@@ -82,13 +99,13 @@ export const ClientReferralsPage = () => {
                     <Share2 size={16} /> Tu Enlace de Invitación
                 </h3>
 
-                <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 mb-6 border border-white/10 flex items-center justify-between">
-                    <code className="text-sm font-bold text-gray-200 truncate pr-4">
-                        {referralCode}
+                <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 mb-6 border border-white/10 flex items-center justify-between overflow-hidden">
+                    <code className="text-[11px] font-bold text-gray-200 truncate pr-4 opacity-80">
+                        {referralLink}
                     </code>
                     <button
                         onClick={handleCopy}
-                        className="p-2 hover:bg-white/10 rounded-lg transition active:scale-95"
+                        className="p-2 hover:bg-white/10 rounded-lg transition active:scale-95 flex-shrink-0"
                     >
                         {copied ? <CheckCircle2 size={20} className="text-green-400" /> : <Copy size={20} />}
                     </button>

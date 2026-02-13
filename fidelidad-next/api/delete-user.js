@@ -127,7 +127,19 @@ async function deleteClienteSubcollections(db, docId, targetCollection = "users"
     console.log(`[delete-user][cascade] Skipping subcollections for non-user collection: ${targetCollection}`);
     return;
   }
-  const subs = ["geo_raw", "points_history", "inbox", "notifications", "interacciones", "visit_history"];
+  // LISTA MAESTRA TOTAL DE SUBCOLECCIONES DE USUARIO
+  const subs = [
+    "geo_raw",
+    "points_history",
+    "inbox",
+    "notifications",
+    "interacciones",
+    "visit_history",
+    "transactions",
+    "tokens",
+    "expiration_cache",
+    "backups"
+  ];
   for (const sub of subs) {
     const makeQuery = () => db.collection(`users/${docId}/${sub}`).limit(500);
     await deleteByQueryPaged(db, makeQuery, `users/${docId}/${sub}`);
@@ -135,6 +147,7 @@ async function deleteClienteSubcollections(db, docId, targetCollection = "users"
 }
 
 async function deleteLooseCollections(db, { uid, docId }) {
+  // 1. Geolocalización por UID (si existe en Auth) o por clienteId (ID de Firestore)
   if (uid) {
     const makeQueryUid = () => db.collection("geo_raw").where("uid", "==", uid).limit(500);
     await deleteByQueryPaged(db, makeQueryUid, `geo_raw where uid==${uid}`);
@@ -144,8 +157,11 @@ async function deleteLooseCollections(db, { uid, docId }) {
     const makeQueryDoc = () => db.collection("geo_raw").where("clienteId", "==", docId).limit(500);
     await deleteByQueryPaged(db, makeQueryDoc, `geo_raw where clienteId==${docId}`);
 
+    // 2. Transacciones raíz vinculadas al UID del socio
     const makeQueryTransDoc = () => db.collection("transactions").where("uid", "==", docId).limit(500);
     await deleteByQueryPaged(db, makeQueryTransDoc, `transactions where uid==${docId}`);
+
+    // 3. Cualquier otra referencia suelta que use el docId
   }
 }
 
@@ -236,24 +252,18 @@ export default async function handler(req, res) {
       data = found.data;
       matchedBy = docId ? "docId" : authUID ? "authUID" : email ? "email" : "numeroSocio";
 
-      await deleteClienteSubcollections(db, found.id, targetCollection);
-
-      if (targetCollection === "users") {
-        await deleteLooseCollections(db, {
-          uid: data?.authUID || resolvedAuthUID || "",
-          docId: found.id
-        });
-      }
-
       await col.doc(found.id).delete();
     } else {
       matchedBy = docId ? "docId" : authUID ? "authUID" : email ? "email" : "numeroSocio";
-      if (resolvedDocId || resolvedAuthUID) {
-        await deleteLooseCollections(db, {
-          uid: resolvedAuthUID || "",
-          docId: resolvedDocId || ""
-        });
-      }
+    }
+
+    // SIEMPRE intentar limpieza en cascada si tenemos un ID, para purgar documentos fantasma
+    if (resolvedDocId) {
+      await deleteClienteSubcollections(db, resolvedDocId, targetCollection);
+      await deleteLooseCollections(db, {
+        uid: resolvedAuthUID || "",
+        docId: resolvedDocId
+      });
     }
 
     // 3) Borrar usuario en Auth

@@ -25,7 +25,20 @@ async function deleteByQueryPaged(db, makeQuery, label = "batch") {
 }
 
 async function deleteUserSubcollections(db, docId, subs = []) {
-    for (const sub of subs) {
+    // Si no se pasan subcolecciones específicas, usamos la lista maestra por defecto
+    const masterSubs = subs.length > 0 ? subs : [
+        "geo_raw",
+        "points_history",
+        "inbox",
+        "notifications",
+        "interacciones",
+        "visit_history",
+        "transactions",
+        "tokens",
+        "expiration_cache",
+        "backups"
+    ];
+    for (const sub of masterSubs) {
         const makeQuery = () => db.collection(`users/${docId}/${sub}`).limit(500);
         await deleteByQueryPaged(db, makeQuery, `users/${docId}/${sub}`);
     }
@@ -90,17 +103,30 @@ export default async function handler(req, res) {
 
             // 1. SOCIOS Y ACTIVIDAD
             if (options.socios_total) {
-                const usersSnap = await db.collection("users").where("role", "not-in", ["admin", "editor", "viewer"]).get();
-                for (const d of usersSnap.docs) {
-                    await deleteUserSubcollections(db, d.id, ["points_history", "notifications", "inbox", "interacciones", "geo_raw", "visit_history"]);
-                    await d.ref.delete();
+                // DETECCIÓN DE FANTASMAS: listDocuments() obtiene incluso los docs en cursiva
+                const usersRefs = await db.collection("users").listDocuments();
+                let deletedCount = 0;
+
+                for (const docRef of usersRefs) {
+                    const snap = await docRef.get();
+                    const data = snap.data();
+
+                    // Proteger administradores
+                    if (snap.exists && ["admin", "editor", "viewer"].includes(data?.role)) {
+                        continue;
+                    }
+
+                    // Limpieza profunda de todas las subcolecciones del usuario
+                    await deleteUserSubcollections(db, docRef.id);
+                    await docRef.delete();
+                    deletedCount++;
                 }
-                results.socios_borrados = usersSnap.size;
+                results.socios_borrados = deletedCount;
             } else if (options.socios_historial) {
                 // Borrar solo historiales manteniendo usuarios
                 const usersSnap = await db.collection("users").get();
                 for (const d of usersSnap.docs) {
-                    await deleteUserSubcollections(db, d.id, ["points_history", "transactions", "interacciones", "geo_raw", "visit_history"]);
+                    await deleteUserSubcollections(db, d.id, ["points_history", "transactions", "interacciones", "geo_raw", "visit_history", "expiration_cache"]);
                     await d.ref.update({ points: 0, balance: 0, accumulated_balance: 0 });
                 }
                 results.historiales_vaciados = usersSnap.size;

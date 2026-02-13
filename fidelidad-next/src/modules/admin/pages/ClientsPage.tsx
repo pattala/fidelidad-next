@@ -456,9 +456,9 @@ export const ClientsPage = () => {
     // 3. Eliminar
     const handleDelete = async (id: string, name: string) => {
         if (isReadOnly) return;
-        if (!window.confirm(`¿Estás seguro de eliminar a ${name}?`)) return;
+        if (!window.confirm(`¿Estás seguro de eliminar a ${name}? Esta acción borrará permanentemente sus puntos, visitas y mensajes.`)) return;
 
-        const toastId = toast.loading('Eliminando usuario...');
+        const toastId = toast.loading('Eliminando usuario y limpiando datos...');
         try {
             const response = await fetch('/api/delete-user', {
                 method: 'POST',
@@ -470,14 +470,15 @@ export const ClientsPage = () => {
             });
 
             if (response.ok) {
-                toast.success('Cliente eliminado (Base de datos y Auth)', { id: toastId });
+                toast.success('Cliente y todos sus datos eliminados correctamente', { id: toastId });
             } else {
-                await deleteDoc(doc(db, 'users', id));
-                toast.success('Cliente eliminado (Solo base de datos)', { id: toastId });
+                const err = await response.json();
+                throw new Error(err.error || 'Error en el servidor al purgar datos');
             }
             fetchData();
-        } catch (error) {
-            toast.error("Error al eliminar", { id: toastId });
+        } catch (error: any) {
+            console.error("Delete error:", error);
+            toast.error(`Error de purga: ${error.message}. Intenta de nuevo o verifica tu conexión.`, { id: toastId });
         }
     };
 

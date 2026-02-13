@@ -154,6 +154,7 @@ export interface AppConfig {
         pointsForReferee: number;
         rewardCriteria: 'first_transaction' | 'registration';
     };
+    enableDateSimulator?: boolean;
 }
 
 export interface Prize {

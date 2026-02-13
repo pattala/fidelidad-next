@@ -50,7 +50,8 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
         pointsForReferrer: 200,
         pointsForReferee: 100,
         rewardCriteria: 'first_transaction'
-    }
+    },
+    enableDateSimulator: false
 };
 
 export const ConfigService = {

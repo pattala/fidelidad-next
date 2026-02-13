@@ -192,7 +192,7 @@ export const AdminLayout = () => {
                     )}
                 </nav>
 
-                {role === 'admin' && (
+                {role === 'admin' && config?.enableDateSimulator && (
                     <div className="p-4 border-t border-gray-200 bg-purple-50">
                         <p className="text-[10px] font-bold text-purple-800 uppercase tracking-wider mb-2">Simulador de Fecha</p>
                         <div className="text-xs text-gray-600 mb-2">

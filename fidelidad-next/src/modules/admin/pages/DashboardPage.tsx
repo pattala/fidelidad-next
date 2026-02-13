@@ -54,7 +54,9 @@ export const DashboardPage = () => {
 
             snap.forEach(d => {
                 const data = d.data();
-                if (data.role !== 'admin') {
+                // Filter: skip admins AND skip 'ghost' users (no name or no DNI)
+                const isGhost = !data.name && !data.nombre && !data.dni;
+                if (data.role !== 'admin' && !isGhost) {
                     clientCount++;
                     points += (data.points ?? data.puntos ?? 0);
                     if (data.birthDate?.endsWith(todayMD)) {

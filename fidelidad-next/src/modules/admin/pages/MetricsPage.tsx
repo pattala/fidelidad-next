@@ -194,11 +194,15 @@ export const MetricsPage = () => {
                 });
 
                 // 1. Clientes con Mayor Saldo
-                const qTopBalance = query(collection(db, 'users'), orderBy('points', 'desc'), limit(5));
+                const qTopBalance = query(collection(db, 'users'), orderBy('points', 'desc'), limit(15)); // Fetch more to filter ghosts
                 const snapTopBalance = await getDocs(qTopBalance);
-                setTopUsers(snapTopBalance.docs.map(d => {
-                    const data = d.data();
-                    return { id: d.id, ...data, name: data.name || data.nombre || 'Socio sin nombre', points: data.points || 0, socioNumber: data.socioNumber || data.numeroSocio || '' };
+                const filteredTopBalance = snapTopBalance.docs
+                    .map(d => ({ id: d.id, ...d.data() } as any))
+                    .filter(u => u.name || u.nombre || u.dni)
+                    .slice(0, 5);
+
+                setTopUsers(filteredTopBalance.map(user => {
+                    return { id: user.id, ...user, name: user.name || user.nombre || 'Socio sin nombre', points: user.points || 0, socioNumber: user.socioNumber || user.numeroSocio || '' };
                 }));
 
                 // 2. Top Generadores (COMPRA) - Procesar spenders del periodo
@@ -225,11 +229,15 @@ export const MetricsPage = () => {
                 }
 
                 // 3. Clientes más Fieles (APP)
-                const qVisitors = query(collection(db, 'users'), orderBy('visitCount', 'desc'), limit(5));
+                const qVisitors = query(collection(db, 'users'), orderBy('visitCount', 'desc'), limit(15));
                 const snapVisitors = await getDocs(qVisitors);
-                setTopVisitors(snapVisitors.docs.map(d => {
-                    const data = d.data();
-                    return { id: d.id, ...data, name: data.name || data.nombre || '', count: data.visitCount || 0, socioNumber: data.socioNumber || data.numeroSocio || '' };
+                const filteredVisitors = snapVisitors.docs
+                    .map(d => ({ id: d.id, ...d.data() } as any))
+                    .filter(u => u.name || u.nombre || u.dni)
+                    .slice(0, 5);
+
+                setTopVisitors(filteredVisitors.map(user => {
+                    return { id: user.id, ...user, name: user.name || user.nombre || 'Socio', count: user.visitCount || 0, socioNumber: user.socioNumber || user.numeroSocio || '' };
                 }));
 
             } catch (error) {

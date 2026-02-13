@@ -167,7 +167,7 @@ export const ClientsPage = () => {
                 } as Client;
             });
 
-            setClients(loadedClients.filter(c => c.name));
+            setClients(loadedClients.filter(c => c.name || c.dni));
         } catch (error) {
             console.error("Error cargando datos:", error);
             toast.error("Error de conexión");

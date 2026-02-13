@@ -40,23 +40,28 @@ export const useFcmToken = () => {
                     setToken(currentToken);
 
                     const { getDoc } = await import('firebase/firestore');
-                    const userDoc = await getDoc(doc(db, 'users', user.uid));
-                    const userData = userDoc.data();
+                    const userRef = doc(db, 'users', user.uid);
+                    const userDoc = await getDoc(userRef);
 
-                    let tokens: string[] = userData?.fcmTokens || [];
-                    if (userData?.fcmToken && !tokens.includes(userData.fcmToken)) {
-                        tokens.push(userData.fcmToken);
-                    }
-                    if (!tokens.includes(currentToken)) {
-                        tokens.push(currentToken);
-                    }
-                    if (tokens.length > 5) tokens = tokens.slice(-5);
+                    if (userDoc.exists()) {
+                        const userData = userDoc.data();
+                        let tokens: string[] = userData?.fcmTokens || [];
+                        if (userData?.fcmToken && !tokens.includes(userData.fcmToken)) {
+                            tokens.push(userData.fcmToken);
+                        }
+                        if (!tokens.includes(currentToken)) {
+                            tokens.push(currentToken);
+                        }
+                        if (tokens.length > 5) tokens = tokens.slice(-5);
 
-                    await setDoc(doc(db, 'users', user.uid), {
-                        fcmToken: currentToken,
-                        fcmTokens: tokens,
-                        lastFcmUpdate: new Date()
-                    }, { merge: true });
+                        await setDoc(userRef, {
+                            fcmToken: currentToken,
+                            fcmTokens: tokens,
+                            lastFcmUpdate: new Date()
+                        }, { merge: true });
+                    } else {
+                        console.log('User document does not exist yet. Skipping FCM token save to avoid ghost document.');
+                    }
                 }
             }
         } catch (e) {

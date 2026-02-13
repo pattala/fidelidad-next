@@ -78,44 +78,43 @@ async function authCheck(req) {
 }
 
 function buildHtmlLayout(innerHtml, config = {}) {
-  // Use a reliable base URL, prioritizing the database configuration for white-label support.
   const base = config.contact?.pwaUrl || process.env.PWA_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://fidelidad-next.vercel.app');
   const logo = config.logoUrl || process.env.PUSH_ICON_URL || `${base}/images/mi_logo.png`;
   const siteName = config.siteName || 'Club Fidelidad';
-  const terms = config.contact?.termsAndConditions || `${base}/profile`;
+  const terms = config.contact?.termsAndConditions || process.env.URL_TERMINOS_Y_CONDICIONES || '#';
 
-  // Social Media Links
   const facebook = config.contact?.facebook;
   const instagram = config.contact?.instagram;
   const whatsapp = config.contact?.whatsapp;
   const website = config.contact?.website;
   const address = config.contact?.address;
 
-  let socialIcons = '';
-  if (facebook || instagram || whatsapp || website) {
-    socialIcons = `
-            ${website ? `<a href="${website}" style="display:inline-block; margin: 0 5px; text-decoration: none;"><img src="https://img.icons8.com/ios-filled/50/0ea5e9/internet.png" width="24" height="24" alt="Web" title="Website"/></a>` : ''}
-            ${whatsapp ? `
-              <a href="https://wa.me/${whatsapp.replace(/\D/g, '')}" style="display:inline-block; margin: 0 10px; text-decoration: none; vertical-align: middle;">
-                <img src="https://img.icons8.com/color/48/whatsapp--v1.png" width="24" height="24" alt="WhatsApp" style="vertical-align: middle;"/>
-                <span style="font-size: 14px; color: #4b5563; font-weight: bold; margin-left: 4px; vertical-align: middle;">${whatsapp}</span>
-              </a>
-            ` : ''}
-            ${instagram ? `<a href="${instagram.startsWith('http') ? instagram : 'https://instagram.com/' + instagram.replace('@', '')}" style="display:inline-block; margin: 0 5px; text-decoration: none;"><img src="https://img.icons8.com/color/48/instagram-new--v1.png" width="24" height="24" alt="Instagram" title="Instagram"/></a>` : ''}
-            ${facebook ? `<a href="${facebook}" style="display:inline-block; margin: 0 5px; text-decoration: none;"><img src="https://img.icons8.com/color/48/facebook-new.png" width="24" height="24" alt="Facebook" title="Facebook"/></a>` : ''}
-          `;
-  }
+  // Social Icons grouping
+  const icons = [];
+  if (facebook) icons.push(`<a href="${facebook}" style="display:inline-block;margin:0 8px;text-decoration:none;"><img src="https://cdn-icons-png.flaticon.com/512/124/124010.png" width="32" height="32" alt="FB"></a>`);
+  if (instagram) icons.push(`<a href="${instagram.startsWith('http') ? instagram : 'https://instagram.com/' + instagram}" style="display:inline-block;margin:0 8px;text-decoration:none;"><img src="https://cdn-icons-png.flaticon.com/512/174/174855.png" width="32" height="32" alt="IG"></a>`);
+  if (whatsapp) icons.push(`<a href="https://wa.me/${whatsapp.replace(/\D/g, '')}" style="display:inline-block;margin:0 8px;text-decoration:none;"><img src="https://cdn-icons-png.flaticon.com/512/733/733585.png" width="32" height="32" alt="WA"></a>`);
+  if (website) icons.push(`<a href="${website}" style="display:inline-block;margin:0 8px;text-decoration:none;"><img src="https://cdn-icons-png.flaticon.com/512/1006/1006771.png" width="32" height="32" alt="WEB"></a>`);
 
-  let addressBlock = '';
-  if (address) {
-    const mapsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
-    addressBlock = `
-      <tr><td style="padding: 0 32px 32px; text-align: center; font-size: 14px; color: #64748b;">
-        <div style="margin-bottom: 8px; font-weight: bold; color: #4b5563;">${address}</div>
-        <a href="${mapsLink}" style="color: #0ea5e9; text-decoration: none; font-weight: bold; font-size: 12px; background: #f0f9ff; padding: 6px 12px; border-radius: 20px; border: 1px solid #bae6fd;">📍 Cómo llegar</a>
-      </td></tr>
-    `;
-  }
+  const socialIconsRow = icons.length > 0
+    ? `<tr><td style="padding: 0 32px 16px; text-align: center;">${icons.join('')}</td></tr>`
+    : '';
+
+  const whatsappNumberRow = whatsapp
+    ? `<tr><td style="padding: 0 32px 32px; text-align: center; font-family: sans-serif; font-size: 14px; color: #64748b; font-weight: bold;">WhatsApp: ${whatsapp}</td></tr>`
+    : '';
+
+  const addressBlock = address ? `
+    <tr><td style="padding: 0 32px 32px; text-align: center;">
+      <p style="margin: 0 0 16px 0; font-family: sans-serif; font-size: 14px; color: #64748b;">
+        📍 ${address}
+      </p>
+      <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}" 
+         style="background-color: #f1f5f9; color: #475569; padding: 10px 20px; border-radius: 12px; text-decoration: none; font-size: 13px; font-weight: bold; display: inline-block;">
+        Cómo llegar
+      </a>
+    </td></tr>
+  ` : '';
 
   return `<!doctype html>
   <html lang="es">
@@ -131,7 +130,8 @@ function buildHtmlLayout(innerHtml, config = {}) {
             </td></tr>
             <tr><td style="padding:0 32px 32px;font-size:16px;line-height:1.6;text-align:left;color:#4b5563;">${innerHtml}</td></tr>
             
-            ${socialIcons ? `<tr><td style="padding: 0 32px 32px; text-align: center;">${socialIcons}</td></tr>` : ''}
+            ${socialIconsRow}
+            ${whatsappNumberRow}
             ${addressBlock}
 
             <tr><td style="background-color:#f8fafc;padding:24px;text-align:center;border-top:1px solid #e2e8f0;">

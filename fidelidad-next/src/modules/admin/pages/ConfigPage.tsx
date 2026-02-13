@@ -113,8 +113,22 @@ export const ConfigPage = () => {
         }
     });
 
-    const { isReadOnly } = useAdminAuth();
+    const { isReadOnly, user } = useAdminAuth();
     const [activeTab, setActiveTab] = useState<'rules' | 'branding' | 'messaging' | 'legales' | 'advanced'>('rules');
+    const [resetOptions, setResetOptions] = useState({
+        socios_total: false,
+        socios_historial: false,
+        socios_mensajes: false,
+        geo_total: false,
+        transacciones_total: false,
+        marca_total: false,
+        prizes_total: false,
+        campaigns_total: false,
+        gamification_total: false,
+        team_total: false,
+        contact_total: false,
+        legales_total: false
+    });
     // Empezar en Reglas por petición del usuario
     const [loading, setLoading] = useState(false);
     const [showCalculator, setShowCalculator] = useState(false);
@@ -176,25 +190,44 @@ export const ConfigPage = () => {
         }
     };
 
-    const handleResetFactory = async () => {
+    const handleResetAction = async (action: 'reset' | 'backup' | 'restore') => {
         if (isReadOnly) return;
-        const confirm = window.prompt("⚠️ ¡PELIGRO! Esto borrará todos los clientes y transacciones. Escriba 'RESET' para confirmar:");
-        if (confirm !== 'RESET') {
-            if (confirm !== null) toast.error("Confirmación incorrecta.");
-            return;
+
+        if (action === 'reset') {
+            const selectedCount = Object.values(resetOptions).filter(v => v).length;
+            if (selectedCount === 0) {
+                toast.error("Debes seleccionar al menos un ítem para resetear.");
+                return;
+            }
+
+            const confirm = window.prompt(`⚠️ ¡PELIGRO! Se ejecutarán ${selectedCount} acciones de borrado irrreversible. Escriba 'RESET' para confirmar:`);
+            if (confirm !== 'RESET') {
+                if (confirm !== null) toast.error("Confirmación incorrecta.");
+                return;
+            }
+        } else if (action === 'restore') {
+            if (!window.confirm("¿Seguro que quieres restaurar la configuración anterior? Esto sobreescribirá tus reglas y diseño actuales.")) return;
         }
 
-        const toastId = toast.loading('Reseteando sistema...');
+        const toastId = toast.loading(`${action === 'backup' ? 'Creando respaldo' : action === 'restore' ? 'Restaurando' : 'Reseteando'}...`);
         try {
             const res = await fetch('/api/reset-factory', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ confirmText: 'RESET' })
+                body: JSON.stringify({
+                    action,
+                    options: resetOptions,
+                    confirmText: 'RESET',
+                    adminUid: user?.uid
+                })
             });
             const data = await res.json();
             if (data.ok) {
-                toast.success('¡Sistema reseteado a cero!', { id: toastId });
-                setTimeout(() => navigate('/admin/dashboard'), 2000);
+                toast.success(data.message || 'Operación completada.', { id: toastId });
+                if (action === 'reset' || action === 'restore') {
+                    // Recargar despues de un reset/restore
+                    setTimeout(() => window.location.reload(), 2000);
+                }
             } else {
                 toast.error(`Error: ${data.error}`, { id: toastId });
             }
@@ -1551,37 +1584,151 @@ export const ConfigPage = () => {
 
                 {/* Pestaña: AVANZADO / RESET */}
                 {activeTab === 'advanced' && (
-                    <div className="max-w-2xl mx-auto py-12">
-                        <div className="bg-red-50 border-2 border-red-100 rounded-3xl p-10 text-center space-y-6">
-                            <div className="bg-white w-20 h-20 rounded-full flex items-center justify-center mx-auto shadow-sm border border-red-50">
-                                <AlertTriangle size={40} className="text-red-500" />
+                    <div className="max-w-4xl mx-auto py-12 space-y-8">
+                        {/* SECCIÓN RESPALDOS */}
+                        <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                            <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                                <ShieldAlert size={22} className="text-blue-500" /> Puntos de Restauración (Backups)
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-4">
+                                    <p className="text-sm text-gray-500">Guarda una copia de seguridad de tu marca, reglas y catálogo para estar seguro antes de un reset.</p>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleResetAction('backup')}
+                                        className="w-full flex items-center justify-center gap-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white py-3 rounded-xl font-bold transition-all"
+                                    >
+                                        <Save size={18} /> Crear Punto de Respaldo
+                                    </button>
+                                </div>
+                                <div className="space-y-4 border-l border-gray-100 pl-6">
+                                    <p className="text-sm text-gray-500">¿Algo salió mal? Vuelve a la configuración estructural guardada anteriormente.</p>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleResetAction('restore')}
+                                        className="w-full flex items-center justify-center gap-2 bg-gray-50 text-gray-600 hover:bg-black hover:text-white py-3 rounded-xl font-bold transition-all"
+                                    >
+                                        <RefreshCw size={18} /> Restaurar Configuración Anterior
+                                    </button>
+                                </div>
                             </div>
-                            <div>
-                                <h3 className="text-2xl font-black text-gray-800 mb-2">Zona de Peligro</h3>
-                                <p className="text-gray-600">Este proceso es irreversible. Se borrarán todos los clientes, sus puntos, notificaciones e historiales para dejar el sistema totalmente a cero.</p>
+                        </div>
+
+                        {/* SECCIÓN RESET MAESTRO */}
+                        <div className="bg-red-50/30 border-2 border-red-100 rounded-3xl p-10 space-y-8">
+                            <div className="text-center space-y-2">
+                                <h3 className="text-2xl font-black text-gray-800">Reset Maestro Granular</h3>
+                                <p className="text-gray-500">Selecciona los elementos que deseas limpiar. Las acciones en rojo son irreversibles.</p>
                             </div>
 
-                            <div className="bg-white p-6 rounded-2xl border border-red-50 text-left space-y-4">
-                                <h4 className="font-bold text-gray-800 flex items-center gap-2">
-                                    <RefreshCw size={18} className="text-red-500" /> ¿Qué hace el Reset Factory?
-                                </h4>
-                                <ul className="text-sm text-gray-500 space-y-2 list-disc pl-5">
-                                    <li>Borra todos los <strong>Socios</strong> registrados (excepto administradores).</li>
-                                    <li>Elimina todos los historiales de <strong>Puntos y Canjes</strong>.</li>
-                                    <li>Limpia todas las <strong>Notificaciones y Mensajes</strong> enviados.</li>
-                                    <li>Reinicia las <strong>Métricas y Estadísticas</strong> a cero.</li>
-                                </ul>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* Grupo 1: Socios */}
+                                <div className="bg-white p-6 rounded-2xl border border-red-50 space-y-4">
+                                    <h4 className="font-bold text-gray-800 flex items-center gap-2 border-b pb-2 mb-4">
+                                        <Users size={18} className="text-red-500" /> Socios y Actividad
+                                    </h4>
+                                    <div className="space-y-3">
+                                        <label className="flex items-center gap-3 cursor-pointer group">
+                                            <input type="checkbox" checked={resetOptions.socios_total} onChange={e => setResetOptions({ ...resetOptions, socios_total: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-red-600" />
+                                            <div>
+                                                <span className="block text-sm font-bold text-gray-700 group-hover:text-red-600">Borrar Socios por Completo</span>
+                                                <span className="text-[10px] text-gray-400 uppercase">Elimina cuentas y acceso PWA</span>
+                                            </div>
+                                        </label>
+                                        <label className="flex items-center gap-3 cursor-pointer group">
+                                            <input type="checkbox" checked={resetOptions.socios_historial} onChange={e => setResetOptions({ ...resetOptions, socios_historial: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-red-600" />
+                                            <div>
+                                                <span className="block text-sm font-bold text-gray-700 group-hover:text-red-600">Vaciar Historial y Puntos</span>
+                                                <span className="text-[10px] text-gray-400 uppercase">Resetea saldos a 0 manteniendo socios</span>
+                                            </div>
+                                        </label>
+                                        <label className="flex items-center gap-3 cursor-pointer group">
+                                            <input type="checkbox" checked={resetOptions.socios_mensajes} onChange={e => setResetOptions({ ...resetOptions, socios_mensajes: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-red-600" />
+                                            <div>
+                                                <span className="block text-sm font-bold text-gray-700 group-hover:text-red-600">Limpiar Mensajes Enviados</span>
+                                                <span className="text-[10px] text-gray-400 uppercase">Borra el buzón de entrada de los clientes</span>
+                                            </div>
+                                        </label>
+                                        <label className="flex items-center gap-3 cursor-pointer group">
+                                            <input type="checkbox" checked={resetOptions.geo_total} onChange={e => setResetOptions({ ...resetOptions, geo_total: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-red-600" />
+                                            <div>
+                                                <span className="block text-sm font-bold text-gray-700 group-hover:text-red-600">Borrar Datos Geográficos</span>
+                                                <span className="text-[10px] text-gray-400 uppercase">Historial de GPS (Geo_Raw)</span>
+                                            </div>
+                                        </label>
+                                        <label className="flex items-center gap-3 cursor-pointer group">
+                                            <input type="checkbox" checked={resetOptions.transacciones_total} onChange={e => setResetOptions({ ...resetOptions, transacciones_total: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-red-600" />
+                                            <div>
+                                                <span className="block text-sm font-bold text-gray-700 group-hover:text-red-600">Limpiar Transacciones Globales</span>
+                                                <span className="text-[10px] text-gray-400 uppercase">Reset de Métricas (Transactions)</span>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                {/* Grupo 2: Estructura */}
+                                <div className="bg-white p-6 rounded-2xl border border-red-50 space-y-4">
+                                    <h4 className="font-bold text-gray-800 flex items-center gap-2 border-b pb-2 mb-4">
+                                        <Settings size={18} className="text-gray-600" /> Estructura y Configuración
+                                    </h4>
+                                    <div className="space-y-3">
+                                        <label className="flex items-center gap-3 cursor-pointer group">
+                                            <input type="checkbox" checked={resetOptions.marca_total} onChange={e => setResetOptions({ ...resetOptions, marca_total: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-blue-600" />
+                                            <div>
+                                                <span className="block text-sm font-bold text-gray-700 group-hover:text-blue-600">Reset de Identidad Visual</span>
+                                                <span className="text-[10px] text-gray-400 uppercase">Vuelve a colores y logo de fábrica</span>
+                                            </div>
+                                        </label>
+                                        <label className="flex items-center gap-3 cursor-pointer group">
+                                            <input type="checkbox" checked={resetOptions.gamification_total} onChange={e => setResetOptions({ ...resetOptions, gamification_total: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-blue-600" />
+                                            <div>
+                                                <span className="block text-sm font-bold text-gray-700 group-hover:text-blue-600">Reset de Reglas de Juego</span>
+                                                <span className="text-[10px] text-gray-400 uppercase">Valor de punto y bonos default</span>
+                                            </div>
+                                        </label>
+                                        <label className="flex items-center gap-3 cursor-pointer group">
+                                            <input type="checkbox" checked={resetOptions.prizes_total} onChange={e => setResetOptions({ ...resetOptions, prizes_total: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-red-600" />
+                                            <div>
+                                                <span className="block text-sm font-bold text-gray-700 group-hover:text-red-600">Borrar Catálogo de Premios</span>
+                                                <span className="text-[10px] text-gray-400 uppercase">Elimina todos los beneficios creados</span>
+                                            </div>
+                                        </label>
+                                        <label className="flex items-center gap-3 cursor-pointer group">
+                                            <input type="checkbox" checked={resetOptions.campaigns_total} onChange={e => setResetOptions({ ...resetOptions, campaigns_total: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-red-600" />
+                                            <div>
+                                                <span className="block text-sm font-bold text-gray-700 group-hover:text-red-600">Borrar Campañas y Promos</span>
+                                                <span className="text-[10px] text-gray-400 uppercase">Elimina multiplicadores y bonos</span>
+                                            </div>
+                                        </label>
+                                        <label className="flex items-center gap-3 cursor-pointer group">
+                                            <input type="checkbox" checked={resetOptions.team_total} onChange={e => setResetOptions({ ...resetOptions, team_total: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-red-600" />
+                                            <div>
+                                                <span className="block text-sm font-bold text-gray-700 group-hover:text-red-600">Borrar Equipo (Admins)</span>
+                                                <span className="text-[10px] text-gray-400 uppercase">Mantiene solo tu acceso actual</span>
+                                            </div>
+                                        </label>
+                                        <label className="flex items-center gap-3 cursor-pointer group">
+                                            <input type="checkbox" checked={resetOptions.legales_total} onChange={e => setResetOptions({ ...resetOptions, legales_total: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-gray-600" />
+                                            <div>
+                                                <span className="block text-sm font-bold text-gray-700 group-hover:text-gray-950">Reset de Términos Legales</span>
+                                                <span className="text-[10px] text-gray-400 uppercase">Vuelve al texto legal estándar</span>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
                             </div>
 
-                            <button
-                                type="button"
-                                onClick={handleResetFactory}
-                                disabled={isReadOnly}
-                                className="w-full bg-red-600 hover:bg-black text-white py-4 rounded-xl font-black text-lg transition-all shadow-xl shadow-red-100 flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"
-                            >
-                                <Trash2 size={24} /> Resetear Todo (Factory Reset)
-                            </button>
-                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Se solicitará confirmación por escrito antes de proceder</p>
+                            <div className="flex flex-col items-center gap-4 pt-6 border-t border-red-100">
+                                <button
+                                    type="button"
+                                    onClick={() => handleResetAction('reset')}
+                                    disabled={isReadOnly}
+                                    className="w-full md:w-2/3 bg-red-600 hover:bg-black text-white py-4 rounded-2xl font-black text-xl transition-all shadow-xl shadow-red-200 flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"
+                                >
+                                    <Trash2 size={24} /> Ejecutar Reset de Selección
+                                </button>
+                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">⚠️ Esta acción puede ser permanente según tu selección</p>
+                            </div>
                         </div>
                     </div>
                 )}

@@ -84,7 +84,6 @@ export const BirthdayService = {
             const now = TimeService.now();
             const currentYear = now.getFullYear().toString();
             const birthdayPoints = config?.birthdayPoints || 100;
-            const birthdayTemplate = config?.messaging?.templates?.birthday || DEFAULT_TEMPLATES.birthday;
 
             let msg = "";
 
@@ -92,16 +91,16 @@ export const BirthdayService = {
             if (options.mode === 'gift_only') {
                 msg = `¡{nombre}! 🎁 Te acabamos de acreditar {puntos} puntos de regalo por tu cumple. ¡Disfrútalos! 🥳`;
             } else {
-                msg = birthdayTemplate;
+                // Elegir plantilla base
+                const templateFull = config?.messaging?.templates?.birthday || DEFAULT_TEMPLATES.birthday;
+                const templateSimple = config?.messaging?.templates?.birthdaySimple || DEFAULT_TEMPLATES.birthdaySimple;
+
+                msg = (options.mode === 'clean') ? templateSimple : templateFull;
+
                 if (msg.includes("Feliz cumpleaños") && !msg.includes("🎂")) msg = msg.replace("Feliz cumpleaños", "¡Feliz cumpleaños 🎂🎉");
                 if (msg.includes("gran día") && !msg.includes("✨")) msg = msg.replace("gran día", "gran día ✨");
 
-                if (options.mode === 'clean') {
-                    msg = msg.replace(/Te regalamos.*?[\.!¡]/gi, '');
-                    msg = msg.replace(/Te regalamos.*?puntos.*?difrutes/gi, '');
-                    msg = msg.replace(/Te regalamos.*?puntos.*?disfrutes/gi, '');
-                    msg = msg.replace(/{puntos}/gi, '');
-                } else {
+                if (options.mode !== 'clean') {
                     msg = msg.replace(/{puntos}/g, birthdayPoints.toString());
                 }
             }
@@ -110,7 +109,7 @@ export const BirthdayService = {
                 .replace(/{nombre_completo}/g, userData.name || '')
                 .replace(/{puntos}/g, birthdayPoints.toString());
 
-            msg = msg.replace(/\s+/g, ' ').replace(/\s+([\.!¡\?,])/g, '$1').trim();
+            msg = msg.replace(/\s+/g, ' ').replace(/\s+([.!¡?,])/g, '$1').trim();
 
             let pushSent = false;
             let emailSent = false;

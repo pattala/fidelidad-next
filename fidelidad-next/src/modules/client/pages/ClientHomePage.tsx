@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { auth, db } from '../../../lib/firebase';
 import { doc, onSnapshot, collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { Share2, Clock, Check, AlertTriangle, ChevronRight, User as UserIcon, LogOut, Calendar, Sparkles, Cake } from 'lucide-react';
+import { Share2, Clock, Check, AlertTriangle, ChevronRight, User as UserIcon, LogOut, Calendar, Sparkles, Cake, X } from 'lucide-react';
 import { TimeService } from '../../../services/timeService';
 import { signOut } from 'firebase/auth';
 import toast from 'react-hot-toast';
@@ -148,6 +148,12 @@ export const ClientHomePage = () => {
 
     // CHEQUEO DE CUMPLEAÑOS (UNA SOLA VEZ AL CARGAR)
     const [birthdayChecked, setBirthdayChecked] = useState(false);
+    const [isBirthdayVisible, setIsBirthdayVisible] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return sessionStorage.getItem('hideBirthdayBanner') !== 'true';
+        }
+        return true;
+    });
     useEffect(() => {
         if (userData && user?.uid && config && !birthdayChecked) {
             setBirthdayChecked(true);
@@ -271,13 +277,22 @@ export const ClientHomePage = () => {
                 const todayMD = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
                 const isBirthday = userData?.birthDate?.endsWith(todayMD);
 
-                if (isBirthday) {
+                if (isBirthday && isBirthdayVisible) {
                     return (
                         <div className="bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 p-6 rounded-[2rem] shadow-xl text-white relative overflow-hidden animate-pulse-slow">
+                            <button
+                                onClick={() => {
+                                    setIsBirthdayVisible(false);
+                                    sessionStorage.setItem('hideBirthdayBanner', 'true');
+                                }}
+                                className="absolute top-3 right-3 z-10 bg-white/20 hover:bg-white/40 p-1.5 rounded-full transition-colors"
+                            >
+                                <X size={16} strokeWidth={3} />
+                            </button>
                             <div className="absolute top-0 right-0 p-4 opacity-20">
                                 <Cake size={80} />
                             </div>
-                            <div className="relative z-10">
+                            <div className="relative z-10 pr-6">
                                 <div className="flex items-center gap-2 mb-2">
                                     <Sparkles size={20} />
                                     <span className="text-[10px] font-black uppercase tracking-[0.3em]">¡Evento Especial!</span>

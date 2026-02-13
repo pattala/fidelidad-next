@@ -3,7 +3,7 @@ import { collection, getDocs, query, where, collectionGroup, orderBy, limit, doc
 import { db } from '../../../lib/firebase';
 import { ConfigService } from '../../../services/configService';
 import { TimeService } from '../../../services/timeService';
-import { ArrowUpRight, ArrowDownLeft, TrendingUp, Gift, User, Clock, RefreshCw, Cake } from 'lucide-react';
+import { ArrowUpRight, ArrowDownLeft, TrendingUp, Gift, User, Clock, RefreshCw, Cake, X } from 'lucide-react';
 
 import { BirthdayService } from '../../../services/birthdayService';
 import toast from 'react-hot-toast';
@@ -32,6 +32,13 @@ export const DashboardPage = () => {
     const [activityLimit, setActivityLimit] = useState(10);
     const [birthdaysOfToday, setBirthdaysOfToday] = useState<any[]>([]);
     const [config, setConfig] = useState<any>(null);
+    const [isBirthdayAlertVisible, setIsBirthdayAlertVisible] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return sessionStorage.getItem('hideBirthdayAlert') !== 'true';
+        }
+        return true;
+    });
+    const [whatsappMentionsGift, setWhatsappMentionsGift] = useState<{ [key: string]: boolean }>({});
 
     useEffect(() => {
         setLoading(true);
@@ -329,8 +336,18 @@ export const DashboardPage = () => {
             </div>
 
             {/* Birthday Alert Section */}
-            {birthdaysOfToday.length > 0 && (
-                <div className="mb-8 animate-bounce-subtle">
+            {isBirthdayAlertVisible && birthdaysOfToday.length > 0 && (
+                <div className="mb-8 animate-bounce-subtle relative group">
+                    <button
+                        onClick={() => {
+                            setIsBirthdayAlertVisible(false);
+                            sessionStorage.setItem('hideBirthdayAlert', 'true');
+                        }}
+                        className="absolute -top-2 -right-2 z-10 bg-white text-gray-400 hover:text-rose-500 p-1.5 rounded-full shadow-lg border border-gray-100 transition-all hover:scale-110 active:scale-95"
+                        title="Cerrar hasta la próxima sesión"
+                    >
+                        <X size={16} strokeWidth={3} />
+                    </button>
                     <div className="bg-gradient-to-r from-pink-500 to-rose-500 p-1 rounded-2xl shadow-lg shadow-pink-100">
                         <div className="bg-white p-6 rounded-[calc(1rem-1px)]">
                             <div className="flex items-center justify-between mb-4">
@@ -425,10 +442,22 @@ export const DashboardPage = () => {
                                                         <div className="flex items-center justify-center gap-1 py-1 text-[9px] font-bold text-blue-600 bg-blue-50 border border-blue-100 rounded-lg">
                                                             <span>📧 Email y Push Enviados</span>
                                                         </div>
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <label className="flex items-center gap-2 cursor-pointer select-none">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={whatsappMentionsGift[client.id] ?? alreadyGifted}
+                                                                    onChange={(e) => setWhatsappMentionsGift(prev => ({ ...prev, [client.id]: e.target.checked }))}
+                                                                    className="w-3.5 h-3.5 rounded border-gray-300 text-pink-500 focus:ring-pink-200"
+                                                                />
+                                                                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tight">Incluir aviso de regalo</span>
+                                                            </label>
+                                                        </div>
                                                         <button
                                                             onClick={async () => {
                                                                 if (!config) return;
-                                                                const mode = alreadyGifted ? 'full' : 'clean';
+                                                                const mentionsGift = whatsappMentionsGift[client.id] ?? alreadyGifted;
+                                                                const mode = mentionsGift ? 'full' : 'clean';
                                                                 const res: any = await BirthdayService.sendBirthdayGreeting(client.id, client, config, { mode, whatsappOnly: true });
                                                                 if (res?.whatsappLink) {
                                                                     window.open(res.whatsappLink, '_blank');

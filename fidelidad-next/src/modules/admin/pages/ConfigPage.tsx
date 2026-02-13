@@ -135,7 +135,7 @@ export const ConfigPage = () => {
     const [autoPointValue, setAutoPointValue] = useState<number>(0);
 
     // Updated type definition in insertVar to include 'birthday'
-    const insertVar = (field: 'pointsAdded' | 'redemption' | 'welcome' | 'campaign' | 'offer' | 'birthday' | 'referralReward', variable: string) => {
+    const insertVar = (field: 'pointsAdded' | 'redemption' | 'welcome' | 'campaign' | 'offer' | 'birthday' | 'birthdaySimple' | 'referralReward', variable: string) => {
         const currentTemplates = config.messaging?.templates || {};
         const currentValue = currentTemplates[field] || '';
         setConfig({
@@ -144,7 +144,7 @@ export const ConfigPage = () => {
                 ...config.messaging!,
                 templates: {
                     ...currentTemplates,
-                    [field]: `${currentValue} {${variable}} `
+                    [field]: `${currentValue}{${variable}}`
                 }
             }
         });
@@ -1372,35 +1372,78 @@ export const ConfigPage = () => {
                             </div>
 
                             {/* Birthday Template */}
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Saludo de Cumpleaños</label>
-                                <div className="flex gap-2">
-                                    <div className="relative flex-1">
-                                        <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">🎂</span>
-                                        <textarea
-                                            rows={2}
-                                            value={config.messaging?.templates?.birthday || ''}
-                                            onChange={e => setConfig({
-                                                ...config,
-                                                messaging: {
-                                                    ...config.messaging!,
-                                                    templates: { ...config.messaging?.templates, birthday: e.target.value }
-                                                }
-                                            })}
-                                            placeholder={DEFAULT_TEMPLATES.birthday}
-                                            className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none resize-none"
-                                        />
+                            <div className="space-y-6">
+                                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                    <h4 className="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
+                                        🎂 Cumpleaños
+                                    </h4>
+
+                                    <div className="space-y-4">
+                                        {/* Full Gift Greeting */}
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Mensaje CON Regalo (Puntos)</label>
+                                            <div className="flex gap-2">
+                                                <div className="relative flex-1">
+                                                    <span className="absolute top-3 left-3 text-xl">🎁</span>
+                                                    <textarea
+                                                        rows={2}
+                                                        value={config.messaging?.templates?.birthday || ''}
+                                                        onChange={e => setConfig({
+                                                            ...config,
+                                                            messaging: {
+                                                                ...config.messaging!,
+                                                                templates: { ...config.messaging?.templates, birthday: e.target.value }
+                                                            }
+                                                        })}
+                                                        placeholder={DEFAULT_TEMPLATES.birthday}
+                                                        className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-pink-100 outline-none resize-none text-sm"
+                                                    />
+                                                </div>
+                                                <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, birthday: DEFAULT_TEMPLATES.birthday } } })} className="px-3 py-2 text-gray-300 hover:text-pink-600 transition">↺</button>
+                                            </div>
+                                            <VariableChips vars={['nombre', 'nombre_completo', 'puntos']} onSelect={v => insertVar('birthday', v)} />
+                                        </div>
+
+                                        {/* Simple Greeting */}
+                                        <div className="pt-4 border-t border-gray-100">
+                                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Mensaje SIN Regalo (Solo Saludo)</label>
+                                            <div className="flex gap-2">
+                                                <div className="relative flex-1">
+                                                    <span className="absolute top-3 left-3 text-xl">👋</span>
+                                                    <textarea
+                                                        rows={2}
+                                                        value={config.messaging?.templates?.birthdaySimple || ''}
+                                                        onChange={e => setConfig({
+                                                            ...config,
+                                                            messaging: {
+                                                                ...config.messaging!,
+                                                                templates: { ...config.messaging?.templates, birthdaySimple: e.target.value }
+                                                            }
+                                                        })}
+                                                        placeholder={DEFAULT_TEMPLATES.birthdaySimple}
+                                                        className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none resize-none text-sm"
+                                                    />
+                                                </div>
+                                                <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, birthdaySimple: DEFAULT_TEMPLATES.birthdaySimple } } })} className="px-3 py-2 text-gray-300 hover:text-blue-600 transition">↺</button>
+                                            </div>
+                                            <VariableChips vars={['nombre', 'nombre_completo']} onSelect={v => insertVar('birthdaySimple', v)} />
+                                        </div>
                                     </div>
-                                    <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, birthday: DEFAULT_TEMPLATES.birthday } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition">↺</button>
+
+                                    <div className="mt-4 pt-4 border-t border-gray-100">
+                                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Canales de Envío Automático</label>
+                                        <ChannelSelector
+                                            channels={config.messaging?.eventConfigs?.birthday?.channels || []}
+                                            onChange={(newChannels) => setConfig({
+                                                ...config,
+                                                messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, birthday: { channels: newChannels } } }
+                                            })}
+                                        />
+                                        <p className="text-[10px] text-gray-400 mt-2 italic">
+                                            * El sistema detecta automáticamente si enviar el mensaje con o sin puntos según la configuración de "Reglas de Juego".
+                                        </p>
+                                    </div>
                                 </div>
-                                <VariableChips vars={['nombre', 'nombre_completo', 'puntos']} onSelect={v => insertVar('birthday', v)} />
-                                <ChannelSelector
-                                    channels={config.messaging?.eventConfigs?.birthday?.channels || []}
-                                    onChange={(newChannels) => setConfig({
-                                        ...config,
-                                        messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, birthday: { channels: newChannels } } }
-                                    })}
-                                />
                             </div>
                             <hr className="border-gray-50" />
 

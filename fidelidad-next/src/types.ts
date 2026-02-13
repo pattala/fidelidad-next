@@ -143,6 +143,7 @@ export interface AppConfig {
             campaign?: string;
             offer?: string;
             birthday?: string;
+            birthdaySimple?: string;
             referralReward?: string;
         };
     };

@@ -139,9 +139,9 @@ export const MetricsPage = () => {
                                 creditCount++;
                                 const userId = mov.uid || mov.userId;
                                 if (userId) spenders.set(userId, (spenders.get(userId) || 0) + money);
+                                heatmap[mov.date.getDay()][mov.date.getHours()]++;
                             }
                             activeUids.add(mov.uid || mov.userId);
-                            heatmap[mov.date.getDay()][mov.date.getHours()]++;
                         } else {
                             const pts = Math.abs(Number(mov.points || 0));
                             const concept = (mov.concept || '').toLowerCase();
@@ -193,6 +193,38 @@ export const MetricsPage = () => {
                     referralCount: prevResults.referralCount
                 });
 
+                // 1. Clientes con Mayor Saldo
+                const qTopBalance = query(collection(db, 'users'), orderBy('points', 'desc'), limit(5));
+                const snapTopBalance = await getDocs(qTopBalance);
+                setTopUsers(snapTopBalance.docs.map(d => {
+                    const data = d.data();
+                    return { id: d.id, ...data, name: data.name || data.nombre || 'Socio sin nombre', points: data.points || 0, socioNumber: data.socioNumber || data.numeroSocio || '' };
+                }));
+
+                // 2. Top Generadores (COMPRA) - Procesar spenders del periodo
+                const sortedSpenders = Array.from(currentResults.spenders.entries())
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 5);
+
+                if (sortedSpenders.length > 0) {
+                    const uids = sortedSpenders.map(s => s[0]);
+                    const usersSnap = await getDocs(query(collection(db, 'users'), where(documentId(), 'in', uids)));
+                    const usersMap = new Map();
+                    usersSnap.forEach(d => usersMap.set(d.id, d.data()));
+
+                    const spenderDetails = sortedSpenders.map(([uid, total]) => {
+                        const uData = usersMap.get(uid);
+                        if (uData) {
+                            return { id: uid, name: uData.name || uData.nombre || 'Socio', total, socioNumber: uData.socioNumber || uData.numeroSocio || '', dni: uData.dni || '' };
+                        }
+                        return { id: uid, name: 'Socio Desconocido', total, socioNumber: '', dni: '' };
+                    });
+                    setTopSpenders(spenderDetails);
+                } else {
+                    setTopSpenders([]);
+                }
+
+                // 3. Clientes más Fieles (APP)
                 const qVisitors = query(collection(db, 'users'), orderBy('visitCount', 'desc'), limit(5));
                 const snapVisitors = await getDocs(qVisitors);
                 setTopVisitors(snapVisitors.docs.map(d => {

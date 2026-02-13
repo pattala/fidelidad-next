@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Plus, Trash2, Palette, Calculator, Monitor, Settings, Home, Gift, MessageCircle, FileText, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Save, Plus, Trash2, Palette, Calculator, Monitor, Settings, Home, Gift, MessageCircle, FileText, AlertTriangle, RefreshCw, ShieldAlert, Users } from 'lucide-react';
 import { ConfigService, DEFAULT_TEMPLATES } from '../../../services/configService';
 import { EmailService } from '../../../services/emailService';
 import { toast } from 'react-hot-toast';

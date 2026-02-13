@@ -56,6 +56,12 @@ export interface Client {
     nextExpirationDate?: string | null;
     nextExpirationAmount?: number;
     lastExpirationNotice?: string | null;
+    referralStats?: {
+        count: number;
+        pointsEarned: number;
+        processed?: boolean;
+        processedAt?: any;
+    };
 }
 
 export interface User {

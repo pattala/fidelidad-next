@@ -21,6 +21,19 @@ export const AdminLayout = () => {
     // Mobile Sidebar State
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+    // Patch: Forzar cierre de menú móvil si se detecta ancho de escritorio
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth >= 768) {
+                setIsMobileMenuOpen(false);
+            }
+        };
+        window.addEventListener('resize', handleResize);
+        // Ejecutar inmediatamente al montar por si acaso
+        handleResize();
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     // Favicon & Config Sync
     useEffect(() => {
         setSimulatedOffset(TimeService.getOffsetInDays());

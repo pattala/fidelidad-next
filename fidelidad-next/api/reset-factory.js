@@ -106,6 +106,7 @@ export default async function handler(req, res) {
                 // DETECCIÓN DE FANTASMAS: listDocuments() obtiene incluso los docs en cursiva
                 const usersRefs = await db.collection("users").listDocuments();
                 let deletedCount = 0;
+                const uidsToPurgeAuth = []; // Para borrar de Firebase Authentication
 
                 for (const docRef of usersRefs) {
                     const snap = await docRef.get();
@@ -116,12 +117,33 @@ export default async function handler(req, res) {
                         continue;
                     }
 
+                    // Guardar UID para Auth si existe y no es el admin actual
+                    const authUID = data?.authUID || data?.uid || (snap.exists ? snap.id : null);
+                    if (authUID && authUID !== req.body.adminUid) {
+                        uidsToPurgeAuth.push(authUID);
+                    }
+
                     // Limpieza profunda de todas las subcolecciones del usuario
                     await deleteUserSubcollections(db, docRef.id);
                     await docRef.delete();
                     deletedCount++;
                 }
+
+                // Borrar de Firebase Auth en bloques de 1000 (límite del SDK)
+                if (uidsToPurgeAuth.length > 0) {
+                    console.log(`[reset-factory] Purging ${uidsToPurgeAuth.length} users from Firebase Auth...`);
+                    for (let i = 0; i < uidsToPurgeAuth.length; i += 1000) {
+                        const chunk = uidsToPurgeAuth.slice(i, i + 1000);
+                        try {
+                            await admin.auth().deleteUsers(chunk);
+                        } catch (authErr) {
+                            console.error("[reset-factory] Auth purge error chunk:", authErr);
+                        }
+                    }
+                }
+
                 results.socios_borrados = deletedCount;
+                results.auth_purgados = uidsToPurgeAuth.length;
             } else if (options.socios_historial) {
                 // Borrar solo historiales manteniendo usuarios
                 const usersSnap = await db.collection("users").get();

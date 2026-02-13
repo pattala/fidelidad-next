@@ -148,12 +148,21 @@ export const ClientHomePage = () => {
 
     // CHEQUEO DE CUMPLEAÑOS (UNA SOLA VEZ AL CARGAR)
     const [birthdayChecked, setBirthdayChecked] = useState(false);
-    const [isBirthdayVisible, setIsBirthdayVisible] = useState(() => {
+    const [isBirthdayVisible, setIsBirthdayVisible] = useState(true);
+
+    useEffect(() => {
         if (typeof window !== 'undefined') {
-            return sessionStorage.getItem('hideBirthdayBanner') !== 'true';
+            const offset = TimeService.getOffsetInDays();
+            const hidden = sessionStorage.getItem(`hideBirthdayBanner_${offset}`) === 'true';
+            setIsBirthdayVisible(!hidden);
         }
-        return true;
-    });
+    }, []);
+
+    const handleHideBirthday = () => {
+        setIsBirthdayVisible(false);
+        const offset = TimeService.getOffsetInDays();
+        sessionStorage.setItem(`hideBirthdayBanner_${offset}`, 'true');
+    };
     useEffect(() => {
         if (userData && user?.uid && config && !birthdayChecked) {
             setBirthdayChecked(true);
@@ -281,10 +290,7 @@ export const ClientHomePage = () => {
                     return (
                         <div className="bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 p-6 rounded-[2rem] shadow-xl text-white relative overflow-hidden animate-pulse-slow">
                             <button
-                                onClick={() => {
-                                    setIsBirthdayVisible(false);
-                                    sessionStorage.setItem('hideBirthdayBanner', 'true');
-                                }}
+                                onClick={handleHideBirthday}
                                 className="absolute top-3 right-3 z-10 bg-white/20 hover:bg-white/40 p-1.5 rounded-full transition-colors"
                             >
                                 <X size={16} strokeWidth={3} />

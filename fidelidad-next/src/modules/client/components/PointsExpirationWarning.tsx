@@ -135,23 +135,24 @@ export const PointsExpirationWarning = ({ userId, compact }: Props) => {
                     const todayStart = TimeService.startOfToday();
 
                     const isOverdueItem = isUnifiedOverdue || (dateObj.getTime() < todayStart.getTime());
+                    const isToday = !isUnifiedOverdue && (dateObj.getTime() === todayStart.getTime());
 
                     return (
-                        <div key={idx} className="flex items-center justify-between text-[11px] font-black uppercase tracking-tight text-gray-600">
+                        <div key={idx} className="flex items-center justify-between text-[11px] font-black uppercase tracking-tight">
                             <div className="flex items-center gap-2">
-                                <div className={`p-1 rounded ${isOverdueItem ? 'bg-red-50 text-red-600' : 'bg-purple-50 text-purple-600'}`}>
+                                <div className={`p-1 rounded ${isOverdueItem ? 'bg-red-50 text-red-600' : (isToday ? 'bg-orange-50 text-orange-600' : 'bg-purple-50 text-purple-600')}`}>
                                     {isOverdueItem ? <AlertTriangle size={14} /> : <Calendar size={14} />}
                                 </div>
-                                <span className={isOverdueItem ? 'text-red-600' : ''}>
+                                <span className={isOverdueItem ? 'text-red-600' : (isToday ? 'text-orange-600' : 'text-gray-600')}>
                                     {isUnifiedOverdue ? 'VENCIDO' : (
                                         <>
-                                            {isOverdueItem ? 'VENCIDO ' : ''}
+                                            {isOverdueItem ? 'YA VENCIDO ' : (isToday ? 'VENCE HOY ' : '')}
                                             {exp.date.toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}
                                         </>
                                     )}
                                 </span>
                             </div>
-                            <span className={isOverdueItem ? 'text-red-600' : 'text-pink-600'}>
+                            <span className={isOverdueItem ? 'text-red-600' : (isToday ? 'text-orange-600' : 'text-pink-600')}>
                                 {exp.amount} pts
                             </span>
                         </div>

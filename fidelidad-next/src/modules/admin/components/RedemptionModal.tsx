@@ -6,6 +6,7 @@ import { collection, addDoc, updateDoc, doc, increment, arrayUnion, query, where
 import { db } from '../../../lib/firebase';
 import { NotificationService } from '../../../services/notificationService';
 import { TimeService } from '../../../services/timeService';
+import { ExpirationService } from '../../../services/expirationService';
 import toast from 'react-hot-toast';
 
 interface RedemptionModalProps {
@@ -72,6 +73,10 @@ export const RedemptionModal = ({ client, onClose, onRedeemSuccess }: Redemption
                 }
 
                 onRedeemSuccess();
+
+                // Actualizar cache de vencimientos
+                ExpirationService.updateNextExpirationCache(client.id);
+
                 onClose();
             } else {
                 toast.error(`Error: ${data.error}`);

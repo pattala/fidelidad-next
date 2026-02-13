@@ -53,10 +53,9 @@ export interface Client {
     // Referrals
     referralCode?: string;
     referredBy?: string; // UID of the referrer
-    referralStats?: {
-        count: number;
-        pointsEarned: number;
-    };
+    nextExpirationDate?: string | null;
+    nextExpirationAmount?: number;
+    lastExpirationNotice?: string | null;
 }
 
 export interface User {
@@ -134,6 +133,7 @@ export interface AppConfig {
             offer?: { channels: MessagingChannel[] };
             birthday?: { channels: MessagingChannel[] };
             referralReward?: { channels: MessagingChannel[] };
+            expirationWarning?: { channels: MessagingChannel[] };
         };
 
         templates?: {
@@ -145,7 +145,9 @@ export interface AppConfig {
             birthday?: string;
             birthdaySimple?: string;
             referralReward?: string;
+            expirationWarning?: string;
         };
+        enableExpirationWarnings?: boolean;
     };
 
     // Sistema de Referidos

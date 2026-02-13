@@ -163,6 +163,12 @@ export const DashboardPage = () => {
             setRecentActivity(activities);
         });
 
+        // listener para el simulador de tiempo
+        const handleSimChange = () => {
+            window.location.reload();
+        };
+        window.addEventListener('time-simulation-change', handleSimChange);
+
         return () => {
             unsubConfig();
             unsubUsers();
@@ -170,6 +176,7 @@ export const DashboardPage = () => {
             unsubCredits();
             unsubPrizes();
             unsubActivity();
+            window.removeEventListener('time-simulation-change', handleSimChange);
         };
     }, [activityLimit]);
 
@@ -439,8 +446,12 @@ export const DashboardPage = () => {
                                                     </div>
                                                 ) : (
                                                     <div className="flex flex-col gap-2 animate-fade-in">
-                                                        <div className="flex items-center justify-center gap-1 py-1 text-[9px] font-bold text-blue-600 bg-blue-50 border border-blue-100 rounded-lg">
-                                                            <span>📧 Email y Push Enviados</span>
+                                                        <div className="flex flex-col items-center justify-center gap-1 py-2 text-[10px] font-black text-blue-600 bg-blue-50 border border-blue-200 rounded-xl">
+                                                            <div className="flex items-center gap-1">
+                                                                <span>✅</span>
+                                                                <span className="uppercase tracking-tight">Saludo Enviado</span>
+                                                            </div>
+                                                            <span className="text-[8px] opacity-70 font-bold uppercase">(Email y Push / Inbox)</span>
                                                         </div>
                                                         <div className="flex items-center gap-2 mb-1">
                                                             <label className="flex items-center gap-2 cursor-pointer select-none">
@@ -480,7 +491,8 @@ export const DashboardPage = () => {
                         </div>
                     </div>
                 </div>
-            )}
+            )
+            }
 
             {/* Recent Activity Feed */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
@@ -561,6 +573,6 @@ export const DashboardPage = () => {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 };

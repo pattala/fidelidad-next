@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 
 import { ConfigService } from '../../../services/configService';
 import { TimeService } from '../../../services/timeService';
+import { ExpirationService } from '../../../services/expirationService';
 import { useAdminAuth } from '../contexts/AdminAuthContext';
 
 interface PointsHistoryModalProps {
@@ -38,7 +39,6 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
             setConfig(cfg);
 
             try {
-                const { ExpirationService } = await import('../../../services/expirationService');
                 await ExpirationService.processExpirations(client.id);
             } catch (e) {
                 console.warn('Auto-expiration check failed:', e);
@@ -210,6 +210,10 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
             await batch.commit();
 
             toast.success('Movimiento eliminado y saldo ajustado.');
+
+            // Actualizar cache de vencimientos despues de borrar
+            ExpirationService.updateNextExpirationCache(client.id);
+
             fetchData();
             if (onClientUpdated) onClientUpdated();
 
@@ -265,6 +269,9 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
             setHistory([]);
             setNextExpirations([]);
             toast.success('Historial reseteado correctamente');
+
+            // Actualizar cache de vencimientos (quedará en null)
+            ExpirationService.updateNextExpirationCache(client.id);
 
             // Trigger parent refresh
             if (onClientUpdated) onClientUpdated();

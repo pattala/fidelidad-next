@@ -135,7 +135,7 @@ export const ConfigPage = () => {
     const [autoPointValue, setAutoPointValue] = useState<number>(0);
 
     // Updated type definition in insertVar to include 'birthday'
-    const insertVar = (field: 'pointsAdded' | 'redemption' | 'welcome' | 'campaign' | 'offer' | 'birthday' | 'birthdaySimple' | 'referralReward', variable: string) => {
+    const insertVar = (field: 'pointsAdded' | 'redemption' | 'welcome' | 'campaign' | 'offer' | 'birthday' | 'birthdaySimple' | 'referralReward' | 'expirationWarning', variable: string) => {
         const currentTemplates = config.messaging?.templates || {};
         const currentValue = currentTemplates[field] || '';
         setConfig({
@@ -228,6 +228,29 @@ export const ConfigPage = () => {
                     // Recargar despues de un reset/restore
                     setTimeout(() => window.location.reload(), 2000);
                 }
+            } else {
+                toast.error(`Error: ${data.error}`, { id: toastId });
+            }
+        } catch (e) {
+            toast.error('Error de conexión', { id: toastId });
+        }
+    };
+
+    const handleRunExpirations = async () => {
+        if (!window.confirm("¿Deseas ejecutar ahora la revisión de vencimientos y enviar las notificaciones pendientes?")) return;
+
+        const toastId = toast.loading('Ejecutando revisión de vencimientos...');
+        try {
+            const res = await fetch('/api/check-expirations', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': import.meta.env.VITE_API_KEY || ''
+                }
+            });
+            const data = await res.json();
+            if (data.ok) {
+                toast.success(`Éxito: ${data.message}`, { id: toastId });
             } else {
                 toast.error(`Error: ${data.error}`, { id: toastId });
             }
@@ -1478,11 +1501,93 @@ export const ConfigPage = () => {
                                     })}
                                 />
                             </div>
+
+                            {/* Points Expiration Warning Configuration */}
+                            <div className="pt-6 mt-6 border-t border-gray-100">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xl">📢</span>
+                                        <div>
+                                            <h3 className="text-sm font-bold text-gray-800 uppercase tracking-tight">Aviso de Vencimiento de Puntos</h3>
+                                            <p className="text-[10px] text-gray-400">Notifica automáticamente a los socios 7 días antes de que pierdan sus puntos.</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setConfig({
+                                            ...config,
+                                            messaging: { ...config.messaging!, enableExpirationWarnings: !config.messaging?.enableExpirationWarnings }
+                                        })}
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.messaging?.enableExpirationWarnings ? 'bg-orange-500' : 'bg-gray-300'}`}
+                                    >
+                                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${config.messaging?.enableExpirationWarnings ? 'translate-x-6' : 'translate-x-1'}`} />
+                                    </button>
+                                </div>
+
+                                {config.messaging?.enableExpirationWarnings && (
+                                    <div className="space-y-4 animate-fade-in text-left">
+                                        <div className="flex gap-2">
+                                            <div className="relative flex-1">
+                                                <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">⏳</span>
+                                                <textarea
+                                                    rows={2}
+                                                    value={config.messaging?.templates?.expirationWarning || ''}
+                                                    onChange={e => setConfig({
+                                                        ...config,
+                                                        messaging: {
+                                                            ...config.messaging!,
+                                                            templates: { ...config.messaging?.templates, expirationWarning: e.target.value }
+                                                        }
+                                                    })}
+                                                    placeholder={DEFAULT_TEMPLATES.expirationWarning}
+                                                    className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-orange-100 outline-none resize-none text-sm"
+                                                />
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, expirationWarning: DEFAULT_TEMPLATES.expirationWarning } } })}
+                                                className="px-3 py-2 text-gray-400 hover:text-orange-600 rounded-lg hover:bg-orange-50 transition"
+                                            >
+                                                ↺
+                                            </button>
+                                        </div>
+                                        <VariableChips vars={['nombre', 'puntos', 'fecha']} onSelect={v => insertVar('expirationWarning', v)} />
+
+                                        <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-100">
+                                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Canales de Aviso</label>
+                                            <ChannelSelector
+                                                channels={config.messaging?.eventConfigs?.expirationWarning?.channels || []}
+                                                onChange={(newChannels) => setConfig({
+                                                    ...config,
+                                                    messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, expirationWarning: { channels: newChannels } } }
+                                                })}
+                                            />
+                                        </div>
+
+                                        <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-100 flex items-start gap-3">
+                                            <Clock size={16} className="text-amber-600 mt-0.5 shrink-0" />
+                                            <div className="flex-1">
+                                                <p className="text-[11px] text-amber-800 leading-tight">
+                                                    <strong>Programación Automática:</strong> El sistema revisa vencimientos todos los días a las 09:00 AM (UTC).
+                                                    Puedes forzar una revisión manual ahora si deseas adelantar los avisos.
+                                                </p>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleRunExpirations}
+                                                    className="mt-2 px-3 py-1.5 bg-amber-600 text-white text-[10px] font-bold rounded-lg hover:bg-amber-700 transition-colors uppercase tracking-wider"
+                                                >
+                                                    Ejecutar avisos ahora
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
-                        {/* Email Preview Button (kept separate as useful tool) */}
+                        {/* Email Preview Button */}
                         {config.messaging?.emailEnabled && (
-                            <div className="flex justify-end">
+                            <div className="flex justify-end pt-4">
                                 <button
                                     type="button"
                                     onClick={handleTestEmail}
@@ -1495,180 +1600,181 @@ export const ConfigPage = () => {
                     </div>
                 )}
 
-                {activeTab === 'advanced' && (
-                    <div className="max-w-4xl mx-auto py-12 space-y-8">
-                        {/* SECCIÓN HERRAMIENTAS DE TRABAJO */}
-                        <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
-                            <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                                <Clock size={22} className="text-purple-500" /> Herramientas de Trabajo
-                            </h3>
-                            <div className="space-y-6">
-                                <div className="flex items-center justify-between p-6 bg-purple-50/50 rounded-2xl border border-purple-100">
-                                    <div className="flex-1">
-                                        <span className="text-sm font-bold text-gray-800 flex items-center gap-2">
-                                            Simulador de Fecha y Hora
-                                            <span className="text-[10px] bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full uppercase tracking-tighter">Dev Tool</span>
-                                        </span>
-                                        <p className="text-xs text-gray-500 mt-1">Activa un controlador en el menú lateral para adelantar o retrasar el tiempo del sistema. Útil para probar vencimientos de puntos y campañas.</p>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => setConfig({ ...config, enableDateSimulator: !config.enableDateSimulator })}
-                                        className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.enableDateSimulator ? 'bg-purple-600' : 'bg-gray-200'}`}
-                                    >
-                                        <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enableDateSimulator ? 'translate-x-5' : 'translate-x-0'}`} />
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* SECCIÓN RESPALDOS */}
-                        <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
-                            <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                                <ShieldAlert size={22} className="text-blue-500" /> Puntos de Restauración (Backups)
-                            </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-4">
-                                    <p className="text-sm text-gray-500">Guarda una copia de seguridad de tu marca, reglas y catálogo para estar seguro antes de un reset.</p>
-                                    <button
-                                        type="button"
-                                        onClick={() => handleResetAction('backup')}
-                                        className="w-full flex items-center justify-center gap-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white py-3 rounded-xl font-bold transition-all"
-                                    >
-                                        <Save size={18} /> Crear Punto de Respaldo
-                                    </button>
-                                </div>
-                                <div className="space-y-4 border-l border-gray-100 pl-6">
-                                    <p className="text-sm text-gray-500">¿Algo salió mal? Vuelve a la configuración estructural guardada anteriormente.</p>
-                                    <button
-                                        type="button"
-                                        onClick={() => handleResetAction('restore')}
-                                        className="w-full flex items-center justify-center gap-2 bg-gray-50 text-gray-600 hover:bg-black hover:text-white py-3 rounded-xl font-bold transition-all"
-                                    >
-                                        <RefreshCw size={18} /> Restaurar Configuración Anterior
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* SECCIÓN RESET MAESTRO */}
-                        <div className="bg-red-50/30 border-2 border-red-100 rounded-3xl p-10 space-y-8">
-                            <div className="text-center space-y-2">
-                                <h3 className="text-2xl font-black text-gray-800">Reset Maestro Granular</h3>
-                                <p className="text-gray-500">Selecciona los elementos que deseas limpiar. Las acciones en rojo son irreversibles.</p>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {/* Grupo 1: Socios */}
-                                <div className="bg-white p-6 rounded-2xl border border-red-50 space-y-4">
-                                    <h4 className="font-bold text-gray-800 flex items-center gap-2 border-b pb-2 mb-4">
-                                        <Users size={18} className="text-red-500" /> Socios y Actividad
-                                    </h4>
-                                    <div className="space-y-3">
-                                        <label className="flex items-center gap-3 cursor-pointer group">
-                                            <input type="checkbox" checked={resetOptions.socios_total} onChange={e => setResetOptions({ ...resetOptions, socios_total: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-red-600" />
-                                            <div>
-                                                <span className="block text-sm font-bold text-gray-700 group-hover:text-red-600">Borrar Socios por Completo</span>
-                                                <span className="text-[10px] text-gray-400 uppercase">Elimina cuentas y acceso PWA</span>
-                                            </div>
-                                        </label>
-                                        <label className="flex items-center gap-3 cursor-pointer group">
-                                            <input type="checkbox" checked={resetOptions.socios_historial} onChange={e => setResetOptions({ ...resetOptions, socios_historial: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-red-600" />
-                                            <div>
-                                                <span className="block text-sm font-bold text-gray-700 group-hover:text-red-600">Vaciar Historial y Puntos</span>
-                                                <span className="text-[10px] text-gray-400 uppercase">Resetea saldos a 0 manteniendo socios</span>
-                                            </div>
-                                        </label>
-                                        <label className="flex items-center gap-3 cursor-pointer group">
-                                            <input type="checkbox" checked={resetOptions.socios_mensajes} onChange={e => setResetOptions({ ...resetOptions, socios_mensajes: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-red-600" />
-                                            <div>
-                                                <span className="block text-sm font-bold text-gray-700 group-hover:text-red-600">Limpiar Mensajes Enviados</span>
-                                                <span className="text-[10px] text-gray-400 uppercase">Borra el buzón de entrada de los clientes</span>
-                                            </div>
-                                        </label>
-                                        <label className="flex items-center gap-3 cursor-pointer group">
-                                            <input type="checkbox" checked={resetOptions.geo_total} onChange={e => setResetOptions({ ...resetOptions, geo_total: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-red-600" />
-                                            <div>
-                                                <span className="block text-sm font-bold text-gray-700 group-hover:text-red-600">Borrar Datos Geográficos</span>
-                                                <span className="text-[10px] text-gray-400 uppercase">Historial de GPS (Geo_Raw)</span>
-                                            </div>
-                                        </label>
-                                        <label className="flex items-center gap-3 cursor-pointer group">
-                                            <input type="checkbox" checked={resetOptions.transacciones_total} onChange={e => setResetOptions({ ...resetOptions, transacciones_total: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-red-600" />
-                                            <div>
-                                                <span className="block text-sm font-bold text-gray-700 group-hover:text-red-600">Limpiar Transacciones Globales</span>
-                                                <span className="text-[10px] text-gray-400 uppercase">Reset de Métricas (Transactions)</span>
-                                            </div>
-                                        </label>
-                                    </div>
-                                </div>
-
-                                {/* Grupo 2: Estructura */}
-                                <div className="bg-white p-6 rounded-2xl border border-red-50 space-y-4">
-                                    <h4 className="font-bold text-gray-800 flex items-center gap-2 border-b pb-2 mb-4">
-                                        <Settings size={18} className="text-gray-600" /> Estructura y Configuración
-                                    </h4>
-                                    <div className="space-y-3">
-                                        <label className="flex items-center gap-3 cursor-pointer group">
-                                            <input type="checkbox" checked={resetOptions.marca_total} onChange={e => setResetOptions({ ...resetOptions, marca_total: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-blue-600" />
-                                            <div>
-                                                <span className="block text-sm font-bold text-gray-700 group-hover:text-blue-600">Reset de Identidad Visual</span>
-                                                <span className="text-[10px] text-gray-400 uppercase">Vuelve a colores y logo de fábrica</span>
-                                            </div>
-                                        </label>
-                                        <label className="flex items-center gap-3 cursor-pointer group">
-                                            <input type="checkbox" checked={resetOptions.gamification_total} onChange={e => setResetOptions({ ...resetOptions, gamification_total: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-blue-600" />
-                                            <div>
-                                                <span className="block text-sm font-bold text-gray-700 group-hover:text-blue-600">Reset de Reglas de Juego</span>
-                                                <span className="text-[10px] text-gray-400 uppercase">Valor de punto y bonos default</span>
-                                            </div>
-                                        </label>
-                                        <label className="flex items-center gap-3 cursor-pointer group">
-                                            <input type="checkbox" checked={resetOptions.prizes_total} onChange={e => setResetOptions({ ...resetOptions, prizes_total: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-red-600" />
-                                            <div>
-                                                <span className="block text-sm font-bold text-gray-700 group-hover:text-red-600">Borrar Catálogo de Premios</span>
-                                                <span className="text-[10px] text-gray-400 uppercase">Elimina todos los beneficios creados</span>
-                                            </div>
-                                        </label>
-                                        <label className="flex items-center gap-3 cursor-pointer group">
-                                            <input type="checkbox" checked={resetOptions.campaigns_total} onChange={e => setResetOptions({ ...resetOptions, campaigns_total: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-red-600" />
-                                            <div>
-                                                <span className="block text-sm font-bold text-gray-700 group-hover:text-red-600">Borrar Campañas y Promos</span>
-                                                <span className="text-[10px] text-gray-400 uppercase">Elimina multiplicadores y bonos</span>
-                                            </div>
-                                        </label>
-                                        <label className="flex items-center gap-3 cursor-pointer group">
-                                            <input type="checkbox" checked={resetOptions.team_total} onChange={e => setResetOptions({ ...resetOptions, team_total: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-red-600" />
-                                            <div>
-                                                <span className="block text-sm font-bold text-gray-700 group-hover:text-red-600">Borrar Equipo (Admins)</span>
-                                                <span className="text-[10px] text-gray-400 uppercase">Mantiene solo tu acceso actual</span>
-                                            </div>
-                                        </label>
-                                        <label className="flex items-center gap-3 cursor-pointer group">
-                                            <input type="checkbox" checked={resetOptions.legales_total} onChange={e => setResetOptions({ ...resetOptions, legales_total: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-gray-600" />
-                                            <div>
-                                                <span className="block text-sm font-bold text-gray-700 group-hover:text-gray-950">Reset de Términos Legales</span>
-                                                <span className="text-[10px] text-gray-400 uppercase">Vuelve al texto legal estándar</span>
-                                            </div>
-                                        </label>
+                {
+                    activeTab === 'advanced' && (
+                        <div className="max-w-4xl mx-auto py-12 space-y-8">
+                            {/* SECCIÓN HERRAMIENTAS DE TRABAJO */}
+                            <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                                <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                                    <Clock size={22} className="text-purple-500" /> Herramientas de Trabajo
+                                </h3>
+                                <div className="space-y-6">
+                                    <div className="flex items-center justify-between p-6 bg-purple-50/50 rounded-2xl border border-purple-100">
+                                        <div className="flex-1">
+                                            <span className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                                                Simulador de Fecha y Hora
+                                                <span className="text-[10px] bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full uppercase tracking-tighter">Dev Tool</span>
+                                            </span>
+                                            <p className="text-xs text-gray-500 mt-1">Activa un controlador en el menú lateral para adelantar o retrasar el tiempo del sistema. Útil para probar vencimientos de puntos y campañas.</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setConfig({ ...config, enableDateSimulator: !config.enableDateSimulator })}
+                                            className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.enableDateSimulator ? 'bg-purple-600' : 'bg-gray-200'}`}
+                                        >
+                                            <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enableDateSimulator ? 'translate-x-5' : 'translate-x-0'}`} />
+                                        </button>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="flex flex-col items-center gap-4 pt-6 border-t border-red-100">
-                                <button
-                                    type="button"
-                                    onClick={() => handleResetAction('reset')}
-                                    disabled={isReadOnly}
-                                    className="w-full md:w-2/3 bg-red-600 hover:bg-black text-white py-4 rounded-2xl font-black text-xl transition-all shadow-xl shadow-red-200 flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"
-                                >
-                                    <Trash2 size={24} /> Ejecutar Reset de Selección
-                                </button>
-                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">⚠️ Esta acción puede ser permanente según tu selección</p>
+                            {/* SECCIÓN RESPALDOS */}
+                            <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                                <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                                    <ShieldAlert size={22} className="text-blue-500" /> Puntos de Restauración (Backups)
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-4">
+                                        <p className="text-sm text-gray-500">Guarda una copia de seguridad de tu marca, reglas y catálogo para estar seguro antes de un reset.</p>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleResetAction('backup')}
+                                            className="w-full flex items-center justify-center gap-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white py-3 rounded-xl font-bold transition-all"
+                                        >
+                                            <Save size={18} /> Crear Punto de Respaldo
+                                        </button>
+                                    </div>
+                                    <div className="space-y-4 border-l border-gray-100 pl-6">
+                                        <p className="text-sm text-gray-500">¿Algo salió mal? Vuelve a la configuración estructural guardada anteriormente.</p>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleResetAction('restore')}
+                                            className="w-full flex items-center justify-center gap-2 bg-gray-50 text-gray-600 hover:bg-black hover:text-white py-3 rounded-xl font-bold transition-all"
+                                        >
+                                            <RefreshCw size={18} /> Restaurar Configuración Anterior
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* SECCIÓN RESET MAESTRO */}
+                            <div className="bg-red-50/30 border-2 border-red-100 rounded-3xl p-10 space-y-8">
+                                <div className="text-center space-y-2">
+                                    <h3 className="text-2xl font-black text-gray-800">Reset Maestro Granular</h3>
+                                    <p className="text-gray-500">Selecciona los elementos que deseas limpiar. Las acciones en rojo son irreversibles.</p>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {/* Grupo 1: Socios */}
+                                    <div className="bg-white p-6 rounded-2xl border border-red-50 space-y-4">
+                                        <h4 className="font-bold text-gray-800 flex items-center gap-2 border-b pb-2 mb-4">
+                                            <Users size={18} className="text-red-500" /> Socios y Actividad
+                                        </h4>
+                                        <div className="space-y-3">
+                                            <label className="flex items-center gap-3 cursor-pointer group">
+                                                <input type="checkbox" checked={resetOptions.socios_total} onChange={e => setResetOptions({ ...resetOptions, socios_total: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-red-600" />
+                                                <div>
+                                                    <span className="block text-sm font-bold text-gray-700 group-hover:text-red-600">Borrar Socios por Completo</span>
+                                                    <span className="text-[10px] text-gray-400 uppercase">Elimina cuentas y acceso PWA</span>
+                                                </div>
+                                            </label>
+                                            <label className="flex items-center gap-3 cursor-pointer group">
+                                                <input type="checkbox" checked={resetOptions.socios_historial} onChange={e => setResetOptions({ ...resetOptions, socios_historial: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-red-600" />
+                                                <div>
+                                                    <span className="block text-sm font-bold text-gray-700 group-hover:text-red-600">Vaciar Historial y Puntos</span>
+                                                    <span className="text-[10px] text-gray-400 uppercase">Resetea saldos a 0 manteniendo socios</span>
+                                                </div>
+                                            </label>
+                                            <label className="flex items-center gap-3 cursor-pointer group">
+                                                <input type="checkbox" checked={resetOptions.socios_mensajes} onChange={e => setResetOptions({ ...resetOptions, socios_mensajes: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-red-600" />
+                                                <div>
+                                                    <span className="block text-sm font-bold text-gray-700 group-hover:text-red-600">Limpiar Mensajes Enviados</span>
+                                                    <span className="text-[10px] text-gray-400 uppercase">Borra el buzón de entrada de los clientes</span>
+                                                </div>
+                                            </label>
+                                            <label className="flex items-center gap-3 cursor-pointer group">
+                                                <input type="checkbox" checked={resetOptions.geo_total} onChange={e => setResetOptions({ ...resetOptions, geo_total: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-red-600" />
+                                                <div>
+                                                    <span className="block text-sm font-bold text-gray-700 group-hover:text-red-600">Borrar Datos Geográficos</span>
+                                                    <span className="text-[10px] text-gray-400 uppercase">Historial de GPS (Geo_Raw)</span>
+                                                </div>
+                                            </label>
+                                            <label className="flex items-center gap-3 cursor-pointer group">
+                                                <input type="checkbox" checked={resetOptions.transacciones_total} onChange={e => setResetOptions({ ...resetOptions, transacciones_total: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-red-600" />
+                                                <div>
+                                                    <span className="block text-sm font-bold text-gray-700 group-hover:text-red-600">Limpiar Transacciones Globales</span>
+                                                    <span className="text-[10px] text-gray-400 uppercase">Reset de Métricas (Transactions)</span>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    {/* Grupo 2: Estructura */}
+                                    <div className="bg-white p-6 rounded-2xl border border-red-50 space-y-4">
+                                        <h4 className="font-bold text-gray-800 flex items-center gap-2 border-b pb-2 mb-4">
+                                            <Settings size={18} className="text-gray-600" /> Estructura y Configuración
+                                        </h4>
+                                        <div className="space-y-3">
+                                            <label className="flex items-center gap-3 cursor-pointer group">
+                                                <input type="checkbox" checked={resetOptions.marca_total} onChange={e => setResetOptions({ ...resetOptions, marca_total: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-blue-600" />
+                                                <div>
+                                                    <span className="block text-sm font-bold text-gray-700 group-hover:text-blue-600">Reset de Identidad Visual</span>
+                                                    <span className="text-[10px] text-gray-400 uppercase">Vuelve a colores y logo de fábrica</span>
+                                                </div>
+                                            </label>
+                                            <label className="flex items-center gap-3 cursor-pointer group">
+                                                <input type="checkbox" checked={resetOptions.gamification_total} onChange={e => setResetOptions({ ...resetOptions, gamification_total: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-blue-600" />
+                                                <div>
+                                                    <span className="block text-sm font-bold text-gray-700 group-hover:text-blue-600">Reset de Reglas de Juego</span>
+                                                    <span className="text-[10px] text-gray-400 uppercase">Valor de punto y bonos default</span>
+                                                </div>
+                                            </label>
+                                            <label className="flex items-center gap-3 cursor-pointer group">
+                                                <input type="checkbox" checked={resetOptions.prizes_total} onChange={e => setResetOptions({ ...resetOptions, prizes_total: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-red-600" />
+                                                <div>
+                                                    <span className="block text-sm font-bold text-gray-700 group-hover:text-red-600">Borrar Catálogo de Premios</span>
+                                                    <span className="text-[10px] text-gray-400 uppercase">Elimina todos los beneficios creados</span>
+                                                </div>
+                                            </label>
+                                            <label className="flex items-center gap-3 cursor-pointer group">
+                                                <input type="checkbox" checked={resetOptions.campaigns_total} onChange={e => setResetOptions({ ...resetOptions, campaigns_total: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-red-600" />
+                                                <div>
+                                                    <span className="block text-sm font-bold text-gray-700 group-hover:text-red-600">Borrar Campañas y Promos</span>
+                                                    <span className="text-[10px] text-gray-400 uppercase">Elimina multiplicadores y bonos</span>
+                                                </div>
+                                            </label>
+                                            <label className="flex items-center gap-3 cursor-pointer group">
+                                                <input type="checkbox" checked={resetOptions.team_total} onChange={e => setResetOptions({ ...resetOptions, team_total: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-red-600" />
+                                                <div>
+                                                    <span className="block text-sm font-bold text-gray-700 group-hover:text-red-600">Borrar Equipo (Admins)</span>
+                                                    <span className="text-[10px] text-gray-400 uppercase">Mantiene solo tu acceso actual</span>
+                                                </div>
+                                            </label>
+                                            <label className="flex items-center gap-3 cursor-pointer group">
+                                                <input type="checkbox" checked={resetOptions.legales_total} onChange={e => setResetOptions({ ...resetOptions, legales_total: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-gray-600" />
+                                                <div>
+                                                    <span className="block text-sm font-bold text-gray-700 group-hover:text-gray-950">Reset de Términos Legales</span>
+                                                    <span className="text-[10px] text-gray-400 uppercase">Vuelve al texto legal estándar</span>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col items-center gap-4 pt-6 border-t border-red-100">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleResetAction('reset')}
+                                        disabled={isReadOnly}
+                                        className="w-full md:w-2/3 bg-red-600 hover:bg-black text-white py-4 rounded-2xl font-black text-xl transition-all shadow-xl shadow-red-200 flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"
+                                    >
+                                        <Trash2 size={24} /> Ejecutar Reset de Selección
+                                    </button>
+                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">⚠️ Esta acción puede ser permanente según tu selección</p>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                )
+                    )
                 }
 
                 <div className="fixed bottom-6 right-6 z-40">
@@ -1679,8 +1785,8 @@ export const ConfigPage = () => {
                         {loading ? 'Guardando...' : <><Save size={20} /> Guardar Todo</>}
                     </button>
                 </div>
-            </form>
-        </div>
+            </form >
+        </div >
     );
 };
 

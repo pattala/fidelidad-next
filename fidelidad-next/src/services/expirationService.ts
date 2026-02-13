@@ -86,12 +86,71 @@ export const ExpirationService = {
 
                 await batch.commit();
                 console.log(`[ExpirationService] Processed ${totalExpired} expired points for user ${userId}`);
+
+                // Actualizar cache de próximo vencimiento después de procesar
+                await this.updateNextExpirationCache(userId);
+
                 return totalExpired;
             }
 
         } catch (error) {
             console.error("[ExpirationService] Error processing expirations:", error);
             throw error;
+        }
+    },
+
+    /**
+     * Scans the user's active points history and caches the EARLIEST upcoming expiration.
+     * This is used by the Cron Job to find users to notify quickly.
+     */
+    async updateNextExpirationCache(userId: string) {
+        if (!userId) return;
+        try {
+            const startOfToday = TimeService.startOfToday();
+            const historyRef = collection(db, `users/${userId}/points_history`);
+
+            // Query only valid credits with remaining points
+            const q = query(
+                historyRef,
+                where('type', '==', 'credit'),
+                where('remainingPoints', '>', 0)
+            );
+
+            const snapshot = await getDocs(q);
+
+            let nextDate: Date | null = null;
+            let nextAmount = 0;
+
+            snapshot.docs.forEach(d => {
+                const data = d.data();
+                if (data.expiresAt) {
+                    const expireDate = data.expiresAt.toDate ? data.expiresAt.toDate() : new Date(data.expiresAt);
+
+                    // Only care about future expirations (strictly from today inclusive)
+                    if (expireDate >= startOfToday) {
+                        if (!nextDate || expireDate < nextDate) {
+                            nextDate = expireDate;
+                            nextAmount = data.remainingPoints;
+                        } else if (expireDate.getTime() === nextDate.getTime()) {
+                            // Sum amounts if they expire on the same day
+                            nextAmount += data.remainingPoints;
+                        }
+                    }
+                }
+            });
+
+            // Update user profile
+            const userRef = doc(db, 'users', userId);
+            const isoDate = nextDate ? (nextDate as Date).toISOString().split('T')[0] : null;
+
+            await writeBatch(db).update(userRef, {
+                nextExpirationDate: isoDate,
+                nextExpirationAmount: nextDate ? nextAmount : 0
+            }).commit();
+
+            console.log(`[ExpirationService] Updated expiration cache for ${userId}: ${isoDate || 'None'}`);
+        } catch (error) {
+            console.error("[ExpirationService] Error updating expiration cache:", error);
         }
     }
 };

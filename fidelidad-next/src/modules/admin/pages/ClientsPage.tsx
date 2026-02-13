@@ -18,6 +18,7 @@ import type { Client } from '../../../types';
 import { RedemptionModal } from '../components/RedemptionModal';
 import { PointsHistoryModal } from '../components/PointsHistoryModal';
 import { VisitHistoryModal } from '../components/VisitHistoryModal';
+import { ExpirationService } from '../../../services/expirationService';
 
 import { ARGENTINA_LOCATIONS } from '../../../data/locations'; // Import added
 import { useAdminAuth } from '../contexts/AdminAuthContext';
@@ -520,6 +521,10 @@ export const ClientsPage = () => {
                 if (data.whatsappLink && notifyWhatsapp) {
                     setTimeout(() => window.open(data.whatsappLink, '_blank'), 500);
                 }
+
+                // Actualizar cache de vencimientos
+                ExpirationService.updateNextExpirationCache(selectedClientForPoints.id);
+
                 closePointsModal();
                 fetchData();
             } else {

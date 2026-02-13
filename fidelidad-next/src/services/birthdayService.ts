@@ -144,7 +144,9 @@ export const BirthdayService = {
                             });
                             emailSent = true;
                         }
-                    } catch (e) { }
+                    } catch (e: any) {
+                        console.error("[BirthdayService] Error sending email:", e);
+                    }
                 }
 
                 // MARCAR SALUDO EN DB (CRÍTICO) - Solo si mandamos canales automáticos

@@ -82,22 +82,39 @@ function buildHtmlLayout(innerHtml, config = {}) {
   const base = config.contact?.pwaUrl || process.env.PWA_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://fidelidad-next.vercel.app');
   const logo = config.logoUrl || process.env.PUSH_ICON_URL || `${base}/images/mi_logo.png`;
   const siteName = config.siteName || 'Club Fidelidad';
-  const terms = process.env.URL_TERMINOS_Y_CONDICIONES || '#';
+  const terms = config.contact?.termsAndConditions || `${base}/profile`;
 
   // Social Media Links
   const facebook = config.contact?.facebook;
   const instagram = config.contact?.instagram;
   const whatsapp = config.contact?.whatsapp;
   const website = config.contact?.website;
+  const address = config.contact?.address;
 
   let socialIcons = '';
   if (facebook || instagram || whatsapp || website) {
     socialIcons = `
             ${website ? `<a href="${website}" style="display:inline-block; margin: 0 5px; text-decoration: none;"><img src="https://img.icons8.com/ios-filled/50/0ea5e9/internet.png" width="24" height="24" alt="Web" title="Website"/></a>` : ''}
-            ${whatsapp ? `<a href="https://wa.me/${whatsapp.replace(/\D/g, '')}" style="display:inline-block; margin: 0 5px; text-decoration: none;"><img src="https://img.icons8.com/color/48/whatsapp--v1.png" width="24" height="24" alt="WhatsApp" title="WhatsApp"/></a>` : ''}
+            ${whatsapp ? `
+              <a href="https://wa.me/${whatsapp.replace(/\D/g, '')}" style="display:inline-block; margin: 0 10px; text-decoration: none; vertical-align: middle;">
+                <img src="https://img.icons8.com/color/48/whatsapp--v1.png" width="24" height="24" alt="WhatsApp" style="vertical-align: middle;"/>
+                <span style="font-size: 14px; color: #4b5563; font-weight: bold; margin-left: 4px; vertical-align: middle;">${whatsapp}</span>
+              </a>
+            ` : ''}
             ${instagram ? `<a href="${instagram.startsWith('http') ? instagram : 'https://instagram.com/' + instagram.replace('@', '')}" style="display:inline-block; margin: 0 5px; text-decoration: none;"><img src="https://img.icons8.com/color/48/instagram-new--v1.png" width="24" height="24" alt="Instagram" title="Instagram"/></a>` : ''}
             ${facebook ? `<a href="${facebook}" style="display:inline-block; margin: 0 5px; text-decoration: none;"><img src="https://img.icons8.com/color/48/facebook-new.png" width="24" height="24" alt="Facebook" title="Facebook"/></a>` : ''}
           `;
+  }
+
+  let addressBlock = '';
+  if (address) {
+    const mapsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+    addressBlock = `
+      <tr><td style="padding: 0 32px 32px; text-align: center; font-size: 14px; color: #64748b;">
+        <div style="margin-bottom: 8px; font-weight: bold; color: #4b5563;">${address}</div>
+        <a href="${mapsLink}" style="color: #0ea5e9; text-decoration: none; font-weight: bold; font-size: 12px; background: #f0f9ff; padding: 6px 12px; border-radius: 20px; border: 1px solid #bae6fd;">📍 Cómo llegar</a>
+      </td></tr>
+    `;
   }
 
   return `<!doctype html>
@@ -115,6 +132,7 @@ function buildHtmlLayout(innerHtml, config = {}) {
             <tr><td style="padding:0 32px 32px;font-size:16px;line-height:1.6;text-align:left;color:#4b5563;">${innerHtml}</td></tr>
             
             ${socialIcons ? `<tr><td style="padding: 0 32px 32px; text-align: center;">${socialIcons}</td></tr>` : ''}
+            ${addressBlock}
 
             <tr><td style="background-color:#f8fafc;padding:24px;text-align:center;border-top:1px solid #e2e8f0;">
               <p style="margin:0 0 16px 0;font-size:14px;">

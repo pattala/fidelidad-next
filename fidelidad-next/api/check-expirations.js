@@ -51,124 +51,207 @@ export default async function handler(req, res) {
         if (!configSnap.exists) return res.status(404).json({ ok: false, error: "Config not found" });
         const config = configSnap.data();
 
-        // Verificar si el sistema está activo
-        if (config.messaging?.enableExpirationWarnings === false) {
-            return res.status(200).json({ ok: true, message: "Expirations system is disabled via config." });
+        // 2. Determinar Fecha de Referencia (Soporte para Simulador)
+        // Si el admin envía una fecha en el body, la usamos. Si no, usamos hoy.
+        let referenceDate = new Date();
+        if (req.body?.simulatedDate) {
+            referenceDate = new Date(req.body.simulatedDate);
+            console.log(`[Cron] Using SIMULATED date: ${req.body.simulatedDate}`);
         }
 
-        // 2. Calcular fecha objetivo: Hoy + 7 días
-        // Usamos la fecha del sistema del servidor (que coincide con el día de Vercel)
-        const targetDate = new Date();
-        targetDate.setDate(targetDate.getDate() + 7);
-        const targetDateStr = targetDate.toISOString().split('T')[0];
+        const referenceDateStr = referenceDate.toISOString().split('T')[0];
+        const startOfToday = new Date(referenceDate);
+        startOfToday.setHours(0, 0, 0, 0);
 
-        console.log(`[Cron Expirations] Checking for users expiring on: ${targetDateStr}`);
+        // Calcular fecha para avisos (Hoy + 7 días)
+        const warningDate = new Date(referenceDate);
+        warningDate.setDate(warningDate.getDate() + 7);
+        const warningDateStr = warningDate.toISOString().split('T')[0];
 
-        // 3. Buscar usuarios con ese vencimiento marcado en cache
-        const usersSnap = await db.collection('users')
-            .where('nextExpirationDate', '==', targetDateStr)
+        const logResults = {
+            processed: 0,
+            expired: 0,
+            notified: 0,
+            errors: []
+        };
+
+        // --- PASO A: PROCESAR DESCUENTOS (Vencimientos Reales) ---
+        // Buscamos usuarios cuyo 'nextExpirationDate' sea <= hoy
+        const toExpireSnap = await db.collection('users')
+            .where('nextExpirationDate', '<=', referenceDateStr)
             .get();
 
-        if (usersSnap.empty) {
-            return res.status(200).json({ ok: true, message: "No users found for this date.", targetDate: targetDateStr });
+        for (const userDoc of toExpireSnap.docs) {
+            try {
+                const userId = userDoc.id;
+                const historyRef = db.collection('users').doc(userId).collection('points_history');
+
+                // Query for UNPROCESSED expired items
+                const expiredItemsSnap = await historyRef
+                    .where('expiresAt', '<', admin.firestore.Timestamp.fromDate(startOfToday))
+                    .get();
+
+                if (expiredItemsSnap.empty) {
+                    // Si no hay items pero el cache decía que sí, actualizamos el cache y seguimos
+                    await updateNextExpirationCacheAdmin(db, userId, startOfToday);
+                    continue;
+                }
+
+                let totalExpired = 0;
+                const batch = db.batch();
+                const now = admin.firestore.FieldValue.serverTimestamp();
+
+                expiredItemsSnap.docs.forEach(d => {
+                    const data = d.data();
+                    if (data.status === 'expired') return;
+
+                    const currentRemaining = data.remainingPoints !== undefined ? data.remainingPoints : data.amount;
+                    if (data.type === 'credit' && currentRemaining > 0) {
+                        totalExpired += currentRemaining;
+                        batch.update(d.ref, {
+                            status: 'expired',
+                            remainingPoints: 0,
+                            expiredAmount: currentRemaining,
+                            processedAt: now
+                        });
+                    }
+                });
+
+                if (totalExpired > 0) {
+                    // Registrar Descuento
+                    const newHistRef = historyRef.doc();
+                    batch.set(newHistRef, {
+                        amount: -totalExpired,
+                        concept: 'Vencimiento de puntos acumulados (Auto)',
+                        date: now,
+                        type: 'debit',
+                        isExpirationAdjustment: true
+                    });
+
+                    // Update Balance
+                    batch.update(userDoc.ref, {
+                        points: admin.firestore.FieldValue.increment(-totalExpired)
+                    });
+
+                    await batch.commit();
+                    logResults.expired++;
+                    console.log(`[Cron] Expired ${totalExpired} pts for user ${userId}`);
+                }
+
+                // Recalcular cache
+                await updateNextExpirationCacheAdmin(db, userId, startOfToday);
+                logResults.processed++;
+            } catch (e) {
+                console.error(`[Cron] Error processing expiration for ${userDoc.id}:`, e);
+                logResults.errors.push({ id: userDoc.id, error: e.message });
+            }
         }
 
-        const results = [];
+        // --- PASO B: ENVIAR AVISOS (Usuarios que vencen en 7 días) ---
+        if (config.messaging?.enableExpirationWarnings !== false) {
+            const toNotifySnap = await db.collection('users')
+                .where('nextExpirationDate', '==', warningDateStr)
+                .get();
 
-        // 4. Procesar cada usuario
-        for (const userDoc of usersSnap.docs) {
-            const userData = userDoc.data();
-            const userId = userDoc.id;
-
-            // Evitar duplicados (no avisar dos veces el mismo día o muy seguido)
-            // Solo avisamos si no se le avisó en los últimos 2 días (margen de error)
-            const lastNotice = userData.lastExpirationNotice;
-            const todayStr = new Date().toISOString().split('T')[0];
-            if (lastNotice === todayStr) {
-                console.log(`[Cron] Skipping user ${userId}, already noticed today.`);
-                continue;
-            }
-
-            const amount = userData.nextExpirationAmount || 0;
-            const channels = config.messaging?.eventConfigs?.expirationWarning?.channels || ['push', 'email'];
-            const template = config.messaging?.templates?.expirationWarning ||
-                "¡Hola {nombre}! 📢 Te recordamos que tienes {puntos} puntos que vencen el {fecha}. ¡Aprovéchalos antes de que expiren! 🎁";
-
-            // Reemplazar variables
-            const msg = template
-                .replace(/{nombre}/g, userData.name || 'Socio')
-                .replace(/{puntos}/g, amount.toString())
-                .replace(/{fecha}/g, targetDateStr);
-
-            const title = "⚠️ Tus puntos están por vencer";
-
-            // A) PUSH NOTIFICATION
-            if (channels.includes('push') && userData.fcmTokens?.length) {
+            for (const userDoc of toNotifySnap.docs) {
                 try {
-                    await app.messaging().sendEachForMulticast({
-                        tokens: userData.fcmTokens,
-                        data: {
-                            title,
-                            body: msg,
-                            url: "/mis-puntos",
-                            icon: config.logoUrl || ""
-                        }
+                    const userData = userDoc.data();
+                    const userId = userDoc.id;
+
+                    // Evitar duplicados
+                    if (userData.lastExpirationNotice === referenceDateStr) continue;
+
+                    const amount = userData.nextExpirationAmount || 0;
+                    const channels = config.messaging?.eventConfigs?.expirationWarning?.channels || ['push', 'email'];
+                    const template = config.messaging?.templates?.expirationWarning ||
+                        "¡Hola {nombre}! 📢 Te recordamos que tienes {puntos} puntos que vencen el {fecha}. ¡Aprovéchalos antes de que expiren! 🎁";
+
+                    const msg = template
+                        .replace(/{nombre}/g, userData.name || 'Socio')
+                        .replace(/{puntos}/g, amount.toString())
+                        .replace(/{fecha}/g, warningDateStr);
+
+                    const title = "⚠️ Tus puntos están por vencer";
+
+                    // PUSH
+                    if (channels.includes('push') && userData.fcmTokens?.length) {
+                        await app.messaging().sendEachForMulticast({
+                            tokens: userData.fcmTokens,
+                            data: { title, body: msg, url: "/mis-puntos", icon: config.logoUrl || "" }
+                        }).catch(() => { });
+                    }
+
+                    // EMAIL
+                    if (channels.includes('email') && userData.email && process.env.SMTP_USER) {
+                        const html = `<div style="font-family: sans-serif; padding: 20px;"><h2>${title}</h2><p>${msg}</p></div>`;
+                        await transporter.sendMail({
+                            from: `"${config.siteName || 'Club Fidelidad'}" <${process.env.SMTP_USER}>`,
+                            to: userData.email,
+                            subject: title,
+                            html
+                        }).catch(() => { });
+                    }
+
+                    // INBOX
+                    await userDoc.ref.collection('inbox').add({
+                        title, body: msg, url: "/mis-puntos", type: "system", read: false,
+                        date: admin.firestore.FieldValue.serverTimestamp(),
+                        expireAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000))
                     });
-                } catch (e) { console.error(`[Cron] Error Push for ${userId}:`, e.message); }
+
+                    await userDoc.ref.update({ lastExpirationNotice: referenceDateStr });
+                    logResults.notified++;
+                } catch (e) {
+                    console.error(`[Cron] Error notifying ${userDoc.id}:`, e);
+                }
             }
-
-            // B) EMAIL
-            if (channels.includes('email') && userData.email && process.env.SMTP_USER) {
-                try {
-                    // Reutilizamos un layout simple
-                    const html = `
-                        <div style="font-family: sans-serif; padding: 20px; line-height: 1.6;">
-                            <h2 style="color: #f97316;">${title}</h2>
-                            <p>${msg}</p>
-                            <div style="margin-top: 20px;">
-                                <a href="${config.contact?.pwaUrl || '#'}/login" 
-                                   style="background: #f97316; color: white; padding: 10px 20px; text-decoration: none; border-radius: 8px; font-weight: bold;">
-                                   Ver mis puntos
-                                </a>
-                            </div>
-                        </div>
-                    `;
-                    await transporter.sendMail({
-                        from: `"${config.siteName || 'Club Fidelidad'}" <${process.env.SMTP_USER}>`,
-                        to: userData.email,
-                        subject: title,
-                        html
-                    });
-                } catch (e) { console.error(`[Cron] Error Email for ${userId}:`, e.message); }
-            }
-
-            // C) INBOX (Historial interno)
-            try {
-                await db.collection('users').doc(userId).collection('inbox').add({
-                    title,
-                    body: msg,
-                    url: "/mis-puntos",
-                    type: "system",
-                    read: false,
-                    date: admin.firestore.FieldValue.serverTimestamp(),
-                    expireAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000))
-                });
-            } catch (e) { console.error(`[Cron] Error Inbox for ${userId}:`, e.message); }
-
-            // Marcar aviso enviado
-            await userDoc.ref.update({ lastExpirationNotice: todayStr });
-            results.push({ userId, status: 'notified' });
         }
 
         return res.status(200).json({
             ok: true,
-            message: `Processed ${results.length} notifications.`,
-            targetDate: targetDateStr,
-            results
+            summary: logResults,
+            referenceDate: referenceDateStr
         });
 
     } catch (error) {
         console.error("[Cron Expirations] Fatal Error:", error);
         return res.status(500).json({ ok: false, error: error.message });
     }
+}
+
+/**
+ * Helper para actualizar el cache usando Firebase Admin (Node.js)
+ */
+async function updateNextExpirationCacheAdmin(db, userId, startOfToday) {
+    const historyRef = db.collection('users').doc(userId).collection('points_history');
+    const creditsSnap = await historyRef.where('type', '==', 'credit').get();
+
+    let nextDate = null;
+    let nextAmount = 0;
+
+    creditsSnap.docs.forEach(d => {
+        const data = d.data();
+        const currentRemaining = data.remainingPoints !== undefined ? data.remainingPoints : data.amount;
+
+        if (currentRemaining <= 0 || data.status === 'expired') return;
+
+        if (data.expiresAt) {
+            const expireDate = data.expiresAt.toDate();
+            // Solo futuras (desde hoy inclusive)
+            if (expireDate >= startOfToday) {
+                if (!nextDate || expireDate < nextDate) {
+                    nextDate = expireDate;
+                    nextAmount = currentRemaining;
+                } else if (expireDate.getTime() === nextDate.getTime()) {
+                    nextAmount += currentRemaining;
+                }
+            }
+        }
+    });
+
+    const isoDate = nextDate ? nextDate.toISOString().split('T')[0] : null;
+    await db.collection('users').doc(userId).update({
+        nextExpirationDate: isoDate,
+        nextExpirationAmount: nextDate ? nextAmount : 0
+    });
 }

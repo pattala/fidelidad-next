@@ -10,6 +10,7 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import { useAdminAuth } from '../contexts/AdminAuthContext';
 import { useNavigate } from 'react-router-dom';
+import { TimeService } from '../../../services/timeService';
 
 const ChannelSelector = ({
     label,
@@ -246,7 +247,10 @@ export const ConfigPage = () => {
                 headers: {
                     'Content-Type': 'application/json',
                     'x-api-key': import.meta.env.VITE_API_KEY || ''
-                }
+                },
+                body: JSON.stringify({
+                    simulatedDate: TimeService.now().toISOString()
+                })
             });
             const data = await res.json();
             if (data.ok) {

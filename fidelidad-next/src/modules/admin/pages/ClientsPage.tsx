@@ -100,7 +100,7 @@ export const ClientsPage = () => {
                     expDates: { [key: string]: number }
                 }
             } = {};
-            const now = new Date();
+            const now = TimeService.now();
 
             historySnap.docs.forEach(d => {
                 const parentId = d.ref.parent.parent?.id;
@@ -388,7 +388,7 @@ export const ClientsPage = () => {
                         const rule = freshConfig.expirationRules.find((r: any) => pts >= r.minPoints && (!r.maxPoints || pts <= r.maxPoints));
                         if (rule) days = rule.validityDays;
                     }
-                    const expiresAt = new Date();
+                    const expiresAt = TimeService.now();
                     expiresAt.setDate(expiresAt.getDate() + days);
 
                     await addDoc(collection(db, `users/${newDocId}/points_history`), {
@@ -615,7 +615,11 @@ export const ClientsPage = () => {
         setRedemptionModalOpen(true);
     };
 
-    const openHistoryModal = (client: Client) => {
+    const openHistoryModal = async (client: Client) => {
+        // Aseguramos que los puntos estén actualizados calculando vencimientos antes de mostrar
+        try {
+            await ExpirationService.processExpirations(client.id);
+        } catch (e) { }
         setSelectedClientForHistory(client);
         setHistoryModalOpen(true);
     };

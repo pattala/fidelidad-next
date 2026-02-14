@@ -109,11 +109,11 @@ export const ExpirationService = {
             const startOfToday = TimeService.startOfToday();
             const historyRef = collection(db, `users/${userId}/points_history`);
 
-            // Query only valid credits with remaining points
+            // Query credits. We filter by remainingPoints in JS to support legacy records
             const q = query(
                 historyRef,
-                where('type', '==', 'credit'),
-                where('remainingPoints', '>', 0)
+                where('type', '==', 'credit')
+                // Removed 'remainingPoints' > 0 because it skips legacy records where field is missing
             );
 
             const snapshot = await getDocs(q);
@@ -123,6 +123,11 @@ export const ExpirationService = {
 
             snapshot.docs.forEach(d => {
                 const data = d.data();
+                const currentRemaining = data.remainingPoints !== undefined ? data.remainingPoints : data.amount;
+
+                // Skip if no points left or already marked as expired
+                if (currentRemaining <= 0 || data.status === 'expired') return;
+
                 if (data.expiresAt) {
                     const expireDate = data.expiresAt.toDate ? data.expiresAt.toDate() : new Date(data.expiresAt);
 
@@ -130,10 +135,10 @@ export const ExpirationService = {
                     if (expireDate >= startOfToday) {
                         if (!nextDate || expireDate < nextDate) {
                             nextDate = expireDate;
-                            nextAmount = data.remainingPoints;
+                            nextAmount = currentRemaining;
                         } else if (expireDate.getTime() === nextDate.getTime()) {
                             // Sum amounts if they expire on the same day
-                            nextAmount += data.remainingPoints;
+                            nextAmount += currentRemaining;
                         }
                     }
                 }

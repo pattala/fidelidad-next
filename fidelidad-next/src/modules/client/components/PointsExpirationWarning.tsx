@@ -42,10 +42,12 @@ export const PointsExpirationWarning = ({ userId, compact }: Props) => {
 
                 snapshot.forEach(doc => {
                     const data = doc.data();
-                    // Include if positive amount AND definitely has expiration AND is not already processed
-                    if (data.amount > 0 && data.expiresAt && data.status !== 'expired') {
+                    const currentRemaining = data.remainingPoints !== undefined ? data.remainingPoints : data.amount;
+
+                    // Include if positive remaining amount AND definitely has expiration AND is not already processed
+                    if (currentRemaining > 0 && data.expiresAt && data.status !== 'expired') {
                         const date = data.expiresAt?.toDate ? data.expiresAt.toDate() : new Date(data.expiresAt);
-                        rawExpirations.push({ amount: data.amount, date });
+                        rawExpirations.push({ amount: currentRemaining, date });
                     }
                 });
 

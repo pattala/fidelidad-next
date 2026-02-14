@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../../../lib/firebase';
 import { MASTER_ADMINS } from '../../../lib/adminConfig';
 import { signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword } from 'firebase/auth';
-import { collection, getDocs, doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, setDoc, onSnapshot, query, limit } from 'firebase/firestore';
 import toast from 'react-hot-toast';
 import { Eye, EyeOff } from 'lucide-react';
 
@@ -36,12 +36,15 @@ export const LoginPage = () => {
         const checkAdmins = async () => {
             try {
                 // Solo intentamos listar si no estamos logueados o si queremos saber si está vacío
-                const snap = await getDocs(collection(db, 'admins'));
+                // Usamos un query limitado para no disparar alertas de lectura masiva
+                const q = query(collection(db, 'admins'), limit(1));
+                const snap = await getDocs(q);
                 if (snap.empty) {
                     setIsFirstRun(true);
                 }
             } catch (e: any) {
                 // Si falla por permisos, es normal cuando el sistema ya tiene reglas restrictivas
+                // Significa que YA hay administradores (o reglas que los protegen), por lo tanto NO es first run.
                 setIsFirstRun(false);
             }
         };

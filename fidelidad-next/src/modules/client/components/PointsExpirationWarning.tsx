@@ -144,10 +144,10 @@ export const PointsExpirationWarning = ({ userId, compact }: Props) => {
                                     {isOverdueItem ? <AlertTriangle size={14} /> : <Calendar size={14} />}
                                 </div>
                                 <span className={isOverdueItem ? 'text-red-600' : (isToday ? 'text-orange-600' : 'text-gray-600')}>
-                                    {isUnifiedOverdue ? 'VENCIDO' : (
+                                    {isUnifiedOverdue ? 'YA VENCIDO' : (
                                         <>
-                                            {isOverdueItem ? 'YA VENCIDO ' : (isToday ? 'VENCE HOY ' : '')}
-                                            {exp.date.toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                            {isOverdueItem ? 'VENCIDO ' : (isToday ? 'HOY ' : '')}
+                                            {exp.date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' })}
                                         </>
                                     )}
                                 </span>

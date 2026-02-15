@@ -123,7 +123,12 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
             const expirationData = Object.values(expirationMap).sort((a, b) => a.date.getTime() - b.date.getTime());
 
             setHistory(historyData);
-            setNextExpirations(expirationData);
+            // Si el cliente no tiene puntos, forzamos que no aparezcan vencimientos (prevención visual)
+            if ((currentClient.points || 0) <= 0) {
+                setNextExpirations([]);
+            } else {
+                setNextExpirations(expirationData);
+            }
             setTotalSpent(calculatedTotalSpent);
 
         } catch (error) {

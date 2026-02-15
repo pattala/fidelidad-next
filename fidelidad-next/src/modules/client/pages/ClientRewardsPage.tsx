@@ -64,17 +64,6 @@ export const ClientRewardsPage = () => {
                     </div>
                 </div>
 
-                {/* Search / Filter (Filter removed) */}
-                <div className="flex gap-2">
-                    <div className="relative flex-1">
-                        <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
-                        <input
-                            type="text"
-                            placeholder="Buscar premios..."
-                            className="w-full bg-gray-100 pl-10 pr-4 py-2 rounded-xl text-sm border-none focus:ring-2 focus:ring-purple-200 outline-none transition"
-                        />
-                    </div>
-                </div>
             </div>
 
             {/* Catalog Grid */}
@@ -164,6 +153,6 @@ export const ClientRewardsPage = () => {
                     })
                 )}
             </div>
-        </div>
+        </div >
     );
 };

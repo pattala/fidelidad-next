@@ -164,7 +164,7 @@ export const ClientProfilePage = () => {
             </div>
 
             {/* Profile Card Overlay */}
-            <div className="-mt-20 px-6 relative z-10">
+            <div className="-mt-20 px-4 relative z-10">
                 <div className="bg-white rounded-3xl shadow-xl p-6 text-center border border-gray-100">
                     <div className="w-24 h-24 bg-indigo-50 rounded-full mx-auto border-4 border-white shadow-md mb-3 flex items-center justify-center text-indigo-400">
                         <UserIcon size={48} strokeWidth={2} />
@@ -223,7 +223,7 @@ export const ClientProfilePage = () => {
             </div>
 
             {/* DIGITAL CREDENTIAL (QR) */}
-            <div className="px-6 mt-6">
+            <div className="px-4 mt-6">
                 <div className="bg-white rounded-3xl shadow-sm p-6 flex flex-col items-center gap-4 border border-gray-100">
                     <div className="flex items-center gap-2 text-gray-800 font-bold">
                         <QrCode className="text-indigo-500" />
@@ -247,7 +247,7 @@ export const ClientProfilePage = () => {
             </div>
 
             {/* SETTINGS GROUP */}
-            <div className="px-6 mt-6 space-y-3">
+            <div className="px-4 mt-6 space-y-3">
 
                 {/* Permissions Toggles */}
                 <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-4 space-y-4">

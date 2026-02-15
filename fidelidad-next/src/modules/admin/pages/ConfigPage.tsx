@@ -134,6 +134,30 @@ export const ConfigPage = () => {
     const [loading, setLoading] = useState(false);
     const [showCalculator, setShowCalculator] = useState(false);
     const [autoPointValue, setAutoPointValue] = useState<number>(0);
+    const [lastAuditLog, setLastAuditLog] = useState<any>(null);
+
+    const fetchLastAuditLog = async () => {
+        try {
+            const q = query(
+                collection(db, 'audit_logs'),
+                orderBy('timestamp', 'desc'),
+                limit(10)
+            );
+            const snap = await getDocs(q);
+            // Buscar el primero que sea de vencimientos
+            const log = snap.docs.find(d => ['expiration_engine', 'manual_expiration'].includes(d.data().type));
+            if (log) setLastAuditLog(log.data());
+        } catch (e) {
+            console.error("Error fetching last audit log", e);
+        }
+    };
+
+    // Cargar log cuando estemos en mensajería
+    useEffect(() => {
+        if (activeTab === 'messaging') {
+            fetchLastAuditLog();
+        }
+    }, [activeTab]);
 
     // Updated type definition in insertVar to include 'birthday'
     const insertVar = (field: 'pointsAdded' | 'redemption' | 'welcome' | 'campaign' | 'offer' | 'birthday' | 'birthdaySimple' | 'referralReward' | 'expirationWarning', variable: string) => {
@@ -254,7 +278,9 @@ export const ConfigPage = () => {
             });
             const data = await res.json();
             if (data.ok) {
-                toast.success(`Éxito: ${data.message}`, { id: toastId });
+                toast.success(`Éxito: ${data.summary?.summary || 'Revisión completada'}`, { id: toastId });
+                // Refrescar el estado local del log
+                fetchLastAuditLog();
             } else {
                 toast.error(`Error: ${data.error}`, { id: toastId });
             }
@@ -1548,6 +1574,14 @@ export const ConfigPage = () => {
                                             <strong>Estado del Motor de Vencimientos:</strong> El sistema recorre la base de datos todos los días a las 09:00 AM (UTC) para descontar puntos vencidos.
                                             {config.messaging?.enableExpirationWarnings ? ' También enviará los avisos configurados abajo.' : ' Actualmente los avisos automáticos están apagados.'}
                                         </p>
+
+                                        {lastAuditLog && (
+                                            <div className="mt-2 text-[10px] text-amber-700 font-bold bg-white/50 p-2 rounded border border-amber-200/50 flex items-center gap-2 animate-fade-in shadow-inner">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                                                <span>Última revisión ({lastAuditLog.timestamp?.toDate ? lastAuditLog.timestamp.toDate().toLocaleDateString() : 'Reciente'}): {lastAuditLog.summary}</span>
+                                            </div>
+                                        )}
+
                                         <button
                                             type="button"
                                             onClick={handleRunExpirations}

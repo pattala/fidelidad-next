@@ -280,16 +280,26 @@ export default async function handler(req, res) {
         // 5. Determinar Días de Validez (Escalas)
         const expirationRules = config.expirationRules || [];
         function getValidityDays(pts, rules) {
-            // Caso por defecto si no hay reglas
             if (!rules || rules.length === 0) return 365;
 
-            // Buscar regla coincidente
-            const match = rules.find(r =>
+            // Ordenamos por puntos mínimos para garantizar orden lógico
+            const sortedRules = [...rules].sort((a, b) => (Number(a.minPoints) || 0) - (Number(b.minPoints) || 0));
+
+            // 1. Intentar match exacto de rango
+            const match = sortedRules.find(r =>
                 pts >= (Number(r.minPoints) || 0) &&
                 (r.maxPoints === null || r.maxPoints === undefined || pts <= Number(r.maxPoints))
             );
 
-            return match ? (Number(match.validityDays) || 365) : 365;
+            if (match) return Number(match.validityDays) || 365;
+
+            // 2. Fallback: Si supera el valor más alto de la tabla, aplicamos la regla superior
+            const highestRule = sortedRules[sortedRules.length - 1];
+            if (pts >= (Number(highestRule.minPoints) || 0)) {
+                return Number(highestRule.validityDays) || 365;
+            }
+
+            return 365;
         }
 
         const validityDays = getValidityDays(points, expirationRules);

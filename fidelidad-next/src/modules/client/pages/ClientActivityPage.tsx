@@ -78,7 +78,7 @@ export const ClientActivityPage = () => {
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col h-screen overflow-hidden">
             {/* Header */}
-            <div className="bg-white px-6 pt-8 pb-6 sticky top-0 z-20 shadow-sm border-b border-gray-100">
+            <div className="bg-white px-4 pt-6 pb-6 sticky top-0 z-20 shadow-sm border-b border-gray-100">
                 <h1 className="text-2xl font-bold text-gray-800 mb-1">Tu Actividad</h1>
                 <p className="text-gray-400 text-xs font-medium">Historial de puntos y canjes</p>
 

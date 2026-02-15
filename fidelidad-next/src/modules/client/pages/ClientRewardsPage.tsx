@@ -52,7 +52,7 @@ export const ClientRewardsPage = () => {
         <div className="min-h-screen bg-gray-50 pb-24">
 
             {/* Header */}
-            <div className="bg-white px-6 pt-8 pb-4 sticky top-0 z-20 shadow-sm border-b border-gray-100">
+            <div className="bg-white px-4 pt-8 pb-4 sticky top-0 z-20 shadow-sm border-b border-gray-100">
                 <div className="flex justify-between items-center mb-4">
                     <h1 className="text-2xl font-bold text-gray-800">Premios</h1>
                     <div className="bg-purple-100 px-3 py-1 rounded-full flex items-center gap-1 shadow-sm border border-purple-200/50">

@@ -73,6 +73,7 @@ export default async function handler(req, res) {
             processed: 0,
             expired: 0,
             notified: 0,
+            details: [], // { userName, userId, action, status, info }
             errors: []
         };
 
@@ -119,6 +120,14 @@ export default async function handler(req, res) {
                 });
 
                 if (totalExpired > 0) {
+                    logResults.expired += totalExpired;
+                    logResults.details.push({
+                        userId,
+                        userName: userDoc.data()?.name || 'Socio',
+                        action: 'points_subtracted',
+                        status: 'success',
+                        info: `${totalExpired} pts vencidos`
+                    });
                     // Registrar Descuento
                     const newHistRef = historyRef.doc();
                     batch.set(newHistRef, {
@@ -202,10 +211,31 @@ export default async function handler(req, res) {
 
                     await userDoc.ref.update({ lastExpirationNotice: referenceDateStr });
                     logResults.notified++;
+                    logResults.details.push({
+                        userId,
+                        userName: userData.name || 'Socio',
+                        action: 'notified_expiration',
+                        status: 'success',
+                        info: `Aviso enviado (${amount} pts)`
+                    });
                 } catch (e) {
                     console.error(`[Cron] Error notifying ${userDoc.id}:`, e);
                 }
             }
+        }
+
+        // --- PASO C: GUARDAR LOG DE AUDITORÍA ---
+        try {
+            await db.collection('audit_logs').add({
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                type: req.body?.simulatedDate ? 'manual_expiration' : 'expiration_engine',
+                status: logResults.errors.length === 0 ? 'success' : 'partial',
+                summary: `Procesados: ${logResults.processed}, Vencidos: ${logResults.expired} pts, Notificados: ${logResults.notified}`,
+                details: logResults.details.slice(0, 500), // Limitar tamaño para evitar fallos de documento
+                executor: req.body?.simulatedDate ? 'admin' : 'system'
+            });
+        } catch (logError) {
+            console.error("[Cron] Error saving audit log:", logError);
         }
 
         return res.status(200).json({

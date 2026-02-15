@@ -203,6 +203,12 @@ export const AdminLayout = () => {
                             <Settings size={20} /> Configuración
                         </NavLink>
                     )}
+
+                    {role === 'admin' && (
+                        <NavLink to="/admin/logs" className={navItemClass}>
+                            <Clock size={20} /> Auditoría
+                        </NavLink>
+                    )}
                 </nav>
 
                 {role === 'admin' && config?.enableDateSimulator && (

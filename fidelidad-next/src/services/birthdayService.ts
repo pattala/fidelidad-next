@@ -57,11 +57,24 @@ export const BirthdayService = {
             const expirationRules = config?.expirationRules || [];
             const getValidityDays = (pts: number, rules: any[]) => {
                 if (!rules || rules.length === 0) return 365;
-                const match = rules.find(r =>
+
+                // Ordenamos por minPoints
+                const sortedRules = [...rules].sort((a, b) => (Number(a.minPoints) || 0) - (Number(b.minPoints) || 0));
+
+                const match = sortedRules.find(r =>
                     pts >= (Number(r.minPoints) || 0) &&
                     (r.maxPoints === null || r.maxPoints === undefined || pts <= Number(r.maxPoints))
                 );
-                return match ? (Number(match.validityDays) || 365) : 365;
+
+                if (match) return Number(match.validityDays) || 365;
+
+                // Fallback superior
+                const highestRule = sortedRules[sortedRules.length - 1];
+                if (pts >= (Number(highestRule.minPoints) || 0)) {
+                    return Number(highestRule.validityDays) || 365;
+                }
+
+                return 365;
             };
 
             const validityDays = getValidityDays(birthdayPoints, expirationRules);

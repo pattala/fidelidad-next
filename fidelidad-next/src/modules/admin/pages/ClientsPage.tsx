@@ -384,9 +384,18 @@ export const ClientsPage = () => {
 
                 if (pts > 0) {
                     let days = 365;
-                    if (freshConfig?.expirationRules) {
-                        const rule = freshConfig.expirationRules.find((r: any) => pts >= r.minPoints && (!r.maxPoints || pts <= r.maxPoints));
-                        if (rule) days = rule.validityDays;
+                    if (freshConfig?.expirationRules && freshConfig.expirationRules.length > 0) {
+                        const sortedRules = [...freshConfig.expirationRules].sort((a: any, b: any) => (a.minPoints || 0) - (b.minPoints || 0));
+                        const rule = sortedRules.find((r: any) => pts >= r.minPoints && (!r.maxPoints || pts <= r.maxPoints));
+                        if (rule) {
+                            days = rule.validityDays;
+                        } else {
+                            // Regla superior si supera el máximo
+                            const highestRule = sortedRules[sortedRules.length - 1];
+                            if (pts >= (highestRule.minPoints || 0)) {
+                                days = highestRule.validityDays;
+                            }
+                        }
                     }
                     const expiresAt = TimeService.now();
                     expiresAt.setDate(expiresAt.getDate() + days);

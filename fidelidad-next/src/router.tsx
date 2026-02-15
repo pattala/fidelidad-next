@@ -22,6 +22,7 @@ import { ClientInboxPage } from "./modules/client/pages/ClientInboxPage";
 import { ClientPromosPage } from "./modules/client/pages/ClientPromosPage";
 import { ClientReferralsPage } from "./modules/client/pages/ClientReferralsPage";
 import { ClientAuthGuard } from "./modules/client/components/ClientAuthGuard";
+import { SystemLogsPage } from "./modules/admin/pages/SystemLogsPage";
 
 export const router = createBrowserRouter([
     // Client App (PWA)
@@ -107,6 +108,10 @@ export const router = createBrowserRouter([
             {
                 path: "config",
                 element: <ConfigPage />
+            },
+            {
+                path: "logs",
+                element: <SystemLogsPage />
             },
             {
                 path: "whatsapp",

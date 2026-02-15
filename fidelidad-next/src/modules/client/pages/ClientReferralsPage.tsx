@@ -62,7 +62,7 @@ export const ClientReferralsPage = () => {
     );
 
     return (
-        <div className="p-6 space-y-8 animate-fade-in pb-20">
+        <div className="p-4 space-y-8 animate-fade-in pb-20">
             {/* Hero Section */}
             <div className="text-center space-y-4">
                 <div className="w-20 h-20 bg-gradient-to-tr from-purple-500 to-pink-500 rounded-3xl mx-auto flex items-center justify-center shadow-xl shadow-purple-200 rotate-3">

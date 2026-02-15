@@ -1513,7 +1513,20 @@ export const ConfigPage = () => {
                                         <span className="text-xl">📢</span>
                                         <div>
                                             <h3 className="text-sm font-bold text-gray-800 uppercase tracking-tight">Aviso de Vencimiento de Puntos</h3>
-                                            <p className="text-[10px] text-gray-400">Notifica automáticamente a los socios 7 días antes de que pierdan sus puntos.</p>
+                                            <p className="text-[10px] text-gray-400">
+                                                Notifica a los socios {
+                                                    <input
+                                                        type="number"
+                                                        min="1" max="30"
+                                                        value={config.messaging?.expirationWarningDays || 7}
+                                                        onChange={e => setConfig({
+                                                            ...config,
+                                                            messaging: { ...config.messaging!, expirationWarningDays: parseInt(e.target.value) || 7 }
+                                                        })}
+                                                        className="w-10 bg-transparent border-b border-gray-300 text-center font-bold focus:border-orange-500 outline-none mx-1 text-orange-600"
+                                                    />
+                                                } días antes de que pierdan sus puntos.
+                                            </p>
                                         </div>
                                     </div>
                                     <button

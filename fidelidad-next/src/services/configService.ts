@@ -45,7 +45,8 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
             referralReward: { channels: ['email', 'push', 'email'] },
             expirationWarning: { channels: ['push', 'email'] }
         },
-        enableExpirationWarnings: false
+        enableExpirationWarnings: false,
+        expirationWarningDays: 7
     },
     referrals: {
         enabled: true,

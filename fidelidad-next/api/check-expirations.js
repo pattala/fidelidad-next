@@ -63,9 +63,10 @@ export default async function handler(req, res) {
         const startOfToday = new Date(referenceDate);
         startOfToday.setHours(0, 0, 0, 0);
 
-        // Calcular fecha para avisos (Hoy + 7 días)
+        // Calcular fecha para avisos (Días configurables)
+        const warningDays = Number(config.messaging?.expirationWarningDays) || 7;
         const warningDate = new Date(referenceDate);
-        warningDate.setDate(warningDate.getDate() + 7);
+        warningDate.setDate(warningDate.getDate() + warningDays);
         const warningDateStr = warningDate.toISOString().split('T')[0];
 
         const logResults = {
@@ -147,7 +148,7 @@ export default async function handler(req, res) {
             }
         }
 
-        // --- PASO B: ENVIAR AVISOS (Usuarios que vencen en 7 días) ---
+        // --- PASO B: ENVIAR AVISOS (Usuarios que vencen pronto) ---
         if (config.messaging?.enableExpirationWarnings !== false) {
             const toNotifySnap = await db.collection('users')
                 .where('nextExpirationDate', '==', warningDateStr)

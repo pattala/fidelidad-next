@@ -119,14 +119,15 @@ export default async function handler(req, res) {
                     pointsToDeduct -= deduction;
                 }
 
+                const remainingAfter = currentRemaining - deduction;
                 tx.update(docSnap.ref, {
-                    remainingPoints: currentRemaining - deduction,
+                    remainingPoints: remainingAfter,
                     lastUsageDate: admin.firestore.FieldValue.serverTimestamp()
                 });
 
                 const d = data.date?.toDate();
                 const dateStr = d ? `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}` : "??";
-                batchesUsed.push(`${deduction} pts del ${dateStr}`);
+                batchesUsed.push(`${deduction} pts del ${dateStr}${remainingAfter > 0 ? ` (Quedan: ${remainingAfter})` : ''}`);
             }
 
             const historyDescription = batchesUsed.length > 0 ? `(Tomados: ${batchesUsed.join(', ')})` : '';

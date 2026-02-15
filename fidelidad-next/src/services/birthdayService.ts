@@ -54,8 +54,19 @@ export const BirthdayService = {
             const userRef = doc(db, 'users', uid);
             const historyRef = collection(db, 'users', uid, 'points_history');
 
+            const expirationRules = config?.expirationRules || [];
+            const getValidityDays = (pts: number, rules: any[]) => {
+                if (!rules || rules.length === 0) return 365;
+                const match = rules.find(r =>
+                    pts >= (Number(r.minPoints) || 0) &&
+                    (r.maxPoints === null || r.maxPoints === undefined || pts <= Number(r.maxPoints))
+                );
+                return match ? (Number(match.validityDays) || 365) : 365;
+            };
+
+            const validityDays = getValidityDays(birthdayPoints, expirationRules);
             const expirationDate = new Date(now);
-            expirationDate.setDate(expirationDate.getDate() + 365);
+            expirationDate.setDate(expirationDate.getDate() + validityDays);
 
             await addDoc(historyRef, {
                 amount: birthdayPoints,
@@ -63,7 +74,8 @@ export const BirthdayService = {
                 date: now,
                 type: 'credit',
                 expiresAt: expirationDate,
-                remainingPoints: birthdayPoints
+                remainingPoints: birthdayPoints,
+                balanceAfter: (Number(userData.points) || 0) + birthdayPoints
             });
 
             await updateDoc(userRef, {

@@ -277,9 +277,24 @@ export default async function handler(req, res) {
             else recordDate = new Date(req.body.date + 'T12:00:00');
         }
 
+        // 5. Determinar Días de Validez (Escalas)
+        const expirationRules = config.expirationRules || [];
+        function getValidityDays(pts, rules) {
+            // Caso por defecto si no hay reglas
+            if (!rules || rules.length === 0) return 365;
+
+            // Buscar regla coincidente
+            const match = rules.find(r =>
+                pts >= (Number(r.minPoints) || 0) &&
+                (r.maxPoints === null || r.maxPoints === undefined || pts <= Number(r.maxPoints))
+            );
+
+            return match ? (Number(match.validityDays) || 365) : 365;
+        }
+
+        const validityDays = getValidityDays(points, expirationRules);
         const expirationDate = new Date(recordDate);
-        expirationDate.setDate(expirationDate.getDate() + 365);
-        const validityDays = 365;
+        expirationDate.setDate(expirationDate.getDate() + validityDays);
 
         await db.runTransaction(async (tx) => {
             const clientSnap = await tx.get(clientRef);
@@ -369,26 +384,33 @@ export default async function handler(req, res) {
             // --- RECOMPENSA AL REFERENTE ---
             if (referrerSnap && referrerSnap.exists) {
                 const rData = referrerSnap.data();
-                const bonusAmount = Number(config.referrals?.pointsForReferrer) || 200;
+                const referralBonusAmount = Number(config.referrals?.pointsForReferrer) || 200;
                 const rRef = referrerSnap.ref;
-                const newRPoints = (Number(rData.points) || 0) + bonusAmount;
+                const newRPoints = (Number(rData.points) || 0) + referralBonusAmount;
+
+                const rValidityDays = getValidityDays(referralBonusAmount, expirationRules);
+                const rExpirationDate = new Date();
+                rExpirationDate.setDate(rExpirationDate.getDate() + rValidityDays);
 
                 tx.update(rRef, {
                     points: newRPoints,
                     puntos: newRPoints,
                     'referralStats.count': admin.firestore.FieldValue.increment(1),
-                    'referralStats.pointsEarned': admin.firestore.FieldValue.increment(bonusAmount),
+                    'referralStats.pointsEarned': admin.firestore.FieldValue.increment(referralBonusAmount),
                     historialPuntos: admin.firestore.FieldValue.arrayUnion({
                         fechaObtencion: admin.firestore.Timestamp.fromDate(new Date()),
-                        puntosObtenidos: bonusAmount, puntosDisponibles: bonusAmount, diasCaducidad: 365,
-                        origen: `Bono Invitado: ${cData.name || 'Amigo'}`, estado: 'Activo'
+                        puntosObtenidos: referralBonusAmount,
+                        puntosDisponibles: referralBonusAmount,
+                        diasCaducidad: rValidityDays,
+                        origen: `Bono Invitado: ${cData.name || 'Amigo'}`,
+                        estado: 'Activo'
                     })
                 });
 
                 tx.set(rRef.collection('points_history').doc(), {
-                    amount: bonusAmount, type: 'credit', reason: 'referral_bonus', concept: `Bono Invitado: ${cData.name || 'Amigo'}`,
+                    amount: referralBonusAmount, type: 'credit', reason: 'referral_bonus', concept: `Bono Invitado: ${cData.name || 'Amigo'}`,
                     date: admin.firestore.Timestamp.fromDate(new Date()), createdAt: admin.firestore.FieldValue.serverTimestamp(),
-                    expiresAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 365 * 86400000)), remainingPoints: bonusAmount, balanceAfter: newRPoints
+                    expiresAt: admin.firestore.Timestamp.fromDate(rExpirationDate), remainingPoints: referralBonusAmount, balanceAfter: newRPoints
                 });
 
                 tx.set(rRef.collection('inbox').doc(), {

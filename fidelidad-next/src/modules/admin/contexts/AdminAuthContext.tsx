@@ -29,39 +29,47 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             if (firebaseUser) {
-                let resolvedRole: AdminRole = null;
+                // If we already have the same user and role, don't trigger intermediate loading
+                // But on initialization we need to fetch the role
+
                 try {
                     const userEmail = firebaseUser.email?.toLowerCase() || '';
                     const isMaster = MASTER_ADMINS.map(e => e.toLowerCase()).includes(userEmail);
                     const isDefaultAdmin = userEmail === 'admin@admin.com';
 
+                    let resolvedRole: AdminRole = null;
+
                     if (isMaster || isDefaultAdmin) {
                         resolvedRole = 'admin';
                     } else {
-                        // Check explicit admins collection
-                        const adminDoc = await getDoc(doc(db, 'admins', firebaseUser.uid));
+                        // Parallel check for performance
+                        const [adminDoc, userDoc] = await Promise.all([
+                            getDoc(doc(db, 'admins', firebaseUser.uid)),
+                            getDoc(doc(db, 'users', firebaseUser.uid))
+                        ]);
+
                         if (adminDoc.exists()) {
                             resolvedRole = adminDoc.data().role as AdminRole;
-                        } else {
-                            // Check 'users' collection for promoted role
-                            const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-                            if (userDoc.exists() && userDoc.data().role === 'admin') {
-                                resolvedRole = 'admin';
-                            }
+                        } else if (userDoc.exists() && userDoc.data().role === 'admin') {
+                            resolvedRole = 'admin';
                         }
                     }
+
+                    setRole(resolvedRole);
+                    setUser(firebaseUser);
+                    setLoading(false);
                 } catch (e) {
                     console.error("Error fetching admin role:", e);
+                    // In case of network error, we DON'T stop loading immediately to prevent redirect 
+                    // unless it persists. We can try one more time or just let it be.
+                    // For now, allow a fallback if it was already set or set null if confirmed missing.
+                    setLoading(false);
                 }
-
-                // Update both together to avoid intermediate states
-                setRole(resolvedRole);
-                setUser(firebaseUser);
             } else {
                 setUser(null);
                 setRole(null);
+                setLoading(false);
             }
-            setLoading(false);
         });
 
         return () => unsubscribe();

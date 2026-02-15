@@ -1541,8 +1541,25 @@ export const ConfigPage = () => {
                                     </button>
                                 </div>
 
+                                <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-100 flex items-start gap-3 mb-6">
+                                    <Clock size={16} className="text-amber-600 mt-0.5 shrink-0" />
+                                    <div className="flex-1">
+                                        <p className="text-[11px] text-amber-800 leading-tight">
+                                            <strong>Estado del Motor de Vencimientos:</strong> El sistema recorre la base de datos todos los días a las 09:00 AM (UTC) para descontar puntos vencidos.
+                                            {config.messaging?.enableExpirationWarnings ? ' También enviará los avisos configurados abajo.' : ' Actualmente los avisos automáticos están apagados.'}
+                                        </p>
+                                        <button
+                                            type="button"
+                                            onClick={handleRunExpirations}
+                                            className="mt-2 px-3 py-1.5 bg-amber-600 text-white text-[10px] font-bold rounded-lg hover:bg-amber-700 transition-colors uppercase tracking-wider"
+                                        >
+                                            Ejecutar revisión manual ahora
+                                        </button>
+                                    </div>
+                                </div>
+
                                 {config.messaging?.enableExpirationWarnings && (
-                                    <div className="space-y-4 animate-fade-in text-left">
+                                    <div className="space-y-4 animate-fade-in text-left border-l-2 border-orange-100 pl-4">
                                         <div className="flex gap-2">
                                             <div className="relative flex-1">
                                                 <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">⏳</span>
@@ -1571,7 +1588,7 @@ export const ConfigPage = () => {
                                         <VariableChips vars={['nombre', 'puntos', 'fecha']} onSelect={v => insertVar('expirationWarning', v)} />
 
                                         <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-100">
-                                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Canales de Aviso</label>
+                                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Canales de Envío</label>
                                             <ChannelSelector
                                                 channels={config.messaging?.eventConfigs?.expirationWarning?.channels || []}
                                                 onChange={(newChannels) => setConfig({
@@ -1579,23 +1596,6 @@ export const ConfigPage = () => {
                                                     messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, expirationWarning: { channels: newChannels } } }
                                                 })}
                                             />
-                                        </div>
-
-                                        <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-100 flex items-start gap-3">
-                                            <Clock size={16} className="text-amber-600 mt-0.5 shrink-0" />
-                                            <div className="flex-1">
-                                                <p className="text-[11px] text-amber-800 leading-tight">
-                                                    <strong>Programación Automática:</strong> El sistema revisa vencimientos todos los días a las 09:00 AM (UTC).
-                                                    Puedes forzar una revisión manual ahora si deseas adelantar los avisos.
-                                                </p>
-                                                <button
-                                                    type="button"
-                                                    onClick={handleRunExpirations}
-                                                    className="mt-2 px-3 py-1.5 bg-amber-600 text-white text-[10px] font-bold rounded-lg hover:bg-amber-700 transition-colors uppercase tracking-wider"
-                                                >
-                                                    Ejecutar avisos ahora
-                                                </button>
-                                            </div>
                                         </div>
                                     </div>
                                 )}

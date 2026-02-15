@@ -1576,9 +1576,21 @@ export const ConfigPage = () => {
                                         </p>
 
                                         {lastAuditLog && (
-                                            <div className="mt-2 text-[10px] text-amber-700 font-bold bg-white/50 p-2 rounded border border-amber-200/50 flex items-center gap-2 animate-fade-in shadow-inner">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                                                <span>Última revisión ({lastAuditLog.timestamp?.toDate ? lastAuditLog.timestamp.toDate().toLocaleDateString() : 'Reciente'}): {lastAuditLog.summary}</span>
+                                            <div className="mt-2 text-[10px] text-amber-900 font-bold bg-amber-50/80 p-3 rounded-xl border border-amber-200/50 flex flex-col gap-1.5 animate-fade-in shadow-sm">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                                                        <span className="uppercase tracking-widest text-amber-800">Última Revisión</span>
+                                                    </div>
+                                                    <span className="text-[9px] text-amber-600/70 font-medium bg-white/50 px-1.5 py-0.5 rounded-lg border border-amber-100">
+                                                        {lastAuditLog.timestamp?.toDate ?
+                                                            `${lastAuditLog.timestamp.toDate().toLocaleDateString()} ${lastAuditLog.timestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                                                            : 'Reciente'}
+                                                    </span>
+                                                </div>
+                                                <div className="text-[11px] text-amber-900 font-black leading-tight pl-3.5">
+                                                    {lastAuditLog.summary}
+                                                </div>
                                             </div>
                                         )}
 

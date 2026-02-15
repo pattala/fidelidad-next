@@ -34,7 +34,7 @@ export const ClientPromosPage = () => {
     return (
         <div className="min-h-screen bg-gray-50 pb-20 font-sans">
             {/* Header */}
-            <div className="bg-white px-4 pt-6 pb-4 shadow-sm sticky top-0 z-20">
+            <div className="bg-white px-4 pt-4 pb-2 shadow-sm sticky top-0 z-20 transition-all border-b border-gray-50">
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => navigate(-1)}
@@ -42,7 +42,10 @@ export const ClientPromosPage = () => {
                     >
                         <ArrowLeft size={18} />
                     </button>
-                    <h1 className="text-lg font-black uppercase tracking-tight text-[#4a148c]">Todas las Promos</h1>
+                    <div className="flex flex-col">
+                        <h1 className="text-sm font-black uppercase tracking-tight text-[#4a148c] leading-none">Todas las Promos</h1>
+                        <p className="text-[10px] text-gray-400 font-medium mt-0.5">Vigentes ahora</p>
+                    </div>
                 </div>
             </div>
 

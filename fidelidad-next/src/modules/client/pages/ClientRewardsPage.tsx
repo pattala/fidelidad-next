@@ -52,16 +52,19 @@ export const ClientRewardsPage = () => {
         <div className="min-h-screen bg-gray-50 pb-24">
 
             {/* Header */}
-            <div className="bg-white px-4 pt-8 pb-4 sticky top-0 z-20 shadow-sm border-b border-gray-100">
-                <div className="flex justify-between items-center mb-4">
-                    <h1 className="text-2xl font-bold text-gray-800">Premios</h1>
+            <div className="bg-white px-4 pt-4 pb-2 sticky top-0 z-20 shadow-sm border-b border-gray-100 transition-all">
+                <div className="flex justify-between items-end mb-4">
+                    <div className="flex flex-col">
+                        <h1 className="text-2xl font-bold text-gray-800 leading-none">Premios</h1>
+                        <p className="text-[10px] text-gray-400 font-medium mt-1 uppercase tracking-wider">Canjeá tus puntos por beneficios</p>
+                    </div>
                     <div className="bg-purple-100 px-3 py-1 rounded-full flex items-center gap-1 shadow-sm border border-purple-200/50">
-                        <span className="text-xs font-bold text-purple-600">Mis Puntos:</span>
+                        <span className="text-[10px] font-bold text-purple-600 uppercase tracking-tight">Puntos:</span>
                         <span className="text-sm font-black text-purple-700">{userPoints}</span>
                     </div>
                 </div>
 
-                {/* Search / Filter */}
+                {/* Search / Filter (Filter removed) */}
                 <div className="flex gap-2">
                     <div className="relative flex-1">
                         <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
@@ -71,9 +74,6 @@ export const ClientRewardsPage = () => {
                             className="w-full bg-gray-100 pl-10 pr-4 py-2 rounded-xl text-sm border-none focus:ring-2 focus:ring-purple-200 outline-none transition"
                         />
                     </div>
-                    <button className="bg-gray-100 p-2 rounded-xl text-gray-500 hover:bg-gray-200 transition">
-                        <Filter size={20} />
-                    </button>
                 </div>
             </div>
 

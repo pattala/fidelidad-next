@@ -151,26 +151,31 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
             // 1. Delete history doc (Subcollection)
             batch.delete(historyRef);
 
-            // 2. Adjust User Balance
-            const adjustment = -item.amount;
-
-            // 3. LEGACY SYNC: Try to remove from the arrays in the user document
-            // We fetch the current document to filtered out the matching entry
+            // 2. Adjust User Balance (with zero floor)
             const userSnap = await getDoc(userRef);
+            let adjustment = -item.amount;
+
             if (userSnap.exists()) {
                 const userData = userSnap.data();
+                const currentPts = Number(userData.points || 0);
+                const newPoints = Math.max(0, currentPts + adjustment);
 
+                const updatePayload: any = {
+                    points: newPoints,
+                    puntos: newPoints
+                };
+
+                // 3. LEGACY SYNC: Try to remove from the arrays in the user document
                 if (item.type === 'credit') {
                     const legacyHistory = userData.historialPuntos || [];
                     const filtered = legacyHistory.filter((h: any) => {
-                        // Match by amount and a reasonably close date (within 1 minute)
                         const hDate = h.fechaObtencion?.toDate ? h.fechaObtencion.toDate().getTime() : new Date(h.fechaObtencion).getTime();
                         const itemDate = item.date.getTime();
                         const timeDiff = Math.abs(hDate - itemDate);
                         return !(h.puntosObtenidos === item.amount && timeDiff < 60000);
                     });
                     if (filtered.length !== legacyHistory.length) {
-                        batch.update(userRef, { historialPuntos: filtered });
+                        updatePayload.historialPuntos = filtered;
                     }
                 } else if (item.type === 'debit') {
                     const legacyRedemptions = userData.historialCanjes || [];
@@ -182,15 +187,12 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
                         return !(Math.abs(h.puntosCanjeados) === Math.abs(item.amount) && timeDiff < 60000);
                     });
                     if (filtered.length !== legacyRedemptions.length) {
-                        batch.update(userRef, { historialCanjes: filtered });
+                        updatePayload.historialCanjes = filtered;
                     }
                 }
-            }
 
-            batch.update(userRef, {
-                points: increment(adjustment),
-                puntos: increment(adjustment)
-            });
+                batch.update(userRef, updatePayload);
+            }
 
             // --- ESCRITURA GLOBAL PARA ESTADÍSTICAS ---
             const globalTransRef = doc(collection(db, 'transactions'));

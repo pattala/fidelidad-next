@@ -78,16 +78,20 @@ export const ClientActivityPage = () => {
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col h-screen overflow-hidden">
             {/* Header */}
-            <div className="bg-white px-4 pt-6 pb-6 sticky top-0 z-20 shadow-sm border-b border-gray-100">
-                <h1 className="text-2xl font-bold text-gray-800 mb-1">Tu Actividad</h1>
-                <p className="text-gray-400 text-xs font-medium">Historial de puntos y canjes</p>
+            <div className="bg-white px-4 pt-4 pb-2 sticky top-0 z-20 shadow-sm border-b border-gray-100 transition-all">
+                <div className="flex flex-col">
+                    <h1 className="text-2xl font-bold text-gray-800 leading-none">Tu Actividad</h1>
+                    <p className="text-gray-400 text-[10px] font-medium mt-1 uppercase tracking-wider">Historial de puntos y canjes</p>
+                </div>
 
-                {/* Balance Summary Card */}
-                <div className="mt-6 bg-gradient-to-r from-gray-900 to-gray-800 rounded-2xl p-6 text-white shadow-xl shadow-gray-200">
-                    <span className="text-gray-400 text-xs font-bold uppercase tracking-wider block mb-1">Balance Actual</span>
-                    <div className="flex items-baseline gap-1">
-                        <span className="text-4xl font-black">{userBalance}</span>
-                        <span className="text-sm font-medium text-gray-400">pts</span>
+                {/* Balance Summary Card - More Compact */}
+                <div className="mt-4 bg-gradient-to-r from-gray-900 to-gray-800 rounded-2xl p-4 text-white shadow-xl shadow-gray-200">
+                    <div className="flex justify-between items-center">
+                        <span className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">Balance Actual</span>
+                        <div className="flex items-baseline gap-1">
+                            <span className="text-3xl font-black">{userBalance}</span>
+                            <span className="text-xs font-medium text-gray-400">pts</span>
+                        </div>
                     </div>
                 </div>
             </div>

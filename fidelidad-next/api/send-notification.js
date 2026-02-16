@@ -379,64 +379,85 @@ export default async function handler(req, res) {
   if (extraData?.skipInbox === true || extraData?.skipInbox === "true") {
     console.log("[send-notification] Skipping inbox tracking as requested by skipInbox flag.");
   } else {
-  } catch (e) {
-    console.error("resolve destinatarios (tracking) error:", e?.message || e);
-  }
-}
+    try {
+      const dataForDoc = {
+        title: data.title,
+        body: data.body,
+        url: data.url || data.click_action || "/notificaciones",
+        tag: data.tag || null,
+        source: extraData?.source || "simple",
+        campaignId: extraData?.campaignId || null,
+      };
 
-// ====== GUARDAR LOG DE AUDITORÍA ======
-try {
-  const details = destinatarios.map(d => {
-    // Intentar obtener el nombre del destinatario del fetch que hicimos en resolveDestinatarios
-    // Para optimizar, podríamos haber guardado el nombre en resolveDestinatarios, 
-    // pero por ahora buscamos los nombres si no los tenemos
-    return {
-      userId: d.id,
-      userName: d.id === 'unknown' ? 'Dispositivo Desconocido' : 'Socio', // Se resolverá mejor si incluimos el fetch
-      action: 'push_sent',
-      status: 'success',
-      info: d.token ? `Token: ${d.token.substring(0, 8)}...` : 'Sin token'
-    };
-  });
-
-  // Como queremos nombres reales, hacemos una pasada rápida por los IDs únicos
-  const uniqueIds = unique(destinatarios.map(d => d.id)).filter(id => id !== 'unknown');
-  const userNamesMap = {};
-  if (uniqueIds.length > 0) {
-    for (let i = 0; i < uniqueIds.length; i += 10) {
-      const batch = uniqueIds.slice(i, i + 10);
-      const snap = await db.collection("users").where(admin.firestore.FieldPath.documentId(), "in", batch).get();
-      snap.forEach(doc => {
-        const d = doc.data();
-        userNamesMap[doc.id] = d.name || d.nombre || 'Socio';
+      // Colapsar por cliente (primer token)
+      const byClient = new Map();
+      destinatarios.forEach(d => {
+        if (!byClient.has(d.id)) byClient.set(d.id, d.token || null);
       });
+
+      for (const [cid, anyToken] of byClient.entries()) {
+        try {
+          await createInboxSent({ db, clienteId: cid, notifId, dataForDoc, token: anyToken });
+          createdInbox++;
+        } catch (e) {
+          console.error("inbox sent error", { cid, anyToken }, e?.message || e);
+        }
+      }
+    } catch (e) {
+      console.error("resolve destinatarios (tracking) error:", e?.message || e);
     }
   }
 
-  const finalDetails = details.map(det => ({
-    ...det,
-    userName: userNamesMap[det.userId] || det.userName
-  }));
+  // ====== GUARDAR LOG DE AUDITORÍA ======
+  try {
+    const details = destinatarios.map(d => {
+      return {
+        userId: d.id,
+        userName: d.id === 'unknown' ? 'Dispositivo Desconocido' : 'Socio',
+        action: 'push_sent',
+        status: 'success',
+        info: d.token ? `Token: ${d.token.substring(0, 8)}...` : 'Sin token'
+      };
+    });
 
-  await db.collection('audit_logs').add({
-    timestamp: admin.firestore.FieldValue.serverTimestamp(),
-    type: 'push_notification',
-    status: failureCount === 0 ? 'success' : (successCount > 0 ? 'partial' : 'failed'),
-    summary: `Envío: "${title}". Éxito: ${successCount}, Falla: ${failureCount}`,
-    details: finalDetails.slice(0, 500),
-    executor: 'admin'
+    // Como queremos nombres reales, hacemos una pasada rápida por los IDs únicos
+    const uniqueIds = unique(destinatarios.map(d => d.id)).filter(id => id !== 'unknown');
+    const userNamesMap = {};
+    if (uniqueIds.length > 0) {
+      for (let i = 0; i < uniqueIds.length; i += 10) {
+        const batch = uniqueIds.slice(i, i + 10);
+        const snap = await db.collection("users").where(admin.firestore.FieldPath.documentId(), "in", batch).get();
+        snap.forEach(doc => {
+          const d = doc.data();
+          userNamesMap[doc.id] = d.name || d.nombre || 'Socio';
+        });
+      }
+    }
+
+    const finalDetails = details.map(det => ({
+      ...det,
+      userName: userNamesMap[det.userId] || det.userName
+    }));
+
+    await db.collection('audit_logs').add({
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      type: 'push_notification',
+      status: failureCount === 0 ? 'success' : (successCount > 0 ? 'partial' : 'failed'),
+      summary: `Envío: "${title}". Éxito: ${successCount}, Falla: ${failureCount}`,
+      details: finalDetails.slice(0, 500),
+      executor: 'admin'
+    });
+  } catch (logErr) {
+    console.error("Error saving audit log for notification:", logErr);
+  }
+
+  return res.status(200).json({
+    ok: true,
+    notifId,
+    successCount,
+    failureCount,
+    invalidTokens: Array.from(invalidTokens),
+    createdInbox,
+    perToken
   });
-} catch (logErr) {
-  console.error("Error saving audit log for notification:", logErr);
-}
-
-return res.status(200).json({
-  ok: true,
-  notifId,
-  successCount,
-  failureCount,
-  invalidTokens: Array.from(invalidTokens),
-  createdInbox,
-  perToken
-});
 }

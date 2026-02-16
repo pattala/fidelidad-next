@@ -81,7 +81,7 @@ export const ClientActivityPage = () => {
             <div className="bg-white px-4 pt-10 pb-4 sticky top-0 z-20 shadow-sm border-b border-gray-100">
                 <div className="flex flex-col">
                     <h1 className="text-2xl font-black text-gray-800 leading-none tracking-tight">Tu Actividad</h1>
-                    <p className="text-gray-400 text-[10px] font-bold mt-1.5 uppercase tracking-widest pl-0.5">Historial de puntos y canjes</p>
+                    <p className="text-gray-400 text-[10px] font-bold mt-1.5 uppercase tracking-widest pl-0.5">Historial de movimientos y canjes</p>
                 </div>
 
                 {/* Balance Summary Card - More Compact */}

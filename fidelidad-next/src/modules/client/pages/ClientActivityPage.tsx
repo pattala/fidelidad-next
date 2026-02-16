@@ -76,12 +76,12 @@ export const ClientActivityPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col pb-20">
+        <div className="min-h-screen bg-gray-50 flex flex-col pb-24">
             {/* Header */}
-            <div className="bg-white px-4 pt-6 pb-4 sticky top-0 z-20 shadow-sm border-b border-gray-100 transition-all">
+            <div className="bg-white px-4 pt-10 pb-4 sticky top-0 z-20 shadow-sm border-b border-gray-100">
                 <div className="flex flex-col">
-                    <h1 className="text-2xl font-bold text-gray-800 leading-none">Tu Actividad</h1>
-                    <p className="text-gray-400 text-[10px] font-medium mt-1.5 uppercase tracking-wider">Historial de puntos y canjes</p>
+                    <h1 className="text-2xl font-black text-gray-800 leading-none tracking-tight">Tu Actividad</h1>
+                    <p className="text-gray-400 text-[10px] font-bold mt-1.5 uppercase tracking-widest pl-0.5">Historial de puntos y canjes</p>
                 </div>
 
                 {/* Balance Summary Card - More Compact */}

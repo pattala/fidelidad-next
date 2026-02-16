@@ -32,19 +32,19 @@ export const ClientPromosPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-20 font-sans">
+        <div className="min-h-screen bg-gray-50 pb-24 font-sans">
             {/* Header */}
-            <div className="bg-white px-4 pt-4 pb-2 shadow-sm sticky top-0 z-20 transition-all border-b border-gray-50">
+            <div className="bg-white px-4 pt-10 pb-4 shadow-sm sticky top-0 z-20 border-b border-gray-100">
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => navigate(-1)}
-                        className="w-8 h-8 flex items-center justify-center bg-gray-50 rounded-full text-gray-600 active:scale-90 transition"
+                        className="w-9 h-9 flex items-center justify-center bg-gray-50 rounded-full text-gray-600 active:scale-90 transition shadow-inner"
                     >
-                        <ArrowLeft size={18} />
+                        <ArrowLeft size={20} />
                     </button>
                     <div className="flex flex-col">
-                        <h1 className="text-sm font-black uppercase tracking-tight text-[#4a148c] leading-none">Todas las Promos</h1>
-                        <p className="text-[10px] text-gray-400 font-medium mt-0.5">Vigentes ahora</p>
+                        <h1 className="text-lg font-black uppercase tracking-tight text-[#4a148c] leading-none">Todas las Promos</h1>
+                        <p className="text-[10px] text-gray-400 font-bold mt-1 uppercase tracking-widest">Vigentes ahora</p>
                     </div>
                 </div>
             </div>

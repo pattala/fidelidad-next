@@ -155,6 +155,7 @@ export interface AppConfig {
         };
         enableExpirationWarnings?: boolean;
         expirationWarningDays?: number;
+        automaticCheckHour?: number; // 0-23
     };
 
     // Sistema de Referidos

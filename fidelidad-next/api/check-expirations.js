@@ -51,12 +51,24 @@ export default async function handler(req, res) {
         if (!configSnap.exists) return res.status(404).json({ ok: false, error: "Config not found" });
         const config = configSnap.data();
 
-        // 2. Determinar Fecha de Referencia (Soporte para Simulador)
-        // Si el admin envía una fecha en el body, la usamos. Si no, usamos hoy.
+        // 2. Determinar Fecha y Hora de Referencia
         let referenceDate = new Date();
-        if (req.body?.simulatedDate) {
+        const isManual = !!req.body?.simulatedDate;
+
+        if (isManual) {
             referenceDate = new Date(req.body.simulatedDate);
-            console.log(`[Cron] Using SIMULATED date: ${req.body.simulatedDate}`);
+            console.log(`[Cron] Manual execution detected. Using date: ${req.body.simulatedDate}`);
+        } else {
+            // Chequeo de hora automática (Solo si es dispara por el Cron de Vercel)
+            // Asumimos que el usuario configura la hora en UTC-3 (Argentina)
+            const currentUtcHour = referenceDate.getUTCHours();
+            const currentLocalHour = (currentUtcHour - 3 + 24) % 24;
+            const targetHour = config.messaging?.automaticCheckHour ?? 9;
+
+            if (currentLocalHour !== targetHour) {
+                console.log(`[Cron] Hour mismatch (Local: ${currentLocalHour}, Target: ${targetHour}). Skipping.`);
+                return res.status(200).json({ ok: true, message: `Skipped. Current local hour is ${currentLocalHour}, target is ${targetHour}.` });
+            }
         }
 
         const referenceDateStr = referenceDate.toISOString().split('T')[0];
@@ -245,11 +257,11 @@ export default async function handler(req, res) {
         try {
             await db.collection('audit_logs').add({
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                type: req.body?.simulatedDate ? 'manual_expiration' : 'expiration_engine',
+                type: isManual ? 'manual_expiration' : 'expiration_engine',
                 status: logResults.errors.length === 0 ? 'success' : 'partial',
                 summary: `Procesados: ${logResults.processed}, Vencidos: ${logResults.expired} pts, Notificados: ${logResults.notified}`,
-                details: logResults.details.slice(0, 500), // Limitar tamaño para evitar fallos de documento
-                executor: req.body?.simulatedDate ? 'admin' : 'system'
+                details: logResults.details.slice(0, 500),
+                executor: isManual ? 'admin' : 'system'
             });
         } catch (logError) {
             console.error("[Cron] Error saving audit log:", logError);

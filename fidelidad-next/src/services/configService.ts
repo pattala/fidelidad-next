@@ -46,7 +46,8 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
             expirationWarning: { channels: ['push', 'email'] }
         },
         enableExpirationWarnings: false,
-        expirationWarningDays: 7
+        expirationWarningDays: 7,
+        automaticCheckHour: 9
     },
     referrals: {
         enabled: true,

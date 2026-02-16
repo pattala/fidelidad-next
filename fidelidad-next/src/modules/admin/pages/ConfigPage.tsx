@@ -1539,20 +1539,20 @@ export const ConfigPage = () => {
                                         <span className="text-xl">📢</span>
                                         <div>
                                             <h3 className="text-sm font-bold text-gray-800 uppercase tracking-tight">Aviso de Vencimiento de Puntos</h3>
-                                            <p className="text-[10px] text-gray-400">
-                                                Notifica a los socios {
-                                                    <input
-                                                        type="number"
-                                                        min="1" max="30"
-                                                        value={config.messaging?.expirationWarningDays || 7}
-                                                        onChange={e => setConfig({
-                                                            ...config,
-                                                            messaging: { ...config.messaging!, expirationWarningDays: parseInt(e.target.value) || 7 }
-                                                        })}
-                                                        className="w-10 bg-transparent border-b border-gray-300 text-center font-bold focus:border-orange-500 outline-none mx-1 text-orange-600"
-                                                    />
-                                                } días antes de que pierdan sus puntos.
-                                            </p>
+                                            <div className="flex items-center gap-1 text-[10px] text-gray-400">
+                                                <span>Notifica a los socios</span>
+                                                <input
+                                                    type="number"
+                                                    min="1" max="90"
+                                                    value={config.messaging?.expirationWarningDays || 7}
+                                                    onChange={e => setConfig({
+                                                        ...config,
+                                                        messaging: { ...config.messaging!, expirationWarningDays: parseInt(e.target.value) || 7 }
+                                                    })}
+                                                    className="w-10 bg-transparent border-b border-gray-300 text-center font-bold focus:border-orange-500 outline-none text-orange-600"
+                                                />
+                                                <span>días antes de que pierdan sus puntos.</span>
+                                            </div>
                                         </div>
                                     </div>
                                     <button
@@ -1570,10 +1570,23 @@ export const ConfigPage = () => {
                                 <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-100 flex items-start gap-3 mb-6">
                                     <Clock size={16} className="text-amber-600 mt-0.5 shrink-0" />
                                     <div className="flex-1">
-                                        <p className="text-[11px] text-amber-800 leading-tight">
-                                            <strong>Estado del Motor de Vencimientos:</strong> El sistema recorre la base de datos todos los días a las 09:00 AM (UTC) para descontar puntos vencidos.
+                                        <div className="text-[11px] text-amber-800 leading-tight">
+                                            <div className="flex items-center gap-1 mb-1">
+                                                <strong>Estado del Motor de Vencimientos:</strong> El sistema recorre la base de datos todos los días a las
+                                                <input
+                                                    type="number"
+                                                    min="0" max="23"
+                                                    value={config.messaging?.automaticCheckHour || 9}
+                                                    onChange={e => setConfig({
+                                                        ...config,
+                                                        messaging: { ...config.messaging!, automaticCheckHour: parseInt(e.target.value) || 0 }
+                                                    })}
+                                                    className="w-8 bg-transparent border-b border-amber-300 text-center font-bold focus:border-amber-600 outline-none text-amber-900 mx-0.5"
+                                                />
+                                                :00 hs para descontar puntos vencidos.
+                                            </div>
                                             {config.messaging?.enableExpirationWarnings ? ' También enviará los avisos configurados abajo.' : ' Actualmente los avisos automáticos están apagados.'}
-                                        </p>
+                                        </div>
 
                                         {lastAuditLog && (
                                             <div className="mt-2 text-[10px] text-amber-900 font-bold bg-amber-50/80 p-3 rounded-xl border border-amber-200/50 flex flex-col gap-1.5 animate-fade-in shadow-sm">

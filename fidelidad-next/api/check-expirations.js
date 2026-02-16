@@ -137,7 +137,7 @@ export default async function handler(req, res) {
                     logResults.expired += totalExpired;
                     logResults.details.push({
                         userId,
-                        userName: userDoc.data()?.name || 'Socio',
+                        userName: userDoc.data()?.name || userDoc.data()?.nombre || 'Socio',
                         action: 'points_subtracted',
                         status: 'success',
                         info: `${totalExpired} pts vencidos`
@@ -244,7 +244,7 @@ export default async function handler(req, res) {
                     logResults.notified++;
                     logResults.details.push({
                         userId,
-                        userName: userData.name || 'Socio',
+                        userName: userData.name || userData.nombre || 'Socio',
                         action: 'notified_expiration',
                         status: 'success',
                         info: `Aviso enviado (${amount} pts para el ${displayDate})`

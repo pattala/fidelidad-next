@@ -50,11 +50,13 @@ export const SystemLogsPage = () => {
             case 'expiration_engine': return 'Motor de Vencimientos (Auto)';
             case 'manual_expiration': return 'Revisión Manual (Admin)';
             case 'birthday_engine': return 'Proceso de Cumpleaños';
-            default: return type;
+            case 'push_notification': return 'Envío de Notificaciones';
+            default: return type.replace(/_/g, ' ');
         }
     };
 
-    const getStatusIcon = (status: string) => {
+    const getStatusIcon = (status: string, type?: string) => {
+        if (type === 'push_notification') return <MessageCircle size={18} className="text-blue-500" />;
         if (status === 'success') return <CheckCircle size={18} className="text-green-500" />;
         if (status === 'partial') return <AlertTriangle size={18} className="text-amber-500" />;
         return <AlertTriangle size={18} className="text-red-500" />;
@@ -91,7 +93,7 @@ export const SystemLogsPage = () => {
                                     className="p-4 flex items-center gap-4 cursor-pointer"
                                     onClick={() => setExpandedLog(expandedLog === log.id ? null : log.id)}
                                 >
-                                    {getStatusIcon(log.status)}
+                                    {getStatusIcon(log.status, log.type)}
                                     <div className="flex-1">
                                         <div className="flex items-center gap-2">
                                             <span className="font-bold text-gray-700 text-sm">{getTypeLabel(log.type)}</span>

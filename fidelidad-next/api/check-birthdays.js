@@ -165,7 +165,7 @@ export default async function handler(req, res) {
                 logResults.processed++;
                 logResults.details.push({
                     userId,
-                    userName: userData.name || 'Socio',
+                    userName: userData.name || userData.nombre || 'Socio',
                     action: actionsTaken.join(', '),
                     status: 'success',
                     info: pointsAdded > 0 ? `+${pointsAdded} pts` : 'Solo saludo'

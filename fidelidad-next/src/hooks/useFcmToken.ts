@@ -73,6 +73,24 @@ export const useFcmToken = () => {
                 }
             } else {
                 console.warn('[FCM] Notification permission NOT granted. State:', Notification.permission);
+                // Si el permiso es denegado pero teníamos un token en Firestore, avisamos que ya no es válido
+                if (Notification.permission === 'denied') {
+                    const userRef = doc(db, 'users', user.uid);
+                    await setDoc(userRef, {
+                        fcmToken: null,
+                        'permissions.notifications.status': 'denied',
+                        lastFcmUpdate: new Date()
+                    }, { merge: true });
+                }
+            }
+            // Si el permiso es denegado pero teníamos un token en Firestore, avisamos que ya no es válido
+            if (Notification.permission === 'denied') {
+                const userRef = doc(db, 'users', user.uid);
+                await setDoc(userRef, {
+                    fcmToken: null,
+                    'permissions.notifications.status': 'denied',
+                    lastFcmUpdate: new Date()
+                }, { merge: true });
             }
         } catch (e) {
             console.error(`[FCM] Error retrieving FCM token (Attempt ${retryCount}):`, e);

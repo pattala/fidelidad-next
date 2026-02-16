@@ -1,4 +1,6 @@
 // /api/check-expirations.js
+// Motor de vencimientos de puntos con horario de ejecución configurable.
+// Trigger: Vercel Cron (configurado cada hora en vercel.json).
 // Tarea programada (Cron Job) para avisar a los socios con vencimientos próximos.
 
 import admin from "firebase-admin";

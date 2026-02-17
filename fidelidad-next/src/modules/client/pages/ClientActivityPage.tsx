@@ -92,7 +92,7 @@ export const ClientActivityPage = () => {
             </div>
 
             {/* Timeline - Follows the scroll of the main container */}
-            <div className="px-4 pt-4 pb-4 space-y-3">
+            <div className="px-4 pt-8 pb-4 space-y-3">
                 {loading ? (
                     [...Array(3)].map((_, i) => (
                         <div key={i} className="bg-white h-20 rounded-2xl shadow-sm animate-pulse"></div>

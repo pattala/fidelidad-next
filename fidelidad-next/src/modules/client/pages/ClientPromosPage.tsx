@@ -34,7 +34,7 @@ export const ClientPromosPage = () => {
     return (
         <div className="min-h-screen bg-gray-50 font-sans pb-24">
             {/* Header - Fixed header with sticky top */}
-            <div className="bg-white px-4 pt-10 pb-4 shadow-sm border-b border-gray-100 sticky top-0 z-20 transition-all">
+            <div className="bg-white px-4 pt-4 pb-4 shadow-sm border-b border-gray-100 sticky top-0 z-20 transition-all">
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => navigate(-1)}

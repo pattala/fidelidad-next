@@ -97,7 +97,7 @@ export const ClientActivityPage = () => {
             {/* Timeline - Follows the scroll of the main container */}
             <div
                 className="px-4 pb-4 space-y-3"
-                style={{ paddingTop: `var(--pwa-padding-top, ${config.pwaPaddingTop ?? 32}px)` }}
+                style={{ paddingTop: `var(--pwa-padding-top, 12px)` }}
             >
                 {loading ? (
                     [...Array(3)].map((_, i) => (

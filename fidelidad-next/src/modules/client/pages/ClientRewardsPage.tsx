@@ -72,7 +72,7 @@ export const ClientRewardsPage = () => {
             {/* Catalog Grid */}
             <div
                 className="px-4 pb-4 grid grid-cols-2 gap-4"
-                style={{ paddingTop: `var(--pwa-padding-top, ${config.pwaPaddingTop ?? 8}px)` }}
+                style={{ paddingTop: `var(--pwa-padding-top, 12px)` }}
             >
                 {loading ? (
                     [...Array(4)].map((_, i) => (

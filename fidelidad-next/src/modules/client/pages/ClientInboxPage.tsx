@@ -120,7 +120,7 @@ export const ClientInboxPage = () => {
             {/* List */}
             <div
                 className="p-4 space-y-3"
-                style={{ paddingTop: `var(--pwa-padding-top, ${config.pwaPaddingTop ?? 32}px)` }}
+                style={{ paddingTop: `var(--pwa-padding-top, 12px)` }}
             >
                 {loading ? (
                     [...Array(3)].map((_, i) => (

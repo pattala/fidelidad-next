@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Settings2, MoveVertical } from 'lucide-react';
 
-export const ClientPaddingTool = ({ initialValue = 32 }: { initialValue?: number }) => {
+export const ClientPaddingTool = ({ initialValue = 12 }: { initialValue?: number }) => {
     const [padding, setPadding] = useState(initialValue);
     const [isOpen, setIsOpen] = useState(false);
 

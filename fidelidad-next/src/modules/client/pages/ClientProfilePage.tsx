@@ -158,7 +158,7 @@ export const ClientProfilePage = () => {
     return (
         <div
             className="min-h-screen bg-gray-50 pb-24 relative"
-            style={{ paddingTop: `var(--pwa-padding-top, ${config.pwaPaddingTop || 0}px)` }}
+            style={{ paddingTop: `var(--pwa-padding-top, 12px)` }}
         >
 
             {/* Header / Cover */}

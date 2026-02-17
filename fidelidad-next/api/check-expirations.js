@@ -74,33 +74,17 @@ export default async function handler(req, res) {
         if (isManual) {
             referenceDate = new Date(req.body.simulatedDate);
             console.log(`[Cron] Manual execution detected. Using date: ${req.body.simulatedDate}`);
-        } else {
-            // Chequeo de hora automática (Solo si es dispara por el Cron de Vercel)
-            // Asumimos que el usuario configura la hora en UTC-3 (Argentina)
-            const currentUtcHour = referenceDate.getUTCHours();
-            const currentLocalHour = (currentUtcHour - 3 + 24) % 24;
-            const targetHour = config.messaging?.automaticCheckHour ?? 9;
-
-            if (currentLocalHour !== targetHour) {
-                console.log(`[Cron] Hour mismatch (Local: ${currentLocalHour}, Target: ${targetHour}). Skipping.`);
-
-                // LOG DE SALTO (Audit log para visibilidad)
-                try {
-                    await db.collection('audit_logs').add({
-                        timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                        type: 'expiration_engine',
-                        status: 'skipped',
-                        summary: `Proceso saltado (Hora local: ${currentLocalHour}, Objetivo: ${targetHour})`,
-                        details: [],
-                        executor: 'system'
-                    });
-                } catch (e) {
-                    console.error("[Cron] Error logging skip:", e);
-                }
-
-                return res.status(200).json({ ok: true, message: `Skipped. Current local hour is ${currentLocalHour}, target is ${targetHour}.` });
-            }
         }
+
+        // LOG DE INICIO (SIEMPRE se registra para ver que Vercel llamó al endpoint)
+        await db.collection('audit_logs').add({
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            type: isManual ? 'manual_expiration' : 'expiration_engine',
+            status: 'running',
+            summary: `Iniciando proceso de vencimientos (${isManual ? 'Manual' : 'Automático'}).`,
+            details: [],
+            executor: isManual ? 'admin' : 'system'
+        });
 
         const referenceDateStr = referenceDate.toISOString().split('T')[0];
         const startOfToday = new Date(referenceDate);

@@ -410,17 +410,7 @@ export default async function handler(req, res) {
 
   // ====== GUARDAR LOG DE AUDITORÍA ======
   try {
-    const details = destinatarios.map(d => {
-      return {
-        userId: d.id,
-        userName: d.id === 'unknown' ? 'Dispositivo Desconocido' : 'Socio',
-        action: 'push_sent',
-        status: 'success',
-        info: d.token ? `Token: ${d.token.substring(0, 8)}...` : 'Sin token'
-      };
-    });
-
-    // Como queremos nombres reales, hacemos una pasada rápida por los IDs únicos
+    // 1. Obtener nombres reales (opcional pero recomendado)
     const uniqueIds = unique(destinatarios.map(d => d.id)).filter(id => id !== 'unknown');
     const userNamesMap = {};
     if (uniqueIds.length > 0) {
@@ -434,10 +424,37 @@ export default async function handler(req, res) {
       }
     }
 
-    const finalDetails = details.map(det => ({
-      ...det,
-      userName: userNamesMap[det.userId] || det.userName
-    }));
+    // 2. Construir detalles basados en la realidad del envío
+    // perToken tiene: { token, success, errorCode, errorMessage }
+    // Mapeamos tokens a destinatarios para saber a quién pertenece cada resultado
+    const details = [];
+
+    // Caso A: Si hubo tokens enviados (Transporte FCM)
+    if (perToken.length > 0) {
+      perToken.forEach(pt => {
+        const dest = destinatarios.find(d => d.token === pt.token);
+        const userId = dest ? dest.id : 'unknown';
+        details.push({
+          userId,
+          userName: userNamesMap[userId] || (userId === 'unknown' ? 'Dispositivo Desconocido' : 'Socio'),
+          action: pt.success ? 'push_sent' : 'push_failed',
+          status: pt.success ? 'success' : 'failed',
+          info: (pt.success ? 'Token: ' : 'Error: ') + (pt.token ? pt.token.substring(0, 8) + '...' : 'N/A') + (pt.errorCode ? ` (${pt.errorCode})` : '')
+        });
+      });
+    }
+
+    // Caso B: Si hay destinatarios sin token (Se intentó Inbox solamente)
+    const sinToken = destinatarios.filter(d => !d.token);
+    sinToken.forEach(st => {
+      details.push({
+        userId: st.id,
+        userName: userNamesMap[st.id] || 'Socio',
+        action: 'inbox_created',
+        status: 'success',
+        info: 'Sin token FCM registrado'
+      });
+    });
 
     let finalSummary = `Envío: "${title}". Éxito: ${successCount}, Falla: ${failureCount}`;
     if (sendTokens.length === 0) {
@@ -451,7 +468,7 @@ export default async function handler(req, res) {
       type: 'push_notification',
       status: (sendTokens.length > 0 && failureCount === 0) ? 'success' : (successCount > 0 ? 'partial' : (sendTokens.length === 0 ? 'success' : 'failed')),
       summary: finalSummary,
-      details: finalDetails.slice(0, 500),
+      details: details.slice(0, 500),
       executor: 'admin'
     });
   } catch (logErr) {

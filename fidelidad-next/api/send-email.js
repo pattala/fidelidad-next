@@ -1,6 +1,6 @@
 // /api/send-email.js (ESM) — Email con plantillas unificadas, CORS, auth y Nodemailer (Gmail)
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 import nodemailer from 'nodemailer';
 import { resolveTemplate, applyBlocksAndVars } from '../utils/templates.js';
@@ -250,7 +250,7 @@ export default async function handler(req, res) {
       }
 
       await db.collection('audit_logs').add({
-        timestamp: admin.firestore.FieldValue ? admin.firestore.FieldValue.serverTimestamp() : new Date(),
+        timestamp: FieldValue.serverTimestamp(),
         type: 'email_notification',
         status: 'success',
         summary: `Email enviado a ${userName} (${to}): "${subject}"`,

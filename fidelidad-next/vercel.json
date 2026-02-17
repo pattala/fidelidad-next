@@ -32,6 +32,10 @@
         {
             "path": "/api/check-expirations",
             "schedule": "0 12 * * *"
+        },
+        {
+            "path": "/api/check-birthdays",
+            "schedule": "0 12 * * *"
         }
     ]
 }

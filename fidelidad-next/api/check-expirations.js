@@ -47,10 +47,24 @@ export default async function handler(req, res) {
     const app = initFirebaseAdmin();
     const db = app.firestore();
 
+    // 0. PING LOG (Confirmación de que el motor arrancó)
+    console.log("[Cron] Engine started.");
+
     try {
         // 1. Obtener Configuración
         const configSnap = await db.collection('config').doc('general').get();
-        if (!configSnap.exists) return res.status(404).json({ ok: false, error: "Config not found" });
+        if (!configSnap.exists) {
+            console.error("[Cron] Config not found (general)");
+            await db.collection('audit_logs').add({
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                type: 'expiration_engine',
+                status: 'error',
+                summary: "Error fatal: No se encontró el documento de configuración 'general'.",
+                details: [],
+                executor: 'system'
+            });
+            return res.status(404).json({ ok: false, error: "Config not found" });
+        }
         const config = configSnap.data();
 
         // 2. Determinar Fecha y Hora de Referencia
@@ -295,6 +309,20 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error("[Cron Expirations] Fatal Error:", error);
+        // LOG DE ERROR FATAL (Para que aparezca en la auditoría si algo explota)
+        try {
+            const db = admin.firestore();
+            await db.collection('audit_logs').add({
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                type: 'expiration_engine',
+                status: 'error',
+                summary: `Error fatal en el motor: ${error.message}`,
+                details: [{ action: 'fatal_error', status: 'failed', info: error.stack?.slice(0, 200) }],
+                executor: 'system'
+            });
+        } catch (inner) {
+            console.error("[Cron] Could not even log the fatal error:", inner);
+        }
         return res.status(500).json({ ok: false, error: error.message });
     }
 }

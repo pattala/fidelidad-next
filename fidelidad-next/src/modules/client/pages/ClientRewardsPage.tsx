@@ -67,7 +67,7 @@ export const ClientRewardsPage = () => {
             </div>
 
             {/* Catalog Grid */}
-            <div className="pt-8 px-4 pb-4 grid grid-cols-2 gap-4">
+            <div className="pt-2 px-4 pb-4 grid grid-cols-2 gap-4">
                 {loading ? (
                     [...Array(4)].map((_, i) => (
                         <div key={i} className="bg-white h-60 rounded-3xl shadow-sm animate-pulse"></div>

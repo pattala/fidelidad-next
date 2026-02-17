@@ -50,7 +50,7 @@ export const ClientPromosPage = () => {
             </div>
 
             {/* List - Follows scroll */}
-            <div className="px-4 pt-8 pb-4 space-y-3">
+            <div className="px-4 pt-2 pb-4 space-y-3">
                 {loading ? (
                     <div className="space-y-4 animate-pulse">
                         <div className="h-32 bg-gray-200 rounded-2xl w-full"></div>

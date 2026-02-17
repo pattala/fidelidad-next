@@ -34,23 +34,23 @@ export const ClientPromosPage = () => {
     return (
         <div className="min-h-screen bg-gray-50 font-sans pb-28">
             {/* Header - Fixed header with sticky top */}
-            <div className="bg-white px-4 pt-3 pb-3 shadow-sm border-b border-gray-100 sticky top-0 z-20 transition-all">
-                <div className="flex items-center gap-3">
+            <div className="bg-white px-4 pt-2 pb-2 shadow-sm border-b border-gray-100 sticky top-0 z-20 transition-all">
+                <div className="flex items-center gap-2">
                     <button
                         onClick={() => navigate(-1)}
-                        className="w-9 h-9 flex items-center justify-center bg-gray-50 rounded-full text-gray-600 active:scale-90 transition shadow-inner"
+                        className="w-8 h-8 flex items-center justify-center bg-gray-50 rounded-full text-gray-600 active:scale-90 transition shadow-inner"
                     >
-                        <ArrowLeft size={20} />
+                        <ArrowLeft size={18} />
                     </button>
                     <div className="flex flex-col">
-                        <h1 className="text-lg font-black uppercase tracking-tight text-[#4a148c] leading-none">Todas las Promos</h1>
-                        <p className="text-[10px] text-gray-400 font-bold mt-1 uppercase tracking-widest">Vigentes ahora</p>
+                        <h1 className="text-[17px] font-black uppercase tracking-tight text-[#4a148c] leading-none">Todas las Promos</h1>
+                        <p className="text-[9px] text-gray-400 font-bold mt-0.5 uppercase tracking-widest">Vigentes ahora</p>
                     </div>
                 </div>
             </div>
 
             {/* List - Follows scroll */}
-            <div className="px-4 pt-2 pb-4 space-y-4">
+            <div className="px-4 pt-1 pb-4 space-y-3">
                 {loading ? (
                     <div className="space-y-4 animate-pulse">
                         <div className="h-32 bg-gray-200 rounded-2xl w-full"></div>

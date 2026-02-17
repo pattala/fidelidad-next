@@ -78,14 +78,14 @@ export const ClientActivityPage = () => {
     return (
         <div className="min-h-screen bg-gray-50 pb-28">
             {/* Header - Fixed header with sticky top */}
-            <div className="bg-white px-4 pt-3 pb-3 sticky top-0 z-20 shadow-sm border-b border-gray-100 transition-all">
+            <div className="bg-white px-4 pt-2 pb-2 sticky top-0 z-20 shadow-sm border-b border-gray-100 transition-all">
                 <div className="flex flex-col">
-                    <h1 className="text-2xl font-black text-gray-800 leading-none tracking-tight">Tu Actividad</h1>
-                    <p className="text-gray-400 text-[10px] font-bold mt-1.5 uppercase tracking-widest pl-0.5">Historial de movimientos y canjes</p>
+                    <h1 className="text-xl font-black text-gray-800 leading-none tracking-tight">Tu Actividad</h1>
+                    <p className="text-gray-400 text-[9px] font-bold mt-0.5 uppercase tracking-widest pl-0.5">Historial de movimientos y canjes</p>
                 </div>
 
                 {/* Balance Summary Card - More Compact */}
-                <div className="mt-4 bg-gradient-to-r from-gray-900 to-gray-800 rounded-2xl p-4 text-white shadow-xl shadow-gray-200">
+                <div className="mt-2 bg-gradient-to-r from-gray-900 to-gray-800 rounded-xl p-3 text-white shadow-xl shadow-gray-200">
                     <div className="flex justify-between items-center">
                         <span className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">Balance Actual</span>
                         <div className="flex items-baseline gap-1">
@@ -97,7 +97,7 @@ export const ClientActivityPage = () => {
             </div>
 
             {/* Timeline - Follows the scroll of the main container */}
-            <div className="px-4 pt-2 pb-4 space-y-4">
+            <div className="px-4 pt-1 pb-4 space-y-3">
                 {loading ? (
                     [...Array(3)].map((_, i) => (
                         <div key={i} className="bg-white h-20 rounded-2xl shadow-sm animate-pulse"></div>

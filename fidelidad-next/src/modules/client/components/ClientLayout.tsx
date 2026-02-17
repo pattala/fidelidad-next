@@ -137,7 +137,7 @@ export const ClientLayout = () => {
             {/* 1) Header / Top Bar (Fixed) */}
             {/* 1) Header / Top Bar (Fixed) */}
             <header
-                className="px-4 py-5 flex-none z-20 flex items-center justify-between text-white shadow-xl transition-all duration-500"
+                className="px-4 py-3 flex-none z-20 flex items-center justify-between text-white shadow-xl transition-all duration-500"
                 style={{ background: `linear-gradient(to right, ${config.primaryColor || '#4a148c'}, ${config.secondaryColor || '#880e4f'})` }}
             >
                 <div className="flex items-center gap-1">

@@ -957,6 +957,29 @@ export const ConfigPage = () => {
                                     <p className="text-xs text-gray-400 mt-2">Recomendado: PNG transparente de 200x200px</p>
                                 </div>
 
+                                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <label className="block text-sm font-bold text-gray-700">Espaciado Superior PWA (Padding)</label>
+                                        <span className="text-xs font-black bg-white px-2 py-1 rounded-md border border-gray-200">{config.pwaPaddingTop || 0}px</span>
+                                    </div>
+                                    <p className="text-[10px] text-gray-500 mb-4 font-medium italic">
+                                        Si el contenido queda tapado por el cabezal fijo, aumenta este valor.
+                                    </p>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="120"
+                                        step="4"
+                                        value={config.pwaPaddingTop || 0}
+                                        onChange={e => setConfig({ ...config, pwaPaddingTop: parseInt(e.target.value) })}
+                                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                                    />
+                                    <div className="flex justify-between mt-1 px-1">
+                                        <span className="text-[8px] text-gray-400 font-bold uppercase tracking-tighter">Mínimo (0)</span>
+                                        <span className="text-[8px] text-gray-400 font-bold uppercase tracking-tighter">Máximo (120)</span>
+                                    </div>
+                                </div>
+
                                 {/* SECTION: Contact & Social */}
                                 <div className="pt-6 border-t border-gray-100 space-y-4">
                                     <h4 className="font-bold text-gray-800 flex items-center gap-2">
@@ -1095,7 +1118,13 @@ export const ConfigPage = () => {
                                 </div>
 
                                 {/* Hero Mock */}
-                                <div className="p-6 m-4 rounded-2xl text-white shadow-lg text-center transition-colors duration-500" style={{ backgroundColor: config.secondaryColor }}>
+                                <div
+                                    className="p-6 m-4 rounded-2xl text-white shadow-lg text-center transition-all duration-500"
+                                    style={{
+                                        backgroundColor: config.secondaryColor,
+                                        marginTop: `${(config.pwaPaddingTop || 0) + 16}px`
+                                    }}
+                                >
                                     <p className="text-sm opacity-80 mb-1">Tu Saldo</p>
                                     <p className="text-4xl font-black tracking-tight">1.250</p>
                                     <span className="text-xs uppercase tracking-widest opacity-70">Puntos Disponibles</span>

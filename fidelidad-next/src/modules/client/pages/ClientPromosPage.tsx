@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { CampaignService, type BonusRule } from '../../../services/campaignService';
 import { Calendar, ArrowLeft, Tag, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
+import type { AppConfig } from '../../../types';
 
 export const ClientPromosPage = () => {
+    const { config } = useOutletContext<{ config: AppConfig }>();
     const [campaigns, setCampaigns] = useState<BonusRule[]>([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
@@ -50,7 +52,10 @@ export const ClientPromosPage = () => {
             </div>
 
             {/* List - Follows scroll */}
-            <div className="px-4 pt-8 pb-4 space-y-3">
+            <div
+                className="px-4 pb-4 space-y-3"
+                style={{ paddingTop: `var(--pwa-padding-top, ${config.pwaPaddingTop ?? 32}px)` }}
+            >
                 {loading ? (
                     <div className="space-y-4 animate-pulse">
                         <div className="h-32 bg-gray-200 rounded-2xl w-full"></div>

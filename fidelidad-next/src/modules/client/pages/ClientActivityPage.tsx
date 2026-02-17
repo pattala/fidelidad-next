@@ -3,8 +3,11 @@ import { db, auth } from '../../../lib/firebase';
 import { collection, query, orderBy, getDocs, doc, getDoc, deleteDoc } from 'firebase/firestore';
 import { ArrowDownLeft, ArrowUpRight, Calendar, History, Clock } from 'lucide-react';
 import { ModernConfirmModal } from '../components/ModernConfirmModal';
+import { useOutletContext } from 'react-router-dom';
+import type { AppConfig } from '../../../types';
 
 export const ClientActivityPage = () => {
+    const { config } = useOutletContext<{ config: AppConfig }>();
     const [history, setHistory] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [userBalance, setUserBalance] = useState(0);
@@ -92,7 +95,10 @@ export const ClientActivityPage = () => {
             </div>
 
             {/* Timeline - Follows the scroll of the main container */}
-            <div className="px-4 pt-8 pb-4 space-y-3">
+            <div
+                className="px-4 pb-4 space-y-3"
+                style={{ paddingTop: `var(--pwa-padding-top, ${config.pwaPaddingTop ?? 32}px)` }}
+            >
                 {loading ? (
                     [...Array(3)].map((_, i) => (
                         <div key={i} className="bg-white h-20 rounded-2xl shadow-sm animate-pulse"></div>

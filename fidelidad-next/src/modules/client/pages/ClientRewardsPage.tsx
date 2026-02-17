@@ -2,9 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { db, auth } from '../../../lib/firebase';
 import { collection, query, where, getDocs, doc, onSnapshot } from 'firebase/firestore';
 import { Gift, Lock, CheckCircle, Search, Filter } from 'lucide-react';
+import { useOutletContext } from 'react-router-dom';
+import type { AppConfig } from '../../../types';
 
 
 export const ClientRewardsPage = () => {
+    const { config } = useOutletContext<{ config: AppConfig }>();
     const [prizes, setPrizes] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [userPoints, setUserPoints] = useState(0);
@@ -67,7 +70,10 @@ export const ClientRewardsPage = () => {
             </div>
 
             {/* Catalog Grid */}
-            <div className="pt-2 px-4 pb-4 grid grid-cols-2 gap-4">
+            <div
+                className="px-4 pb-4 grid grid-cols-2 gap-4"
+                style={{ paddingTop: `var(--pwa-padding-top, ${config.pwaPaddingTop ?? 8}px)` }}
+            >
                 {loading ? (
                     [...Array(4)].map((_, i) => (
                         <div key={i} className="bg-white h-60 rounded-3xl shadow-sm animate-pulse"></div>

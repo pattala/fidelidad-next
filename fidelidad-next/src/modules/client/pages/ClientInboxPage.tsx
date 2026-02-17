@@ -2,10 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { collection, query, orderBy, onSnapshot, doc, updateDoc, writeBatch, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../../../lib/firebase';
 import { Bell, Trash2, MailOpen, ChevronLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ModernConfirmModal } from '../components/ModernConfirmModal';
+import type { AppConfig } from '../../../types';
 
 interface InboxMessage {
     id: string;
@@ -18,6 +19,7 @@ interface InboxMessage {
 }
 
 export const ClientInboxPage = () => {
+    const { config } = useOutletContext<{ config: AppConfig }>();
     const [messages, setMessages] = useState<InboxMessage[]>([]);
     const [loading, setLoading] = useState(true);
     const [msgToDelete, setMsgToDelete] = useState<string | null>(null);
@@ -94,9 +96,9 @@ export const ClientInboxPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col h-screen overflow-hidden animate-fade-in">
-            {/* Header - Fixed Height */}
-            <div className="bg-white px-4 py-4 z-20 shadow-sm border-b border-gray-100 flex items-center justify-between shrink-0">
+        <div className="min-h-screen bg-gray-50 pb-28 animate-fade-in">
+            {/* Header - Sticky Header */}
+            <div className="bg-white px-4 py-4 sticky top-0 z-20 shadow-sm border-b border-gray-100 flex items-center justify-between transition-all">
                 <div className="flex items-center gap-3">
                     <button onClick={() => navigate(-1)} className="text-gray-500 hover:text-gray-800 p-1">
                         <ChevronLeft size={24} />
@@ -115,8 +117,11 @@ export const ClientInboxPage = () => {
                 )}
             </div>
 
-            {/* List - Scrollable Area */}
-            <div className="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-3 pb-24">
+            {/* List */}
+            <div
+                className="p-4 space-y-3"
+                style={{ paddingTop: `var(--pwa-padding-top, ${config.pwaPaddingTop ?? 32}px)` }}
+            >
                 {loading ? (
                     [...Array(3)].map((_, i) => (
                         <div key={i} className="bg-white h-24 rounded-2xl shadow-sm animate-pulse"></div>

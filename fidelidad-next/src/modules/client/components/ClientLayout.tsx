@@ -6,6 +6,7 @@ import { doc, onSnapshot, collection, query, where, addDoc } from 'firebase/fire
 import { db, auth } from '../../../lib/firebase';
 import { useFcmToken } from '../../../hooks/useFcmToken'; // Import Hook
 import { signOut } from 'firebase/auth'; // Added for Logout
+import { ClientPaddingTool } from './ClientPaddingTool';
 
 export const ClientLayout = () => {
     const [isContactOpen, setIsContactOpen] = useState(false);
@@ -186,6 +187,8 @@ export const ClientLayout = () => {
                 <div className="animate-fade-in">
                     <Outlet context={{ config }} />
                 </div>
+                {/* TOOL: Herramienta de ajuste de padding (Visible mientras buscamos valores finales) */}
+                <ClientPaddingTool initialValue={config.pwaPaddingTop || 32} />
             </main>
 
             {/* 3) Bottom Navigation (Fixed) */}

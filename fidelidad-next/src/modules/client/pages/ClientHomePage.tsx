@@ -223,7 +223,10 @@ export const ClientHomePage = () => {
     };
 
     return (
-        <div className="relative font-sans text-gray-800 px-4 pt-6 space-y-6">
+        <div
+            className="relative font-sans text-gray-800 px-4 pb-6 space-y-6"
+            style={{ paddingTop: `var(--pwa-padding-top, ${config.pwaPaddingTop ?? 24}px)` }}
+        >
             <NotificationPermissionPrompt
                 user={user}
                 userData={userData}

@@ -156,7 +156,10 @@ export const ClientProfilePage = () => {
     const qrValue = userData.socioNumber || userData.dni || userAuth?.uid || 'no-id';
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-24 relative">
+        <div
+            className="min-h-screen bg-gray-50 pb-24 relative"
+            style={{ paddingTop: `var(--pwa-padding-top, ${config.pwaPaddingTop || 0}px)` }}
+        >
 
             {/* Header / Cover */}
             <div className="bg-gradient-to-br from-indigo-600 to-purple-700 h-48 relative rounded-b-[3rem] shadow-lg">

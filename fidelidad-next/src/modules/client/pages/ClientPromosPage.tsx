@@ -1,30 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { db, auth } from '../../../lib/firebase';
 import { CampaignService, type BonusRule } from '../../../services/campaignService';
 import { Calendar, ArrowLeft, Tag, Clock } from 'lucide-react';
-import { doc, getDoc } from 'firebase/firestore';
 import toast from 'react-hot-toast';
 
 export const ClientPromosPage = () => {
     const [campaigns, setCampaigns] = useState<BonusRule[]>([]);
     const [loading, setLoading] = useState(true);
-    const [userPoints, setUserPoints] = useState(0);
     const navigate = useNavigate();
 
     useEffect(() => {
         const loadPromos = async () => {
             try {
-                // 0. Fetch Points
-                const user = auth.currentUser;
-                if (user) {
-                    const userDoc = await getDoc(doc(db, 'users', user.uid));
-                    if (userDoc.exists()) {
-                        setUserPoints(userDoc.data().points || 0);
-                    }
-                }
-
-                // 1. Fetch ALL active campaigns in date range
+                // Fetch ALL active campaigns in date range
                 const data = await CampaignService.getActiveCampaignsInDateRange();
                 setCampaigns(data);
             } catch (error) {
@@ -44,25 +32,19 @@ export const ClientPromosPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-transparent font-sans pb-28">
+        <div className="min-h-screen bg-gray-50 font-sans pb-28">
             {/* Header - Fixed header with sticky top */}
-            <div className="bg-white px-4 pt-4 pb-2 sticky top-0 z-20 shadow-sm border-b border-gray-100 transition-all">
-                <div className="flex justify-between items-end mb-4">
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={() => navigate(-1)}
-                            className="p-1 -ml-1 text-gray-400 hover:text-gray-600 active:scale-90 transition"
-                        >
-                            <ArrowLeft size={20} />
-                        </button>
-                        <div className="flex flex-col">
-                            <h1 className="text-2xl font-bold text-gray-800 leading-none">Promociones</h1>
-                            <p className="text-[10px] text-gray-400 font-medium mt-1 uppercase tracking-wider">Vigentes ahora</p>
-                        </div>
-                    </div>
-                    <div className="bg-purple-100 px-3 py-1 rounded-full flex items-center gap-1 shadow-sm border border-purple-200/50">
-                        <span className="text-[10px] font-bold text-purple-600 uppercase tracking-tight">Puntos:</span>
-                        <span className="text-sm font-black text-purple-700">{userPoints}</span>
+            <div className="bg-white px-4 pt-2 pb-2 shadow-sm border-b border-gray-100 sticky top-0 z-20 transition-all">
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => navigate(-1)}
+                        className="w-8 h-8 flex items-center justify-center bg-gray-50 rounded-full text-gray-600 active:scale-90 transition shadow-inner"
+                    >
+                        <ArrowLeft size={18} />
+                    </button>
+                    <div className="flex flex-col">
+                        <h1 className="text-[17px] font-black uppercase tracking-tight text-[#4a148c] leading-none">Todas las Promos</h1>
+                        <p className="text-[9px] text-gray-400 font-bold mt-0.5 uppercase tracking-widest">Vigentes ahora</p>
                     </div>
                 </div>
             </div>

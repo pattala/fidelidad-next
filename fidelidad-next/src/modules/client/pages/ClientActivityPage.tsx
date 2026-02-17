@@ -76,7 +76,7 @@ export const ClientActivityPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-transparent pb-28">
+        <div className="min-h-screen bg-gray-50 pb-28">
             {/* Header - Fixed header with sticky top */}
             <div className="bg-white px-4 pt-4 pb-2 sticky top-0 z-20 shadow-sm border-b border-gray-100 transition-all">
                 <div className="flex justify-between items-end mb-4">
@@ -91,21 +91,8 @@ export const ClientActivityPage = () => {
                 </div>
             </div>
 
-            {/* Scrollable area starts here */}
-            <div className="px-4 pt-4 pb-4 space-y-4">
-                {/* Balance Summary Card - Now inside scrollable area */}
-                <div className="bg-gradient-to-r from-gray-900 to-gray-800 rounded-2xl p-4 text-white shadow-xl shadow-gray-200">
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-1">Tu Balance</p>
-                            <h2 className="text-xl font-black text-white/90">Puntos Disponibles</h2>
-                        </div>
-                        <div className="flex items-baseline gap-1">
-                            <span className="text-4xl font-black">{userBalance}</span>
-                            <span className="text-sm font-medium text-gray-400">pts</span>
-                        </div>
-                    </div>
-                </div>
+            {/* Timeline - Follows the scroll of the main container */}
+            <div className="px-4 pt-4 pb-4 space-y-3">
                 {loading ? (
                     [...Array(3)].map((_, i) => (
                         <div key={i} className="bg-white h-20 rounded-2xl shadow-sm animate-pulse"></div>

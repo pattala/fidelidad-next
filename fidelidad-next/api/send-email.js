@@ -230,6 +230,46 @@ export default async function handler(req, res) {
     });
 
     console.log('[send-email] Nodemailer success:', info.messageId);
+
+    // 5) AUDIT LOG
+    try {
+      // Intentar buscar al usuario por email para el log de auditoría
+      let userName = 'Socio';
+      let userId = 'unknown';
+      try {
+        const userQuery = await db.collection('users').where('email', '==', to).limit(1).get();
+        if (!userQuery.empty) {
+          const userDoc = userQuery.docs[0];
+          userId = userDoc.id;
+          userName = userDoc.data()?.name || userDoc.data()?.nombre || 'Socio';
+        } else if (templateData?.nombre) {
+          userName = templateData.nombre;
+        }
+      } catch (searchErr) {
+        console.warn('[send-email] Error searching user for audit:', searchErr.message);
+      }
+
+      await db.collection('audit_logs').add({
+        timestamp: admin.firestore.FieldValue ? admin.firestore.FieldValue.serverTimestamp() : new Date(),
+        type: 'email_notification',
+        status: 'success',
+        summary: `Email enviado a ${userName} (${to}): "${subject}"`,
+        details: [{
+          userId,
+          userName,
+          to,
+          subject,
+          messageId: info.messageId,
+          action: 'email_sent',
+          status: 'success',
+          timestamp: new Date().toISOString()
+        }],
+        executor: 'system'
+      });
+    } catch (logErr) {
+      console.error('[send-email] Error saving audit log:', logErr);
+    }
+
     return res.status(200).json({ ok: true, sent: true, to, subject, messageId: info.messageId });
 
   } catch (error) {

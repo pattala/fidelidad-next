@@ -69,6 +69,21 @@ export default async function handler(req, res) {
 
             if (currentLocalHour !== targetHour) {
                 console.log(`[Cron] Hour mismatch (Local: ${currentLocalHour}, Target: ${targetHour}). Skipping.`);
+
+                // LOG DE SALTO (Audit log para visibilidad)
+                try {
+                    await db.collection('audit_logs').add({
+                        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                        type: 'expiration_engine',
+                        status: 'skipped',
+                        summary: `Proceso saltado (Hora local: ${currentLocalHour}, Objetivo: ${targetHour})`,
+                        details: [],
+                        executor: 'system'
+                    });
+                } catch (e) {
+                    console.error("[Cron] Error logging skip:", e);
+                }
+
                 return res.status(200).json({ ok: true, message: `Skipped. Current local hour is ${currentLocalHour}, target is ${targetHour}.` });
             }
         }
@@ -255,18 +270,21 @@ export default async function handler(req, res) {
             }
         }
 
-        // --- PASO C: GUARDAR LOG DE AUDITORÍA ---
+
+        // PASO C: GUARDAR LOG DE AUDITORÍA (Mover antes del return)
         try {
             await db.collection('audit_logs').add({
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
                 type: isManual ? 'manual_expiration' : 'expiration_engine',
                 status: logResults.errors.length === 0 ? 'success' : 'partial',
-                summary: `Procesados: ${logResults.processed}, Vencidos: ${logResults.expired} pts, Notificados: ${logResults.notified}`,
+                summary: logResults.processed === 0 && logResults.expired === 0 && logResults.notified === 0
+                    ? "Motor de vencimientos ejecutado. No hay puntos por expirar o avisos para hoy."
+                    : `Procesados: ${logResults.processed}, Vencidos: ${logResults.expired} pts, Notificados: ${logResults.notified}`,
                 details: logResults.details.slice(0, 500),
                 executor: isManual ? 'admin' : 'system'
             });
         } catch (logError) {
-            console.error("[Cron] Error saving audit log:", logError);
+            console.error("[Cron] Error saving final audit log:", logError);
         }
 
         return res.status(200).json({

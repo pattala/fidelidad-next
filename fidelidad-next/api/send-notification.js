@@ -439,11 +439,18 @@ export default async function handler(req, res) {
       userName: userNamesMap[det.userId] || det.userName
     }));
 
+    let finalSummary = `Envío: "${title}". Éxito: ${successCount}, Falla: ${failureCount}`;
+    if (sendTokens.length === 0) {
+      finalSummary = `Ejecutado (Sin Push): No se encontraron tokens FCM. Se crearon ${createdInbox} notificaciones en Inbox.`;
+    } else if (createdInbox > 0) {
+      finalSummary += `. Notificaciones en Inbox: ${createdInbox}`;
+    }
+
     await db.collection('audit_logs').add({
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
       type: 'push_notification',
-      status: failureCount === 0 ? 'success' : (successCount > 0 ? 'partial' : 'failed'),
-      summary: `Envío: "${title}". Éxito: ${successCount}, Falla: ${failureCount}`,
+      status: (sendTokens.length > 0 && failureCount === 0) ? 'success' : (successCount > 0 ? 'partial' : (sendTokens.length === 0 ? 'success' : 'failed')),
+      summary: finalSummary,
       details: finalDetails.slice(0, 500),
       executor: 'admin'
     });

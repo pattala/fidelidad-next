@@ -67,9 +67,24 @@ export const RedemptionModal = ({ client, onClose, onRedeemSuccess }: Redemption
                 const phone = client.phone?.replace(/\D/g, '');
                 if (phone && data.unifiedMsg) {
                     const waUrl = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(data.unifiedMsg.trim())}`;
-                    // We don't auto-open here to avoid blocking, the user can do it or we can add a button
-                    // But to match the previous behavior of "assignment", we can open it.
                     setTimeout(() => window.open(waUrl, '_blank'), 500);
+
+                    // AUDIT LOG
+                    try {
+                        fetch('/api/log-audit', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'x-api-key': import.meta.env.VITE_API_KEY || ''
+                            },
+                            body: JSON.stringify({
+                                type: 'whatsapp_notification',
+                                status: 'success',
+                                summary: `WhatsApp de canje enviado a ${client.name}`,
+                                details: [{ userId: client.id, userName: client.name, action: 'whatsapp_click_redemption' }]
+                            })
+                        });
+                    } catch (e) { }
                 }
 
                 onRedeemSuccess();

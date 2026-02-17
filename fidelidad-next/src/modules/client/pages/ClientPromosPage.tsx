@@ -32,9 +32,9 @@ export const ClientPromosPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 font-sans pb-24">
+        <div className="min-h-screen bg-gray-50 font-sans pb-28">
             {/* Header - Fixed header with sticky top */}
-            <div className="bg-white px-4 pt-4 pb-4 shadow-sm border-b border-gray-100 sticky top-0 z-20 transition-all">
+            <div className="bg-white px-4 pt-3 pb-3 shadow-sm border-b border-gray-100 sticky top-0 z-20 transition-all">
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => navigate(-1)}
@@ -49,8 +49,8 @@ export const ClientPromosPage = () => {
                 </div>
             </div>
 
-            {/* List - Follows the scroll of the main container */}
-            <div className="p-4 space-y-4">
+            {/* List - Follows scroll */}
+            <div className="px-4 pt-2 pb-4 space-y-4">
                 {loading ? (
                     <div className="space-y-4 animate-pulse">
                         <div className="h-32 bg-gray-200 rounded-2xl w-full"></div>

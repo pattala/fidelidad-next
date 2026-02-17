@@ -139,7 +139,7 @@ export const WhatsAppPage = () => {
         return `https://api.whatsapp.com/send?phone=${phoneNum}&text=${encodeURIComponent(processedMsg.trim())}`;
     };
 
-    const handleSendIndividual = (client: Client) => {
+    const handleSendIndividual = async (client: Client) => {
         if (isReadOnly) return;
         if (!client.phone) {
             toast.error('Cliente sin teléfono');
@@ -147,6 +147,25 @@ export const WhatsAppPage = () => {
         }
         const link = generateLink(client);
         window.open(link, '_blank');
+
+        // AUDIT LOG
+        try {
+            fetch('/api/log-audit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': import.meta.env.VITE_API_KEY || ''
+                },
+                body: JSON.stringify({
+                    type: 'whatsapp_notification',
+                    status: 'success',
+                    summary: `WhatsApp enviado manualmente a ${client.name}`,
+                    details: [{ userId: client.id, userName: client.name, action: 'whatsapp_click' }]
+                })
+            });
+        } catch (e) {
+            console.error("Audit log error:", e);
+        }
     };
 
     // Sending Queue Logic
@@ -175,10 +194,30 @@ export const WhatsAppPage = () => {
         }
     };
 
-    const handleSendCurrent = () => {
+    const handleSendCurrent = async () => {
         const client = sendingQueue[currentIndex];
         const link = generateLink(client);
         window.open(link, '_blank');
+
+        // AUDIT LOG
+        try {
+            fetch('/api/log-audit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': import.meta.env.VITE_API_KEY || ''
+                },
+                body: JSON.stringify({
+                    type: 'whatsapp_notification',
+                    status: 'success',
+                    summary: `WhatsApp enviado (Masivo) a ${client.name}`,
+                    details: [{ userId: client.id, userName: client.name, action: 'whatsapp_click_bulk' }]
+                })
+            });
+        } catch (e) {
+            console.error("Audit log error:", e);
+        }
+
         handleNext();
     };
 

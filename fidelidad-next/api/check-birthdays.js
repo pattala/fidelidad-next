@@ -178,19 +178,19 @@ export default async function handler(req, res) {
         }
 
         // 4. GUARDAR LOG DE AUDITORÍA
-        if (logResults.totalToday > 0) {
-            try {
-                await db.collection('audit_logs').add({
-                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                    type: 'birthday_engine',
-                    status: logResults.errors.length === 0 ? 'success' : 'partial',
-                    summary: `Socios hoy: ${logResults.totalToday}, Procesados: ${logResults.processed}, Puntos: ${logResults.pointsGivenTotal}`,
-                    details: logResults.details.slice(0, 500),
-                    executor: 'system'
-                });
-            } catch (logError) {
-                console.error("[Birthdays] Error saving audit log:", logError);
-            }
+        try {
+            await db.collection('audit_logs').add({
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                type: 'birthday_engine',
+                status: logResults.errors.length === 0 ? 'success' : 'partial',
+                summary: logResults.totalToday === 0
+                    ? "Ejecutado: No hay cumpleaños para procesar hoy."
+                    : `Socios hoy: ${logResults.totalToday}, Procesados: ${logResults.processed}, Puntos: ${logResults.pointsGivenTotal}`,
+                details: logResults.details.slice(0, 500),
+                executor: 'system'
+            });
+        } catch (logError) {
+            console.error("[Birthdays] Error saving audit log:", logError);
         }
 
         return res.status(200).json({

@@ -76,28 +76,36 @@ export const ClientActivityPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-28">
+        <div className="min-h-screen bg-transparent pb-28">
             {/* Header - Fixed header with sticky top */}
-            <div className="bg-white px-4 pt-2 pb-2 sticky top-0 z-20 shadow-sm border-b border-gray-100 transition-all">
-                <div className="flex flex-col">
-                    <h1 className="text-xl font-black text-gray-800 leading-none tracking-tight">Tu Actividad</h1>
-                    <p className="text-gray-400 text-[9px] font-bold mt-0.5 uppercase tracking-widest pl-0.5">Historial de movimientos y canjes</p>
-                </div>
-
-                {/* Balance Summary Card - More Compact */}
-                <div className="mt-2 bg-gradient-to-r from-gray-900 to-gray-800 rounded-xl p-3 text-white shadow-xl shadow-gray-200">
-                    <div className="flex justify-between items-center">
-                        <span className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">Balance Actual</span>
-                        <div className="flex items-baseline gap-1">
-                            <span className="text-3xl font-black">{userBalance}</span>
-                            <span className="text-xs font-medium text-gray-400">pts</span>
-                        </div>
+            <div className="bg-white px-4 pt-4 pb-2 sticky top-0 z-20 shadow-sm border-b border-gray-100 transition-all">
+                <div className="flex justify-between items-end mb-4">
+                    <div className="flex flex-col">
+                        <h1 className="text-2xl font-bold text-gray-800 leading-none">Tu Actividad</h1>
+                        <p className="text-[10px] text-gray-400 font-medium mt-1 uppercase tracking-wider">Historial de movimientos y canjes</p>
+                    </div>
+                    <div className="bg-purple-100 px-3 py-1 rounded-full flex items-center gap-1 shadow-sm border border-purple-200/50">
+                        <span className="text-[10px] font-bold text-purple-600 uppercase tracking-tight">Puntos:</span>
+                        <span className="text-sm font-black text-purple-700">{userBalance}</span>
                     </div>
                 </div>
             </div>
 
-            {/* Timeline - Follows the scroll of the main container */}
-            <div className="px-4 pt-1 pb-4 space-y-3">
+            {/* Scrollable area starts here */}
+            <div className="px-4 pt-4 pb-4 space-y-4">
+                {/* Balance Summary Card - Now inside scrollable area */}
+                <div className="bg-gradient-to-r from-gray-900 to-gray-800 rounded-2xl p-4 text-white shadow-xl shadow-gray-200">
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-1">Tu Balance</p>
+                            <h2 className="text-xl font-black text-white/90">Puntos Disponibles</h2>
+                        </div>
+                        <div className="flex items-baseline gap-1">
+                            <span className="text-4xl font-black">{userBalance}</span>
+                            <span className="text-sm font-medium text-gray-400">pts</span>
+                        </div>
+                    </div>
+                </div>
                 {loading ? (
                     [...Array(3)].map((_, i) => (
                         <div key={i} className="bg-white h-20 rounded-2xl shadow-sm animate-pulse"></div>

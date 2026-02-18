@@ -40,36 +40,46 @@ export const useFcmToken = () => {
                 });
 
                 if (currentToken) {
-                    console.log('[FCM] Token Retrieved Successfuly');
+                    console.log('[FCM] Token Retrieved Successfully:', currentToken.substring(0, 10) + '...');
                     setToken(currentToken);
 
-                    const { getDoc } = await import('firebase/firestore');
+                    const { getDoc, serverTimestamp } = await import('firebase/firestore');
                     const userRef = doc(db, 'users', user.uid);
-                    const userDoc = await getDoc(userRef);
 
-                    if (userDoc.exists()) {
-                        const userData = userDoc.data();
-                        let tokens: string[] = userData?.fcmTokens || [];
-                        if (userData?.fcmToken && !tokens.includes(userData.fcmToken)) {
-                            tokens.push(userData.fcmToken);
-                        }
-                        if (!tokens.includes(currentToken)) {
-                            tokens.push(currentToken);
-                        }
-                        if (tokens.length > 5) tokens = tokens.slice(-5);
+                    try {
+                        const userDoc = await getDoc(userRef);
+                        if (userDoc.exists()) {
+                            const userData = userDoc.data();
+                            let tokens: string[] = userData?.fcmTokens || [];
 
-                        console.log('[FCM] Saving tokens to Firestore for user:', user.uid);
-                        await setDoc(userRef, {
-                            fcmToken: currentToken,
-                            fcmTokens: tokens,
-                            lastFcmUpdate: new Date()
-                        }, { merge: true });
-                        console.log('[FCM] Tokens saved successfully.');
-                    } else {
-                        console.log('[FCM] User document does not exist yet. Skipping FCM token save.');
+                            // Ensure array exists
+                            if (!Array.isArray(tokens)) tokens = [];
+
+                            // Add current if missing
+                            if (!tokens.includes(currentToken)) {
+                                tokens.push(currentToken);
+                            }
+
+                            // Keep max 5
+                            if (tokens.length > 5) tokens = tokens.slice(-5);
+
+                            console.log('[FCM] Updating Firestore for user:', user.uid);
+                            await setDoc(userRef, {
+                                fcmToken: currentToken, // Force update singular for UI
+                                fcmTokens: tokens,
+                                lastFcmUpdate: serverTimestamp(),
+                                'permissions.notifications.status': 'granted'
+                            }, { merge: true });
+
+                            // Optional: Visual confirmation for debugging (can be removed later)
+                            // toast.success('Dispositivo conectado a notificaciones', { id: 'fcm-toast' });
+                            console.log('[FCM] Token verified and saved.');
+                        }
+                    } catch (err) {
+                        console.error('[FCM] Error saving token to Firestore:', err);
                     }
                 } else {
-                    console.warn('[FCM] No token retrieved (Permission might be granted but token generation failed).');
+                    console.warn('[FCM] No token retrieved (Permission granted but no token).');
                 }
             } else {
                 console.warn('[FCM] Notification permission NOT granted. State:', Notification.permission);

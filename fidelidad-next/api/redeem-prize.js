@@ -140,6 +140,7 @@ export default async function handler(req, res) {
 
             const firstName = (cData.name || cData.nombre || '').split(' ')[0];
             const shortCode = prizeId.substring(0, 4).toUpperCase();
+            const newTotalPoints = Number(cData.points || cData.puntos || 0) - pointsNeeded;
 
             // Update User
             tx.update(cSnap.ref, {

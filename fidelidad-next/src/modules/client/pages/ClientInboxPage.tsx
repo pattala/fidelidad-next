@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { collection, query, orderBy, onSnapshot, doc, updateDoc, writeBatch, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../../../lib/firebase';
-import { Bell, Trash2, MailOpen, ChevronLeft } from 'lucide-react';
+import { Bell, Trash2, MailOpen, ChevronLeft, Mail } from 'lucide-react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -123,42 +123,33 @@ export const ClientInboxPage = () => {
                     Marcar leídos
                 </button>
             )}
-        </div>
-
-            {/* List */ }
-    <div className="p-4 space-y-3">
-        {loading ? (
-            [...Array(3)].map((_, i) => (
-                <div key={i} className="bg-white h-24 rounded-2xl shadow-sm animate-pulse"></div>
-            ))
-        ) : messages.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">
-                <div className="bg-gray-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <MailOpen size={32} />
-                </div>
-                <p>No tienes mensajes nuevos.</p>
+            <div className="bg-gray-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <MailOpen size={32} />
             </div>
-        ) : (
-            messages.map(msg => (
-                <SwipeableMessage
-                    key={msg.id}
-                    msg={msg}
-                    onDelete={(id) => setMsgToDelete(id)}
-                    onRead={(m) => markAsRead(m)}
-                />
-            ))
-        )}
-    </div>
+            <p>No tienes mensajes nuevos.</p>
+        </div>
+    ) : (
+        messages.map(msg => (
+            <SwipeableMessage
+                key={msg.id}
+                msg={msg}
+                onDelete={(id) => setMsgToDelete(id)}
+                onRead={(m) => markAsRead(m)}
+            />
+        ))
+    )
+}
+    </div >
 
     {/* Confirmation Modal */ }
-    <ModernConfirmModal
-        isOpen={!!msgToDelete}
-        title="Eliminar Mensaje"
-        message="¿Estás seguro que deseas borrar este mensaje? Esta acción no se puede deshacer."
-        onConfirm={() => msgToDelete && deleteMessage(msgToDelete)}
-        onCancel={() => setMsgToDelete(null)}
-        confirmText="Sí, eliminar"
-        type="danger"
+    < ModernConfirmModal
+isOpen = {!!msgToDelete}
+title = "Eliminar Mensaje"
+message = "¿Estás seguro que deseas borrar este mensaje? Esta acción no se puede deshacer."
+onConfirm = {() => msgToDelete && deleteMessage(msgToDelete)}
+onCancel = {() => setMsgToDelete(null)}
+confirmText = "Sí, eliminar"
+type = "danger"
     />
         </div >
     );

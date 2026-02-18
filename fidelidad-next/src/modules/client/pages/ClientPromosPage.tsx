@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { CampaignService, type BonusRule } from '../../../services/campaignService';
-import { Calendar, ArrowLeft, Tag, Clock } from 'lucide-react';
+import { Calendar, Tag, Clock, ChevronLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { AppConfig } from '../../../types';
 

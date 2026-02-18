@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { collection, query, orderBy, onSnapshot, doc, updateDoc, writeBatch, where, getDocs } from 'firebase/firestore';
+import { collection, query, onSnapshot, doc, updateDoc, writeBatch } from 'firebase/firestore';
 import { auth, db } from '../../../lib/firebase';
-import { Bell, Trash2, MailOpen, ChevronLeft, Mail } from 'lucide-react';
+import { Trash2, MailOpen, ChevronLeft, Mail } from 'lucide-react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -29,10 +29,8 @@ export const ClientInboxPage = () => {
         const user = auth.currentUser;
         if (!user) return;
 
-        // Listen to Inbox - query all to ensure we don't miss messages without dates (Ghost/Legacy)
         const q = query(
             collection(db, `users/${user.uid}/inbox`)
-            // orderBy('date', 'desc') // Removed to prevent filtering out docs without 'date'
         );
 
         const unsubscribe = onSnapshot(q, { includeMetadataChanges: true }, (snapshot) => {
@@ -41,7 +39,6 @@ export const ClientInboxPage = () => {
                 ...doc.data({ serverTimestamps: 'estimate' })
             })) as InboxMessage[];
 
-            // Client-side sort to handle missing dates safely
             msgs.sort((a, b) => {
                 const dateA = (a.date?.seconds || (a as any).sentAt?.seconds || 0);
                 const dateB = (b.date?.seconds || (b as any).sentAt?.seconds || 0);
@@ -115,48 +112,68 @@ export const ClientInboxPage = () => {
                     <Mail size={20} />
                 </div>
             </div>
-            {messages.some(m => !m.read) && (
-                <button
-                    onClick={markAllRead}
-                    className="text-xs font-bold text-purple-600 bg-purple-50 px-3 py-1.5 rounded-full hover:bg-purple-100 transition"
-                >
-                    Marcar leídos
-                </button>
-            )}
-            <div className="bg-gray-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <MailOpen size={32} />
-            </div>
-            <p>No tienes mensajes nuevos.</p>
-        </div>
-    ) : (
-        messages.map(msg => (
-            <SwipeableMessage
-                key={msg.id}
-                msg={msg}
-                onDelete={(id) => setMsgToDelete(id)}
-                onRead={(m) => markAsRead(m)}
-            />
-        ))
-    )
-}
-    </div >
 
-    {/* Confirmation Modal */ }
-    < ModernConfirmModal
-isOpen = {!!msgToDelete}
-title = "Eliminar Mensaje"
-message = "¿Estás seguro que deseas borrar este mensaje? Esta acción no se puede deshacer."
-onConfirm = {() => msgToDelete && deleteMessage(msgToDelete)}
-onCancel = {() => setMsgToDelete(null)}
-confirmText = "Sí, eliminar"
-type = "danger"
-    />
-        </div >
+            {messages.some(m => !m.read) && (
+                <div className="px-4 pt-4">
+                    <button
+                        onClick={markAllRead}
+                        className="text-xs font-bold text-purple-600 bg-purple-50 px-3 py-1.5 rounded-full hover:bg-purple-100 transition shadow-sm border border-purple-100"
+                    >
+                        Marcar todos como leídos
+                    </button>
+                </div>
+            )}
+
+            {/* List */}
+            <div className="p-4 space-y-3">
+                {loading ? (
+                    <div className="space-y-3">
+                        {[...Array(3)].map((_, i) => (
+                            <div key={i} className="bg-white h-24 rounded-2xl shadow-sm animate-pulse"></div>
+                        ))}
+                    </div>
+                ) : messages.length === 0 ? (
+                    <div className="text-center py-12 text-gray-400">
+                        <div className="bg-gray-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <MailOpen size={32} />
+                        </div>
+                        <p>No tienes mensajes nuevos.</p>
+                    </div>
+                ) : (
+                    <div className="space-y-3">
+                        {messages.map(msg => (
+                            <SwipeableMessage
+                                key={msg.id}
+                                msg={msg}
+                                onDelete={(id) => setMsgToDelete(id)}
+                                onRead={(m) => markAsRead(m)}
+                            />
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Confirmation Modal */}
+            <ModernConfirmModal
+                isOpen={!!msgToDelete}
+                title="Eliminar Mensaje"
+                message="¿Estás seguro que deseas borrar este mensaje? Esta acción no se puede deshacer."
+                onConfirm={() => msgToDelete && deleteMessage(msgToDelete)}
+                onCancel={() => setMsgToDelete(null)}
+                confirmText="Sí, eliminar"
+                type="danger"
+            />
+        </div>
     );
 };
 
-// Internal Component for Swipe Logic to avoid clutter
-const SwipeableMessage = ({ msg, onDelete, onRead }: { msg: InboxMessage, onDelete: (id: string) => void, onRead: (m: InboxMessage) => void }) => {
+interface SwipeableMessageProps {
+    msg: InboxMessage;
+    onDelete: (id: string) => void;
+    onRead: (m: InboxMessage) => void;
+}
+
+const SwipeableMessage = ({ msg, onDelete, onRead }: SwipeableMessageProps) => {
     const [offsetX, setOffsetX] = useState(0);
     const [isSwiping, setIsSwiping] = useState(false);
     const startX = React.useRef(0);
@@ -170,7 +187,6 @@ const SwipeableMessage = ({ msg, onDelete, onRead }: { msg: InboxMessage, onDele
         if (!startX.current) return;
         const currentX = e.touches[0].clientX;
         const diff = currentX - startX.current;
-        // Only allow swipe left (negative)
         if (diff < 0) {
             setOffsetX(diff);
         }
@@ -179,23 +195,19 @@ const SwipeableMessage = ({ msg, onDelete, onRead }: { msg: InboxMessage, onDele
     const handleTouchEnd = () => {
         setIsSwiping(false);
         if (offsetX < -100) {
-            // Threshold met - Trigger Delete
             onDelete(msg.id);
         } else {
-            // Reset
             setOffsetX(0);
         }
         startX.current = 0;
     };
 
     return (
-        <div className="relative overflow-hidden rounded-2xl mb-3">
-            {/* Background Action (Delete) */}
+        <div className="relative overflow-hidden rounded-2xl">
             <div className="absolute inset-0 bg-red-500 flex items-center justify-end pr-6 rounded-2xl">
                 <Trash2 className="text-white" size={24} />
             </div>
 
-            {/* Foreground Content */}
             <div
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
@@ -203,7 +215,7 @@ const SwipeableMessage = ({ msg, onDelete, onRead }: { msg: InboxMessage, onDele
                 onClick={() => onRead(msg)}
                 style={{ transform: `translateX(${offsetX}px)`, transition: isSwiping ? 'none' : 'transform 0.2s ease-out' }}
                 className={`
-                    relative p-4 rounded-2xl mb-3 transition-all
+                    relative p-4 rounded-2xl transition-all
                     ${msg.read
                         ? 'bg-gray-50 border border-gray-100'
                         : 'bg-white shadow-md border-l-4 border-l-purple-500 border-y border-r border-gray-100 scale-[1.01]'}
@@ -259,7 +271,6 @@ const SwipeableMessage = ({ msg, onDelete, onRead }: { msg: InboxMessage, onDele
                         );
                     })()}
 
-                    {/* Visible Delete Button */}
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
@@ -274,4 +285,3 @@ const SwipeableMessage = ({ msg, onDelete, onRead }: { msg: InboxMessage, onDele
         </div>
     );
 };
-

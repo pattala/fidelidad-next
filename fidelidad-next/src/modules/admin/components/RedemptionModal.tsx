@@ -62,29 +62,9 @@ export const RedemptionModal = ({ client, onClose, onRedeemSuccess }: Redemption
             if (data.ok) {
                 toast.success("¡Canje realizado con éxito!");
 
-                // WhatsApp notification handling (if requested by user flow or enabled in config)
-                // We assume if they have a phone, we might want to offer sending the WhatsApp
-                const phone = client.phone?.replace(/\D/g, '');
-                if (phone && data.unifiedMsg) {
-                    const waUrl = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(data.unifiedMsg.trim())}`;
-                    setTimeout(() => window.open(waUrl, '_blank'), 500);
-
-                    // AUDIT LOG
-                    try {
-                        fetch('/api/log-audit', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'x-api-key': import.meta.env.VITE_API_KEY || ''
-                            },
-                            body: JSON.stringify({
-                                type: 'whatsapp_notification',
-                                status: 'success',
-                                summary: `WhatsApp de canje enviado a ${client.name}`,
-                                details: [{ userId: client.id, userName: client.name, action: 'whatsapp_click_redemption' }]
-                            })
-                        });
-                    } catch (e) { }
+                // WhatsApp notification handling (if returned by API)
+                if (data.whatsappLink) {
+                    setTimeout(() => window.open(data.whatsappLink, '_blank'), 500);
                 }
 
                 onRedeemSuccess();

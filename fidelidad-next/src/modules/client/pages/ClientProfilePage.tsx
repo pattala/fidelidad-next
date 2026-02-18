@@ -8,11 +8,27 @@ import toast from 'react-hot-toast';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { useFcmToken } from '../../../hooks/useFcmToken';
 
+// Assuming AppConfig is defined elsewhere or is a type alias for the config object
+// For the purpose of this edit, we'll assume it's a valid type.
+type AppConfig = any; // Placeholder if not defined, adjust as per actual project structure
+
 export const ClientProfilePage = () => {
     const [userAuth, setUserAuth] = useState<any>(null);
     const [userData, setUserData] = useState<any>(null);
     const navigate = useNavigate();
-    const { config } = useOutletContext<any>();
+    const { config, setHeaderTitle } = useOutletContext<{
+        config: AppConfig,
+        setHeaderTitle: (title: string | null) => void
+    }>();
+
+    // Set Header State
+    useEffect(() => {
+        setHeaderTitle('Perfil');
+
+        return () => {
+            setHeaderTitle(null);
+        };
+    }, [setHeaderTitle]);
 
     // Change Password State
     const [isChangePassOpen, setIsChangePassOpen] = useState(false);
@@ -165,8 +181,8 @@ export const ClientProfilePage = () => {
 
             {/* Profile Card Overlay */}
             <div
-                className="-mt-20 px-4 relative z-10 transition-all"
-                style={{ paddingTop: `var(--pwa-padding-top, 0px)` }}
+                className="-mt-20 px-4 relative z-10 animate-fade-in"
+                style={{ paddingTop: '0px' }}
             >
                 <div className="bg-white rounded-3xl shadow-xl p-6 text-center border border-gray-100">
                     <div className="w-24 h-24 bg-indigo-50 rounded-full mx-auto border-4 border-white shadow-md mb-3 flex items-center justify-center text-indigo-400">

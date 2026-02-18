@@ -6,12 +6,13 @@ import { doc, onSnapshot, collection, query, where, addDoc } from 'firebase/fire
 import { db, auth } from '../../../lib/firebase';
 import { useFcmToken } from '../../../hooks/useFcmToken'; // Import Hook
 import { signOut } from 'firebase/auth'; // Added for Logout
-import { ClientPaddingTool } from './ClientPaddingTool';
 
 export const ClientLayout = () => {
     const [isContactOpen, setIsContactOpen] = useState(false);
     const [config, setConfig] = useState<any>({});
     const [unreadCount, setUnreadCount] = useState(0);
+    const [headerTitle, setHeaderTitle] = useState<string | null>(null);
+    const [headerActions, setHeaderActions] = useState<React.ReactNode | null>(null);
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -160,35 +161,36 @@ export const ClientLayout = () => {
                     </div>
                 </div>
 
-                <h1 className="font-extrabold text-lg uppercase tracking-wider text-center flex-1 drop-shadow-md">
-                    {config?.siteName || 'Club de Fidelidad'}
+                <h1 className="font-extrabold text-lg uppercase tracking-wider text-center flex-1 drop-shadow-md truncate px-2">
+                    {headerTitle || config?.siteName || 'Club de Fidelidad'}
                 </h1>
 
-                <div className="w-10 flex justify-end">
-                    <button
-                        onClick={() => navigate('/inbox')}
-                        className={`relative p-2 rounded-xl transition-all active:scale-95 ${unreadCount > 0 ? 'animate-pulse bg-white/10' : ''}`}
-                    >
-                        <Bell size={22} className={unreadCount > 0 ? 'text-yellow-400' : 'text-white'} />
-                        {unreadCount > 0 && (
-                            <span
-                                className="absolute -top-1 -right-1 w-5 h-5 bg-pink-600 rounded-full border-2 flex items-center justify-center text-[10px] font-black shadow-lg animate-bounce"
-                                style={{ borderColor: config.primaryColor || '#4a148c', color: 'white' }}
-                            >
-                                {unreadCount > 9 ? '9+' : unreadCount}
-                            </span>
-                        )}
-                    </button>
+                <div className="w-10 flex justify-end gap-2">
+                    {headerActions}
+                    {!headerActions && (
+                        <button
+                            onClick={() => navigate('/inbox')}
+                            className={`relative p-2 rounded-xl transition-all active:scale-95 ${unreadCount > 0 ? 'animate-pulse bg-white/10' : ''}`}
+                        >
+                            <Bell size={22} className={unreadCount > 0 ? 'text-yellow-400' : 'text-white'} />
+                            {unreadCount > 0 && (
+                                <span
+                                    className="absolute -top-1 -right-1 w-5 h-5 bg-pink-600 rounded-full border-2 flex items-center justify-center text-[10px] font-black shadow-lg animate-bounce"
+                                    style={{ borderColor: config.primaryColor || '#4a148c', color: 'white' }}
+                                >
+                                    {unreadCount > 9 ? '9+' : unreadCount}
+                                </span>
+                            )}
+                        </button>
+                    )}
                 </div>
             </header>
 
             {/* 2) Main Content Area (Scrollable) */}
             <main className="flex-1 overflow-y-auto pb-6 scrollbar-hide">
                 <div className="animate-fade-in">
-                    <Outlet context={{ config }} />
+                    <Outlet context={{ config, setHeaderTitle, setHeaderActions }} />
                 </div>
-                {/* TOOL: Herramienta de ajuste de padding (Visible mientras buscamos valores finales) */}
-                <ClientPaddingTool initialValue={config.pwaPaddingTop || 32} />
             </main>
 
             {/* 3) Bottom Navigation (Fixed) */}

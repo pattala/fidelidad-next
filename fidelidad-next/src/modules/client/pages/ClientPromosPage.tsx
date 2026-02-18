@@ -6,10 +6,22 @@ import toast from 'react-hot-toast';
 import type { AppConfig } from '../../../types';
 
 export const ClientPromosPage = () => {
-    const { config } = useOutletContext<{ config: AppConfig }>();
+    const { config, setHeaderTitle } = useOutletContext<{
+        config: AppConfig,
+        setHeaderTitle: (title: string | null) => void
+    }>();
     const [campaigns, setCampaigns] = useState<BonusRule[]>([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
+
+    // Set Header State
+    useEffect(() => {
+        setHeaderTitle('Promociones');
+
+        return () => {
+            setHeaderTitle(null);
+        };
+    }, [setHeaderTitle]);
 
     useEffect(() => {
         const loadPromos = async () => {
@@ -34,24 +46,7 @@ export const ClientPromosPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 font-sans pb-28">
-            {/* Header - Fixed header with sticky top */}
-            <div
-                className="bg-white/95 backdrop-blur-sm px-4 pt-4 pb-2 shadow-sm border-b border-gray-100 sticky z-[40] transition-all top-0"
-            >
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={() => navigate(-1)}
-                        className="w-8 h-8 flex items-center justify-center bg-gray-50 rounded-full text-gray-600 active:scale-90 transition shadow-inner"
-                    >
-                        <ChevronLeft size={20} />
-                    </button>
-                    <div>
-                        <h1 className="text-sm font-black text-gray-800 uppercase tracking-tight">Todas las Promos</h1>
-                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest leading-none">Vigentes ahora</p>
-                    </div>
-                </div>
-            </div>
+        <div className="min-h-screen bg-gray-50 font-sans pb-28 animate-fade-in">
 
             {/* List - Follows scroll */}
             <div

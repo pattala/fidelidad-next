@@ -7,10 +7,33 @@ import type { AppConfig } from '../../../types';
 
 
 export const ClientRewardsPage = () => {
-    const { config } = useOutletContext<{ config: AppConfig }>();
+    const { config, setHeaderTitle, setHeaderActions } = useOutletContext<{
+        config: AppConfig,
+        setHeaderTitle: (title: string | null) => void,
+        setHeaderActions: (actions: React.ReactNode | null) => void
+    }>();
     const [prizes, setPrizes] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [userPoints, setUserPoints] = useState(0);
+
+    // Set Header State
+    useEffect(() => {
+        setHeaderTitle('Premios');
+
+        const actions = (
+            <div className="bg-white/20 px-3 py-1 rounded-full flex items-center gap-1 border border-white/20 shadow-inner">
+                <span className="text-[10px] font-bold text-white uppercase tracking-tight">Puntos:</span>
+                <span className="text-sm font-black text-white">{userPoints}</span>
+            </div>
+        );
+
+        setHeaderActions(actions);
+
+        return () => {
+            setHeaderTitle(null);
+            setHeaderActions(null);
+        };
+    }, [userPoints, setHeaderTitle, setHeaderActions]);
 
     useEffect(() => {
         // 1. Listen to User Points
@@ -52,23 +75,7 @@ export const ClientRewardsPage = () => {
     }, []);
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-28">
-
-            {/* Header - Fixed header with sticky top */}
-            <div
-                className="bg-white/95 backdrop-blur-sm px-4 pt-4 pb-2 sticky z-[40] shadow-sm border-b border-gray-100 transition-all top-0"
-            >
-                <div className="flex justify-between items-end mb-4">
-                    <div className="flex flex-col">
-                        <h1 className="text-2xl font-bold text-gray-800 leading-none">Premios</h1>
-                        <p className="text-[10px] text-gray-400 font-medium mt-1 uppercase tracking-wider">Canjeá tus puntos por beneficios</p>
-                    </div>
-                    <div className="bg-purple-100 px-3 py-1 rounded-full flex items-center gap-1 shadow-sm border border-purple-200/50">
-                        <span className="text-[10px] font-bold text-purple-600 uppercase tracking-tight">Puntos:</span>
-                        <span className="text-sm font-black text-purple-700">{userPoints}</span>
-                    </div>
-                </div>
-            </div>
+        <div className="min-h-screen bg-gray-50 pb-28 animate-fade-in">
 
             {/* Catalog Grid */}
             <div

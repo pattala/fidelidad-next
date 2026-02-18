@@ -446,6 +446,7 @@ export default async function handler(req, res) {
             // Hacer disponibles los datos básicos para las notificaciones fuera de la tx
             result.guestData = {
                 name: cData.name || 'Socio',
+                phone: cData.phone || cData.telefono || '',
                 email: cData.email || cData.correo
             };
         });
@@ -471,25 +472,49 @@ export default async function handler(req, res) {
                 }
             }
 
-            // WhatsApp Audit Log (Manual)
+            // WhatsApp Logic (Generation for Panel)
             if (applyWhatsApp && points > 0) {
-                try {
-                    await db.collection('audit_logs').add({
-                        timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                        type: 'whatsapp_notification',
-                        status: 'success',
-                        summary: `Link de WhatsApp generado para ${result.guestData.name}: "${points} puntos añadidos"`,
-                        details: [{
-                            userId: targetUid,
-                            userName: result.guestData.name,
-                            points,
-                            action: 'whatsapp_link_generated',
-                            timestamp: new Date().toISOString()
-                        }],
-                        executor
-                    });
-                } catch (waErr) {
-                    console.error("WhatsApp audit error:", waErr);
+                const event = 'pointsAdded';
+                const templates = messagingCfg.templates || {};
+                const eventConfig = messagingCfg.eventConfigs?.[event];
+                const channels = eventConfig?.channels || [];
+                const isWhatsAppEnabled = channels.includes('whatsapp');
+
+                if (isWhatsAppEnabled) {
+                    let waMsg = templates[event] || "¡Sumaste {puntos} puntos! Tu saldo actual es {saldo}.";
+                    const fullName = result.guestData.name || 'Cliente';
+                    const firstName = fullName.split(' ')[0];
+
+                    waMsg = waMsg.replace(/{nombre}/g, firstName)
+                        .replace(/{nombre_completo}/g, fullName)
+                        .replace(/{puntos}/g, points.toString())
+                        .replace(/{saldo}/g, (result.newBalance || 0).toString())
+                        .replace(/{siteName}/g, config.siteName || 'Club Fidelidad');
+
+                    const phone = (result.guestData.phone || '').replace(/\D/g, '');
+                    if (phone.length >= 8) {
+                        result.whatsappLink = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(waMsg.trim())}`;
+                    }
+
+                    // Audit Log (Manual)
+                    try {
+                        await db.collection('audit_logs').add({
+                            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                            type: 'whatsapp_notification',
+                            status: 'success',
+                            summary: `Link de WhatsApp generado para ${result.guestData.name}: "${points} puntos añadidos"`,
+                            details: [{
+                                userId: targetUid,
+                                userName: result.guestData.name,
+                                points,
+                                action: 'whatsapp_link_generated',
+                                timestamp: new Date().toISOString()
+                            }],
+                            executor
+                        });
+                    } catch (waErr) {
+                        console.error("WhatsApp audit error:", waErr);
+                    }
                 }
             }
 

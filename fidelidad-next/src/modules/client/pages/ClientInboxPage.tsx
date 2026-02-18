@@ -19,11 +19,51 @@ interface InboxMessage {
 }
 
 export const ClientInboxPage = () => {
-    const { config } = useOutletContext<{ config: AppConfig }>();
+    const { config, setHeaderTitle, setHeaderActions } = useOutletContext<{
+        config: AppConfig,
+        setHeaderTitle: (title: string | null) => void,
+        setHeaderActions: (actions: React.ReactNode | null) => void
+    }>();
     const [messages, setMessages] = useState<InboxMessage[]>([]);
     const [loading, setLoading] = useState(true);
     const [msgToDelete, setMsgToDelete] = useState<string | null>(null);
+    const [isBulkDeleteConfirmOpen, setIsBulkDeleteConfirmOpen] = useState(false);
     const navigate = useNavigate();
+
+    // Set Header State
+    useEffect(() => {
+        setHeaderTitle('Mensajes');
+
+        const actions = (
+            <div className="flex items-center gap-1">
+                {messages.some(m => !m.read) && (
+                    <button
+                        onClick={markAllRead}
+                        className="p-2 hover:bg-white/10 rounded-xl transition-all active:scale-95 text-white"
+                        title="Marcar todos como leídos"
+                    >
+                        <MailOpen size={20} />
+                    </button>
+                )}
+                {messages.length > 0 && (
+                    <button
+                        onClick={() => setIsBulkDeleteConfirmOpen(true)}
+                        className="p-2 hover:bg-white/10 rounded-xl transition-all active:scale-95 text-white"
+                        title="Borrar todos"
+                    >
+                        <Trash2 size={20} />
+                    </button>
+                )}
+            </div>
+        );
+
+        setHeaderActions(actions);
+
+        return () => {
+            setHeaderTitle(null);
+            setHeaderActions(null);
+        };
+    }, [messages, setHeaderTitle, setHeaderActions]);
 
     useEffect(() => {
         const user = auth.currentUser;
@@ -95,8 +135,6 @@ export const ClientInboxPage = () => {
         }
     };
 
-    const [isBulkDeleteConfirmOpen, setIsBulkDeleteConfirmOpen] = useState(false);
-
     const deleteMessage = async (id: string) => {
         const user = auth.currentUser;
         if (!user) return;
@@ -112,43 +150,6 @@ export const ClientInboxPage = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 pb-28 animate-fade-in">
-            {/* Header - Sticky Header */}
-            <div
-                className="bg-white/95 backdrop-blur-sm px-4 pt-4 pb-3 sticky z-[40] shadow-sm border-b border-gray-100 transition-all top-0"
-            >
-                <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                        <button onClick={() => navigate(-1)} className="text-gray-500 hover:text-gray-800 p-1">
-                            <ChevronLeft size={24} />
-                        </button>
-                        <h1 className="text-2xl font-bold text-gray-800">Mensajes</h1>
-                    </div>
-                    <div className="bg-purple-50 p-2 rounded-xl text-purple-600">
-                        <Mail size={20} />
-                    </div>
-                </div>
-
-                {/* Bulk Actions Row */}
-                <div className="flex items-center gap-2">
-                    {messages.some(m => !m.read) && (
-                        <button
-                            onClick={markAllRead}
-                            className="text-[10px] font-black uppercase tracking-wider text-purple-600 bg-purple-50 px-3 py-1.5 rounded-full hover:bg-purple-100 transition shadow-sm border border-purple-100"
-                        >
-                            Marcar leídos
-                        </button>
-                    )}
-                    {messages.length > 0 && (
-                        <button
-                            onClick={() => setIsBulkDeleteConfirmOpen(true)}
-                            className="text-[10px] font-black uppercase tracking-wider text-red-600 bg-red-50 px-3 py-1.5 rounded-full hover:bg-red-100 transition shadow-sm border border-red-100 flex items-center gap-1.5"
-                        >
-                            <Trash2 size={12} />
-                            Borrar todos
-                        </button>
-                    )}
-                </div>
-            </div>
 
 
             {/* List */}

@@ -218,6 +218,36 @@ export default async function handler(req, res) {
             });
 
             result = { ok: true, pointsRedeemed: pointsNeeded, newBalance: newTotalPoints, unifiedMsg };
+
+            // --- WHATSAPP LINK GENERATION (MANUAL TRIGGER) ---
+            const isWhatsAppEnabled = messagingCfg.whatsappEnabled && channels.includes('whatsapp');
+            if (isWhatsAppEnabled) {
+                const cleanPhone = (cData.phone || '').replace(/\D/g, '');
+                if (cleanPhone.length >= 8) {
+                    const encodedMsg = encodeURIComponent(unifiedMsg);
+                    result.whatsappLink = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedMsg}`;
+
+                    // Log WhatsApp Audit
+                    const auditRef = db.collection('audit_logs').doc();
+                    tx.set(auditRef, {
+                        type: 'notification',
+                        event: 'redemption',
+                        channel: 'whatsapp',
+                        status: 'link_generated',
+                        recipient: cData.name || cData.nombre || 'Socio',
+                        recipientInfo: {
+                            uid: targetUid,
+                            phone: cleanPhone,
+                            email: cData.email || cData.correo || 'N/A'
+                        },
+                        content: unifiedMsg,
+                        points: -pointsNeeded,
+                        executor: 'system',
+                        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                        createdAt: admin.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+            }
         });
 
         // 4. Trigger Automatic Channels (Push & Email)

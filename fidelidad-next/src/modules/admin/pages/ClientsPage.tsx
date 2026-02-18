@@ -606,6 +606,9 @@ export const ClientsPage = () => {
         setSelectedClientForPoints(client);
         setPointsData({ amount: '', concept: 'Compra en local', isPesos: true, purchaseDate: new Date().toISOString().split('T')[0] });
 
+        const isWAEnabled = NotificationService.isChannelEnabled(config, 'pointsAdded', 'whatsapp');
+        setNotifyWhatsapp(isWAEnabled);
+
         const promos = await CampaignService.getActiveBonusesForToday();
         const calculablePromos = promos.filter(p => p.rewardType === 'FIXED' || p.rewardType === 'MULTIPLIER');
         setAvailablePromotions(calculablePromos);

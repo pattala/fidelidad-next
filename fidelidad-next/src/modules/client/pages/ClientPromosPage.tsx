@@ -56,7 +56,7 @@ export const ClientPromosPage = () => {
             {/* List - Follows scroll */}
             <div
                 className="px-4 pb-4 space-y-3 transition-all"
-                style={{ paddingTop: `var(--pwa-padding-top, 12px)` }}
+                style={{ paddingTop: `var(--pwa-padding-top, 360px)` }}
             >
                 {loading ? (
                     <div className="space-y-4 animate-pulse">

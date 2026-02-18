@@ -99,7 +99,7 @@ export const ClientActivityPage = () => {
             {/* Timeline - Follows the scroll of the main container */}
             <div
                 className="px-4 pb-4 space-y-3 transition-all"
-                style={{ paddingTop: `var(--pwa-padding-top, 12px)` }}
+                style={{ paddingTop: `var(--pwa-padding-top, 236px)` }}
             >
                 {loading ? (
                     [...Array(3)].map((_, i) => (

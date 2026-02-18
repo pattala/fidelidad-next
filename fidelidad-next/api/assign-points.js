@@ -459,6 +459,40 @@ export default async function handler(req, res) {
             const currentHost = req.headers.host;
             const baseUrl = currentHost ? `https://${currentHost}` : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
+            // Executor for Audit Logs
+            let executor = 'admin';
+            if (authHeader && authHeader.startsWith("Bearer ")) {
+                const token = authHeader.split("Bearer ")[1];
+                try {
+                    const decoded = await getAuth().verifyIdToken(token);
+                    executor = decoded.email || decoded.uid || 'admin';
+                } catch (e) {
+                    console.error("Executor extraction error:", e.message);
+                }
+            }
+
+            // WhatsApp Audit Log (Manual)
+            if (applyWhatsApp && points > 0) {
+                try {
+                    await db.collection('audit_logs').add({
+                        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                        type: 'whatsapp_notification',
+                        status: 'success',
+                        summary: `Link de WhatsApp generado para ${result.guestData.name}: "${points} puntos añadidos"`,
+                        details: [{
+                            userId: targetUid,
+                            userName: result.guestData.name,
+                            points,
+                            action: 'whatsapp_link_generated',
+                            timestamp: new Date().toISOString()
+                        }],
+                        executor
+                    });
+                } catch (waErr) {
+                    console.error("WhatsApp audit error:", waErr);
+                }
+            }
+
             const notifications = [];
 
             // --- 6.1 NOTIFICACIÓN AL CLIENTE (INVITADO) ---
@@ -488,7 +522,9 @@ export default async function handler(req, res) {
                             headers: { 'Content-Type': 'application/json', ...internalAuth },
                             body: JSON.stringify({
                                 clienteId: targetUid, title: '¡Puntos Sumados! 💰', body: unifiedMsg,
-                                icon: config.logoUrl || '/logo.png', extraData: { skipInbox: true, source: 'extension_or_panel' }
+                                icon: config.logoUrl || '/logo.png',
+                                points, executor,
+                                extraData: { skipInbox: true, source: 'extension_or_panel' }
                             })
                         }).catch(err => console.error("Push error (guest):", err))
                     );
@@ -502,6 +538,7 @@ export default async function handler(req, res) {
                             body: JSON.stringify({
                                 to: result.guestData.email,
                                 templateId: 'manual_override',
+                                points, executor,
                                 templateData: { subject: '¡Has sumado puntos! 💰', htmlContent: unifiedMsg }
                             })
                         }).catch(err => console.error("Email error (guest):", err))
@@ -535,7 +572,9 @@ export default async function handler(req, res) {
                             headers: { 'Content-Type': 'application/json', ...internalAuth },
                             body: JSON.stringify({
                                 clienteId: rInfo.uid, title: '¡Bono de Referido! 🎁', body: rMsg,
-                                icon: config.logoUrl || '/logo.png', extraData: { skipInbox: true }
+                                icon: config.logoUrl || '/logo.png',
+                                points: rInfo.bonusAmount, executor,
+                                extraData: { skipInbox: true }
                             })
                         }).catch(err => console.error("Push error (referrer):", err))
                     );
@@ -548,6 +587,7 @@ export default async function handler(req, res) {
                             headers: { 'Content-Type': 'application/json', ...internalAuth },
                             body: JSON.stringify({
                                 to: rInfo.email,
+                                points: rInfo.bonusAmount, executor,
                                 templateId: 'manual_override',
                                 templateData: { subject: '¡Ganaste un premio de referido! 🎁', htmlContent: rMsg }
                             })

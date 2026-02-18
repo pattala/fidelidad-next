@@ -20,7 +20,7 @@ export const ClientPaddingTool = ({ initialValue = 12 }: { initialValue?: number
                     <input
                         type="range"
                         min="0"
-                        max="320"
+                        max="500"
                         step="4"
                         value={padding}
                         onChange={(e) => setPadding(parseInt(e.target.value))}

@@ -249,22 +249,26 @@ export default async function handler(req, res) {
         console.warn('[send-email] Error searching user for audit:', searchErr.message);
       }
 
+      const { points, executor: reqExecutor } = req.body;
+      const pointsInfo = points ? ` [${points} pts]` : "";
+
       await db.collection('audit_logs').add({
-        timestamp: FieldValue.serverTimestamp(),
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
         type: 'email_notification',
         status: 'success',
-        summary: `Email enviado a ${userName} (${to}): "${subject}"`,
+        summary: `Email enviado a ${userName} (${to}): "${subject}"${pointsInfo}`,
         details: [{
           userId,
           userName,
           to,
           subject,
+          points,
           messageId: info.messageId,
           action: 'email_sent',
           status: 'success',
           timestamp: new Date().toISOString()
         }],
-        executor: 'system'
+        executor: reqExecutor || 'system'
       });
     } catch (logErr) {
       console.error('[send-email] Error saving audit log:', logErr);

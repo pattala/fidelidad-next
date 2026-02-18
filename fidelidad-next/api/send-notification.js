@@ -456,9 +456,12 @@ export default async function handler(req, res) {
       });
     });
 
-    let finalSummary = `Envío: "${title}". Éxito: ${successCount}, Falla: ${failureCount}`;
+    const { points, executor: reqExecutor } = body || {};
+    const pointsInfo = points ? ` [${points} pts]` : "";
+
+    let finalSummary = `Envío: "${title}"${pointsInfo}. Éxito: ${successCount}, Falla: ${failureCount}`;
     if (sendTokens.length === 0) {
-      finalSummary = `Ejecutado (Sin Push): No se encontraron tokens FCM. Se crearon ${createdInbox} notificaciones en Inbox.`;
+      finalSummary = `Ejecutado (Sin Push)${pointsInfo}: No se encontraron tokens FCM. Se crearon ${createdInbox} notificaciones en Inbox.`;
     } else if (createdInbox > 0) {
       finalSummary += `. Notificaciones en Inbox: ${createdInbox}`;
     }
@@ -469,7 +472,7 @@ export default async function handler(req, res) {
       status: (sendTokens.length > 0 && failureCount === 0) ? 'success' : (successCount > 0 ? 'partial' : (sendTokens.length === 0 ? 'success' : 'failed')),
       summary: finalSummary,
       details: details.slice(0, 500),
-      executor: 'admin'
+      executor: reqExecutor || 'admin'
     });
   } catch (logErr) {
     console.error("Error saving audit log for notification:", logErr);

@@ -231,6 +231,18 @@ export default async function handler(req, res) {
                 const isEmailEnabled = messagingCfg.emailEnabled && channels.includes('email');
 
                 if (isPushEnabled || isEmailEnabled) {
+                    // Executor for Audit Logs
+                    let executor = 'admin';
+                    if (authHeader && authHeader.startsWith("Bearer ")) {
+                        const token = authHeader.split("Bearer ")[1];
+                        try {
+                            const decoded = await getAuth().verifyIdToken(token);
+                            executor = decoded.email || decoded.uid || 'admin';
+                        } catch (e) {
+                            console.error("Executor extraction error (redemption):", e.message);
+                        }
+                    }
+
                     // Prioritize CURRENT HOST to bypass Vercel Deployment Protection
                     const currentHost = req.headers.host;
                     const baseUrl = currentHost ? `https://${currentHost}` : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
@@ -252,6 +264,7 @@ export default async function handler(req, res) {
                                     title: '¡Canje Exitoso! 🎁',
                                     body: result.unifiedMsg,
                                     icon: config.logoUrl || '/logo.png',
+                                    points: -pointsNeeded, executor,
                                     extraData: { skipInbox: true, source: 'redemption' }
                                 })
                             }).catch(err => console.error("Push redemption error:", err))
@@ -265,6 +278,7 @@ export default async function handler(req, res) {
                                 headers: { 'Content-Type': 'application/json', ...internalAuth },
                                 body: JSON.stringify({
                                     to: clientData.email || clientData.correo,
+                                    points: -pointsNeeded, executor,
                                     templateId: 'manual_override',
                                     templateData: {
                                         subject: '¡Canje Exitoso! 🎁',

@@ -102,63 +102,65 @@ export const ClientInboxPage = () => {
         >
             {/* Header - Sticky Header */}
             <div
-                className="bg-white px-4 py-4 sticky z-20 shadow-sm border-b border-gray-100 flex items-center justify-between transition-all"
+                className="bg-white/95 backdrop-blur-sm px-4 py-4 sticky z-[40] shadow-sm border-b border-gray-100 flex items-center justify-between transition-all"
                 style={{ top: `var(--pwa-padding-top, 0px)` }}
             >
                 <div className="flex items-center gap-3">
                     <button onClick={() => navigate(-1)} className="text-gray-500 hover:text-gray-800 p-1">
                         <ChevronLeft size={24} />
                     </button>
-                    <h1 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                        <Bell className="text-purple-600" size={20} /> Mis Mensajes
-                    </h1>
+                    <h1 className="text-2xl font-bold text-gray-800">Mensajes</h1>
                 </div>
-                {messages.some(m => !m.read) && (
-                    <button
-                        onClick={markAllRead}
-                        className="text-xs font-bold text-purple-600 bg-purple-50 px-3 py-1.5 rounded-full hover:bg-purple-100 transition"
-                    >
-                        Marcar leídos
-                    </button>
-                )}
+                <div className="bg-purple-50 p-2 rounded-xl text-purple-600">
+                    <Mail size={20} />
+                </div>
             </div>
-
-            {/* List */}
-            <div className="p-4 space-y-3">
-                {loading ? (
-                    [...Array(3)].map((_, i) => (
-                        <div key={i} className="bg-white h-24 rounded-2xl shadow-sm animate-pulse"></div>
-                    ))
-                ) : messages.length === 0 ? (
-                    <div className="text-center py-12 text-gray-400">
-                        <div className="bg-gray-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <MailOpen size={32} />
-                        </div>
-                        <p>No tienes mensajes nuevos.</p>
-                    </div>
-                ) : (
-                    messages.map(msg => (
-                        <SwipeableMessage
-                            key={msg.id}
-                            msg={msg}
-                            onDelete={(id) => setMsgToDelete(id)}
-                            onRead={(m) => markAsRead(m)}
-                        />
-                    ))
-                )}
-            </div>
-
-            {/* Confirmation Modal */}
-            <ModernConfirmModal
-                isOpen={!!msgToDelete}
-                title="Eliminar Mensaje"
-                message="¿Estás seguro que deseas borrar este mensaje? Esta acción no se puede deshacer."
-                onConfirm={() => msgToDelete && deleteMessage(msgToDelete)}
-                onCancel={() => setMsgToDelete(null)}
-                confirmText="Sí, eliminar"
-                type="danger"
-            />
+            {messages.some(m => !m.read) && (
+                <button
+                    onClick={markAllRead}
+                    className="text-xs font-bold text-purple-600 bg-purple-50 px-3 py-1.5 rounded-full hover:bg-purple-100 transition"
+                >
+                    Marcar leídos
+                </button>
+            )}
         </div>
+
+            {/* List */ }
+    <div className="p-4 space-y-3">
+        {loading ? (
+            [...Array(3)].map((_, i) => (
+                <div key={i} className="bg-white h-24 rounded-2xl shadow-sm animate-pulse"></div>
+            ))
+        ) : messages.length === 0 ? (
+            <div className="text-center py-12 text-gray-400">
+                <div className="bg-gray-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <MailOpen size={32} />
+                </div>
+                <p>No tienes mensajes nuevos.</p>
+            </div>
+        ) : (
+            messages.map(msg => (
+                <SwipeableMessage
+                    key={msg.id}
+                    msg={msg}
+                    onDelete={(id) => setMsgToDelete(id)}
+                    onRead={(m) => markAsRead(m)}
+                />
+            ))
+        )}
+    </div>
+
+    {/* Confirmation Modal */ }
+    <ModernConfirmModal
+        isOpen={!!msgToDelete}
+        title="Eliminar Mensaje"
+        message="¿Estás seguro que deseas borrar este mensaje? Esta acción no se puede deshacer."
+        onConfirm={() => msgToDelete && deleteMessage(msgToDelete)}
+        onCancel={() => setMsgToDelete(null)}
+        confirmText="Sí, eliminar"
+        type="danger"
+    />
+        </div >
     );
 };
 

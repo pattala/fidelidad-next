@@ -57,9 +57,9 @@ export const ClientRewardsPage = () => {
             style={{ paddingTop: `var(--pwa-padding-top, 0px)` }}
         >
 
-            {/* Header - Sticks below layout header if needed */}
+            {/* Header - Fixed header with sticky top */}
             <div
-                className="bg-white px-4 pt-4 pb-2 sticky z-20 shadow-sm border-b border-gray-100 transition-all"
+                className="bg-white/95 backdrop-blur-sm px-4 pt-4 pb-2 sticky z-[40] shadow-sm border-b border-gray-100 transition-all"
                 style={{ top: `var(--pwa-padding-top, 0px)` }}
             >
                 <div className="flex justify-between items-end mb-4">
@@ -72,7 +72,6 @@ export const ClientRewardsPage = () => {
                         <span className="text-sm font-black text-purple-700">{userPoints}</span>
                     </div>
                 </div>
-
             </div>
 
             {/* Catalog Grid */}

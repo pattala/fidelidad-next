@@ -40,7 +40,7 @@ export const ClientPromosPage = () => {
         >
             {/* Header - Fixed header with sticky top */}
             <div
-                className="bg-white px-4 pt-4 pb-2 shadow-sm border-b border-gray-100 sticky z-20 transition-all"
+                className="bg-white/95 backdrop-blur-sm px-4 pt-4 pb-2 shadow-sm border-b border-gray-100 sticky z-[40] transition-all"
                 style={{ top: `var(--pwa-padding-top, 0px)` }}
             >
                 <div className="flex items-center gap-2">
@@ -48,11 +48,11 @@ export const ClientPromosPage = () => {
                         onClick={() => navigate(-1)}
                         className="w-8 h-8 flex items-center justify-center bg-gray-50 rounded-full text-gray-600 active:scale-90 transition shadow-inner"
                     >
-                        <ArrowLeft size={18} />
+                        <ChevronLeft size={20} />
                     </button>
-                    <div className="flex flex-col">
-                        <h1 className="text-[17px] font-black uppercase tracking-tight text-[#4a148c] leading-none">Todas las Promos</h1>
-                        <p className="text-[9px] text-gray-400 font-bold mt-0.5 uppercase tracking-widest">Vigentes ahora</p>
+                    <div>
+                        <h1 className="text-sm font-black text-gray-800 uppercase tracking-tight">Todas las Promos</h1>
+                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest leading-none">Vigentes ahora</p>
                     </div>
                 </div>
             </div>

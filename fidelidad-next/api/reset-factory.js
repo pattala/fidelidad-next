@@ -232,6 +232,10 @@ export default async function handler(req, res) {
                 results.legales_reseteados = true;
             }
 
+            if (options.audit_total) {
+                results.audit_logs_borrados = await deleteByQueryPaged(db, () => db.collection('audit_logs').limit(500));
+            }
+
             return res.status(200).json({ ok: true, message: "Reset completado con éxito.", results });
         }
 

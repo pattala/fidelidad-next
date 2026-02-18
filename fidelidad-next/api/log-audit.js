@@ -49,6 +49,26 @@ export default async function handler(req, res) {
             executor
         });
 
+        // --- AUTOMATIC LOG ROTATION (Limit: 1000 records) ---
+        // Efficient count and batch delete for maintenance
+        try {
+            const countSnap = await db.collection("audit_logs").count().get();
+            const total = countSnap.data().count;
+            if (total > 1000) {
+                // Delete oldest 100 logs at once to avoid frequent cleanup
+                const oldestLogs = await db.collection("audit_logs")
+                    .orderBy("timestamp", "asc")
+                    .limit(100)
+                    .get();
+                const batch = db.batch();
+                oldestLogs.docs.forEach(doc => batch.delete(doc.ref));
+                await batch.commit();
+                console.log(`[log-audit] Pruned ${oldestLogs.size} old logs. Total was ${total}.`);
+            }
+        } catch (pruneErr) {
+            console.error("[log-audit] Pruning error:", pruneErr);
+        }
+
         return res.status(200).json({ ok: true });
     } catch (error) {
         console.error("[log-audit] Error:", error);

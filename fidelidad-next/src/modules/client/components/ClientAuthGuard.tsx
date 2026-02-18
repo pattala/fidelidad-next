@@ -21,7 +21,17 @@ export const ClientAuthGuard = ({ children }: { children: React.ReactNode }) => 
                     const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
 
                     if (!userSnap.exists()) {
-                        console.warn("Authed user has no Firestore document. Logging out.");
+                        // Crucial: Check if it's an admin visiting the PWA side
+                        const adminSnap = await getDoc(doc(db, 'admins', currentUser.uid));
+                        if (adminSnap.exists()) {
+                            // If it's an admin, we allow the session but maybe they don't have a "Client" profile.
+                            // We set the user so they are not redirected to /login, which fixed the "tab jump logout"
+                            setUser(currentUser);
+                            setLoading(false);
+                            return;
+                        }
+
+                        console.warn("Authed user has no Firestore document in users or admins. Logging out.");
                         const { signOut } = await import('firebase/auth');
                         await signOut(auth);
                         setLoading(false);

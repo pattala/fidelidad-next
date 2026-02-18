@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { db } from '../../../lib/firebase';
-import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
-import { Clock, CheckCircle, AlertTriangle, User, MessageCircle, ArrowRight, ChevronDown, ChevronUp, History } from 'lucide-react';
+import { collection, query, orderBy, limit, getDocs, where, startAfter, Timestamp } from 'firebase/firestore';
+import { Clock, CheckCircle, AlertTriangle, User, MessageCircle, ArrowRight, ChevronDown, ChevronUp, History, Search, Calendar, Filter, Loader2 } from 'lucide-react';
 
 interface AuditDetail {
     userId?: string;
@@ -21,29 +21,86 @@ interface AuditLog {
     executor: string;
 }
 
+const PAGE_SIZE = 50;
+
 export const SystemLogsPage = () => {
     const [logs, setLogs] = useState<AuditLog[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
     const [expandedLog, setExpandedLog] = useState<string | null>(null);
 
-    useEffect(() => {
-        const fetchLogs = async () => {
-            try {
-                const q = query(
-                    collection(db, 'audit_logs'),
-                    orderBy('timestamp', 'desc'),
-                    limit(50)
-                );
-                const snap = await getDocs(q);
-                setLogs(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as AuditLog)));
-            } catch (err) {
-                console.error("Error fetching logs:", err);
-            } finally {
-                setLoading(false);
+    // Filters State
+    const [typeFilter, setTypeFilter] = useState('');
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
+
+    // Pagination State
+    const [lastDoc, setLastDoc] = useState<any>(null);
+    const [hasMore, setHasMore] = useState(true);
+
+    const fetchLogs = async (isMore = false) => {
+        if (!isMore) setLoading(true);
+        else setLoadingMore(true);
+
+        try {
+            let constraints: any[] = [orderBy('timestamp', 'desc')];
+
+            if (typeFilter) {
+                constraints.push(where('type', '==', typeFilter));
             }
-        };
+
+            if (startDate) {
+                constraints.push(where('timestamp', '>=', Timestamp.fromDate(new Date(startDate + 'T00:00:00'))));
+            }
+
+            if (endDate) {
+                constraints.push(where('timestamp', '<=', Timestamp.fromDate(new Date(endDate + 'T23:59:59'))));
+            }
+
+            if (isMore && lastDoc) {
+                constraints.push(startAfter(lastDoc));
+            }
+
+            constraints.push(limit(PAGE_SIZE));
+
+            const q = query(collection(db, 'audit_logs'), ...constraints);
+            const snap = await getDocs(q);
+
+            const newLogs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as AuditLog));
+
+            // Client-side search for summary/executor (since Firestore doesn't support full-text easily)
+            const filteredNewLogs = searchQuery
+                ? newLogs.filter(l =>
+                    l.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    l.executor.toLowerCase().includes(searchQuery.toLowerCase())
+                )
+                : newLogs;
+
+            if (isMore) {
+                setLogs(prev => [...prev, ...filteredNewLogs]);
+            } else {
+                setLogs(filteredNewLogs);
+            }
+
+            setLastDoc(snap.docs[snap.docs.length - 1]);
+            setHasMore(snap.docs.length === PAGE_SIZE);
+        } catch (err) {
+            console.error("Error fetching logs:", err);
+        } finally {
+            setLoading(false);
+            setLoadingMore(false);
+        }
+    };
+
+    useEffect(() => {
         fetchLogs();
-    }, []);
+    }, [typeFilter, startDate, endDate]); // Re-fetch on filter change
+
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        fetchLogs();
+    };
 
     const getTypeLabel = (type: string) => {
         switch (type) {
@@ -80,11 +137,92 @@ export const SystemLogsPage = () => {
                     <p className="text-gray-500 text-sm">Historial de procesos automáticos y acciones del servidor</p>
                 </div>
                 <button
-                    onClick={() => window.location.reload()}
+                    onClick={() => fetchLogs()}
                     className="p-2 hover:bg-gray-100 rounded-lg transition text-gray-600"
                 >
                     <History size={20} />
                 </button>
+            </div>
+
+            {/* Filters UI */}
+            <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm space-y-4">
+                <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4 items-end">
+                    <div className="flex-1 space-y-1 w-full">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Buscar en Resumen</label>
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={e => setSearchQuery(e.target.value)}
+                                placeholder="Escribe para buscar..."
+                                className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-100 outline-none text-sm transition"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="w-full md:w-48 space-y-1">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Tipo de Evento</label>
+                        <select
+                            value={typeFilter}
+                            onChange={e => setTypeFilter(e.target.value)}
+                            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-100 outline-none text-sm font-medium text-gray-700"
+                        >
+                            <option value="">Todos los tipos</option>
+                            <option value="expiration_engine">Vencimientos Auto</option>
+                            <option value="points_assignment">Asignación Puntos</option>
+                            <option value="prizes_redemption">Canje Premios</option>
+                            <option value="birthday_engine">Cumpleaños</option>
+                            <option value="whatsapp_notification">WhatsApp Auto</option>
+                            <option value="whatsapp_manual">WhatsApp Manual</option>
+                            <option value="push_notification">Push</option>
+                            <option value="email_notification">Email</option>
+                        </select>
+                    </div>
+
+                    <div className="flex gap-2 w-full md:w-auto">
+                        <div className="flex-1 space-y-1">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Desde</label>
+                            <input
+                                type="date"
+                                value={startDate}
+                                onChange={e => setStartDate(e.target.value)}
+                                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                            />
+                        </div>
+                        <div className="flex-1 space-y-1">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Hasta</label>
+                            <input
+                                type="date"
+                                value={endDate}
+                                onChange={e => setEndDate(e.target.value)}
+                                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                            />
+                        </div>
+                    </div>
+
+                    <button
+                        type="submit"
+                        className="p-2.5 bg-blue-600 text-white rounded-lg hover:bg-black transition-colors shadow-lg shadow-blue-100"
+                    >
+                        <Search size={18} />
+                    </button>
+                    {(typeFilter || startDate || endDate || searchQuery) && (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setTypeFilter('');
+                                setStartDate('');
+                                setEndDate('');
+                                setSearchQuery('');
+                            }}
+                            className="p-2.5 bg-gray-100 text-gray-500 rounded-lg hover:bg-gray-200 transition-colors"
+                            title="Limpiar filtros"
+                        >
+                            <Filter size={18} />
+                        </button>
+                    )}
+                </form>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -167,6 +305,17 @@ export const SystemLogsPage = () => {
                                 )}
                             </div>
                         ))}
+                        {hasMore && (
+                            <div className="p-4 border-t border-gray-50 bg-gray-50/30">
+                                <button
+                                    onClick={() => fetchLogs(true)}
+                                    disabled={loadingMore}
+                                    className="w-full py-3 flex items-center justify-center gap-2 text-sm font-bold text-blue-600 hover:text-blue-800 transition"
+                                >
+                                    {loadingMore ? <Loader2 className="animate-spin" size={18} /> : 'Cargar más registros'}
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

@@ -34,9 +34,16 @@ export const ClientPromosPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 font-sans pb-28">
+    return (
+        <div
+            className="min-h-screen bg-gray-50 font-sans pb-28"
+            style={{ paddingTop: `var(--pwa-padding-top, 0px)` }}
+        >
             {/* Header - Fixed header with sticky top */}
-            <div className="bg-white px-4 pt-4 pb-2 shadow-sm border-b border-gray-100 sticky top-0 z-20 transition-all">
+            <div
+                className="bg-white px-4 pt-4 pb-2 shadow-sm border-b border-gray-100 sticky z-20 transition-all"
+                style={{ top: `var(--pwa-padding-top, 0px)` }}
+            >
                 <div className="flex items-center gap-2">
                     <button
                         onClick={() => navigate(-1)}
@@ -52,10 +59,7 @@ export const ClientPromosPage = () => {
             </div>
 
             {/* List - Follows scroll */}
-            <div
-                className="px-4 pb-4 space-y-3"
-                style={{ paddingTop: `var(--pwa-padding-top, 12px)` }}
-            >
+            <div className="px-4 pb-4 space-y-3">
                 {loading ? (
                     <div className="space-y-4 animate-pulse">
                         <div className="h-32 bg-gray-200 rounded-2xl w-full"></div>

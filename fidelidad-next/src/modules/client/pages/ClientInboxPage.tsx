@@ -96,9 +96,15 @@ export const ClientInboxPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-28 animate-fade-in">
+        <div
+            className="min-h-screen bg-gray-50 pb-28 animate-fade-in"
+            style={{ paddingTop: `var(--pwa-padding-top, 0px)` }}
+        >
             {/* Header - Sticky Header */}
-            <div className="bg-white px-4 py-4 sticky top-0 z-20 shadow-sm border-b border-gray-100 flex items-center justify-between transition-all">
+            <div
+                className="bg-white px-4 py-4 sticky z-20 shadow-sm border-b border-gray-100 flex items-center justify-between transition-all"
+                style={{ top: `var(--pwa-padding-top, 0px)` }}
+            >
                 <div className="flex items-center gap-3">
                     <button onClick={() => navigate(-1)} className="text-gray-500 hover:text-gray-800 p-1">
                         <ChevronLeft size={24} />
@@ -118,10 +124,7 @@ export const ClientInboxPage = () => {
             </div>
 
             {/* List */}
-            <div
-                className="p-4 space-y-3"
-                style={{ paddingTop: `var(--pwa-padding-top, 12px)` }}
-            >
+            <div className="p-4 space-y-3">
                 {loading ? (
                     [...Array(3)].map((_, i) => (
                         <div key={i} className="bg-white h-24 rounded-2xl shadow-sm animate-pulse"></div>

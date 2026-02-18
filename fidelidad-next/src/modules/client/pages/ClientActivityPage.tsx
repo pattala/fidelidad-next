@@ -79,9 +79,16 @@ export const ClientActivityPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-28">
+    return (
+        <div
+            className="min-h-screen bg-gray-50 pb-28"
+            style={{ paddingTop: `var(--pwa-padding-top, 0px)` }}
+        >
             {/* Header - Fixed header with sticky top */}
-            <div className="bg-white px-4 pt-4 pb-2 sticky top-0 z-20 shadow-sm border-b border-gray-100 transition-all">
+            <div
+                className="bg-white px-4 pt-4 pb-2 sticky z-20 shadow-sm border-b border-gray-100 transition-all"
+                style={{ top: `var(--pwa-padding-top, 0px)` }}
+            >
                 <div className="flex justify-between items-end mb-4">
                     <div className="flex flex-col">
                         <h1 className="text-2xl font-bold text-gray-800 leading-none">Tu Actividad</h1>
@@ -95,10 +102,7 @@ export const ClientActivityPage = () => {
             </div>
 
             {/* Timeline - Follows the scroll of the main container */}
-            <div
-                className="px-4 pb-4 space-y-3"
-                style={{ paddingTop: `var(--pwa-padding-top, 12px)` }}
-            >
+            <div className="px-4 pb-4 space-y-3">
                 {loading ? (
                     [...Array(3)].map((_, i) => (
                         <div key={i} className="bg-white h-20 rounded-2xl shadow-sm animate-pulse"></div>

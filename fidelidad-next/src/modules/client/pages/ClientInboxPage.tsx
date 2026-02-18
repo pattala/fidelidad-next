@@ -93,14 +93,10 @@ export const ClientInboxPage = () => {
     };
 
     return (
-        <div
-            className="min-h-screen bg-gray-50 pb-28 animate-fade-in"
-            style={{ paddingTop: `var(--pwa-padding-top, 0px)` }}
-        >
+        <div className="min-h-screen bg-gray-50 pb-28 animate-fade-in">
             {/* Header - Sticky Header */}
             <div
-                className="bg-white/95 backdrop-blur-sm px-4 py-4 sticky z-[40] shadow-sm border-b border-gray-100 flex items-center justify-between transition-all"
-                style={{ top: `var(--pwa-padding-top, 0px)` }}
+                className="bg-white/95 backdrop-blur-sm px-4 py-4 sticky z-[40] shadow-sm border-b border-gray-100 flex items-center justify-between transition-all top-0"
             >
                 <div className="flex items-center gap-3">
                     <button onClick={() => navigate(-1)} className="text-gray-500 hover:text-gray-800 p-1">
@@ -125,7 +121,10 @@ export const ClientInboxPage = () => {
             )}
 
             {/* List */}
-            <div className="p-4 space-y-3">
+            <div
+                className="p-4 space-y-3 transition-all"
+                style={{ paddingTop: `var(--pwa-padding-top, 12px)` }}
+            >
                 {loading ? (
                     <div className="space-y-3">
                         {[...Array(3)].map((_, i) => (

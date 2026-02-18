@@ -52,15 +52,11 @@ export const ClientRewardsPage = () => {
     }, []);
 
     return (
-        <div
-            className="min-h-screen bg-gray-50 pb-28"
-            style={{ paddingTop: `var(--pwa-padding-top, 0px)` }}
-        >
+        <div className="min-h-screen bg-gray-50 pb-28">
 
             {/* Header - Fixed header with sticky top */}
             <div
-                className="bg-white/95 backdrop-blur-sm px-4 pt-4 pb-2 sticky z-[40] shadow-sm border-b border-gray-100 transition-all"
-                style={{ top: `var(--pwa-padding-top, 0px)` }}
+                className="bg-white/95 backdrop-blur-sm px-4 pt-4 pb-2 sticky z-[40] shadow-sm border-b border-gray-100 transition-all top-0"
             >
                 <div className="flex justify-between items-end mb-4">
                     <div className="flex flex-col">
@@ -75,7 +71,10 @@ export const ClientRewardsPage = () => {
             </div>
 
             {/* Catalog Grid */}
-            <div className="px-4 pb-4 grid grid-cols-2 gap-4">
+            <div
+                className="px-4 pb-4 grid grid-cols-2 gap-4 transition-all"
+                style={{ paddingTop: `var(--pwa-padding-top, 12px)` }}
+            >
                 {loading ? (
                     [...Array(4)].map((_, i) => (
                         <div key={i} className="bg-white h-60 rounded-3xl shadow-sm animate-pulse"></div>

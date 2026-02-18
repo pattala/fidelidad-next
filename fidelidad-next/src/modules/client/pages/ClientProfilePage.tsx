@@ -156,10 +156,7 @@ export const ClientProfilePage = () => {
     const qrValue = userData.socioNumber || userData.dni || userAuth?.uid || 'no-id';
 
     return (
-        <div
-            className="min-h-screen bg-gray-50 pb-24 relative"
-            style={{ paddingTop: `var(--pwa-padding-top, 12px)` }}
-        >
+        <div className="min-h-screen bg-gray-50 pb-24 relative">
 
             {/* Header / Cover */}
             <div className="bg-gradient-to-br from-indigo-600 to-purple-700 h-48 relative rounded-b-[3rem] shadow-lg">
@@ -167,7 +164,10 @@ export const ClientProfilePage = () => {
             </div>
 
             {/* Profile Card Overlay */}
-            <div className="-mt-20 px-4 relative z-10">
+            <div
+                className="-mt-20 px-4 relative z-10 transition-all"
+                style={{ paddingTop: `var(--pwa-padding-top, 0px)` }}
+            >
                 <div className="bg-white rounded-3xl shadow-xl p-6 text-center border border-gray-100">
                     <div className="w-24 h-24 bg-indigo-50 rounded-full mx-auto border-4 border-white shadow-md mb-3 flex items-center justify-center text-indigo-400">
                         <UserIcon size={48} strokeWidth={2} />

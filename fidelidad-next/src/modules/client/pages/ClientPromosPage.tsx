@@ -34,14 +34,10 @@ export const ClientPromosPage = () => {
     };
 
     return (
-        <div
-            className="min-h-screen bg-gray-50 font-sans pb-28"
-            style={{ paddingTop: `var(--pwa-padding-top, 0px)` }}
-        >
+        <div className="min-h-screen bg-gray-50 font-sans pb-28">
             {/* Header - Fixed header with sticky top */}
             <div
-                className="bg-white/95 backdrop-blur-sm px-4 pt-4 pb-2 shadow-sm border-b border-gray-100 sticky z-[40] transition-all"
-                style={{ top: `var(--pwa-padding-top, 0px)` }}
+                className="bg-white/95 backdrop-blur-sm px-4 pt-4 pb-2 shadow-sm border-b border-gray-100 sticky z-[40] transition-all top-0"
             >
                 <div className="flex items-center gap-2">
                     <button
@@ -58,7 +54,10 @@ export const ClientPromosPage = () => {
             </div>
 
             {/* List - Follows scroll */}
-            <div className="px-4 pb-4 space-y-3">
+            <div
+                className="px-4 pb-4 space-y-3 transition-all"
+                style={{ paddingTop: `var(--pwa-padding-top, 12px)` }}
+            >
                 {loading ? (
                     <div className="space-y-4 animate-pulse">
                         <div className="h-32 bg-gray-200 rounded-2xl w-full"></div>

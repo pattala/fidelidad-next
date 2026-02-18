@@ -226,7 +226,8 @@ export default async function handler(req, res) {
             // --- WHATSAPP LINK GENERATION (MANUAL TRIGGER) ---
             const isWhatsAppConfigured = messagingCfg.whatsappEnabled && channels.includes('whatsapp');
             if (isWhatsAppConfigured) {
-                const cleanPhone = (cData.phone || '').replace(/\D/g, '');
+                // Robust phone check: phone (Auth) or telefono (Firestore)
+                const cleanPhone = (cData.phone || cData.telefono || '').replace(/\D/g, '');
                 if (cleanPhone.length >= 8) {
                     const encodedMsg = encodeURIComponent(unifiedMsg);
                     result.whatsappLink = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedMsg}`;
@@ -285,7 +286,8 @@ export default async function handler(req, res) {
 
                 // Prioritize CURRENT HOST to bypass Vercel Deployment Protection
                 const currentHost = req.headers.host;
-                const baseUrl = currentHost ? `https://${currentHost}` : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+                const proto = req.headers['x-forwarded-proto'] || 'https';
+                const baseUrl = currentHost ? `${proto}://${currentHost}` : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
                 const SECRET = (process.env.API_SECRET_KEY || process.env.MI_API_SECRET || process.env.VITE_API_KEY || "").trim();
                 const internalAuth = {

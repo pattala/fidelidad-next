@@ -34,7 +34,6 @@ export const ClientPromosPage = () => {
     };
 
     return (
-    return (
         <div
             className="min-h-screen bg-gray-50 font-sans pb-28"
             style={{ paddingTop: `var(--pwa-padding-top, 0px)` }}

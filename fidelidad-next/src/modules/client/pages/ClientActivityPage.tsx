@@ -79,7 +79,6 @@ export const ClientActivityPage = () => {
     };
 
     return (
-    return (
         <div
             className="min-h-screen bg-gray-50 pb-28"
             style={{ paddingTop: `var(--pwa-padding-top, 0px)` }}

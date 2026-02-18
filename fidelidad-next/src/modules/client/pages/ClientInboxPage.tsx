@@ -79,6 +79,24 @@ export const ClientInboxPage = () => {
         await batch.commit();
     };
 
+    const deleteAllMessages = async () => {
+        const user = auth.currentUser;
+        if (!user || messages.length === 0) return;
+
+        try {
+            const batch = writeBatch(db);
+            messages.forEach(msg => {
+                const ref = doc(db, `users/${user.uid}/inbox`, msg.id);
+                batch.delete(ref);
+            });
+            await batch.commit();
+        } catch (error) {
+            console.error("Error deleting all", error);
+        }
+    };
+
+    const [isBulkDeleteConfirmOpen, setIsBulkDeleteConfirmOpen] = useState(false);
+
     const deleteMessage = async (id: string) => {
         const user = auth.currentUser;
         if (!user) return;
@@ -96,29 +114,42 @@ export const ClientInboxPage = () => {
         <div className="min-h-screen bg-gray-50 pb-28 animate-fade-in">
             {/* Header - Sticky Header */}
             <div
-                className="bg-white/95 backdrop-blur-sm px-4 py-4 sticky z-[40] shadow-sm border-b border-gray-100 flex items-center justify-between transition-all top-0"
+                className="bg-white/95 backdrop-blur-sm px-4 pt-4 pb-3 sticky z-[40] shadow-sm border-b border-gray-100 transition-all top-0"
             >
-                <div className="flex items-center gap-3">
-                    <button onClick={() => navigate(-1)} className="text-gray-500 hover:text-gray-800 p-1">
-                        <ChevronLeft size={24} />
-                    </button>
-                    <h1 className="text-2xl font-bold text-gray-800">Mensajes</h1>
+                <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                        <button onClick={() => navigate(-1)} className="text-gray-500 hover:text-gray-800 p-1">
+                            <ChevronLeft size={24} />
+                        </button>
+                        <h1 className="text-2xl font-bold text-gray-800">Mensajes</h1>
+                    </div>
+                    <div className="bg-purple-50 p-2 rounded-xl text-purple-600">
+                        <Mail size={20} />
+                    </div>
                 </div>
-                <div className="bg-purple-50 p-2 rounded-xl text-purple-600">
-                    <Mail size={20} />
+
+                {/* Bulk Actions Row */}
+                <div className="flex items-center gap-2">
+                    {messages.some(m => !m.read) && (
+                        <button
+                            onClick={markAllRead}
+                            className="text-[10px] font-black uppercase tracking-wider text-purple-600 bg-purple-50 px-3 py-1.5 rounded-full hover:bg-purple-100 transition shadow-sm border border-purple-100"
+                        >
+                            Marcar leídos
+                        </button>
+                    )}
+                    {messages.length > 0 && (
+                        <button
+                            onClick={() => setIsBulkDeleteConfirmOpen(true)}
+                            className="text-[10px] font-black uppercase tracking-wider text-red-600 bg-red-50 px-3 py-1.5 rounded-full hover:bg-red-100 transition shadow-sm border border-red-100 flex items-center gap-1.5"
+                        >
+                            <Trash2 size={12} />
+                            Borrar todos
+                        </button>
+                    )}
                 </div>
             </div>
 
-            {messages.some(m => !m.read) && (
-                <div className="px-4 pt-4">
-                    <button
-                        onClick={markAllRead}
-                        className="text-xs font-bold text-purple-600 bg-purple-50 px-3 py-1.5 rounded-full hover:bg-purple-100 transition shadow-sm border border-purple-100"
-                    >
-                        Marcar todos como leídos
-                    </button>
-                </div>
-            )}
 
             {/* List */}
             <div
@@ -152,7 +183,7 @@ export const ClientInboxPage = () => {
                 )}
             </div>
 
-            {/* Confirmation Modal */}
+            {/* Confirmation Modal - Single Delete */}
             <ModernConfirmModal
                 isOpen={!!msgToDelete}
                 title="Eliminar Mensaje"
@@ -160,6 +191,20 @@ export const ClientInboxPage = () => {
                 onConfirm={() => msgToDelete && deleteMessage(msgToDelete)}
                 onCancel={() => setMsgToDelete(null)}
                 confirmText="Sí, eliminar"
+                type="danger"
+            />
+
+            {/* Confirmation Modal - Bulk Delete */}
+            <ModernConfirmModal
+                isOpen={isBulkDeleteConfirmOpen}
+                title="Limpiar Inbox"
+                message={`¿Estás seguro que deseas eliminar los ${messages.length} mensajes? Esta acción no se puede deshacer.`}
+                onConfirm={() => {
+                    deleteAllMessages();
+                    setIsBulkDeleteConfirmOpen(false);
+                }}
+                onCancel={() => setIsBulkDeleteConfirmOpen(false)}
+                confirmText="Sí, borrar todo"
                 type="danger"
             />
         </div>

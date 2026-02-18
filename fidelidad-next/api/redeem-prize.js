@@ -135,8 +135,12 @@ export default async function handler(req, res) {
             const messagingCfg = config.messaging || {};
             const event = 'redemption';
             const templates = messagingCfg.templates || {};
-            const eventConfig = messagingCfg.eventConfigs?.[event];
-            const channels = eventConfig?.channels || [];
+            // Default to ALL channels if config is missing
+            const eventConfig = messagingCfg.eventConfigs?.[event] || { channels: ['whatsapp', 'push', 'email', 'inbox'] };
+            const channels = eventConfig.channels || ['whatsapp', 'push', 'email', 'inbox'];
+
+            // Default enabled unless explicitly set to false
+            const whatsappEnabled = messagingCfg.whatsappEnabled !== false;
 
             const firstName = (cData.name || cData.nombre || '').split(' ')[0];
             const shortCode = prizeId.substring(0, 4).toUpperCase();
@@ -224,7 +228,7 @@ export default async function handler(req, res) {
             result = { ok: true, pointsRedeemed: pointsNeeded, newBalance: newTotalPoints, unifiedMsg };
 
             // --- WHATSAPP LINK GENERATION (MANUAL TRIGGER) ---
-            const isWhatsAppConfigured = messagingCfg.whatsappEnabled && channels.includes('whatsapp');
+            const isWhatsAppConfigured = whatsappEnabled && channels.includes('whatsapp');
             if (isWhatsAppConfigured) {
                 // Robust phone check: phone (Auth) or telefono (Firestore)
                 const cleanPhone = (cData.phone || cData.telefono || '').replace(/\D/g, '');
@@ -266,11 +270,11 @@ export default async function handler(req, res) {
         if (result.ok) {
             try {
                 const messagingCfg = config.messaging || {};
-                const eventConfig = messagingCfg.eventConfigs?.['redemption'];
-                const channels = eventConfig?.channels || [];
+                const eventConfig = messagingCfg.eventConfigs?.['redemption'] || { channels: ['whatsapp', 'push', 'email', 'inbox'] };
+                const channels = eventConfig.channels || ['whatsapp', 'push', 'email', 'inbox'];
 
-                const isPushConfigured = messagingCfg.pushEnabled && channels.includes('push');
-                const isEmailConfigured = messagingCfg.emailEnabled && channels.includes('email');
+                const isPushConfigured = (messagingCfg.pushEnabled !== false) && channels.includes('push');
+                const isEmailConfigured = (messagingCfg.emailEnabled !== false) && channels.includes('email');
 
                 // Executor for Audit Logs
                 let executor = 'admin';

@@ -412,11 +412,18 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
                                                     {item.concept}
                                                 </span>
                                                 {/* Detalle para Canjes (Debito) */}
-                                                {item.details && (
-                                                    <span className="text-[10px] text-gray-500 italic mt-0.5 break-words max-w-[200px]">
-                                                        {item.details}
-                                                    </span>
-                                                )}
+                                                <div className="flex flex-wrap gap-1 items-center mt-1">
+                                                    {item.redemptionCode && (
+                                                        <span className="text-[9px] font-black bg-pink-100 text-pink-600 px-1.5 py-0.5 rounded border border-pink-200">
+                                                            CÓDIGO: {item.redemptionCode}
+                                                        </span>
+                                                    )}
+                                                    {item.details && (
+                                                        <span className="text-[10px] text-gray-400 italic break-words max-w-[200px]">
+                                                            {item.details}
+                                                        </span>
+                                                    )}
+                                                </div>
 
                                                 {/* Estado del Lote (Crédito) */}
                                                 {item.type === 'credit' && (

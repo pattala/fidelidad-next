@@ -556,6 +556,13 @@ export const DashboardPage = () => {
                                     <p className="text-[11px] text-gray-400 font-medium max-w-[200px] sm:max-w-xs md:max-w-md line-clamp-1" title={item.concept}>
                                         {item.concept}
                                     </p>
+                                    {item.redemptionCode && (
+                                        <div className="flex justify-end mt-0.5">
+                                            <span className="text-[8px] font-black bg-pink-50 text-pink-600 px-1 rounded border border-pink-100 uppercase">
+                                                Cód: {item.redemptionCode}
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         ))

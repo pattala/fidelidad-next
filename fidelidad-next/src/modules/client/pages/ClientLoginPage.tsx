@@ -155,9 +155,30 @@ export const ClientLoginPage = () => {
                         </div>
 
                         <div className="text-right">
-                            <a href="#" className="text-xs font-bold text-purple-600 hover:underline">
+                            <button
+                                type="button"
+                                onClick={async () => {
+                                    if (!email) {
+                                        toast.error('Por favor escribe tu email arriba primero.');
+                                        return;
+                                    }
+                                    const toastId = toast.loading('Enviando email de recuperación...');
+                                    try {
+                                        const { sendPasswordResetEmail } = await import('firebase/auth');
+                                        await sendPasswordResetEmail(auth, email);
+                                        toast.success('¡Email enviado! Revisa tu bandeja de entrada.', { id: toastId });
+                                    } catch (e: any) {
+                                        if (e.code === 'auth/user-not-found') {
+                                            toast.error('No existe ninguna cuenta vinculada a este email.', { id: toastId });
+                                        } else {
+                                            toast.error('Error al enviar: ' + e.message, { id: toastId });
+                                        }
+                                    }
+                                }}
+                                className="text-xs font-bold text-purple-600 hover:underline"
+                            >
                                 ¿Olvidaste tu clave?
-                            </a>
+                            </button>
                         </div>
 
                         <button

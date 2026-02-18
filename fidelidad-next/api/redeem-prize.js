@@ -131,7 +131,15 @@ export default async function handler(req, res) {
             }
 
             const historyDescription = batchesUsed.length > 0 ? `(Tomados: ${batchesUsed.join(', ')})` : '';
-            const newTotalPoints = Number(cData.points || cData.puntos || 0) - pointsNeeded;
+            // --- NOTIFICACIONES ---
+            const messagingCfg = config.messaging || {};
+            const event = 'redemption';
+            const templates = messagingCfg.templates || {};
+            const eventConfig = messagingCfg.eventConfigs?.[event];
+            const channels = eventConfig?.channels || [];
+
+            const firstName = (cData.name || cData.nombre || '').split(' ')[0];
+            const shortCode = prizeId.substring(0, 4).toUpperCase();
 
             // Update User
             tx.update(cSnap.ref, {
@@ -141,14 +149,15 @@ export default async function handler(req, res) {
                     fechaCanje: admin.firestore.Timestamp.fromDate(now),
                     nombrePremio: pData.name,
                     puntosCoste: pointsNeeded,
-                    prizeId: prizeId
+                    prizeId: prizeId,
+                    redemptionCode: shortCode
                 }),
                 historialPuntos: admin.firestore.FieldValue.arrayUnion({
                     fechaObtencion: admin.firestore.Timestamp.fromDate(now),
                     puntosObtenidos: -pointsNeeded,
                     puntosDisponibles: 0,
                     diasCaducidad: 0,
-                    origen: `Canje: ${pData.name}`,
+                    origen: `Canje: ${pData.name} (${shortCode})`,
                     estado: 'Canjeado'
                 }),
                 updatedAt: admin.firestore.FieldValue.serverTimestamp()
@@ -164,6 +173,7 @@ export default async function handler(req, res) {
             tx.set(debitRef, {
                 amount: -pointsNeeded,
                 concept: `Canje: ${pData.name}`,
+                redemptionCode: shortCode,
                 details: historyDescription,
                 date: admin.firestore.Timestamp.fromDate(now),
                 type: 'debit',
@@ -183,22 +193,14 @@ export default async function handler(req, res) {
                 redeemedValue: pData.cashValue || 0,
                 type: 'debit',
                 reason: 'redemption',
-                concept: `Canje: ${pData.name}`,
+                redemptionCode: shortCode,
+                concept: `Canje: ${pData.name} (${shortCode})`,
                 prizeId: prizeId,
                 date: admin.firestore.Timestamp.fromDate(now),
                 createdAt: admin.firestore.FieldValue.serverTimestamp()
             });
 
-            // --- NOTIFICACIONES ---
-            const messagingCfg = config.messaging || {};
-            const event = 'redemption';
-            const templates = messagingCfg.templates || {};
-            const eventConfig = messagingCfg.eventConfigs?.[event];
-            const channels = eventConfig?.channels || [];
-
             let unifiedMsg = templates[event] || "¡Canje exitoso! Canjeaste {premio}. Código: {codigo}";
-            const firstName = (cData.name || cData.nombre || '').split(' ')[0];
-            const shortCode = prizeId.substring(0, 4).toUpperCase();
 
             unifiedMsg = unifiedMsg.replace(/{nombre}/g, firstName)
                 .replace(/{nombre_completo}/g, cData.name || cData.nombre || '')
@@ -212,6 +214,7 @@ export default async function handler(req, res) {
                 title: '¡Canje Exitoso! 🎁',
                 body: unifiedMsg,
                 type: 'redemption',
+                redemptionCode: shortCode,
                 date: admin.firestore.FieldValue.serverTimestamp(),
                 sentAt: admin.firestore.FieldValue.serverTimestamp(),
                 read: false
@@ -232,7 +235,7 @@ export default async function handler(req, res) {
                     tx.set(auditRef, {
                         type: 'whatsapp_manual',
                         status: 'link_ready',
-                        summary: `Link de WhatsApp preparado para ${cData.name || 'Socio'} (${pData.name})`,
+                        summary: `Link de WhatsApp preparado para ${cData.name || 'Socio'} (${pData.name} - ${shortCode})`,
                         details: [{
                             userId: targetUid,
                             userName: cData.name || 'Socio',
@@ -250,7 +253,7 @@ export default async function handler(req, res) {
                 tx.set(auditRef, {
                     type: 'whatsapp_manual',
                     status: 'skipped',
-                    summary: `WhatsApp OMITIDO para ${cData.name || 'Socio'}: Canal desactivado`,
+                    summary: `WhatsApp OMITIDO para ${cData.name || 'Socio'} (${shortCode}): Canal desactivado`,
                     executor: 'system',
                     timestamp: admin.firestore.FieldValue.serverTimestamp()
                 });

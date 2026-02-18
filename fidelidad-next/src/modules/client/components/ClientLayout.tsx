@@ -208,7 +208,7 @@ export const ClientLayout = () => {
             {/* 3) Main Content Area (Scrollable) */}
             <main
                 className="flex-1 overflow-y-auto pb-10 scrollbar-hide bg-white relative"
-                style={{ paddingTop: headerTitle ? '144px' : '64px' }} // Header(64) + ActionBar(80) or just Header
+                style={{ paddingTop: headerTitle ? '164px' : '84px' }} // Header(64) + ActionBar(80) + Gap(20)
             >
                 <div className="animate-fade-in max-w-md mx-auto">
                     <Outlet context={{ config, setHeaderTitle, setHeaderActions }} />

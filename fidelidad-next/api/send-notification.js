@@ -456,26 +456,41 @@ export default async function handler(req, res) {
       });
     });
 
+    // 3. Guardar Logs Separados
+    const pushDetails = details.filter(d => d.action.startsWith('push_'));
+    const inboxDetails = details.filter(d => d.action === 'inbox_created');
+
     const { points, executor: reqExecutor } = body || {};
     const pointsInfo = points ? ` [${points} pts]` : "";
+    const executorName = reqExecutor || 'admin';
 
-    let finalSummary = `Envío: "${title}"${pointsInfo}. Éxito: ${successCount}, Falla: ${failureCount}`;
-    if (sendTokens.length === 0) {
-      finalSummary = `Ejecutado (Sin Push)${pointsInfo}: No se encontraron tokens FCM. Se crearon ${createdInbox} notificaciones en Inbox.`;
-    } else if (createdInbox > 0) {
-      finalSummary += `. Notificaciones en Inbox: ${createdInbox}`;
+    // A) Log Push (FCM)
+    if (sendTokens.length > 0) {
+      const pushSummary = `Push Enviado: "${title}"${pointsInfo}. Éxito: ${successCount}, Falla: ${failureCount}`;
+      await db.collection('audit_logs').add({
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        type: 'push_notification',
+        status: failureCount === 0 ? 'success' : (successCount > 0 ? 'partial' : 'failed'),
+        summary: pushSummary,
+        details: pushDetails.slice(0, 500),
+        executor: executorName
+      }).catch(e => console.error("Error saving push audit:", e));
     }
 
-    await db.collection('audit_logs').add({
-      timestamp: admin.firestore.FieldValue.serverTimestamp(),
-      type: 'push_notification',
-      status: (sendTokens.length > 0 && failureCount === 0) ? 'success' : (successCount > 0 ? 'partial' : (sendTokens.length === 0 ? 'success' : 'failed')),
-      summary: finalSummary,
-      details: details.slice(0, 500),
-      executor: reqExecutor || 'admin'
-    });
+    // B) Log Inbox
+    if (createdInbox > 0) {
+      const inboxSummary = `Inbox Generado: "${title}"${pointsInfo}. Destinatarios: ${createdInbox}`;
+      await db.collection('audit_logs').add({
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        type: 'inbox_message',
+        status: 'success',
+        summary: inboxSummary,
+        details: inboxDetails.slice(0, 500),
+        executor: executorName
+      }).catch(e => console.error("Error saving inbox audit:", e));
+    }
   } catch (logErr) {
-    console.error("Error saving audit log for notification:", logErr);
+    console.error("Error preparing audit logs:", logErr);
   }
 
   return res.status(200).json({

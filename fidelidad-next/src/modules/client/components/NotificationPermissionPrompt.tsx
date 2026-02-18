@@ -51,7 +51,8 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
             showNotif = true;
         }
 
-        if (showNotif && !notifBlocked) {
+        // Si el navegador dice default, la realidad manda sobre la DB
+        if (showNotif && (!notifBlocked || Notification.permission === 'default')) {
             setStep('notifications');
             return;
         }

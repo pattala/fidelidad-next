@@ -220,8 +220,8 @@ export default async function handler(req, res) {
             result = { ok: true, pointsRedeemed: pointsNeeded, newBalance: newTotalPoints, unifiedMsg };
 
             // --- WHATSAPP LINK GENERATION (MANUAL TRIGGER) ---
-            const isWhatsAppEnabled = messagingCfg.whatsappEnabled && channels.includes('whatsapp');
-            if (isWhatsAppEnabled) {
+            const isWhatsAppConfigured = messagingCfg.whatsappEnabled && channels.includes('whatsapp');
+            if (isWhatsAppConfigured) {
                 const cleanPhone = (cData.phone || '').replace(/\D/g, '');
                 if (cleanPhone.length >= 8) {
                     const encodedMsg = encodeURIComponent(unifiedMsg);
@@ -230,23 +230,30 @@ export default async function handler(req, res) {
                     // Log WhatsApp Audit
                     const auditRef = db.collection('audit_logs').doc();
                     tx.set(auditRef, {
-                        type: 'notification',
-                        event: 'redemption',
-                        channel: 'whatsapp',
-                        status: 'link_generated',
-                        recipient: cData.name || cData.nombre || 'Socio',
-                        recipientInfo: {
-                            uid: targetUid,
-                            phone: cleanPhone,
-                            email: cData.email || cData.correo || 'N/A'
-                        },
-                        content: unifiedMsg,
-                        points: -pointsNeeded,
+                        type: 'whatsapp_manual',
+                        status: 'link_ready',
+                        summary: `Link de WhatsApp preparado para ${cData.name || 'Socio'} (${pData.name})`,
+                        details: [{
+                            userId: targetUid,
+                            userName: cData.name || 'Socio',
+                            action: 'whatsapp_link_generated',
+                            status: 'link_ready',
+                            timestamp: new Date().toISOString()
+                        }],
                         executor: 'system',
-                        timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                        createdAt: admin.firestore.FieldValue.serverTimestamp()
+                        timestamp: admin.firestore.FieldValue.serverTimestamp()
                     });
                 }
+            } else {
+                // Log Skip: WhatsApp Disabled
+                const auditRef = db.collection('audit_logs').doc();
+                tx.set(auditRef, {
+                    type: 'whatsapp_manual',
+                    status: 'skipped',
+                    summary: `WhatsApp OMITIDO para ${cData.name || 'Socio'}: Canal desactivado`,
+                    executor: 'system',
+                    timestamp: admin.firestore.FieldValue.serverTimestamp()
+                });
             }
         });
 
@@ -257,70 +264,86 @@ export default async function handler(req, res) {
                 const eventConfig = messagingCfg.eventConfigs?.['redemption'];
                 const channels = eventConfig?.channels || [];
 
-                const isPushEnabled = messagingCfg.pushEnabled && channels.includes('push');
-                const isEmailEnabled = messagingCfg.emailEnabled && channels.includes('email');
+                const isPushConfigured = messagingCfg.pushEnabled && channels.includes('push');
+                const isEmailConfigured = messagingCfg.emailEnabled && channels.includes('email');
 
-                if (isPushEnabled || isEmailEnabled) {
-                    // Executor for Audit Logs
-                    let executor = 'admin';
-                    if (authHeader && authHeader.startsWith("Bearer ")) {
-                        const token = authHeader.split("Bearer ")[1];
-                        try {
-                            const decoded = await getAuth().verifyIdToken(token);
-                            executor = decoded.email || decoded.uid || 'admin';
-                        } catch (e) {
-                            console.error("Executor extraction error (redemption):", e.message);
-                        }
+                // Executor for Audit Logs
+                let executor = 'admin';
+                if (authHeader && authHeader.startsWith("Bearer ")) {
+                    const token = authHeader.split("Bearer ")[1];
+                    try {
+                        const decoded = await getAuth().verifyIdToken(token);
+                        executor = decoded.email || decoded.uid || 'admin';
+                    } catch (e) {
+                        console.error("Executor extraction error (redemption):", e.message);
                     }
-
-                    // Prioritize CURRENT HOST to bypass Vercel Deployment Protection
-                    const currentHost = req.headers.host;
-                    const baseUrl = currentHost ? `https://${currentHost}` : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
-
-                    const SECRET = (process.env.API_SECRET_KEY || process.env.MI_API_SECRET || process.env.VITE_API_KEY || "").trim();
-                    const internalAuth = {
-                        'x-api-key': SECRET,
-                        'x-api-secret': SECRET
-                    };
-                    const notifications = [];
-
-                    if (isPushEnabled) {
-                        notifications.push(
-                            fetch(`${baseUrl}/api/send-notification`, {
-                                headers: { 'Content-Type': 'application/json', ...internalAuth },
-                                method: 'POST',
-                                body: JSON.stringify({
-                                    clienteId: targetUid,
-                                    title: '¡Canje Exitoso! 🎁',
-                                    body: result.unifiedMsg,
-                                    icon: config.logoUrl || '/logo.png',
-                                    points: -pointsNeeded, executor,
-                                    extraData: { skipInbox: true, source: 'redemption' }
-                                })
-                            }).catch(err => console.error("Push redemption error:", err))
-                        );
-                    }
-
-                    if (isEmailEnabled && (clientData.email || clientData.correo)) {
-                        notifications.push(
-                            fetch(`${baseUrl}/api/send-email`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json', ...internalAuth },
-                                body: JSON.stringify({
-                                    to: clientData.email || clientData.correo,
-                                    points: -pointsNeeded, executor,
-                                    templateId: 'manual_override',
-                                    templateData: {
-                                        subject: '¡Canje Exitoso! 🎁',
-                                        htmlContent: result.unifiedMsg
-                                    }
-                                })
-                            }).catch(err => console.error("Email redemption error:", err))
-                        );
-                    }
-
-                    if (notifications.length > 0) await Promise.allSettled(notifications);
                 }
+
+                // Prioritize CURRENT HOST to bypass Vercel Deployment Protection
+                const currentHost = req.headers.host;
+                const baseUrl = currentHost ? `https://${currentHost}` : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+
+                const SECRET = (process.env.API_SECRET_KEY || process.env.MI_API_SECRET || process.env.VITE_API_KEY || "").trim();
+                const internalAuth = {
+                    'x-api-key': SECRET,
+                    'x-api-secret': SECRET
+                };
+                const notifications = [];
+
+                if (isPushConfigured) {
+                    notifications.push(
+                        fetch(`${baseUrl}/api/send-notification`, {
+                            headers: { 'Content-Type': 'application/json', ...internalAuth },
+                            method: 'POST',
+                            body: JSON.stringify({
+                                clienteId: targetUid,
+                                title: '¡Canje Exitoso! 🎁',
+                                body: result.unifiedMsg,
+                                icon: config.logoUrl || '/logo.png',
+                                points: -pointsNeeded, executor,
+                                extraData: { skipInbox: true, source: 'redemption' }
+                            })
+                        }).catch(err => console.error("Push redemption error:", err))
+                    );
+                } else {
+                    // Log Push Skip
+                    await db.collection('audit_logs').add({
+                        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                        type: 'push_notification',
+                        status: 'skipped',
+                        summary: `Push OMITIDO para ${clientData.name || 'Socio'}: Canal desactivado`,
+                        executor
+                    }).catch(e => { });
+                }
+
+                if (isEmailConfigured && (clientData.email || clientData.correo)) {
+                    notifications.push(
+                        fetch(`${baseUrl}/api/send-email`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', ...internalAuth },
+                            body: JSON.stringify({
+                                to: clientData.email || clientData.correo,
+                                points: -pointsNeeded, executor,
+                                templateId: 'manual_override',
+                                templateData: {
+                                    subject: '¡Canje Exitoso! 🎁',
+                                    htmlContent: result.unifiedMsg
+                                }
+                            })
+                        }).catch(err => console.error("Email redemption error:", err))
+                    );
+                } else if (clientData.email || clientData.correo) {
+                    // Log Email Skip
+                    await db.collection('audit_logs').add({
+                        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                        type: 'email_notification',
+                        status: 'skipped',
+                        summary: `Email OMITIDO para ${clientData.name || 'Socio'}: Canal desactivado`,
+                        executor
+                    }).catch(e => { });
+                }
+
+                if (notifications.length > 0) await Promise.allSettled(notifications);
             } catch (err) {
                 console.error("Error triggering redemption notifications:", err);
             }

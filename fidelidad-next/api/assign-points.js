@@ -473,14 +473,14 @@ export default async function handler(req, res) {
             }
 
             // WhatsApp Logic (Generation for Panel)
-            if (applyWhatsApp && points > 0) {
-                const event = 'pointsAdded';
-                const templates = messagingCfg.templates || {};
-                const eventConfig = messagingCfg.eventConfigs?.[event];
-                const channels = eventConfig?.channels || [];
-                const isWhatsAppEnabled = channels.includes('whatsapp');
+            const event = 'pointsAdded';
+            const templates = messagingCfg.templates || {};
+            const eventConfig = messagingCfg.eventConfigs?.[event];
+            const channels = eventConfig?.channels || [];
+            const isWhatsAppConfigured = messagingCfg.whatsappEnabled && channels.includes('whatsapp');
 
-                if (isWhatsAppEnabled) {
+            if (applyWhatsApp && points > 0) {
+                if (isWhatsAppConfigured) {
                     let waMsg = templates[event] || "¡Sumaste {puntos} puntos! Tu saldo actual es {saldo}.";
                     const fullName = result.guestData.name || 'Cliente';
                     const firstName = fullName.split(' ')[0];
@@ -494,39 +494,59 @@ export default async function handler(req, res) {
                     const phone = (result.guestData.phone || '').replace(/\D/g, '');
                     if (phone.length >= 8) {
                         result.whatsappLink = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(waMsg.trim())}`;
-                    }
 
-                    // Audit Log (Manual)
+                        // Audit Log (Manual)
+                        try {
+                            await db.collection('audit_logs').add({
+                                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                                type: 'whatsapp_manual',
+                                status: 'link_ready',
+                                summary: `Link de WhatsApp preparado para ${result.guestData.name} (${points} pts)`,
+                                details: [{
+                                    userId: targetUid,
+                                    userName: result.guestData.name,
+                                    points,
+                                    action: 'whatsapp_link_generated',
+                                    status: 'link_ready',
+                                    timestamp: new Date().toISOString()
+                                }],
+                                executor
+                            });
+                        } catch (waErr) {
+                            console.error("WhatsApp audit error:", waErr);
+                        }
+                    }
+                } else {
+                    // Log Skip: Config Disabled
                     try {
                         await db.collection('audit_logs').add({
                             timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                            type: 'whatsapp_notification',
-                            status: 'success',
-                            summary: `Link de WhatsApp generado para ${result.guestData.name}: "${points} puntos añadidos"`,
-                            details: [{
-                                userId: targetUid,
-                                userName: result.guestData.name,
-                                points,
-                                action: 'whatsapp_link_generated',
-                                timestamp: new Date().toISOString()
-                            }],
+                            type: 'whatsapp_manual',
+                            status: 'disabled',
+                            summary: `WhatsApp OMITIDO para ${result.guestData.name}: Canal desactivado en configuración`,
+                            details: [{ userId: targetUid, userName: result.guestData.name, action: 'whatsapp_skipped', reason: 'config_disabled' }],
                             executor
                         });
-                    } catch (waErr) {
-                        console.error("WhatsApp audit error:", waErr);
-                    }
+                    } catch (e) { }
                 }
+            } else if (points > 0) {
+                // Log Skip: Not checked in UI
+                try {
+                    await db.collection('audit_logs').add({
+                        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                        type: 'whatsapp_manual',
+                        status: 'skipped',
+                        summary: `WhatsApp OMITIDO para ${result.guestData.name}: Checkbox sin marcar`,
+                        details: [{ userId: targetUid, userName: result.guestData.name, action: 'whatsapp_skipped', reason: 'checkbox_off' }],
+                        executor
+                    });
+                } catch (e) { }
             }
 
             const notifications = [];
 
             // --- 6.1 NOTIFICACIÓN AL CLIENTE (INVITADO) ---
             if (points > 0) {
-                const event = 'pointsAdded';
-                const templates = messagingCfg.templates || {};
-                const eventConfig = messagingCfg.eventConfigs?.[event];
-                const channels = eventConfig?.channels || [];
-
                 let unifiedMsg = templates[event] || "¡Sumaste {puntos} puntos! Tu saldo actual es {saldo}.";
                 const fullName = result.guestData.name || 'Cliente';
                 const firstName = fullName.split(' ')[0];
@@ -537,10 +557,10 @@ export default async function handler(req, res) {
                     .replace(/{saldo}/g, (result.newBalance || 0).toString())
                     .replace(/{siteName}/g, config.siteName || 'Club Fidelidad');
 
-                const isPushEnabled = messagingCfg.pushEnabled && channels.includes('push');
-                const isEmailEnabled = messagingCfg.emailEnabled && channels.includes('email');
+                const isPushConfigured = messagingCfg.pushEnabled && channels.includes('push');
+                const isEmailConfigured = messagingCfg.emailEnabled && channels.includes('email');
 
-                if (isPushEnabled) {
+                if (isPushConfigured) {
                     notifications.push(
                         fetch(`${baseUrl}/api/send-notification`, {
                             method: 'POST',
@@ -553,9 +573,18 @@ export default async function handler(req, res) {
                             })
                         }).catch(err => console.error("Push error (guest):", err))
                     );
+                } else {
+                    // Log Push Skip
+                    await db.collection('audit_logs').add({
+                        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                        type: 'push_notification',
+                        status: 'skipped',
+                        summary: `Push OMITIDO para ${result.guestData.name}: Canal desactivado`,
+                        executor
+                    }).catch(e => { });
                 }
 
-                if (isEmailEnabled && result.guestData.email) {
+                if (isEmailConfigured && result.guestData.email) {
                     notifications.push(
                         fetch(`${baseUrl}/api/send-email`, {
                             method: 'POST',
@@ -568,6 +597,15 @@ export default async function handler(req, res) {
                             })
                         }).catch(err => console.error("Email error (guest):", err))
                     );
+                } else if (result.guestData.email) {
+                    // Log Email Skip
+                    await db.collection('audit_logs').add({
+                        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                        type: 'email_notification',
+                        status: 'skipped',
+                        summary: `Email OMITIDO para ${result.guestData.name}: Canal desactivado`,
+                        executor
+                    }).catch(e => { });
                 }
             }
 

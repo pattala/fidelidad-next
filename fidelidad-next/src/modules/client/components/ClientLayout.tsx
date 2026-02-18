@@ -186,9 +186,12 @@ export const ClientLayout = () => {
                 </div>
             </header>
 
+            {/* Banner Blanco de Transición (Serious Design) */}
+            <div className="flex-none h-8 bg-white rounded-t-[2.5rem] -mt-8 relative z-[60] shadow-[0_-8px_30px_rgba(0,0,0,0.05)]" />
+
             {/* 2) Main Content Area (Scrollable) */}
-            <main className="flex-1 overflow-y-auto pb-6 scrollbar-hide">
-                <div className="animate-fade-in">
+            <main className="flex-1 overflow-y-auto pb-10 scrollbar-hide bg-white relative z-10 -mt-1">
+                <div className="animate-fade-in max-w-md mx-auto">
                     <Outlet context={{ config, setHeaderTitle, setHeaderActions }} />
                 </div>
             </main>

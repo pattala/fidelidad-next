@@ -46,12 +46,11 @@ export const ClientPromosPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 font-sans pb-28 animate-fade-in">
+        <div className="bg-white font-sans pb-28 animate-fade-in">
 
             {/* List - Follows scroll */}
             <div
-                className="px-4 pb-4 space-y-3 transition-all"
-                style={{ paddingTop: `var(--pwa-padding-top, 360px)` }}
+                className="px-4 pb-4 space-y-3 transition-all pt-5"
             >
                 {loading ? (
                     <div className="space-y-4 animate-pulse">

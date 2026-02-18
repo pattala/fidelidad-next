@@ -102,12 +102,11 @@ export const ClientActivityPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-28 animate-fade-in">
+        <div className="bg-white pb-28 animate-fade-in">
 
             {/* Timeline - Follows the scroll of the main container */}
             <div
-                className="px-4 pb-4 space-y-3 transition-all"
-                style={{ paddingTop: `var(--pwa-padding-top, 236px)` }}
+                className="px-4 pb-4 space-y-3 transition-all pt-5"
             >
                 {loading ? (
                     [...Array(3)].map((_, i) => (

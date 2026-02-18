@@ -50,12 +50,22 @@ export const SystemLogsPage = () => {
             case 'expiration_engine': return 'Motor de Vencimientos (Auto)';
             case 'manual_expiration': return 'Revisión Manual (Admin)';
             case 'birthday_engine': return 'Proceso de Cumpleaños';
-            case 'push_notification': return 'Envío de Notificaciones';
+            case 'push_notification': return 'Notificación Push';
+            case 'email_notification': return 'Correo Electrónico';
+            case 'whatsapp_notification': return 'WhatsApp (Auto)';
+            case 'whatsapp_manual': return 'WhatsApp (Manual)';
+            case 'points_assignment': return 'Asignación de Puntos';
+            case 'prizes_redemption': return 'Canje de Premio';
             default: return type.replace(/_/g, ' ');
         }
     };
 
     const getStatusIcon = (status: string, type?: string) => {
+        if (status === 'skipped') return <Clock size={18} className="text-slate-400" />;
+        if (status === 'disabled') return <AlertTriangle size={18} className="text-orange-400" />;
+        if (status === 'failed') return <AlertTriangle size={18} className="text-red-500" />;
+        if (status === 'link_ready') return <MessageCircle size={18} className="text-blue-500" />;
+
         if (type === 'push_notification') return <MessageCircle size={18} className="text-blue-500" />;
         if (status === 'success') return <CheckCircle size={18} className="text-green-500" />;
         if (status === 'partial') return <AlertTriangle size={18} className="text-amber-500" />;
@@ -97,7 +107,17 @@ export const SystemLogsPage = () => {
                                     <div className="flex-1">
                                         <div className="flex items-center gap-2">
                                             <span className="font-bold text-gray-700 text-sm">{getTypeLabel(log.type)}</span>
-                                            <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-bold uppercase tracking-widest">
+                                            {log.status !== 'success' && (
+                                                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${log.status === 'skipped' ? 'bg-slate-100 text-slate-500' :
+                                                    log.status === 'disabled' ? 'bg-orange-100 text-orange-600' :
+                                                        log.status === 'failed' ? 'bg-red-100 text-red-600' :
+                                                            log.status === 'link_ready' ? 'bg-blue-100 text-blue-600' :
+                                                                'bg-gray-100 text-gray-500'
+                                                    }`}>
+                                                    {log.status}
+                                                </span>
+                                            )}
+                                            <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-bold uppercase tracking-widest ml-auto">
                                                 {log.executor}
                                             </span>
                                         </div>

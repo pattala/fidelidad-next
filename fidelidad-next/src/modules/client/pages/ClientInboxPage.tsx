@@ -149,13 +149,12 @@ export const ClientInboxPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-28 animate-fade-in">
+        <div className="bg-white pb-28 animate-fade-in">
 
 
             {/* List */}
             <div
-                className="p-4 space-y-3 transition-all"
-                style={{ paddingTop: `var(--pwa-padding-top, 12px)` }}
+                className="p-4 space-y-3 transition-all pt-5"
             >
                 {loading ? (
                     <div className="space-y-3">

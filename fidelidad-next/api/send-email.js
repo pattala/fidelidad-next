@@ -222,16 +222,23 @@ export default async function handler(req, res) {
       hasPass: !!process.env.SMTP_PASS
     });
 
-    const info = await transporter.sendMail({
-      from: `"${siteName}" <${process.env.SMTP_USER}>`,
-      to,
-      subject,
-      html
-    });
+    let sendInfo = null;
+    let sendError = null;
 
-    console.log('[send-email] Nodemailer success:', info.messageId);
+    try {
+      sendInfo = await transporter.sendMail({
+        from: `"${siteName}" <${process.env.SMTP_USER}>`,
+        to,
+        subject,
+        html
+      });
+      console.log('[send-email] Nodemailer success:', sendInfo.messageId);
+    } catch (err) {
+      console.error('[send-email] Nodemailer error:', err);
+      sendError = err;
+    }
 
-    // 5) AUDIT LOG
+    // 5) AUDIT LOG (Always runs)
     try {
       // Intentar buscar al usuario por email para el log de auditoría
       let userName = 'Socio';
@@ -252,20 +259,26 @@ export default async function handler(req, res) {
       const { points, executor: reqExecutor } = req.body;
       const pointsInfo = points ? ` [${points} pts]` : "";
 
+      const auditStatus = sendError ? 'failed' : 'success';
+      const auditSummary = sendError
+        ? `ERROR al enviar Email a ${userName} (${to}): "${subject}"`
+        : `Email enviado a ${userName} (${to}): "${subject}"${pointsInfo}`;
+
       await db.collection('audit_logs').add({
         timestamp: admin.firestore.FieldValue.serverTimestamp(),
         type: 'email_notification',
-        status: 'success',
-        summary: `Email enviado a ${userName} (${to}): "${subject}"${pointsInfo}`,
+        status: auditStatus,
+        summary: auditSummary,
         details: [{
           userId,
           userName,
           to,
           subject,
           points,
-          messageId: info.messageId,
+          messageId: sendInfo?.messageId || null,
+          error: sendError?.message || null,
           action: 'email_sent',
-          status: 'success',
+          status: auditStatus,
           timestamp: new Date().toISOString()
         }],
         executor: reqExecutor || 'system'
@@ -274,7 +287,15 @@ export default async function handler(req, res) {
       console.error('[send-email] Error saving audit log:', logErr);
     }
 
-    return res.status(200).json({ ok: true, sent: true, to, subject, messageId: info.messageId });
+    if (sendError) {
+      return res.status(500).json({
+        ok: false,
+        error: sendError.message,
+        details: sendError.response || null
+      });
+    }
+
+    return res.status(200).json({ ok: true, sent: true, to, subject, messageId: sendInfo.messageId });
 
   } catch (error) {
     console.error('Error fatal procesando el email:', error);

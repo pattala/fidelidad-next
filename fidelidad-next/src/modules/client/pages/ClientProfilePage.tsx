@@ -172,7 +172,7 @@ export const ClientProfilePage = () => {
     const qrValue = userData.socioNumber || userData.dni || userAuth?.uid || 'no-id';
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-24 relative">
+        <div className="bg-white pb-24 relative">
 
             {/* Header / Cover */}
             <div className="bg-gradient-to-br from-indigo-600 to-purple-700 h-48 relative rounded-b-[3rem] shadow-lg">

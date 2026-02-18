@@ -22,9 +22,9 @@ export const ClientActivityPage = () => {
         setHeaderTitle('Actividad');
 
         const actions = (
-            <div className="bg-white/20 px-3 py-1 rounded-full flex items-center gap-1 border border-white/20 shadow-inner">
-                <span className="text-[10px] font-bold text-white uppercase tracking-tight">Puntos:</span>
-                <span className="text-sm font-black text-white">{userBalance}</span>
+            <div className="bg-purple-50 px-3 py-2 rounded-2xl flex items-center gap-1.5 border border-purple-100 shadow-sm">
+                <span className="text-[10px] font-black text-purple-400 uppercase tracking-tighter">Puntos:</span>
+                <span className="text-sm font-black text-purple-700">{userBalance}</span>
             </div>
         );
 
@@ -106,7 +106,7 @@ export const ClientActivityPage = () => {
 
             {/* Timeline - Follows the scroll of the main container */}
             <div
-                className="px-4 pb-4 space-y-3 transition-all pt-5"
+                className="px-4 pb-4 space-y-3 transition-all"
             >
                 {loading ? (
                     [...Array(3)].map((_, i) => (

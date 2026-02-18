@@ -182,7 +182,6 @@ export const ClientProfilePage = () => {
             {/* Profile Card Overlay */}
             <div
                 className="-mt-20 px-4 relative z-10 animate-fade-in"
-                style={{ paddingTop: '0px' }}
             >
                 <div className="bg-white rounded-3xl shadow-xl p-6 text-center border border-gray-100">
                     <div className="w-24 h-24 bg-indigo-50 rounded-full mx-auto border-4 border-white shadow-md mb-3 flex items-center justify-center text-indigo-400">

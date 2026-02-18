@@ -21,9 +21,9 @@ export const ClientRewardsPage = () => {
         setHeaderTitle('Premios');
 
         const actions = (
-            <div className="bg-white/20 px-3 py-1 rounded-full flex items-center gap-1 border border-white/20 shadow-inner">
-                <span className="text-[10px] font-bold text-white uppercase tracking-tight">Puntos:</span>
-                <span className="text-sm font-black text-white">{userPoints}</span>
+            <div className="bg-purple-50 px-3 py-2 rounded-2xl flex items-center gap-1.5 border border-purple-100 shadow-sm">
+                <span className="text-[10px] font-black text-purple-400 uppercase tracking-tighter">Puntos:</span>
+                <span className="text-sm font-black text-purple-700">{userPoints}</span>
             </div>
         );
 
@@ -77,9 +77,8 @@ export const ClientRewardsPage = () => {
     return (
         <div className="bg-gray-50 pb-28 animate-fade-in">
 
-            {/* Catalog Grid */}
             <div
-                className="px-4 pb-4 grid grid-cols-2 gap-4 transition-all pt-5"
+                className="px-4 pb-4 grid grid-cols-2 gap-4 transition-all"
             >
                 {loading ? (
                     [...Array(4)].map((_, i) => (

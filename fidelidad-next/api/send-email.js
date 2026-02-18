@@ -265,7 +265,7 @@ export default async function handler(req, res) {
         : `Email enviado a ${userName} (${to}): "${subject}"${pointsInfo}`;
 
       await db.collection('audit_logs').add({
-        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        timestamp: FieldValue.serverTimestamp(),
         type: 'email_notification',
         status: auditStatus,
         summary: auditSummary,

@@ -138,8 +138,9 @@ export const ClientLayout = () => {
 
             {/* 1) Header / Top Bar (Fixed) */}
             {/* 1) Header / Top Bar (Fixed) */}
+            {/* 1) Fixed Top Header (Primary Color) */}
             <header
-                className="px-4 py-3 flex-none z-20 flex items-center justify-between text-white shadow-xl transition-all duration-500"
+                className="fixed top-0 left-0 right-0 h-16 z-[100] px-4 flex items-center justify-between text-white shadow-md transition-all duration-500 max-w-md mx-auto"
                 style={{ background: `linear-gradient(to right, ${config.primaryColor || '#4a148c'}, ${config.secondaryColor || '#880e4f'})` }}
             >
                 <div className="flex items-center gap-1">
@@ -161,36 +162,54 @@ export const ClientLayout = () => {
                     </div>
                 </div>
 
-                <h1 className="font-extrabold text-lg uppercase tracking-wider text-center flex-1 drop-shadow-md truncate px-2">
-                    {headerTitle || config?.siteName || 'Club de Fidelidad'}
+                <h1 className="font-black text-sm uppercase tracking-widest text-center flex-1 drop-shadow-sm truncate px-2">
+                    {config?.siteName || 'Club de Fidelidad'}
                 </h1>
 
-                <div className="w-10 flex justify-end gap-2">
-                    {headerActions}
-                    {!headerActions && (
-                        <button
-                            onClick={() => navigate('/inbox')}
-                            className={`relative p-2 rounded-xl transition-all active:scale-95 ${unreadCount > 0 ? 'animate-pulse bg-white/10' : ''}`}
-                        >
-                            <Bell size={22} className={unreadCount > 0 ? 'text-yellow-400' : 'text-white'} />
-                            {unreadCount > 0 && (
-                                <span
-                                    className="absolute -top-1 -right-1 w-5 h-5 bg-pink-600 rounded-full border-2 flex items-center justify-center text-[10px] font-black shadow-lg animate-bounce"
-                                    style={{ borderColor: config.primaryColor || '#4a148c', color: 'white' }}
-                                >
-                                    {unreadCount > 9 ? '9+' : unreadCount}
-                                </span>
-                            )}
-                        </button>
-                    )}
+                <div className="w-10 flex justify-end">
+                    <button
+                        onClick={() => navigate('/inbox')}
+                        className={`relative p-2 rounded-xl transition-all active:scale-95 ${unreadCount > 0 ? 'bg-white/10' : ''}`}
+                    >
+                        <Bell size={22} className={unreadCount > 0 ? 'text-yellow-400' : 'text-white'} />
+                        {unreadCount > 0 && (
+                            <span
+                                className="absolute -top-1 -right-1 w-5 h-5 bg-pink-600 rounded-full border-2 flex items-center justify-center text-[10px] font-black shadow-lg"
+                                style={{ borderColor: config.primaryColor || '#4a148c', color: 'white' }}
+                            >
+                                {unreadCount > 9 ? '9+' : unreadCount}
+                            </span>
+                        )}
+                    </button>
                 </div>
             </header>
 
-            {/* Banner Blanco de Transición (Serious Design) */}
-            <div className="flex-none h-8 bg-white rounded-t-[2.5rem] -mt-8 relative z-[60] shadow-[0_-8px_30px_rgba(0,0,0,0.05)]" />
+            {/* 2) Fixed Action Bar (White) */}
+            <div className={`fixed top-16 left-0 right-0 z-50 bg-white border-b border-gray-100 shadow-sm transition-all duration-500 max-w-md mx-auto overflow-hidden ${headerTitle ? 'h-[80px]' : 'h-0'}`}>
+                <div className="h-full px-6 flex items-center justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                        <h2 className="text-2xl font-black text-gray-800 tracking-tight leading-none truncate">
+                            {headerTitle}
+                        </h2>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">
+                            {location.pathname === '/activity' ? 'Tus movimientos recientes' :
+                                location.pathname === '/rewards' ? 'Canjeá tus puntos por beneficios' :
+                                    location.pathname === '/promos' ? 'Descubrí nuevas oportunidades' :
+                                        location.pathname === '/inbox' ? 'Bandeja de mensajes' :
+                                            location.pathname === '/referrals' ? 'Ganá puntos invitando' : ''}
+                        </p>
+                    </div>
+                    <div className="flex-none">
+                        {headerActions}
+                    </div>
+                </div>
+            </div>
 
-            {/* 2) Main Content Area (Scrollable) */}
-            <main className="flex-1 overflow-y-auto pb-10 scrollbar-hide bg-white relative z-10 -mt-1">
+            {/* 3) Main Content Area (Scrollable) */}
+            <main
+                className="flex-1 overflow-y-auto pb-10 scrollbar-hide bg-white relative"
+                style={{ paddingTop: headerTitle ? '144px' : '64px' }} // Header(64) + ActionBar(80) or just Header
+            >
                 <div className="animate-fade-in max-w-md mx-auto">
                     <Outlet context={{ config, setHeaderTitle, setHeaderActions }} />
                 </div>

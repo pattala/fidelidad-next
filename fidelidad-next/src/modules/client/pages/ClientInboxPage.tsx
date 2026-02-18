@@ -39,7 +39,7 @@ export const ClientInboxPage = () => {
                 {messages.some(m => !m.read) && (
                     <button
                         onClick={markAllRead}
-                        className="p-2 hover:bg-white/10 rounded-xl transition-all active:scale-95 text-white"
+                        className="p-2 hover:bg-purple-50 text-purple-600 rounded-xl transition-all active:scale-95"
                         title="Marcar todos como leídos"
                     >
                         <MailOpen size={20} />
@@ -48,7 +48,7 @@ export const ClientInboxPage = () => {
                 {messages.length > 0 && (
                     <button
                         onClick={() => setIsBulkDeleteConfirmOpen(true)}
-                        className="p-2 hover:bg-white/10 rounded-xl transition-all active:scale-95 text-white"
+                        className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-xl transition-all active:scale-95"
                         title="Borrar todos"
                     >
                         <Trash2 size={20} />
@@ -154,7 +154,7 @@ export const ClientInboxPage = () => {
 
             {/* List */}
             <div
-                className="p-4 space-y-3 transition-all pt-5"
+                className="p-4 space-y-3 transition-all"
             >
                 {loading ? (
                     <div className="space-y-3">

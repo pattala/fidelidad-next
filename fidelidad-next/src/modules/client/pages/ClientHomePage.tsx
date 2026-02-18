@@ -225,7 +225,6 @@ export const ClientHomePage = () => {
     return (
         <div
             className="relative font-sans text-gray-800 px-4 pb-6 space-y-6 animate-fade-in"
-            style={{ paddingTop: '20px' }}
         >
             <NotificationPermissionPrompt
                 user={user}

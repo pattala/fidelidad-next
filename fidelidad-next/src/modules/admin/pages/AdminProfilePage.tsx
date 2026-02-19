@@ -174,11 +174,13 @@ const TeamManagement = () => {
         const toastId = toast.loading('Enviando invitación...');
 
         try {
+            const token = await auth.currentUser?.getIdToken();
             const response = await fetch('/api/invite-admin', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'x-api-key': import.meta.env.VITE_API_KEY || ''
+                    'x-api-key': import.meta.env.VITE_API_KEY || '',
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     email: newEmail,
@@ -212,11 +214,13 @@ const TeamManagement = () => {
         const toastId = toast.loading('Revocando acceso...');
 
         try {
+            const token = await auth.currentUser?.getIdToken();
             const response = await fetch('/api/delete-user', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'x-api-key': import.meta.env.VITE_API_KEY || ''
+                    'x-api-key': import.meta.env.VITE_API_KEY || '',
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     uid: id,

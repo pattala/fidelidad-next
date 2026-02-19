@@ -338,9 +338,14 @@ export const ClientsPage = () => {
 
                 let apiSuccess = false;
                 try {
+                    const token = await auth.currentUser?.getIdToken();
                     const res = await fetch('/api/create-user', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'x-api-key': import.meta.env.VITE_API_KEY || '' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-api-key': import.meta.env.VITE_API_KEY || '',
+                            'Authorization': `Bearer ${token}`
+                        },
                         body: JSON.stringify(apiPayload)
                     });
                     if (res.ok) {
@@ -513,11 +518,13 @@ export const ClientsPage = () => {
                 return;
             }
 
+            const token = await auth.currentUser?.getIdToken();
             const res = await fetch('/api/assign-points', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'x-api-key': import.meta.env.VITE_API_KEY || ''
+                    'x-api-key': import.meta.env.VITE_API_KEY || '',
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     uid: selectedClientForPoints.id,

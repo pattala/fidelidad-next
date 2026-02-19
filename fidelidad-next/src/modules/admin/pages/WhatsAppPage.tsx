@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { db } from '../../../lib/firebase';
+import { db, auth } from '../../../lib/firebase';
 import { collection, getDocs, query } from 'firebase/firestore';
 import { ConfigService, DEFAULT_TEMPLATES } from '../../../services/configService';
 import type { AppConfig } from '../../../types';
@@ -150,11 +150,13 @@ export const WhatsAppPage = () => {
 
         // AUDIT LOG
         try {
+            const token = await auth.currentUser?.getIdToken();
             fetch('/api/log-audit', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'x-api-key': import.meta.env.VITE_API_KEY || ''
+                    'x-api-key': import.meta.env.VITE_API_KEY || '',
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     type: 'whatsapp_notification',
@@ -201,11 +203,13 @@ export const WhatsAppPage = () => {
 
         // AUDIT LOG
         try {
+            const token = await auth.currentUser?.getIdToken();
             fetch('/api/log-audit', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'x-api-key': import.meta.env.VITE_API_KEY || ''
+                    'x-api-key': import.meta.env.VITE_API_KEY || '',
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     type: 'whatsapp_notification',

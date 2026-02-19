@@ -45,11 +45,13 @@ export const RedemptionModal = ({ client, onClose, onRedeemSuccess }: Redemption
 
         setLoading(true);
         try {
+            const token = await auth.currentUser?.getIdToken();
             const res = await fetch('/api/redeem-prize', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'x-api-key': import.meta.env.VITE_API_KEY || ''
+                    'x-api-key': import.meta.env.VITE_API_KEY || '',
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     uid: client.id,

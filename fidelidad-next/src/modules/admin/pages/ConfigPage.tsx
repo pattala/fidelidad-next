@@ -11,6 +11,7 @@ import { db } from '../../../lib/firebase';
 import { useAdminAuth } from '../contexts/AdminAuthContext';
 import { useNavigate } from 'react-router-dom';
 import { TimeService } from '../../../services/timeService';
+import { auth } from '../../../lib/firebase';
 
 const ChannelSelector = ({
     label,
@@ -237,9 +238,13 @@ export const ConfigPage = () => {
 
         const toastId = toast.loading(`${action === 'backup' ? 'Creando respaldo' : action === 'restore' ? 'Restaurando' : 'Reseteando'}...`);
         try {
+            const token = await auth.currentUser?.getIdToken();
             const res = await fetch('/api/reset-factory', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({
                     action,
                     options: resetOptions,
@@ -267,11 +272,13 @@ export const ConfigPage = () => {
 
         const toastId = toast.loading('Ejecutando revisión de vencimientos...');
         try {
+            const token = await auth.currentUser?.getIdToken();
             const res = await fetch('/api/check-expirations', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'x-api-key': import.meta.env.VITE_API_KEY || ''
+                    'x-api-key': import.meta.env.VITE_API_KEY || '',
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     simulatedDate: TimeService.now().toISOString()

@@ -261,7 +261,7 @@ export default async function handler(req, res) {
 
                     const channels = config.messaging?.eventConfigs?.expirationWarning?.channels || ['push', 'email'];
                     const template = config.messaging?.templates?.expirationWarning ||
-                        "¡Hola {nombre}! 📢 Te recordamos que tienes {puntos} puntos que vencen el {fecha}. ¡Aprovéchalos antes de que expiren! 🎁";
+                        "¡Hola {nombre}! 📢 Tienes {puntos} puntos próximos a vencer en los próximos días. ⏳ Entra a la App para ver el detalle de fechas y aprovecharlos. 🎁";
 
                     // Formatear fecha para el mensaje (usamos la más cercana)
                     const [y, m, d] = userData.nextExpirationDate.split('-');

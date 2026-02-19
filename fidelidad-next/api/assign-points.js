@@ -448,7 +448,9 @@ export default async function handler(req, res) {
             result.guestData = {
                 name: cData.name || 'Socio',
                 phone: cData.phone || cData.telefono || '',
-                email: cData.email || cData.correo
+                email: cData.email || cData.correo,
+                dni: cData.dni || '',
+                socioNumber: cData.socioNumber || cData.numeroSocio || cData.socio_number || ''
             };
         });
 
@@ -512,6 +514,8 @@ export default async function handler(req, res) {
                                 details: [{
                                     userId: targetUid,
                                     userName: result.guestData.name,
+                                    dni: result.guestData.dni || '',
+                                    socioNumber: result.guestData.socioNumber || '',
                                     points,
                                     action: 'whatsapp_link_generated',
                                     status: 'link_ready',
@@ -531,7 +535,14 @@ export default async function handler(req, res) {
                             type: 'whatsapp_manual',
                             status: 'disabled',
                             summary: `WhatsApp OMITIDO para ${result.guestData.name}: Canal desactivado en configuración`,
-                            details: [{ userId: targetUid, userName: result.guestData.name, action: 'whatsapp_skipped', reason: 'config_disabled' }],
+                            details: [{
+                                userId: targetUid,
+                                userName: result.guestData.name,
+                                dni: result.guestData.dni || '',
+                                socioNumber: result.guestData.socioNumber || '',
+                                action: 'whatsapp_skipped',
+                                reason: 'config_disabled'
+                            }],
                             executor
                         });
                     } catch (e) { }
@@ -544,7 +555,14 @@ export default async function handler(req, res) {
                         type: 'whatsapp_manual',
                         status: 'skipped',
                         summary: `WhatsApp OMITIDO para ${result.guestData.name}: Checkbox sin marcar`,
-                        details: [{ userId: targetUid, userName: result.guestData.name, action: 'whatsapp_skipped', reason: 'checkbox_off' }],
+                        details: [{
+                            userId: targetUid,
+                            userName: result.guestData.name,
+                            dni: result.guestData.dni || '',
+                            socioNumber: result.guestData.socioNumber || '',
+                            action: 'whatsapp_skipped',
+                            reason: 'checkbox_off'
+                        }],
                         executor
                     });
                 } catch (e) { }

@@ -156,7 +156,9 @@ export default async function handler(req, res) {
                     logResults.expired += totalExpired;
                     logResults.details.push({
                         userId,
-                        userName: userDoc.data()?.name || userDoc.data()?.nombre || 'Socio',
+                        userName: userData?.name || userData?.nombre || 'Socio',
+                        dni: userData?.dni || '',
+                        socioNumber: userData?.socioNumber || userData?.numeroSocio || userData?.socio_number || '',
                         action: 'points_subtracted',
                         status: 'success',
                         info: `${totalExpired} pts vencidos`
@@ -351,6 +353,8 @@ export default async function handler(req, res) {
                     logResults.details.push({
                         userId,
                         userName: userData.name || userData.nombre || 'Socio',
+                        dni: userData?.dni || '',
+                        socioNumber: userData?.socioNumber || userData?.numeroSocio || userData?.socio_number || '',
                         action: 'notified_expiration',
                         status: 'success',
                         isItinerancy: isRepeatEnabled,

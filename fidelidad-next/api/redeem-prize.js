@@ -248,10 +248,13 @@ export default async function handler(req, res) {
                         summary: `Link de WhatsApp preparado para ${cData.name || 'Socio'} (${pData.name} - ${shortCode})`,
                         details: [{
                             userId: targetUid,
-                            userName: cData.name || 'Socio',
-                            action: 'whatsapp_link_generated',
-                            status: 'link_ready',
-                            timestamp: new Date().toISOString()
+                            userName: cData.name || cData.nombre || 'Socio',
+                            dni: cData.dni || '',
+                            socioNumber: cData.socioNumber || cData.numeroSocio || cData.socio_number || '',
+                            prizeId: prizeId,
+                            prizeName: pData.name,
+                            pointsRedeemed: pointsNeeded,
+                            status: 'link_ready'
                         }],
                         executor: 'system',
                         timestamp: admin.firestore.FieldValue.serverTimestamp()

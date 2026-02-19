@@ -238,17 +238,21 @@ export default async function handler(req, res) {
                     }
 
                     // Chequeo de duplicados mejorado: avisar si cambió la fecha O el monto
+                    // O si la ITINERANCIA está activada (para obligar el re-envío)
+                    const isRepeatEnabled = config.messaging?.repeatExpirationWarnings === true;
+
                     const alreadyNotified =
+                        !isRepeatEnabled &&
                         userData.lastExpirationNoticeTargetDate === userData.nextExpirationDate &&
                         userData.lastExpirationNoticeAmount === totalImpendingAmount;
 
                     if (alreadyNotified) {
-                        console.log(`[Cron] Skipping ${userId}: Already notified for this date and amount.`);
+                        console.log(`[Cron] Skipping ${userId}: Already notified and itinerancy is disabled.`);
                         logResults.details.push({
                             userId,
                             userName: userData.name || userData.nombre || 'Socio',
                             action: 'skipped_notification',
-                            info: `Ya notificado (${totalImpendingAmount} pts al ${userData.nextExpirationDate})`
+                            info: `Ya notificado (${totalImpendingAmount} pts al ${userData.nextExpirationDate}). Itinerancia: OFF`
                         });
                         continue;
                     }

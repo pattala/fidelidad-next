@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { db } from '../../../lib/firebase';
 import { collection, query, orderBy, limit, getDocs, where, startAfter, Timestamp } from 'firebase/firestore';
-import { Clock, CheckCircle, AlertTriangle, User, MessageCircle, ArrowRight, ChevronDown, ChevronUp, History, Search, Calendar, Filter, Loader2 } from 'lucide-react';
+import { Clock, CheckCircle, AlertTriangle, User, MessageCircle, ArrowRight, ChevronDown, ChevronUp, History, Search, Calendar, Filter, Loader2, Play } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+import { TimeService } from '../../../services/timeService';
 
 interface AuditDetail {
     userId?: string;
@@ -9,6 +11,9 @@ interface AuditDetail {
     action: string;
     status: string;
     info?: string;
+    channels?: string[];
+    messageSent?: string;
+    breakdown?: string;
 }
 
 interface AuditLog {
@@ -38,6 +43,38 @@ export const SystemLogsPage = () => {
     // Pagination State
     const [lastDoc, setLastDoc] = useState<any>(null);
     const [hasMore, setHasMore] = useState(true);
+    const [isRunningExpirations, setIsRunningExpirations] = useState(false);
+
+    const handleRunExpirations = async () => {
+        if (!window.confirm("¿Deseas ejecutar ahora la revisión de vencimientos y enviar las notificaciones pendientes?")) return;
+
+        setIsRunningExpirations(true);
+        const toastId = toast.loading('Ejecutando revisión de vencimientos...');
+        try {
+            const res = await fetch('/api/check-expirations', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': import.meta.env.VITE_API_KEY || ''
+                },
+                body: JSON.stringify({
+                    simulatedDate: TimeService.now().toISOString()
+                })
+            });
+            const data = await res.json();
+            if (data.ok) {
+                toast.success(`Éxito: ${data.summary?.summary || 'Revisión completada'}`, { id: toastId });
+                // Refrescar los logs para ver el nuevo resultado
+                fetchLogs();
+            } else {
+                toast.error(`Error: ${data.error}`, { id: toastId });
+            }
+        } catch (e) {
+            toast.error('Error de conexión', { id: toastId });
+        } finally {
+            setIsRunningExpirations(false);
+        }
+    };
 
     const fetchLogs = async (isMore = false) => {
         if (!isMore) setLoading(true);
@@ -138,12 +175,23 @@ export const SystemLogsPage = () => {
                     <h1 className="text-2xl font-bold text-gray-800">Auditoría del Sistema</h1>
                     <p className="text-gray-500 text-sm">Historial de procesos automáticos y acciones del servidor</p>
                 </div>
-                <button
-                    onClick={() => fetchLogs()}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition text-gray-600"
-                >
-                    <History size={20} />
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={handleRunExpirations}
+                        disabled={isRunningExpirations}
+                        className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-black transition-all shadow-lg shadow-orange-100 font-bold text-sm disabled:opacity-50"
+                    >
+                        {isRunningExpirations ? <Loader2 size={18} className="animate-spin" /> : <Play size={18} fill="currentColor" />}
+                        <span className="hidden sm:inline">Ejecutar Revisión Manual</span>
+                    </button>
+                    <button
+                        onClick={() => fetchLogs()}
+                        className="p-2 hover:bg-gray-100 rounded-lg transition text-gray-600 border border-gray-100"
+                        title="Refrescar logs"
+                    >
+                        <History size={20} />
+                    </button>
+                </div>
             </div>
 
             {/* Filters UI */}
@@ -284,19 +332,38 @@ export const SystemLogsPage = () => {
                                             {log.details && log.details.length > 0 ? (
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-2 scrollbar-thin">
                                                     {log.details.map((detail, idx) => (
-                                                        <div key={idx} className="bg-white p-2 rounded border border-gray-100 flex items-center justify-between text-[11px]">
-                                                            <div className="flex items-center gap-2 min-w-0">
-                                                                <User size={12} className="text-gray-400 shrink-0" />
-                                                                <span className="font-bold text-gray-700 truncate">{detail.userName || 'Socio'}</span>
-                                                                <span className="text-gray-400 text-[9px] shrink-0">#{detail.userId?.slice(-4)}</span>
+                                                        <div key={idx} className="bg-white p-2 rounded border border-gray-100 flex flex-col gap-1 text-[11px]">
+                                                            <div className="flex items-center justify-between">
+                                                                <div className="flex items-center gap-2 min-w-0">
+                                                                    <User size={12} className="text-gray-400 shrink-0" />
+                                                                    <span className="font-bold text-gray-700 truncate">{detail.userName || 'Socio'}</span>
+                                                                    <span className="text-gray-400 text-[9px] shrink-0">#{detail.userId?.slice(-4)}</span>
+                                                                </div>
+                                                                <div className="flex flex-col gap-1 shrink-0 ml-2 items-end">
+                                                                    <div className="flex items-center gap-2">
+                                                                        {detail.channels?.map(ch => (
+                                                                            <span key={ch} className="bg-blue-50 text-blue-600 text-[8px] px-1.5 py-0.5 rounded-full font-bold uppercase ring-1 ring-blue-100">
+                                                                                {ch}
+                                                                            </span>
+                                                                        ))}
+                                                                        <span className={`px-1.5 py-0.5 rounded uppercase font-bold text-[8px] ${detail.action.includes('error') || detail.status === 'failed' ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-600'
+                                                                            }`}>
+                                                                            {detail.action}
+                                                                        </span>
+                                                                    </div>
+                                                                    {detail.info && <span className="text-gray-400 italic text-[10px]">({detail.info})</span>}
+                                                                </div>
                                                             </div>
-                                                            <div className="flex items-center gap-2 shrink-0 ml-2">
-                                                                <span className={`px-1.5 py-0.5 rounded uppercase font-bold text-[8px] ${detail.action.includes('error') || detail.status === 'failed' ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-600'
-                                                                    }`}>
-                                                                    {detail.action}
-                                                                </span>
-                                                                {detail.info && <span className="text-gray-400 italic">({detail.info})</span>}
-                                                            </div>
+                                                            {detail.messageSent && (
+                                                                <div className="mt-1 p-2 bg-gray-50/50 border border-dashed border-gray-200 rounded text-[10px] text-gray-600 italic">
+                                                                    "{detail.messageSent}"
+                                                                </div>
+                                                            )}
+                                                            {detail.breakdown && (
+                                                                <div className="mt-0.5 text-[9px] text-blue-500 font-medium px-2">
+                                                                    Detalle: {detail.breakdown}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     ))}
                                                 </div>
@@ -322,6 +389,6 @@ export const SystemLogsPage = () => {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 };

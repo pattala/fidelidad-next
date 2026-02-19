@@ -155,6 +155,7 @@ export interface AppConfig {
             expirationWarning?: string;
         };
         enableExpirationWarnings?: boolean;
+        repeatExpirationWarnings?: boolean;
         expirationWarningDays?: number;
         automaticCheckHour?: number; // 0-23
     };

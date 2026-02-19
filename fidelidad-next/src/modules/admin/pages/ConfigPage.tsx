@@ -1577,54 +1577,30 @@ export const ConfigPage = () => {
                                         </button>
                                     </div>
 
-                                    <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-100 flex items-start gap-3 mb-6">
-                                        <Clock size={16} className="text-amber-600 mt-0.5 shrink-0" />
-                                        <div className="flex-1">
-                                            <div className="text-[11px] text-amber-800 leading-tight">
-                                                <div className="flex items-center gap-1 mb-1">
-                                                    <strong>Estado del Motor de Vencimientos:</strong> El sistema recorre la base de datos todos los días a las
-                                                    <input
-                                                        type="number"
-                                                        min="0" max="23"
-                                                        value={config.messaging?.automaticCheckHour || 9}
-                                                        onChange={e => setConfig({
-                                                            ...config,
-                                                            messaging: { ...config.messaging!, automaticCheckHour: parseInt(e.target.value) || 0 }
-                                                        })}
-                                                        className="w-8 bg-transparent border-b border-amber-300 text-center font-bold focus:border-amber-600 outline-none text-amber-900 mx-0.5"
-                                                    />
-                                                    :00 hs para descontar puntos vencidos.
-                                                </div>
-                                                {config.messaging?.enableExpirationWarnings ? ' También enviará los avisos configurados abajo.' : ' Actualmente los avisos automáticos están apagados.'}
+                                    {/* Itinerancy / Repeat Notifications Toggle */}
+                                    <div className="mt-4 p-4 bg-orange-50/50 rounded-xl border border-orange-100 flex items-center justify-between mb-6">
+                                        <div className="flex items-start gap-3">
+                                            <div className="p-2 bg-white rounded-lg shadow-sm">
+                                                <div className="w-5 h-5 flex items-center justify-center text-orange-600">🔁</div>
                                             </div>
-
-                                            {lastAuditLog && (
-                                                <div className="mt-2 text-[10px] text-amber-900 font-bold bg-amber-50/80 p-3 rounded-xl border border-amber-200/50 flex flex-col gap-1.5 animate-fade-in shadow-sm">
-                                                    <div className="flex items-center justify-between">
-                                                        <div className="flex items-center gap-2">
-                                                            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                                                            <span className="uppercase tracking-widest text-amber-800">Última Revisión</span>
-                                                        </div>
-                                                        <span className="text-[9px] text-amber-600/70 font-medium bg-white/50 px-1.5 py-0.5 rounded-lg border border-amber-100">
-                                                            {lastAuditLog.timestamp?.toDate ?
-                                                                `${lastAuditLog.timestamp.toDate().toLocaleDateString()} ${lastAuditLog.timestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-                                                                : 'Reciente'}
-                                                        </span>
-                                                    </div>
-                                                    <div className="text-[11px] text-amber-900 font-black leading-tight pl-3.5">
-                                                        {lastAuditLog.summary}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            <button
-                                                type="button"
-                                                onClick={handleRunExpirations}
-                                                className="mt-2 px-3 py-1.5 bg-amber-600 text-white text-[10px] font-bold rounded-lg hover:bg-amber-700 transition-colors uppercase tracking-wider"
-                                            >
-                                                Ejecutar revisión manual ahora
-                                            </button>
+                                            <div>
+                                                <h4 className="text-sm font-bold text-orange-900">Itinerancia de Avisos</h4>
+                                                <p className="text-[11px] text-orange-800/70 leading-tight mt-1">
+                                                    Si está activo, el sistema volverá a enviar notificaciones aunque no haya cambios en los puntos.<br />
+                                                    Ideal para recordar periódicamente los vencimientos.
+                                                </p>
+                                            </div>
                                         </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setConfig({
+                                                ...config,
+                                                messaging: { ...config.messaging!, repeatExpirationWarnings: !config.messaging?.repeatExpirationWarnings }
+                                            })}
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.messaging?.repeatExpirationWarnings ? 'bg-orange-500' : 'bg-gray-300'}`}
+                                        >
+                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${config.messaging?.repeatExpirationWarnings ? 'translate-x-6' : 'translate-x-1'}`} />
+                                        </button>
                                     </div>
 
                                     {config.messaging?.enableExpirationWarnings && (

@@ -348,7 +348,8 @@ export default async function handler(req, res) {
                         userName: userData.name || userData.nombre || 'Socio',
                         action: 'notified_expiration',
                         status: 'success',
-                        info: `${isRepeatEnabled ? '[ITINERANCIA] ' : ''}Enviado: "${msg}" | Desglose: ${breakdownStr}`
+                        isItinerancy: isRepeatEnabled,
+                        info: `${isRepeatEnabled ? '[ITINERANCIA] ' : '[NUEVO] '}Enviado: "${msg}" | Desglose: ${breakdownStr}`
                     });
                 } catch (e) {
                     console.error(`[Cron] Error notifying ${userDoc.id}:`, e);

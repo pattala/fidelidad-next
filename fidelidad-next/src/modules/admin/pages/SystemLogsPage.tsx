@@ -14,6 +14,7 @@ interface AuditDetail {
     channels?: string[];
     messageSent?: string;
     breakdown?: string;
+    isItinerancy?: boolean;
 }
 
 interface AuditLog {
@@ -346,10 +347,15 @@ export const SystemLogsPage = () => {
                                                                                 {ch}
                                                                             </span>
                                                                         ))}
-                                                                        <span className={`px-1.5 py-0.5 rounded uppercase font-bold text-[8px] ${detail.action.includes('error') || detail.status === 'failed' ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-600'
-                                                                            }`}>
-                                                                            {detail.action}
-                                                                        </span>
+                                                                        {detail.action === 'notified_expiration' ? (
+                                                                            <span className={`px-1.5 py-0.5 rounded uppercase font-bold text-[8px] ${detail.isItinerancy ? 'bg-red-600 text-white animate-pulse' : 'bg-[#00c853] text-white shadow-sm'}`}>
+                                                                                {detail.isItinerancy ? 'Itinerancia' : 'Primer Aviso'}
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span className={`px-1.5 py-0.5 rounded uppercase font-bold text-[8px] ${detail.action.includes('error') || detail.status === 'failed' ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-600'}`}>
+                                                                                {detail.action}
+                                                                            </span>
+                                                                        )}
                                                                     </div>
                                                                     {detail.info && <span className="text-gray-400 italic text-[10px]">({detail.info})</span>}
                                                                 </div>

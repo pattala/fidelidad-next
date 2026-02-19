@@ -372,113 +372,133 @@ export const SystemLogsPage = () => {
                                                 {expandedLog === log.id && (
                                                     <div className="px-4 pb-4 animate-in fade-in slide-in-from-top-1">
                                                         <div className="bg-gray-50 rounded-lg p-4 space-y-4 border border-blue-50">
-                                                            <h4 className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1 flex items-center gap-1">
-                                                                <ArrowRight size={10} /> Socios Afectados ({log.details?.length || 0})
-                                                            </h4>
-
                                                             {log.details && log.details.length > 0 ? (
-                                                                <div className="space-y-4 max-h-80 overflow-y-auto pr-2 scrollbar-thin">
-                                                                    {(() => {
-                                                                        const groupedByUser: { [key: string]: { info: any, actions: any[] } } = {};
+                                                                (() => {
+                                                                    const groupedByUser: { [key: string]: { info: any, actions: any[] } } = {};
 
-                                                                        log.details.forEach((d: any) => {
-                                                                            const uid = d.userId || 'system';
-                                                                            if (!groupedByUser[uid]) {
-                                                                                groupedByUser[uid] = {
-                                                                                    info: {
-                                                                                        name: d.userName || 'Socio',
-                                                                                        dni: d.dni || '',
-                                                                                        socioNumber: d.socioNumber || ''
-                                                                                    },
-                                                                                    actions: []
-                                                                                };
-                                                                            }
-                                                                            groupedByUser[uid].actions.push(d);
-                                                                        });
+                                                                    log.details.forEach((d: any) => {
+                                                                        const uid = d.userId || 'system';
+                                                                        if (!groupedByUser[uid]) {
+                                                                            groupedByUser[uid] = {
+                                                                                info: {
+                                                                                    name: d.userName || 'Socio',
+                                                                                    dni: d.dni || '',
+                                                                                    socioNumber: d.socioNumber || ''
+                                                                                },
+                                                                                actions: []
+                                                                            };
+                                                                        }
+                                                                        groupedByUser[uid].actions.push(d);
+                                                                    });
 
-                                                                        return Object.keys(groupedByUser).map(uid => (
-                                                                            <div key={uid} className="bg-white rounded-lg border border-gray-100 overflow-hidden shadow-sm">
-                                                                                <div className={`px-3 py-2 border-b flex flex-wrap items-center gap-x-3 gap-y-1 ${uid === 'system' ? 'bg-blue-600/5 border-blue-100' : 'bg-gray-50/50 border-gray-100'}`}>
-                                                                                    <div className="flex items-center gap-2">
-                                                                                        {uid === 'system' ? (
-                                                                                            <Settings size={14} className="text-blue-600 animate-spin-slow" />
-                                                                                        ) : (
-                                                                                            <User size={14} className="text-blue-500" />
-                                                                                        )}
-                                                                                        <span className={`font-bold text-xs ${uid === 'system' ? 'text-blue-700' : 'text-gray-800'}`}>
-                                                                                            {uid === 'system' ? '⚙️ PROCESO DE SISTEMA' : groupedByUser[uid].info.name}
-                                                                                        </span>
-                                                                                    </div>
-                                                                                    {uid !== 'system' && groupedByUser[uid].info.socioNumber && (
-                                                                                        <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-black tracking-tight">
-                                                                                            SOCIO: {groupedByUser[uid].info.socioNumber}
-                                                                                        </span>
-                                                                                    )}
-                                                                                    {uid !== 'system' && groupedByUser[uid].info.dni && (
-                                                                                        <span className="text-[10px] text-gray-400 font-bold">
-                                                                                            DNI: {groupedByUser[uid].info.dni}
-                                                                                        </span>
-                                                                                    )}
-                                                                                    <span className="text-[9px] text-gray-300 ml-auto uppercase font-bold tracking-tighter">
-                                                                                        {uid === 'system' ? 'Kernell' : `ID: ${uid.slice(-6)}`}
-                                                                                    </span>
-                                                                                </div>
-                                                                                <div className="p-2 space-y-2">
-                                                                                    {groupedByUser[uid].actions.map((detail, idx) => (
-                                                                                        <div key={idx} className="flex flex-col gap-1 pl-2 border-l-2 border-blue-100 py-1">
-                                                                                            <div className="flex items-center justify-between gap-2">
-                                                                                                <div className="flex items-center gap-2">
-                                                                                                    {detail.action === 'notified_expiration' ? (
-                                                                                                        <span className={`px-2 py-0.5 rounded uppercase font-black text-[8px] shadow-sm border ${(detail.isItinerancy || detail.info?.includes('[ITINERANCIA]'))
-                                                                                                            ? 'bg-red-100 text-red-700 border-red-200'
-                                                                                                            : 'bg-green-100 text-green-700 border-green-200'
-                                                                                                            }`}>
-                                                                                                            {(detail.isItinerancy || detail.info?.includes('[ITINERANCIA]')) ? '⚠️ ITINERANCIA' : '✅ PRIMER ENVÍO'}
-                                                                                                        </span>
-                                                                                                    ) : (
-                                                                                                        <span className={`px-1.5 py-0.5 rounded-full uppercase font-black text-[8px] ${detail.action === 'engine_parameters' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'} border border-transparent`}>
-                                                                                                            {detail.action.replace(/_/g, ' ')}
-                                                                                                        </span>
-                                                                                                    )}
-                                                                                                    <div className="flex gap-1">
-                                                                                                        {detail.channels?.map((ch: string) => (
-                                                                                                            <span key={ch} className="text-[8px] font-bold text-blue-500 uppercase">
-                                                                                                                • {ch}
-                                                                                                            </span>
-                                                                                                        ))}
-                                                                                                    </div>
-                                                                                                </div>
-                                                                                                <span className="text-gray-500 text-[10px] font-medium italic">
-                                                                                                    {detail.info}
+                                                                    const userCount = Object.keys(groupedByUser).length;
+
+                                                                    return (
+                                                                        <div className="space-y-4">
+                                                                            <h4 className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1 flex items-center gap-1">
+                                                                                <ArrowRight size={10} /> Socios Afectados ({userCount})
+                                                                            </h4>
+
+                                                                            <div className="space-y-4 max-h-80 overflow-y-auto pr-2 scrollbar-thin">
+                                                                                {Object.keys(groupedByUser).map(uid => (
+                                                                                    <div key={uid} className="bg-white rounded-lg border border-gray-100 overflow-hidden shadow-sm">
+                                                                                        <div className={`px-3 py-2 border-b flex flex-wrap items-center gap-x-3 gap-y-1 ${uid === 'system' ? 'bg-blue-600/5 border-blue-100' : 'bg-gray-50/50 border-gray-100'}`}>
+                                                                                            <div className="flex items-center gap-2">
+                                                                                                {uid === 'system' ? (
+                                                                                                    <Settings size={14} className="text-blue-600 animate-spin-slow" />
+                                                                                                ) : (
+                                                                                                    <User size={14} className="text-blue-500" />
+                                                                                                )}
+                                                                                                <span className={`font-bold text-xs ${uid === 'system' ? 'text-blue-700' : 'text-gray-800'}`}>
+                                                                                                    {uid === 'system' ? '⚙️ PROCESO DE SISTEMA' : groupedByUser[uid].info.name}
                                                                                                 </span>
                                                                                             </div>
-                                                                                            {detail.messageSent && (
-                                                                                                <div className="mt-1 p-2 bg-slate-50 border border-dashed border-slate-200 rounded text-[10px] text-slate-600 italic">
-                                                                                                    "{detail.messageSent}"
-                                                                                                </div>
+                                                                                            {uid !== 'system' && groupedByUser[uid].info.socioNumber && (
+                                                                                                <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-black tracking-tight">
+                                                                                                    SOCIO: {groupedByUser[uid].info.socioNumber}
+                                                                                                </span>
                                                                                             )}
-                                                                                            {detail.breakdown && (
-                                                                                                <div className="text-[9px] text-blue-600 font-bold px-1">
-                                                                                                    → {detail.breakdown}
-                                                                                                </div>
+                                                                                            {uid !== 'system' && groupedByUser[uid].info.dni && (
+                                                                                                <span className="text-[10px] text-gray-400 font-bold">
+                                                                                                    DNI: {groupedByUser[uid].info.dni}
+                                                                                                </span>
                                                                                             )}
-                                                                                            {detail.action === 'engine_parameters' && (
-                                                                                                <div className="mt-1 grid grid-cols-2 gap-x-4 gap-y-1 text-[9px] bg-blue-50/50 p-2 rounded border border-blue-100">
-                                                                                                    <div className="text-gray-400 font-bold uppercase tracking-tighter text-[8px]">Referencia</div>
-                                                                                                    <div className="text-blue-700 font-black">{detail.referenceDate}</div>
-                                                                                                    <div className="text-gray-400 font-bold uppercase tracking-tighter text-[8px]">Ventana de Aviso</div>
-                                                                                                    <div className="text-blue-700 font-black">{detail.warningWindowDays} días</div>
-                                                                                                    <div className="text-gray-400 font-bold uppercase tracking-tighter text-[8px]">Fecha Objetivo</div>
-                                                                                                    <div className="text-blue-700 font-black">{detail.warningWindowTargetDate}</div>
-                                                                                                </div>
-                                                                                            )}
+                                                                                            <span className="text-[9px] text-gray-300 ml-auto uppercase font-bold tracking-tighter">
+                                                                                                {uid === 'system' ? 'Kernell' : `ID: ${uid.slice(-6)}`}
+                                                                                            </span>
                                                                                         </div>
-                                                                                    ))}
-                                                                                </div>
+                                                                                        <div className="p-2 space-y-2">
+                                                                                            {groupedByUser[uid].actions.map((detail, idx) => (
+                                                                                                <div key={idx} className="flex flex-col gap-1 pl-2 border-l-2 border-blue-100 py-1">
+                                                                                                    <div className="flex items-center justify-between gap-2">
+                                                                                                        <div className="flex items-center gap-2">
+                                                                                                            {detail.action === 'notified_expiration' ? (
+                                                                                                                <span className={`px-2 py-0.5 rounded uppercase font-black text-[8px] shadow-sm border ${(detail.isItinerancy || detail.info?.includes('[ITINERANCIA]'))
+                                                                                                                    ? 'bg-red-100 text-red-700 border-red-200'
+                                                                                                                    : 'bg-green-100 text-green-700 border-green-200'
+                                                                                                                    }`}>
+                                                                                                                    {(detail.isItinerancy || detail.info?.includes('[ITINERANCIA]')) ? '⚠️ ITINERANCIA' : '✅ PRIMER ENVÍO'}
+                                                                                                                </span>
+                                                                                                            ) : (
+                                                                                                                <span className={`px-1.5 py-0.5 rounded-full uppercase font-black text-[8px] border shadow-sm ${detail.status === 'success' ? 'bg-green-100 text-green-700 border-green-200' :
+                                                                                                                        detail.status === 'failed' || detail.status === 'error' ? 'bg-red-100 text-red-700 border-red-200' :
+                                                                                                                            detail.status === 'skipped' ? 'bg-slate-100 text-slate-500 border-slate-200' :
+                                                                                                                                detail.status === 'disabled' ? 'bg-orange-100 text-orange-600 border-orange-200' :
+                                                                                                                                    detail.status === 'link_ready' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                                                                                                                                        'bg-gray-100 text-gray-600 border-gray-200'
+                                                                                                                    }`}>
+                                                                                                                    {detail.action.replace(/_/g, ' ')}
+                                                                                                                </span>
+                                                                                                            )}
+                                                                                                            <div className="flex gap-1">
+                                                                                                                {detail.channels?.map((ch: string) => (
+                                                                                                                    <span key={ch} className="text-[8px] font-bold text-blue-500 uppercase">
+                                                                                                                        • {ch}
+                                                                                                                    </span>
+                                                                                                                ))}
+                                                                                                            </div>
+                                                                                                        </div>
+                                                                                                        <div className="flex items-center gap-2">
+                                                                                                            <span className={`text-[9px] font-bold uppercase ${detail.status === 'success' ? 'text-green-600' :
+                                                                                                                    detail.status === 'failed' || detail.status === 'error' ? 'text-red-600' :
+                                                                                                                        'text-gray-400'
+                                                                                                                }`}>
+                                                                                                                {detail.status || ''}
+                                                                                                            </span>
+                                                                                                            <span className="text-gray-600 text-[10px] font-bold">
+                                                                                                                {detail.info}
+                                                                                                            </span>
+                                                                                                        </div>
+                                                                                                    </div>
+                                                                                                    {detail.messageSent && (
+                                                                                                        <div className="mt-1 p-2 bg-slate-50 border border-dashed border-slate-200 rounded text-[10px] text-slate-600 italic">
+                                                                                                            "{detail.messageSent}"
+                                                                                                        </div>
+                                                                                                    )}
+                                                                                                    {detail.breakdown && (
+                                                                                                        <div className="text-[9px] text-blue-600 font-bold px-1">
+                                                                                                            → {detail.breakdown}
+                                                                                                        </div>
+                                                                                                    )}
+                                                                                                    {detail.action === 'engine_parameters' && (
+                                                                                                        <div className="mt-1 grid grid-cols-2 gap-x-4 gap-y-1 text-[9px] bg-blue-50/50 p-2 rounded border border-blue-100">
+                                                                                                            <div className="text-gray-400 font-bold uppercase tracking-tighter text-[8px]">Referencia</div>
+                                                                                                            <div className="text-blue-700 font-black">{detail.referenceDate}</div>
+                                                                                                            <div className="text-gray-400 font-bold uppercase tracking-tighter text-[8px]">Ventana de Aviso</div>
+                                                                                                            <div className="text-blue-700 font-black">{detail.warningWindowDays} días</div>
+                                                                                                            <div className="text-gray-400 font-bold uppercase tracking-tighter text-[8px]">Fecha Objetivo</div>
+                                                                                                            <div className="text-blue-700 font-black">{detail.warningWindowTargetDate}</div>
+                                                                                                        </div>
+                                                                                                    )}
+                                                                                                </div>
+                                                                                            ))}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                ))}
                                                                             </div>
-                                                                        ));
-                                                                    })()}
-                                                                </div>
+                                                                        </div>
+                                                                    );
+                                                                })()
                                                             ) : (
                                                                 <p className="text-[10px] text-gray-400">No hay detalles específicos registrados.</p>
                                                             )}

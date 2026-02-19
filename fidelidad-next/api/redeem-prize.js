@@ -355,7 +355,7 @@ export default async function handler(req, res) {
                         socioNumber: clientData.socioNumber || '',
                         action: 'push_skipped',
                         status: 'skipped',
-                        reason: 'config_disabled'
+                        info: 'Configuración desactivada'
                     });
                 }
 
@@ -389,7 +389,7 @@ export default async function handler(req, res) {
                         socioNumber: clientData.socioNumber || '',
                         action: 'email_skipped',
                         status: 'skipped',
-                        reason: 'config_disabled'
+                        info: 'Configuración desactivada'
                     });
                 }
 

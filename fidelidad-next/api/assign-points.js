@@ -540,8 +540,7 @@ export default async function handler(req, res) {
                         socioNumber: result.guestData.socioNumber || '',
                         action: 'whatsapp_skipped',
                         status: 'skipped',
-                        info: 'Canal desactivado en configuración',
-                        reason: 'config_disabled'
+                        info: 'Canal desactivado en configuración'
                     });
                 }
             } else if (points > 0) {
@@ -554,8 +553,7 @@ export default async function handler(req, res) {
                     socioNumber: result.guestData.socioNumber || '',
                     action: 'whatsapp_skipped',
                     status: 'skipped',
-                    info: 'Checkbox sin marcar',
-                    reason: 'checkbox_off'
+                    info: 'Checkbox sin marcar'
                 });
             }
 
@@ -603,7 +601,7 @@ export default async function handler(req, res) {
                         socioNumber: result.guestData.socioNumber || '',
                         action: 'push_skipped',
                         status: 'skipped',
-                        reason: 'config_disabled'
+                        info: 'Configuración desactivada'
                     });
                 }
 
@@ -634,7 +632,7 @@ export default async function handler(req, res) {
                         socioNumber: result.guestData.socioNumber || '',
                         action: 'email_skipped',
                         status: 'skipped',
-                        reason: 'config_disabled'
+                        info: 'Configuración desactivada'
                     });
                 }
             }

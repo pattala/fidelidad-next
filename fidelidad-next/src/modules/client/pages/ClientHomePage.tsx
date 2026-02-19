@@ -61,7 +61,7 @@ const RecentActivityList = ({ uid }: { uid?: string }) => {
                                 {item.concept || 'Movimiento'}
                             </p>
                         </div>
-                        <span className={`text - sm font - black px - 3 py - 1 rounded - xl ${isPositive ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'} `}>
+                        <span className={`text-sm font-black px-3 py-1 rounded-xl ${isPositive ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
                             {isPositive ? '+' : ''}{item.amount}
                         </span>
                     </div>
@@ -69,6 +69,39 @@ const RecentActivityList = ({ uid }: { uid?: string }) => {
             })}
         </>
     );
+};
+
+const CountdownTimer = ({ targetTime }: { targetTime: string }) => {
+    const [timeLeft, setTimeLeft] = useState("");
+
+    useEffect(() => {
+        const calculate = () => {
+            const now = new Date();
+            const [h, m] = targetTime.split(':').map(Number);
+            const target = new Date();
+            target.setHours(h, m, 0, 0);
+
+            let diff = target.getTime() - now.getTime();
+            if (diff < 0) {
+                setTimeLeft("Terminada");
+                return;
+            }
+
+            const hh = Math.floor(diff / (1000 * 60 * 60));
+            diff -= hh * (1000 * 60 * 60);
+            const mm = Math.floor(diff / (1000 * 60));
+            diff -= mm * (1000 * 60);
+            const ss = Math.floor(diff / 1000);
+
+            setTimeLeft(`${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`);
+        };
+
+        calculate();
+        const interval = setInterval(calculate, 1000);
+        return () => clearInterval(interval);
+    }, [targetTime]);
+
+    return <p className="text-xl font-black font-mono leading-none tracking-tighter">{timeLeft}</p>;
 };
 
 export const ClientHomePage = () => {
@@ -279,6 +312,47 @@ export const ClientHomePage = () => {
                 type="danger"
             />
 
+            {/* FLASH OFFER BANNER (DYNAMIC MARKETING) */}
+            {(() => {
+                const activeFlash = campaigns.find(c => {
+                    if (!c.startTime || !c.endTime) return false;
+                    const now = new Date();
+                    const curHHmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                    return curHHmm >= c.startTime && curHHmm < c.endTime;
+                });
+
+                if (!activeFlash) return null;
+
+                return (
+                    <div className="bg-gradient-to-r from-red-600 via-orange-500 to-red-600 p-6 rounded-[2rem] shadow-xl text-white relative overflow-hidden animate-pulse-slow border-4 border-white/20">
+                        <div className="absolute top-0 right-0 p-4 opacity-10">
+                            <Clock size={80} />
+                        </div>
+                        <div className="relative z-10">
+                            <div className="flex items-center gap-2 mb-2">
+                                <Sparkles size={20} className="animate-bounce" />
+                                <span className="text-[10px] font-black uppercase tracking-[0.3em]">¡OFERTA FLASH ACTIVA!</span>
+                            </div>
+                            <h3 className="text-2xl font-black tracking-tight mb-1 uppercase italic">
+                                {activeFlash.title || activeFlash.name}
+                            </h3>
+                            <div className="flex items-center gap-3 mt-3">
+                                <div className="bg-white/20 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10">
+                                    <p className="text-[8px] font-bold uppercase opacity-80 mb-0.5">Finaliza en:</p>
+                                    <CountdownTimer targetTime={activeFlash.endTime} />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-lg font-black leading-none">
+                                        {activeFlash.rewardType === 'MULTIPLIER' ? `x${activeFlash.rewardValue} Puntos` : `+${activeFlash.rewardValue} pts`}
+                                    </span>
+                                    <span className="text-[9px] font-bold opacity-80 uppercase tracking-tighter">¡Aprovechala ahora!</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
+
             {/* HERO CAROUSEL */}
             <section className="relative z-10 mx-0">
                 <CampaignCarousel />
@@ -341,7 +415,7 @@ export const ClientHomePage = () => {
 
                     {user && (
                         <div className="space-y-4 py-2 border-t border-gray-50">
-                            <PointsExpirationWarning userId={user.uid} compact={true} />
+                            <PointsExpirationWarning userId={user.uid as string} compact={true} />
                             <button
                                 onClick={() => setShowExpirationModal(true)}
                                 className="w-full text-center text-[10px] font-black text-purple-600 uppercase tracking-widest hover:text-purple-800 transition-colors flex items-center justify-center gap-1.5 py-1 bg-purple-50/50 rounded-lg border border-purple-100/50"
@@ -482,7 +556,7 @@ export const ClientHomePage = () => {
 
             <PointsExpirationModal
                 isOpen={showExpirationModal}
-                userId={user?.uid}
+                userId={user?.uid as string}
                 onClose={() => setShowExpirationModal(false)}
             />
         </div>

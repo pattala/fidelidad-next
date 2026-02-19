@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { CampaignService, type BonusRule } from '../../../services/campaignService';
-import { Calendar, Tag, Clock, ChevronLeft } from 'lucide-react';
+import { Calendar, Tag, Clock, ChevronLeft, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { AppConfig } from '../../../types';
 
@@ -91,10 +91,44 @@ export const ClientPromosPage = () => {
 
                                 {/* Validity Badges */}
                                 <div className="flex flex-wrap gap-2 mt-2">
+                                    {(() => {
+                                        if (!camp.startTime && !camp.endTime) return null;
+                                        const now = new Date();
+                                        const curHHmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                                        const isUpcoming = camp.startTime && camp.startTime > curHHmm;
+                                        const isExpiredToday = camp.endTime && camp.endTime < curHHmm;
+                                        const isActiveNow = !isUpcoming && !isExpiredToday;
+
+                                        if (isActiveNow) {
+                                            return (
+                                                <span className="bg-red-500 text-white px-2 py-1 rounded-lg text-[10px] font-black uppercase flex items-center gap-1 animate-pulse shadow-sm shadow-red-200">
+                                                    <Sparkles size={10} />
+                                                    ¡ACTIVA AHORA!
+                                                </span>
+                                            );
+                                        }
+                                        if (isUpcoming) {
+                                            return (
+                                                <span className="bg-blue-600 text-white px-2 py-1 rounded-lg text-[10px] font-black uppercase flex items-center gap-1">
+                                                    <Clock size={10} />
+                                                    Próximamente: {camp.startTime} hs
+                                                </span>
+                                            );
+                                        }
+                                        return null;
+                                    })()}
+
                                     <span className="bg-green-50 text-green-700 border border-green-100 px-2 py-1 rounded-lg text-[10px] font-bold uppercase flex items-center gap-1">
                                         <Clock size={10} />
                                         {getDayLabel(camp.daysOfWeek)}
                                     </span>
+
+                                    {(camp.startTime || camp.endTime) && (
+                                        <span className="bg-purple-50 text-purple-700 border border-purple-100 px-2 py-1 rounded-lg text-[10px] font-bold uppercase flex items-center gap-1">
+                                            ⏰ {camp.startTime || '00:00'} a {camp.endTime || '23:59'} hs
+                                        </span>
+                                    )}
+
                                     {camp.rewardType === 'MULTIPLIER' && (
                                         <span className="bg-yellow-50 text-yellow-700 border border-yellow-100 px-2 py-1 rounded-lg text-[10px] font-bold uppercase">
                                             x{camp.rewardValue} Puntos

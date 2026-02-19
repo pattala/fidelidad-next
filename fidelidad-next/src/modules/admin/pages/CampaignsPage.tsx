@@ -81,7 +81,9 @@ export const CampaignsPage = () => {
         setFormData({
             name: '', title: '', showTitle: true, description: '', showDescription: true,
             rewardType: 'FIXED', rewardValue: 50,
-            daysOfWeek: [], active: true, startDate: '', endDate: '', imageUrl: '',
+            daysOfWeek: [], active: true, startDate: '', endDate: '',
+            startTime: '', endTime: '', // New fields
+            imageUrl: '',
             showInCarousel: false, showInHomeBanner: false, backgroundColor: '',
             textColor: '#FFFFFF', fontWeight: 'normal',
             imageFit: 'contain', textPosition: 'bottom-left', fontStyle: 'sans',
@@ -140,6 +142,8 @@ export const CampaignsPage = () => {
             description: bonus.description || '',
             startDate: bonus.startDate || '',
             endDate: bonus.endDate || '',
+            startTime: bonus.startTime || '',
+            endTime: bonus.endTime || '',
             imageUrl: bonus.imageUrl || '',
             showInCarousel: bonus.showInCarousel || false,
             showInHomeBanner: bonus.showInHomeBanner || false,
@@ -401,9 +405,18 @@ export const CampaignsPage = () => {
 
                             <div className="mt-auto space-y-3">
                                 {/* Date Range */}
-                                {(bonus.startDate || bonus.endDate) && (
-                                    <div className="text-[11px] font-medium text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-100 flex items-center">
-                                        📅 {bonus.startDate || 'Inicio'} - {bonus.endDate || 'Fin'}
+                                {(bonus.startDate || bonus.endDate || bonus.startTime || bonus.endTime) && (
+                                    <div className="text-[11px] font-medium text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-100 flex flex-col gap-0.5 mt-1">
+                                        {(bonus.startDate || bonus.endDate) && (
+                                            <div className="flex items-center gap-1">
+                                                📅 {bonus.startDate || 'Inicio'} - {bonus.endDate || 'Fin'}
+                                            </div>
+                                        )}
+                                        {(bonus.startTime || bonus.endTime) && (
+                                            <div className="flex items-center gap-1 text-purple-600 font-bold">
+                                                ⏰ {bonus.startTime || '00:00'} - {bonus.endTime || '23:59'} hs
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 
@@ -690,20 +703,42 @@ export const CampaignsPage = () => {
                                             ))}
                                         </div>
                                         <div className="grid grid-cols-2 gap-2 mt-2">
-                                            <input
-                                                type="date"
-                                                title="Fecha Inicio"
-                                                className="rounded-lg border-gray-200 border p-2 text-xs"
-                                                value={formData.startDate}
-                                                onChange={e => setFormData({ ...formData, startDate: e.target.value })}
-                                            />
-                                            <input
-                                                type="date"
-                                                title="Fecha Fin"
-                                                className="rounded-lg border-gray-200 border p-2 text-xs"
-                                                value={formData.endDate}
-                                                onChange={e => setFormData({ ...formData, endDate: e.target.value })}
-                                            />
+                                            <div className="space-y-1">
+                                                <label className="text-[9px] font-bold text-gray-400 uppercase">Fecha Inicio</label>
+                                                <input
+                                                    type="date"
+                                                    className="w-full rounded-lg border-gray-200 border p-2 text-xs"
+                                                    value={formData.startDate}
+                                                    onChange={e => setFormData({ ...formData, startDate: e.target.value })}
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[9px] font-bold text-gray-400 uppercase">Fecha Fin</label>
+                                                <input
+                                                    type="date"
+                                                    className="w-full rounded-lg border-gray-200 border p-2 text-xs"
+                                                    value={formData.endDate}
+                                                    onChange={e => setFormData({ ...formData, endDate: e.target.value })}
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[9px] font-bold text-gray-400 uppercase">Hora Inicio</label>
+                                                <input
+                                                    type="time"
+                                                    className="w-full rounded-lg border-gray-200 border p-2 text-xs"
+                                                    value={formData.startTime}
+                                                    onChange={e => setFormData({ ...formData, startTime: e.target.value })}
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[9px] font-bold text-gray-400 uppercase">Hora Fin</label>
+                                                <input
+                                                    type="time"
+                                                    className="w-full rounded-lg border-gray-200 border p-2 text-xs"
+                                                    value={formData.endTime}
+                                                    onChange={e => setFormData({ ...formData, endTime: e.target.value })}
+                                                />
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

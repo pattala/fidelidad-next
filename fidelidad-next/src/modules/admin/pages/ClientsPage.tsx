@@ -627,7 +627,18 @@ export const ClientsPage = () => {
         const promos = await CampaignService.getActiveBonusesForToday();
         const calculablePromos = promos.filter(p => p.rewardType === 'FIXED' || p.rewardType === 'MULTIPLIER');
         setAvailablePromotions(calculablePromos);
-        setSelectedPromos(calculablePromos.map(p => p.id));
+
+        // Auto-seleccionar solo las que están en horario (Marketing Dinámico)
+        const now = TimeService.now();
+        const curHHmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+        const autoSelected = calculablePromos.filter(p => {
+            if (p.startTime && p.startTime > curHHmm) return false;
+            if (p.endTime && p.endTime < curHHmm) return false;
+            return true;
+        }).map(p => p.id);
+
+        setSelectedPromos(autoSelected);
         setPointsModalOpen(true);
     };
 
@@ -1308,12 +1319,38 @@ export const ClientsPage = () => {
                                                         }}
                                                     />
                                                     <div className="flex flex-col">
-                                                        <span className="text-[10px] font-bold text-gray-700 uppercase group-hover:text-green-600 transition">
-                                                            {promo.name || promo.title}
-                                                        </span>
-                                                        <span className="text-[9px] text-gray-400 font-bold">
-                                                            {promo.rewardType === 'MULTIPLIER' ? `Multiplicador x${promo.rewardValue}` : `Bonus +${promo.rewardValue} pts`}
-                                                        </span>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <span className="text-[10px] font-bold text-gray-700 uppercase group-hover:text-green-600 transition">
+                                                                {promo.name || promo.title}
+                                                            </span>
+                                                            {(() => {
+                                                                if (!promo.startTime && !promo.endTime) return null;
+                                                                const now = TimeService.now();
+                                                                const curHHmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                                                                const isUpcoming = promo.startTime && promo.startTime > curHHmm;
+                                                                const isExpiredToday = promo.endTime && promo.endTime < curHHmm;
+                                                                const isActiveNow = !isUpcoming && !isExpiredToday;
+
+                                                                return (
+                                                                    <span className={`text-[8px] px-1 rounded-full font-black ${isActiveNow ? 'bg-green-100 text-green-600 animate-pulse' :
+                                                                            isUpcoming ? 'bg-blue-100 text-blue-600' :
+                                                                                'bg-gray-100 text-gray-400'
+                                                                        }`}>
+                                                                        {isActiveNow ? '¡ACTIVA!' : isUpcoming ? `DESDE ${promo.startTime}` : 'FINALIZADA'}
+                                                                    </span>
+                                                                );
+                                                            })()}
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-[9px] text-gray-400 font-bold">
+                                                                {promo.rewardType === 'MULTIPLIER' ? `Multiplicador x${promo.rewardValue}` : `Bonus +${promo.rewardValue} pts`}
+                                                            </span>
+                                                            {(promo.startTime || promo.endTime) && (
+                                                                <span className="text-[9px] text-purple-400 font-black">
+                                                                    ⏰ {promo.startTime || '00:00'} - {promo.endTime || '23:59'}
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </label>
                                             ))}

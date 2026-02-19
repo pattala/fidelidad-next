@@ -112,20 +112,29 @@ export default async function handler(req, res) {
             const day = String(nowArg.getUTCDate()).padStart(2, '0');
             const todayStr = `${year}-${month}-${day}`;
 
+            // Marketing Dinámico: Obtener hora actual en HH:mm (Local AR)
+            const currentHour = String(nowArg.getUTCHours()).padStart(2, '0');
+            const currentMin = String(nowArg.getUTCMinutes()).padStart(2, '0');
+            const currentTimeStr = `${currentHour}:${currentMin}`;
+
             const campSnap = await db.collection('campanas').where('active', '==', true).get();
             const activePromotions = [];
 
             campSnap.docs.forEach(doc => {
                 const b = doc.data();
 
-                // Filtro de fechas (comparación de strings YYYY-MM-DD)
+                // 1. Filtro de fechas (comparación de strings YYYY-MM-DD)
                 if (b.startDate && typeof b.startDate === 'string' && b.startDate > todayStr) return;
                 if (b.endDate && typeof b.endDate === 'string' && b.endDate < todayStr) return;
 
-                // Filtro por día de la semana
+                // 2. Filtro por día de la semana
                 if (b.daysOfWeek && Array.isArray(b.daysOfWeek) && b.daysOfWeek.length > 0) {
                     if (!b.daysOfWeek.includes(todayDay)) return;
                 }
+
+                // 3. Filtro de hora (Marketing Dinámico / Ofertas Flash)
+                if (b.startTime && typeof b.startTime === 'string' && b.startTime > currentTimeStr) return;
+                if (b.endTime && typeof b.endTime === 'string' && b.endTime < currentTimeStr) return;
 
                 // Tipos permitidos (SOLO FIXED y MULTIPLIER en este contexto)
                 if (b.rewardType === 'FIXED' || b.rewardType === 'MULTIPLIER') {

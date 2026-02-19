@@ -15,6 +15,8 @@ export interface BonusRule {
     daysOfWeek: number[]; // 0=Domingo...
     startDate?: string; // Fecha ISO YYYY-MM-DD
     endDate?: string;   // Fecha ISO YYYY-MM-DD
+    startTime?: string; // Formato HH:mm
+    endTime?: string;   // Formato HH:mm
     imageUrl?: string;  // URL de imagen para banner
     showInApp?: boolean; // Maintain legacy field if needed, but we'll use specific ones
     showInCarousel?: boolean;

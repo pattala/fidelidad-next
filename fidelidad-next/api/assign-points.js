@@ -452,6 +452,20 @@ export default async function handler(req, res) {
                 dni: cData.dni || '',
                 socioNumber: cData.socioNumber || cData.numeroSocio || cData.socio_number || ''
             };
+
+            // AUDITORIA: Agregar detalle de los puntos sumados
+            if (!result.auditDetails) result.auditDetails = [];
+            result.auditDetails.push({
+                userId: targetUid,
+                userName: result.guestData.name,
+                dni: result.guestData.dni,
+                socioNumber: result.guestData.socioNumber,
+                points,
+                action: 'points_credited',
+                status: 'success',
+                info: `+${points} pts (${(concept || 'Carga manual')})`,
+                timestamp: new Date().toISOString()
+            });
         });
 
         // 5.5 ACTUALIZAR METADATA DE VENCIMIENTOS (Cache)
@@ -504,68 +518,45 @@ export default async function handler(req, res) {
                     if (phone.length >= 8) {
                         result.whatsappLink = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(waMsg.trim())}`;
 
-                        // Audit Log (Manual)
-                        try {
-                            await db.collection('audit_logs').add({
-                                timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                                type: 'whatsapp_manual',
-                                status: 'link_ready',
-                                summary: `Link de WhatsApp preparado para ${result.guestData.name} (${points} pts)`,
-                                details: [{
-                                    userId: targetUid,
-                                    userName: result.guestData.name,
-                                    dni: result.guestData.dni || '',
-                                    socioNumber: result.guestData.socioNumber || '',
-                                    points,
-                                    action: 'whatsapp_link_generated',
-                                    status: 'link_ready',
-                                    timestamp: new Date().toISOString()
-                                }],
-                                executor
-                            });
-                        } catch (waErr) {
-                            console.error("WhatsApp audit error:", waErr);
-                        }
-                    }
-                } else {
-                    // Log Skip: Config Disabled
-                    try {
-                        await db.collection('audit_logs').add({
-                            timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                            type: 'whatsapp_manual',
-                            status: 'disabled',
-                            summary: `WhatsApp OMITIDO para ${result.guestData.name}: Canal desactivado en configuración`,
-                            details: [{
-                                userId: targetUid,
-                                userName: result.guestData.name,
-                                dni: result.guestData.dni || '',
-                                socioNumber: result.guestData.socioNumber || '',
-                                action: 'whatsapp_skipped',
-                                reason: 'config_disabled'
-                            }],
-                            executor
-                        });
-                    } catch (e) { }
-                }
-            } else if (points > 0) {
-                // Log Skip: Not checked in UI
-                try {
-                    await db.collection('audit_logs').add({
-                        timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                        type: 'whatsapp_manual',
-                        status: 'skipped',
-                        summary: `WhatsApp OMITIDO para ${result.guestData.name}: Checkbox sin marcar`,
-                        details: [{
+                        // Audit Log (Manual) - ACUMULAR
+                        result.auditDetails.push({
                             userId: targetUid,
                             userName: result.guestData.name,
                             dni: result.guestData.dni || '',
                             socioNumber: result.guestData.socioNumber || '',
-                            action: 'whatsapp_skipped',
-                            reason: 'checkbox_off'
-                        }],
-                        executor
+                            points,
+                            action: 'whatsapp_link_generated',
+                            status: 'link_ready',
+                            timestamp: new Date().toISOString()
+                        });
+                    }
+                } else {
+                    // Log Skip: Config Disabled
+                    // Log Skip: Config Disabled - ACUMULAR
+                    result.auditDetails.push({
+                        userId: targetUid,
+                        userName: result.guestData.name,
+                        dni: result.guestData.dni || '',
+                        socioNumber: result.guestData.socioNumber || '',
+                        action: 'whatsapp_skipped',
+                        status: 'skipped',
+                        info: 'Canal desactivado en configuración',
+                        reason: 'config_disabled'
                     });
-                } catch (e) { }
+                }
+            } else if (points > 0) {
+                // Log Skip: Not checked in UI
+                // Log Skip: Not checked in UI - ACUMULAR
+                result.auditDetails.push({
+                    userId: targetUid,
+                    userName: result.guestData.name,
+                    dni: result.guestData.dni || '',
+                    socioNumber: result.guestData.socioNumber || '',
+                    action: 'whatsapp_skipped',
+                    status: 'skipped',
+                    info: 'Checkbox sin marcar',
+                    reason: 'checkbox_off'
+                });
             }
 
             const notifications = [];
@@ -596,17 +587,24 @@ export default async function handler(req, res) {
                                 points, executor,
                                 extraData: { skipInbox: true, source: 'extension_or_panel' }
                             })
-                        }).catch(err => console.error("Push error (guest):", err))
+                        }).then(() => {
+                            result.auditDetails.push({ userId: targetUid, userName: result.guestData.name, action: 'push_sent', status: 'success' });
+                        }).catch(err => {
+                            console.error("Push error (guest):", err);
+                            result.auditDetails.push({ userId: targetUid, userName: result.guestData.name, action: 'push_error', status: 'failed', info: err.message });
+                        })
                     );
                 } else {
-                    // Log Push Skip
-                    await db.collection('audit_logs').add({
-                        timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                        type: 'push_notification',
+                    // Log Push Skip - ACUMULAR
+                    result.auditDetails.push({
+                        userId: targetUid,
+                        userName: result.guestData.name,
+                        dni: result.guestData.dni || '',
+                        socioNumber: result.guestData.socioNumber || '',
+                        action: 'push_skipped',
                         status: 'skipped',
-                        summary: `Push OMITIDO para ${result.guestData.name}: Canal desactivado`,
-                        executor
-                    }).catch(e => { });
+                        reason: 'config_disabled'
+                    });
                 }
 
                 if (isEmailConfigured && result.guestData.email) {
@@ -620,17 +618,24 @@ export default async function handler(req, res) {
                                 points, executor,
                                 templateData: { subject: '¡Has sumado puntos! 💰', htmlContent: unifiedMsg }
                             })
-                        }).catch(err => console.error("Email error (guest):", err))
+                        }).then(() => {
+                            result.auditDetails.push({ userId: targetUid, userName: result.guestData.name, action: 'email_sent', status: 'success' });
+                        }).catch(err => {
+                            console.error("Email error (guest):", err);
+                            result.auditDetails.push({ userId: targetUid, userName: result.guestData.name, action: 'email_error', status: 'failed', info: err.message });
+                        })
                     );
                 } else if (result.guestData.email) {
-                    // Log Email Skip
-                    await db.collection('audit_logs').add({
-                        timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                        type: 'email_notification',
+                    // Log Email Skip - ACUMULAR
+                    result.auditDetails.push({
+                        userId: targetUid,
+                        userName: result.guestData.name,
+                        dni: result.guestData.dni || '',
+                        socioNumber: result.guestData.socioNumber || '',
+                        action: 'email_skipped',
                         status: 'skipped',
-                        summary: `Email OMITIDO para ${result.guestData.name}: Canal desactivado`,
-                        executor
-                    }).catch(e => { });
+                        reason: 'config_disabled'
+                    });
                 }
             }
 
@@ -664,7 +669,11 @@ export default async function handler(req, res) {
                                 points: rInfo.bonusAmount, executor,
                                 extraData: { skipInbox: true }
                             })
-                        }).catch(err => console.error("Push error (referrer):", err))
+                        }).then(() => {
+                            result.auditDetails.push({ userId: rInfo.uid, userName: rInfo.name, action: 'push_sent_referrer', status: 'success' });
+                        }).catch(err => {
+                            result.auditDetails.push({ userId: rInfo.uid, userName: rInfo.name, action: 'push_error_referrer', status: 'failed', info: err.message });
+                        })
                     );
                 }
 
@@ -679,14 +688,34 @@ export default async function handler(req, res) {
                                 templateId: 'manual_override',
                                 templateData: { subject: '¡Ganaste un premio de referido! 🎁', htmlContent: rMsg }
                             })
-                        }).catch(err => console.error("Email error (referrer):", err))
+                        }).then(() => {
+                            result.auditDetails.push({ userId: rInfo.uid, userName: rInfo.name, action: 'email_sent_referrer', status: 'success' });
+                        }).catch(err => {
+                            result.auditDetails.push({ userId: rInfo.uid, userName: rInfo.name, action: 'email_error_referrer', status: 'failed', info: err.message });
+                        })
                     );
                 }
             }
 
             if (notifications.length > 0) {
                 console.log(`[assign-points] Triggering ${notifications.length} notifications.`);
-                await Promise.allSettled(notifications);
+                await Promise.all(notifications);
+            }
+
+            // --- FINAL AUDIT LOG (UNIFIED) ---
+            if (result.auditDetails && result.auditDetails.length > 0) {
+                try {
+                    await db.collection('audit_logs').add({
+                        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                        type: 'points_assignment',
+                        status: 'success',
+                        summary: `Asignación de puntos: ${result.guestData.name} (${result.pointsAdded || 0} pts)`,
+                        details: result.auditDetails,
+                        executor
+                    });
+                } catch (auditErr) {
+                    console.error("Final audit log error:", auditErr);
+                }
             }
         } catch (notifyErr) {
             console.error("Error triggering notifications outside tx:", notifyErr);

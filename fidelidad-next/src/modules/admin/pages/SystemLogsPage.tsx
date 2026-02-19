@@ -315,6 +315,34 @@ export const SystemLogsPage = () => {
                                                     <div className="flex-1">
                                                         <div className="flex items-center gap-2">
                                                             <span className="font-bold text-gray-700 text-sm">{getTypeLabel(log.type)}</span>
+
+                                                            {/* Identificadores rápidos (si es log de un solo socio) */}
+                                                            {(() => {
+                                                                if (!log.details || log.details.length === 0) return null;
+                                                                // Si es un log consolidado de un solo socio (o el primero de varios)
+                                                                const first = log.details[0];
+                                                                // Si todos los detalles son del mismo usuario o es un tipo de operación manual
+                                                                const isManualOp = log.type === 'points_assignment' || log.type === 'prize_redemption' || log.type === 'whatsapp_manual';
+
+                                                                if (isManualOp && first.userId && first.userId !== 'system') {
+                                                                    return (
+                                                                        <div className="flex items-center gap-1">
+                                                                            {first.socioNumber && (
+                                                                                <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-black border border-blue-100">
+                                                                                    #{first.socioNumber}
+                                                                                </span>
+                                                                            )}
+                                                                            {first.dni && (
+                                                                                <span className="text-[10px] text-gray-400 font-bold ml-1">
+                                                                                    DNI: {first.dni}
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                    );
+                                                                }
+                                                                return null;
+                                                            })()}
+
                                                             {log.status !== 'success' && (
                                                                 <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${log.status === 'skipped' ? 'bg-slate-100 text-slate-500' :
                                                                     log.status === 'disabled' ? 'bg-orange-100 text-orange-600' :

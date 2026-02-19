@@ -333,6 +333,9 @@ export default async function handler(req, res) {
                         details: [{
                             action: 'notification_sent',
                             userId,
+                            userName: userData.name || userData.nombre || 'Socio',
+                            dni: userData.dni || '',
+                            socioNumber: userData.socioNumber || userData.numeroSocio || userData.socio_number || '',
                             totalImpendingAmount,
                             closestDate: userData.nextExpirationDate,
                             channels,

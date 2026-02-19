@@ -172,6 +172,22 @@ export default async function handler(req, res) {
                 updatedAt: admin.firestore.FieldValue.serverTimestamp()
             });
 
+            // AUDITORIA: Agregar detalle del canje
+            if (!result.auditDetails) result.auditDetails = [];
+            result.auditDetails.push({
+                userId: targetUid,
+                userName: cData.name || cData.nombre || 'Socio',
+                dni: cData.dni || '',
+                socioNumber: cData.socioNumber || cData.numeroSocio || cData.socio_number || '',
+                prizeId: prizeId,
+                prizeName: pData.name,
+                pointsRedeemed: pointsNeeded,
+                action: 'prize_redeemed',
+                status: 'success',
+                info: `Canjeó ${pData.name} por ${pointsNeeded} pts`,
+                timestamp: new Date().toISOString()
+            });
+
             // Update Prize Stock
             tx.update(pSnap.ref, {
                 stock: admin.firestore.FieldValue.increment(-1)
@@ -240,35 +256,29 @@ export default async function handler(req, res) {
                     const encodedMsg = encodeURIComponent(unifiedMsg);
                     result.whatsappLink = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedMsg}`;
 
-                    // Log WhatsApp Audit
-                    const auditRef = db.collection('audit_logs').doc();
-                    tx.set(auditRef, {
-                        type: 'whatsapp_manual',
-                        status: 'link_ready',
-                        summary: `Link de WhatsApp preparado para ${cData.name || 'Socio'} (${pData.name} - ${shortCode})`,
-                        details: [{
-                            userId: targetUid,
-                            userName: cData.name || cData.nombre || 'Socio',
-                            dni: cData.dni || '',
-                            socioNumber: cData.socioNumber || cData.numeroSocio || cData.socio_number || '',
-                            prizeId: prizeId,
-                            prizeName: pData.name,
-                            pointsRedeemed: pointsNeeded,
-                            status: 'link_ready'
-                        }],
-                        executor: 'system',
-                        timestamp: admin.firestore.FieldValue.serverTimestamp()
+                    // Log WhatsApp Audit - ACUMULAR
+                    result.auditDetails.push({
+                        userId: targetUid,
+                        userName: cData.name || cData.nombre || 'Socio',
+                        dni: cData.dni || '',
+                        socioNumber: cData.socioNumber || cData.numeroSocio || cData.socio_number || '',
+                        prizeId: prizeId,
+                        prizeName: pData.name,
+                        pointsRedeemed: pointsNeeded,
+                        action: 'whatsapp_link_generated',
+                        status: 'link_ready'
                     });
                 }
             } else {
-                // Log Skip: WhatsApp Disabled
-                const auditRef = db.collection('audit_logs').doc();
-                tx.set(auditRef, {
-                    type: 'whatsapp_manual',
+                // Log Skip: WhatsApp Disabled - ACUMULAR
+                result.auditDetails.push({
+                    userId: targetUid,
+                    userName: cData.name || cData.nombre || 'Socio',
+                    dni: cData.dni || '',
+                    socioNumber: cData.socioNumber || cData.numeroSocio || cData.socio_number || '',
+                    action: 'whatsapp_skipped',
                     status: 'skipped',
-                    summary: `WhatsApp OMITIDO para ${cData.name || 'Socio'} (${shortCode}): Canal desactivado`,
-                    executor: 'system',
-                    timestamp: admin.firestore.FieldValue.serverTimestamp()
+                    reason: 'config_disabled'
                 });
             }
         });
@@ -329,17 +339,24 @@ export default async function handler(req, res) {
                             points: -pointsNeeded,
                             executor,
                             extraData: { skipInbox: true, source: 'redemption' }
-                        }).catch(err => console.error("Push redemption error:", err))
+                        }).then(() => {
+                            result.auditDetails.push({ userId: targetUid, userName: clientData.name, action: 'push_sent', status: 'success' });
+                        }).catch(err => {
+                            console.error("Push redemption error:", err);
+                            result.auditDetails.push({ userId: targetUid, userName: clientData.name, action: 'push_error', status: 'failed', info: err.message });
+                        })
                     );
                 } else {
-                    // Log Push Skip
-                    await db.collection('audit_logs').add({
-                        timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                        type: 'push_notification',
+                    // Log Push Skip - ACUMULAR
+                    result.auditDetails.push({
+                        userId: targetUid,
+                        userName: clientData.name || 'Socio',
+                        dni: clientData.dni || '',
+                        socioNumber: clientData.socioNumber || '',
+                        action: 'push_skipped',
                         status: 'skipped',
-                        summary: `Push OMITIDO para ${clientData.name || 'Socio'}: Canal desactivado`,
-                        executor
-                    }).catch(e => { });
+                        reason: 'config_disabled'
+                    });
                 }
 
                 if (isEmailConfigured && (clientData.email || clientData.correo)) {
@@ -356,20 +373,43 @@ export default async function handler(req, res) {
                                     htmlContent: result.unifiedMsg
                                 }
                             })
-                        }).catch(err => console.error("Email redemption error:", err))
+                        }).then(() => {
+                            result.auditDetails.push({ userId: targetUid, userName: clientData.name, action: 'email_sent', status: 'success' });
+                        }).catch(err => {
+                            console.error("Email redemption error:", err);
+                            result.auditDetails.push({ userId: targetUid, userName: clientData.name, action: 'email_error', status: 'failed', info: err.message });
+                        })
                     );
                 } else if (clientData.email || clientData.correo) {
-                    // Log Email Skip
-                    await db.collection('audit_logs').add({
-                        timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                        type: 'email_notification',
+                    // Log Email Skip - ACUMULAR
+                    result.auditDetails.push({
+                        userId: targetUid,
+                        userName: clientData.name || 'Socio',
+                        dni: clientData.dni || '',
+                        socioNumber: clientData.socioNumber || '',
+                        action: 'email_skipped',
                         status: 'skipped',
-                        summary: `Email OMITIDO para ${clientData.name || 'Socio'}: Canal desactivado`,
-                        executor
-                    }).catch(e => { });
+                        reason: 'config_disabled'
+                    });
                 }
 
-                if (notifications.length > 0) await Promise.allSettled(notifications);
+                if (notifications.length > 0) await Promise.all(notifications);
+
+                // --- FINAL AUDIT LOG (UNIFIED) ---
+                if (result.auditDetails && result.auditDetails.length > 0) {
+                    try {
+                        await db.collection('audit_logs').add({
+                            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                            type: 'prize_redemption',
+                            status: 'success',
+                            summary: `Canje de premio: ${clientData.name} (${prizeData.name})`,
+                            details: result.auditDetails,
+                            executor
+                        });
+                    } catch (auditErr) {
+                        console.error("Final audit log error (redemption):", auditErr);
+                    }
+                }
             } catch (err) {
                 console.error("Error triggering redemption notifications:", err);
             }

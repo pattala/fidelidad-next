@@ -524,7 +524,8 @@ export const ClientsPage = () => {
                 headers: {
                     'Content-Type': 'application/json',
                     'x-api-key': import.meta.env.VITE_API_KEY || '',
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${token}`,
+                    'x-executor-role': (auth.currentUser as any)?.reloadUserInfo?.customAttributes?.includes('editor') ? 'editor' : 'admin'
                 },
                 body: JSON.stringify({
                     uid: selectedClientForPoints.id,

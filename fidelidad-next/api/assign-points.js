@@ -164,6 +164,7 @@ export default async function handler(req, res) {
 
         const apiKey = req.headers["x-api-key"];
         const authHeader = req.headers["authorization"];
+        const executorRole = req.headers["x-executor-role"] || 'admin'; // Default to admin for safety
 
         if (apiKey && process.env.API_SECRET_KEY && apiKey === process.env.API_SECRET_KEY) {
             isAdmin = true; // Modo Admin (Panel o Extensión)
@@ -733,7 +734,8 @@ export default async function handler(req, res) {
                         status: 'success',
                         summary: `Asignación de puntos: ${result.guestData.name} (${result.pointsAdded || 0} pts)`,
                         details: result.auditDetails,
-                        executor
+                        executor,
+                        role: executorRole
                     });
                 } catch (auditErr) {
                     console.error("Final audit log error:", auditErr);

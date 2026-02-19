@@ -324,25 +324,11 @@ export default async function handler(req, res) {
                         expireAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000))
                     });
 
-                    // LOG DE AUDITORÍA INDIVIDUAL
-                    await db.collection('audit_logs').add({
-                        timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                        type: 'expiration_warning',
-                        status: 'success',
-                        summary: `Aviso de vencimiento: ${totalImpendingAmount} pts para ${userData.name || 'Socio'}`,
-                        details: [{
-                            action: 'notification_sent',
-                            userId,
-                            userName: userData.name || userData.nombre || 'Socio',
-                            dni: userData.dni || '',
-                            socioNumber: userData.socioNumber || userData.numeroSocio || userData.socio_number || '',
-                            totalImpendingAmount,
-                            closestDate: userData.nextExpirationDate,
-                            channels,
-                            messageSent: msg,
-                            breakdown: breakdownStr
-                        }],
-                        executor: 'system'
+                    // Guardamos la fecha y el MONTO del vencimiento avisado
+                    await userDoc.ref.update({
+                        lastExpirationNotice: referenceDateStr,
+                        lastExpirationNoticeTargetDate: userData.nextExpirationDate,
+                        lastExpirationNoticeAmount: totalImpendingAmount
                     });
 
                     // Guardamos la fecha y el MONTO del vencimiento avisado

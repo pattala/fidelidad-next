@@ -66,15 +66,6 @@ export default async function handler(req, res) {
             errors: []
         };
 
-        // LOG DE INICIO (Confirmación de que Vercel arrancó el motor)
-        await db.collection('audit_logs').add({
-            timestamp: admin.firestore.FieldValue.serverTimestamp(),
-            type: 'birthday_engine',
-            status: 'running',
-            summary: "Iniciando proceso de chequeo de cumpleaños.",
-            details: [],
-            executor: 'system'
-        });
 
         // --- BUSQUEDA DE SOCIOS (Query por MM-DD) ---
         // birthDate se guarda como YYYY-MM-DD. Buscamos los que terminan en todayMD.
@@ -199,7 +190,7 @@ export default async function handler(req, res) {
             }
         }
 
-        // 4. GUARDAR LOG DE AUDITORÍA
+        // 4. GUARDAR LOG DE AUDITORÍA CONSOLIDADO
         try {
             await db.collection('audit_logs').add({
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),

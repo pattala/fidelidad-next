@@ -416,7 +416,8 @@ export default async function handler(req, res) {
                             status: 'success',
                             summary: `Canje de premio: ${clientData.name} (${prizeData.name})`,
                             details: result.auditDetails,
-                            executor
+                            executor,
+                            role: executorRole || 'admin'
                         });
                     } catch (auditErr) {
                         console.error("Final audit log error (redemption):", auditErr);

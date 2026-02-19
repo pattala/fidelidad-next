@@ -107,6 +107,22 @@ export default async function handler(req, res) {
             html: html
         });
 
+        // --- AUDITORIA ---
+        try {
+            await db.collection('audit_logs').add({
+                timestamp: new Date(),
+                type: 'admin_mgmt',
+                status: 'success',
+                summary: `Nueva invitación: ${email} (${role})`,
+                details: [
+                    { action: 'admin_invited', status: 'success', info: `Invitado por: ${invitedBy}, Rol: ${role}` }
+                ],
+                executor: invitedBy || 'admin'
+            });
+        } catch (auditErr) {
+            console.error('Audit error in invite-admin:', auditErr);
+        }
+
         return res.status(200).json({ ok: true, message: 'Invitación enviada' });
 
     } catch (error) {

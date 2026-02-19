@@ -355,10 +355,12 @@ export const SystemLogsPage = () => {
                                                             )}
                                                             <div className="flex flex-col items-end ml-auto">
                                                                 <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-bold uppercase tracking-widest">
-                                                                    {log.executor?.includes('@') || log.executor?.length > 15 ? 'ADMIN / OPERADOR' : log.executor}
+                                                                    {log.executor === 'system' ? 'SISTEMA' :
+                                                                        (log.executor?.includes('@') || log.executor?.length > 15) ? 'ADMIN / OPERADOR' :
+                                                                            (log.executor || 'DESCONOCIDO')}
                                                                 </span>
-                                                                {(log.executor?.includes('@') || log.executor?.length > 15) && (
-                                                                    <span className="text-[9px] text-gray-400 font-bold mt-0.5 px-1 truncate max-w-[120px]" title={log.executor}>
+                                                                {(log.executor && log.executor !== 'system' && (log.executor.includes('@') || log.executor.length > 15)) && (
+                                                                    <span className="text-[9px] text-gray-400 font-bold mt-0.5 px-1 truncate max-w-[150px] bg-gray-50/50 rounded" title={log.executor}>
                                                                         {log.executor}
                                                                     </span>
                                                                 )}

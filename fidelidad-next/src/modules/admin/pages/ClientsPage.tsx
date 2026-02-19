@@ -19,6 +19,7 @@ import { RedemptionModal } from '../components/RedemptionModal';
 import { PointsHistoryModal } from '../components/PointsHistoryModal';
 import { VisitHistoryModal } from '../components/VisitHistoryModal';
 import { ExpirationService } from '../../../services/expirationService';
+import { AuditService } from '../../../services/auditService';
 
 import { ARGENTINA_LOCATIONS } from '../../../data/locations'; // Import added
 import { useAdminAuth } from '../contexts/AdminAuthContext';
@@ -637,6 +638,11 @@ export const ClientsPage = () => {
     };
 
     const handleExportExcel = () => {
+        // --- AUDITORIA ---
+        AuditService.log('data_export', 'Exportación de base de clientes a Excel', [
+            { action: 'excel_export', status: 'success', info: `Total registros: ${clients.length}` }
+        ]);
+
         const headers = [
             'Socio', 'Nombre', 'Email', 'DNI', 'Telefono', 'Fecha Alta',
             'Puntos Actuales', 'Puntos por Vencer', 'Puntos Canjeados Total',

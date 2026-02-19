@@ -240,6 +240,30 @@ export default async function handler(req, res) {
       console.log('[AssignSocio] Skipping email. sendWelcome=', sendWelcome, ' datos=', !!datosClienteParaEmail);
     }
 
+    // --- AUDITORIA ---
+    try {
+      let executor = 'admin';
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        const token = authHeader.split("Bearer ")[1];
+        const decoded = await admin.auth().verifyIdToken(token);
+        executor = decoded.email || decoded.uid || 'admin';
+      }
+
+      await db.collection('audit_logs').add({
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        type: 'user_mgmt',
+        status: 'success',
+        summary: `Asignación de #Socio: ${datosClienteParaEmail?.nombre || 'Socio'} (#${assignedNumber})`,
+        details: [
+          { action: 'socio_number_assigned', status: 'success', info: `ID: ${docId}, #Socio: ${assignedNumber}` },
+          { action: 'email_welcome', status: sendWelcome ? (mailResult?.ok ? 'success' : 'failed') : 'skipped', info: sendWelcome ? `Resultado: ${JSON.stringify(mailResult)}` : 'No solicitado' }
+        ],
+        executor
+      });
+    } catch (auditErr) {
+      console.error("Audit error in assign-socio-number:", auditErr);
+    }
+
     return res.status(200).json({
       ok: true,
       numeroSocio: assignedNumber,

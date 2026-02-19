@@ -1,5 +1,6 @@
 import { collection, doc, getDocs, addDoc, updateDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { AuditService } from './auditService';
 
 export interface BonusRule {
     id: string;
@@ -95,6 +96,9 @@ export const CampaignService = {
     async create(bonus: Omit<BonusRule, 'id'>) {
         try {
             const docRef = await addDoc(collection(db, COLLECTION_NAME), bonus);
+            await AuditService.log('campaign_mgmt', `Campaña creada: ${bonus.name}`, [
+                { action: 'campaign_created', status: 'success', info: `Nombre: ${bonus.name}, Tipo: ${bonus.rewardType}` }
+            ]);
             return { id: docRef.id, ...bonus };
         } catch (error) {
             console.error('Error creating campaign:', error);
@@ -106,6 +110,12 @@ export const CampaignService = {
         try {
             const docRef = doc(db, COLLECTION_NAME, id);
             await updateDoc(docRef, updates);
+            // Evitar loggear el mantenimiento automático para no llenar la bitácora
+            if (!Object.keys(updates).every(k => k === 'active')) {
+                await AuditService.log('campaign_mgmt', `Campaña actualizada (ID: ${id.slice(0, 5)}...)`, [
+                    { action: 'campaign_updated', status: 'success', info: `Cambios: ${Object.keys(updates).join(', ')}` }
+                ]);
+            }
             return true;
         } catch (error) {
             console.error('Error updating campaign:', error);
@@ -116,6 +126,9 @@ export const CampaignService = {
     async delete(id: string) {
         try {
             await deleteDoc(doc(db, COLLECTION_NAME, id));
+            await AuditService.log('campaign_mgmt', `Campaña eliminada (ID: ${id})`, [
+                { action: 'campaign_deleted', status: 'success', info: `ID eliminado: ${id}` }
+            ]);
             return true;
         } catch (error) {
             console.error('Error deleting campaign:', error);

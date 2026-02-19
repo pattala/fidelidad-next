@@ -1,6 +1,7 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import type { AppConfig } from '../types';
+import { AuditService } from './auditService';
 
 export type { AppConfig };
 
@@ -98,6 +99,9 @@ export const ConfigService = {
         try {
             const ref = doc(db, CONFIG_DOC_PATH);
             await setDoc(ref, config, { merge: true });
+            await AuditService.log('config_mgmt', `Configuración del sistema actualizada`, [
+                { action: 'config_updated', status: 'success', info: 'Se guardaron cambios en la configuración general' }
+            ]);
             return true;
         } catch (error) {
             console.error('Error saving config:', error);

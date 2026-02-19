@@ -4,6 +4,7 @@
 // Soporta modo ADMIN (x-api-key) y modo USUARIO (Token Firebase).
 
 import admin from "firebase-admin";
+import { updateNextExpirationDate } from "./expiration-utils.js";
 
 // ---------- Firebase Admin ----------
 function initFirebaseAdmin() {
@@ -450,6 +451,12 @@ export default async function handler(req, res) {
                 email: cData.email || cData.correo
             };
         });
+
+        // 5.5 ACTUALIZAR METADATA DE VENCIMIENTOS (Cache)
+        if (result.ok && points > 0) {
+            // No bloqueamos la respuesta, pero lo ejecutamos
+            updateNextExpirationDate(db, targetUid).catch(err => console.error("Error updating expiration date:", err));
+        }
 
         // 6. NOTIFICACIONES Y MENSAJERÍA (Fuera de la transacción para evitar re-intentos innecesarios)
         try {

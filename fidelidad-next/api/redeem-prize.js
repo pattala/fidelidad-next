@@ -4,6 +4,7 @@
 
 import admin from "firebase-admin";
 import { sendNotificationInternal } from "./send-notification.js";
+import { updateNextExpirationDate } from "./expiration-utils.js";
 
 // ---------- Firebase Admin ----------
 function initFirebaseAdmin() {
@@ -268,6 +269,11 @@ export default async function handler(req, res) {
             }
         });
         console.timeEnd("redemption-transaction");
+
+        // 3.5 Actualizar Cache de Vencimientos (Porque gastó puntos, quizás gastó los que vencían pronto)
+        if (result.ok) {
+            updateNextExpirationDate(db, targetUid).catch(e => console.error("Error updating expiration cache (redemption):", e));
+        }
 
         // 4. Trigger Automatic Channels (Push & Email)
         if (result.ok) {

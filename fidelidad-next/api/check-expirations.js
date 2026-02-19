@@ -82,7 +82,7 @@ export default async function handler(req, res) {
         }
 
         // LOG DE INICIO (SIEMPRE se registra para ver que Vercel llamó al endpoint)
-        await db.collection('audit_logs').add({
+        const startLogRef = await db.collection('audit_logs').add({
             timestamp: admin.firestore.FieldValue.serverTimestamp(),
             type: isManual ? 'manual_expiration' : 'expiration_engine',
             status: 'running',
@@ -369,9 +369,7 @@ export default async function handler(req, res) {
                 ? `Motor ejecutado. Sin vencimientos para hoy ni avisos nuevos en la ventana de ${warningDays} días.`
                 : `Procesados: ${logResults.processed}, Vencidos: ${logResults.expired} pts, Notificados: ${logResults.notified}`;
 
-            await db.collection('audit_logs').add({
-                timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                type: isManual ? 'manual_expiration' : 'expiration_engine',
+            await startLogRef.update({
                 status: logResults.errors.length === 0 ? 'success' : 'partial',
                 summary: summaryMessage,
                 details: [

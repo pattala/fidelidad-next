@@ -722,22 +722,24 @@ export const CampaignsPage = () => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-[9px] font-bold text-gray-400 uppercase">Hora Inicio</label>
+                                                <label className="text-[9px] font-bold text-gray-400 uppercase">Hora Inicio (Oferta Flash)</label>
                                                 <input
                                                     type="time"
-                                                    className="w-full rounded-lg border-gray-200 border p-2 text-xs"
+                                                    className="w-full rounded-lg border-gray-200 border p-2 text-xs focus:ring-2 focus:ring-red-100"
                                                     value={formData.startTime}
                                                     onChange={e => setFormData({ ...formData, startTime: e.target.value })}
                                                 />
+                                                <span className="text-[8px] text-gray-400 block italic leading-none">Solo para marketing dinámico</span>
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-[9px] font-bold text-gray-400 uppercase">Hora Fin</label>
+                                                <label className="text-[9px] font-bold text-gray-400 uppercase">Hora Fin (Oferta Flash)</label>
                                                 <input
                                                     type="time"
-                                                    className="w-full rounded-lg border-gray-200 border p-2 text-xs"
+                                                    className="w-full rounded-lg border-gray-200 border p-2 text-xs focus:ring-2 focus:ring-red-100"
                                                     value={formData.endTime}
                                                     onChange={e => setFormData({ ...formData, endTime: e.target.value })}
                                                 />
+                                                <span className="text-[8px] text-gray-400 block italic leading-none">Desaparece tras 15m de tolerancia</span>
                                             </div>
                                         </div>
                                     </div>

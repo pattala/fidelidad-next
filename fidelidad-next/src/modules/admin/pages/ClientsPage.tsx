@@ -41,6 +41,50 @@ const INITIAL_CLIENT_STATE = {
     birthDate: ''
 };
 
+
+const PointsTimer = ({ endTime }: { endTime?: string }) => {
+    const [timeLeft, setTimeLeft] = useState<string>('');
+    const [isGrace, setIsGrace] = useState(false);
+
+    useEffect(() => {
+        if (!endTime) return;
+        const interval = setInterval(() => {
+            const now = TimeService.now();
+            const [h, m] = endTime.split(':').map(Number);
+            const target = new Date(now);
+            target.setHours(h, m, 0, 0);
+
+            const diff = target.getTime() - now.getTime();
+
+            if (diff > 0) {
+                setIsGrace(false);
+                const mm = Math.floor(diff / (1000 * 60));
+                const ss = Math.floor((diff % (1000 * 60)) / 1000);
+                setTimeLeft(`${mm}:${ss.toString().padStart(2, '0')}`);
+            } else {
+                setIsGrace(true);
+                const graceDiff = diff + (15 * 60 * 1000);
+                if (graceDiff > 0) {
+                    const mm = Math.floor(graceDiff / (1000 * 60));
+                    const ss = Math.floor((graceDiff % (1000 * 60)) / 1000);
+                    setTimeLeft(`${mm}:${ss.toString().padStart(2, '0')}`);
+                } else {
+                    setTimeLeft('00:00');
+                }
+            }
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [endTime]);
+
+    if (!endTime) return null;
+
+    return (
+        <span className={`text-[9px] font-black px-1 rounded-sm ${isGrace ? 'bg-orange-50 text-orange-600' : 'bg-green-50 text-green-600 animate-pulse'}`}>
+            {isGrace ? 'TOLERANCIA: ' : 'CIERRA EN: '}{timeLeft}
+        </span>
+    );
+};
+
 export const ClientsPage = () => {
     const navigate = useNavigate();
     const { isReadOnly } = useAdminAuth();
@@ -562,8 +606,6 @@ export const ClientsPage = () => {
         }
     };
 
-
-    // Auxiliares
     const refreshAndOpen = async (client: Client, openFn: (c: Client) => void) => {
         try {
             const snap = await getDocs(query(collection(db, 'users'), where('__name__', '==', client.id)));
@@ -626,13 +668,32 @@ export const ClientsPage = () => {
 
         const promos = await CampaignService.getActiveBonusesForToday();
         const calculablePromos = promos.filter(p => p.rewardType === 'FIXED' || p.rewardType === 'MULTIPLIER');
-        setAvailablePromotions(calculablePromos);
 
-        // Auto-seleccionar solo las que están en horario (Marketing Dinámico)
+        // --- REFINAMIENTO DE VISIBILIDAD (Marketing Dinámico) ---
+        const GRACE_PERIOD_MINS = 15;
         const now = TimeService.now();
         const curHHmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-        const autoSelected = calculablePromos.filter(p => {
+        const filteredPromos = calculablePromos.filter(p => {
+            if (!p.startTime && !p.endTime) return true;
+
+            // Si no empezó, no se muestra (evita ruido en carga)
+            if (p.startTime && p.startTime > curHHmm) return false;
+
+            // Si terminó, chequear periodo de gracia de 15 min
+            if (p.endTime) {
+                const [h, m] = p.endTime.split(':').map(Number);
+                const endTimestamp = new Date(now);
+                endTimestamp.setHours(h, m + GRACE_PERIOD_MINS, 0, 0);
+                if (now > endTimestamp) return false;
+            }
+            return true;
+        });
+
+        setAvailablePromotions(filteredPromos);
+
+        // Auto-seleccionar solo las que están en horario (antes de tolerancia)
+        const autoSelected = filteredPromos.filter(p => {
             if (p.startTime && p.startTime > curHHmm) return false;
             if (p.endTime && p.endTime < curHHmm) return false;
             return true;
@@ -1327,17 +1388,16 @@ export const ClientsPage = () => {
                                                                 if (!promo.startTime && !promo.endTime) return null;
                                                                 const now = TimeService.now();
                                                                 const curHHmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-                                                                const isUpcoming = promo.startTime && promo.startTime > curHHmm;
                                                                 const isExpiredToday = promo.endTime && promo.endTime < curHHmm;
-                                                                const isActiveNow = !isUpcoming && !isExpiredToday;
+                                                                const isActiveNow = !isExpiredToday;
 
                                                                 return (
-                                                                    <span className={`text-[8px] px-1 rounded-full font-black ${isActiveNow ? 'bg-green-100 text-green-600 animate-pulse' :
-                                                                            isUpcoming ? 'bg-blue-100 text-blue-600' :
-                                                                                'bg-gray-100 text-gray-400'
-                                                                        }`}>
-                                                                        {isActiveNow ? '¡ACTIVA!' : isUpcoming ? `DESDE ${promo.startTime}` : 'FINALIZADA'}
-                                                                    </span>
+                                                                    <div className="flex items-center gap-1">
+                                                                        <span className={`text-[8px] px-1 rounded-full font-black ${isActiveNow ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>
+                                                                            {isActiveNow ? '¡ACTIVA!' : 'TOLERANCIA'}
+                                                                        </span>
+                                                                        <PointsTimer endTime={promo.endTime} />
+                                                                    </div>
                                                                 );
                                                             })()}
                                                         </div>
@@ -1347,7 +1407,7 @@ export const ClientsPage = () => {
                                                             </span>
                                                             {(promo.startTime || promo.endTime) && (
                                                                 <span className="text-[9px] text-purple-400 font-black">
-                                                                    ⏰ {promo.startTime || '00:00'} - {promo.endTime || '23:59'}
+                                                                    ⏰ {promo.startTime || '00:00'} a {promo.endTime || '23:59'} hs
                                                                 </span>
                                                             )}
                                                         </div>

@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 import { CampaignService, type BonusRule } from '../../../services/campaignService';
 import { CampaignCarousel } from '../components/CampaignCarousel';
 import { PointsExpirationWarning } from '../components/PointsExpirationWarning';
+import { PointsExpirationModal } from '../components/PointsExpirationModal';
 import { NotificationPermissionPrompt } from '../components/NotificationPermissionPrompt';
 import { useFcmToken } from '../../../hooks/useFcmToken';
 import { ModernConfirmModal } from '../components/ModernConfirmModal';
@@ -73,6 +74,7 @@ const RecentActivityList = ({ uid }: { uid?: string }) => {
 export const ClientHomePage = () => {
     const [user, setUser] = useState<any>(null);
     const [userData, setUserData] = useState<any>(null);
+    const [showExpirationModal, setShowExpirationModal] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
     const { config } = useOutletContext<{ config: any }>();
@@ -338,8 +340,15 @@ export const ClientHomePage = () => {
                     </div>
 
                     {user && (
-                        <div className="space-y-2 py-2 border-t border-gray-50">
+                        <div className="space-y-4 py-2 border-t border-gray-50">
                             <PointsExpirationWarning userId={user.uid} compact={true} />
+                            <button
+                                onClick={() => setShowExpirationModal(true)}
+                                className="w-full text-center text-[10px] font-black text-purple-600 uppercase tracking-widest hover:text-purple-800 transition-colors flex items-center justify-center gap-1.5 py-1 bg-purple-50/50 rounded-lg border border-purple-100/50"
+                            >
+                                <Clock size={12} strokeWidth={3} />
+                                Ver detalle de vencimientos
+                            </button>
                         </div>
                     )}
 
@@ -470,6 +479,12 @@ export const ClientHomePage = () => {
                     <RecentActivityList uid={user?.uid} />
                 </div>
             </section>
-        </div >
+
+            <PointsExpirationModal
+                isOpen={showExpirationModal}
+                userId={user?.uid}
+                onClose={() => setShowExpirationModal(false)}
+            />
+        </div>
     );
 };

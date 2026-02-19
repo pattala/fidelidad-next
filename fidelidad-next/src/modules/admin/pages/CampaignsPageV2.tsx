@@ -335,7 +335,7 @@ export const CampaignsPageV2 = () => {
                     </div>
                     <div>
                         <h1 className="text-2xl font-black text-gray-800 tracking-tight">Gestión de Campañas</h1>
-                        <p className="text-sm text-gray-500 font-medium italic">Versión Optimizada 2.0</p>
+                        <p className="text-sm text-gray-500 font-medium italic">Versión Optimizada 2.1 (Preview Fix)</p>
                     </div>
                 </div>
                 {!isReadOnly && (

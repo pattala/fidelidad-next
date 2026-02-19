@@ -339,7 +339,7 @@ export const ClientHomePage = () => {
                             <div className="flex items-center gap-3 mt-3">
                                 <div className="bg-white/20 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10">
                                     <p className="text-[8px] font-bold uppercase opacity-80 mb-0.5">Finaliza en:</p>
-                                    <CountdownTimer targetTime={activeFlash.endTime} />
+                                    <CountdownTimer targetTime={activeFlash.endTime as string} />
                                 </div>
                                 <div className="flex flex-col">
                                     <span className="text-lg font-black leading-none">

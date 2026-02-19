@@ -185,81 +185,24 @@ async function createInboxSent({ db, clienteId, notifId, dataForDoc, token }) {
   return ref.id;
 }
 
-// ---------- Handler principal ----------
-export default async function handler(req, res) {
-  applyCors(req, res);
+// ... (Helper functions resolveDestinatarios, createInboxSent remain same) ...
 
-  if (req.method === "OPTIONS") return res.status(204).end();
-  if (req.method !== "POST") {
-    return res.status(405).json({ ok: false, error: "Method not allowed. Use POST." });
-  }
-
-  const apiKey = req.headers["x-api-key"] || req.headers["X-API-Key"];
-  const authHeader = req.headers["authorization"];
-
-  let isAuthorized = false;
-  const SECRET_RAW = process.env.API_SECRET_KEY || process.env.MI_API_SECRET || process.env.VITE_API_KEY || "";
-  const SECRET = SECRET_RAW.trim();
-  const receivedApiKeyRaw = req.headers["x-api-key"] || req.headers["x-api-secret"] || "";
-  const receivedApiKey = String(receivedApiKeyRaw).trim();
-
-  const match = (receivedApiKey && SECRET && receivedApiKey === SECRET);
-
-  console.log(`[send-notification] Auth check:`, {
-    receivedKeyLen: receivedApiKey.length,
-    secretLen: SECRET.length,
-    match,
-    hasAuthHeader: !!authHeader,
-    permissive: !SECRET || !receivedApiKey
-  });
-
-  if (!SECRET || !receivedApiKey) {
-    isAuthorized = true;
-  } else if (match) {
-    isAuthorized = true;
-  } else if (authHeader && authHeader.startsWith("Bearer ")) {
-    const token = authHeader.split("Bearer ")[1]?.trim();
-    if (token === SECRET) {
-      isAuthorized = true;
-    } else {
-      try {
-        await admin.auth().verifyIdToken(token);
-        isAuthorized = true;
-      } catch (e) {
-        console.error("[send-notification] Bearer token verification failed:", e.message);
-      }
-    }
-  }
-
-  if (!isAuthorized) {
-    return res.status(401).json({ ok: false, error: "Unauthorized" });
-  }
-
-  // Body
-  let body;
-  try {
-    body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
-  } catch {
-    return res.status(400).json({ ok: false, error: "Invalid JSON body." });
-  }
-
-  const {
-    title = "",
-    body: msgBody = "",
-    tokens: tokensIn = [],
-    click_action = "/mis-puntos",
-    icon,
-    badge,
-    extraData = {},           // { url, tag, source, campaignId, ... }
-    audience,                 // { docIds: [...] }
-    clienteId,                // cuando es "uno"
-  } = body || {};
-
-  if (!title || !msgBody) {
-    return res.status(400).json({ ok: false, error: "Falta title/body." });
-  }
-
-  const db = getDb();
+// ---------- Core Logic (Reusable) ----------
+export async function sendNotificationInternal({
+  db,
+  title,
+  body: msgBody,
+  tokens: tokensIn = [],
+  click_action = "/mis-puntos",
+  icon,
+  badge,
+  extraData = {},
+  audience,
+  clienteId,
+  executor,
+  points
+}) {
+  console.log(`[sendNotificationInternal] Triggered by ${executor || 'system'}`);
 
   // ====== Normalizar tokens de entrada ======
   let tokens = unique(tokensIn);
@@ -277,7 +220,6 @@ export default async function handler(req, res) {
   }
 
   // ====== Resolver destinatarios para enviar y para tracking ======
-  // (Incluye audience.docIds → ahora SÍ se usan para ENVIAR)
   let destinatarios = [];
   try {
     destinatarios = await resolveDestinatarios({ db, tokens, audience, clienteId });
@@ -287,8 +229,6 @@ export default async function handler(req, res) {
 
   // Tokens para envío FCM (solo los no nulos e únicos)
   let sendTokens = unique([...tokens, ...destinatarios.filter(d => d.token).map(d => d.token)]);
-
-  // ====== notifId (único por envío) ======
   const notifId = db.collection("_ids").doc().id;
 
   // ====== DATA para FCM (strings) ======
@@ -307,19 +247,13 @@ export default async function handler(req, res) {
   // ====== Envío FCM (Transporte) ======
   let successCount = 0, failureCount = 0;
   const invalidTokens = new Set();
-  const perToken = []; // { token, success, errorCode, errorMessage }
+  const perToken = [];
 
   if (sendTokens.length > 0) {
-    // Config común a todos los lotes
-    // Enviamos solo DATA para evitar "Doble Notificación" (SW + Browser default)
     const baseMsg = {
       data,
-      webpush: {
-        fcmOptions: { link: data.url || "/notificaciones" }
-      },
-      android: {
-        priority: "high"
-      }
+      webpush: { fcmOptions: { link: data.url || "/notificaciones" } },
+      android: { priority: "high" }
     };
 
     console.log("FCM about to send:", JSON.stringify({ tokensCount: sendTokens.length, withAudience: !!(audience?.docIds?.length) }));
@@ -353,20 +287,17 @@ export default async function handler(req, res) {
     console.log(`[send-notification] Skipping FCM transport: No tokens found for client ${clienteId || 'N/A'}`);
   }
 
-  // ====== Limpieza de tokens inválidos en Firestore ======
+  // ====== Limpieza de tokens inválidos ======
   if (invalidTokens.size) {
     try {
       const toClean = Array.from(invalidTokens);
       for (let i = 0; i < toClean.length; i += 10) {
         const part = toClean.slice(i, i + 10);
-        const snap = await db.collection("users")
-          .where("fcmTokens", "array-contains-any", part)
-          .get();
+        const snap = await db.collection("users").where("fcmTokens", "array-contains-any", part).get();
         for (const doc of snap.docs) {
           const d = doc.data() || {};
           const nuevos = (d.fcmTokens || []).filter(tk => !toClean.includes(tk));
           await doc.ref.update({ fcmTokens: nuevos });
-          console.log(`🧹 Tokens inválidos eliminados de clientes/${doc.id}`);
         }
       }
     } catch (cleanErr) {
@@ -374,9 +305,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // ====== Tracking "sent" en Firestore (1 doc por cliente) ======
-  // Si algunos tokens no tenían cliente mapeado, igual se enviaron,
-  // pero acá sólo creamos inbox para los que sí mapean a clienteId.
+  // ====== Tracking "sent" en Firestore ======
   let createdInbox = 0;
   if (extraData?.skipInbox === true || extraData?.skipInbox === "true") {
     console.log("[send-notification] Skipping inbox tracking as requested by skipInbox flag.");
@@ -391,7 +320,6 @@ export default async function handler(req, res) {
         campaignId: extraData?.campaignId || null,
       };
 
-      // Colapsar por cliente (primer token)
       const byClient = new Map();
       destinatarios.forEach(d => {
         if (!byClient.has(d.id)) byClient.set(d.id, d.token || null);
@@ -410,55 +338,41 @@ export default async function handler(req, res) {
     }
   }
 
-  // ====== GUARDAR LOG DE AUDITORÍA ======
+  // ====== Log Auditoría ======
   try {
-    // 1. Obtener nombres reales (opcional pero recomendado)
     const uniqueIds = unique(destinatarios.map(d => d.id)).filter(id => id !== 'unknown');
     const userNamesMap = {};
     if (uniqueIds.length > 0) {
+      // Optimización: Si es solo un ID, usamos el get simple si fuera necesario, 
+      // pero aquí mantenemos la lógica batch para consistencia.
       for (let i = 0; i < uniqueIds.length; i += 10) {
         const batch = uniqueIds.slice(i, i + 10);
         const snap = await db.collection("users").where(admin.firestore.FieldPath.documentId(), "in", batch).get();
-        snap.forEach(doc => {
-          const d = doc.data();
-          userNamesMap[doc.id] = d.name || d.nombre || 'Socio';
-        });
+        snap.forEach(doc => { userNamesMap[doc.id] = doc.data().name || doc.data().nombre || 'Socio'; });
       }
     }
 
-    // 2. Construir detalles basados en la realidad del envío
-    // perToken tiene: { token, success, errorCode, errorMessage }
-    // Mapeamos tokens a destinatarios para saber a quién pertenece cada resultado
     const details = [];
     const inboxSuccessDetails = [];
 
-    // Caso A: Si hubo tokens enviados (Transporte FCM)
+    // Logs Push
     if (perToken.length > 0) {
       perToken.forEach(pt => {
         const dest = destinatarios.find(d => d.token === pt.token);
         const userId = dest ? dest.id : 'unknown';
         details.push({
           userId,
-          userName: userNamesMap[userId] || (userId === 'unknown' ? 'Dispositivo Desconocido' : 'Socio'),
+          userName: userNamesMap[userId] || 'Socio',
           action: pt.success ? 'push_sent' : 'push_failed',
           status: pt.success ? 'success' : 'failed',
-          info: (pt.success ? 'Token: ' : 'Error: ') + (pt.token ? pt.token.substring(0, 8) + '...' : 'N/A') + (pt.errorCode ? ` (${pt.errorCode})` : '')
+          info: (pt.success ? 'Token: ' : 'Error: ') + pt.token.substring(0, 8) + '...'
         });
       });
     }
 
-    // Caso B: Generar detalles de Inbox para TODOS los que se creó (no solo los sin token)
-    // Recorremos el mapa 'byClient' que usamos para crear los inbox
-    // Debemos reconstruirlo o usar los IDs exitosos si los hubiéramos guardado. 
-    // Como simplificación, asumiremos que si createdInbox > 0, todos los de 'destinatarios' con ID válido recibieron inbox (salvo error).
-    // Para ser precisos, idealmente `createInboxSent` devolvería el ID.
-    // Vamos a iterar destinatarios únicos.
+    // Logs Inbox
     const uniqueDestIds = unique(destinatarios.map(d => d.id)).filter(id => id !== 'unknown');
-
     uniqueDestIds.forEach(uid => {
-      // En la lógica actual de arriba, intentamos crear inbox para TODOS los uniqueDestIds.
-      // Si quisiéramos ser 100% precisos, deberíamos trackear los fallos de inbox arriba.
-      // Asumimos éxito para el log si no hubo excepción fatal.
       if (extraData?.skipInbox !== true && extraData?.skipInbox !== "true") {
         inboxSuccessDetails.push({
           userId: uid,
@@ -470,16 +384,11 @@ export default async function handler(req, res) {
       }
     });
 
-    // 3. Guardar Logs Separados
     const pushDetails = details.filter(d => d.action.startsWith('push_'));
-    // inboxDetails ahora viene de su propio array completo
     const inboxDetails = inboxSuccessDetails;
-
-    const { points, executor: reqExecutor } = body || {};
     const pointsInfo = points ? ` [${points} pts]` : "";
-    const executorName = reqExecutor || 'admin';
+    const executorName = executor || 'admin';
 
-    // A) Log Push (FCM)
     if (sendTokens.length > 0) {
       const pushSummary = `Push Enviado: "${title}"${pointsInfo}. Éxito: ${successCount}, Falla: ${failureCount}`;
       await db.collection('audit_logs').add({
@@ -492,8 +401,6 @@ export default async function handler(req, res) {
       }).catch(e => console.error("Error saving push audit:", e));
     }
 
-    // B) Log Inbox
-    // Usamos inboxDetails.length para decidir si logueamos, o createdInbox (que debería coincidir)
     if (inboxDetails.length > 0) {
       const inboxSummary = `Inbox Generado: "${title}"${pointsInfo}. Destinatarios: ${inboxDetails.length}`;
       await db.collection('audit_logs').add({
@@ -509,13 +416,54 @@ export default async function handler(req, res) {
     console.error("Error preparing audit logs:", logErr);
   }
 
-  return res.status(200).json({
-    ok: true,
-    notifId,
-    successCount,
-    failureCount,
-    invalidTokens: Array.from(invalidTokens),
-    createdInbox,
-    perToken
-  });
+  return { ok: true, notifId, successCount, failureCount, invalidTokens: Array.from(invalidTokens), createdInbox, perToken };
+}
+
+// ---------- Handler principal ----------
+export default async function handler(req, res) {
+  applyCors(req, res);
+  if (req.method === "OPTIONS") return res.status(204).end();
+  if (req.method !== "POST") return res.status(405).json({ ok: false, error: "Method not allowed" });
+
+  // ... Auth logic ...
+  const apiKey = req.headers["x-api-key"] || req.headers["X-API-Key"];
+  const authHeader = req.headers["authorization"];
+  let isAuthorized = false;
+  const SECRET_RAW = process.env.API_SECRET_KEY || process.env.MI_API_SECRET || process.env.VITE_API_KEY || "";
+  const SECRET = SECRET_RAW.trim();
+  const receivedApiKey = String(req.headers["x-api-key"] || req.headers["x-api-secret"] || "").trim();
+  const match = (receivedApiKey && SECRET && receivedApiKey === SECRET);
+
+  if (!SECRET || !receivedApiKey) isAuthorized = true;
+  else if (match) isAuthorized = true;
+  else if (authHeader && authHeader.startsWith("Bearer ")) {
+    const token = authHeader.split("Bearer ")[1]?.trim();
+    if (token === SECRET) isAuthorized = true;
+    else {
+      try {
+        await admin.auth().verifyIdToken(token);
+        isAuthorized = true;
+      } catch (e) {
+        console.error("[send-notification] Token verification failed:", e.message);
+      }
+    }
+  }
+
+  if (!isAuthorized) return res.status(401).json({ ok: false, error: "Unauthorized" });
+
+  let body;
+  try { body = typeof req.body === "string" ? JSON.parse(req.body) : req.body; }
+  catch { return res.status(400).json({ ok: false, error: "Invalid JSON body." }); }
+
+  const { title, body: msgBody } = body || {};
+  if (!title || !msgBody) return res.status(400).json({ ok: false, error: "Falta title/body." });
+
+  try {
+    const db = getDb();
+    const result = await sendNotificationInternal({ db, ...body });
+    return res.status(200).json(result);
+  } catch (err) {
+    console.error("Handler error:", err);
+    return res.status(500).json({ ok: false, error: err.message });
+  }
 }

@@ -3,6 +3,7 @@
 // Procesa el canje de un premio de forma segura y centralizada.
 
 import admin from "firebase-admin";
+import { sendNotificationInternal } from "./send-notification.js";
 
 // ---------- Firebase Admin ----------
 function initFirebaseAdmin() {
@@ -304,18 +305,20 @@ export default async function handler(req, res) {
                 const notifications = [];
 
                 if (isPushConfigured) {
+                    // Optimization: Call internal function directly to avoid HTTP latency
+                    console.log("PERF: Invoking sendNotificationInternal directly");
                     notifications.push(
-                        fetch(`${baseUrl}/api/send-notification`, {
-                            headers: { 'Content-Type': 'application/json', ...internalAuth },
-                            method: 'POST',
-                            body: JSON.stringify({
-                                clienteId: targetUid,
-                                title: '¡Canje Exitoso! 🎁',
-                                body: result.unifiedMsg,
-                                icon: config.logoUrl || '/logo.png',
-                                points: -pointsNeeded, executor,
-                                extraData: { skipInbox: true, source: 'redemption' }
-                            })
+                        sendNotificationInternal({
+                            db,
+                            clienteId: targetUid,
+                            title: '¡Canje Exitoso! 🎁',
+                            body: result.unifiedMsg,
+                            // Use clientData.fcmTokens as we are outside transaction but data should match
+                            tokens: clientData?.fcmTokens || [],
+                            icon: config.logoUrl || '/logo.png',
+                            points: -pointsNeeded,
+                            executor,
+                            extraData: { skipInbox: true, source: 'redemption' }
                         }).catch(err => console.error("Push redemption error:", err))
                     );
                 } else {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { db } from '../../../lib/firebase';
+import { db, auth } from '../../../lib/firebase';
 import { collection, query, orderBy, limit, getDocs, where, startAfter, Timestamp } from 'firebase/firestore';
 import { Clock, CheckCircle, AlertTriangle, User, MessageCircle, ArrowRight, ChevronDown, ChevronUp, History, Search, Calendar, Filter, Loader2, Play, Settings } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -52,14 +52,18 @@ export const SystemLogsPage = () => {
         setIsRunningExpirations(true);
         const toastId = toast.loading('Ejecutando revisión de vencimientos...');
         try {
+            const token = await auth.currentUser?.getIdToken();
             const res = await fetch('/api/check-expirations', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'x-api-key': import.meta.env.VITE_API_KEY || ''
+                    'x-api-key': import.meta.env.VITE_API_KEY || '',
+                    'Authorization': `Bearer ${token}`,
+                    'x-executor-role': (auth.currentUser as any)?.reloadUserInfo?.customAttributes?.includes('editor') ? 'editor' : 'admin'
                 },
                 body: JSON.stringify({
-                    simulatedDate: TimeService.now().toISOString()
+                    simulatedDate: TimeService.now().toISOString(),
+                    isManual: true
                 })
             });
             const data = await res.json();
@@ -403,12 +407,12 @@ export const SystemLogsPage = () => {
                                                                         groupedByUser[uid].actions.push(d);
                                                                     });
 
-                                                                    const userCount = Object.keys(groupedByUser).length;
+                                                                    const actualUserCount = Object.keys(groupedByUser).filter(uid => uid !== 'system').length;
 
                                                                     return (
                                                                         <div className="space-y-4">
                                                                             <h4 className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1 flex items-center gap-1">
-                                                                                <ArrowRight size={10} /> Socios Afectados ({userCount})
+                                                                                <ArrowRight size={10} /> Socios Afectados ({actualUserCount})
                                                                             </h4>
 
                                                                             <div className="space-y-4 max-h-80 overflow-y-auto pr-2 scrollbar-thin">

@@ -40,11 +40,29 @@ export default async function handler(req, res) {
     // Seguridad: Solo permitir si viene la API KEY o el header de Vercel Cron
     const authHeader = req.headers["x-api-key"] || req.headers["authorization"] || req.headers["X-API-Key"];
     const cronHeader = req.headers["x-vercel-cron"] || req.headers["X-Vercel-Cron"];
+    const executorRole = req.headers["x-executor-role"] || 'system';
     const SECRET = (process.env.API_SECRET_KEY || "").trim();
 
-    console.log(`[Cron] Auth Check - CronHeader: ${!!cronHeader}, AuthHeader: ${!!authHeader}`);
+    let executorEmail = 'system';
+    let isAdmin = false;
 
-    if (!cronHeader && (!authHeader || (SECRET && !authHeader.includes(SECRET)))) {
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+        const token = authHeader.split("Bearer ")[1];
+        try {
+            const decoded = await initFirebaseAdmin().auth().verifyIdToken(token);
+            executorEmail = decoded.email || decoded.uid;
+            isAdmin = true;
+        } catch (e) {
+            console.error("[Cron] Token verification failed:", e.message);
+        }
+    } else if (authHeader && SECRET && authHeader.includes(SECRET)) {
+        isAdmin = true;
+        executorEmail = 'admin';
+    }
+
+    console.log(`[Cron] Auth Check - CronHeader: ${!!cronHeader}, Executor: ${executorEmail}`);
+
+    if (!cronHeader && !isAdmin) {
         console.warn("[Cron] Unauthorized access attempt blocked.");
         return res.status(401).json({ ok: false, error: "Unauthorized" });
     }
@@ -88,7 +106,8 @@ export default async function handler(req, res) {
             status: 'running',
             summary: `Iniciando proceso de vencimientos (${isManual ? 'Manual' : 'Automático'}).`,
             details: [],
-            executor: isManual ? 'admin' : 'system'
+            executor: executorEmail,
+            role: isManual ? (executorRole === 'system' ? 'admin' : executorRole) : 'system'
         });
 
         const referenceDateStr = referenceDate.toISOString().split('T')[0];
@@ -374,8 +393,7 @@ export default async function handler(req, res) {
                         timezoneOffset: referenceDate.getTimezoneOffset()
                     },
                     ...logResults.details
-                ].slice(0, 500),
-                executor: isManual ? 'admin' : 'system'
+                ].slice(0, 500)
             });
         } catch (e) {
             console.error("[Cron] Error saving final audit log:", e);

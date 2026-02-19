@@ -248,78 +248,50 @@ export const CampaignsPageV2 = () => {
         }
     };
 
-    // Componente de Vista Previa Reutilizable (Simulador de Celular)
+    // Componente de Vista Previa Reutilizable (Simplificado - Cuadrante)
     const PreviewCard = () => (
-        <div className="mx-auto max-w-[320px] sticky top-8 animate-fade-in-up select-none pointer-events-none">
-            {/* Phone Bezel */}
-            <div className="bg-gray-900 rounded-[3rem] p-3 shadow-2xl border-4 border-gray-800 relative z-20 ring-4 ring-gray-100">
-                {/* Screen Area */}
-                <div className="bg-white rounded-[2.5rem] overflow-hidden relative min-h-[580px] flex flex-col">
-
-                    {/* Fake Status Bar */}
-                    <div className="h-8 w-full flex justify-between items-center px-6 mt-2 opacity-40">
-                        <span className="text-[10px] font-bold">9:41</span>
-                        <div className="flex gap-1">
-                            <div className="w-3 h-3 bg-current rounded-full"></div>
-                        </div>
-                    </div>
-
-                    {/* Header Mock */}
-                    <div className="px-4 mb-6 flex justify-between items-center opacity-40">
-                        <div className="w-8 h-8 rounded-full bg-gray-200"></div>
-                        <div className="flex flex-col gap-1">
-                            <div className="w-20 h-2 rounded-full bg-gray-200"></div>
-                            <div className="w-12 h-2 rounded-full bg-gray-200"></div>
-                        </div>
-                    </div>
-
-                    {/* The Campaign Card - EXACT REPLICA OF CampaignCarousel */}
-                    <div className="px-3">
-                        <div className="flex justify-between items-center mb-2 px-1">
-                            <div className="w-16 h-2 rounded-full bg-gray-200 opacity-50"></div>
-                        </div>
-
-                        <div className="relative overflow-hidden rounded-[2rem] shadow-sm h-48 border border-gray-100 bg-gray-50 flex-shrink-0" style={{ backgroundColor: formData.backgroundColor }}>
-                            {formData.imageUrl ? (
-                                <>
-                                    <img
-                                        src={formData.imageUrl}
-                                        className={`absolute inset-0 w-full h-full ${formData.imageFit === 'cover' ? 'object-cover' : 'object-contain'}`}
-                                        style={{ opacity: (formData.imageOpacity || 0) / 100 }}
-                                        alt=""
-                                    />
-                                    {/* GRADIENT OVERLAY - MISSING BEFORE */}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
-                                </>
-                            ) : (
-                                <div className="absolute inset-0 flex items-center justify-center text-white/20">
-                                    <ImageIcon size={48} />
-                                </div>
-                            )}
-
-                            <div className={`relative z-10 w-full h-full p-6 flex flex-col ${getPositionClasses(formData.textPosition)}`}>
-                                {formData.showTitle && (
-                                    <h4 className={`leading-[1.1] mb-1 uppercase tracking-tight drop-shadow-md ${getFontFamily(formData.fontStyle)} text-${formData.titleSize || '2xl'}`} style={{ color: formData.textColor }}>
-                                        {formData.title || 'Título de la Campaña'}
-                                    </h4>
-                                )}
-                                {formData.showDescription && (
-                                    <p className={`opacity-90 leading-snug whitespace-pre-wrap drop-shadow-sm line-clamp-3 ${getFontFamily(formData.fontStyle)} text-${formData.descriptionSize || 'sm'}`} style={{ color: formData.textColor }}>
-                                        {formData.description || 'Descripción breve de la promoción...'}
-                                    </p>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Fake Content Below */}
-                    <div className="p-4 space-y-4 opacity-30 mt-4 flex-1">
-                        <div className="w-full h-24 bg-gray-100 rounded-2xl border border-dashed border-gray-200"></div>
-                        <div className="w-full h-12 bg-gray-100 rounded-xl border border-dashed border-gray-200"></div>
-                        <div className="w-full h-12 bg-gray-100 rounded-xl border border-dashed border-gray-200"></div>
-                    </div>
-
+        <div className="mx-auto w-full max-w-[320px] sticky top-8 animate-fade-in-up select-none">
+            <div className="bg-gray-100 rounded-[2rem] p-4 border border-gray-200 shadow-xl">
+                <div className="flex justify-between items-center mb-4 px-2">
+                    <span className="text-[10px] font-black uppercase text-gray-400 tracking-[0.2em]">Vista Previa</span>
                 </div>
+
+                {/* The Campaign Card - EXACT REPLICA OF CampaignCarousel */}
+                <div className="relative overflow-hidden rounded-[2rem] shadow-sm h-48 border border-gray-100 bg-gray-50 flex-shrink-0" style={{ backgroundColor: formData.backgroundColor }}>
+                    {formData.imageUrl ? (
+                        <>
+                            <img
+                                src={formData.imageUrl}
+                                className={`absolute inset-0 w-full h-full ${formData.imageFit === 'cover' ? 'object-cover' : 'object-contain'}`}
+                                style={{ opacity: (formData.imageOpacity || 0) / 100 }}
+                                alt=""
+                            />
+                            {/* GRADIENT OVERLAY */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+                        </>
+                    ) : (
+                        <div className="absolute inset-0 flex items-center justify-center text-white/20">
+                            <ImageIcon size={48} />
+                        </div>
+                    )}
+
+                    <div className={`relative z-10 w-full h-full p-6 flex flex-col pointer-events-none ${getPositionClasses(formData.textPosition)}`}>
+                        {formData.showTitle && (
+                            <h4 className={`leading-[1.1] mb-1 uppercase tracking-tight drop-shadow-md ${getFontFamily(formData.fontStyle)} text-${formData.titleSize || '2xl'}`} style={{ color: formData.textColor }}>
+                                {formData.title || 'Título de la Campaña'}
+                            </h4>
+                        )}
+                        {formData.showDescription && (
+                            <p className={`opacity-90 leading-snug whitespace-pre-wrap drop-shadow-sm line-clamp-3 ${getFontFamily(formData.fontStyle)} text-${formData.descriptionSize || 'sm'}`} style={{ color: formData.textColor }}>
+                                {formData.description || 'Descripción breve de la promoción...'}
+                            </p>
+                        )}
+                    </div>
+                </div>
+
+                <p className="text-[10px] text-gray-400 text-center mt-4 font-medium">
+                    Así se verá la tarjeta en la App
+                </p>
             </div>
         </div>
     );
@@ -335,7 +307,7 @@ export const CampaignsPageV2 = () => {
                     </div>
                     <div>
                         <h1 className="text-2xl font-black text-gray-800 tracking-tight">Gestión de Campañas</h1>
-                        <p className="text-sm text-gray-500 font-medium italic">Versión Optimizada 2.1 (Preview Fix)</p>
+                        <p className="text-sm text-gray-500 font-medium italic">Versión Optimizada 2.2 (Final Preview)</p>
                     </div>
                 </div>
                 {!isReadOnly && (
@@ -853,15 +825,9 @@ export const CampaignsPageV2 = () => {
                                         <h3 className="font-black text-gray-800 text-sm uppercase">Simulador PWA</h3>
                                     </div>
 
-                                    {/* Phone Frame Mockup */}
-                                    <div className="border-[8px] border-gray-900 rounded-[2.5rem] overflow-hidden bg-white shadow-2xl">
-                                        <div className="h-6 bg-gray-900 w-full flex justify-center items-center gap-2">
-                                            <div className="w-16 h-4 bg-black rounded-b-xl"></div>
-                                        </div>
-                                        <div className="p-2 bg-gray-100 min-h-[400px]">
-                                            <PreviewCard />
-                                        </div>
-                                        <div className="h-2 bg-gray-900 w-full"></div>
+                                    {/* Simplified Quadrant Card for Preview */}
+                                    <div className="flex justify-center">
+                                        <PreviewCard />
                                     </div>
 
                                     <div className="p-4 bg-yellow-50 text-yellow-800 rounded-xl text-xs font-medium leading-relaxed border border-yellow-100">

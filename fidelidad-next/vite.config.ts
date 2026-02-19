@@ -8,7 +8,13 @@ export default defineConfig({
         react(),
         VitePWA({
             registerType: 'autoUpdate',
-            injectRegister: 'script', // Forces a visible script tag for detection
+            injectRegister: 'auto',
+            workbox: {
+                cleanupOutdatedCaches: true,
+                skipWaiting: true,
+                clientsClaim: true,
+                sourcemap: true
+            },
             includeAssets: ['vite.svg'],
             manifest: {
                 name: 'Fidelidad App',

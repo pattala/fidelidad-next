@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { ConfigService } from '../../../services/configService';
 import { TimeService } from '../../../services/timeService';
 import { ExpirationService } from '../../../services/expirationService';
+import { AuditService } from '../../../services/auditService';
 import { useAdminAuth } from '../contexts/AdminAuthContext';
 
 interface PointsHistoryModalProps {
@@ -216,6 +217,11 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
 
             await batch.commit();
 
+            // --- AUDITORIA ---
+            AuditService.log('user_mgmt', `Movimiento eliminado: ${item.concept} (${client.name})`, [
+                { action: 'points_history_deleted', status: 'success', info: `Socio: ${client.name}, Puntos: ${item.amount}, Concepto: ${item.concept}` }
+            ]);
+
             toast.success('Movimiento eliminado y saldo ajustado.');
 
             // Actualizar cache de vencimientos despues de borrar
@@ -275,6 +281,11 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
             });
 
             await batch.commit();
+
+            // --- AUDITORIA ---
+            AuditService.log('user_mgmt', `Historial reseteado: ${currentClient.name}`, [
+                { action: 'points_history_reset', status: 'success', info: `Se eliminaron todos los movimientos de ${currentClient.name}` }
+            ]);
 
             // Update local state to reflect 0 points immediately
             setCurrentClient({ ...currentClient, points: 0, puntos: 0, accumulated_balance: 0 });

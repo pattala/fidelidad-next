@@ -285,6 +285,12 @@ export const ClientsPage = () => {
                     }
                 };
                 await updateDoc(doc(db, 'users', editingId), clientPayload);
+
+                // --- AUDITORIA ---
+                AuditService.log('user_mgmt', `Perfil actualizado: ${formData.name}`, [
+                    { action: 'user_updated_profile', status: 'success', info: `DNI: ${formData.dni}, Email: ${formData.email}` }
+                ]);
+
                 toast.success('Cliente actualizado correctamente');
             } else {
                 // CREAR

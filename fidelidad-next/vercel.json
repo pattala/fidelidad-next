@@ -31,7 +31,7 @@
     "crons": [
         {
             "path": "/api/check-expirations",
-            "schedule": "15 2 * * *"
+            "schedule": "35 5 * * *"
         },
         {
             "path": "/api/check-birthdays",

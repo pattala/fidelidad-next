@@ -5,6 +5,7 @@
 
 import admin from "firebase-admin";
 import nodemailer from 'nodemailer';
+import { updateNextExpirationDate } from "./_expiration-utils.js";
 
 // ---------- Inicialización Firebase Admin ----------
 function initFirebaseAdmin() {
@@ -178,8 +179,8 @@ export default async function handler(req, res) {
                     console.log(`[Cron] Expired ${totalExpired} pts for user ${userId}`);
                 }
 
-                // Recalcular cache
-                await updateNextExpirationCacheAdmin(db, userId, startOfToday);
+                // Recalcular cache usando la utilidad unificada
+                await updateNextExpirationDate(db, userId, referenceDate);
                 logResults.processed++;
             } catch (e) {
                 console.error(`[Cron] Error processing expiration for ${userDoc.id}:`, e);
@@ -251,6 +252,16 @@ export default async function handler(req, res) {
                         expireAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000))
                     });
 
+                    // LOG DE AUDITORÍA INDIVIDUAL (Para visibilidad en el Panel)
+                    await db.collection('audit_logs').add({
+                        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                        type: 'expiration_warning',
+                        status: 'success',
+                        summary: `Aviso de vencimiento enviado a ${userData.name || 'Socio'}`,
+                        details: [{ action: 'notification_sent', userId, amount, displayDate, channels }],
+                        executor: 'system'
+                    });
+
                     // Guardamos la fecha del vencimiento avisado para no repetir
                     await userDoc.ref.update({
                         lastExpirationNotice: referenceDateStr, // Cuándo se avisó
@@ -315,38 +326,8 @@ export default async function handler(req, res) {
 }
 
 /**
- * Helper para actualizar el cache usando Firebase Admin (Node.js)
+ * Helper para actualizar el cache (OBSOLETO - Se usa updateNextExpirationDate de _expiration-utils.js)
  */
 async function updateNextExpirationCacheAdmin(db, userId, startOfToday) {
-    const historyRef = db.collection('users').doc(userId).collection('points_history');
-    const creditsSnap = await historyRef.where('type', '==', 'credit').get();
-
-    let nextDate = null;
-    let nextAmount = 0;
-
-    creditsSnap.docs.forEach(d => {
-        const data = d.data();
-        const currentRemaining = data.remainingPoints !== undefined ? data.remainingPoints : data.amount;
-
-        if (currentRemaining <= 0 || data.status === 'expired') return;
-
-        if (data.expiresAt) {
-            const expireDate = data.expiresAt.toDate();
-            // Solo futuras (desde hoy inclusive)
-            if (expireDate >= startOfToday) {
-                if (!nextDate || expireDate < nextDate) {
-                    nextDate = expireDate;
-                    nextAmount = currentRemaining;
-                } else if (expireDate.getTime() === nextDate.getTime()) {
-                    nextAmount += currentRemaining;
-                }
-            }
-        }
-    });
-
-    const isoDate = nextDate ? nextDate.toISOString().split('T')[0] : null;
-    await db.collection('users').doc(userId).update({
-        nextExpirationDate: isoDate,
-        nextExpirationAmount: nextDate ? nextAmount : 0
-    });
+    return updateNextExpirationDate(db, userId, startOfToday);
 }

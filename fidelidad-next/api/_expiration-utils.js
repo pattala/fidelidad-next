@@ -7,17 +7,16 @@ import admin from "firebase-admin";
  * @param {admin.firestore.Firestore} db Instancia de Firestore
  * @param {string} userId ID del usuario
  */
-export async function updateNextExpirationDate(db, userId) {
+export async function updateNextExpirationDate(db, userId, referenceDate = null) {
     try {
         const historyRef = db.collection('users').doc(userId).collection('points_history');
 
-        // Buscamos solo créditos (sumas de puntos) que no estén expirados ni agotados totalmente (aunque la lógica de remainingPoints manda)
-        // Optimizamos filtrando por 'credit'
+        // Buscamos solo créditos (sumas de puntos) que no estén expirados ni agotados totalmente
         const creditsSnap = await historyRef
             .where('type', '==', 'credit')
             .get();
 
-        const now = new Date();
+        const now = referenceDate ? new Date(referenceDate) : new Date();
         const startOfToday = new Date(now);
         startOfToday.setHours(0, 0, 0, 0);
 

@@ -287,103 +287,155 @@ export const SystemLogsPage = () => {
                     </div>
                 ) : (
                     <div className="divide-y divide-gray-50">
-                        {logs.map((log) => (
-                            <div key={log.id} className="hover:bg-gray-50/50 transition-colors">
-                                <div
-                                    className="p-4 flex items-center gap-4 cursor-pointer"
-                                    onClick={() => setExpandedLog(expandedLog === log.id ? null : log.id)}
-                                >
-                                    {getStatusIcon(log.status, log.type)}
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-bold text-gray-700 text-sm">{getTypeLabel(log.type)}</span>
-                                            {log.status !== 'success' && (
-                                                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${log.status === 'skipped' ? 'bg-slate-100 text-slate-500' :
-                                                    log.status === 'disabled' ? 'bg-orange-100 text-orange-600' :
-                                                        log.status === 'failed' ? 'bg-red-100 text-red-600' :
-                                                            log.status === 'link_ready' ? 'bg-blue-100 text-blue-600' :
-                                                                'bg-gray-100 text-gray-500'
-                                                    }`}>
-                                                    {log.status}
-                                                </span>
-                                            )}
-                                            <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-bold uppercase tracking-widest ml-auto">
-                                                {log.executor}
-                                            </span>
-                                        </div>
-                                        <p className="text-xs text-gray-500 mt-0.5">{log.summary}</p>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-[10px] font-bold text-gray-400 uppercase">
-                                            {log.timestamp?.toDate ? log.timestamp.toDate().toLocaleString('es-AR') : 'Reciente'}
-                                        </p>
-                                        <div className="flex justify-end mt-1">
-                                            {expandedLog === log.id ? <ChevronUp size={16} className="text-gray-300" /> : <ChevronDown size={16} className="text-gray-300" />}
-                                        </div>
-                                    </div>
-                                </div>
+                        {(() => {
+                            // Agrupar logs por fecha (D/M/A)
+                            const groupedLogs: { [key: string]: any[] } = {};
+                            logs.forEach(log => {
+                                const dateStr = log.timestamp?.toDate
+                                    ? log.timestamp.toDate().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })
+                                    : 'Reciente';
+                                if (!groupedLogs[dateStr]) groupedLogs[dateStr] = [];
+                                groupedLogs[dateStr].push(log);
+                            });
 
-                                {expandedLog === log.id && (
-                                    <div className="px-4 pb-4 animate-in fade-in slide-in-from-top-1">
-                                        <div className="bg-gray-50 rounded-lg p-4 space-y-2 border border-blue-50">
-                                            <h4 className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-2 flex items-center gap-1">
-                                                <ArrowRight size={10} /> Socios Afectados ({log.details?.length || 0})
-                                            </h4>
-
-                                            {log.details && log.details.length > 0 ? (
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-2 scrollbar-thin">
-                                                    {log.details.map((detail, idx) => (
-                                                        <div key={idx} className="bg-white p-2 rounded border border-gray-100 flex flex-col gap-1 text-[11px]">
-                                                            <div className="flex items-center justify-between">
-                                                                <div className="flex items-center gap-2 min-w-0">
-                                                                    <User size={12} className="text-gray-400 shrink-0" />
-                                                                    <span className="font-bold text-gray-700 truncate">{detail.userName || 'Socio'}</span>
-                                                                    <span className="text-gray-400 text-[9px] shrink-0">#{detail.userId?.slice(-4)}</span>
-                                                                </div>
-                                                                <div className="flex flex-col gap-1 shrink-0 ml-2 items-end">
-                                                                    <div className="flex items-center gap-2">
-                                                                        {detail.channels?.map(ch => (
-                                                                            <span key={ch} className="bg-blue-50 text-blue-600 text-[8px] px-1.5 py-0.5 rounded-full font-bold uppercase ring-1 ring-blue-100">
-                                                                                {ch}
-                                                                            </span>
-                                                                        ))}
-                                                                        {detail.action === 'notified_expiration' ? (
-                                                                            <span className={`px-2 py-0.5 rounded-md uppercase font-black text-[9px] shadow-sm border ${(detail.isItinerancy || detail.info?.includes('[ITINERANCIA]'))
-                                                                                    ? 'bg-red-100 text-red-700 border-red-200 animate-pulse'
-                                                                                    : 'bg-green-100 text-green-700 border-green-200'
-                                                                                }`}>
-                                                                                {(detail.isItinerancy || detail.info?.includes('[ITINERANCIA]')) ? '⚠️ ITINERANCIA' : '✅ PRIMER ENVÍO'}
-                                                                            </span>
-                                                                        ) : (
-                                                                            <span className={`px-1.5 py-0.5 rounded uppercase font-bold text-[8px] ${detail.action.includes('error') || detail.status === 'failed' ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-600'}`}>
-                                                                                {detail.action}
-                                                                            </span>
-                                                                        )}
-                                                                    </div>
-                                                                    {detail.info && <span className="text-gray-400 italic text-[10px]">({detail.info})</span>}
-                                                                </div>
-                                                            </div>
-                                                            {detail.messageSent && (
-                                                                <div className="mt-1 p-2 bg-gray-50/50 border border-dashed border-gray-200 rounded text-[10px] text-gray-600 italic">
-                                                                    "{detail.messageSent}"
-                                                                </div>
+                            return Object.keys(groupedLogs).map(dateKey => (
+                                <div key={dateKey}>
+                                    <div className="bg-gray-50/80 px-4 py-2 border-y border-gray-100 flex items-center gap-2">
+                                        <Calendar size={12} className="text-gray-400" />
+                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{dateKey}</span>
+                                    </div>
+                                    <div className="divide-y divide-gray-50">
+                                        {groupedLogs[dateKey].map((log) => (
+                                            <div key={log.id} className="hover:bg-gray-50/50 transition-colors">
+                                                <div
+                                                    className="p-4 flex items-center gap-4 cursor-pointer"
+                                                    onClick={() => setExpandedLog(expandedLog === log.id ? null : log.id)}
+                                                >
+                                                    {getStatusIcon(log.status, log.type)}
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="font-bold text-gray-700 text-sm">{getTypeLabel(log.type)}</span>
+                                                            {log.status !== 'success' && (
+                                                                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${log.status === 'skipped' ? 'bg-slate-100 text-slate-500' :
+                                                                    log.status === 'disabled' ? 'bg-orange-100 text-orange-600' :
+                                                                        log.status === 'failed' ? 'bg-red-100 text-red-600' :
+                                                                            log.status === 'link_ready' ? 'bg-blue-100 text-blue-600' :
+                                                                                'bg-gray-100 text-gray-500'
+                                                                    }`}>
+                                                                    {log.status}
+                                                                </span>
                                                             )}
-                                                            {detail.breakdown && (
-                                                                <div className="mt-0.5 text-[9px] text-blue-500 font-medium px-2">
-                                                                    Detalle: {detail.breakdown}
+                                                            <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-bold uppercase tracking-widest ml-auto">
+                                                                {log.executor}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-xs text-gray-500 mt-0.5">{log.summary}</p>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="text-[10px] font-bold text-gray-400 uppercase">
+                                                            {log.timestamp?.toDate ? log.timestamp.toDate().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) : 'Reciente'}
+                                                        </p>
+                                                        <div className="flex justify-end mt-1">
+                                                            {expandedLog === log.id ? <ChevronUp size={16} className="text-gray-300" /> : <ChevronDown size={16} className="text-gray-300" />}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {expandedLog === log.id && (
+                                                    <div className="px-4 pb-4 animate-in fade-in slide-in-from-top-1">
+                                                        <div className="bg-gray-50 rounded-lg p-4 space-y-4 border border-blue-50">
+                                                            <h4 className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1 flex items-center gap-1">
+                                                                <ArrowRight size={10} /> Socios Afectados ({log.details?.length || 0})
+                                                            </h4>
+
+                                                            {log.details && log.details.length > 0 ? (
+                                                                <div className="space-y-4 max-h-80 overflow-y-auto pr-2 scrollbar-thin">
+                                                                    {(() => {
+                                                                        const groupedDetails: { [key: string]: any[] } = {};
+                                                                        log.details.forEach((d: any) => {
+                                                                            const act = d.action === 'engine_parameters' ? 'CONFIGURACIÓN' :
+                                                                                d.action === 'points_subtracted' ? 'PUNTOS VENCIDOS' :
+                                                                                    d.action === 'notified_expiration' ? 'NOTIFICACIONES' :
+                                                                                        d.action === 'notification_sent' ? 'AVISOS ENVIADOS' :
+                                                                                            'OTROS';
+                                                                            if (!groupedDetails[act]) groupedDetails[act] = [];
+                                                                            groupedDetails[act].push(d);
+                                                                        });
+
+                                                                        return Object.keys(groupedDetails).map(groupName => (
+                                                                            <div key={groupName} className="space-y-2">
+                                                                                <div className="flex items-center gap-2 border-b border-gray-200 pb-1">
+                                                                                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">{groupName}</span>
+                                                                                    <span className="text-[8px] bg-gray-200 text-gray-500 px-1.5 rounded-full font-bold">{groupedDetails[groupName].length}</span>
+                                                                                </div>
+                                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                                                                    {groupedDetails[groupName].map((detail, idx) => (
+                                                                                        <div key={idx} className="bg-white p-2 rounded border border-gray-100 flex flex-col gap-1 text-[11px]">
+                                                                                            <div className="flex items-center justify-between">
+                                                                                                <div className="flex items-center gap-2 min-w-0">
+                                                                                                    <User size={12} className="text-gray-400 shrink-0" />
+                                                                                                    <span className="font-bold text-gray-700 truncate">{detail.userName || (detail.action === 'engine_parameters' ? 'Parámetros' : 'Socio')}</span>
+                                                                                                    {detail.userId && <span className="text-gray-400 text-[9px] shrink-0">#{detail.userId?.slice(-4)}</span>}
+                                                                                                </div>
+                                                                                                <div className="flex flex-col gap-1 shrink-0 ml-2 items-end">
+                                                                                                    <div className="flex items-center gap-2">
+                                                                                                        {detail.channels?.map((ch: string) => (
+                                                                                                            <span key={ch} className="bg-blue-50 text-blue-600 text-[8px] px-1.5 py-0.5 rounded-full font-bold uppercase ring-1 ring-blue-100">
+                                                                                                                {ch}
+                                                                                                            </span>
+                                                                                                        ))}
+                                                                                                        {detail.action === 'notified_expiration' ? (
+                                                                                                            <span className={`px-2 py-0.5 rounded-md uppercase font-black text-[9px] shadow-sm border ${(detail.isItinerancy || detail.info?.includes('[ITINERANCIA]'))
+                                                                                                                    ? 'bg-red-100 text-red-700 border-red-200 animate-pulse'
+                                                                                                                    : 'bg-green-100 text-green-700 border-green-200'
+                                                                                                                }`}>
+                                                                                                                {(detail.isItinerancy || detail.info?.includes('[ITINERANCIA]')) ? '⚠️ ITINERANCIA' : '✅ PRIMER ENVÍO'}
+                                                                                                            </span>
+                                                                                                        ) : (
+                                                                                                            <span className={`px-1.5 py-0.5 rounded uppercase font-bold text-[8px] ${detail.action.includes('error') || detail.status === 'failed' ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-600'}`}>
+                                                                                                                {detail.action}
+                                                                                                            </span>
+                                                                                                        )}
+                                                                                                    </div>
+                                                                                                    {detail.info && <span className="text-gray-400 italic text-[10px]">({detail.info})</span>}
+                                                                                                </div>
+                                                                                            </div>
+                                                                                            {detail.messageSent && (
+                                                                                                <div className="mt-1 p-2 bg-gray-50/50 border border-dashed border-gray-200 rounded text-[10px] text-gray-600 italic">
+                                                                                                    "{detail.messageSent}"
+                                                                                                </div>
+                                                                                            )}
+                                                                                            {detail.breakdown && (
+                                                                                                <div className="mt-0.5 text-[9px] text-blue-500 font-medium px-2">
+                                                                                                    Detalle: {detail.breakdown}
+                                                                                                </div>
+                                                                                            )}
+                                                                                            {detail.action === 'engine_parameters' && (
+                                                                                                <div className="mt-1 grid grid-cols-2 gap-x-4 gap-y-1 text-[9px]">
+                                                                                                    <div className="text-gray-400">Ref: <span className="text-gray-600 font-bold">{detail.referenceDate}</span></div>
+                                                                                                    <div className="text-gray-400">Ventana: <span className="text-gray-600 font-bold">{detail.warningWindowDays} días</span></div>
+                                                                                                    <div className="text-gray-400">Hacia: <span className="text-gray-600 font-bold">{detail.warningWindowTargetDate}</span></div>
+                                                                                                </div>
+                                                                                            )}
+                                                                                        </div>
+                                                                                    ))}
+                                                                                </div>
+                                                                            </div>
+                                                                        ));
+                                                                    })()}
                                                                 </div>
+                                                            ) : (
+                                                                <p className="text-[10px] text-gray-400">No hay detalles específicos registrados.</p>
                                                             )}
                                                         </div>
-                                                    ))}
-                                                </div>
-                                            ) : (
-                                                <p className="text-[10px] text-gray-400">No hay detalles específicos registrados.</p>
-                                            )}
-                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
                                     </div>
-                                )}
-                            </div>
-                        ))}
+                                </div>
+                            ));
+                        })()}
                         {hasMore && (
                             <div className="p-4 border-t border-gray-50 bg-gray-50/30">
                                 <button

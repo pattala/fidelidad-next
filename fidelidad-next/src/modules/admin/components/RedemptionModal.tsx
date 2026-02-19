@@ -3,7 +3,7 @@ import { X, Gift, CheckCircle } from 'lucide-react';
 import { PrizeService } from '../../../services/prizeService';
 import type { Prize } from '../../../types';
 import { collection, addDoc, updateDoc, doc, increment, arrayUnion, query, where, orderBy, getDocs, writeBatch, serverTimestamp } from 'firebase/firestore';
-import { db } from '../../../lib/firebase';
+import { db, auth } from '../../../lib/firebase';
 import { NotificationService } from '../../../services/notificationService';
 import { TimeService } from '../../../services/timeService';
 import { ExpirationService } from '../../../services/expirationService';

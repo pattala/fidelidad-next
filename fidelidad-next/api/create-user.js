@@ -365,6 +365,39 @@ export default async function handler(req, res) {
     }
     console.log("PERF: Finished create-user-firestore");
 
+    // --- AUDITORIA ---
+    try {
+      let executor = 'admin';
+      const authHeader = req.headers["authorization"];
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        const token = authHeader.split("Bearer ")[1];
+        const decoded = await admin.auth().verifyIdToken(token);
+        executor = decoded.email || decoded.uid || 'admin';
+      }
+
+      await db.collection('audit_logs').add({
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        type: createdFs ? 'user_creation' : 'user_update',
+        status: 'success',
+        summary: `${createdFs ? 'Creación' : 'Actualización'} de socio: ${nombre || 'Socio'} (ID: ${fsDocRef.id})`,
+        details: [
+          {
+            action: createdFs ? 'user_created' : 'user_updated',
+            status: 'success',
+            info: `Nombre: ${nombre}, DNI: ${dni}, #Socio: ${numeroSocio || 'N/A'}`
+          },
+          {
+            action: 'auth_status',
+            status: 'success',
+            info: createdAuth ? 'Nuevo usuario en Auth' : 'Usuario de Auth existente'
+          }
+        ],
+        executor
+      });
+    } catch (auditErr) {
+      console.error("Audit error in create-user:", auditErr);
+    }
+
     return res.status(200).json({
       ok: true,
       auth: { uid: authUID, created: createdAuth },

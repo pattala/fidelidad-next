@@ -246,6 +246,36 @@ export default async function handler(req, res) {
                 results.audit_logs_borrados = await deleteByQueryPaged(db, () => db.collection('audit_logs').limit(500));
             }
 
+            // 5. AUDITORIA FINAL DEL RESET
+            try {
+                // Extraer ejecutor del token si no viene
+                let executor = 'admin';
+                const authHeader = req.headers["authorization"];
+                if (authHeader && authHeader.startsWith("Bearer ")) {
+                    const token = authHeader.split("Bearer ")[1];
+                    const decoded = await admin.auth().verifyIdToken(token);
+                    executor = decoded.email || decoded.uid || 'admin';
+                }
+
+                await db.collection('audit_logs').add({
+                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                    type: 'system_reset',
+                    status: 'success',
+                    summary: `Reinicio de fábrica ejecutado por ${executor}`,
+                    details: [
+                        { action: 'reset_executed', status: 'success', info: `Acciones: ${Object.keys(options).filter(k => options[k]).join(', ')}` },
+                        ...Object.keys(results).map(key => ({
+                            action: `reset_${key}`,
+                            status: 'success',
+                            info: typeof results[key] === 'number' ? `Registros afectados: ${results[key]}` : `Completado: ${results[key]}`
+                        }))
+                    ],
+                    executor
+                });
+            } catch (auditErr) {
+                console.error("Audit error in reset-factory:", auditErr);
+            }
+
             return res.status(200).json({ ok: true, message: "Reset completado con éxito.", results });
         }
 

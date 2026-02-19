@@ -302,6 +302,32 @@ export default async function handler(req, res) {
       authDeletion = { deleted: false, reason: "auth user not found" };
     }
 
+    // --- AUDITORIA ---
+    try {
+      let executor = 'admin';
+      const authHeader = req.headers["authorization"];
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        const token = authHeader.split("Bearer ")[1];
+        const decoded = await admin.auth().verifyIdToken(token);
+        executor = decoded.email || decoded.uid || 'admin';
+      }
+
+      await db.collection('audit_logs').add({
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        type: 'user_deletion',
+        status: 'success',
+        summary: `Eliminación de socio: ${clientData?.name || 'Socio'} (ID: ${deletedDocId})`,
+        details: [
+          { action: 'user_deleted_from_db', status: 'success', info: `Socio: ${clientData?.name}, DNI: ${clientData?.dni}, #Socio: ${clientData?.socioNumber}` },
+          { action: 'auth_deletion', status: authDeletion?.deleted ? 'success' : 'failed', info: authDeletion?.deleted ? 'Usuario de Auth eliminado' : `Error: ${authDeletion?.error || authDeletion?.reason}` },
+          { action: 'cascade_cleanup', status: 'success', info: 'Se eliminaron historiales, inbox y geolocalización' }
+        ],
+        executor
+      });
+    } catch (auditErr) {
+      console.error("Audit error in delete-user:", auditErr);
+    }
+
     return res.status(200).json({
       ok: true,
       deletedDocId,

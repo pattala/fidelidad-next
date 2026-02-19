@@ -353,9 +353,16 @@ export const SystemLogsPage = () => {
                                                                     {log.status}
                                                                 </span>
                                                             )}
-                                                            <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-bold uppercase tracking-widest ml-auto">
-                                                                {log.executor}
-                                                            </span>
+                                                            <div className="flex flex-col items-end ml-auto">
+                                                                <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-bold uppercase tracking-widest">
+                                                                    {log.executor?.includes('@') || log.executor?.length > 15 ? 'ADMIN / OPERADOR' : log.executor}
+                                                                </span>
+                                                                {(log.executor?.includes('@') || log.executor?.length > 15) && (
+                                                                    <span className="text-[9px] text-gray-400 font-bold mt-0.5 px-1 truncate max-w-[120px]" title={log.executor}>
+                                                                        {log.executor}
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                         <p className="text-xs text-gray-500 mt-0.5">{log.summary}</p>
                                                     </div>
@@ -441,11 +448,11 @@ export const SystemLogsPage = () => {
                                                                                                                 </span>
                                                                                                             ) : (
                                                                                                                 <span className={`px-1.5 py-0.5 rounded-full uppercase font-black text-[8px] border shadow-sm ${detail.status === 'success' ? 'bg-green-100 text-green-700 border-green-200' :
-                                                                                                                        detail.status === 'failed' || detail.status === 'error' ? 'bg-red-100 text-red-700 border-red-200' :
-                                                                                                                            detail.status === 'skipped' ? 'bg-slate-100 text-slate-500 border-slate-200' :
-                                                                                                                                detail.status === 'disabled' ? 'bg-orange-100 text-orange-600 border-orange-200' :
-                                                                                                                                    detail.status === 'link_ready' ? 'bg-blue-100 text-blue-700 border-blue-200' :
-                                                                                                                                        'bg-gray-100 text-gray-600 border-gray-200'
+                                                                                                                    detail.status === 'failed' || detail.status === 'error' ? 'bg-red-100 text-red-700 border-red-200' :
+                                                                                                                        detail.status === 'skipped' ? 'bg-slate-100 text-slate-500 border-slate-200' :
+                                                                                                                            detail.status === 'disabled' ? 'bg-orange-100 text-orange-600 border-orange-200' :
+                                                                                                                                detail.status === 'link_ready' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                                                                                                                                    'bg-gray-100 text-gray-600 border-gray-200'
                                                                                                                     }`}>
                                                                                                                     {detail.action.replace(/_/g, ' ')}
                                                                                                                 </span>
@@ -460,8 +467,8 @@ export const SystemLogsPage = () => {
                                                                                                         </div>
                                                                                                         <div className="flex items-center gap-2">
                                                                                                             <span className={`text-[9px] font-bold uppercase ${detail.status === 'success' ? 'text-green-600' :
-                                                                                                                    detail.status === 'failed' || detail.status === 'error' ? 'text-red-600' :
-                                                                                                                        'text-gray-400'
+                                                                                                                detail.status === 'failed' || detail.status === 'error' ? 'text-red-600' :
+                                                                                                                    'text-gray-400'
                                                                                                                 }`}>
                                                                                                                 {detail.status || ''}
                                                                                                             </span>

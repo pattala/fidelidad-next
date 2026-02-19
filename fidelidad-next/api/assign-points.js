@@ -617,10 +617,22 @@ export default async function handler(req, res) {
                                 templateData: { subject: '¡Has sumado puntos! 💰', htmlContent: unifiedMsg }
                             })
                         }).then(() => {
-                            result.auditDetails.push({ userId: targetUid, userName: result.guestData.name, action: 'email_sent', status: 'success' });
+                            result.auditDetails.push({
+                                userId: targetUid,
+                                userName: result.guestData.name,
+                                action: 'email_sent',
+                                status: 'success',
+                                info: `Enviado a: ${result.guestData.email}`
+                            });
                         }).catch(err => {
                             console.error("Email error (guest):", err);
-                            result.auditDetails.push({ userId: targetUid, userName: result.guestData.name, action: 'email_error', status: 'failed', info: err.message });
+                            result.auditDetails.push({
+                                userId: targetUid,
+                                userName: result.guestData.name,
+                                action: 'email_error',
+                                status: 'failed',
+                                info: `${result.guestData.email} - ${err.message}`
+                            });
                         })
                     );
                 } else if (result.guestData.email) {
@@ -687,9 +699,21 @@ export default async function handler(req, res) {
                                 templateData: { subject: '¡Ganaste un premio de referido! 🎁', htmlContent: rMsg }
                             })
                         }).then(() => {
-                            result.auditDetails.push({ userId: rInfo.uid, userName: rInfo.name, action: 'email_sent_referrer', status: 'success' });
+                            result.auditDetails.push({
+                                userId: rInfo.uid,
+                                userName: rInfo.name,
+                                action: 'email_sent_referrer',
+                                status: 'success',
+                                info: `Enviado a: ${rInfo.email}`
+                            });
                         }).catch(err => {
-                            result.auditDetails.push({ userId: rInfo.uid, userName: rInfo.name, action: 'email_error_referrer', status: 'failed', info: err.message });
+                            result.auditDetails.push({
+                                userId: rInfo.uid,
+                                userName: rInfo.name,
+                                action: 'email_error_referrer',
+                                status: 'failed',
+                                info: `${rInfo.email} - ${err.message}`
+                            });
                         })
                     );
                 }

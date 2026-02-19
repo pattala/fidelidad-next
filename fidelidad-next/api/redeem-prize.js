@@ -374,10 +374,22 @@ export default async function handler(req, res) {
                                 }
                             })
                         }).then(() => {
-                            result.auditDetails.push({ userId: targetUid, userName: clientData.name, action: 'email_sent', status: 'success' });
+                            result.auditDetails.push({
+                                userId: targetUid,
+                                userName: clientData.name,
+                                action: 'email_sent',
+                                status: 'success',
+                                info: `Enviado a: ${clientData.email || clientData.correo}`
+                            });
                         }).catch(err => {
-                            console.error("Email redemption error:", err);
-                            result.auditDetails.push({ userId: targetUid, userName: clientData.name, action: 'email_error', status: 'failed', info: err.message });
+                            console.error("Email error redemption:", err);
+                            result.auditDetails.push({
+                                userId: targetUid,
+                                userName: clientData.name,
+                                action: 'email_error',
+                                status: 'failed',
+                                info: `${clientData.email || clientData.correo} - ${err.message}`
+                            });
                         })
                     );
                 } else if (clientData.email || clientData.correo) {

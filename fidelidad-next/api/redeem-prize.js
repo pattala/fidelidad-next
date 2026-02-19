@@ -75,7 +75,7 @@ export default async function handler(req, res) {
         const config = configSnap.exists ? configSnap.data() : {};
 
         const pointsNeeded = Number(prizeData.pointsRequired) || 0;
-        const currentPoints = Number(clientData.points || clientData.puntos || 0);
+        const currentPoints = Number((clientData.points !== undefined) ? clientData.points : (clientData.puntos ?? 0));
 
         if (currentPoints < pointsNeeded) return res.status(400).json({ ok: false, error: "Insufficient points" });
         if ((Number(prizeData.stock) || 0) <= 0) return res.status(400).json({ ok: false, error: "No stock available" });
@@ -92,7 +92,7 @@ export default async function handler(req, res) {
             const cData = cSnap.data();
             const pData = pSnap.data();
 
-            if (Number(cData.points || cData.puntos || 0) < pointsNeeded) throw new Error("Insufficient points");
+            if (Number((cData.points !== undefined) ? cData.points : (cData.puntos ?? 0)) < pointsNeeded) throw new Error("Insufficient points");
             if ((Number(pData.stock) || 0) <= 0) throw new Error("No stock available");
 
             let pointsToDeduct = pointsNeeded;
@@ -147,7 +147,8 @@ export default async function handler(req, res) {
 
             const firstName = (cData.name || cData.nombre || '').split(' ')[0];
             const shortCode = prizeId.substring(0, 4).toUpperCase();
-            const newTotalPoints = Number(cData.points || cData.puntos || 0) - pointsNeeded;
+            const currentPts = Number((cData.points !== undefined) ? cData.points : (cData.puntos ?? 0));
+            const newTotalPoints = currentPts - pointsNeeded;
 
             // Update User
             tx.update(cSnap.ref, {

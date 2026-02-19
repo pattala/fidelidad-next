@@ -348,8 +348,11 @@ export const SystemLogsPage = () => {
                                                                             </span>
                                                                         ))}
                                                                         {detail.action === 'notified_expiration' ? (
-                                                                            <span className={`px-1.5 py-0.5 rounded uppercase font-bold text-[8px] ${detail.isItinerancy ? 'bg-red-600 text-white animate-pulse' : 'bg-[#00c853] text-white shadow-sm'}`}>
-                                                                                {detail.isItinerancy ? 'Itinerancia' : 'Primer Aviso'}
+                                                                            <span className={`px-2 py-0.5 rounded-md uppercase font-black text-[9px] shadow-sm border ${(detail.isItinerancy || detail.info?.includes('[ITINERANCIA]'))
+                                                                                    ? 'bg-red-100 text-red-700 border-red-200 animate-pulse'
+                                                                                    : 'bg-green-100 text-green-700 border-green-200'
+                                                                                }`}>
+                                                                                {(detail.isItinerancy || detail.info?.includes('[ITINERANCIA]')) ? '⚠️ ITINERANCIA' : '✅ PRIMER ENVÍO'}
                                                                             </span>
                                                                         ) : (
                                                                             <span className={`px-1.5 py-0.5 rounded uppercase font-bold text-[8px] ${detail.action.includes('error') || detail.status === 'failed' ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-600'}`}>

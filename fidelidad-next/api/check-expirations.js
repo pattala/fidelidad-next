@@ -354,7 +354,7 @@ export default async function handler(req, res) {
                         action: 'notified_expiration',
                         status: 'success',
                         isItinerancy: isRepeatEnabled,
-                        info: `${isRepeatEnabled ? '[ITINERANCIA] ' : '[NUEVO] '}Enviado: "${msg}" | Desglose: ${breakdownStr}`
+                        info: `Enviado: "${msg}" | Desglose: ${breakdownStr}`
                     });
                 } catch (e) {
                     console.error(`[Cron] Error notifying ${userDoc.id}:`, e);

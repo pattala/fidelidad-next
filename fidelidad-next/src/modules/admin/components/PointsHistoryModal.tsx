@@ -250,6 +250,11 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
                 points: 0,
                 puntos: 0,
                 accumulated_balance: 0,
+                lastExpirationNotice: null,
+                lastExpirationNoticeTargetDate: null,
+                lastExpirationNoticeAmount: null,
+                nextExpirationDate: null,
+                nextExpirationAmount: 0,
                 historialPuntos: [],
                 historialCanjes: []
             });

@@ -149,7 +149,17 @@ export default async function handler(req, res) {
                 const usersSnap = await db.collection("users").get();
                 for (const d of usersSnap.docs) {
                     await deleteUserSubcollections(db, d.id, ["points_history", "transactions", "interacciones", "geo_raw", "visit_history", "expiration_cache"]);
-                    await d.ref.update({ points: 0, balance: 0, accumulated_balance: 0 });
+                    await d.ref.update({
+                        points: 0,
+                        puntos: 0,
+                        balance: 0,
+                        accumulated_balance: 0,
+                        lastExpirationNotice: null,
+                        lastExpirationNoticeTargetDate: null,
+                        lastExpirationNoticeAmount: null,
+                        nextExpirationDate: null,
+                        nextExpirationAmount: 0
+                    });
                 }
                 results.historiales_vaciados = usersSnap.size;
             }

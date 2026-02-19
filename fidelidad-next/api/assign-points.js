@@ -87,7 +87,7 @@ export default async function handler(req, res) {
                             dni: data.dni,
                             socioNumber: data.socioNumber || data.numeroSocio || data.socio_number,
                             phone: data.phone || data.telefono,
-                            accumulated_balance: data.accumulated_balance || 0
+                            accumulated_balance: data.accumulated_balance ?? 0
                         });
                     }
                 });
@@ -206,7 +206,7 @@ export default async function handler(req, res) {
         if (isAdmin && finalAmount) {
             // Obtener saldo acumulado actual del cliente para el cálculo
             const clientSnap = await db.collection('users').doc(targetUid).get();
-            const currentAccumulated = clientSnap.exists ? Number(clientSnap.data().accumulated_balance || 0) : 0;
+            const currentAccumulated = clientSnap.exists ? Number(clientSnap.data().accumulated_balance ?? 0) : 0;
 
             let basePoints = 0;
             if (reason === 'external_integration') {
@@ -328,7 +328,7 @@ export default async function handler(req, res) {
 
             // --- ACTUALIZACIÓN DEL CLIENTE (INVITADO) ---
             if (points > 0) {
-                const currentPoints = Number(cData.points || cData.puntos || 0);
+                const currentPoints = Number((cData.points !== undefined) ? cData.points : (cData.puntos ?? 0));
                 const newPoints = currentPoints + points;
                 const finalConcept = (concept || (reason === 'welcome_signup' ? 'Puntos de Bienvenida' : (reason === 'profile_address' ? 'Premio por completar dirección' : 'Compra en local'))) + (req.body?.calculatedPromoDetails || "");
 

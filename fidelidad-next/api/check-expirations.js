@@ -213,14 +213,24 @@ export default async function handler(req, res) {
                         .get();
 
                     let totalImpendingAmount = 0;
+                    const validCredits = [];
+
                     impendingCreditsSnap.forEach(d => {
                         const dData = d.data();
                         if (dData.status === 'expired') return;
-                        const rem = dData.remainingPoints !== undefined ? dData.remainingPoints : dData.amount;
-                        if (rem > 0) totalImpendingAmount += rem;
+                        const rem = dData.remainingPoints !== undefined ? Number(dData.remainingPoints) : Number(dData.amount);
+
+                        if (rem > 0) {
+                            totalImpendingAmount += rem;
+                            const dObj = dData.expiresAt.toDate();
+                            const dd = String(dObj.getDate()).padStart(2, '0');
+                            const mm = String(dObj.getMonth() + 1).padStart(2, '0');
+                            const yyyy = dObj.getFullYear();
+                            validCredits.push({ rem, date: `${dd}/${mm}/${yyyy}` });
+                        }
                     });
 
-                    console.log(`[Cron] User ${userId}: Total in window = ${totalImpendingAmount}. Last Amount notified = ${userData.lastExpirationNoticeAmount}`);
+                    console.log(`[Cron] User ${userId}: Total in window = ${totalImpendingAmount}. Valid credits: ${validCredits.length}`);
 
                     if (totalImpendingAmount <= 0) {
                         console.log(`[Cron] Skipping ${userId}: No points actually expiring in window.`);
@@ -256,41 +266,50 @@ export default async function handler(req, res) {
                         .replace(/{puntos}/g, totalImpendingAmount.toString())
                         .replace(/{fecha}/g, displayDate);
 
+                    const breakdownStr = validCredits.map(c => `${c.rem} pts (${c.date})`).join(', ');
                     const title = "⚠️ Tus puntos están por vencer";
 
                     // PUSH
                     if (channels.includes('push') && userData.fcmTokens?.length) {
+                        console.log(`[Cron] Sending PUSH to ${userId} (${userData.fcmTokens.length} tokens)`);
                         await app.messaging().sendEachForMulticast({
                             tokens: userData.fcmTokens,
-                            data: { title, body: msg, url: "/mis-puntos", icon: config.logoUrl || "" }
-                        }).catch(() => { });
+                            notification: { title, body: msg },
+                            data: { url: "/mis-puntos", icon: config.logoUrl || "" }
+                        }).catch(e => console.error(`[Cron] Push error for ${userId}:`, e));
                     }
 
                     // EMAIL
                     if (channels.includes('email') && userData.email && process.env.SMTP_USER) {
-                        const html = `<div style="font-family: sans-serif; padding: 20px;"><h2>${title}</h2><p>${msg}</p></div>`;
+                        const html = `
+                            <div style="font-family: sans-serif; padding: 20px; color: #333;">
+                                <h2 style="color: #e67e22;">${title}</h2>
+                                <p style="font-size: 16px;">${msg}</p>
+                                <div style="margin-top: 20px; padding: 15px; background: #fdf2f2; border-radius: 8px; border: 1px solid #fee2e2;">
+                                    <h4 style="margin: 0 0 10px 0; color: #991b1b; font-size: 12px; text-transform: uppercase;">Detalle de vencimientos:</h4>
+                                    <p style="margin: 0; font-size: 14px; font-weight: bold;">${breakdownStr}</p>
+                                </div>
+                                <p style="margin-top: 20px; font-size: 12px; color: #666;">* Esta suma corresponde a los puntos que vencen en los próximos ${warningDays} días.</p>
+                            </div>
+                        `;
                         await transporter.sendMail({
                             from: `"${config.siteName || 'Club Fidelidad'}" <${process.env.SMTP_USER}>`,
                             to: userData.email,
                             subject: title,
                             html
-                        }).catch(() => { });
+                        }).catch(e => console.error(`[Cron] Email error for ${userId}:`, e));
                     }
 
                     // INBOX
                     await userDoc.ref.collection('inbox').add({
-                        title, body: msg, url: "/mis-puntos", type: "system", read: false,
+                        title,
+                        body: `${msg}\n\nDetalle: ${breakdownStr}`,
+                        url: "/mis-puntos",
+                        type: "system",
+                        read: false,
                         date: admin.firestore.FieldValue.serverTimestamp(),
                         expireAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000))
                     });
-
-                    // PREPARAR DESGLOSE para la auditoría
-                    const breakdown = impendingCreditsSnap.docs.map(d => {
-                        const dData = d.data();
-                        const rem = dData.remainingPoints !== undefined ? dData.remainingPoints : dData.amount;
-                        const dateStr = dData.expiresAt.toDate().toLocaleDateString();
-                        return `${rem} pts (${dateStr})`;
-                    }).join(', ');
 
                     // LOG DE AUDITORÍA INDIVIDUAL
                     await db.collection('audit_logs').add({
@@ -305,7 +324,7 @@ export default async function handler(req, res) {
                             closestDate: userData.nextExpirationDate,
                             channels,
                             messageSent: msg,
-                            breakdown
+                            breakdown: breakdownStr
                         }],
                         executor: 'system'
                     });
@@ -323,7 +342,7 @@ export default async function handler(req, res) {
                         userName: userData.name || userData.nombre || 'Socio',
                         action: 'notified_expiration',
                         status: 'success',
-                        info: `Enviado: "${msg}" | Desglose: ${breakdown}`
+                        info: `Enviado: "${msg}" | Desglose: ${breakdownStr}`
                     });
                 } catch (e) {
                     console.error(`[Cron] Error notifying ${userDoc.id}:`, e);

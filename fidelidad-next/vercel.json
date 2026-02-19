@@ -27,15 +27,5 @@
             "source": "/(.*)",
             "destination": "/index.html"
         }
-    ],
-    "crons": [
-        {
-            "path": "/api/check-expirations",
-            "schedule": "35 5 * * *"
-        },
-        {
-            "path": "/api/check-birthdays",
-            "schedule": "0 12 * * *"
-        }
     ]
 }

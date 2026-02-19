@@ -99,6 +99,7 @@ export default async function handler(req, res) {
         const warningDate = new Date(referenceDate);
         warningDate.setDate(warningDate.getDate() + warningDays);
         const warningDateStr = warningDate.toISOString().split('T')[0];
+        console.log(`[Cron] Window: > ${referenceDateStr} and <= ${warningDateStr}`);
 
         const logResults = {
             processed: 0,
@@ -189,22 +190,25 @@ export default async function handler(req, res) {
         }
 
         // --- PASO B: ENVIAR AVISOS (Usuarios que vencen pronto) ---
+        console.log(`[Cron] Step B: Searching for notices > ${referenceDateStr} and <= ${warningDateStr}`);
         if (config.messaging?.enableExpirationWarnings !== false) {
-            // FIX: Usamos '<=' en lugar de '==' para capturar vencimientos que estén dentro del rango
-            // ej: si cargan puntos que vencen en 5 días y la ventana es de 7, ahora SÍ los toma.
             const toNotifySnap = await db.collection('users')
                 .where('nextExpirationDate', '<=', warningDateStr)
                 .where('nextExpirationDate', '>', referenceDateStr) // Solo futuros
                 .get();
+
+            console.log(`[Cron] Found ${toNotifySnap.size} candidates for notices.`);
 
             for (const userDoc of toNotifySnap.docs) {
                 try {
                     const userData = userDoc.data();
                     const userId = userDoc.id;
 
-                    // Evitar duplicados: solo notificar si el target del aviso anterior es distinto al actual
-                    // lastExpirationNoticeTargetDate guarda la fecha PARA LA CUAL se avisó (ej. 2026-02-20)
+                    console.log(`[Cron] Checking user ${userId} (${userData.name}): NextDate=${userData.nextExpirationDate}, LastTarget=${userData.lastExpirationNoticeTargetDate}`);
+
+                    // Evitar duplicados
                     if (userData.lastExpirationNoticeTargetDate === userData.nextExpirationDate) {
+                        console.log(`[Cron] Skipping ${userId}: Already notified for this date.`);
                         continue;
                     }
 

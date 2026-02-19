@@ -224,6 +224,30 @@ export const CampaignsPageV2 = () => {
         });
     };
 
+
+
+    // Helper for Text Position
+    const getPositionClasses = (pos: string | undefined) => {
+        switch (pos) {
+            case 'top-left': return 'justify-start items-start text-left';
+            case 'top-center': return 'justify-start items-center text-center';
+            case 'top-right': return 'justify-start items-end text-right';
+            case 'center': return 'justify-center items-center text-center';
+            case 'bottom-right': return 'justify-end items-end text-right';
+            case 'bottom-center': return 'justify-end items-center text-center';
+            case 'bottom-left': return 'justify-end items-start text-left';
+            default: return 'justify-end items-start text-left';
+        }
+    };
+
+    const getFontFamily = (style: string | undefined) => {
+        switch (style) {
+            case 'serif': return 'font-serif';
+            case 'mono': return 'font-mono';
+            default: return 'font-sans';
+        }
+    };
+
     // Componente de Vista Previa Reutilizable
     const PreviewCard = () => (
         <div className="bg-white rounded-[2rem] shadow-xl overflow-hidden flex flex-col h-fit sticky top-8 border border-gray-100 animate-fade-in-up">
@@ -248,14 +272,14 @@ export const CampaignsPageV2 = () => {
                         <ImageIcon size={48} />
                     </div>
                 )}
-                <div className={`relative z-10 w-full h-full p-6 flex flex-col justify-end`}>
+                <div className={`relative z-10 w-full h-full p-6 flex flex-col ${getPositionClasses(formData.textPosition)}`}>
                     {formData.showTitle && (
-                        <h4 className="text-xl font-black leading-tight mb-1 drop-shadow-sm" style={{ color: formData.textColor }}>
+                        <h4 className={`font-black leading-tight mb-1 drop-shadow-sm ${getFontFamily(formData.fontStyle)} text-${formData.titleSize || '2xl'}`} style={{ color: formData.textColor }}>
                             {formData.title || 'Título de la Campaña'}
                         </h4>
                     )}
                     {formData.showDescription && (
-                        <p className="text-xs opacity-90 drop-shadow-sm line-clamp-2" style={{ color: formData.textColor }}>
+                        <p className={`opacity-90 drop-shadow-sm line-clamp-2 ${getFontFamily(formData.fontStyle)} text-${formData.descriptionSize || 'sm'}`} style={{ color: formData.textColor }}>
                             {formData.description || 'Descripción breve de la promoción...'}
                         </p>
                     )}
@@ -293,6 +317,7 @@ export const CampaignsPageV2 = () => {
             </div>
         </div>
     );
+
 
     return (
         <div className="space-y-6 animate-fade-in pb-20">
@@ -370,6 +395,21 @@ export const CampaignsPageV2 = () => {
                             <p className="text-xs text-gray-500 line-clamp-2 h-8 leading-relaxed mb-4">{bonus.description || 'Sin descripción pública configurada.'}</p>
 
                             <div className="flex items-center justify-between pt-2 border-t border-gray-50 mt-4">
+                                <div className="flex gap-1">
+                                    {DAYS.map(d => (
+                                        <div key={d.id} className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold ${bonus.daysOfWeek.includes(d.id) ? 'bg-black text-white' : 'bg-gray-100 text-gray-300'}`}>
+                                            {d.label.charAt(0)}
+                                        </div>
+                                    ))}
+                                </div>
+                                {bonus.startTime && (
+                                    <div className="text-[9px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                        <Clock size={10} /> {bonus.startTime} - {bonus.endTime}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex items-center justify-between pt-2 mt-2">
                                 <div className="flex gap-2">
                                     {!isReadOnly && (
                                         <>
@@ -537,76 +577,137 @@ export const CampaignsPageV2 = () => {
                                         </div>
                                     )}
 
-                                    {activeTab === 'VISUAL' && (
-                                        <div className="space-y-8 animate-slide-in-right">
-                                            <section className="space-y-4">
-                                                <label className="text-xs font-black text-gray-600 uppercase">Configuración de Imagen</label>
-                                                <div className="flex gap-4">
-                                                    <input
-                                                        type="url" placeholder="Pega el enlace de la imagen aquí..."
-                                                        className="flex-1 p-4 rounded-2xl bg-gray-50 border border-gray-100 focus:bg-white focus:ring-2 focus:ring-purple-100 outline-none transition-all text-sm font-medium"
-                                                        value={formData.imageUrl} onChange={e => setFormData({ ...formData, imageUrl: e.target.value })}
-                                                    />
-                                                </div>
-                                            </section>
+                                    <div className="space-y-8 animate-slide-in-right">
+                                        <section className="space-y-4">
+                                            <label className="text-xs font-black text-gray-600 uppercase">Configuración de Imagen</label>
+                                            <div className="flex gap-4">
+                                                <input
+                                                    type="url" placeholder="Pega el enlace de la imagen aquí..."
+                                                    className="flex-1 p-4 rounded-2xl bg-gray-50 border border-gray-100 focus:bg-white focus:ring-2 focus:ring-purple-100 outline-none transition-all text-sm font-medium"
+                                                    value={formData.imageUrl} onChange={e => setFormData({ ...formData, imageUrl: e.target.value })}
+                                                />
+                                            </div>
+                                        </section>
 
-                                            <section className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <label className="flex items-center justify-between p-3 bg-white rounded-xl shadow-sm cursor-pointer hover:bg-gray-50 transition-colors">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className={`p-2 rounded-lg ${formData.showInCarousel ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-400'}`}>
-                                                            <Layout size={20} />
-                                                        </div>
-                                                        <div>
-                                                            <p className="font-bold text-sm text-gray-700">Mostrar en Carrusel</p>
-                                                            <p className="text-[10px] text-gray-400">Visible en la pantalla principal</p>
-                                                        </div>
+                                        <section className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <label className="flex items-center justify-between p-3 bg-white rounded-xl shadow-sm cursor-pointer hover:bg-gray-50 transition-colors">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`p-2 rounded-lg ${formData.showInCarousel ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-400'}`}>
+                                                        <Layout size={20} />
                                                     </div>
-                                                    <div className={`w-10 h-6 shrink-0 rounded-full p-1 transition-colors duration-300 ${formData.showInCarousel ? 'bg-purple-600' : 'bg-gray-200'}`}>
-                                                        <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-300 ${formData.showInCarousel ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                    <div>
+                                                        <p className="font-bold text-sm text-gray-700">Mostrar en Carrusel</p>
+                                                        <p className="text-[10px] text-gray-400">Visible en la pantalla principal</p>
                                                     </div>
-                                                    <input
-                                                        type="checkbox" className="hidden"
-                                                        checked={formData.showInCarousel}
-                                                        onChange={e => setFormData({ ...formData, showInCarousel: e.target.checked })}
-                                                    />
-                                                </label>
+                                                </div>
+                                                <div className={`w-10 h-6 shrink-0 rounded-full p-1 transition-colors duration-300 ${formData.showInCarousel ? 'bg-purple-600' : 'bg-gray-200'}`}>
+                                                    <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-300 ${formData.showInCarousel ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                </div>
+                                                <input
+                                                    type="checkbox" className="hidden"
+                                                    checked={formData.showInCarousel}
+                                                    onChange={e => setFormData({ ...formData, showInCarousel: e.target.checked })}
+                                                />
+                                            </label>
 
-                                                <label className="flex items-center justify-between p-3 bg-white rounded-xl shadow-sm cursor-pointer hover:bg-gray-50 transition-colors">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className={`p-2 rounded-lg ${formData.showInHomeBanner ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
-                                                            <Monitor size={20} />
-                                                        </div>
-                                                        <div>
-                                                            <p className="font-bold text-sm text-gray-700">Banner Home</p>
-                                                            <p className="text-[10px] text-gray-400">Destapado superior en la App</p>
-                                                        </div>
+                                            <label className="flex items-center justify-between p-3 bg-white rounded-xl shadow-sm cursor-pointer hover:bg-gray-50 transition-colors">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`p-2 rounded-lg ${formData.showInHomeBanner ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
+                                                        <Monitor size={20} />
                                                     </div>
-                                                    <div className={`w-10 h-6 shrink-0 rounded-full p-1 transition-colors duration-300 ${formData.showInHomeBanner ? 'bg-blue-600' : 'bg-gray-200'}`}>
-                                                        <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-300 ${formData.showInHomeBanner ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                    <div>
+                                                        <p className="font-bold text-sm text-gray-700">Banner Home</p>
+                                                        <p className="text-[10px] text-gray-400">Destapado superior en la App</p>
                                                     </div>
-                                                    <input
-                                                        type="checkbox" className="hidden"
-                                                        checked={formData.showInHomeBanner}
-                                                        onChange={e => setFormData({ ...formData, showInHomeBanner: e.target.checked })}
-                                                    />
-                                                </label>
-                                            </section>
+                                                </div>
+                                                <div className={`w-10 h-6 shrink-0 rounded-full p-1 transition-colors duration-300 ${formData.showInHomeBanner ? 'bg-blue-600' : 'bg-gray-200'}`}>
+                                                    <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-300 ${formData.showInHomeBanner ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                </div>
+                                                <input
+                                                    type="checkbox" className="hidden"
+                                                    checked={formData.showInHomeBanner}
+                                                    onChange={e => setFormData({ ...formData, showInHomeBanner: e.target.checked })}
+                                                />
+                                            </label>
+                                        </section>
 
-                                            <section className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                                                <div className="space-y-2">
-                                                    <label className="text-[10px] font-black text-gray-400 uppercase">Fondo</label>
-                                                    <input type="color" className="w-full h-12 rounded-xl cursor-pointer border-4 border-gray-50" value={formData.backgroundColor} onChange={e => setFormData({ ...formData, backgroundColor: e.target.value })} />
+                                        <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-gray-400 uppercase">Posición Texto</label>
+                                                <select
+                                                    className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 text-xs font-bold outline-none"
+                                                    value={formData.textPosition} onChange={e => setFormData({ ...formData, textPosition: e.target.value as any })}
+                                                >
+                                                    <option value="bottom-left">Abajo Izq.</option>
+                                                    <option value="bottom-center">Abajo Centro</option>
+                                                    <option value="bottom-right">Abajo Der.</option>
+                                                    <option value="top-left">Arriba Izq.</option>
+                                                    <option value="top-center">Arriba Centro</option>
+                                                    <option value="top-right">Arriba Der.</option>
+                                                    <option value="center">Centro</option>
+                                                </select>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-gray-400 uppercase">Tipografía</label>
+                                                <select
+                                                    className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 text-xs font-bold outline-none"
+                                                    value={formData.fontStyle} onChange={e => setFormData({ ...formData, fontStyle: e.target.value as any })}
+                                                >
+                                                    <option value="sans">Moderna (Sans)</option>
+                                                    <option value="serif">Elegante (Serif)</option>
+                                                    <option value="mono">Técnica (Mono)</option>
+                                                </select>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-gray-400 uppercase">Tam. Título</label>
+                                                <select
+                                                    className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 text-xs font-bold outline-none"
+                                                    value={formData.titleSize} onChange={e => setFormData({ ...formData, titleSize: e.target.value as any })}
+                                                >
+                                                    <option value="base">Pequeño</option>
+                                                    <option value="xl">Mediano</option>
+                                                    <option value="2xl">Grande</option>
+                                                    <option value="4xl">Gigante</option>
+                                                </select>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-gray-400 uppercase">Tam. Desc.</label>
+                                                <select
+                                                    className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 text-xs font-bold outline-none"
+                                                    value={formData.descriptionSize} onChange={e => setFormData({ ...formData, descriptionSize: e.target.value as any })}
+                                                >
+                                                    <option value="xs">Pequeño</option>
+                                                    <option value="sm">Normal</option>
+                                                    <option value="base">Grande</option>
+                                                </select>
+                                            </div>
+                                        </section>
+
+                                        <section className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-gray-400 uppercase">Fondo</label>
+                                                <input type="color" className="w-full h-12 rounded-xl cursor-pointer border-4 border-gray-50" value={formData.backgroundColor} onChange={e => setFormData({ ...formData, backgroundColor: e.target.value })} />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-gray-400 uppercase">Texto</label>
+                                                <input type="color" className="w-full h-12 rounded-xl cursor-pointer border-4 border-gray-50" value={formData.textColor} onChange={e => setFormData({ ...formData, textColor: e.target.value })} />
+                                            </div>
+                                            <div className="col-span-2 space-y-2">
+                                                <label className="text-[10px] font-black text-gray-400 uppercase">Opacidad Imagen ({formData.imageOpacity}%)</label>
+                                                <input type="range" className="w-full h-12 accent-purple-600" min="0" max="100" value={formData.imageOpacity} onChange={e => setFormData({ ...formData, imageOpacity: parseInt(e.target.value) })} />
+                                            </div>
+                                        </section>
+
+                                        {/* Preview inline para móviles/tablets (se oculta en lg donde está el sidebar) */}
+                                        <section className="lg:hidden space-y-4 pt-4 border-t border-gray-100">
+                                            <label className="text-xs font-black text-gray-600 uppercase">Vista Previa PWA</label>
+                                            <div className="flex justify-center bg-gray-100 p-6 rounded-[2rem]">
+                                                <div className="w-full max-w-sm">
+                                                    <PreviewCard />
                                                 </div>
-                                                <div className="space-y-2">
-                                                    <label className="text-[10px] font-black text-gray-400 uppercase">Texto</label>
-                                                    <input type="color" className="w-full h-12 rounded-xl cursor-pointer border-4 border-gray-50" value={formData.textColor} onChange={e => setFormData({ ...formData, textColor: e.target.value })} />
-                                                </div>
-                                                <div className="col-span-2 space-y-2">
-                                                    <label className="text-[10px] font-black text-gray-400 uppercase">Opacidad Imagen ({formData.imageOpacity}%)</label>
-                                                    <input type="range" className="w-full h-12 accent-purple-600" min="0" max="100" value={formData.imageOpacity} onChange={e => setFormData({ ...formData, imageOpacity: parseInt(e.target.value) })} />
-                                                </div>
-                                            </section>
-                                        </div>
+                                            </div>
+                                        </section>
+                                    </div>
                                     )}
 
                                     {activeTab === 'RULES' && (
@@ -733,18 +834,29 @@ export const CampaignsPageV2 = () => {
                                 </div>
                             </div>
 
-                            {/* Sticky Preview (Hidden on mobile) */}
-                            <div className="hidden xl:block w-96 bg-gray-50 p-8 border-l border-gray-100 overflow-y-auto">
+                            {/* Sticky Preview (Visible on large screens) */}
+                            <div className="hidden lg:block w-96 bg-gray-50 p-8 border-l border-gray-100 overflow-y-auto shrink-0">
                                 <div className="space-y-6">
                                     <div className="flex items-center gap-2 mb-2">
                                         <div className="p-2 bg-purple-100 text-purple-600 rounded-lg">
-                                            <Sparkles size={16} />
+                                            <Monitor size={16} />
                                         </div>
-                                        <h3 className="font-black text-gray-800 text-sm uppercase">Resultado Final</h3>
+                                        <h3 className="font-black text-gray-800 text-sm uppercase">Simulador PWA</h3>
                                     </div>
-                                    <PreviewCard />
+
+                                    {/* Phone Frame Mockup */}
+                                    <div className="border-[8px] border-gray-900 rounded-[2.5rem] overflow-hidden bg-white shadow-2xl">
+                                        <div className="h-6 bg-gray-900 w-full flex justify-center items-center gap-2">
+                                            <div className="w-16 h-4 bg-black rounded-b-xl"></div>
+                                        </div>
+                                        <div className="p-2 bg-gray-100 min-h-[400px]">
+                                            <PreviewCard />
+                                        </div>
+                                        <div className="h-2 bg-gray-900 w-full"></div>
+                                    </div>
+
                                     <div className="p-4 bg-yellow-50 text-yellow-800 rounded-xl text-xs font-medium leading-relaxed border border-yellow-100">
-                                        💡 Esta vista previa se actualiza en tiempo real mientras escribes o cambias colores.
+                                        💡 Así es como lo verán tus clientes en la App.
                                     </div>
                                 </div>
                             </div>
@@ -756,100 +868,103 @@ export const CampaignsPageV2 = () => {
                         </button>
                     </div>
                 </div>
-            )}
+            )
+            }
 
             {/* BROADCAST CONFIRMATION MODAL */}
-            {isBroadcastModalOpen && broadcastData && (
-                <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
-                        <div className="bg-purple-600 p-6 text-white flex justify-between items-center">
-                            <div>
-                                <h3 className="font-bold text-xl">Confirmar Difusión</h3>
-                                <p className="text-purple-100 text-sm">Selecciona los canales para enviar</p>
-                            </div>
-                            <button onClick={() => setIsBroadcastModalOpen(false)} className="text-white hover:bg-white/10 p-1 rounded-lg">
-                                <X size={24} />
-                            </button>
-                        </div>
-
-                        <div className="p-8">
-                            <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 mb-6">
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Mensaje Vista Previa:</p>
-                                <p className="text-sm text-gray-600 italic leading-relaxed">
-                                    "{broadcastData.msg}"
-                                </p>
+            {
+                isBroadcastModalOpen && broadcastData && (
+                    <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                        <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
+                            <div className="bg-purple-600 p-6 text-white flex justify-between items-center">
+                                <div>
+                                    <h3 className="font-bold text-xl">Confirmar Difusión</h3>
+                                    <p className="text-purple-100 text-sm">Selecciona los canales para enviar</p>
+                                </div>
+                                <button onClick={() => setIsBroadcastModalOpen(false)} className="text-white hover:bg-white/10 p-1 rounded-lg">
+                                    <X size={24} />
+                                </button>
                             </div>
 
-                            <div className="space-y-3 mb-8">
-                                {NotificationService.isChannelEnabled(broadcastData.config, broadcastData.eventType, 'push') && (
-                                    <label className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${selectedChannels.push ? 'border-purple-200 bg-purple-50' : 'border-gray-100 opacity-60'}`}>
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedChannels.push}
-                                            onChange={e => setSelectedChannels({ ...selectedChannels, push: e.target.checked })}
-                                            className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
-                                        />
-                                        <div className="flex-1">
-                                            <p className="font-bold text-gray-800 flex items-center gap-2">
-                                                <Monitor size={16} className="text-purple-500" /> Notificación PUSH
-                                            </p>
-                                            <p className="text-[10px] text-gray-500 font-medium">Llega directo al celular del cliente</p>
-                                        </div>
-                                    </label>
-                                )}
+                            <div className="p-8">
+                                <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 mb-6">
+                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Mensaje Vista Previa:</p>
+                                    <p className="text-sm text-gray-600 italic leading-relaxed">
+                                        "{broadcastData.msg}"
+                                    </p>
+                                </div>
 
-                                {NotificationService.isChannelEnabled(broadcastData.config, broadcastData.eventType, 'email') && (
-                                    <label className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${selectedChannels.email ? 'border-blue-200 bg-blue-50' : 'border-gray-100 opacity-60'}`}>
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedChannels.email}
-                                            onChange={e => setSelectedChannels({ ...selectedChannels, email: e.target.checked })}
-                                            className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
-                                        />
-                                        <div className="flex-1">
-                                            <p className="font-bold text-gray-800 flex items-center gap-2">
-                                                <Sparkles size={16} className="text-blue-500" /> Correo Electrónico
-                                            </p>
-                                            <p className="text-[10px] text-gray-500 font-medium">Bandeja de entrada personalizada</p>
-                                        </div>
-                                    </label>
-                                )}
+                                <div className="space-y-3 mb-8">
+                                    {NotificationService.isChannelEnabled(broadcastData.config, broadcastData.eventType, 'push') && (
+                                        <label className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${selectedChannels.push ? 'border-purple-200 bg-purple-50' : 'border-gray-100 opacity-60'}`}>
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedChannels.push}
+                                                onChange={e => setSelectedChannels({ ...selectedChannels, push: e.target.checked })}
+                                                className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
+                                            />
+                                            <div className="flex-1">
+                                                <p className="font-bold text-gray-800 flex items-center gap-2">
+                                                    <Monitor size={16} className="text-purple-500" /> Notificación PUSH
+                                                </p>
+                                                <p className="text-[10px] text-gray-500 font-medium">Llega directo al celular del cliente</p>
+                                            </div>
+                                        </label>
+                                    )}
 
-                                {NotificationService.isChannelEnabled(broadcastData.config, broadcastData.eventType, 'whatsapp') && (
-                                    <label className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${selectedChannels.whatsapp ? 'border-green-200 bg-green-50' : 'border-gray-100 opacity-60'}`}>
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedChannels.whatsapp}
-                                            onChange={e => setSelectedChannels({ ...selectedChannels, whatsapp: e.target.checked })}
-                                            className="w-5 h-5 text-green-600 rounded focus:ring-green-500"
-                                        />
-                                        <div className="flex-1">
-                                            <p className="font-bold text-gray-800 flex items-center gap-2">
-                                                <Megaphone size={16} className="text-green-500" /> WhatsApp
-                                            </p>
-                                            <p className="text-[10px] text-gray-500 font-medium">Redirige para envío manual/secuencial</p>
-                                        </div>
-                                    </label>
-                                )}
+                                    {NotificationService.isChannelEnabled(broadcastData.config, broadcastData.eventType, 'email') && (
+                                        <label className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${selectedChannels.email ? 'border-blue-200 bg-blue-50' : 'border-gray-100 opacity-60'}`}>
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedChannels.email}
+                                                onChange={e => setSelectedChannels({ ...selectedChannels, email: e.target.checked })}
+                                                className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
+                                            />
+                                            <div className="flex-1">
+                                                <p className="font-bold text-gray-800 flex items-center gap-2">
+                                                    <Sparkles size={16} className="text-blue-500" /> Correo Electrónico
+                                                </p>
+                                                <p className="text-[10px] text-gray-500 font-medium">Bandeja de entrada personalizada</p>
+                                            </div>
+                                        </label>
+                                    )}
+
+                                    {NotificationService.isChannelEnabled(broadcastData.config, broadcastData.eventType, 'whatsapp') && (
+                                        <label className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${selectedChannels.whatsapp ? 'border-green-200 bg-green-50' : 'border-gray-100 opacity-60'}`}>
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedChannels.whatsapp}
+                                                onChange={e => setSelectedChannels({ ...selectedChannels, whatsapp: e.target.checked })}
+                                                className="w-5 h-5 text-green-600 rounded focus:ring-green-500"
+                                            />
+                                            <div className="flex-1">
+                                                <p className="font-bold text-gray-800 flex items-center gap-2">
+                                                    <Megaphone size={16} className="text-green-500" /> WhatsApp
+                                                </p>
+                                                <p className="text-[10px] text-gray-500 font-medium">Redirige para envío manual/secuencial</p>
+                                            </div>
+                                        </label>
+                                    )}
+                                </div>
+
+                                <button
+                                    onClick={executeBroadcast}
+                                    className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 rounded-2xl shadow-xl shadow-purple-200 flex items-center justify-center gap-2 text-lg transition active:scale-95"
+                                >
+                                    <Send size={20} />
+                                    ¡Lanzar Difusión!
+                                </button>
+                                <button
+                                    onClick={() => setIsBroadcastModalOpen(false)}
+                                    className="w-full mt-2 py-3 text-gray-400 font-bold hover:bg-gray-50 rounded-xl transition text-sm"
+                                >
+                                    Cancelar
+                                </button>
                             </div>
-
-                            <button
-                                onClick={executeBroadcast}
-                                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 rounded-2xl shadow-xl shadow-purple-200 flex items-center justify-center gap-2 text-lg transition active:scale-95"
-                            >
-                                <Send size={20} />
-                                ¡Lanzar Difusión!
-                            </button>
-                            <button
-                                onClick={() => setIsBroadcastModalOpen(false)}
-                                className="w-full mt-2 py-3 text-gray-400 font-bold hover:bg-gray-50 rounded-xl transition text-sm"
-                            >
-                                Cancelar
-                            </button>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 };

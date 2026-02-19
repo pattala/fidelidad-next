@@ -33,11 +33,41 @@ const transporter = nodemailer.createTransport({
 });
 
 export default async function handler(req, res) {
-    const authHeader = req.headers["x-api-key"] || req.headers["authorization"];
-    const cronHeader = req.headers["x-vercel-cron"];
+    // Seguridad: Obtener identidad y verificar acceso
+    const authHeader = req.headers["x-api-key"] || req.headers["authorization"] || req.headers["X-API-Key"];
+    const cronHeader = req.headers["x-vercel-cron"] || req.headers["X-Vercel-Cron"];
+    const executorRole = req.headers["x-executor-role"] || 'system';
     const SECRET = (process.env.API_SECRET_KEY || "").trim();
 
-    if (!cronHeader && (!authHeader || !authHeader.includes(SECRET))) {
+    let executorEmail = 'system';
+    let isAuthorized = false;
+
+    // 1. Priorizar TOKEN de Usuario (Bearer)
+    const bearerHeader = req.headers["authorization"] || "";
+    if (bearerHeader.startsWith("Bearer ")) {
+        const token = bearerHeader.split("Bearer ")[1];
+        try {
+            const decoded = await initFirebaseAdmin().auth().verifyIdToken(token);
+            executorEmail = decoded.email || decoded.uid;
+            isAuthorized = true;
+        } catch (e) {
+            console.error("[Cron Birthdays] Token verification failed:", e.message);
+        }
+    }
+
+    // 2. Fallback a API KEY / Cron
+    if (!isAuthorized) {
+        if (cronHeader) {
+            isAuthorized = true;
+            executorEmail = 'system';
+        } else if (authHeader && SECRET && authHeader.includes(SECRET)) {
+            isAuthorized = true;
+            executorEmail = 'admin';
+        }
+    }
+
+    if (!isAuthorized) {
+        console.warn("[Cron Birthdays] Unauthorized access");
         return res.status(401).json({ ok: false, error: "Unauthorized" });
     }
 
@@ -200,7 +230,8 @@ export default async function handler(req, res) {
                     ? "Ejecutado: No hay cumpleaños para procesar hoy."
                     : `Socios hoy: ${logResults.totalToday}, Procesados: ${logResults.processed}, Puntos: ${logResults.pointsGivenTotal}`,
                 details: logResults.details.slice(0, 500),
-                executor: 'system'
+                executor: executorEmail,
+                role: executorRole === 'system' && executorEmail !== 'system' ? 'admin' : executorRole
             });
         } catch (logError) {
             console.error("[Birthdays] Error saving audit log:", logError);

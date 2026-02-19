@@ -37,32 +37,42 @@ const transporter = nodemailer.createTransport({
 
 // ---------- Handler Principal ----------
 export default async function handler(req, res) {
-    // Seguridad: Solo permitir si viene la API KEY o el header de Vercel Cron
+    // Seguridad: Obtener identidad y verificar acceso
     const authHeader = req.headers["x-api-key"] || req.headers["authorization"] || req.headers["X-API-Key"];
     const cronHeader = req.headers["x-vercel-cron"] || req.headers["X-Vercel-Cron"];
     const executorRole = req.headers["x-executor-role"] || 'system';
     const SECRET = (process.env.API_SECRET_KEY || "").trim();
 
     let executorEmail = 'system';
-    let isAdmin = false;
+    let isAuthorized = false;
 
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-        const token = authHeader.split("Bearer ")[1];
+    // 1. Priorizar TOKEN de Usuario (Bearer) para rastro real de identidad
+    const bearerHeader = req.headers["authorization"] || "";
+    if (bearerHeader.startsWith("Bearer ")) {
+        const token = bearerHeader.split("Bearer ")[1];
         try {
             const decoded = await initFirebaseAdmin().auth().verifyIdToken(token);
             executorEmail = decoded.email || decoded.uid;
-            isAdmin = true;
+            isAuthorized = true;
         } catch (e) {
             console.error("[Cron] Token verification failed:", e.message);
         }
-    } else if (authHeader && SECRET && authHeader.includes(SECRET)) {
-        isAdmin = true;
-        executorEmail = 'admin';
     }
 
-    console.log(`[Cron] Auth Check - CronHeader: ${!!cronHeader}, Executor: ${executorEmail}`);
+    // 2. Si no hay token de usuario, verificar API KEY / Cron (Usado por Vercel o Scripts)
+    if (!isAuthorized) {
+        if (cronHeader) {
+            isAuthorized = true;
+            executorEmail = 'system';
+        } else if (authHeader && SECRET && authHeader.includes(SECRET)) {
+            isAuthorized = true;
+            executorEmail = 'admin';
+        }
+    }
 
-    if (!cronHeader && !isAdmin) {
+    console.log(`[Cron] Auth Check - Executor: ${executorEmail}, Authorized: ${isAuthorized}`);
+
+    if (!isAuthorized) {
         console.warn("[Cron] Unauthorized access attempt blocked.");
         return res.status(401).json({ ok: false, error: "Unauthorized" });
     }

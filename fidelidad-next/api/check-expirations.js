@@ -6,6 +6,7 @@
 import admin from "firebase-admin";
 import nodemailer from 'nodemailer';
 import { updateNextExpirationDate } from "./_expiration-utils.js";
+import { buildHtmlLayout } from "../utils/emailLayout.js";
 
 // ---------- Inicialización Firebase Admin ----------
 function initFirebaseAdmin() {
@@ -287,17 +288,21 @@ export default async function handler(req, res) {
 
                     // EMAIL
                     if (channels.includes('email') && userData.email && process.env.SMTP_USER) {
-                        const html = `
-                            <div style="font-family: sans-serif; padding: 20px; color: #333;">
-                                <h2 style="color: #e67e22;">${title}</h2>
+                        const innerHtml = `
+                            <div style="color: #333;">
+                                <h2 style="color: #e67e22; margin-top: 0;">${title}</h2>
                                 <p style="font-size: 16px;">${msg}</p>
-                                <div style="margin-top: 20px; padding: 15px; background: #fdf2f2; border-radius: 8px; border: 1px solid #fee2e2;">
-                                    <h4 style="margin: 0 0 10px 0; color: #991b1b; font-size: 12px; text-transform: uppercase;">Detalle de vencimientos:</h4>
-                                    <p style="margin: 0; font-size: 14px; font-weight: bold;">${breakdownStr}</p>
+                                <div style="margin-top: 24px; padding: 20px; background: #fdf2f2; border-radius: 12px; border: 1px solid #fee2e2;">
+                                    <h4 style="margin: 0 0 12px 0; color: #991b1b; font-size: 11px; text-transform: uppercase;">Detalle de vencimientos:</h4>
+                                    <p style="margin: 0; font-size: 15px; font-weight: bold; color: #7f1d1d;">${breakdownStr}</p>
                                 </div>
-                                <p style="margin-top: 20px; font-size: 12px; color: #666;">* Esta suma corresponde a los puntos que vencen en los próximos ${warningDays} días.</p>
+                                <p style="margin-top: 24px; font-size: 12px; color: #64748b; line-height: 1.5;">
+                                    * Esta suma corresponde a los puntos que vencen en los próximos ${warningDays} días. Te recomendamos entrar a la App para ver el detalle.
+                                </p>
                             </div>
                         `;
+                        const html = buildHtmlLayout(innerHtml, config);
+
                         await transporter.sendMail({
                             from: `"${config.siteName || 'Club Fidelidad'}" <${process.env.SMTP_USER}>`,
                             to: userData.email,

@@ -3,6 +3,7 @@
 
 import admin from "firebase-admin";
 import nodemailer from 'nodemailer';
+import { buildHtmlLayout } from "../utils/emailLayout.js";
 
 // ---------- Inicialización Firebase Admin ----------
 function initFirebaseAdmin() {
@@ -150,7 +151,16 @@ export default async function handler(req, res) {
                     // EMAIL
                     if (userData.email && process.env.SMTP_USER) {
                         try {
-                            const html = `<div style="font-family: sans-serif; padding: 20px;"><h2>${title}</h2><p>${msg}</p></div>`;
+                            const innerHtml = `
+                                <div style="color: #333;">
+                                    <h2 style="color: #db2777; margin-top: 0;">${title}</h2>
+                                    <p style="font-size: 16px; line-height: 1.6;">${msg}</p>
+                                    <p style="margin-top: 24px; font-size: 14px; color: #64748b;">
+                                        ¡Esperamos que pases un día increíble! Gracias por ser parte de nuestra comunidad.
+                                    </p>
+                                </div>
+                            `;
+                            const html = buildHtmlLayout(innerHtml, config);
                             await transporter.sendMail({
                                 from: `"${config.siteName || 'Club Fidelidad'}" <${process.env.SMTP_USER}>`,
                                 to: userData.email,

@@ -729,7 +729,7 @@ export const CampaignsPageV2 = () => {
                                                     <label className="text-[10px] font-black text-gray-400 uppercase">Grosor Letra</label>
                                                     <select
                                                         className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 text-xs font-bold outline-none"
-                                                        value={formData.fontWeight} onChange={e => setFormData({ ...formData, fontWeight: e.target.value })}
+                                                        value={formData.fontWeight} onChange={e => setFormData({ ...formData, fontWeight: e.target.value as any })}
                                                     >
                                                         <option value="normal">Normal</option>
                                                         <option value="bold">Negrita (Bold)</option>

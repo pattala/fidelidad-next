@@ -4,7 +4,7 @@
 
 import admin from "firebase-admin";
 import { sendNotificationInternal } from "./send-notification.js";
-import { updateNextExpirationDate } from "./expiration-utils.js";
+import { updateNextExpirationDate } from "./_expiration-utils.js";
 
 // ---------- Firebase Admin ----------
 function initFirebaseAdmin() {

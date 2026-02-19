@@ -4,7 +4,7 @@
 // Soporta modo ADMIN (x-api-key) y modo USUARIO (Token Firebase).
 
 import admin from "firebase-admin";
-import { updateNextExpirationDate } from "./expiration-utils.js";
+import { updateNextExpirationDate } from "./_expiration-utils.js";
 
 // ---------- Firebase Admin ----------
 function initFirebaseAdmin() {

@@ -209,6 +209,12 @@ export default async function handler(req, res) {
                     // Evitar duplicados
                     if (userData.lastExpirationNoticeTargetDate === userData.nextExpirationDate) {
                         console.log(`[Cron] Skipping ${userId}: Already notified for this date.`);
+                        logResults.details.push({
+                            userId,
+                            userName: userData.name || userData.nombre || 'Socio',
+                            action: 'skipped_notification',
+                            info: `Ya notificado para el vencimiento del ${userData.nextExpirationDate}`
+                        });
                         continue;
                     }
 
@@ -287,20 +293,31 @@ export default async function handler(req, res) {
         }
 
 
-        // PASO C: GUARDAR LOG DE AUDITORÍA (Mover antes del return)
+        // PASO C: GUARDAR LOG DE AUDITORÍA
         try {
+            const summaryMessage = logResults.processed === 0 && logResults.expired === 0 && logResults.notified === 0
+                ? `Motor ejecutado. Sin vencimientos para hoy ni avisos nuevos en la ventana de ${warningDays} días.`
+                : `Procesados: ${logResults.processed}, Vencidos: ${logResults.expired} pts, Notificados: ${logResults.notified}`;
+
             await db.collection('audit_logs').add({
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
                 type: isManual ? 'manual_expiration' : 'expiration_engine',
                 status: logResults.errors.length === 0 ? 'success' : 'partial',
-                summary: logResults.processed === 0 && logResults.expired === 0 && logResults.notified === 0
-                    ? "Motor de vencimientos ejecutado. No hay puntos por expirar o avisos para hoy."
-                    : `Procesados: ${logResults.processed}, Vencidos: ${logResults.expired} pts, Notificados: ${logResults.notified}`,
-                details: logResults.details.slice(0, 500),
+                summary: summaryMessage,
+                details: [
+                    {
+                        action: 'engine_parameters',
+                        referenceDate: referenceDateStr,
+                        warningWindowDays: warningDays,
+                        warningWindowTargetDate: warningDateStr,
+                        timezoneOffset: referenceDate.getTimezoneOffset()
+                    },
+                    ...logResults.details
+                ].slice(0, 500),
                 executor: isManual ? 'admin' : 'system'
             });
-        } catch (logError) {
-            console.error("[Cron] Error saving final audit log:", logError);
+        } catch (e) {
+            console.error("[Cron] Error saving final audit log:", e);
         }
 
         return res.status(200).json({

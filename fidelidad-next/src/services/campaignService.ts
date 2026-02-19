@@ -23,7 +23,6 @@ export interface BonusRule {
     showInHomeBanner?: boolean;
     backgroundColor?: string;
     textColor?: string;
-    fontWeight?: 'normal' | 'bold' | 'black' | 'light';
 
     // Customization
     imageFit?: 'contain' | 'cover';

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
     Plus, Trash2, Calendar, Target, Award, Save, X, Megaphone, Sparkles,
     ToggleLeft, ToggleRight, Edit, Send, Monitor, Layout, Clock, Image as ImageIcon,
-    ChevronRight, Zap, Info, MousePointer2, MessageCircle, Type
+    ChevronRight, Zap, Info, MousePointer2, MessageCircle, Type, Smartphone, AlignLeft, AlignCenter, AlignRight, Bold
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { CampaignService, type BonusRule } from '../../../services/campaignService';
@@ -29,7 +29,7 @@ export const CampaignsPageV2 = () => {
         name: '', title: '', showTitle: true, description: '', showDescription: true,
         rewardType: 'FIXED', rewardValue: 50, rewardText: '', daysOfWeek: [], active: true,
         startDate: '', endDate: '', startTime: '', endTime: '',
-        imageUrl: '', showInCarousel: false, showInHomeBanner: false,
+        imageUrl: '', showInCarousel: true, showInHomeBanner: false,
         backgroundColor: '#4F46E5', textColor: '#FFFFFF', fontWeight: 'normal',
         imageFit: 'contain', textPosition: 'bottom-left', fontStyle: 'sans',
         buttonText: 'Ver detalles', titleSize: '2xl', descriptionSize: 'sm',
@@ -57,7 +57,7 @@ export const CampaignsPageV2 = () => {
             name: '', title: '', showTitle: true, description: '', showDescription: true,
             rewardType: 'FIXED', rewardValue: 50, rewardText: '', daysOfWeek: [], active: true,
             startDate: '', endDate: '', startTime: '', endTime: '',
-            imageUrl: '', showInCarousel: false, showInHomeBanner: false,
+            imageUrl: '', showInCarousel: true, showInHomeBanner: false,
             backgroundColor: '#4F46E5', textColor: '#FFFFFF', fontWeight: 'normal',
             imageFit: 'contain', textPosition: 'bottom-left', fontStyle: 'sans',
             buttonText: 'Ver detalles', titleSize: '2xl', descriptionSize: 'sm',
@@ -248,50 +248,136 @@ export const CampaignsPageV2 = () => {
         }
     };
 
-    // Componente de Vista Previa Reutilizable (Simplificado - Cuadrante)
-    const PreviewCard = () => (
-        <div className="mx-auto w-full max-w-[320px] sticky top-8 animate-fade-in-up select-none">
-            <div className="bg-gray-100 rounded-[2rem] p-4 border border-gray-200 shadow-xl">
-                <div className="flex justify-between items-center mb-4 px-2">
-                    <span className="text-[10px] font-black uppercase text-gray-400 tracking-[0.2em]">Vista Previa</span>
-                </div>
+    const getFontWeight = (w: string | number | undefined) => {
+        switch (w) {
+            case 'bold': case '700': return 'font-bold';
+            case 'semibold': case '600': return 'font-semibold';
+            case 'light': case '300': return 'font-light';
+            default: return 'font-normal';
+        }
+    };
 
-                {/* The Campaign Card - EXACT REPLICA OF CampaignCarousel */}
-                <div className="relative overflow-hidden rounded-[2rem] shadow-sm h-48 border border-gray-100 bg-gray-50 flex-shrink-0" style={{ backgroundColor: formData.backgroundColor }}>
-                    {formData.imageUrl ? (
-                        <>
-                            <img
-                                src={formData.imageUrl}
-                                className={`absolute inset-0 w-full h-full ${formData.imageFit === 'cover' ? 'object-cover' : 'object-contain'}`}
-                                style={{ opacity: (formData.imageOpacity || 0) / 100 }}
-                                alt=""
-                            />
-                            {/* GRADIENT OVERLAY */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
-                        </>
+    // Componente de Vista Previa Reutilizable
+    const PreviewCard = ({ className = "" }: { className?: string }) => (
+        <div className={`relative overflow-hidden rounded-[2rem] shadow-sm h-48 border border-gray-100 bg-gray-50 flex-shrink-0 ${className}`} style={{ backgroundColor: formData.backgroundColor }}>
+            {formData.imageUrl ? (
+                <>
+                    <img
+                        src={formData.imageUrl}
+                        className={`absolute inset-0 w-full h-full ${formData.imageFit === 'cover' ? 'object-cover' : 'object-contain'}`}
+                        style={{ opacity: (formData.imageOpacity || 0) / 100 }}
+                        alt=""
+                    />
+                    {/* GRADIENT OVERLAY */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+                </>
+            ) : (
+                <div className="absolute inset-0 flex items-center justify-center text-white/20">
+                    <ImageIcon size={48} />
+                </div>
+            )}
+
+            <div className={`relative z-10 w-full h-full p-6 flex flex-col pointer-events-none ${getPositionClasses(formData.textPosition)}`}>
+                {formData.showTitle && (
+                    <h4 className={`leading-[1.1] mb-1 uppercase tracking-tight drop-shadow-md ${getFontFamily(formData.fontStyle)} ${getFontWeight(formData.fontWeight)} text-${formData.titleSize || '2xl'}`} style={{ color: formData.textColor }}>
+                        {formData.title || 'Título de la Campaña'}
+                    </h4>
+                )}
+                {formData.showDescription && (
+                    <p className={`opacity-90 leading-snug whitespace-pre-wrap drop-shadow-sm line-clamp-3 ${getFontFamily(formData.fontStyle)} ${getFontWeight(formData.fontWeight)} text-${formData.descriptionSize || 'sm'}`} style={{ color: formData.textColor }}>
+                        {formData.description || 'Descripción breve de la promoción...'}
+                    </p>
+                )}
+            </div>
+        </div>
+    );
+
+    // PWA Simulator - NEW Component for Contextual Preview
+    const PWASimulator = () => (
+        <div className="mx-auto w-full max-w-[320px] bg-white border-2 border-gray-900 rounded-[2.5rem] overflow-hidden shadow-2xl relative select-none pointer-events-none transform scale-95 origin-top">
+            {/* Status Bar Mock */}
+            <div className="h-6 bg-gray-900 w-full flex justify-between items-center px-4">
+                <div className="flex gap-1">
+                    <div className="w-1 h-1 bg-white rounded-full opacity-50"></div>
+                    <div className="w-1 h-1 bg-white rounded-full opacity-50"></div>
+                </div>
+                <div className="w-12 h-3 bg-black rounded-b-xl opacity-50"></div>
+                <div className="w-3 h-3 border border-white rounded-sm opacity-50"></div>
+            </div>
+
+            {/* App Header */}
+            <div className="bg-red-900 text-white p-4 flex justify-between items-center h-14">
+                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold">JD</div>
+                <div className="text-[10px] font-black tracking-widest uppercase opacity-80">CLUB FIDELIDAD</div>
+                <div className="opacity-60"><Sparkles size={14} /></div>
+            </div>
+
+            <div className="p-3 bg-gray-50 h-[500px] overflow-y-auto space-y-4 relative">
+                {/* Carousel Section */}
+                <div>
+                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">Destacados</p>
+                    {formData.showInCarousel ? (
+                        <PreviewCard className="animate-fade-in" />
                     ) : (
-                        <div className="absolute inset-0 flex items-center justify-center text-white/20">
-                            <ImageIcon size={48} />
+                        <div className="h-32 bg-gray-200 rounded-[1.5rem] flex items-center justify-center border-2 border-dashed border-gray-300">
+                            <p className="text-[9px] text-gray-400 font-bold uppercase text-center px-4">Esta campaña NO aparecerá aquí</p>
                         </div>
                     )}
+                </div>
 
-                    <div className={`relative z-10 w-full h-full p-6 flex flex-col pointer-events-none ${getPositionClasses(formData.textPosition)}`}>
-                        {formData.showTitle && (
-                            <h4 className={`leading-[1.1] mb-1 uppercase tracking-tight drop-shadow-md ${getFontFamily(formData.fontStyle)} text-${formData.titleSize || '2xl'}`} style={{ color: formData.textColor }}>
-                                {formData.title || 'Título de la Campaña'}
-                            </h4>
-                        )}
-                        {formData.showDescription && (
-                            <p className={`opacity-90 leading-snug whitespace-pre-wrap drop-shadow-sm line-clamp-3 ${getFontFamily(formData.fontStyle)} text-${formData.descriptionSize || 'sm'}`} style={{ color: formData.textColor }}>
-                                {formData.description || 'Descripción breve de la promoción...'}
-                            </p>
-                        )}
+                {/* Points Balance Mock */}
+                <div className="bg-white p-4 rounded-[1.5rem] shadow-sm border border-gray-100 flex justify-between items-center">
+                    <div>
+                        <p className="text-[9px] font-bold text-gray-400 uppercase">Tus Puntos</p>
+                        <p className="text-2xl font-black text-purple-600">1.250 PTS</p>
+                    </div>
+                    <div className="w-10 h-10 bg-purple-50 text-purple-600 rounded-full flex items-center justify-center">
+                        <Award size={20} />
                     </div>
                 </div>
 
-                <p className="text-[10px] text-gray-400 text-center mt-4 font-medium">
-                    Así se verá la tarjeta en la App
-                </p>
+                {/* List/Banner Section */}
+                <div>
+                    <div className="flex justify-between items-center mb-2 px-1">
+                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Promos Vigentes</p>
+                        <p className="text-[8px] font-bold text-purple-600 uppercase">Ver Todas</p>
+                    </div>
+
+                    {formData.showInHomeBanner ? (
+                        <div className="bg-white p-3 rounded-[1.5rem] shadow-sm border border-gray-100 flex items-center gap-3 animate-fade-in">
+                            <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden shrink-0 relative">
+                                {formData.imageUrl ? <img src={formData.imageUrl} className="w-full h-full object-cover" alt="" /> : <ImageIcon size={24} className="text-gray-300 m-auto mt-4" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <h4 className="font-bold text-gray-800 text-xs truncate leading-tight mb-1">{formData.title || 'Título'}</h4>
+                                <p className="text-[10px] text-gray-400 font-medium line-clamp-2 leading-relaxed">{formData.description || 'Descripción...'}</p>
+                                <button className="mt-2 text-[9px] font-black text-purple-600 bg-purple-50 px-2 py-1 rounded inline-block">VER DETALLES</button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="h-20 bg-gray-200 rounded-[1.5rem] flex items-center justify-center border-2 border-dashed border-gray-300">
+                            <p className="text-[8px] text-gray-400 font-bold uppercase text-center px-4">No aparecerá en lista</p>
+                        </div>
+                    )}
+
+                    {/* Fake Other Items */}
+                    <div className="mt-2 opacity-40">
+                        <div className="bg-white p-3 rounded-[1.5rem] shadow-sm border border-gray-100 flex items-center gap-3">
+                            <div className="w-16 h-16 rounded-xl bg-gray-200 shrink-0"></div>
+                            <div className="flex-1 space-y-2">
+                                <div className="h-3 w-24 bg-gray-200 rounded-full"></div>
+                                <div className="h-2 w-32 bg-gray-100 rounded-full"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Nav Bar Mock */}
+            <div className="h-12 bg-white border-t border-gray-100 absolute bottom-0 w-full flex justify-around items-center px-4">
+                <div className="p-2 bg-purple-50 text-purple-600 rounded-xl"><Target size={18} /></div>
+                <div className="p-2 text-gray-300"><ImageIcon size={18} /></div>
+                <div className="p-2 text-gray-300"><Award size={18} /></div>
             </div>
         </div>
     );
@@ -307,7 +393,7 @@ export const CampaignsPageV2 = () => {
                     </div>
                     <div>
                         <h1 className="text-2xl font-black text-gray-800 tracking-tight">Gestión de Campañas</h1>
-                        <p className="text-sm text-gray-500 font-medium italic">Versión Optimizada 2.2 (Final Preview)</p>
+                        <p className="text-sm text-gray-500 font-medium italic">Versión Optimizada 2.3 (Contextual Preview)</p>
                     </div>
                 </div>
                 {!isReadOnly && (
@@ -577,8 +663,8 @@ export const CampaignsPageV2 = () => {
                                                             <Layout size={20} />
                                                         </div>
                                                         <div>
-                                                            <p className="font-bold text-sm text-gray-700">Mostrar en Carrusel</p>
-                                                            <p className="text-[10px] text-gray-400">Visible en la pantalla principal</p>
+                                                            <p className="font-bold text-sm text-gray-700">Mostrar en Destacados</p>
+                                                            <p className="text-[10px] text-gray-400">Carrusel superior principal</p>
                                                         </div>
                                                     </div>
                                                     <div className={`w-10 h-6 shrink-0 rounded-full p-1 transition-colors duration-300 ${formData.showInCarousel ? 'bg-purple-600' : 'bg-gray-200'}`}>
@@ -597,8 +683,8 @@ export const CampaignsPageV2 = () => {
                                                             <Monitor size={20} />
                                                         </div>
                                                         <div>
-                                                            <p className="font-bold text-sm text-gray-700">Banner Home</p>
-                                                            <p className="text-[10px] text-gray-400">Destapado superior en la App</p>
+                                                            <p className="font-bold text-sm text-gray-700">Promos Vigentes</p>
+                                                            <p className="text-[10px] text-gray-400">Lista inferior en la App</p>
                                                         </div>
                                                     </div>
                                                     <div className={`w-10 h-6 shrink-0 rounded-full p-1 transition-colors duration-300 ${formData.showInHomeBanner ? 'bg-blue-600' : 'bg-gray-200'}`}>
@@ -634,9 +720,20 @@ export const CampaignsPageV2 = () => {
                                                         className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 text-xs font-bold outline-none"
                                                         value={formData.fontStyle} onChange={e => setFormData({ ...formData, fontStyle: e.target.value as any })}
                                                     >
-                                                        <option value="sans">Moderna (Sans)</option>
-                                                        <option value="serif">Elegante (Serif)</option>
-                                                        <option value="mono">Técnica (Mono)</option>
+                                                        <option value="sans">Moderna</option>
+                                                        <option value="serif">Elegante</option>
+                                                        <option value="mono">Técnica</option>
+                                                    </select>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black text-gray-400 uppercase">Grosor Letra</label>
+                                                    <select
+                                                        className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 text-xs font-bold outline-none"
+                                                        value={formData.fontWeight} onChange={e => setFormData({ ...formData, fontWeight: e.target.value })}
+                                                    >
+                                                        <option value="normal">Normal</option>
+                                                        <option value="bold">Negrita (Bold)</option>
+                                                        <option value="light">Ligera (Light)</option>
                                                     </select>
                                                 </div>
                                                 <div className="space-y-2">
@@ -649,17 +746,6 @@ export const CampaignsPageV2 = () => {
                                                         <option value="xl">Mediano</option>
                                                         <option value="2xl">Grande</option>
                                                         <option value="4xl">Gigante</option>
-                                                    </select>
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <label className="text-[10px] font-black text-gray-400 uppercase">Tam. Desc.</label>
-                                                    <select
-                                                        className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 text-xs font-bold outline-none"
-                                                        value={formData.descriptionSize} onChange={e => setFormData({ ...formData, descriptionSize: e.target.value as any })}
-                                                    >
-                                                        <option value="xs">Pequeño</option>
-                                                        <option value="sm">Normal</option>
-                                                        <option value="base">Grande</option>
                                                     </select>
                                                 </div>
                                             </section>
@@ -684,7 +770,7 @@ export const CampaignsPageV2 = () => {
                                                 <label className="text-xs font-black text-gray-600 uppercase">Vista Previa PWA</label>
                                                 <div className="flex justify-center bg-gray-100 p-6 rounded-[2rem]">
                                                     <div className="w-full max-w-sm">
-                                                        <PreviewCard />
+                                                        <PWASimulator />
                                                     </div>
                                                 </div>
                                             </section>
@@ -825,13 +911,13 @@ export const CampaignsPageV2 = () => {
                                         <h3 className="font-black text-gray-800 text-sm uppercase">Simulador PWA</h3>
                                     </div>
 
-                                    {/* Simplified Quadrant Card for Preview */}
+                                    {/* Contextual PWA Simulator */}
                                     <div className="flex justify-center">
-                                        <PreviewCard />
+                                        <PWASimulator />
                                     </div>
 
-                                    <div className="p-4 bg-yellow-50 text-yellow-800 rounded-xl text-xs font-medium leading-relaxed border border-yellow-100">
-                                        💡 Así es como lo verán tus clientes en la App.
+                                    <div className="p-4 bg-purple-50 text-purple-800 rounded-xl text-xs font-medium leading-relaxed border border-purple-100">
+                                        💡 Usa el simulador para ver cómo se integrará tu campaña en el flujo de la aplicación.
                                     </div>
                                 </div>
                             </div>

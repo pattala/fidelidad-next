@@ -462,6 +462,48 @@ export const CampaignsPageV2 = () => {
                                             </div>
                                         </section>
 
+                                        <section className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <label className="flex items-center justify-between p-3 bg-white rounded-xl shadow-sm cursor-pointer hover:bg-gray-50 transition-colors">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`p-2 rounded-lg ${formData.showInCarousel ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-400'}`}>
+                                                        <Layout size={20} />
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-bold text-sm text-gray-700">Mostrar en Carrusel</p>
+                                                        <p className="text-[10px] text-gray-400">Visible en la pantalla principal</p>
+                                                    </div>
+                                                </div>
+                                                <div className={`w-10 h-6 shrink-0 rounded-full p-1 transition-colors duration-300 ${formData.showInCarousel ? 'bg-purple-600' : 'bg-gray-200'}`}>
+                                                    <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-300 ${formData.showInCarousel ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                </div>
+                                                <input
+                                                    type="checkbox" className="hidden"
+                                                    checked={formData.showInCarousel}
+                                                    onChange={e => setFormData({ ...formData, showInCarousel: e.target.checked })}
+                                                />
+                                            </label>
+
+                                            <label className="flex items-center justify-between p-3 bg-white rounded-xl shadow-sm cursor-pointer hover:bg-gray-50 transition-colors">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`p-2 rounded-lg ${formData.showInHomeBanner ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
+                                                        <Monitor size={20} />
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-bold text-sm text-gray-700">Banner Home</p>
+                                                        <p className="text-[10px] text-gray-400">Destapado superior en la App</p>
+                                                    </div>
+                                                </div>
+                                                <div className={`w-10 h-6 shrink-0 rounded-full p-1 transition-colors duration-300 ${formData.showInHomeBanner ? 'bg-blue-600' : 'bg-gray-200'}`}>
+                                                    <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-300 ${formData.showInHomeBanner ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                </div>
+                                                <input
+                                                    type="checkbox" className="hidden"
+                                                    checked={formData.showInHomeBanner}
+                                                    onChange={e => setFormData({ ...formData, showInHomeBanner: e.target.checked })}
+                                                />
+                                            </label>
+                                        </section>
+
                                         <section className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                                             <div className="space-y-2">
                                                 <label className="text-[10px] font-black text-gray-400 uppercase">Fondo</label>

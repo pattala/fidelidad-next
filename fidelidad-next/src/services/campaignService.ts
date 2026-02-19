@@ -28,7 +28,17 @@ export interface BonusRule {
     // Customization
     imageFit?: 'contain' | 'cover';
     textPosition?: 'bottom-left' | 'bottom-center' | 'bottom-right' | 'center' | 'top-left' | 'top-center' | 'top-right';
+    // Typography - Title
+    titleFont?: 'sans' | 'serif' | 'mono';
+    titleWeight?: 'normal' | 'bold' | 'black' | 'light';
+
+    // Typography - Description
+    descFont?: 'sans' | 'serif' | 'mono';
+    descWeight?: 'normal' | 'bold' | 'black' | 'light';
+
+    // Legacy (to be deprecated or used as fallback)
     fontStyle?: 'sans' | 'serif' | 'mono';
+    fontWeight?: 'normal' | 'bold' | 'black' | 'light';
 
     // Font Sizes
     titleSize?: 'sm' | 'base' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl';

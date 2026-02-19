@@ -14,7 +14,7 @@ import { NotificationService } from '../../../services/notificationService';
 import { EmailService } from '../../../services/emailService';
 import { useAdminAuth } from '../contexts/AdminAuthContext';
 
-type TabType = 'BASIC' | 'VISUAL' | 'RULES' | 'SCHEDULE';
+type TabType = 'BASIC' | 'VISUAL' | 'RULES' | 'FLASH' | 'SCHEDULE';
 
 export const CampaignsPageV2 = () => {
     const navigate = useNavigate();
@@ -29,10 +29,14 @@ export const CampaignsPageV2 = () => {
         name: '', title: '', showTitle: true, description: '', showDescription: true,
         rewardType: 'FIXED', rewardValue: 50, rewardText: '', daysOfWeek: [], active: true,
         startDate: '', endDate: '', startTime: '', endTime: '',
-        imageUrl: '', showInCarousel: true, showInHomeBanner: false,
-        backgroundColor: '#4F46E5', textColor: '#FFFFFF', fontWeight: 'normal',
-        imageFit: 'contain', textPosition: 'bottom-left', fontStyle: 'sans',
-        buttonText: 'Ver detalles', titleSize: '2xl', descriptionSize: 'sm',
+        imageUrl: '', showInCarousel: true, showInHomeBanner: true,
+        backgroundColor: '#4F46E5', textColor: '#FFFFFF',
+        imageFit: 'contain', textPosition: 'bottom-left',
+        // Typography - Title
+        titleFont: 'sans', titleWeight: 'bold', titleSize: '2xl',
+        // Typography - Description
+        descFont: 'sans', descWeight: 'normal', descriptionSize: 'sm',
+        buttonText: 'Ver detalles',
         imageOpacity: 60, link: '', channels: ['push', 'email', 'whatsapp']
     });
 
@@ -57,10 +61,12 @@ export const CampaignsPageV2 = () => {
             name: '', title: '', showTitle: true, description: '', showDescription: true,
             rewardType: 'FIXED', rewardValue: 50, rewardText: '', daysOfWeek: [], active: true,
             startDate: '', endDate: '', startTime: '', endTime: '',
-            imageUrl: '', showInCarousel: true, showInHomeBanner: false,
-            backgroundColor: '#4F46E5', textColor: '#FFFFFF', fontWeight: 'normal',
-            imageFit: 'contain', textPosition: 'bottom-left', fontStyle: 'sans',
-            buttonText: 'Ver detalles', titleSize: '2xl', descriptionSize: 'sm',
+            imageUrl: '', showInCarousel: true, showInHomeBanner: true,
+            backgroundColor: '#4F46E5', textColor: '#FFFFFF',
+            imageFit: 'contain', textPosition: 'bottom-left',
+            titleFont: 'sans', titleWeight: 'bold', titleSize: '2xl',
+            descFont: 'sans', descWeight: 'normal', descriptionSize: 'sm',
+            buttonText: 'Ver detalles',
             imageOpacity: 60, link: '', channels: ['push', 'email', 'whatsapp']
         });
         setEditingId(null);
@@ -104,7 +110,16 @@ export const CampaignsPageV2 = () => {
 
     const handleEdit = (bonus: BonusRule) => {
         setEditingId(bonus.id);
-        setFormData({ ...bonus });
+        const normalizedData: Partial<BonusRule> = {
+            ...bonus,
+            titleFont: bonus.titleFont || (bonus as any).fontStyle || 'sans',
+            titleWeight: bonus.titleWeight || (bonus as any).fontWeight || 'bold',
+            descFont: bonus.descFont || (bonus as any).fontStyle || 'sans',
+            descWeight: bonus.descWeight || (bonus as any).fontWeight || 'normal',
+            titleSize: bonus.titleSize || '2xl',
+            descriptionSize: bonus.descriptionSize || 'sm'
+        };
+        setFormData(normalizedData);
         setIsFlashMode(!!(bonus.startTime || bonus.endTime));
         setActiveTab('BASIC');
         setIsModalOpen(true);
@@ -279,12 +294,12 @@ export const CampaignsPageV2 = () => {
 
             <div className={`relative z-10 w-full h-full p-6 flex flex-col pointer-events-none ${getPositionClasses(formData.textPosition)}`}>
                 {formData.showTitle && (
-                    <h4 className={`leading-[1.1] mb-1 uppercase tracking-tight drop-shadow-md ${getFontFamily(formData.fontStyle)} ${getFontWeight(formData.fontWeight)} text-${formData.titleSize || '2xl'}`} style={{ color: formData.textColor }}>
+                    <h4 className={`leading-[1.1] mb-1 uppercase tracking-tight drop-shadow-md ${getFontFamily(formData.titleFont)} ${getFontWeight(formData.titleWeight)} text-${formData.titleSize || '2xl'}`} style={{ color: formData.textColor }}>
                         {formData.title || 'Título de la Campaña'}
                     </h4>
                 )}
                 {formData.showDescription && (
-                    <p className={`opacity-90 leading-snug whitespace-pre-wrap drop-shadow-sm line-clamp-3 ${getFontFamily(formData.fontStyle)} ${getFontWeight(formData.fontWeight)} text-${formData.descriptionSize || 'sm'}`} style={{ color: formData.textColor }}>
+                    <p className={`opacity-90 leading-snug whitespace-pre-wrap drop-shadow-sm line-clamp-3 ${getFontFamily(formData.descFont)} ${getFontWeight(formData.descWeight)} text-${formData.descriptionSize || 'sm'}`} style={{ color: formData.textColor }}>
                         {formData.description || 'Descripción breve de la promoción...'}
                     </p>
                 )}
@@ -524,6 +539,7 @@ export const CampaignsPageV2 = () => {
                                     { id: 'VISUAL', label: 'Visual', icon: <ImageIcon size={18} />, desc: 'Imagen y Colores' },
                                     { id: 'RULES', label: 'Reglas', icon: <Sparkles size={18} />, desc: 'Bonos de Puntos' },
                                     { id: 'SCHEDULE', label: 'Fechas', icon: <Calendar size={18} />, desc: 'Programación' },
+                                    { id: 'FLASH', label: 'Oferta Flash', icon: <Zap size={18} />, desc: 'Urgencia y Horarios' },
                                 ].map(tab => (
                                     <button
                                         key={tab.id}
@@ -698,55 +714,120 @@ export const CampaignsPageV2 = () => {
                                                 </label>
                                             </section>
 
-                                            <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                                                <div className="space-y-2">
-                                                    <label className="text-[10px] font-black text-gray-400 uppercase">Posición Texto</label>
-                                                    <select
-                                                        className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 text-xs font-bold outline-none"
-                                                        value={formData.textPosition} onChange={e => setFormData({ ...formData, textPosition: e.target.value as any })}
-                                                    >
-                                                        <option value="bottom-left">Abajo Izq.</option>
-                                                        <option value="bottom-center">Abajo Centro</option>
-                                                        <option value="bottom-right">Abajo Der.</option>
-                                                        <option value="top-left">Arriba Izq.</option>
-                                                        <option value="top-center">Arriba Centro</option>
-                                                        <option value="top-right">Arriba Der.</option>
-                                                        <option value="center">Centro</option>
-                                                    </select>
+                                            <section className="space-y-6">
+                                                <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-4">
+                                                    <div className="flex items-center gap-2 border-b border-gray-50 pb-2">
+                                                        <Type size={16} className="text-purple-600" />
+                                                        <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Tipografía Título</span>
+                                                    </div>
+                                                    <div className="grid grid-cols-3 gap-4">
+                                                        <div className="space-y-2">
+                                                            <label className="text-[10px] font-black text-gray-400 uppercase">Fuente</label>
+                                                            <select
+                                                                className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 text-xs font-bold outline-none"
+                                                                value={formData.titleFont} onChange={e => setFormData({ ...formData, titleFont: e.target.value as any })}
+                                                            >
+                                                                <option value="sans">Moderna</option>
+                                                                <option value="serif">Elegante</option>
+                                                                <option value="mono">Técnica</option>
+                                                            </select>
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-[10px] font-black text-gray-400 uppercase">Grosor</label>
+                                                            <select
+                                                                className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 text-xs font-bold outline-none"
+                                                                value={formData.titleWeight} onChange={e => setFormData({ ...formData, titleWeight: e.target.value as any })}
+                                                            >
+                                                                <option value="light">Ligera</option>
+                                                                <option value="normal">Normal</option>
+                                                                <option value="bold">Negrita</option>
+                                                                <option value="black">Black</option>
+                                                            </select>
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-[10px] font-black text-gray-400 uppercase">Tamaño</label>
+                                                            <select
+                                                                className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 text-xs font-bold outline-none"
+                                                                value={formData.titleSize} onChange={e => setFormData({ ...formData, titleSize: e.target.value as any })}
+                                                            >
+                                                                <option value="lg">Pequeño</option>
+                                                                <option value="xl">Mediano</option>
+                                                                <option value="2xl">Grande</option>
+                                                                <option value="4xl">Extra</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div className="space-y-2">
-                                                    <label className="text-[10px] font-black text-gray-400 uppercase">Tipografía</label>
-                                                    <select
-                                                        className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 text-xs font-bold outline-none"
-                                                        value={formData.fontStyle} onChange={e => setFormData({ ...formData, fontStyle: e.target.value as any })}
-                                                    >
-                                                        <option value="sans">Moderna</option>
-                                                        <option value="serif">Elegante</option>
-                                                        <option value="mono">Técnica</option>
-                                                    </select>
+
+                                                <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-4">
+                                                    <div className="flex items-center gap-2 border-b border-gray-50 pb-2">
+                                                        <AlignLeft size={16} className="text-gray-400" />
+                                                        <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Tipografía Descripción</span>
+                                                    </div>
+                                                    <div className="grid grid-cols-3 gap-4">
+                                                        <div className="space-y-2">
+                                                            <label className="text-[10px] font-black text-gray-400 uppercase">Fuente</label>
+                                                            <select
+                                                                className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 text-xs font-bold outline-none"
+                                                                value={formData.descFont} onChange={e => setFormData({ ...formData, descFont: e.target.value as any })}
+                                                            >
+                                                                <option value="sans">Moderna</option>
+                                                                <option value="serif">Elegante</option>
+                                                                <option value="mono">Técnica</option>
+                                                            </select>
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-[10px] font-black text-gray-400 uppercase">Grosor</label>
+                                                            <select
+                                                                className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 text-xs font-bold outline-none"
+                                                                value={formData.descWeight} onChange={e => setFormData({ ...formData, descWeight: e.target.value as any })}
+                                                            >
+                                                                <option value="light">Ligera</option>
+                                                                <option value="normal">Normal</option>
+                                                                <option value="bold">Negrita</option>
+                                                            </select>
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-[10px] font-black text-gray-400 uppercase">Tamaño</label>
+                                                            <select
+                                                                className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 text-xs font-bold outline-none"
+                                                                value={formData.descriptionSize} onChange={e => setFormData({ ...formData, descriptionSize: e.target.value as any })}
+                                                            >
+                                                                <option value="xs">Mini</option>
+                                                                <option value="sm">Chico</option>
+                                                                <option value="base">Normal</option>
+                                                                <option value="lg">Grande</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div className="space-y-2">
-                                                    <label className="text-[10px] font-black text-gray-400 uppercase">Grosor Letra</label>
-                                                    <select
-                                                        className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 text-xs font-bold outline-none"
-                                                        value={formData.fontWeight} onChange={e => setFormData({ ...formData, fontWeight: e.target.value as any })}
-                                                    >
-                                                        <option value="normal">Normal</option>
-                                                        <option value="bold">Negrita (Bold)</option>
-                                                        <option value="light">Ligera (Light)</option>
-                                                    </select>
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <label className="text-[10px] font-black text-gray-400 uppercase">Tam. Título</label>
-                                                    <select
-                                                        className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 text-xs font-bold outline-none"
-                                                        value={formData.titleSize} onChange={e => setFormData({ ...formData, titleSize: e.target.value as any })}
-                                                    >
-                                                        <option value="base">Pequeño</option>
-                                                        <option value="xl">Mediano</option>
-                                                        <option value="2xl">Grande</option>
-                                                        <option value="4xl">Gigante</option>
-                                                    </select>
+
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div className="space-y-2">
+                                                        <label className="text-[10px] font-black text-gray-400 uppercase">Alineación y Posición</label>
+                                                        <select
+                                                            className="w-full p-4 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold outline-none"
+                                                            value={formData.textPosition} onChange={e => setFormData({ ...formData, textPosition: e.target.value as any })}
+                                                        >
+                                                            <option value="bottom-left">Abajo Izq.</option>
+                                                            <option value="bottom-center">Abajo Centro</option>
+                                                            <option value="bottom-right">Abajo Der.</option>
+                                                            <option value="top-left">Arriba Izq.</option>
+                                                            <option value="top-center">Arriba Centro</option>
+                                                            <option value="top-right">Arriba Der.</option>
+                                                            <option value="center">Centro</option>
+                                                        </select>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        <div className="space-y-2">
+                                                            <label className="text-[10px] font-black text-gray-400 uppercase">Color Título</label>
+                                                            <input type="color" className="w-full h-12 rounded-xl cursor-pointer border-4 border-gray-50" value={formData.textColor} onChange={e => setFormData({ ...formData, textColor: e.target.value })} />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-[10px] font-black text-gray-400 uppercase">Transparencia Banner</label>
+                                                            <input type="range" className="w-full h-12 accent-purple-600" min="0" max="100" value={formData.imageOpacity} onChange={e => setFormData({ ...formData, imageOpacity: parseInt(e.target.value) })} />
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </section>
 
@@ -783,20 +864,23 @@ export const CampaignsPageV2 = () => {
                                                 <label className="text-xs font-black text-gray-600 uppercase">Tipo de Beneficio</label>
                                                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                                                     {[
-                                                        { id: 'FIXED', label: 'Puntos Fijos', icon: <Plus size={24} />, color: 'bg-green-500' },
-                                                        { id: 'MULTIPLIER', label: 'Multiplicador', icon: <Zap size={24} />, color: 'bg-purple-600' },
-                                                        { id: 'TEXT', label: 'Texto / Promo', icon: <Type size={24} />, color: 'bg-pink-500' },
-                                                        { id: 'INFO', label: 'Solo Anuncio', icon: <Megaphone size={24} />, color: 'bg-blue-500' },
+                                                        { id: 'FIXED', label: 'Puntos Fijos', sub: 'Suma X puntos a la cuenta', icon: <Plus size={24} />, color: 'bg-green-500' },
+                                                        { id: 'MULTIPLIER', label: 'Multiplicador', sub: 'Multiplica los puntos de la compra', icon: <Zap size={24} />, color: 'bg-purple-600' },
+                                                        { id: 'TEXT', label: 'Texto / Promo', sub: 'Solo visual (ej. 2x1, % OFF)', icon: <Type size={24} />, color: 'bg-pink-500' },
+                                                        { id: 'INFO', label: 'Solo Anuncio', sub: 'Informativo sin puntos extras', icon: <Megaphone size={24} />, color: 'bg-blue-500' },
                                                     ].map(type => (
                                                         <button
                                                             key={type.id} type="button"
                                                             onClick={() => setFormData({ ...formData, rewardType: type.id as any })}
-                                                            className={`p-6 rounded-3xl border-2 transition-all flex flex-col items-center gap-3 ${formData.rewardType === type.id ? 'border-black bg-black text-white' : 'border-gray-100 hover:border-gray-200'}`}
+                                                            className={`p-5 rounded-3xl border-2 transition-all flex flex-col items-center text-center gap-2 ${formData.rewardType === type.id ? 'border-black bg-black text-white shadow-xl scale-[1.02]' : 'border-gray-100 hover:border-gray-200 bg-white'}`}
                                                         >
                                                             <div className={`p-3 rounded-2xl ${formData.rewardType === type.id ? 'bg-white/20' : 'bg-gray-100 text-gray-400'}`}>
                                                                 {type.icon}
                                                             </div>
-                                                            <span className="font-bold text-sm tracking-tight">{type.label}</span>
+                                                            <div>
+                                                                <p className="font-bold text-xs tracking-tight">{type.label}</p>
+                                                                <p className={`text-[9px] mt-0.5 leading-tight ${formData.rewardType === type.id ? 'text-white/60' : 'text-gray-400'}`}>{type.sub}</p>
+                                                            </div>
                                                         </button>
                                                     ))}
                                                 </div>
@@ -838,64 +922,137 @@ export const CampaignsPageV2 = () => {
 
                                     {activeTab === 'SCHEDULE' && (
                                         <div className="space-y-8 animate-slide-in-right">
-                                            <section className="bg-red-50 p-8 rounded-[3rem] border border-red-100 transition-all overflow-hidden">
-                                                <div className="flex items-center justify-between mb-2">
+                                            <section className="bg-purple-50 p-8 rounded-[3rem] border border-purple-100">
+                                                <div className="flex items-center gap-4 mb-6">
+                                                    <div className="p-3 bg-purple-600 text-white rounded-2xl shadow-lg shadow-purple-200">
+                                                        <Calendar size={24} />
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-black text-purple-900 text-lg uppercase tracking-tight">Rango de Vigencia</h4>
+                                                        <p className="text-[10px] text-purple-600 font-bold opacity-60 uppercase tracking-widest">Periodo total de la campaña</p>
+                                                    </div>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="space-y-2">
+                                                        <label className="text-[10px] font-black text-purple-400 uppercase block ml-2">Fecha Inicio</label>
+                                                        <input type="date" className="w-full p-4 rounded-2xl bg-white border-none shadow-sm text-sm font-bold focus:ring-2 focus:ring-purple-200 outline-none transition-all" value={formData.startDate} onChange={e => setFormData({ ...formData, startDate: e.target.value })} />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <label className="text-[10px] font-black text-purple-400 uppercase block ml-2">Fecha Fin</label>
+                                                        <input type="date" className="w-full p-4 rounded-2xl bg-white border-none shadow-sm text-sm font-bold focus:ring-2 focus:ring-purple-200 outline-none transition-all" value={formData.endDate} onChange={e => setFormData({ ...formData, endDate: e.target.value })} />
+                                                    </div>
+                                                </div>
+                                            </section>
+
+                                            {!isFlashMode && (
+                                                <section className="space-y-4">
+                                                    <div className="flex items-center gap-2 px-2">
+                                                        <Clock size={16} className="text-gray-400" />
+                                                        <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest block text-center">Días de Visualización</label>
+                                                    </div>
+                                                    <div className="flex justify-between gap-2">
+                                                        {DAYS.map(day => (
+                                                            <button
+                                                                key={day.id} type="button"
+                                                                onClick={() => toggleDay(day.id)}
+                                                                className={`flex-1 h-14 rounded-2xl text-xs font-black transition-all border-2 ${formData.daysOfWeek?.includes(day.id) ? 'bg-black border-black text-white shadow-lg' : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'}`}
+                                                            >
+                                                                {day.label}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                    <p className="text-[10px] text-gray-400 text-center font-bold italic">Selecciona los días que la campaña estará visible en la App.</p>
+                                                </section>
+                                            )}
+
+                                            {isFlashMode && (
+                                                <div className="p-6 bg-red-100 rounded-3xl border-2 border-dashed border-red-200 flex flex-col items-center text-center gap-3 animate-fade-in">
+                                                    <Zap className="text-red-500" size={32} />
+                                                    <div>
+                                                        <p className="text-red-900 font-black text-sm uppercase leading-none">Modo Flash Activado</p>
+                                                        <p className="text-[10px] text-red-700 mt-2 font-bold uppercase tracking-tighter">
+                                                            Los días y horarios se configuran en la pestaña <span className="bg-red-200 px-1 rounded">OFERTA FLASH</span>
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {activeTab === 'FLASH' && (
+                                        <div className="space-y-8 animate-slide-in-right">
+                                            <section className="bg-red-50 p-8 rounded-[3rem] border border-red-100 transition-all overflow-hidden relative">
+                                                <div className="absolute -top-6 -right-6 text-red-100 rotate-12 opacity-50">
+                                                    <Zap size={120} fill="currentColor" />
+                                                </div>
+
+                                                <div className="relative z-10 flex items-center justify-between mb-2">
                                                     <div className="flex items-center gap-3">
-                                                        <div className={`p-3 rounded-2xl transition-colors ${isFlashMode ? 'bg-red-500 text-white shadow-lg' : 'bg-gray-200 text-gray-400'}`}>
-                                                            <Zap size={24} fill={isFlashMode ? "white" : "none"} />
+                                                        <div className={`p-4 rounded-2xl transition-colors ${isFlashMode ? 'bg-red-500 text-white shadow-lg' : 'bg-gray-200 text-gray-400'}`}>
+                                                            <Zap size={28} fill={isFlashMode ? "white" : "none"} />
                                                         </div>
                                                         <div>
-                                                            <h4 className="font-black text-red-900 uppercase">Modo Oferta Flash</h4>
-                                                            <p className="text-[10px] text-red-600 font-bold opacity-60">Activa horarios urgentes</p>
+                                                            <h4 className="font-black text-red-900 text-xl uppercase tracking-tighter">Modo Oferta Flash</h4>
+                                                            <p className="text-[11px] text-red-600 font-bold opacity-60 uppercase tracking-widest leading-none">Campaña de tiempo limitado</p>
                                                         </div>
                                                     </div>
                                                     <button
                                                         type="button" onClick={() => setIsFlashMode(!isFlashMode)}
-                                                        className={`p-2 rounded-full transition-all ${isFlashMode ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-400'}`}
+                                                        className={`p-2 rounded-full transition-all ${isFlashMode ? 'bg-red-500 text-white shadow-md' : 'bg-gray-200 text-gray-400'}`}
                                                     >
-                                                        {isFlashMode ? <ToggleRight size={40} /> : <ToggleLeft size={40} />}
+                                                        {isFlashMode ? <ToggleRight size={44} /> : <ToggleLeft size={44} />}
                                                     </button>
                                                 </div>
 
                                                 {isFlashMode && (
-                                                    <div className="grid grid-cols-2 gap-4 mt-6 animate-fade-in-down">
-                                                        <div className="space-y-2">
-                                                            <label className="text-[10px] font-black text-red-400 uppercase block ml-2">Empieza a las</label>
-                                                            <input type="time" className="w-full p-4 rounded-2xl bg-white border-none shadow-sm text-lg font-bold text-red-600 focus:ring-2 focus:ring-red-200 outline-none" value={formData.startTime} onChange={e => setFormData({ ...formData, startTime: e.target.value })} />
+                                                    <div className="relative z-10 mt-8 space-y-6 animate-fade-in-up">
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <div className="space-y-2">
+                                                                <label className="text-[10px] font-black text-red-400 uppercase block ml-2">Empieza a las</label>
+                                                                <div className="relative">
+                                                                    <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-red-300" size={18} />
+                                                                    <input type="time" className="w-full pl-12 p-4 rounded-2xl bg-white border-none shadow-sm text-lg font-black text-red-600 focus:ring-2 focus:ring-red-200 outline-none" value={formData.startTime} onChange={e => setFormData({ ...formData, startTime: e.target.value })} />
+                                                                </div>
+                                                            </div>
+                                                            <div className="space-y-2">
+                                                                <label className="text-[10px] font-black text-red-400 uppercase block ml-2">Termina a las</label>
+                                                                <div className="relative">
+                                                                    <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-red-300" size={18} />
+                                                                    <input type="time" className="w-full pl-12 p-4 rounded-2xl bg-white border-none shadow-sm text-lg font-black text-red-600 focus:ring-2 focus:ring-red-200 outline-none" value={formData.endTime} onChange={e => setFormData({ ...formData, endTime: e.target.value })} />
+                                                                </div>
+                                                            </div>
                                                         </div>
-                                                        <div className="space-y-2">
-                                                            <label className="text-[10px] font-black text-red-400 uppercase block ml-2">Termina a las</label>
-                                                            <input type="time" className="w-full p-4 rounded-2xl bg-white border-none shadow-sm text-lg font-bold text-red-600 focus:ring-2 focus:ring-red-200 outline-none" value={formData.endTime} onChange={e => setFormData({ ...formData, endTime: e.target.value })} />
+
+                                                        {/* INFO BANNER */}
+                                                        <div className="bg-white/60 backdrop-blur-sm p-4 rounded-2xl border border-red-200 flex gap-3">
+                                                            <Info className="text-red-500 shrink-0" size={20} />
+                                                            <p className="text-[11px] text-red-800 font-medium leading-relaxed">
+                                                                <b>¿Cómo funciona?</b> Esta promoción se activará <b>TODOS</b> los días seleccionados en el rango de fechas, pero únicamente entre las {formData.startTime || '--:--'} y las {formData.endTime || '--:--'}. Es recurrente.
+                                                            </p>
                                                         </div>
                                                     </div>
                                                 )}
                                             </section>
 
-                                            <section className="grid grid-cols-2 gap-4">
-                                                <div className="space-y-2">
-                                                    <label className="text-[10px] font-black text-gray-400 uppercase block ml-2">Fecha Inicio</label>
-                                                    <input type="date" className="w-full p-4 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold focus:bg-white outline-none transition-all" value={formData.startDate} onChange={e => setFormData({ ...formData, startDate: e.target.value })} />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <label className="text-[10px] font-black text-gray-400 uppercase block ml-2">Fecha Fin</label>
-                                                    <input type="date" className="w-full p-4 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold focus:bg-white outline-none transition-all" value={formData.endDate} onChange={e => setFormData({ ...formData, endDate: e.target.value })} />
-                                                </div>
-                                            </section>
-
-                                            <section className="space-y-4">
-                                                <label className="text-xs font-black text-gray-600 uppercase block text-center">Días Activos de la Semana</label>
-                                                <div className="flex justify-between gap-2">
-                                                    {DAYS.map(day => (
-                                                        <button
-                                                            key={day.id} type="button"
-                                                            onClick={() => toggleDay(day.id)}
-                                                            className={`flex-1 h-14 rounded-2xl text-xs font-black transition-all border-2 ${formData.daysOfWeek?.includes(day.id) ? 'bg-black border-black text-white shadow-lg' : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'}`}
-                                                        >
-                                                            {day.label}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </section>
+                                            {isFlashMode && (
+                                                <section className="space-y-4 animate-fade-in">
+                                                    <div className="flex items-center gap-2 px-2">
+                                                        <Calendar size={16} className="text-gray-400" />
+                                                        <label className="text-[11px] font-black text-gray-500 uppercase tracking-widest">Días de la Oferta Flash</label>
+                                                    </div>
+                                                    <div className="flex justify-between gap-2">
+                                                        {DAYS.map(day => (
+                                                            <button
+                                                                key={day.id} type="button"
+                                                                onClick={() => toggleDay(day.id)}
+                                                                className={`flex-1 h-16 rounded-2xl text-[11px] font-black transition-all border-2 ${formData.daysOfWeek?.includes(day.id) ? 'bg-red-500 border-red-500 text-white shadow-lg' : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'}`}
+                                                            >
+                                                                {day.label}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </section>
+                                            )}
                                         </div>
                                     )}
                                 </div>

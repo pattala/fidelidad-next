@@ -36,11 +36,14 @@ const transporter = nodemailer.createTransport({
 // ---------- Handler Principal ----------
 export default async function handler(req, res) {
     // Seguridad: Solo permitir si viene la API KEY o el header de Vercel Cron
-    const authHeader = req.headers["x-api-key"] || req.headers["authorization"];
-    const cronHeader = req.headers["x-vercel-cron"];
+    const authHeader = req.headers["x-api-key"] || req.headers["authorization"] || req.headers["X-API-Key"];
+    const cronHeader = req.headers["x-vercel-cron"] || req.headers["X-Vercel-Cron"];
     const SECRET = (process.env.API_SECRET_KEY || "").trim();
 
-    if (!cronHeader && (!authHeader || !authHeader.includes(SECRET))) {
+    console.log(`[Cron] Auth Check - CronHeader: ${!!cronHeader}, AuthHeader: ${!!authHeader}`);
+
+    if (!cronHeader && (!authHeader || (SECRET && !authHeader.includes(SECRET)))) {
+        console.warn("[Cron] Unauthorized access attempt blocked.");
         return res.status(401).json({ ok: false, error: "Unauthorized" });
     }
 

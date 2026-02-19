@@ -372,16 +372,19 @@ export async function sendNotificationInternal({
 
     // Logs Inbox
     const uniqueDestIds = unique(destinatarios.map(d => d.id)).filter(id => id !== 'unknown');
+
+    // FIX: Siempre registramos en auditoría que se envió mensaje al inbox, 
+    // incluso si skipInbox=true (asumiendo que quien llamó a la función ya creó el doc manualmente).
     uniqueDestIds.forEach(uid => {
-      if (extraData?.skipInbox !== true && extraData?.skipInbox !== "true") {
-        inboxSuccessDetails.push({
-          userId: uid,
-          userName: userNamesMap[uid] || 'Socio',
-          action: 'inbox_created',
-          status: 'success',
-          info: 'Mensaje guardado en buzón'
-        });
-      }
+      inboxSuccessDetails.push({
+        userId: uid,
+        userName: userNamesMap[uid] || 'Socio',
+        action: 'inbox_created',
+        status: 'success',
+        info: (extraData?.skipInbox === true || extraData?.skipInbox === "true")
+          ? 'Mensaje guardado en buzón (Manual/Externo)'
+          : 'Mensaje guardado en buzón'
+      });
     });
 
     const pushDetails = details.filter(d => d.action.startsWith('push_'));
@@ -399,6 +402,23 @@ export async function sendNotificationInternal({
         details: pushDetails.slice(0, 500),
         executor: executorName
       }).catch(e => console.error("Error saving push audit:", e));
+    } else {
+      // FIX: Loguear explícitamente cuando NO hay tokens, para que el admin sepa que se intentó.
+      const pushSummary = `Push OMITIDO: "${title}"${pointsInfo}. No hay tokens FCM Válidos.`;
+      if (destinatarios.length > 0) {
+        await db.collection('audit_logs').add({
+          timestamp: admin.firestore.FieldValue.serverTimestamp(),
+          type: 'push_notification',
+          status: 'skipped',
+          summary: pushSummary,
+          details: [{
+            info: 'No se encontraron tokens de notificación para los usuarios destinatarios.',
+            action: 'push_skipped',
+            status: 'skipped'
+          }],
+          executor: executorName
+        }).catch(e => console.error("Error saving push audit (skipped):", e));
+      }
     }
 
     if (inboxDetails.length > 0) {

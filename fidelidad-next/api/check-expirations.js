@@ -284,13 +284,29 @@ export default async function handler(req, res) {
                         expireAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000))
                     });
 
+                    // PREPARAR DESGLOSE para la auditoría
+                    const breakdown = impendingCreditsSnap.docs.map(d => {
+                        const dData = d.data();
+                        const rem = dData.remainingPoints !== undefined ? dData.remainingPoints : dData.amount;
+                        const dateStr = dData.expiresAt.toDate().toLocaleDateString();
+                        return `${rem} pts (${dateStr})`;
+                    }).join(', ');
+
                     // LOG DE AUDITORÍA INDIVIDUAL
                     await db.collection('audit_logs').add({
                         timestamp: admin.firestore.FieldValue.serverTimestamp(),
                         type: 'expiration_warning',
                         status: 'success',
                         summary: `Aviso de vencimiento: ${totalImpendingAmount} pts para ${userData.name || 'Socio'}`,
-                        details: [{ action: 'notification_sent', userId, totalImpendingAmount, closestDate: userData.nextExpirationDate, channels }],
+                        details: [{
+                            action: 'notification_sent',
+                            userId,
+                            totalImpendingAmount,
+                            closestDate: userData.nextExpirationDate,
+                            channels,
+                            messageSent: msg,
+                            breakdown
+                        }],
                         executor: 'system'
                     });
 
@@ -307,7 +323,7 @@ export default async function handler(req, res) {
                         userName: userData.name || userData.nombre || 'Socio',
                         action: 'notified_expiration',
                         status: 'success',
-                        info: `Aviso enviado (${totalImpendingAmount} pts, el próximo el ${displayDate})`
+                        info: `Enviado: "${msg}" | Desglose: ${breakdown}`
                     });
                 } catch (e) {
                     console.error(`[Cron] Error notifying ${userDoc.id}:`, e);

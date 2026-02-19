@@ -248,71 +248,77 @@ export const CampaignsPageV2 = () => {
         }
     };
 
-    // Componente de Vista Previa Reutilizable
+    // Componente de Vista Previa Reutilizable (Simulador de Celular)
     const PreviewCard = () => (
-        <div className="bg-white rounded-[2rem] shadow-xl overflow-hidden flex flex-col h-fit sticky top-8 border border-gray-100 animate-fade-in-up">
-            <div className="bg-gray-100 px-4 py-2 border-b border-gray-200 flex justify-between items-center">
-                <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Vista Previa</span>
-                <div className="flex gap-1">
-                    <div className="w-2 h-2 rounded-full bg-red-400" />
-                    <div className="w-2 h-2 rounded-full bg-yellow-400" />
-                    <div className="w-2 h-2 rounded-full bg-green-400" />
-                </div>
-            </div>
-            <div className="relative h-48 w-full overflow-hidden" style={{ backgroundColor: formData.backgroundColor }}>
-                {formData.imageUrl ? (
-                    <img
-                        src={formData.imageUrl}
-                        className={`absolute inset-0 w-full h-full ${formData.imageFit === 'cover' ? 'object-cover' : 'object-contain'}`}
-                        style={{ opacity: (formData.imageOpacity || 0) / 100 }}
-                        alt=""
-                    />
-                ) : (
-                    <div className="absolute inset-0 flex items-center justify-center text-white/20">
-                        <ImageIcon size={48} />
+        <div className="mx-auto max-w-[320px] sticky top-8 animate-fade-in-up select-none pointer-events-none">
+            {/* Phone Bezel */}
+            <div className="bg-gray-900 rounded-[3rem] p-3 shadow-2xl border-4 border-gray-800 relative z-20 ring-4 ring-gray-100">
+                {/* Screen Area */}
+                <div className="bg-white rounded-[2.5rem] overflow-hidden relative min-h-[580px] flex flex-col">
+
+                    {/* Fake Status Bar */}
+                    <div className="h-8 w-full flex justify-between items-center px-6 mt-2 opacity-40">
+                        <span className="text-[10px] font-bold">9:41</span>
+                        <div className="flex gap-1">
+                            <div className="w-3 h-3 bg-current rounded-full"></div>
+                        </div>
                     </div>
-                )}
-                <div className={`relative z-10 w-full h-full p-6 flex flex-col ${getPositionClasses(formData.textPosition)}`}>
-                    {formData.showTitle && (
-                        <h4 className={`font-black leading-tight mb-1 drop-shadow-sm ${getFontFamily(formData.fontStyle)} text-${formData.titleSize || '2xl'}`} style={{ color: formData.textColor }}>
-                            {formData.title || 'Título de la Campaña'}
-                        </h4>
-                    )}
-                    {formData.showDescription && (
-                        <p className={`opacity-90 drop-shadow-sm line-clamp-2 ${getFontFamily(formData.fontStyle)} text-${formData.descriptionSize || 'sm'}`} style={{ color: formData.textColor }}>
-                            {formData.description || 'Descripción breve de la promoción...'}
-                        </p>
-                    )}
-                </div>
-            </div>
-            <div className="p-4 bg-gray-50/50 space-y-2">
-                {/* Badges Preview */}
-                <div className="flex flex-wrap gap-2">
-                    {isFlashMode && (
-                        <span className="bg-red-500 text-white px-2 py-0.5 rounded text-[9px] font-black uppercase flex items-center gap-1">
-                            <Zap size={8} fill="white" /> FLASH
-                        </span>
-                    )}
-                    {(formData.rewardType as any) === 'TEXT' && formData.rewardText && (
-                        <span className="bg-pink-500 text-white px-2 py-0.5 rounded text-[9px] font-black uppercase flex items-center gap-1">
-                            <Type size={8} /> {formData.rewardText}
-                        </span>
-                    )}
-                    {formData.rewardType !== 'INFO' && (formData.rewardType as any) !== 'TEXT' && (
-                        <span className="bg-purple-500 text-white px-2 py-0.5 rounded text-[9px] font-black uppercase flex items-center gap-1">
-                            <Sparkles size={8} /> {formData.rewardType === 'MULTIPLIER' ? `x${formData.rewardValue}` : `+${formData.rewardValue}`} Pts
-                        </span>
-                    )}
-                    {formData.showInCarousel && (
-                        <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-[9px] font-bold uppercase border border-purple-200">
-                            Carrusel
-                        </span>
-                    )}
-                    {formData.showInHomeBanner && (
-                        <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[9px] font-bold uppercase border border-blue-200">
-                            Banner Home
-                        </span>
-                    )}
+
+                    {/* Header Mock */}
+                    <div className="px-4 mb-6 flex justify-between items-center opacity-40">
+                        <div className="w-8 h-8 rounded-full bg-gray-200"></div>
+                        <div className="flex flex-col gap-1">
+                            <div className="w-20 h-2 rounded-full bg-gray-200"></div>
+                            <div className="w-12 h-2 rounded-full bg-gray-200"></div>
+                        </div>
+                    </div>
+
+                    {/* The Campaign Card - EXACT REPLICA OF CampaignCarousel */}
+                    <div className="px-3">
+                        <div className="flex justify-between items-center mb-2 px-1">
+                            <div className="w-16 h-2 rounded-full bg-gray-200 opacity-50"></div>
+                        </div>
+
+                        <div className="relative overflow-hidden rounded-[2rem] shadow-sm h-48 border border-gray-100 bg-gray-50 flex-shrink-0" style={{ backgroundColor: formData.backgroundColor }}>
+                            {formData.imageUrl ? (
+                                <>
+                                    <img
+                                        src={formData.imageUrl}
+                                        className={`absolute inset-0 w-full h-full ${formData.imageFit === 'cover' ? 'object-cover' : 'object-contain'}`}
+                                        style={{ opacity: (formData.imageOpacity || 0) / 100 }}
+                                        alt=""
+                                    />
+                                    {/* GRADIENT OVERLAY - MISSING BEFORE */}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+                                </>
+                            ) : (
+                                <div className="absolute inset-0 flex items-center justify-center text-white/20">
+                                    <ImageIcon size={48} />
+                                </div>
+                            )}
+
+                            <div className={`relative z-10 w-full h-full p-6 flex flex-col ${getPositionClasses(formData.textPosition)}`}>
+                                {formData.showTitle && (
+                                    <h4 className={`leading-[1.1] mb-1 uppercase tracking-tight drop-shadow-md ${getFontFamily(formData.fontStyle)} text-${formData.titleSize || '2xl'}`} style={{ color: formData.textColor }}>
+                                        {formData.title || 'Título de la Campaña'}
+                                    </h4>
+                                )}
+                                {formData.showDescription && (
+                                    <p className={`opacity-90 leading-snug whitespace-pre-wrap drop-shadow-sm line-clamp-3 ${getFontFamily(formData.fontStyle)} text-${formData.descriptionSize || 'sm'}`} style={{ color: formData.textColor }}>
+                                        {formData.description || 'Descripción breve de la promoción...'}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Fake Content Below */}
+                    <div className="p-4 space-y-4 opacity-30 mt-4 flex-1">
+                        <div className="w-full h-24 bg-gray-100 rounded-2xl border border-dashed border-gray-200"></div>
+                        <div className="w-full h-12 bg-gray-100 rounded-xl border border-dashed border-gray-200"></div>
+                        <div className="w-full h-12 bg-gray-100 rounded-xl border border-dashed border-gray-200"></div>
+                    </div>
+
                 </div>
             </div>
         </div>

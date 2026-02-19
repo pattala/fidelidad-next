@@ -300,7 +300,7 @@ export default async function handler(req, res) {
     // 2) Firestore: crear/actualizar doc cliente
     const col = db.collection("users");
 
-    console.time("create-user-firestore");
+    console.log("PERF: Starting create-user-firestore");
     // Intentar encontrar doc existente por email
     const fsDocSnap = await col.where("email", "==", email).limit(1).get();
     let fsDocRef = null;
@@ -363,7 +363,7 @@ export default async function handler(req, res) {
       await fsDocRef.set(newDoc);
       createdFs = true;
     }
-    console.timeEnd("create-user-firestore");
+    console.log("PERF: Finished create-user-firestore");
 
     return res.status(200).json({
       ok: true,

@@ -329,9 +329,9 @@ export default async function handler(req, res) {
 
     for (const batchTokens of batches) {
       const message = { ...baseMsg, tokens: batchTokens };
-      console.time("fcm-send-multicast-batch");
+      console.log("PERF: Starting fcm-send-multicast-batch");
       const resp = await adminApp.messaging().sendEachForMulticast(message);
-      console.timeEnd("fcm-send-multicast-batch");
+      console.log("PERF: Finished fcm-send-multicast-batch");
 
       successCount += resp.successCount || 0;
       failureCount += resp.failureCount || 0;

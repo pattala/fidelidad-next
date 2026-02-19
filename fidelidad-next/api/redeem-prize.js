@@ -360,7 +360,7 @@ export default async function handler(req, res) {
             } catch (err) {
                 console.error("Error triggering redemption notifications:", err);
             }
-            console.timeEnd("redemption-notifications");
+            console.log("PERF: Finished redemption-notifications");
         }
 
         return res.status(200).json(result);

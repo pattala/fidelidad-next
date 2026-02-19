@@ -6,6 +6,7 @@ import { ConfigPage } from "./modules/admin/pages/ConfigPage";
 import { ClientsPage } from "./modules/admin/pages/ClientsPage";
 import { AuthGuard } from "./modules/admin/components/AuthGuard";
 import { CampaignsPage } from "./modules/admin/pages/CampaignsPage";
+import { CampaignsPageV2 } from "./modules/admin/pages/CampaignsPageV2";
 import { PrizesPage } from "./modules/admin/pages/PrizesPage";
 import { MetricsPage } from "./modules/admin/pages/MetricsPage";
 import { WhatsAppPage } from "./modules/admin/pages/WhatsAppPage";
@@ -96,6 +97,10 @@ export const router = createBrowserRouter([
             {
                 path: "campaigns",
                 element: <CampaignsPage />
+            },
+            {
+                path: "campaigns-v2",
+                element: <CampaignsPageV2 />
             },
             {
                 path: "prizes",

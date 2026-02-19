@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Home, Users, User, Gift, Settings, LogOut, MessageCircle, BarChart3, ChevronDown, ChevronRight, Clock, Menu, X } from 'lucide-react';
+import { Home, Users, User, Gift, Settings, LogOut, MessageCircle, BarChart3, ChevronDown, ChevronRight, Clock, Menu, X, Sparkles } from 'lucide-react';
 import { auth, db } from '../../../lib/firebase';
 import { signOut } from 'firebase/auth';
 import { onSnapshot, doc } from 'firebase/firestore';
@@ -167,6 +167,9 @@ export const AdminLayout = () => {
                     </NavLink>
                     <NavLink to="/admin/campaigns" className={navItemClass}>
                         <MessageCircle size={20} /> Campañas
+                    </NavLink>
+                    <NavLink to="/admin/campaigns-v2" className={navItemClass}>
+                        <Sparkles size={20} className="text-purple-500" /> Campañas 1
                     </NavLink>
 
                     {/* Messaging Group */}

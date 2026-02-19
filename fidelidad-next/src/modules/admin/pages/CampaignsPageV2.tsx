@@ -1,0 +1,720 @@
+import React, { useState, useEffect } from 'react';
+import {
+    Plus, Trash2, Calendar, Target, Award, Save, X, Megaphone, Sparkles,
+    ToggleLeft, ToggleRight, Edit, Send, Monitor, Layout, Clock, Image as ImageIcon,
+    ChevronRight, Zap, Info, MousePointer2, MessageCircle
+} from 'lucide-react';
+import toast from 'react-hot-toast';
+import { CampaignService, type BonusRule } from '../../../services/campaignService';
+import { ConfigService, DEFAULT_TEMPLATES } from '../../../services/configService';
+import { useNavigate } from 'react-router-dom';
+import { collection, getDocs, query } from 'firebase/firestore';
+import { db } from '../../../lib/firebase';
+import { NotificationService } from '../../../services/notificationService';
+import { EmailService } from '../../../services/emailService';
+import { useAdminAuth } from '../contexts/AdminAuthContext';
+
+type TabType = 'BASIC' | 'VISUAL' | 'RULES' | 'SCHEDULE';
+
+export const CampaignsPageV2 = () => {
+    const navigate = useNavigate();
+    const { isReadOnly } = useAdminAuth();
+    const [bonuses, setBonuses] = useState<BonusRule[]>([]);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState<TabType>('BASIC');
+    const [isFlashMode, setIsFlashMode] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
+
+    const [formData, setFormData] = useState<Partial<BonusRule>>({
+        name: '', title: '', showTitle: true, description: '', showDescription: true,
+        rewardType: 'FIXED', rewardValue: 50, daysOfWeek: [], active: true,
+        startDate: '', endDate: '', startTime: '', endTime: '',
+        imageUrl: '', showInCarousel: false, showInHomeBanner: false,
+        backgroundColor: '#4F46E5', textColor: '#FFFFFF', fontWeight: 'normal',
+        imageFit: 'contain', textPosition: 'bottom-left', fontStyle: 'sans',
+        buttonText: 'Ver detalles', titleSize: '2xl', descriptionSize: 'sm',
+        imageOpacity: 60, link: '', channels: ['push', 'email', 'whatsapp']
+    });
+
+    const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
+    const [broadcastData, setBroadcastData] = useState<any>(null);
+    const [selectedChannels, setSelectedChannels] = useState({ push: true, email: true, whatsapp: true });
+
+    const DAYS = [
+        { id: 1, label: 'Lun' }, { id: 2, label: 'Mar' }, { id: 3, label: 'Mie' },
+        { id: 4, label: 'Jue' }, { id: 5, label: 'Vie' }, { id: 6, label: 'Sab' }, { id: 0, label: 'Dom' }
+    ];
+
+    const fetchBonuses = async () => {
+        const data = await CampaignService.getAll();
+        setBonuses(data);
+    };
+
+    useEffect(() => { fetchBonuses(); }, []);
+
+    const resetForm = () => {
+        setFormData({
+            name: '', title: '', showTitle: true, description: '', showDescription: true,
+            rewardType: 'FIXED', rewardValue: 50, daysOfWeek: [], active: true,
+            startDate: '', endDate: '', startTime: '', endTime: '',
+            imageUrl: '', showInCarousel: false, showInHomeBanner: false,
+            backgroundColor: '#4F46E5', textColor: '#FFFFFF', fontWeight: 'normal',
+            imageFit: 'contain', textPosition: 'bottom-left', fontStyle: 'sans',
+            buttonText: 'Ver detalles', titleSize: '2xl', descriptionSize: 'sm',
+            imageOpacity: 60, link: '', channels: ['push', 'email', 'whatsapp']
+        });
+        setEditingId(null);
+        setActiveTab('BASIC');
+        setIsFlashMode(false);
+    };
+
+    const handleSave = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            if (formData.rewardType === 'INFO' && !formData.imageUrl && !formData.description) {
+                toast.error('Un anuncio debe tener imagen o descripción');
+                return;
+            }
+            const payload = {
+                ...formData,
+                rewardValue: formData.rewardType === 'INFO' ? 0 : formData.rewardValue,
+                startTime: isFlashMode ? formData.startTime : '',
+                endTime: isFlashMode ? formData.endTime : ''
+            };
+            if (editingId) {
+                await CampaignService.update(editingId, payload);
+                toast.success('Campaña actualizada');
+            } else {
+                // @ts-ignore
+                await CampaignService.create(payload);
+                toast.success('Campaña creada');
+            }
+            setIsModalOpen(false);
+            fetchBonuses();
+            resetForm();
+        } catch (error) { toast.error('Error al guardar'); }
+    };
+
+    const handleEdit = (bonus: BonusRule) => {
+        setEditingId(bonus.id);
+        setFormData({ ...bonus });
+        setIsFlashMode(!!(bonus.startTime || bonus.endTime));
+        setActiveTab('BASIC');
+        setIsModalOpen(true);
+    };
+
+    const handleToggleActive = async (bonus: BonusRule) => {
+        try {
+            const newStatus = !bonus.active;
+            await CampaignService.update(bonus.id, { active: newStatus });
+            setBonuses(bonuses.map(b => b.id === bonus.id ? { ...b, active: newStatus } : b));
+            toast.success(`Campaña ${newStatus ? 'activada' : 'desactivada'}`);
+        } catch (error) { toast.error('Error'); }
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm('¿Eliminar esta campaña?')) return;
+        try {
+            await CampaignService.delete(id);
+            toast.success('Eliminada');
+            fetchBonuses();
+        } catch (error) { toast.error('Error'); }
+    };
+
+    const handleBroadcast = async (bonus: BonusRule) => {
+        try {
+            const config = await ConfigService.get();
+            const eventType = bonus.rewardType === 'INFO' ? 'offer' : 'campaign';
+
+            let template = "";
+            let msg = "";
+
+            if (bonus.rewardType === 'INFO') {
+                template = config?.messaging?.templates?.offer || DEFAULT_TEMPLATES.offer;
+                const vencimiento = bonus.endDate
+                    ? new Date(bonus.endDate + 'T00:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
+                    : 'agotar stock';
+                msg = template
+                    .replace(/{titulo}/g, bonus.title || bonus.name)
+                    .replace(/{detalle}/g, bonus.description || 'Consultanos.')
+                    .replace(/{vencimiento}/g, vencimiento);
+            } else {
+                template = config?.messaging?.templates?.campaign || DEFAULT_TEMPLATES.campaign;
+                msg = template
+                    .replace(/{titulo}/g, bonus.title || bonus.name)
+                    .replace(/{descripcion}/g, bonus.description || '¡Sumá más puntos!');
+            }
+
+            setBroadcastData({ bonus, msg, eventType, config });
+            setSelectedChannels({
+                push: (bonus.channels?.includes('push') ?? true) && NotificationService.isChannelEnabled(config, eventType, 'push'),
+                email: (bonus.channels?.includes('email') ?? true) && NotificationService.isChannelEnabled(config, eventType, 'email'),
+                whatsapp: (bonus.channels?.includes('whatsapp') ?? true) && NotificationService.isChannelEnabled(config, eventType, 'whatsapp')
+            });
+            setIsBroadcastModalOpen(true);
+        } catch (error) {
+            toast.error('Error al preparar difusión');
+        }
+    };
+
+    const executeBroadcast = async () => {
+        if (!broadcastData) return;
+        const { bonus, msg, eventType, config } = broadcastData;
+        setIsBroadcastModalOpen(false);
+
+        try {
+            if (selectedChannels.push) {
+                const loadingToast = toast.loading('Enviando Pushes...');
+                const q = query(collection(db, 'users'));
+                const snap = await getDocs(q);
+                const pushPromises = snap.docs.map(doc => {
+                    const data = doc.data();
+                    const userName = data.name || '';
+                    const personalizedMsg = msg.replace(/{nombre}/g, userName.split(' ')[0]).replace(/{nombre_completo}/g, userName);
+                    return NotificationService.sendToClient(doc.id, {
+                        title: bonus.rewardType === 'INFO' ? '¡Nueva Oferta!' : '¡Nueva Campaña!',
+                        body: personalizedMsg,
+                        type: eventType,
+                        icon: config?.logoUrl
+                    });
+                });
+                await Promise.allSettled(pushPromises);
+                toast.success(`Push enviado correctamente`, { id: loadingToast });
+            }
+
+            if (selectedChannels.email) {
+                const loadingToast = toast.loading('Enviando Emails...');
+                const q = query(collection(db, 'users'));
+                const snap = await getDocs(q);
+                const emailPromises = snap.docs.map(doc => {
+                    const data = doc.data();
+                    if (data.email) {
+                        const userName = data.name || '';
+                        const personalizedMsg = msg.replace(/{nombre}/g, userName.split(' ')[0]).replace(/{nombre_completo}/g, userName);
+                        const htmlContent = EmailService.generateBrandedTemplate(config, bonus.rewardType === 'INFO' ? '¡Oferta Especial!' : '¡Nueva Campaña!', personalizedMsg);
+                        return EmailService.sendEmail(data.email, bonus.rewardType === 'INFO' ? '¡Oferta Especial!' : '¡Nueva Campaña!', htmlContent);
+                    }
+                    return null;
+                }).filter(Boolean);
+                await Promise.allSettled(emailPromises);
+                toast.success(`Emails enviados correctamente`, { id: loadingToast });
+            }
+
+            if (selectedChannels.whatsapp) {
+                navigate('/admin/whatsapp', { state: { message: msg } });
+            }
+        } catch (error) {
+            toast.error('Error durante la difusión');
+        }
+    };
+
+    const toggleDay = (dayId: number) => {
+        const current = formData.daysOfWeek || [];
+        setFormData({
+            ...formData,
+            daysOfWeek: current.includes(dayId) ? current.filter(d => d !== dayId) : [...current, dayId].sort()
+        });
+    };
+
+    return (
+        <div className="space-y-6 animate-fade-in pb-20">
+            {/* Header Moderno */}
+            <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div className="flex items-center gap-4">
+                    <div className="p-3 bg-purple-100 text-purple-600 rounded-2xl">
+                        <Target size={28} />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-black text-gray-800 tracking-tight">Gestión de Campañas</h1>
+                        <p className="text-sm text-gray-500 font-medium italic">Versión Optimizada 2.0</p>
+                    </div>
+                </div>
+                {!isReadOnly && (
+                    <button
+                        onClick={() => { resetForm(); setIsModalOpen(true); }}
+                        className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-purple-200 transition-all active:scale-95 flex items-center gap-2"
+                    >
+                        <Plus size={20} /> Nueva Campaña
+                    </button>
+                )}
+            </div>
+
+            {/* Dashboard / Lista */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {bonuses.map(bonus => (
+                    <div key={bonus.id} className="bg-white rounded-[2.5rem] p-4 border border-gray-100 shadow-sm hover:shadow-xl transition-all group overflow-hidden relative">
+                        {/* Status Float */}
+                        <div className="absolute top-6 right-6 z-10">
+                            <button
+                                onClick={() => handleToggleActive(bonus)}
+                                className={`p-2 rounded-full backdrop-blur-md transition-all ${bonus.active ? 'bg-green-500/10 text-green-600' : 'bg-gray-100 text-gray-400'}`}
+                            >
+                                {bonus.active ? <ToggleRight size={32} /> : <ToggleLeft size={32} />}
+                            </button>
+                        </div>
+
+                        {/* Banner Preview Area */}
+                        <div className="h-40 bg-gray-50 rounded-[2rem] overflow-hidden relative mb-4">
+                            {bonus.imageUrl ? (
+                                <img src={bonus.imageUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="" />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center text-gray-200">
+                                    <ImageIcon size={48} />
+                                </div>
+                            )}
+
+                            {/* Tags de Tipo */}
+                            <div className="absolute bottom-4 left-4 flex gap-2">
+                                {bonus.startTime && (
+                                    <span className="bg-red-500 text-white text-[10px] font-black px-3 py-1 rounded-full flex items-center gap-1 animate-pulse">
+                                        <Zap size={10} fill="white" /> FLASH
+                                    </span>
+                                )}
+                                {bonus.rewardType !== 'INFO' ? (
+                                    <span className="bg-purple-500 text-white text-[10px] font-black px-3 py-1 rounded-full flex items-center gap-1">
+                                        <Sparkles size={10} /> PUNTOS
+                                    </span>
+                                ) : (
+                                    <span className="bg-blue-500 text-white text-[10px] font-black px-3 py-1 rounded-full flex items-center gap-1">
+                                        <Info size={10} /> INFO
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Content */}
+                        <div className="px-2">
+                            <h3 className="text-xl font-bold text-gray-800 truncate mb-1">{bonus.name}</h3>
+                            <p className="text-xs text-gray-500 line-clamp-2 h-8 leading-relaxed mb-4">{bonus.description || 'Sin descripción pública configurada.'}</p>
+
+                            <div className="flex items-center justify-between pt-2 border-t border-gray-50 mt-4">
+                                <div className="flex gap-2">
+                                    {!isReadOnly && (
+                                        <>
+                                            <button onClick={() => handleEdit(bonus)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors">
+                                                <Edit size={18} />
+                                            </button>
+                                            <button onClick={() => handleDelete(bonus.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors">
+                                                <Trash2 size={18} />
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+                                <button
+                                    onClick={() => handleBroadcast(bonus)}
+                                    className="bg-gray-100 text-gray-700 px-4 py-2 rounded-xl text-xs font-bold hover:bg-green-600 hover:text-white transition-all flex items-center gap-2"
+                                >
+                                    <Send size={14} /> Difundir
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* MODAL REDISEÑADO */}
+            {isModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8">
+                    <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md" onClick={() => setIsModalOpen(false)} />
+
+                    <div className="bg-white w-full max-w-5xl h-[90vh] rounded-[3rem] shadow-2xl relative z-10 overflow-hidden flex flex-col md:flex-row animate-scale-up">
+
+                        {/* Sidebar del Modal (Tabs) */}
+                        <div className="w-full md:w-64 bg-gray-50 border-r border-gray-100 p-8 flex flex-col shrink-0">
+                            <div className="mb-8">
+                                <h2 className="text-lg font-black text-gray-800 uppercase tracking-tighter">
+                                    {editingId ? 'Editar Campaña' : 'Nueva Campaña'}
+                                </h2>
+                                <p className="text-[10px] text-gray-400 font-bold uppercase py-1 px-2 bg-gray-200 w-fit rounded mt-1">
+                                    Configuración
+                                </p>
+                            </div>
+
+                            <nav className="space-y-2 flex-1">
+                                {[
+                                    { id: 'BASIC', label: 'Básico', icon: <Target size={18} />, desc: 'Nombre y Textos' },
+                                    { id: 'VISUAL', label: 'Visual', icon: <ImageIcon size={18} />, desc: 'Imagen y Colores' },
+                                    { id: 'RULES', label: 'Reglas', icon: <Sparkles size={18} />, desc: 'Bonos de Puntos' },
+                                    { id: 'SCHEDULE', label: 'Fechas', icon: <Calendar size={18} />, desc: 'Programación' },
+                                ].map(tab => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id as TabType)}
+                                        className={`w-full flex items-center gap-3 p-4 rounded-2xl transition-all text-left group ${activeTab === tab.id ? 'bg-white shadow-md text-purple-600' : 'text-gray-500 hover:bg-gray-200/50'}`}
+                                    >
+                                        <div className={`p-2 rounded-xl ${activeTab === tab.id ? 'bg-purple-100' : 'bg-gray-200/50 group-hover:bg-white'}`}>
+                                            {tab.icon}
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-sm leading-none">{tab.label}</p>
+                                            <p className="text-[10px] opacity-60 font-medium mt-1">{tab.desc}</p>
+                                        </div>
+                                    </button>
+                                ))}
+                            </nav>
+
+                            <button onClick={handleSave} className="mt-8 bg-black text-white w-full py-4 rounded-2xl font-black text-sm hover:scale-[1.02] transition-transform active:scale-95 flex items-center justify-center gap-2">
+                                <Save size={20} /> {editingId ? 'Guardar Cambios' : 'Crear Campaña'}
+                            </button>
+                        </div>
+
+                        {/* Content del Modal */}
+                        <div className="flex-1 p-8 md:p-12 overflow-y-auto bg-white">
+                            <div className="max-w-xl mx-auto space-y-8">
+
+                                {activeTab === 'BASIC' && (
+                                    <div className="space-y-6 animate-slide-in-right">
+                                        <section>
+                                            <label className="text-[10px] font-black text-gray-400 uppercase mb-2 block">Identificación</label>
+                                            <input
+                                                type="text" required placeholder="Nombre Interno (Ej: Promo Lunes Locos)"
+                                                className="w-full text-2xl font-bold border-b-2 border-gray-100 focus:border-purple-600 outline-none transition-colors py-2"
+                                                value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                            />
+                                        </section>
+
+                                        <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="space-y-4">
+                                                <div className="flex justify-between items-center">
+                                                    <label className="text-xs font-black text-gray-600 uppercase">Título Público</label>
+                                                    <label className="flex items-center gap-1 cursor-pointer">
+                                                        <input type="checkbox" className="w-3 h-3 text-purple-600" checked={formData.showTitle} onChange={e => setFormData({ ...formData, showTitle: e.target.checked })} />
+                                                        <span className="text-[9px] font-bold text-gray-400">Mostrar</span>
+                                                    </label>
+                                                </div>
+                                                <input
+                                                    type="text" placeholder="Ej: ¡2x1 en toda la tienda!"
+                                                    className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 focus:bg-white focus:ring-2 focus:ring-purple-100 outline-none transition-all text-sm font-medium"
+                                                    value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })}
+                                                />
+                                            </div>
+
+                                            <div className="space-y-4">
+                                                <div className="flex justify-between items-center">
+                                                    <label className="text-xs font-black text-gray-600 uppercase">Descripción</label>
+                                                    <label className="flex items-center gap-1 cursor-pointer">
+                                                        <input type="checkbox" className="w-3 h-3 text-purple-600" checked={formData.showDescription} onChange={e => setFormData({ ...formData, showDescription: e.target.checked })} />
+                                                        <span className="text-[9px] font-bold text-gray-400">Mostrar</span>
+                                                    </label>
+                                                </div>
+                                                <textarea
+                                                    rows={1} placeholder="Detalles de la oferta..."
+                                                    className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 focus:bg-white focus:ring-2 focus:ring-purple-100 outline-none transition-all text-sm font-medium resize-none"
+                                                    value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })}
+                                                />
+                                            </div>
+                                        </section>
+
+                                        <section className="bg-blue-50 p-6 rounded-[2rem] border border-blue-100">
+                                            <div className="flex justify-between items-center mb-4">
+                                                <label className="text-xs font-black text-blue-900 uppercase">Enlace de Acción</label>
+                                                <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-bold italic">Opcional</span>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <div className="p-3 bg-white rounded-xl text-blue-400 shadow-sm">
+                                                    <MousePointer2 size={20} />
+                                                </div>
+                                                <input
+                                                    type="url" placeholder="https://tu-web.com/promo"
+                                                    className="flex-1 p-3 rounded-xl bg-white shadow-sm border-none focus:ring-2 focus:ring-blue-200 outline-none text-sm placeholder:text-blue-200"
+                                                    value={formData.link} onChange={e => setFormData({ ...formData, link: e.target.value })}
+                                                />
+                                            </div>
+                                        </section>
+
+                                        <section className="pt-4 border-t border-gray-100">
+                                            <label className="text-xs font-black text-gray-500 uppercase mb-4 block">Canales de Difusión Sugeridos</label>
+                                            <div className="flex gap-4">
+                                                {['push', 'email', 'whatsapp'].map(channel => (
+                                                    <label key={channel} className="flex items-center gap-2 cursor-pointer group">
+                                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${formData.channels?.includes(channel) ? 'bg-purple-600 text-white shadow-lg' : 'bg-gray-100 text-gray-400 group-hover:bg-gray-200'}`}>
+                                                            {channel === 'push' && <Monitor size={16} />}
+                                                            {channel === 'email' && <Sparkles size={16} />}
+                                                            {channel === 'whatsapp' && <MessageCircle size={16} />}
+                                                        </div>
+                                                        <input
+                                                            type="checkbox"
+                                                            className="hidden"
+                                                            checked={formData.channels?.includes(channel)}
+                                                            onChange={e => {
+                                                                const current = formData.channels || [];
+                                                                setFormData({ ...formData, channels: e.target.checked ? [...current, channel] : current.filter(c => c !== channel) });
+                                                            }}
+                                                        />
+                                                    </label>
+                                                ))}
+                                            </div>
+                                            <p className="text-[10px] text-gray-400 font-bold mt-3 uppercase italic">Establece los canales preferidos para este anuncio</p>
+                                        </section>
+                                    </div>
+                                )}
+
+                                {activeTab === 'VISUAL' && (
+                                    <div className="space-y-8 animate-slide-in-right">
+                                        <section className="space-y-4">
+                                            <label className="text-xs font-black text-gray-600 uppercase">Configuración de Imagen</label>
+                                            <div className="flex gap-4">
+                                                <input
+                                                    type="url" placeholder="Pega el enlace de la imagen aquí..."
+                                                    className="flex-1 p-4 rounded-2xl bg-gray-50 border border-gray-100 focus:bg-white focus:ring-2 focus:ring-purple-100 outline-none transition-all text-sm font-medium"
+                                                    value={formData.imageUrl} onChange={e => setFormData({ ...formData, imageUrl: e.target.value })}
+                                                />
+                                            </div>
+                                        </section>
+
+                                        <section className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-gray-400 uppercase">Fondo</label>
+                                                <input type="color" className="w-full h-12 rounded-xl cursor-pointer border-4 border-gray-50" value={formData.backgroundColor} onChange={e => setFormData({ ...formData, backgroundColor: e.target.value })} />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-gray-400 uppercase">Texto</label>
+                                                <input type="color" className="w-full h-12 rounded-xl cursor-pointer border-4 border-gray-50" value={formData.textColor} onChange={e => setFormData({ ...formData, textColor: e.target.value })} />
+                                            </div>
+                                            <div className="col-span-2 space-y-2">
+                                                <label className="text-[10px] font-black text-gray-400 uppercase">Opacidad Imagen ({formData.imageOpacity}%)</label>
+                                                <input type="range" className="w-full h-12 accent-purple-600" min="0" max="100" value={formData.imageOpacity} onChange={e => setFormData({ ...formData, imageOpacity: parseInt(e.target.value) })} />
+                                            </div>
+                                        </section>
+
+                                        <section className="bg-gray-50 p-8 rounded-[3rem] border border-dashed border-gray-200">
+                                            <label className="text-[10px] font-black text-gray-400 uppercase mb-4 block text-center tracking-widest">Vista Previa Real</label>
+                                            <div className="relative h-48 w-full rounded-[2rem] shadow-2xl overflow-hidden flex transition-all" style={{ backgroundColor: formData.backgroundColor }}>
+                                                {formData.imageUrl && (
+                                                    <img
+                                                        src={formData.imageUrl}
+                                                        className={`absolute inset-0 w-full h-full ${formData.imageFit === 'cover' ? 'object-cover' : 'object-contain'}`}
+                                                        style={{ opacity: (formData.imageOpacity || 0) / 100 }}
+                                                        alt=""
+                                                    />
+                                                )}
+                                                <div className={`relative z-10 w-full p-8 flex flex-col justify-end`}>
+                                                    {formData.showTitle && (
+                                                        <h4 className="text-2xl font-black leading-tight mb-1" style={{ color: formData.textColor }}>
+                                                            {formData.title || 'Título Aquí'}
+                                                        </h4>
+                                                    )}
+                                                    {formData.showDescription && (
+                                                        <p className="text-sm opacity-80" style={{ color: formData.textColor }}>
+                                                            {formData.description || 'Descripción aquí...'}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </section>
+                                    </div>
+                                )}
+
+                                {activeTab === 'RULES' && (
+                                    <div className="space-y-8 animate-slide-in-right">
+                                        <section className="space-y-4">
+                                            <label className="text-xs font-black text-gray-600 uppercase">Tipo de Beneficio</label>
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                {[
+                                                    { id: 'FIXED', label: 'Puntos Fijos', icon: <Plus size={24} />, color: 'bg-green-500' },
+                                                    { id: 'MULTIPLIER', label: 'Multiplicador', icon: <Zap size={24} />, color: 'bg-purple-600' },
+                                                    { id: 'INFO', label: 'Solo Anuncio', icon: <Megaphone size={24} />, color: 'bg-blue-500' },
+                                                ].map(type => (
+                                                    <button
+                                                        key={type.id} type="button"
+                                                        onClick={() => setFormData({ ...formData, rewardType: type.id as any })}
+                                                        className={`p-6 rounded-3xl border-2 transition-all flex flex-col items-center gap-3 ${formData.rewardType === type.id ? 'border-black bg-black text-white' : 'border-gray-100 hover:border-gray-200'}`}
+                                                    >
+                                                        <div className={`p-3 rounded-2xl ${formData.rewardType === type.id ? 'bg-white/20' : 'bg-gray-100 text-gray-400'}`}>
+                                                            {type.icon}
+                                                        </div>
+                                                        <span className="font-bold text-sm tracking-tight">{type.label}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </section>
+
+                                        {formData.rewardType !== 'INFO' && (
+                                            <section className="bg-gray-50 p-8 rounded-[3rem] text-center animate-fade-in">
+                                                <label className="text-xs font-black text-gray-400 uppercase mb-4 block">Valor del Beneficio</label>
+                                                <div className="flex items-center justify-center gap-4">
+                                                    <span className="text-4xl font-black text-gray-300">
+                                                        {formData.rewardType === 'MULTIPLIER' ? 'x' : '+'}
+                                                    </span>
+                                                    <input
+                                                        type="number" step={formData.rewardType === 'MULTIPLIER' ? "0.1" : "1"}
+                                                        className="w-40 text-6xl font-black bg-transparent border-none focus:ring-0 text-center outline-none text-black"
+                                                        value={formData.rewardValue} onChange={e => setFormData({ ...formData, rewardValue: parseFloat(e.target.value) || 0 })}
+                                                    />
+                                                    <span className="text-xl font-bold text-gray-400 uppercase">
+                                                        {formData.rewardType === 'MULTIPLIER' ? 'Bonus' : 'Puntos'}
+                                                    </span>
+                                                </div>
+                                            </section>
+                                        )}
+                                    </div>
+                                )}
+
+                                {activeTab === 'SCHEDULE' && (
+                                    <div className="space-y-8 animate-slide-in-right">
+                                        <section className="bg-red-50 p-8 rounded-[3rem] border border-red-100 transition-all overflow-hidden">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`p-3 rounded-2xl transition-colors ${isFlashMode ? 'bg-red-500 text-white shadow-lg' : 'bg-gray-200 text-gray-400'}`}>
+                                                        <Zap size={24} fill={isFlashMode ? "white" : "none"} />
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-black text-red-900 uppercase">Modo Oferta Flash</h4>
+                                                        <p className="text-[10px] text-red-600 font-bold opacity-60">Activa horarios urgentes</p>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    type="button" onClick={() => setIsFlashMode(!isFlashMode)}
+                                                    className={`p-2 rounded-full transition-all ${isFlashMode ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-400'}`}
+                                                >
+                                                    {isFlashMode ? <ToggleRight size={40} /> : <ToggleLeft size={40} />}
+                                                </button>
+                                            </div>
+
+                                            {isFlashMode && (
+                                                <div className="grid grid-cols-2 gap-4 mt-6 animate-fade-in-down">
+                                                    <div className="space-y-2">
+                                                        <label className="text-[10px] font-black text-red-400 uppercase block ml-2">Empieza a las</label>
+                                                        <input type="time" className="w-full p-4 rounded-2xl bg-white border-none shadow-sm text-lg font-bold text-red-600 focus:ring-2 focus:ring-red-200 outline-none" value={formData.startTime} onChange={e => setFormData({ ...formData, startTime: e.target.value })} />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <label className="text-[10px] font-black text-red-400 uppercase block ml-2">Termina a las</label>
+                                                        <input type="time" className="w-full p-4 rounded-2xl bg-white border-none shadow-sm text-lg font-bold text-red-600 focus:ring-2 focus:ring-red-200 outline-none" value={formData.endTime} onChange={e => setFormData({ ...formData, endTime: e.target.value })} />
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </section>
+
+                                        <section className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-gray-400 uppercase block ml-2">Fecha Inicio</label>
+                                                <input type="date" className="w-full p-4 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold focus:bg-white outline-none transition-all" value={formData.startDate} onChange={e => setFormData({ ...formData, startDate: e.target.value })} />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-gray-400 uppercase block ml-2">Fecha Fin</label>
+                                                <input type="date" className="w-full p-4 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold focus:bg-white outline-none transition-all" value={formData.endDate} onChange={e => setFormData({ ...formData, endDate: e.target.value })} />
+                                            </div>
+                                        </section>
+
+                                        <section className="space-y-4">
+                                            <label className="text-xs font-black text-gray-600 uppercase block text-center">Días Activos de la Semana</label>
+                                            <div className="flex justify-between gap-2">
+                                                {DAYS.map(day => (
+                                                    <button
+                                                        key={day.id} type="button"
+                                                        onClick={() => toggleDay(day.id)}
+                                                        className={`flex-1 h-14 rounded-2xl text-xs font-black transition-all border-2 ${formData.daysOfWeek?.includes(day.id) ? 'bg-black border-black text-white shadow-lg' : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'}`}
+                                                    >
+                                                        {day.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </section>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Botón Cerrar */}
+                        <button onClick={() => setIsModalOpen(false)} className="absolute top-8 right-8 text-gray-400 hover:text-black transition-colors p-2 rounded-full hover:bg-gray-100">
+                            <X size={24} />
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* BROADCAST CONFIRMATION MODAL */}
+            {isBroadcastModalOpen && broadcastData && (
+                <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="bg-purple-600 p-6 text-white flex justify-between items-center">
+                            <div>
+                                <h3 className="font-bold text-xl">Confirmar Difusión</h3>
+                                <p className="text-purple-100 text-sm">Selecciona los canales para enviar</p>
+                            </div>
+                            <button onClick={() => setIsBroadcastModalOpen(false)} className="text-white hover:bg-white/10 p-1 rounded-lg">
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <div className="p-8">
+                            <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 mb-6">
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Mensaje Vista Previa:</p>
+                                <p className="text-sm text-gray-600 italic leading-relaxed">
+                                    "{broadcastData.msg}"
+                                </p>
+                            </div>
+
+                            <div className="space-y-3 mb-8">
+                                {NotificationService.isChannelEnabled(broadcastData.config, broadcastData.eventType, 'push') && (
+                                    <label className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${selectedChannels.push ? 'border-purple-200 bg-purple-50' : 'border-gray-100 opacity-60'}`}>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedChannels.push}
+                                            onChange={e => setSelectedChannels({ ...selectedChannels, push: e.target.checked })}
+                                            className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
+                                        />
+                                        <div className="flex-1">
+                                            <p className="font-bold text-gray-800 flex items-center gap-2">
+                                                <Monitor size={16} className="text-purple-500" /> Notificación PUSH
+                                            </p>
+                                            <p className="text-[10px] text-gray-500 font-medium">Llega directo al celular del cliente</p>
+                                        </div>
+                                    </label>
+                                )}
+
+                                {NotificationService.isChannelEnabled(broadcastData.config, broadcastData.eventType, 'email') && (
+                                    <label className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${selectedChannels.email ? 'border-blue-200 bg-blue-50' : 'border-gray-100 opacity-60'}`}>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedChannels.email}
+                                            onChange={e => setSelectedChannels({ ...selectedChannels, email: e.target.checked })}
+                                            className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
+                                        />
+                                        <div className="flex-1">
+                                            <p className="font-bold text-gray-800 flex items-center gap-2">
+                                                <Sparkles size={16} className="text-blue-500" /> Correo Electrónico
+                                            </p>
+                                            <p className="text-[10px] text-gray-500 font-medium">Bandeja de entrada personalizada</p>
+                                        </div>
+                                    </label>
+                                )}
+
+                                {NotificationService.isChannelEnabled(broadcastData.config, broadcastData.eventType, 'whatsapp') && (
+                                    <label className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${selectedChannels.whatsapp ? 'border-green-200 bg-green-50' : 'border-gray-100 opacity-60'}`}>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedChannels.whatsapp}
+                                            onChange={e => setSelectedChannels({ ...selectedChannels, whatsapp: e.target.checked })}
+                                            className="w-5 h-5 text-green-600 rounded focus:ring-green-500"
+                                        />
+                                        <div className="flex-1">
+                                            <p className="font-bold text-gray-800 flex items-center gap-2">
+                                                <Megaphone size={16} className="text-green-500" /> WhatsApp
+                                            </p>
+                                            <p className="text-[10px] text-gray-500 font-medium">Redirige para envío manual/secuencial</p>
+                                        </div>
+                                    </label>
+                                )}
+                            </div>
+
+                            <button
+                                onClick={executeBroadcast}
+                                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 rounded-2xl shadow-xl shadow-purple-200 flex items-center justify-center gap-2 text-lg transition active:scale-95"
+                            >
+                                <Send size={20} />
+                                ¡Lanzar Difusión!
+                            </button>
+                            <button
+                                onClick={() => setIsBroadcastModalOpen(false)}
+                                className="w-full mt-2 py-3 text-gray-400 font-bold hover:bg-gray-50 rounded-xl transition text-sm"
+                            >
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};

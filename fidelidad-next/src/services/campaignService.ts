@@ -43,6 +43,7 @@ export interface BonusRule {
 
     rewardType: 'FIXED' | 'MULTIPLIER' | 'INFO';
     rewardValue: number;
+    rewardText?: string; // Nuevo campo para textos como "2x1", "50% OFF"
     channels?: string[]; // push, email, whatsapp
 }
 

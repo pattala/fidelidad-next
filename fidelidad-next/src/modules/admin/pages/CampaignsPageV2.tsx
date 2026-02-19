@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
     Plus, Trash2, Calendar, Target, Award, Save, X, Megaphone, Sparkles,
     ToggleLeft, ToggleRight, Edit, Send, Monitor, Layout, Clock, Image as ImageIcon,
-    ChevronRight, Zap, Info, MousePointer2, MessageCircle
+    ChevronRight, Zap, Info, MousePointer2, MessageCircle, Type
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { CampaignService, type BonusRule } from '../../../services/campaignService';
@@ -27,7 +27,7 @@ export const CampaignsPageV2 = () => {
 
     const [formData, setFormData] = useState<Partial<BonusRule>>({
         name: '', title: '', showTitle: true, description: '', showDescription: true,
-        rewardType: 'FIXED', rewardValue: 50, daysOfWeek: [], active: true,
+        rewardType: 'FIXED', rewardValue: 50, rewardText: '', daysOfWeek: [], active: true,
         startDate: '', endDate: '', startTime: '', endTime: '',
         imageUrl: '', showInCarousel: false, showInHomeBanner: false,
         backgroundColor: '#4F46E5', textColor: '#FFFFFF', fontWeight: 'normal',
@@ -55,7 +55,7 @@ export const CampaignsPageV2 = () => {
     const resetForm = () => {
         setFormData({
             name: '', title: '', showTitle: true, description: '', showDescription: true,
-            rewardType: 'FIXED', rewardValue: 50, daysOfWeek: [], active: true,
+            rewardType: 'FIXED', rewardValue: 50, rewardText: '', daysOfWeek: [], active: true,
             startDate: '', endDate: '', startTime: '', endTime: '',
             imageUrl: '', showInCarousel: false, showInHomeBanner: false,
             backgroundColor: '#4F46E5', textColor: '#FFFFFF', fontWeight: 'normal',
@@ -75,9 +75,16 @@ export const CampaignsPageV2 = () => {
                 toast.error('Un anuncio debe tener imagen o descripción');
                 return;
             }
+            // @ts-ignore
+            if (formData.rewardType === 'TEXT' && !formData.rewardText) {
+                toast.error('Debes ingresar el texto del beneficio (Ej: 2x1)');
+                return;
+            }
+
             const payload = {
                 ...formData,
-                rewardValue: formData.rewardType === 'INFO' ? 0 : formData.rewardValue,
+                // @ts-ignore
+                rewardValue: (formData.rewardType === 'INFO' || formData.rewardType === 'TEXT') ? 0 : formData.rewardValue,
                 startTime: isFlashMode ? formData.startTime : '',
                 endTime: isFlashMode ? formData.endTime : ''
             };
@@ -124,19 +131,20 @@ export const CampaignsPageV2 = () => {
     const handleBroadcast = async (bonus: BonusRule) => {
         try {
             const config = await ConfigService.get();
-            const eventType = bonus.rewardType === 'INFO' ? 'offer' : 'campaign';
+            // @ts-ignore
+            const eventType = bonus.rewardType === 'INFO' || bonus.rewardType === 'TEXT' ? 'offer' : 'campaign';
 
             let template = "";
             let msg = "";
 
-            if (bonus.rewardType === 'INFO') {
+            if (bonus.rewardType === 'INFO' || (bonus.rewardType as any) === 'TEXT') {
                 template = config?.messaging?.templates?.offer || DEFAULT_TEMPLATES.offer;
                 const vencimiento = bonus.endDate
                     ? new Date(bonus.endDate + 'T00:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
                     : 'agotar stock';
                 msg = template
                     .replace(/{titulo}/g, bonus.title || bonus.name)
-                    .replace(/{detalle}/g, bonus.description || 'Consultanos.')
+                    .replace(/{detalle}/g, bonus.description || (bonus.rewardText ? `¡${bonus.rewardText}!` : 'Consultanos.'))
                     .replace(/{vencimiento}/g, vencimiento);
             } else {
                 template = config?.messaging?.templates?.campaign || DEFAULT_TEMPLATES.campaign;
@@ -216,6 +224,76 @@ export const CampaignsPageV2 = () => {
         });
     };
 
+    // Componente de Vista Previa Reutilizable
+    const PreviewCard = () => (
+        <div className="bg-white rounded-[2rem] shadow-xl overflow-hidden flex flex-col h-fit sticky top-8 border border-gray-100 animate-fade-in-up">
+            <div className="bg-gray-100 px-4 py-2 border-b border-gray-200 flex justify-between items-center">
+                <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Vista Previa</span>
+                <div className="flex gap-1">
+                    <div className="w-2 h-2 rounded-full bg-red-400" />
+                    <div className="w-2 h-2 rounded-full bg-yellow-400" />
+                    <div className="w-2 h-2 rounded-full bg-green-400" />
+                </div>
+            </div>
+            <div className="relative h-48 w-full overflow-hidden" style={{ backgroundColor: formData.backgroundColor }}>
+                {formData.imageUrl ? (
+                    <img
+                        src={formData.imageUrl}
+                        className={`absolute inset-0 w-full h-full ${formData.imageFit === 'cover' ? 'object-cover' : 'object-contain'}`}
+                        style={{ opacity: (formData.imageOpacity || 0) / 100 }}
+                        alt=""
+                    />
+                ) : (
+                    <div className="absolute inset-0 flex items-center justify-center text-white/20">
+                        <ImageIcon size={48} />
+                    </div>
+                )}
+                <div className={`relative z-10 w-full h-full p-6 flex flex-col justify-end`}>
+                    {formData.showTitle && (
+                        <h4 className="text-xl font-black leading-tight mb-1 drop-shadow-sm" style={{ color: formData.textColor }}>
+                            {formData.title || 'Título de la Campaña'}
+                        </h4>
+                    )}
+                    {formData.showDescription && (
+                        <p className="text-xs opacity-90 drop-shadow-sm line-clamp-2" style={{ color: formData.textColor }}>
+                            {formData.description || 'Descripción breve de la promoción...'}
+                        </p>
+                    )}
+                </div>
+            </div>
+            <div className="p-4 bg-gray-50/50 space-y-2">
+                {/* Badges Preview */}
+                <div className="flex flex-wrap gap-2">
+                    {isFlashMode && (
+                        <span className="bg-red-500 text-white px-2 py-0.5 rounded text-[9px] font-black uppercase flex items-center gap-1">
+                            <Zap size={8} fill="white" /> FLASH
+                        </span>
+                    )}
+                    {(formData.rewardType as any) === 'TEXT' && formData.rewardText && (
+                        <span className="bg-pink-500 text-white px-2 py-0.5 rounded text-[9px] font-black uppercase flex items-center gap-1">
+                            <Type size={8} /> {formData.rewardText}
+                        </span>
+                    )}
+                    {formData.rewardType !== 'INFO' && (formData.rewardType as any) !== 'TEXT' && (
+                        <span className="bg-purple-500 text-white px-2 py-0.5 rounded text-[9px] font-black uppercase flex items-center gap-1">
+                            <Sparkles size={8} /> {formData.rewardType === 'MULTIPLIER' ? `x${formData.rewardValue}` : `+${formData.rewardValue}`} Pts
+                        </span>
+                    )}
+                    {formData.showInCarousel && (
+                        <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-[9px] font-bold uppercase border border-purple-200">
+                            Carrusel
+                        </span>
+                    )}
+                    {formData.showInHomeBanner && (
+                        <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[9px] font-bold uppercase border border-blue-200">
+                            Banner Home
+                        </span>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+
     return (
         <div className="space-y-6 animate-fade-in pb-20">
             {/* Header Moderno */}
@@ -270,7 +348,11 @@ export const CampaignsPageV2 = () => {
                                         <Zap size={10} fill="white" /> FLASH
                                     </span>
                                 )}
-                                {bonus.rewardType !== 'INFO' ? (
+                                {(bonus.rewardType as any) === 'TEXT' ? (
+                                    <span className="bg-pink-500 text-white text-[10px] font-black px-3 py-1 rounded-full flex items-center gap-1">
+                                        <Type size={10} fill="white" /> PROMO
+                                    </span>
+                                ) : bonus.rewardType !== 'INFO' ? (
                                     <span className="bg-purple-500 text-white text-[10px] font-black px-3 py-1 rounded-full flex items-center gap-1">
                                         <Sparkles size={10} /> PUNTOS
                                     </span>
@@ -317,7 +399,7 @@ export const CampaignsPageV2 = () => {
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8">
                     <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md" onClick={() => setIsModalOpen(false)} />
 
-                    <div className="bg-white w-full max-w-5xl h-[90vh] rounded-[3rem] shadow-2xl relative z-10 overflow-hidden flex flex-col md:flex-row animate-scale-up">
+                    <div className="bg-white w-full max-w-6xl h-[90vh] rounded-[3rem] shadow-2xl relative z-10 overflow-hidden flex flex-col md:flex-row animate-scale-up">
 
                         {/* Sidebar del Modal (Tabs) */}
                         <div className="w-full md:w-64 bg-gray-50 border-r border-gray-100 p-8 flex flex-col shrink-0">
@@ -358,302 +440,313 @@ export const CampaignsPageV2 = () => {
                             </button>
                         </div>
 
-                        {/* Content del Modal */}
-                        <div className="flex-1 p-8 md:p-12 overflow-y-auto bg-white">
-                            <div className="max-w-xl mx-auto space-y-8">
+                        {/* Content del Modal + Preview Layout */}
+                        <div className="flex-1 flex overflow-hidden">
+                            <div className="flex-1 p-8 md:p-12 overflow-y-auto bg-white">
+                                <div className="max-w-xl mx-auto space-y-8">
 
-                                {activeTab === 'BASIC' && (
-                                    <div className="space-y-6 animate-slide-in-right">
-                                        <section>
-                                            <label className="text-[10px] font-black text-gray-400 uppercase mb-2 block">Identificación</label>
-                                            <input
-                                                type="text" required placeholder="Nombre Interno (Ej: Promo Lunes Locos)"
-                                                className="w-full text-2xl font-bold border-b-2 border-gray-100 focus:border-purple-600 outline-none transition-colors py-2"
-                                                value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                            />
-                                        </section>
-
-                                        <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <div className="space-y-4">
-                                                <div className="flex justify-between items-center">
-                                                    <label className="text-xs font-black text-gray-600 uppercase">Título Público</label>
-                                                    <label className="flex items-center gap-1 cursor-pointer">
-                                                        <input type="checkbox" className="w-3 h-3 text-purple-600" checked={formData.showTitle} onChange={e => setFormData({ ...formData, showTitle: e.target.checked })} />
-                                                        <span className="text-[9px] font-bold text-gray-400">Mostrar</span>
-                                                    </label>
-                                                </div>
+                                    {activeTab === 'BASIC' && (
+                                        <div className="space-y-6 animate-slide-in-right">
+                                            <section>
+                                                <label className="text-[10px] font-black text-gray-400 uppercase mb-2 block">Identificación</label>
                                                 <input
-                                                    type="text" placeholder="Ej: ¡2x1 en toda la tienda!"
-                                                    className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 focus:bg-white focus:ring-2 focus:ring-purple-100 outline-none transition-all text-sm font-medium"
-                                                    value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })}
+                                                    type="text" required placeholder="Nombre Interno (Ej: Promo Lunes Locos)"
+                                                    className="w-full text-2xl font-bold border-b-2 border-gray-100 focus:border-purple-600 outline-none transition-colors py-2"
+                                                    value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })}
                                                 />
-                                            </div>
+                                            </section>
 
-                                            <div className="space-y-4">
-                                                <div className="flex justify-between items-center">
-                                                    <label className="text-xs font-black text-gray-600 uppercase">Descripción</label>
-                                                    <label className="flex items-center gap-1 cursor-pointer">
-                                                        <input type="checkbox" className="w-3 h-3 text-purple-600" checked={formData.showDescription} onChange={e => setFormData({ ...formData, showDescription: e.target.checked })} />
-                                                        <span className="text-[9px] font-bold text-gray-400">Mostrar</span>
-                                                    </label>
-                                                </div>
-                                                <textarea
-                                                    rows={1} placeholder="Detalles de la oferta..."
-                                                    className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 focus:bg-white focus:ring-2 focus:ring-purple-100 outline-none transition-all text-sm font-medium resize-none"
-                                                    value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })}
-                                                />
-                                            </div>
-                                        </section>
-
-                                        <section className="bg-blue-50 p-6 rounded-[2rem] border border-blue-100">
-                                            <div className="flex justify-between items-center mb-4">
-                                                <label className="text-xs font-black text-blue-900 uppercase">Enlace de Acción</label>
-                                                <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-bold italic">Opcional</span>
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <div className="p-3 bg-white rounded-xl text-blue-400 shadow-sm">
-                                                    <MousePointer2 size={20} />
-                                                </div>
-                                                <input
-                                                    type="url" placeholder="https://tu-web.com/promo"
-                                                    className="flex-1 p-3 rounded-xl bg-white shadow-sm border-none focus:ring-2 focus:ring-blue-200 outline-none text-sm placeholder:text-blue-200"
-                                                    value={formData.link} onChange={e => setFormData({ ...formData, link: e.target.value })}
-                                                />
-                                            </div>
-                                        </section>
-
-                                        <section className="pt-4 border-t border-gray-100">
-                                            <label className="text-xs font-black text-gray-500 uppercase mb-4 block">Canales de Difusión Sugeridos</label>
-                                            <div className="flex gap-4">
-                                                {['push', 'email', 'whatsapp'].map(channel => (
-                                                    <label key={channel} className="flex items-center gap-2 cursor-pointer group">
-                                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${formData.channels?.includes(channel) ? 'bg-purple-600 text-white shadow-lg' : 'bg-gray-100 text-gray-400 group-hover:bg-gray-200'}`}>
-                                                            {channel === 'push' && <Monitor size={16} />}
-                                                            {channel === 'email' && <Sparkles size={16} />}
-                                                            {channel === 'whatsapp' && <MessageCircle size={16} />}
-                                                        </div>
-                                                        <input
-                                                            type="checkbox"
-                                                            className="hidden"
-                                                            checked={formData.channels?.includes(channel)}
-                                                            onChange={e => {
-                                                                const current = formData.channels || [];
-                                                                setFormData({ ...formData, channels: e.target.checked ? [...current, channel] : current.filter(c => c !== channel) });
-                                                            }}
-                                                        />
-                                                    </label>
-                                                ))}
-                                            </div>
-                                            <p className="text-[10px] text-gray-400 font-bold mt-3 uppercase italic">Establece los canales preferidos para este anuncio</p>
-                                        </section>
-                                    </div>
-                                )}
-
-                                {activeTab === 'VISUAL' && (
-                                    <div className="space-y-8 animate-slide-in-right">
-                                        <section className="space-y-4">
-                                            <label className="text-xs font-black text-gray-600 uppercase">Configuración de Imagen</label>
-                                            <div className="flex gap-4">
-                                                <input
-                                                    type="url" placeholder="Pega el enlace de la imagen aquí..."
-                                                    className="flex-1 p-4 rounded-2xl bg-gray-50 border border-gray-100 focus:bg-white focus:ring-2 focus:ring-purple-100 outline-none transition-all text-sm font-medium"
-                                                    value={formData.imageUrl} onChange={e => setFormData({ ...formData, imageUrl: e.target.value })}
-                                                />
-                                            </div>
-                                        </section>
-
-                                        <section className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <label className="flex items-center justify-between p-3 bg-white rounded-xl shadow-sm cursor-pointer hover:bg-gray-50 transition-colors">
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`p-2 rounded-lg ${formData.showInCarousel ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-400'}`}>
-                                                        <Layout size={20} />
+                                            <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div className="space-y-4">
+                                                    <div className="flex justify-between items-center">
+                                                        <label className="text-xs font-black text-gray-600 uppercase">Título Público</label>
+                                                        <label className="flex items-center gap-1 cursor-pointer">
+                                                            <input type="checkbox" className="w-3 h-3 text-purple-600" checked={formData.showTitle} onChange={e => setFormData({ ...formData, showTitle: e.target.checked })} />
+                                                            <span className="text-[9px] font-bold text-gray-400">Mostrar</span>
+                                                        </label>
                                                     </div>
-                                                    <div>
-                                                        <p className="font-bold text-sm text-gray-700">Mostrar en Carrusel</p>
-                                                        <p className="text-[10px] text-gray-400">Visible en la pantalla principal</p>
-                                                    </div>
-                                                </div>
-                                                <div className={`w-10 h-6 shrink-0 rounded-full p-1 transition-colors duration-300 ${formData.showInCarousel ? 'bg-purple-600' : 'bg-gray-200'}`}>
-                                                    <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-300 ${formData.showInCarousel ? 'translate-x-4' : 'translate-x-0'}`} />
-                                                </div>
-                                                <input
-                                                    type="checkbox" className="hidden"
-                                                    checked={formData.showInCarousel}
-                                                    onChange={e => setFormData({ ...formData, showInCarousel: e.target.checked })}
-                                                />
-                                            </label>
-
-                                            <label className="flex items-center justify-between p-3 bg-white rounded-xl shadow-sm cursor-pointer hover:bg-gray-50 transition-colors">
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`p-2 rounded-lg ${formData.showInHomeBanner ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
-                                                        <Monitor size={20} />
-                                                    </div>
-                                                    <div>
-                                                        <p className="font-bold text-sm text-gray-700">Banner Home</p>
-                                                        <p className="text-[10px] text-gray-400">Destapado superior en la App</p>
-                                                    </div>
-                                                </div>
-                                                <div className={`w-10 h-6 shrink-0 rounded-full p-1 transition-colors duration-300 ${formData.showInHomeBanner ? 'bg-blue-600' : 'bg-gray-200'}`}>
-                                                    <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-300 ${formData.showInHomeBanner ? 'translate-x-4' : 'translate-x-0'}`} />
-                                                </div>
-                                                <input
-                                                    type="checkbox" className="hidden"
-                                                    checked={formData.showInHomeBanner}
-                                                    onChange={e => setFormData({ ...formData, showInHomeBanner: e.target.checked })}
-                                                />
-                                            </label>
-                                        </section>
-
-                                        <section className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-gray-400 uppercase">Fondo</label>
-                                                <input type="color" className="w-full h-12 rounded-xl cursor-pointer border-4 border-gray-50" value={formData.backgroundColor} onChange={e => setFormData({ ...formData, backgroundColor: e.target.value })} />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-gray-400 uppercase">Texto</label>
-                                                <input type="color" className="w-full h-12 rounded-xl cursor-pointer border-4 border-gray-50" value={formData.textColor} onChange={e => setFormData({ ...formData, textColor: e.target.value })} />
-                                            </div>
-                                            <div className="col-span-2 space-y-2">
-                                                <label className="text-[10px] font-black text-gray-400 uppercase">Opacidad Imagen ({formData.imageOpacity}%)</label>
-                                                <input type="range" className="w-full h-12 accent-purple-600" min="0" max="100" value={formData.imageOpacity} onChange={e => setFormData({ ...formData, imageOpacity: parseInt(e.target.value) })} />
-                                            </div>
-                                        </section>
-
-                                        <section className="bg-gray-50 p-8 rounded-[3rem] border border-dashed border-gray-200">
-                                            <label className="text-[10px] font-black text-gray-400 uppercase mb-4 block text-center tracking-widest">Vista Previa Real</label>
-                                            <div className="relative h-48 w-full rounded-[2rem] shadow-2xl overflow-hidden flex transition-all" style={{ backgroundColor: formData.backgroundColor }}>
-                                                {formData.imageUrl && (
-                                                    <img
-                                                        src={formData.imageUrl}
-                                                        className={`absolute inset-0 w-full h-full ${formData.imageFit === 'cover' ? 'object-cover' : 'object-contain'}`}
-                                                        style={{ opacity: (formData.imageOpacity || 0) / 100 }}
-                                                        alt=""
-                                                    />
-                                                )}
-                                                <div className={`relative z-10 w-full p-8 flex flex-col justify-end`}>
-                                                    {formData.showTitle && (
-                                                        <h4 className="text-2xl font-black leading-tight mb-1" style={{ color: formData.textColor }}>
-                                                            {formData.title || 'Título Aquí'}
-                                                        </h4>
-                                                    )}
-                                                    {formData.showDescription && (
-                                                        <p className="text-sm opacity-80" style={{ color: formData.textColor }}>
-                                                            {formData.description || 'Descripción aquí...'}
-                                                        </p>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </section>
-                                    </div>
-                                )}
-
-                                {activeTab === 'RULES' && (
-                                    <div className="space-y-8 animate-slide-in-right">
-                                        <section className="space-y-4">
-                                            <label className="text-xs font-black text-gray-600 uppercase">Tipo de Beneficio</label>
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                {[
-                                                    { id: 'FIXED', label: 'Puntos Fijos', icon: <Plus size={24} />, color: 'bg-green-500' },
-                                                    { id: 'MULTIPLIER', label: 'Multiplicador', icon: <Zap size={24} />, color: 'bg-purple-600' },
-                                                    { id: 'INFO', label: 'Solo Anuncio', icon: <Megaphone size={24} />, color: 'bg-blue-500' },
-                                                ].map(type => (
-                                                    <button
-                                                        key={type.id} type="button"
-                                                        onClick={() => setFormData({ ...formData, rewardType: type.id as any })}
-                                                        className={`p-6 rounded-3xl border-2 transition-all flex flex-col items-center gap-3 ${formData.rewardType === type.id ? 'border-black bg-black text-white' : 'border-gray-100 hover:border-gray-200'}`}
-                                                    >
-                                                        <div className={`p-3 rounded-2xl ${formData.rewardType === type.id ? 'bg-white/20' : 'bg-gray-100 text-gray-400'}`}>
-                                                            {type.icon}
-                                                        </div>
-                                                        <span className="font-bold text-sm tracking-tight">{type.label}</span>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </section>
-
-                                        {formData.rewardType !== 'INFO' && (
-                                            <section className="bg-gray-50 p-8 rounded-[3rem] text-center animate-fade-in">
-                                                <label className="text-xs font-black text-gray-400 uppercase mb-4 block">Valor del Beneficio</label>
-                                                <div className="flex items-center justify-center gap-4">
-                                                    <span className="text-4xl font-black text-gray-300">
-                                                        {formData.rewardType === 'MULTIPLIER' ? 'x' : '+'}
-                                                    </span>
                                                     <input
-                                                        type="number" step={formData.rewardType === 'MULTIPLIER' ? "0.1" : "1"}
-                                                        className="w-40 text-6xl font-black bg-transparent border-none focus:ring-0 text-center outline-none text-black"
-                                                        value={formData.rewardValue} onChange={e => setFormData({ ...formData, rewardValue: parseFloat(e.target.value) || 0 })}
+                                                        type="text" placeholder="Ej: ¡2x1 en toda la tienda!"
+                                                        className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 focus:bg-white focus:ring-2 focus:ring-purple-100 outline-none transition-all text-sm font-medium"
+                                                        value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })}
                                                     />
-                                                    <span className="text-xl font-bold text-gray-400 uppercase">
-                                                        {formData.rewardType === 'MULTIPLIER' ? 'Bonus' : 'Puntos'}
-                                                    </span>
+                                                </div>
+
+                                                <div className="space-y-4">
+                                                    <div className="flex justify-between items-center">
+                                                        <label className="text-xs font-black text-gray-600 uppercase">Descripción</label>
+                                                        <label className="flex items-center gap-1 cursor-pointer">
+                                                            <input type="checkbox" className="w-3 h-3 text-purple-600" checked={formData.showDescription} onChange={e => setFormData({ ...formData, showDescription: e.target.checked })} />
+                                                            <span className="text-[9px] font-bold text-gray-400">Mostrar</span>
+                                                        </label>
+                                                    </div>
+                                                    <textarea
+                                                        rows={1} placeholder="Detalles de la oferta..."
+                                                        className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 focus:bg-white focus:ring-2 focus:ring-purple-100 outline-none transition-all text-sm font-medium resize-none"
+                                                        value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })}
+                                                    />
                                                 </div>
                                             </section>
-                                        )}
-                                    </div>
-                                )}
 
-                                {activeTab === 'SCHEDULE' && (
-                                    <div className="space-y-8 animate-slide-in-right">
-                                        <section className="bg-red-50 p-8 rounded-[3rem] border border-red-100 transition-all overflow-hidden">
-                                            <div className="flex items-center justify-between mb-2">
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`p-3 rounded-2xl transition-colors ${isFlashMode ? 'bg-red-500 text-white shadow-lg' : 'bg-gray-200 text-gray-400'}`}>
-                                                        <Zap size={24} fill={isFlashMode ? "white" : "none"} />
-                                                    </div>
-                                                    <div>
-                                                        <h4 className="font-black text-red-900 uppercase">Modo Oferta Flash</h4>
-                                                        <p className="text-[10px] text-red-600 font-bold opacity-60">Activa horarios urgentes</p>
-                                                    </div>
+                                            <section className="bg-blue-50 p-6 rounded-[2rem] border border-blue-100">
+                                                <div className="flex justify-between items-center mb-4">
+                                                    <label className="text-xs font-black text-blue-900 uppercase">Enlace de Acción</label>
+                                                    <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-bold italic">Opcional</span>
                                                 </div>
-                                                <button
-                                                    type="button" onClick={() => setIsFlashMode(!isFlashMode)}
-                                                    className={`p-2 rounded-full transition-all ${isFlashMode ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-400'}`}
-                                                >
-                                                    {isFlashMode ? <ToggleRight size={40} /> : <ToggleLeft size={40} />}
-                                                </button>
-                                            </div>
+                                                <div className="flex gap-2">
+                                                    <div className="p-3 bg-white rounded-xl text-blue-400 shadow-sm">
+                                                        <MousePointer2 size={20} />
+                                                    </div>
+                                                    <input
+                                                        type="url" placeholder="https://tu-web.com/promo"
+                                                        className="flex-1 p-3 rounded-xl bg-white shadow-sm border-none focus:ring-2 focus:ring-blue-200 outline-none text-sm placeholder:text-blue-200"
+                                                        value={formData.link} onChange={e => setFormData({ ...formData, link: e.target.value })}
+                                                    />
+                                                </div>
+                                            </section>
 
-                                            {isFlashMode && (
-                                                <div className="grid grid-cols-2 gap-4 mt-6 animate-fade-in-down">
-                                                    <div className="space-y-2">
-                                                        <label className="text-[10px] font-black text-red-400 uppercase block ml-2">Empieza a las</label>
-                                                        <input type="time" className="w-full p-4 rounded-2xl bg-white border-none shadow-sm text-lg font-bold text-red-600 focus:ring-2 focus:ring-red-200 outline-none" value={formData.startTime} onChange={e => setFormData({ ...formData, startTime: e.target.value })} />
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        <label className="text-[10px] font-black text-red-400 uppercase block ml-2">Termina a las</label>
-                                                        <input type="time" className="w-full p-4 rounded-2xl bg-white border-none shadow-sm text-lg font-bold text-red-600 focus:ring-2 focus:ring-red-200 outline-none" value={formData.endTime} onChange={e => setFormData({ ...formData, endTime: e.target.value })} />
-                                                    </div>
+                                            <section className="pt-4 border-t border-gray-100">
+                                                <label className="text-xs font-black text-gray-500 uppercase mb-4 block">Canales de Difusión Sugeridos</label>
+                                                <div className="flex gap-3">
+                                                    {['push', 'email', 'whatsapp'].map(channel => (
+                                                        <label key={channel} className={`flex-1 flex flex-col items-center gap-2 cursor-pointer p-4 rounded-xl border-2 transition-all ${formData.channels?.includes(channel) ? 'border-purple-600 bg-purple-50 text-purple-700' : 'border-gray-100 bg-white text-gray-400 hover:bg-gray-50'}`}>
+                                                            <div className={`p-2 rounded-full ${formData.channels?.includes(channel) ? 'bg-purple-200' : 'bg-gray-100'}`}>
+                                                                {channel === 'push' && <Monitor size={20} />}
+                                                                {channel === 'email' && <Sparkles size={20} />}
+                                                                {channel === 'whatsapp' && <MessageCircle size={20} />}
+                                                            </div>
+                                                            <span className="text-[10px] font-black uppercase tracking-wide">
+                                                                {channel === 'push' && 'Notif. Push'}
+                                                                {channel === 'email' && 'E-mail'}
+                                                                {channel === 'whatsapp' && 'WhatsApp'}
+                                                            </span>
+                                                            <input
+                                                                type="checkbox"
+                                                                className="hidden"
+                                                                checked={formData.channels?.includes(channel)}
+                                                                onChange={e => {
+                                                                    const current = formData.channels || [];
+                                                                    setFormData({ ...formData, channels: e.target.checked ? [...current, channel] : current.filter(c => c !== channel) });
+                                                                }}
+                                                            />
+                                                        </label>
+                                                    ))}
                                                 </div>
+                                                <p className="text-[10px] text-gray-400 font-bold mt-3 uppercase italic text-center">Selecciona dónde quieres anunciar esto</p>
+                                            </section>
+                                        </div>
+                                    )}
+
+                                    {activeTab === 'VISUAL' && (
+                                        <div className="space-y-8 animate-slide-in-right">
+                                            <section className="space-y-4">
+                                                <label className="text-xs font-black text-gray-600 uppercase">Configuración de Imagen</label>
+                                                <div className="flex gap-4">
+                                                    <input
+                                                        type="url" placeholder="Pega el enlace de la imagen aquí..."
+                                                        className="flex-1 p-4 rounded-2xl bg-gray-50 border border-gray-100 focus:bg-white focus:ring-2 focus:ring-purple-100 outline-none transition-all text-sm font-medium"
+                                                        value={formData.imageUrl} onChange={e => setFormData({ ...formData, imageUrl: e.target.value })}
+                                                    />
+                                                </div>
+                                            </section>
+
+                                            <section className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <label className="flex items-center justify-between p-3 bg-white rounded-xl shadow-sm cursor-pointer hover:bg-gray-50 transition-colors">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`p-2 rounded-lg ${formData.showInCarousel ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-400'}`}>
+                                                            <Layout size={20} />
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-bold text-sm text-gray-700">Mostrar en Carrusel</p>
+                                                            <p className="text-[10px] text-gray-400">Visible en la pantalla principal</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className={`w-10 h-6 shrink-0 rounded-full p-1 transition-colors duration-300 ${formData.showInCarousel ? 'bg-purple-600' : 'bg-gray-200'}`}>
+                                                        <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-300 ${formData.showInCarousel ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                    </div>
+                                                    <input
+                                                        type="checkbox" className="hidden"
+                                                        checked={formData.showInCarousel}
+                                                        onChange={e => setFormData({ ...formData, showInCarousel: e.target.checked })}
+                                                    />
+                                                </label>
+
+                                                <label className="flex items-center justify-between p-3 bg-white rounded-xl shadow-sm cursor-pointer hover:bg-gray-50 transition-colors">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`p-2 rounded-lg ${formData.showInHomeBanner ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
+                                                            <Monitor size={20} />
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-bold text-sm text-gray-700">Banner Home</p>
+                                                            <p className="text-[10px] text-gray-400">Destapado superior en la App</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className={`w-10 h-6 shrink-0 rounded-full p-1 transition-colors duration-300 ${formData.showInHomeBanner ? 'bg-blue-600' : 'bg-gray-200'}`}>
+                                                        <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-300 ${formData.showInHomeBanner ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                    </div>
+                                                    <input
+                                                        type="checkbox" className="hidden"
+                                                        checked={formData.showInHomeBanner}
+                                                        onChange={e => setFormData({ ...formData, showInHomeBanner: e.target.checked })}
+                                                    />
+                                                </label>
+                                            </section>
+
+                                            <section className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black text-gray-400 uppercase">Fondo</label>
+                                                    <input type="color" className="w-full h-12 rounded-xl cursor-pointer border-4 border-gray-50" value={formData.backgroundColor} onChange={e => setFormData({ ...formData, backgroundColor: e.target.value })} />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black text-gray-400 uppercase">Texto</label>
+                                                    <input type="color" className="w-full h-12 rounded-xl cursor-pointer border-4 border-gray-50" value={formData.textColor} onChange={e => setFormData({ ...formData, textColor: e.target.value })} />
+                                                </div>
+                                                <div className="col-span-2 space-y-2">
+                                                    <label className="text-[10px] font-black text-gray-400 uppercase">Opacidad Imagen ({formData.imageOpacity}%)</label>
+                                                    <input type="range" className="w-full h-12 accent-purple-600" min="0" max="100" value={formData.imageOpacity} onChange={e => setFormData({ ...formData, imageOpacity: parseInt(e.target.value) })} />
+                                                </div>
+                                            </section>
+                                        </div>
+                                    )}
+
+                                    {activeTab === 'RULES' && (
+                                        <div className="space-y-8 animate-slide-in-right">
+                                            <section className="space-y-4">
+                                                <label className="text-xs font-black text-gray-600 uppercase">Tipo de Beneficio</label>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                                                    {[
+                                                        { id: 'FIXED', label: 'Puntos Fijos', icon: <Plus size={24} />, color: 'bg-green-500' },
+                                                        { id: 'MULTIPLIER', label: 'Multiplicador', icon: <Zap size={24} />, color: 'bg-purple-600' },
+                                                        { id: 'TEXT', label: 'Texto / Promo', icon: <Type size={24} />, color: 'bg-pink-500' },
+                                                        { id: 'INFO', label: 'Solo Anuncio', icon: <Megaphone size={24} />, color: 'bg-blue-500' },
+                                                    ].map(type => (
+                                                        <button
+                                                            key={type.id} type="button"
+                                                            onClick={() => setFormData({ ...formData, rewardType: type.id as any })}
+                                                            className={`p-6 rounded-3xl border-2 transition-all flex flex-col items-center gap-3 ${formData.rewardType === type.id ? 'border-black bg-black text-white' : 'border-gray-100 hover:border-gray-200'}`}
+                                                        >
+                                                            <div className={`p-3 rounded-2xl ${formData.rewardType === type.id ? 'bg-white/20' : 'bg-gray-100 text-gray-400'}`}>
+                                                                {type.icon}
+                                                            </div>
+                                                            <span className="font-bold text-sm tracking-tight">{type.label}</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </section>
+
+                                            {(formData.rewardType as any) === 'TEXT' && (
+                                                <section className="bg-pink-50 p-8 rounded-[3rem] text-center animate-fade-in border border-pink-100">
+                                                    <label className="text-xs font-black text-pink-400 uppercase mb-4 block">Texto del Beneficio</label>
+                                                    <input
+                                                        type="text" placeholder="Ej: 2x1, 50% OFF"
+                                                        className="w-full text-4xl font-black bg-transparent border-b-2 border-pink-200 focus:border-pink-500 text-center outline-none text-pink-600 placeholder:text-pink-200"
+                                                        value={formData.rewardText || ''}
+                                                        onChange={e => setFormData({ ...formData, rewardText: e.target.value })}
+                                                    />
+                                                    <p className="text-[10px] text-pink-400 mt-2 font-bold uppercase">Este texto reemplazará a los puntos en la visualización</p>
+                                                </section>
                                             )}
-                                        </section>
 
-                                        <section className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-gray-400 uppercase block ml-2">Fecha Inicio</label>
-                                                <input type="date" className="w-full p-4 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold focus:bg-white outline-none transition-all" value={formData.startDate} onChange={e => setFormData({ ...formData, startDate: e.target.value })} />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-gray-400 uppercase block ml-2">Fecha Fin</label>
-                                                <input type="date" className="w-full p-4 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold focus:bg-white outline-none transition-all" value={formData.endDate} onChange={e => setFormData({ ...formData, endDate: e.target.value })} />
-                                            </div>
-                                        </section>
+                                            {formData.rewardType !== 'INFO' && (formData.rewardType as any) !== 'TEXT' && (
+                                                <section className="bg-gray-50 p-8 rounded-[3rem] text-center animate-fade-in">
+                                                    <label className="text-xs font-black text-gray-400 uppercase mb-4 block">Valor del Beneficio</label>
+                                                    <div className="flex items-center justify-center gap-4">
+                                                        <span className="text-4xl font-black text-gray-300">
+                                                            {formData.rewardType === 'MULTIPLIER' ? 'x' : '+'}
+                                                        </span>
+                                                        <input
+                                                            type="number" step={formData.rewardType === 'MULTIPLIER' ? "0.1" : "1"}
+                                                            className="w-40 text-6xl font-black bg-transparent border-none focus:ring-0 text-center outline-none text-black"
+                                                            value={formData.rewardValue} onChange={e => setFormData({ ...formData, rewardValue: parseFloat(e.target.value) || 0 })}
+                                                        />
+                                                        <span className="text-xl font-bold text-gray-400 uppercase">
+                                                            {formData.rewardType === 'MULTIPLIER' ? 'Bonus' : 'Puntos'}
+                                                        </span>
+                                                    </div>
+                                                </section>
+                                            )}
+                                        </div>
+                                    )}
 
-                                        <section className="space-y-4">
-                                            <label className="text-xs font-black text-gray-600 uppercase block text-center">Días Activos de la Semana</label>
-                                            <div className="flex justify-between gap-2">
-                                                {DAYS.map(day => (
+                                    {activeTab === 'SCHEDULE' && (
+                                        <div className="space-y-8 animate-slide-in-right">
+                                            <section className="bg-red-50 p-8 rounded-[3rem] border border-red-100 transition-all overflow-hidden">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`p-3 rounded-2xl transition-colors ${isFlashMode ? 'bg-red-500 text-white shadow-lg' : 'bg-gray-200 text-gray-400'}`}>
+                                                            <Zap size={24} fill={isFlashMode ? "white" : "none"} />
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="font-black text-red-900 uppercase">Modo Oferta Flash</h4>
+                                                            <p className="text-[10px] text-red-600 font-bold opacity-60">Activa horarios urgentes</p>
+                                                        </div>
+                                                    </div>
                                                     <button
-                                                        key={day.id} type="button"
-                                                        onClick={() => toggleDay(day.id)}
-                                                        className={`flex-1 h-14 rounded-2xl text-xs font-black transition-all border-2 ${formData.daysOfWeek?.includes(day.id) ? 'bg-black border-black text-white shadow-lg' : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'}`}
+                                                        type="button" onClick={() => setIsFlashMode(!isFlashMode)}
+                                                        className={`p-2 rounded-full transition-all ${isFlashMode ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-400'}`}
                                                     >
-                                                        {day.label}
+                                                        {isFlashMode ? <ToggleRight size={40} /> : <ToggleLeft size={40} />}
                                                     </button>
-                                                ))}
-                                            </div>
-                                        </section>
+                                                </div>
+
+                                                {isFlashMode && (
+                                                    <div className="grid grid-cols-2 gap-4 mt-6 animate-fade-in-down">
+                                                        <div className="space-y-2">
+                                                            <label className="text-[10px] font-black text-red-400 uppercase block ml-2">Empieza a las</label>
+                                                            <input type="time" className="w-full p-4 rounded-2xl bg-white border-none shadow-sm text-lg font-bold text-red-600 focus:ring-2 focus:ring-red-200 outline-none" value={formData.startTime} onChange={e => setFormData({ ...formData, startTime: e.target.value })} />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-[10px] font-black text-red-400 uppercase block ml-2">Termina a las</label>
+                                                            <input type="time" className="w-full p-4 rounded-2xl bg-white border-none shadow-sm text-lg font-bold text-red-600 focus:ring-2 focus:ring-red-200 outline-none" value={formData.endTime} onChange={e => setFormData({ ...formData, endTime: e.target.value })} />
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </section>
+
+                                            <section className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black text-gray-400 uppercase block ml-2">Fecha Inicio</label>
+                                                    <input type="date" className="w-full p-4 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold focus:bg-white outline-none transition-all" value={formData.startDate} onChange={e => setFormData({ ...formData, startDate: e.target.value })} />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black text-gray-400 uppercase block ml-2">Fecha Fin</label>
+                                                    <input type="date" className="w-full p-4 rounded-2xl bg-gray-50 border border-gray-100 text-sm font-bold focus:bg-white outline-none transition-all" value={formData.endDate} onChange={e => setFormData({ ...formData, endDate: e.target.value })} />
+                                                </div>
+                                            </section>
+
+                                            <section className="space-y-4">
+                                                <label className="text-xs font-black text-gray-600 uppercase block text-center">Días Activos de la Semana</label>
+                                                <div className="flex justify-between gap-2">
+                                                    {DAYS.map(day => (
+                                                        <button
+                                                            key={day.id} type="button"
+                                                            onClick={() => toggleDay(day.id)}
+                                                            className={`flex-1 h-14 rounded-2xl text-xs font-black transition-all border-2 ${formData.daysOfWeek?.includes(day.id) ? 'bg-black border-black text-white shadow-lg' : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'}`}
+                                                        >
+                                                            {day.label}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </section>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Sticky Preview (Hidden on mobile) */}
+                            <div className="hidden xl:block w-96 bg-gray-50 p-8 border-l border-gray-100 overflow-y-auto">
+                                <div className="space-y-6">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <div className="p-2 bg-purple-100 text-purple-600 rounded-lg">
+                                            <Sparkles size={16} />
+                                        </div>
+                                        <h3 className="font-black text-gray-800 text-sm uppercase">Resultado Final</h3>
                                     </div>
-                                )}
+                                    <PreviewCard />
+                                    <div className="p-4 bg-yellow-50 text-yellow-800 rounded-xl text-xs font-medium leading-relaxed border border-yellow-100">
+                                        💡 Esta vista previa se actualiza en tiempo real mientras escribes o cambias colores.
+                                    </div>
+                                </div>
                             </div>
                         </div>
 

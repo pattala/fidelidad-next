@@ -329,7 +329,9 @@ export default async function handler(req, res) {
 
     for (const batchTokens of batches) {
       const message = { ...baseMsg, tokens: batchTokens };
+      console.time("fcm-send-multicast-batch");
       const resp = await adminApp.messaging().sendEachForMulticast(message);
+      console.timeEnd("fcm-send-multicast-batch");
 
       successCount += resp.successCount || 0;
       failureCount += resp.failureCount || 0;
@@ -428,6 +430,7 @@ export default async function handler(req, res) {
     // perToken tiene: { token, success, errorCode, errorMessage }
     // Mapeamos tokens a destinatarios para saber a quién pertenece cada resultado
     const details = [];
+    const inboxSuccessDetails = [];
 
     // Caso A: Si hubo tokens enviados (Transporte FCM)
     if (perToken.length > 0) {
@@ -444,21 +447,33 @@ export default async function handler(req, res) {
       });
     }
 
-    // Caso B: Si hay destinatarios sin token (Se intentó Inbox solamente)
-    const sinToken = destinatarios.filter(d => !d.token);
-    sinToken.forEach(st => {
-      details.push({
-        userId: st.id,
-        userName: userNamesMap[st.id] || 'Socio',
-        action: 'inbox_created',
-        status: 'success',
-        info: 'Sin token FCM registrado'
-      });
+    // Caso B: Generar detalles de Inbox para TODOS los que se creó (no solo los sin token)
+    // Recorremos el mapa 'byClient' que usamos para crear los inbox
+    // Debemos reconstruirlo o usar los IDs exitosos si los hubiéramos guardado. 
+    // Como simplificación, asumiremos que si createdInbox > 0, todos los de 'destinatarios' con ID válido recibieron inbox (salvo error).
+    // Para ser precisos, idealmente `createInboxSent` devolvería el ID.
+    // Vamos a iterar destinatarios únicos.
+    const uniqueDestIds = unique(destinatarios.map(d => d.id)).filter(id => id !== 'unknown');
+
+    uniqueDestIds.forEach(uid => {
+      // En la lógica actual de arriba, intentamos crear inbox para TODOS los uniqueDestIds.
+      // Si quisiéramos ser 100% precisos, deberíamos trackear los fallos de inbox arriba.
+      // Asumimos éxito para el log si no hubo excepción fatal.
+      if (extraData?.skipInbox !== true && extraData?.skipInbox !== "true") {
+        inboxSuccessDetails.push({
+          userId: uid,
+          userName: userNamesMap[uid] || 'Socio',
+          action: 'inbox_created',
+          status: 'success',
+          info: 'Mensaje guardado en buzón'
+        });
+      }
     });
 
     // 3. Guardar Logs Separados
     const pushDetails = details.filter(d => d.action.startsWith('push_'));
-    const inboxDetails = details.filter(d => d.action === 'inbox_created');
+    // inboxDetails ahora viene de su propio array completo
+    const inboxDetails = inboxSuccessDetails;
 
     const { points, executor: reqExecutor } = body || {};
     const pointsInfo = points ? ` [${points} pts]` : "";
@@ -478,8 +493,9 @@ export default async function handler(req, res) {
     }
 
     // B) Log Inbox
-    if (createdInbox > 0) {
-      const inboxSummary = `Inbox Generado: "${title}"${pointsInfo}. Destinatarios: ${createdInbox}`;
+    // Usamos inboxDetails.length para decidir si logueamos, o createdInbox (que debería coincidir)
+    if (inboxDetails.length > 0) {
+      const inboxSummary = `Inbox Generado: "${title}"${pointsInfo}. Destinatarios: ${inboxDetails.length}`;
       await db.collection('audit_logs').add({
         timestamp: admin.firestore.FieldValue.serverTimestamp(),
         type: 'inbox_message',

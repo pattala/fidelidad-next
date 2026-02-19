@@ -108,6 +108,7 @@ export const SystemLogsPage = () => {
             case 'manual_expiration': return 'Revisión Manual (Admin)';
             case 'birthday_engine': return 'Proceso de Cumpleaños';
             case 'push_notification': return 'Notificación Push';
+            case 'inbox_message': return 'Mensaje en Inbox';
             case 'email_notification': return 'Correo Electrónico';
             case 'whatsapp_notification': return 'WhatsApp (Auto)';
             case 'whatsapp_manual': return 'WhatsApp (Manual)';
@@ -124,6 +125,7 @@ export const SystemLogsPage = () => {
         if (status === 'link_ready') return <MessageCircle size={18} className="text-blue-500" />;
 
         if (type === 'push_notification') return <MessageCircle size={18} className="text-blue-500" />;
+        if (type === 'inbox_message') return <MessageCircle size={18} className="text-purple-500" />;
         if (status === 'success') return <CheckCircle size={18} className="text-green-500" />;
         if (status === 'partial') return <AlertTriangle size={18} className="text-amber-500" />;
         return <AlertTriangle size={18} className="text-red-500" />;
@@ -176,6 +178,7 @@ export const SystemLogsPage = () => {
                             <option value="whatsapp_notification">WhatsApp Auto</option>
                             <option value="whatsapp_manual">WhatsApp Manual</option>
                             <option value="push_notification">Push</option>
+                            <option value="inbox_message">Inbox</option>
                             <option value="email_notification">Email</option>
                         </select>
                     </div>

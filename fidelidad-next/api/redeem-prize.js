@@ -82,6 +82,7 @@ export default async function handler(req, res) {
         let result = { ok: false };
         const now = new Date();
 
+        console.time("redemption-transaction");
         await db.runTransaction(async (tx) => {
             // Re-fetch in transaction
             const cSnap = await tx.get(clientSnap.ref);
@@ -265,9 +266,11 @@ export default async function handler(req, res) {
                 });
             }
         });
+        console.timeEnd("redemption-transaction");
 
         // 4. Trigger Automatic Channels (Push & Email)
         if (result.ok) {
+            console.time("redemption-notifications");
             try {
                 const messagingCfg = config.messaging || {};
                 const eventConfig = messagingCfg.eventConfigs?.['redemption'] || { channels: ['whatsapp', 'push', 'email', 'inbox'] };
@@ -357,6 +360,7 @@ export default async function handler(req, res) {
             } catch (err) {
                 console.error("Error triggering redemption notifications:", err);
             }
+            console.timeEnd("redemption-notifications");
         }
 
         return res.status(200).json(result);

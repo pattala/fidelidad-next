@@ -1,3 +1,4 @@
+
 // api/create-user.js
 // Alta de usuario (Auth + Firestore) con CORS + x-api-key + lectura de body segura.
 // Idempotente: si ya existe en Auth/Firestore, completa lo que falte y responde ok.
@@ -227,6 +228,7 @@ export default async function handler(req, res) {
       }
 
       // C. Lógica de Creación o Actualización
+      console.time("create-user-auth");
       if (authUser) {
         // --- ACTUALIZAR ---
         console.log('[create-user] Updating existing user:', authUser.uid);
@@ -275,6 +277,7 @@ export default async function handler(req, res) {
         createdAuth = true;
         console.log('[create-user] User Created. UID:', authUser.uid);
       }
+      console.timeEnd("create-user-auth");
 
     } catch (authError) {
       console.error('[create-user] Auth Error:', authError);
@@ -297,6 +300,7 @@ export default async function handler(req, res) {
     // 2) Firestore: crear/actualizar doc cliente
     const col = db.collection("users");
 
+    console.time("create-user-firestore");
     // Intentar encontrar doc existente por email
     const fsDocSnap = await col.where("email", "==", email).limit(1).get();
     let fsDocRef = null;
@@ -359,6 +363,7 @@ export default async function handler(req, res) {
       await fsDocRef.set(newDoc);
       createdFs = true;
     }
+    console.timeEnd("create-user-firestore");
 
     return res.status(200).json({
       ok: true,

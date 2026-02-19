@@ -252,10 +252,12 @@ export default async function handler(req, res) {
                             userId,
                             userName: userData.name || userData.nombre || 'Socio',
                             action: 'skipped_notification',
-                            info: `Ya notificado (${totalImpendingAmount} pts al ${userData.nextExpirationDate}). Itinerancia: OFF`
+                            info: `Ya notificado (Sin cambios: ${totalImpendingAmount} pts al ${userData.nextExpirationDate}). Itinerancia: OFF`
                         });
                         continue;
                     }
+
+
 
                     const channels = config.messaging?.eventConfigs?.expirationWarning?.channels || ['push', 'email'];
                     const template = config.messaging?.templates?.expirationWarning ||
@@ -346,7 +348,7 @@ export default async function handler(req, res) {
                         userName: userData.name || userData.nombre || 'Socio',
                         action: 'notified_expiration',
                         status: 'success',
-                        info: `Enviado: "${msg}" | Desglose: ${breakdownStr}`
+                        info: `${isRepeatEnabled ? '[ITINERANCIA] ' : ''}Enviado: "${msg}" | Desglose: ${breakdownStr}`
                     });
                 } catch (e) {
                     console.error(`[Cron] Error notifying ${userDoc.id}:`, e);

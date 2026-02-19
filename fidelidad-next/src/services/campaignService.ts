@@ -82,12 +82,17 @@ export const CampaignService = {
 
             const promises = [];
             for (const b of campaigns) {
-                if (b.active && b.endDate && b.endDate < todayStr) {
-                    console.log(`[CampaignService] Auto-deactivating expired campaign: ${b.name} (End: ${b.endDate}, Today: ${todayStr})`);
-                    // Update DB
-                    promises.push(this.update(b.id, { active: false }));
-                    // Update in-memory object so UI reflects it immediately
-                    b.active = false;
+                if (b.active && b.endDate) {
+                    const isExpiredDate = b.endDate < todayStr;
+                    const isExpiredTime = b.endDate === todayStr && b.endTime && b.endTime < now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+
+                    if (isExpiredDate || isExpiredTime) {
+                        console.log(`[CampaignService] Auto-deactivating expired campaign: ${b.name}`);
+                        // Update DB
+                        promises.push(this.update(b.id, { active: false }));
+                        // Update in-memory object
+                        b.active = false;
+                    }
                 }
             }
             if (promises.length > 0) await Promise.all(promises);

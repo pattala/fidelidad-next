@@ -26,14 +26,34 @@ export const CampaignCarousel = () => {
         fetchCampaigns();
     }, []);
 
+    // Real-time Expiration Logic
+    const [now, setNow] = useState(new Date());
+
+    useEffect(() => {
+        const interval = setInterval(() => setNow(new Date()), 10000); // Check every 10s
+        return () => clearInterval(interval);
+    }, []);
+
+    const visibleCampaigns = campaigns.filter(camp => {
+        if (!camp.endTime) return true;
+        const curHHmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        const todayStr = now.toLocaleDateString('en-CA');
+
+        if (camp.endDate === todayStr && camp.endTime < curHHmm) return false;
+        // Strict check for today if no date range
+        if (!camp.endDate && camp.endTime < curHHmm) return false; // assuming daily recurrence implies checks
+
+        return true;
+    });
+
     // Auto-scroll logic
     useEffect(() => {
-        if (campaigns.length <= 1) return;
+        if (visibleCampaigns.length <= 1) return;
         const interval = setInterval(() => {
-            setCurrentIndex(prev => (prev + 1) % campaigns.length);
+            setCurrentIndex(prev => (prev + 1) % visibleCampaigns.length);
         }, 6000); // 6 seconds for better readability
         return () => clearInterval(interval);
-    }, [campaigns.length]);
+    }, [visibleCampaigns.length]);
 
     const [touchStart, setTouchStart] = useState<number | null>(null);
     const [touchEnd, setTouchEnd] = useState<number | null>(null);
@@ -56,17 +76,19 @@ export const CampaignCarousel = () => {
         const isLeftSwipe = distance > minSwipeDistance;
         const isRightSwipe = distance < -minSwipeDistance;
 
+
+
         if (isLeftSwipe) {
-            setCurrentIndex(prev => (prev + 1) % campaigns.length);
+            setCurrentIndex(prev => (prev + 1) % visibleCampaigns.length);
         } else if (isRightSwipe) {
-            setCurrentIndex(prev => (prev - 1 + campaigns.length) % campaigns.length);
+            setCurrentIndex(prev => (prev - 1 + visibleCampaigns.length) % visibleCampaigns.length);
         }
     };
 
     if (loading) return <div className="h-40 bg-gray-100 animate-pulse rounded-2xl mx-4 mb-6"></div>;
 
     // Empty State: Show generic welcome slide if no campaigns
-    if (campaigns.length === 0) {
+    if (visibleCampaigns.length === 0) {
         return (
             <div className="relative mb-6 mx-0">
                 <div className="flex justify-between items-center mb-4 px-2">
@@ -114,7 +136,7 @@ export const CampaignCarousel = () => {
                     className="flex transition-transform duration-700 ease-in-out h-full w-full pointer-events-none"
                     style={{ transform: `translateX(-${currentIndex * 100}%)` }}
                 >
-                    {campaigns.map((camp) => {
+                    {visibleCampaigns.map((camp) => {
                         const hasImg = !!camp.imageUrl;
                         const gradientBg = gradients[camp.id.charCodeAt(0) % gradients.length];
                         const customStyle = {
@@ -181,9 +203,9 @@ export const CampaignCarousel = () => {
             </div>
 
             {/* INDICATORS (NOW BELOW) */}
-            {campaigns.length > 1 && (
+            {visibleCampaigns.length > 1 && (
                 <div className="flex justify-center gap-2 mt-4">
-                    {campaigns.map((_, idx) => (
+                    {visibleCampaigns.map((_, idx) => (
                         <button
                             key={idx}
                             onClick={() => setCurrentIndex(idx)}

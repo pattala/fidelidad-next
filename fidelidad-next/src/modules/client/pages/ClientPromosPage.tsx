@@ -39,6 +39,34 @@ export const ClientPromosPage = () => {
         loadPromos();
     }, []);
 
+    // Real-time Expiration Logic
+    const [now, setNow] = useState(new Date());
+
+    useEffect(() => {
+        const interval = setInterval(() => setNow(new Date()), 10000); // Check every 10s
+        return () => clearInterval(interval);
+    }, []);
+
+    const visibleCampaigns = campaigns.filter(camp => {
+        if (!camp.endTime) return true;
+        // Check if today is the end date (or if it's a recurrent daily limit, effectively handled by service)
+        // Simple check: if it has endTime, and we are past it, hide it?
+        // Note: activeCampaignsInDateRange might return promos for whole week.
+        // We only care about hiding "Flash" promos that just expired TODAY.
+
+        const curHHmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        const todayStr = now.toLocaleDateString('en-CA'); // YYYY-MM-DD
+
+        // If specific date range, and today is endDate
+        if (camp.endDate === todayStr && camp.endTime < curHHmm) return false;
+
+        // If it's a recurring daily thing (no startDate/endDate but active), check time
+        // But usually Flash has dates. Assuming safely:
+        if (camp.endTime < curHHmm && (!camp.endDate || camp.endDate === todayStr)) return false;
+
+        return true;
+    });
+
     const getDayLabel = (days: number[]) => {
         if (!days || days.length === 0 || days.length === 7) return "Todos los días";
         const map = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
@@ -57,13 +85,13 @@ export const ClientPromosPage = () => {
                         <div className="h-32 bg-gray-200 rounded-2xl w-full"></div>
                         <div className="h-32 bg-gray-200 rounded-2xl w-full"></div>
                     </div>
-                ) : campaigns.length === 0 ? (
+                ) : visibleCampaigns.length === 0 ? (
                     <div className="text-center py-10 bg-white rounded-2xl border border-dashed border-gray-200">
                         <Tag className="mx-auto text-gray-300 mb-2" size={32} />
                         <p className="text-sm font-bold text-gray-400">No hay promociones vigentes.</p>
                     </div>
                 ) : (
-                    campaigns.map(camp => (
+                    visibleCampaigns.map(camp => (
                         <div key={camp.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col relative group active:scale-[0.99] transition">
                             {/* Optional Image */}
                             {camp.imageUrl && (

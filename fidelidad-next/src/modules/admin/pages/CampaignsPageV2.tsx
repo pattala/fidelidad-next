@@ -392,7 +392,9 @@ export const CampaignsPageV2 = () => {
                         {/* Content */}
                         <div className="px-2">
                             <h3 className="text-xl font-bold text-gray-800 truncate mb-1">{bonus.name}</h3>
-                            <p className="text-xs text-gray-500 line-clamp-2 h-8 leading-relaxed mb-4">{bonus.description || 'Sin descripción pública configurada.'}</p>
+                            <p className={`text-xs line-clamp-2 h-8 leading-relaxed mb-4 font-medium ${bonus.active ? 'text-green-600' : 'text-gray-400'}`}>
+                                {bonus.description || 'Sin descripción pública configurada.'}
+                            </p>
 
                             <div className="flex items-center justify-between pt-2 border-t border-gray-50 mt-4">
                                 <div className="flex gap-1">
@@ -577,137 +579,138 @@ export const CampaignsPageV2 = () => {
                                         </div>
                                     )}
 
-                                    <div className="space-y-8 animate-slide-in-right">
-                                        <section className="space-y-4">
-                                            <label className="text-xs font-black text-gray-600 uppercase">Configuración de Imagen</label>
-                                            <div className="flex gap-4">
-                                                <input
-                                                    type="url" placeholder="Pega el enlace de la imagen aquí..."
-                                                    className="flex-1 p-4 rounded-2xl bg-gray-50 border border-gray-100 focus:bg-white focus:ring-2 focus:ring-purple-100 outline-none transition-all text-sm font-medium"
-                                                    value={formData.imageUrl} onChange={e => setFormData({ ...formData, imageUrl: e.target.value })}
-                                                />
-                                            </div>
-                                        </section>
+                                    {activeTab === 'VISUAL' && (
+                                        <div className="space-y-8 animate-slide-in-right">
+                                            <section className="space-y-4">
+                                                <label className="text-xs font-black text-gray-600 uppercase">Configuración de Imagen</label>
+                                                <div className="flex gap-4">
+                                                    <input
+                                                        type="url" placeholder="Pega el enlace de la imagen aquí..."
+                                                        className="flex-1 p-4 rounded-2xl bg-gray-50 border border-gray-100 focus:bg-white focus:ring-2 focus:ring-purple-100 outline-none transition-all text-sm font-medium"
+                                                        value={formData.imageUrl} onChange={e => setFormData({ ...formData, imageUrl: e.target.value })}
+                                                    />
+                                                </div>
+                                            </section>
 
-                                        <section className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <label className="flex items-center justify-between p-3 bg-white rounded-xl shadow-sm cursor-pointer hover:bg-gray-50 transition-colors">
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`p-2 rounded-lg ${formData.showInCarousel ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-400'}`}>
-                                                        <Layout size={20} />
+                                            <section className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <label className="flex items-center justify-between p-3 bg-white rounded-xl shadow-sm cursor-pointer hover:bg-gray-50 transition-colors">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`p-2 rounded-lg ${formData.showInCarousel ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-400'}`}>
+                                                            <Layout size={20} />
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-bold text-sm text-gray-700">Mostrar en Carrusel</p>
+                                                            <p className="text-[10px] text-gray-400">Visible en la pantalla principal</p>
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <p className="font-bold text-sm text-gray-700">Mostrar en Carrusel</p>
-                                                        <p className="text-[10px] text-gray-400">Visible en la pantalla principal</p>
+                                                    <div className={`w-10 h-6 shrink-0 rounded-full p-1 transition-colors duration-300 ${formData.showInCarousel ? 'bg-purple-600' : 'bg-gray-200'}`}>
+                                                        <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-300 ${formData.showInCarousel ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                    </div>
+                                                    <input
+                                                        type="checkbox" className="hidden"
+                                                        checked={formData.showInCarousel}
+                                                        onChange={e => setFormData({ ...formData, showInCarousel: e.target.checked })}
+                                                    />
+                                                </label>
+
+                                                <label className="flex items-center justify-between p-3 bg-white rounded-xl shadow-sm cursor-pointer hover:bg-gray-50 transition-colors">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`p-2 rounded-lg ${formData.showInHomeBanner ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
+                                                            <Monitor size={20} />
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-bold text-sm text-gray-700">Banner Home</p>
+                                                            <p className="text-[10px] text-gray-400">Destapado superior en la App</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className={`w-10 h-6 shrink-0 rounded-full p-1 transition-colors duration-300 ${formData.showInHomeBanner ? 'bg-blue-600' : 'bg-gray-200'}`}>
+                                                        <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-300 ${formData.showInHomeBanner ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                    </div>
+                                                    <input
+                                                        type="checkbox" className="hidden"
+                                                        checked={formData.showInHomeBanner}
+                                                        onChange={e => setFormData({ ...formData, showInHomeBanner: e.target.checked })}
+                                                    />
+                                                </label>
+                                            </section>
+
+                                            <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black text-gray-400 uppercase">Posición Texto</label>
+                                                    <select
+                                                        className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 text-xs font-bold outline-none"
+                                                        value={formData.textPosition} onChange={e => setFormData({ ...formData, textPosition: e.target.value as any })}
+                                                    >
+                                                        <option value="bottom-left">Abajo Izq.</option>
+                                                        <option value="bottom-center">Abajo Centro</option>
+                                                        <option value="bottom-right">Abajo Der.</option>
+                                                        <option value="top-left">Arriba Izq.</option>
+                                                        <option value="top-center">Arriba Centro</option>
+                                                        <option value="top-right">Arriba Der.</option>
+                                                        <option value="center">Centro</option>
+                                                    </select>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black text-gray-400 uppercase">Tipografía</label>
+                                                    <select
+                                                        className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 text-xs font-bold outline-none"
+                                                        value={formData.fontStyle} onChange={e => setFormData({ ...formData, fontStyle: e.target.value as any })}
+                                                    >
+                                                        <option value="sans">Moderna (Sans)</option>
+                                                        <option value="serif">Elegante (Serif)</option>
+                                                        <option value="mono">Técnica (Mono)</option>
+                                                    </select>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black text-gray-400 uppercase">Tam. Título</label>
+                                                    <select
+                                                        className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 text-xs font-bold outline-none"
+                                                        value={formData.titleSize} onChange={e => setFormData({ ...formData, titleSize: e.target.value as any })}
+                                                    >
+                                                        <option value="base">Pequeño</option>
+                                                        <option value="xl">Mediano</option>
+                                                        <option value="2xl">Grande</option>
+                                                        <option value="4xl">Gigante</option>
+                                                    </select>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black text-gray-400 uppercase">Tam. Desc.</label>
+                                                    <select
+                                                        className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 text-xs font-bold outline-none"
+                                                        value={formData.descriptionSize} onChange={e => setFormData({ ...formData, descriptionSize: e.target.value as any })}
+                                                    >
+                                                        <option value="xs">Pequeño</option>
+                                                        <option value="sm">Normal</option>
+                                                        <option value="base">Grande</option>
+                                                    </select>
+                                                </div>
+                                            </section>
+
+                                            <section className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black text-gray-400 uppercase">Fondo</label>
+                                                    <input type="color" className="w-full h-12 rounded-xl cursor-pointer border-4 border-gray-50" value={formData.backgroundColor} onChange={e => setFormData({ ...formData, backgroundColor: e.target.value })} />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black text-gray-400 uppercase">Texto</label>
+                                                    <input type="color" className="w-full h-12 rounded-xl cursor-pointer border-4 border-gray-50" value={formData.textColor} onChange={e => setFormData({ ...formData, textColor: e.target.value })} />
+                                                </div>
+                                                <div className="col-span-2 space-y-2">
+                                                    <label className="text-[10px] font-black text-gray-400 uppercase">Opacidad Imagen ({formData.imageOpacity}%)</label>
+                                                    <input type="range" className="w-full h-12 accent-purple-600" min="0" max="100" value={formData.imageOpacity} onChange={e => setFormData({ ...formData, imageOpacity: parseInt(e.target.value) })} />
+                                                </div>
+                                            </section>
+
+                                            {/* Preview inline para móviles/tablets (se oculta en lg donde está el sidebar) */}
+                                            <section className="lg:hidden space-y-4 pt-4 border-t border-gray-100">
+                                                <label className="text-xs font-black text-gray-600 uppercase">Vista Previa PWA</label>
+                                                <div className="flex justify-center bg-gray-100 p-6 rounded-[2rem]">
+                                                    <div className="w-full max-w-sm">
+                                                        <PreviewCard />
                                                     </div>
                                                 </div>
-                                                <div className={`w-10 h-6 shrink-0 rounded-full p-1 transition-colors duration-300 ${formData.showInCarousel ? 'bg-purple-600' : 'bg-gray-200'}`}>
-                                                    <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-300 ${formData.showInCarousel ? 'translate-x-4' : 'translate-x-0'}`} />
-                                                </div>
-                                                <input
-                                                    type="checkbox" className="hidden"
-                                                    checked={formData.showInCarousel}
-                                                    onChange={e => setFormData({ ...formData, showInCarousel: e.target.checked })}
-                                                />
-                                            </label>
-
-                                            <label className="flex items-center justify-between p-3 bg-white rounded-xl shadow-sm cursor-pointer hover:bg-gray-50 transition-colors">
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`p-2 rounded-lg ${formData.showInHomeBanner ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
-                                                        <Monitor size={20} />
-                                                    </div>
-                                                    <div>
-                                                        <p className="font-bold text-sm text-gray-700">Banner Home</p>
-                                                        <p className="text-[10px] text-gray-400">Destapado superior en la App</p>
-                                                    </div>
-                                                </div>
-                                                <div className={`w-10 h-6 shrink-0 rounded-full p-1 transition-colors duration-300 ${formData.showInHomeBanner ? 'bg-blue-600' : 'bg-gray-200'}`}>
-                                                    <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-300 ${formData.showInHomeBanner ? 'translate-x-4' : 'translate-x-0'}`} />
-                                                </div>
-                                                <input
-                                                    type="checkbox" className="hidden"
-                                                    checked={formData.showInHomeBanner}
-                                                    onChange={e => setFormData({ ...formData, showInHomeBanner: e.target.checked })}
-                                                />
-                                            </label>
-                                        </section>
-
-                                        <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-gray-400 uppercase">Posición Texto</label>
-                                                <select
-                                                    className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 text-xs font-bold outline-none"
-                                                    value={formData.textPosition} onChange={e => setFormData({ ...formData, textPosition: e.target.value as any })}
-                                                >
-                                                    <option value="bottom-left">Abajo Izq.</option>
-                                                    <option value="bottom-center">Abajo Centro</option>
-                                                    <option value="bottom-right">Abajo Der.</option>
-                                                    <option value="top-left">Arriba Izq.</option>
-                                                    <option value="top-center">Arriba Centro</option>
-                                                    <option value="top-right">Arriba Der.</option>
-                                                    <option value="center">Centro</option>
-                                                </select>
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-gray-400 uppercase">Tipografía</label>
-                                                <select
-                                                    className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 text-xs font-bold outline-none"
-                                                    value={formData.fontStyle} onChange={e => setFormData({ ...formData, fontStyle: e.target.value as any })}
-                                                >
-                                                    <option value="sans">Moderna (Sans)</option>
-                                                    <option value="serif">Elegante (Serif)</option>
-                                                    <option value="mono">Técnica (Mono)</option>
-                                                </select>
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-gray-400 uppercase">Tam. Título</label>
-                                                <select
-                                                    className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 text-xs font-bold outline-none"
-                                                    value={formData.titleSize} onChange={e => setFormData({ ...formData, titleSize: e.target.value as any })}
-                                                >
-                                                    <option value="base">Pequeño</option>
-                                                    <option value="xl">Mediano</option>
-                                                    <option value="2xl">Grande</option>
-                                                    <option value="4xl">Gigante</option>
-                                                </select>
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-gray-400 uppercase">Tam. Desc.</label>
-                                                <select
-                                                    className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 text-xs font-bold outline-none"
-                                                    value={formData.descriptionSize} onChange={e => setFormData({ ...formData, descriptionSize: e.target.value as any })}
-                                                >
-                                                    <option value="xs">Pequeño</option>
-                                                    <option value="sm">Normal</option>
-                                                    <option value="base">Grande</option>
-                                                </select>
-                                            </div>
-                                        </section>
-
-                                        <section className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-gray-400 uppercase">Fondo</label>
-                                                <input type="color" className="w-full h-12 rounded-xl cursor-pointer border-4 border-gray-50" value={formData.backgroundColor} onChange={e => setFormData({ ...formData, backgroundColor: e.target.value })} />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-gray-400 uppercase">Texto</label>
-                                                <input type="color" className="w-full h-12 rounded-xl cursor-pointer border-4 border-gray-50" value={formData.textColor} onChange={e => setFormData({ ...formData, textColor: e.target.value })} />
-                                            </div>
-                                            <div className="col-span-2 space-y-2">
-                                                <label className="text-[10px] font-black text-gray-400 uppercase">Opacidad Imagen ({formData.imageOpacity}%)</label>
-                                                <input type="range" className="w-full h-12 accent-purple-600" min="0" max="100" value={formData.imageOpacity} onChange={e => setFormData({ ...formData, imageOpacity: parseInt(e.target.value) })} />
-                                            </div>
-                                        </section>
-
-                                        {/* Preview inline para móviles/tablets (se oculta en lg donde está el sidebar) */}
-                                        <section className="lg:hidden space-y-4 pt-4 border-t border-gray-100">
-                                            <label className="text-xs font-black text-gray-600 uppercase">Vista Previa PWA</label>
-                                            <div className="flex justify-center bg-gray-100 p-6 rounded-[2rem]">
-                                                <div className="w-full max-w-sm">
-                                                    <PreviewCard />
-                                                </div>
-                                            </div>
-                                        </section>
-                                    </div>
+                                            </section>
+                                        </div>
                                     )}
 
                                     {activeTab === 'RULES' && (

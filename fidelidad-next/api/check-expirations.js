@@ -194,7 +194,7 @@ export default async function handler(req, res) {
         if (config.messaging?.enableExpirationWarnings !== false) {
             const toNotifySnap = await db.collection('users')
                 .where('nextExpirationDate', '<=', warningDateStr)
-                .where('nextExpirationDate', '>', referenceDateStr) // Solo futuros
+                .where('nextExpirationDate', '>', referenceDateStr)
                 .get();
 
             console.log(`[Cron] Found ${toNotifySnap.size} candidates for notices.`);
@@ -204,34 +204,56 @@ export default async function handler(req, res) {
                     const userData = userDoc.data();
                     const userId = userDoc.id;
 
-                    console.log(`[Cron] Checking user ${userId} (${userData.name}): NextDate=${userData.nextExpirationDate}, LastTarget=${userData.lastExpirationNoticeTargetDate}`);
+                    // NUEVA LÓGICA: Sumar TODOS los puntos que vencen en la ventana de aviso
+                    const historyRef = userDoc.ref.collection('points_history');
+                    const impendingCreditsSnap = await historyRef
+                        .where('type', '==', 'credit')
+                        .where('expiresAt', '>', admin.firestore.Timestamp.fromDate(startOfToday))
+                        .where('expiresAt', '<=', admin.firestore.Timestamp.fromDate(warningDate))
+                        .get();
 
-                    // Evitar duplicados
-                    if (userData.lastExpirationNoticeTargetDate === userData.nextExpirationDate) {
-                        console.log(`[Cron] Skipping ${userId}: Already notified for this date.`);
+                    let totalImpendingAmount = 0;
+                    impendingCreditsSnap.forEach(d => {
+                        const dData = d.data();
+                        if (dData.status === 'expired') return;
+                        const rem = dData.remainingPoints !== undefined ? dData.remainingPoints : dData.amount;
+                        if (rem > 0) totalImpendingAmount += rem;
+                    });
+
+                    console.log(`[Cron] User ${userId}: Total in window = ${totalImpendingAmount}. Last Amount notified = ${userData.lastExpirationNoticeAmount}`);
+
+                    if (totalImpendingAmount <= 0) {
+                        console.log(`[Cron] Skipping ${userId}: No points actually expiring in window.`);
+                        continue;
+                    }
+
+                    // Chequeo de duplicados mejorado: avisar si cambió la fecha O el monto
+                    const alreadyNotified =
+                        userData.lastExpirationNoticeTargetDate === userData.nextExpirationDate &&
+                        userData.lastExpirationNoticeAmount === totalImpendingAmount;
+
+                    if (alreadyNotified) {
+                        console.log(`[Cron] Skipping ${userId}: Already notified for this date and amount.`);
                         logResults.details.push({
                             userId,
                             userName: userData.name || userData.nombre || 'Socio',
                             action: 'skipped_notification',
-                            info: `Ya notificado para el vencimiento del ${userData.nextExpirationDate}`
+                            info: `Ya notificado (${totalImpendingAmount} pts al ${userData.nextExpirationDate})`
                         });
                         continue;
                     }
-
-                    const amount = userData.nextExpirationAmount || 0;
-                    if (amount <= 0) continue;
 
                     const channels = config.messaging?.eventConfigs?.expirationWarning?.channels || ['push', 'email'];
                     const template = config.messaging?.templates?.expirationWarning ||
                         "¡Hola {nombre}! 📢 Te recordamos que tienes {puntos} puntos que vencen el {fecha}. ¡Aprovéchalos antes de que expiren! 🎁";
 
-                    // Formatear fecha para el mensaje
+                    // Formatear fecha para el mensaje (usamos la más cercana)
                     const [y, m, d] = userData.nextExpirationDate.split('-');
                     const displayDate = `${d}/${m}/${y}`;
 
                     const msg = template
                         .replace(/{nombre}/g, userData.name || 'Socio')
-                        .replace(/{puntos}/g, amount.toString())
+                        .replace(/{puntos}/g, totalImpendingAmount.toString())
                         .replace(/{fecha}/g, displayDate);
 
                     const title = "⚠️ Tus puntos están por vencer";
@@ -262,20 +284,21 @@ export default async function handler(req, res) {
                         expireAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000))
                     });
 
-                    // LOG DE AUDITORÍA INDIVIDUAL (Para visibilidad en el Panel)
+                    // LOG DE AUDITORÍA INDIVIDUAL
                     await db.collection('audit_logs').add({
                         timestamp: admin.firestore.FieldValue.serverTimestamp(),
                         type: 'expiration_warning',
                         status: 'success',
-                        summary: `Aviso de vencimiento enviado a ${userData.name || 'Socio'}`,
-                        details: [{ action: 'notification_sent', userId, amount, displayDate, channels }],
+                        summary: `Aviso de vencimiento: ${totalImpendingAmount} pts para ${userData.name || 'Socio'}`,
+                        details: [{ action: 'notification_sent', userId, totalImpendingAmount, closestDate: userData.nextExpirationDate, channels }],
                         executor: 'system'
                     });
 
-                    // Guardamos la fecha del vencimiento avisado para no repetir
+                    // Guardamos la fecha y el MONTO del vencimiento avisado
                     await userDoc.ref.update({
-                        lastExpirationNotice: referenceDateStr, // Cuándo se avisó
-                        lastExpirationNoticeTargetDate: userData.nextExpirationDate // Sobre qué fecha se avisó
+                        lastExpirationNotice: referenceDateStr,
+                        lastExpirationNoticeTargetDate: userData.nextExpirationDate,
+                        lastExpirationNoticeAmount: totalImpendingAmount
                     });
 
                     logResults.notified++;
@@ -284,7 +307,7 @@ export default async function handler(req, res) {
                         userName: userData.name || userData.nombre || 'Socio',
                         action: 'notified_expiration',
                         status: 'success',
-                        info: `Aviso enviado (${amount} pts para el ${displayDate})`
+                        info: `Aviso enviado (${totalImpendingAmount} pts, el próximo el ${displayDate})`
                     });
                 } catch (e) {
                     console.error(`[Cron] Error notifying ${userDoc.id}:`, e);

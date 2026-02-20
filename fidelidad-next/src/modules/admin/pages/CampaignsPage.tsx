@@ -374,6 +374,35 @@ export const CampaignsPage = () => {
                         <p className="text-[8px] font-bold text-purple-600 uppercase">Ver Todas</p>
                     </div>
 
+                    {isFlashMode && (
+                        <div className="bg-gradient-to-r from-red-600 to-orange-500 p-4 rounded-[1.5rem] shadow-lg text-white relative overflow-hidden mb-4 border-2 border-white/20 animate-pulse-slow">
+                            <div className="absolute -top-4 -right-4 opacity-10"><Clock size={40} /></div>
+                            <div className="relative z-10">
+                                <div className="flex items-center gap-1 mb-1">
+                                    <Sparkles size={10} className="animate-bounce" />
+                                    <span className="text-[7px] font-black uppercase tracking-widest">Oferta Flash Activa</span>
+                                </div>
+                                <h3 className="text-xs font-black truncate leading-tight mb-2 italic">
+                                    {formData.title || 'Título Flash'}
+                                </h3>
+                                <div className="flex items-center gap-2">
+                                    <div className="bg-white/20 backdrop-blur-md px-2 py-1 rounded-lg border border-white/10 shrink-0">
+                                        <p className="text-[6px] font-bold opacity-80 uppercase leading-none mb-0.5 text-center">Finaliza:</p>
+                                        <p className="text-[10px] font-black font-mono leading-none tracking-tighter">{formData.endTime || '00:00:00'}</p>
+                                    </div>
+                                    <div className="flex flex-col min-w-0">
+                                        <span className="text-[10px] font-black leading-none truncate uppercase">
+                                            {formData.flashRewardType === 'TEXT' ? (formData.flashRewardText || 'Promo') :
+                                                formData.flashRewardType === 'MULTIPLIER' ? `x${formData.flashRewardValue} Puntos` :
+                                                    `+${formData.flashRewardValue} Puntos`}
+                                        </span>
+                                        <span className="text-[6px] font-bold opacity-80 uppercase leading-none mt-0.5 truncate tracking-tighter">¡Aprovechala ahora!</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {formData.showInHomeBanner ? (
                         <div className="bg-white p-3 rounded-[1.5rem] shadow-sm border border-gray-100 flex items-center gap-3 animate-fade-in">
                             <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden shrink-0 relative">

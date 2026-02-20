@@ -244,6 +244,13 @@ export const ClientHomePage = () => {
 
     const homeBanners = campaigns.filter(c => c.showInHomeBanner);
 
+    const activeFlash = campaigns.find(c => {
+        if (!c.startTime || !c.endTime) return false;
+        const now = new Date();
+        const curHHmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        return curHHmm >= c.startTime && curHHmm < c.endTime;
+    });
+
     const pointsRatio = Number(config?.pointsPerPeso || 1);
     const moneyBase = Number(config?.pointsMoneyBase || 100);
     const costPerPoint = moneyBase / pointsRatio;
@@ -313,45 +320,38 @@ export const ClientHomePage = () => {
             />
 
             {/* FLASH OFFER BANNER (DYNAMIC MARKETING) */}
-            {(() => {
-                const activeFlash = campaigns.find(c => {
-                    if (!c.startTime || !c.endTime) return false;
-                    const now = new Date();
-                    const curHHmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-                    return curHHmm >= c.startTime && curHHmm < c.endTime;
-                });
-
-                if (!activeFlash) return null;
-
-                return (
-                    <div className="bg-gradient-to-r from-red-600 via-orange-500 to-red-600 p-6 rounded-[2rem] shadow-xl text-white relative overflow-hidden animate-pulse-slow border-4 border-white/20">
-                        <div className="absolute top-0 right-0 p-4 opacity-10">
-                            <Clock size={80} />
+            {activeFlash && (
+                <div className="bg-gradient-to-r from-red-600 via-orange-500 to-red-600 p-6 rounded-[2rem] shadow-xl text-white relative overflow-hidden animate-pulse-slow border-4 border-white/20">
+                    <div className="absolute top-0 right-0 p-4 opacity-10">
+                        <Clock size={80} />
+                    </div>
+                    <div className="relative z-10">
+                        <div className="flex items-center gap-2 mb-2">
+                            <Sparkles size={20} className="animate-bounce" />
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em]">¡OFERTA FLASH ACTIVA!</span>
                         </div>
-                        <div className="relative z-10">
-                            <div className="flex items-center gap-2 mb-2">
-                                <Sparkles size={20} className="animate-bounce" />
-                                <span className="text-[10px] font-black uppercase tracking-[0.3em]">¡OFERTA FLASH ACTIVA!</span>
+                        <h3 className="text-2xl font-black tracking-tight mb-1 uppercase italic">
+                            {activeFlash.title || activeFlash.name}
+                        </h3>
+                        <div className="flex items-center gap-3 mt-3">
+                            <div className="bg-white/20 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 shrink-0">
+                                <p className="text-[8px] font-bold uppercase opacity-80 mb-0.5">Finaliza en:</p>
+                                <CountdownTimer targetTime={activeFlash.endTime as string} />
                             </div>
-                            <h3 className="text-2xl font-black tracking-tight mb-1 uppercase italic">
-                                {activeFlash.title || activeFlash.name}
-                            </h3>
-                            <div className="flex items-center gap-3 mt-3">
-                                <div className="bg-white/20 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10">
-                                    <p className="text-[8px] font-bold uppercase opacity-80 mb-0.5">Finaliza en:</p>
-                                    <CountdownTimer targetTime={activeFlash.endTime as string} />
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="text-lg font-black leading-none">
-                                        {activeFlash.rewardType === 'MULTIPLIER' ? `x${activeFlash.rewardValue} Puntos` : `+${activeFlash.rewardValue} pts`}
-                                    </span>
-                                    <span className="text-[9px] font-bold opacity-80 uppercase tracking-tighter">¡Aprovechala ahora!</span>
-                                </div>
+                            <div className="flex flex-col min-w-0">
+                                <span className="text-xl font-black leading-none truncate">
+                                    {activeFlash.flashRewardType === 'TEXT'
+                                        ? activeFlash.flashRewardText
+                                        : activeFlash.flashRewardType === 'MULTIPLIER'
+                                            ? `x${activeFlash.flashRewardValue} Puntos`
+                                            : `+${activeFlash.flashRewardValue} pts`}
+                                </span>
+                                <span className="text-[9px] font-bold opacity-80 uppercase tracking-tighter">¡Aprovechala ahora!</span>
                             </div>
                         </div>
                     </div>
-                );
-            })()}
+                </div>
+            )}
 
             {/* HERO CAROUSEL */}
             <section className="relative z-10 mx-0">

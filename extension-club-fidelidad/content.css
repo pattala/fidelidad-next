@@ -234,10 +234,34 @@
     text-transform: uppercase;
 }
 
+.cf-promo-status {
+    font-size: 8px;
+    font-weight: 900;
+    padding: 1px 6px;
+    border-radius: 20px;
+    text-transform: uppercase;
+}
+
+.cf-promo-status.active {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.cf-promo-status.grace {
+    background: #ffedd5;
+    color: #9a3412;
+}
+
 .cf-promo-desc {
     font-size: 9px;
-    font-weight: 600;
-    color: #94a3b8;
+    font-weight: 700;
+    color: #059669;
+}
+
+.cf-promo-time {
+    font-size: 9px;
+    font-weight: 800;
+    color: #a855f7;
 }
 
 .cf-checkbox-label {

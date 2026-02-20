@@ -315,7 +315,6 @@ function showFidelidadPanel() {
                 e.stopPropagation();
 
                 selectedClient = { id: c.id, name: c.name, accumulated_balance: c.accumulated_balance || 0 };
-                console.log("🎯 Socio seleccionado:", selectedClient);
 
                 // UI Update
                 clientHeader.innerText = `Socio: ${selectedClient.name}`;
@@ -326,21 +325,63 @@ function showFidelidadPanel() {
                 pointsForm.style.display = 'block';
                 statusDiv.innerText = '';
 
-                // Renderizar Promos
+                // Renderizar Promos con Lógica de Horarios (Paridad con Admin)
                 currentPromos = promotions || [];
                 const activePromos = currentPromos.filter(p => p.rewardType !== 'INFO');
 
                 if (activePromos.length > 0) {
+                    const GRACE_PERIOD_MINS = 15;
+                    // Simular hora local AR (GMT-3)
+                    const now = new Date();
+                    const nowArg = new Date(now.getTime() - (3 * 60 * 60 * 1000));
+                    const curHHmm = `${String(nowArg.getUTCHours()).padStart(2, '0')}:${String(nowArg.getUTCMinutes()).padStart(2, '0')}`;
+
                     promosList.innerHTML = activePromos.map(p => {
-                        const label = p.rewardType === 'MULTIPLIER' ? `x${p.rewardValue}` : `+${p.rewardValue} pts`;
+                        const isFlash = p.isFlash;
+                        const label = p.rewardType === 'MULTIPLIER' ? `Multiplicador x${p.rewardValue}` : `Bonus +${p.rewardValue} pts`;
                         const title = p.title || p.name;
+
+                        // Determinar estado de horario
+                        let statusHtml = '';
+                        let isAutoSelect = true;
+
+                        if (p.startTime || p.endTime) {
+                            const isExpiredToday = p.endTime && p.endTime < curHHmm;
+                            const isActiveNow = !isExpiredToday && (!p.startTime || p.startTime <= curHHmm);
+
+                            // Check grace period
+                            let isInGrace = false;
+                            if (isExpiredToday && p.endTime) {
+                                const [h, m] = p.endTime.split(':').map(Number);
+                                const endTimestamp = new Date(nowArg);
+                                endTimestamp.setUTCHours(h, m + GRACE_PERIOD_MINS, 0, 0);
+                                if (nowArg < endTimestamp) isInGrace = true;
+                            }
+
+                            if (isActiveNow) {
+                                statusHtml = `<span class="cf-promo-status active">¡ACTIVA!</span>`;
+                            } else if (isInGrace) {
+                                statusHtml = `<span class="cf-promo-status grace">TOLERANCIA</span>`;
+                            } else {
+                                isAutoSelect = false;
+                            }
+                        }
+
+                        const timeRange = (p.startTime || p.endTime) ?
+                            `<span class="cf-promo-time">⏰ ${p.startTime || '00:00'} a ${p.endTime || '23:59'} hs</span>` : '';
 
                         return `
                             <label class="cf-promo-item">
-                                <input type="checkbox" class="cf-promo-check" value="${p.id}" checked>
+                                <input type="checkbox" class="cf-promo-check" value="${p.id}" ${isAutoSelect ? 'checked' : ''}>
                                 <div class="cf-promo-info">
-                                    <span class="cf-promo-name" style="font-size: 11px;">${title}</span>
-                                    <span class="cf-promo-desc" style="color: #059669; font-weight: bold;">${label}</span>
+                                    <div style="display: flex; align-items: center; gap: 4px;">
+                                        <span class="cf-promo-name">${title}</span>
+                                        ${statusHtml}
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 6px; margin-top: 2px;">
+                                        <span class="cf-promo-desc">${label}</span>
+                                        ${timeRange}
+                                    </div>
                                 </div>
                             </label>
                         `;

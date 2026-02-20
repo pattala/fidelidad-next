@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { CampaignService, type BonusRule } from '../../../services/campaignService';
+import { AuditService } from '../../../services/auditService';
 import { ConfigService, DEFAULT_TEMPLATES } from '../../../services/configService';
 import { useNavigate } from 'react-router-dom';
 import { collection, getDocs, query } from 'firebase/firestore';
@@ -31,6 +32,7 @@ export const CampaignsPageV2 = () => {
         startDate: '', endDate: '', startTime: '', endTime: '',
         imageUrl: '', showInCarousel: true, showInHomeBanner: true,
         backgroundColor: '#4F46E5', textColor: '#FFFFFF',
+        titleColor: '#FFFFFF', descriptionColor: '#FFFFFF',
         imageFit: 'contain', textPosition: 'bottom-left',
         // Typography - Title
         titleFont: 'sans', titleWeight: 'bold', titleSize: '2xl',
@@ -39,7 +41,8 @@ export const CampaignsPageV2 = () => {
         buttonText: 'Ver detalles',
         imageOpacity: 60, bannerOpacity: 100, link: '', channels: ['push', 'email', 'whatsapp'],
         // Flash independent rewards
-        flashRewardType: 'FIXED', flashRewardValue: 50, flashRewardText: ''
+        flashRewardType: 'FIXED', flashRewardValue: 50, flashRewardText: '',
+        flashDays: []
     });
 
     const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
@@ -65,12 +68,14 @@ export const CampaignsPageV2 = () => {
             startDate: '', endDate: '', startTime: '', endTime: '',
             imageUrl: '', showInCarousel: true, showInHomeBanner: true,
             backgroundColor: '#4F46E5', textColor: '#FFFFFF',
+            titleColor: '#FFFFFF', descriptionColor: '#FFFFFF',
             imageFit: 'contain', textPosition: 'bottom-left',
             titleFont: 'sans', titleWeight: 'bold', titleSize: '2xl',
             descFont: 'sans', descWeight: 'normal', descriptionSize: 'sm',
             buttonText: 'Ver detalles',
-            imageOpacity: 60, link: '', channels: ['push', 'email', 'whatsapp'],
-            flashRewardType: 'FIXED', flashRewardValue: 50, flashRewardText: ''
+            imageOpacity: 60, bannerOpacity: 100, link: '', channels: ['push', 'email', 'whatsapp'],
+            flashRewardType: 'FIXED', flashRewardValue: 50, flashRewardText: '',
+            flashDays: []
         });
         setEditingId(null);
         setActiveTab('BASIC');
@@ -134,6 +139,11 @@ export const CampaignsPageV2 = () => {
             await CampaignService.update(bonus.id, { active: newStatus });
             setBonuses(bonuses.map(b => b.id === bonus.id ? { ...b, active: newStatus } : b));
             toast.success(`Campaña ${newStatus ? 'activada' : 'desactivada'}`);
+
+            // Log de auditoría
+            await AuditService.log('campaign_mgmt', `${newStatus ? 'Activación' : 'Desactivación'} de campaña: ${bonus.name}`, [
+                { action: 'campaign_toggle', status: 'success', info: `Estado: ${newStatus ? 'Activa' : 'Inactiva'}` }
+            ]);
         } catch (error) { toast.error('Error'); }
     };
 
@@ -234,11 +244,12 @@ export const CampaignsPageV2 = () => {
         }
     };
 
-    const toggleDay = (dayId: number) => {
-        const current = formData.daysOfWeek || [];
+    const toggleDay = (dayId: number, isFlash: boolean = false) => {
+        const field = isFlash ? 'flashDays' : 'daysOfWeek';
+        const current = (formData as any)[field] || [];
         setFormData({
             ...formData,
-            daysOfWeek: current.includes(dayId) ? current.filter(d => d !== dayId) : [...current, dayId].sort()
+            [field]: current.includes(dayId) ? current.filter((d: number) => d !== dayId) : [...current, dayId].sort()
         });
     };
 
@@ -298,12 +309,12 @@ export const CampaignsPageV2 = () => {
 
             <div className={`relative z-10 w-full h-full p-6 flex flex-col pointer-events-none ${getPositionClasses(formData.textPosition)}`}>
                 {formData.showTitle && (
-                    <h4 className={`leading-[1.1] mb-1 uppercase tracking-tight drop-shadow-md ${getFontFamily(formData.titleFont)} ${getFontWeight(formData.titleWeight)} text-${formData.titleSize || '2xl'}`} style={{ color: formData.textColor }}>
+                    <h4 className={`leading-[1.1] mb-1 uppercase tracking-tight drop-shadow-md ${getFontFamily(formData.titleFont)} ${getFontWeight(formData.titleWeight)} text-${formData.titleSize || '2xl'}`} style={{ color: formData.titleColor || formData.textColor }}>
                         {formData.title || 'Título de la Campaña'}
                     </h4>
                 )}
                 {formData.showDescription && (
-                    <p className={`opacity-90 leading-snug whitespace-pre-wrap drop-shadow-sm line-clamp-3 ${getFontFamily(formData.descFont)} ${getFontWeight(formData.descWeight)} text-${formData.descriptionSize || 'sm'}`} style={{ color: formData.textColor }}>
+                    <p className={`opacity-90 leading-snug whitespace-pre-wrap drop-shadow-sm line-clamp-3 ${getFontFamily(formData.descFont)} ${getFontWeight(formData.descWeight)} text-${formData.descriptionSize || 'sm'}`} style={{ color: formData.descriptionColor || formData.textColor }}>
                         {formData.description || 'Descripción breve de la promoción...'}
                     </p>
                 )}
@@ -428,7 +439,7 @@ export const CampaignsPageV2 = () => {
             {/* Dashboard / Lista */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {bonuses.map(bonus => (
-                    <div key={bonus.id} className="bg-white rounded-[2.5rem] p-4 border border-gray-100 shadow-sm hover:shadow-xl transition-all group overflow-hidden relative">
+                    <div key={bonus.id} className={`bg-white rounded-[2.5rem] p-4 border border-gray-100 shadow-sm hover:shadow-xl transition-all group overflow-hidden relative ${!bonus.active ? 'opacity-75 grayscale bg-gray-50/50' : ''}`}>
                         {/* Status Float */}
                         <div className="absolute top-6 right-6 z-10">
                             <button
@@ -450,10 +461,11 @@ export const CampaignsPageV2 = () => {
                             )}
 
                             {/* Tags de Tipo */}
-                            <div className="absolute bottom-4 left-4 flex gap-2">
-                                {bonus.startTime && (
-                                    <span className="bg-red-500 text-white text-[10px] font-black px-3 py-1 rounded-full flex items-center gap-1 animate-pulse">
+                            <div className="absolute bottom-4 left-4 flex flex-wrap gap-2">
+                                {bonus.isFlash && (
+                                    <span className="bg-red-500 text-white text-[10px] font-black px-3 py-1 rounded-full flex items-center gap-1 shadow-lg shadow-red-200">
                                         <Zap size={10} fill="white" /> FLASH
+                                        <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse ml-0.5" />
                                     </span>
                                 )}
                                 {(bonus.rewardType as any) === 'TEXT' ? (
@@ -481,14 +493,17 @@ export const CampaignsPageV2 = () => {
 
                             <div className="flex items-center justify-between pt-2 border-t border-gray-50 mt-4">
                                 <div className="flex gap-1">
-                                    {DAYS.map(d => (
-                                        <div key={d.id} className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold ${bonus.daysOfWeek.includes(d.id) ? 'bg-black text-white' : 'bg-gray-100 text-gray-300'}`}>
-                                            {d.label.charAt(0)}
-                                        </div>
-                                    ))}
+                                    {(bonus.isFlash ? (bonus as any).flashDays || [] : bonus.daysOfWeek || []).map((dayId: number) => {
+                                        const d = DAYS.find(day => day.id === dayId);
+                                        return (
+                                            <div key={dayId} className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold ${bonus.active ? 'bg-black text-white' : 'bg-gray-300 text-white'}`}>
+                                                {d?.label.charAt(0)}
+                                            </div>
+                                        );
+                                    })}
                                 </div>
-                                {bonus.startTime && (
-                                    <div className="text-[9px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                {bonus.isFlash && bonus.startTime && (
+                                    <div className="text-[9px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full flex items-center gap-1 border border-red-100">
                                         <Clock size={10} /> {bonus.startTime} - {bonus.endTime}
                                     </div>
                                 )}
@@ -574,7 +589,10 @@ export const CampaignsPageV2 = () => {
                                     {activeTab === 'BASIC' && (
                                         <div className="space-y-6 animate-slide-in-right">
                                             <section>
-                                                <label className="text-[10px] font-black text-gray-400 uppercase mb-2 block">Identificación</label>
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <Info size={14} className="text-purple-600" />
+                                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Identificación Interna</label>
+                                                </div>
                                                 <input
                                                     type="text" required placeholder="Nombre Interno (Ej: Promo Lunes Locos)"
                                                     className="w-full text-2xl font-bold border-b-2 border-gray-100 focus:border-purple-600 outline-none transition-colors py-2"
@@ -616,7 +634,10 @@ export const CampaignsPageV2 = () => {
 
                                             <section className="bg-blue-50 p-6 rounded-[2rem] border border-blue-100">
                                                 <div className="flex justify-between items-center mb-4">
-                                                    <label className="text-xs font-black text-blue-900 uppercase">Enlace de Acción</label>
+                                                    <div>
+                                                        <label className="text-xs font-black text-blue-900 uppercase">Enlace de Acción</label>
+                                                        <p className="text-[9px] text-blue-400 font-bold uppercase mt-0.5">Exclusivo para el Banner (Promos Vigentes)</p>
+                                                    </div>
                                                     <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-bold italic">Opcional</span>
                                                 </div>
                                                 <div className="flex gap-2">
@@ -632,7 +653,10 @@ export const CampaignsPageV2 = () => {
                                             </section>
 
                                             <section className="pt-4 border-t border-gray-100">
-                                                <label className="text-xs font-black text-gray-500 uppercase mb-4 block">Canales de Difusión Sugeridos</label>
+                                                <div className="mb-4">
+                                                    <label className="text-xs font-black text-gray-500 uppercase block">Canales de Difusión Sugeridos</label>
+                                                    <p className="text-[9px] text-gray-400 font-bold uppercase mt-0.5 italic">Válidos también para la Oferta Flash</p>
+                                                </div>
                                                 <div className="flex gap-3">
                                                     {['push', 'email', 'whatsapp'].map(channel => (
                                                         <label key={channel} className={`flex-1 flex flex-col items-center gap-2 cursor-pointer p-4 rounded-xl border-2 transition-all ${formData.channels?.includes(channel) ? 'border-purple-600 bg-purple-50 text-purple-700' : 'border-gray-100 bg-white text-gray-400 hover:bg-gray-50'}`}>
@@ -658,7 +682,7 @@ export const CampaignsPageV2 = () => {
                                                         </label>
                                                     ))}
                                                 </div>
-                                                <p className="text-[10px] text-gray-400 font-bold mt-3 uppercase italic text-center">Selecciona dónde quieres anunciar esto</p>
+                                                <p className="text-[10px] text-gray-400 font-bold mt-4 uppercase italic text-center">Selecciona dónde quieres anunciar esto</p>
                                             </section>
                                         </div>
                                     )}
@@ -666,7 +690,10 @@ export const CampaignsPageV2 = () => {
                                     {activeTab === 'VISUAL' && (
                                         <div className="space-y-8 animate-slide-in-right">
                                             <section className="space-y-4">
-                                                <label className="text-xs font-black text-gray-600 uppercase">Configuración de Imagen</label>
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <ImageIcon size={14} className="text-purple-600" />
+                                                    <label className="text-xs font-black text-gray-600 uppercase tracking-widest">Configuración de Imagen (Carrusel / Banner)</label>
+                                                </div>
                                                 <div className="flex gap-4">
                                                     <input
                                                         type="url" placeholder="Pega el enlace de la imagen aquí..."
@@ -832,12 +859,16 @@ export const CampaignsPageV2 = () => {
                                                                 </div>
                                                                 <div className="grid grid-cols-2 gap-3">
                                                                     <div className="space-y-1">
-                                                                        <label className="text-[9px] font-black text-gray-400 uppercase">Fondo</label>
+                                                                        <label className="text-[9px] font-black text-gray-400 uppercase">Fondo Banner</label>
                                                                         <input type="color" className="w-full h-10 rounded-xl cursor-pointer border-2 border-white shadow-sm" value={formData.backgroundColor} onChange={e => setFormData({ ...formData, backgroundColor: e.target.value })} />
                                                                     </div>
                                                                     <div className="space-y-1">
-                                                                        <label className="text-[9px] font-black text-gray-400 uppercase">Texto</label>
-                                                                        <input type="color" className="w-full h-10 rounded-xl cursor-pointer border-2 border-white shadow-sm" value={formData.textColor} onChange={e => setFormData({ ...formData, textColor: e.target.value })} />
+                                                                        <label className="text-[9px] font-black text-gray-400 uppercase">Color Título</label>
+                                                                        <input type="color" className="w-full h-10 rounded-xl cursor-pointer border-2 border-white shadow-sm" value={formData.titleColor || formData.textColor} onChange={e => setFormData({ ...formData, titleColor: e.target.value })} />
+                                                                    </div>
+                                                                    <div className="space-y-1 col-span-2">
+                                                                        <label className="text-[9px] font-black text-gray-400 uppercase">Color Descripción</label>
+                                                                        <input type="color" className="w-full h-10 rounded-xl cursor-pointer border-2 border-white shadow-sm" value={formData.descriptionColor || formData.textColor} onChange={e => setFormData({ ...formData, descriptionColor: e.target.value })} />
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -889,7 +920,6 @@ export const CampaignsPageV2 = () => {
                                                     {[
                                                         { id: 'FIXED', label: 'Puntos Fijos', sub: 'Suma X puntos a la cuenta', icon: <Plus size={24} />, color: 'bg-green-500' },
                                                         { id: 'MULTIPLIER', label: 'Multiplicador', sub: 'Multiplica los puntos de la compra', icon: <Zap size={24} />, color: 'bg-purple-600' },
-                                                        { id: 'TEXT', label: 'Texto / Promo', sub: 'Solo visual (ej. 2x1, % OFF)', icon: <Type size={24} />, color: 'bg-pink-500' },
                                                         { id: 'INFO', label: 'Solo Anuncio', sub: 'Informativo sin puntos extras', icon: <Megaphone size={24} />, color: 'bg-blue-500' },
                                                     ].map(type => (
                                                         <button
@@ -952,7 +982,7 @@ export const CampaignsPageV2 = () => {
                                                     </div>
                                                     <div>
                                                         <h4 className="font-black text-purple-900 text-lg uppercase tracking-tight">Rango de Vigencia</h4>
-                                                        <p className="text-[10px] text-purple-600 font-bold opacity-60 uppercase tracking-widest">Periodo total de la campaña</p>
+                                                        <p className="text-[10px] text-purple-600 font-bold opacity-60 uppercase tracking-widest">Periodo total de la campaña (Vacio = Sin fin de ciclo)</p>
                                                     </div>
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-4">
@@ -965,6 +995,25 @@ export const CampaignsPageV2 = () => {
                                                         <input type="date" className="w-full p-4 rounded-2xl bg-white border-none shadow-sm text-sm font-bold focus:ring-2 focus:ring-purple-200 outline-none transition-all" value={formData.endDate} onChange={e => setFormData({ ...formData, endDate: e.target.value })} />
                                                     </div>
                                                 </div>
+                                            </section>
+
+                                            <section className="space-y-4">
+                                                <label className="text-xs font-black text-gray-500 uppercase px-2">Días de la semana</label>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {DAYS.map(day => (
+                                                        <button
+                                                            key={day.id} type="button"
+                                                            onClick={() => {
+                                                                const current = formData.daysOfWeek || [];
+                                                                setFormData({ ...formData, daysOfWeek: current.includes(day.id) ? current.filter(d => d !== day.id) : [...current, day.id] });
+                                                            }}
+                                                            className={`flex-1 min-w-[60px] py-4 rounded-2xl font-black text-xs transition-all ${formData.daysOfWeek?.includes(day.id) ? 'bg-purple-600 text-white shadow-lg scale-105' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
+                                                        >
+                                                            {day.label}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                                <p className="text-[10px] text-gray-400 font-bold uppercase italic text-center">La campaña solo se mostrará los días seleccionados</p>
                                             </section>
                                         </div>
                                     )}
@@ -1033,7 +1082,6 @@ export const CampaignsPageV2 = () => {
                                                                 { id: 'FIXED', label: 'Puntos', icon: <Plus size={16} /> },
                                                                 { id: 'MULTIPLIER', label: 'X Puntos', icon: <Zap size={16} /> },
                                                                 { id: 'TEXT', label: 'Texto', icon: <Type size={16} /> },
-                                                                { id: 'INFO', label: 'Info', icon: <Megaphone size={16} /> },
                                                             ].map(type => (
                                                                 <button
                                                                     key={type.id} type="button"
@@ -1086,12 +1134,36 @@ export const CampaignsPageV2 = () => {
                                                             {DAYS.map(day => (
                                                                 <button
                                                                     key={day.id} type="button"
-                                                                    onClick={() => toggleDay(day.id)}
-                                                                    className={`flex-1 h-12 rounded-xl text-[10px] font-black transition-all border-2 ${formData.daysOfWeek?.includes(day.id) ? 'bg-red-500 border-red-500 text-white shadow-md' : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'}`}
+                                                                    onClick={() => toggleDay(day.id, true)}
+                                                                    className={`flex-1 h-12 rounded-xl text-[10px] font-black transition-all border-2 ${((formData as any).flashDays || []).includes(day.id) ? 'bg-red-500 border-red-500 text-white shadow-md' : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'}`}
                                                                 >
                                                                     {day.label}
                                                                 </button>
                                                             ))}
+                                                        </div>
+                                                    </section>
+                                                    <section className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm animate-fade-in">
+                                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-4">Vista Previa Flash (Estática)</label>
+                                                        <div className="bg-red-600 text-white p-4 rounded-2xl flex items-center justify-between">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="p-2 bg-white/20 rounded-lg">
+                                                                    <Zap size={20} fill="white" />
+                                                                </div>
+                                                                <div>
+                                                                    <p className="font-black text-xs uppercase tracking-tight">Oferta Flash Activa</p>
+                                                                    <p className="text-[10px] font-bold opacity-80 uppercase leading-none">Termina {formData.endTime || '--:--'}</p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <p className="font-black text-lg leading-none">
+                                                                    {formData.flashRewardType === 'MULTIPLIER' ? `x${formData.flashRewardValue}` :
+                                                                        formData.flashRewardType === 'FIXED' ? `+${formData.flashRewardValue}` :
+                                                                            formData.flashRewardText || 'PROMO'}
+                                                                </p>
+                                                                <p className="text-[9px] font-bold uppercase opacity-80">
+                                                                    {formData.flashRewardType === 'TEXT' ? 'Especial' : 'Puntos'}
+                                                                </p>
+                                                            </div>
                                                         </div>
                                                     </section>
                                                 </div>

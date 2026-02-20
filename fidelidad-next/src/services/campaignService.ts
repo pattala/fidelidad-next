@@ -23,6 +23,8 @@ export interface BonusRule {
     showInHomeBanner?: boolean;
     backgroundColor?: string;
     textColor?: string;
+    titleColor?: string;
+    descriptionColor?: string;
 
     // Customization
     imageFit?: 'contain' | 'cover';
@@ -61,6 +63,7 @@ export interface BonusRule {
     flashRewardType?: 'FIXED' | 'MULTIPLIER' | 'TEXT' | 'INFO';
     flashRewardValue?: number;
     flashRewardText?: string;
+    flashDays?: number[];
 
     channels?: string[]; // push, email, whatsapp
 }

@@ -11,8 +11,6 @@ export default defineConfig({
             injectRegister: 'auto',
             workbox: {
                 cleanupOutdatedCaches: true,
-                skipWaiting: true,
-                clientsClaim: true,
                 sourcemap: true
             },
             includeAssets: ['vite.svg'],

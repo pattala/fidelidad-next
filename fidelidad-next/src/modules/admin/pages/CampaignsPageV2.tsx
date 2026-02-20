@@ -877,6 +877,7 @@ export const CampaignsPageV2 = () => {
                                                         </div>
                                                     </section>
                                                 </section>
+                                            </section>
                                         </div>
                                     )}
 

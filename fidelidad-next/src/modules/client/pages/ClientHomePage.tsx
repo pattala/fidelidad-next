@@ -109,6 +109,7 @@ export const ClientHomePage = () => {
     const [userData, setUserData] = useState<any>(null);
     const [showExpirationModal, setShowExpirationModal] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const [currentTimeStore, setCurrentTimeStore] = useState(new Date());
 
     const { config } = useOutletContext<{ config: any }>();
 
@@ -210,6 +211,13 @@ export const ClientHomePage = () => {
     }, [user?.uid, !!userData, !!config, birthdayChecked]);
 
     useEffect(() => {
+        const interval = setInterval(() => {
+            setCurrentTimeStore(new Date());
+        }, 60000); // Actualizar cada minuto para expirar ofertas flash
+        return () => clearInterval(interval);
+    }, []);
+
+    useEffect(() => {
         const handleSimChange = () => {
             // Trigger a re-render or re-fetch
             window.location.reload();
@@ -219,14 +227,35 @@ export const ClientHomePage = () => {
     }, []);
 
     useEffect(() => {
-        const fetchCampaigns = async () => {
-            try {
-                const fetched = await CampaignService.getActiveBonusesForToday();
-                setCampaigns(fetched);
-            } catch (error) {
-                console.error('Error fetching campaigns:', error);
-            }
-        };
+        // Suscripción en tiempo real a campañas
+        const q = query(collection(db, 'campanas'), orderBy('name'));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const fetched = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            })) as BonusRule[];
+
+            // Filtrar para hoy localmente para reactividad inmediata
+            const now = currentTimeStore;
+            const todayDay = now.getDay();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const todayStr = `${year}-${month}-${day}`;
+
+            const activeToday = fetched.filter(b => {
+                if (!b.active) return false;
+                if (b.startDate && b.startDate > todayStr) return false;
+                if (b.endDate && b.endDate < todayStr) return false;
+
+                const targetDays = b.isFlash ? b.flashDays : b.daysOfWeek;
+                if (targetDays && Array.isArray(targetDays) && targetDays.length > 0 && !targetDays.includes(todayDay)) return false;
+
+                return true;
+            });
+
+            setCampaigns(activeToday);
+        });
 
         if (user?.uid) {
             // Check and process expirations silently on load
@@ -239,14 +268,14 @@ export const ClientHomePage = () => {
             });
         }
 
-        fetchCampaigns();
-    }, [user?.uid]);
+        return () => unsubscribe();
+    }, [user?.uid, currentTimeStore]);
 
     const homeBanners = campaigns.filter(c => c.showInHomeBanner);
 
     const activeFlash = campaigns.find(c => {
         if (!c.startTime || !c.endTime) return false;
-        const now = new Date();
+        const now = currentTimeStore;
         const curHHmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
         return curHHmm >= c.startTime && curHHmm < c.endTime;
     });

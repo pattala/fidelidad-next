@@ -127,15 +127,25 @@ export default async function handler(req, res) {
                 if (b.startDate && typeof b.startDate === 'string' && b.startDate > todayStr) return;
                 if (b.endDate && typeof b.endDate === 'string' && b.endDate < todayStr) return;
 
+                // 3. Filtro de hora (Marketing Dinámico / Ofertas Flash)
+                // Usamos un buffer de 20 min para el GET para que el front pueda mostrar "TOLERANCIA"
+                const GRACE_BUFFER_MINS = 20;
+                if (b.startTime && typeof b.startTime === 'string' && b.startTime > currentTimeStr) return;
+
+                if (b.endTime && typeof b.endTime === 'string') {
+                    // Si ya pasó la hora final, verificar si está dentro del buffer de tolerancia
+                    const [endH, endM] = b.endTime.split(':').map(Number);
+                    const endTimestamp = new Date(nowArg);
+                    endTimestamp.setUTCHours(endH, endM + GRACE_BUFFER_MINS, 0, 0);
+
+                    if (nowArg > endTimestamp) return; // Excedió incluso la tolerancia
+                }
+
                 // 2. Filtro por día de la semana (priorizar flashDays si es isFlash)
                 const targetDays = b.isFlash ? b.flashDays : b.daysOfWeek;
                 if (targetDays && Array.isArray(targetDays) && targetDays.length > 0) {
                     if (!targetDays.includes(todayDay)) return;
                 }
-
-                // 3. Filtro de hora (Marketing Dinámico / Ofertas Flash)
-                if (b.startTime && typeof b.startTime === 'string' && b.startTime > currentTimeStr) return;
-                if (b.endTime && typeof b.endTime === 'string' && b.endTime < currentTimeStr) return;
 
                 // Determinar Recompensa (Priorizar Flash si estamos dentro del filtro y es flash)
                 const isApplyingFlash = b.isFlash;
@@ -253,11 +263,26 @@ export default async function handler(req, res) {
                     if (bsnap.exists) {
                         const b = bsnap.data();
 
-                        // Lógica de Recompensa Flash (Independiente)
-                        // Para aplicar flash en el POST, verificamos si es flash y cumplimos horario/día (ya filtrado en bonusIds usualmente por el frontend, pero validamos tipos)
-                        const rType = b.isFlash ? (b.flashRewardType || b.rewardType) : b.rewardType;
-                        const rValue = b.isFlash ? (Number(b.flashRewardValue) ?? b.rewardValue) : b.rewardValue;
-                        const rText = b.isFlash ? (b.flashRewardText || b.rewardText) : b.rewardText;
+                        // Lógica de Recompensa Flash (Autónoma y sensible al tiempo)
+                        // Verificamos si estamos DENTRO de las horas flash para aplicar el premio flash.
+                        // Si es una campaña flash pero estamos fuera de horario, NO se aplica el premio flash.
+                        let useFlashReward = b.isFlash;
+                        if (b.isFlash && (b.startTime || b.endTime)) {
+                            const now = new Date();
+                            const nowArg = new Date(now.getTime() - (3 * 60 * 60 * 1000));
+                            const curHHmm = `${String(nowArg.getUTCHours()).padStart(2, '0')}:${String(nowArg.getUTCMinutes()).padStart(2, '0')}`;
+
+                            const isAfterStart = !b.startTime || b.startTime <= curHHmm;
+                            const isBeforeEnd = !b.endTime || b.endTime >= curHHmm;
+
+                            if (!isAfterStart || !isBeforeEnd) {
+                                useFlashReward = false;
+                            }
+                        }
+
+                        const rType = useFlashReward ? (b.flashRewardType || b.rewardType) : b.rewardType;
+                        const rValue = useFlashReward ? (Number(b.flashRewardValue) ?? b.rewardValue) : b.rewardValue;
+                        const rText = useFlashReward ? (b.flashRewardText || b.rewardText) : b.rewardText;
 
                         if (rType === 'FIXED') totalBonus += (Number(rValue) || 0);
                         if (rType === 'MULTIPLIER') totalMultiplier *= (Number(rValue) || 1);

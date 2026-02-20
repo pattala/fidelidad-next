@@ -13,8 +13,13 @@ export const ClientAuthGuard = ({ children }: { children: React.ReactNode }) => 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
             if (!currentUser) {
-                setLoading(false);
-                navigate('/login');
+                // Dar un pequeño margen de 200ms por si el estado está reconciliando tras un refresh o cambio de solapa
+                setTimeout(() => {
+                    if (!auth.currentUser) {
+                        setLoading(false);
+                        navigate('/login');
+                    }
+                }, 200);
             } else {
                 try {
                     // Verify Firestore Document Existence
@@ -24,8 +29,6 @@ export const ClientAuthGuard = ({ children }: { children: React.ReactNode }) => 
                         // Crucial: Check if it's an admin visiting the PWA side
                         const adminSnap = await getDoc(doc(db, 'admins', currentUser.uid));
                         if (adminSnap.exists()) {
-                            // If it's an admin, we allow the session but maybe they don't have a "Client" profile.
-                            // We set the user so they are not redirected to /login, which fixed the "tab jump logout"
                             setUser(currentUser);
                             setLoading(false);
                             return;
@@ -41,7 +44,6 @@ export const ClientAuthGuard = ({ children }: { children: React.ReactNode }) => 
                     setUser(currentUser);
                 } catch (e) {
                     console.error("Error verifying user doc:", e);
-                    // If error (e.g. network), we still allow the session but note the error
                     setUser(currentUser);
                 }
                 setLoading(false);

@@ -4,6 +4,8 @@ import { CampaignService, type BonusRule } from '../../../services/campaignServi
 import { Calendar, Tag, Clock, ChevronLeft, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { AppConfig } from '../../../types';
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { db } from '../../../lib/firebase';
 
 export const ClientPromosPage = () => {
     const { config, setHeaderTitle } = useOutletContext<{
@@ -24,19 +26,33 @@ export const ClientPromosPage = () => {
     }, [setHeaderTitle]);
 
     useEffect(() => {
-        const loadPromos = async () => {
-            try {
-                // Fetch ALL active campaigns in date range
-                const data = await CampaignService.getActiveCampaignsInDateRange();
-                setCampaigns(data);
-            } catch (error) {
-                console.error("Error loading all promos", error);
-                toast.error("Error al cargar promociones");
-            } finally {
-                setLoading(false);
-            }
-        };
-        loadPromos();
+        // Suscripción en tiempo real a campañas
+        const q = query(collection(db, 'campanas'), orderBy('name'));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const fetched = snapshot.docs.map((doc) => ({
+                id: doc.id,
+                ...doc.data() as any
+            })) as BonusRule[];
+
+            // Filtrado básico por fecha (mantenemos lógica de Catalogo completo)
+            const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD local
+
+            const activeInRange = fetched.filter(b => {
+                if (!b.active) return false;
+                if (b.startDate && b.startDate > todayStr) return false;
+                if (b.endDate && b.endDate < todayStr) return false;
+                return true;
+            });
+
+            setCampaigns(activeInRange);
+            setLoading(false);
+        }, (error) => {
+            console.error("Error loading all promos", error);
+            toast.error("Error al cargar promociones");
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
     }, []);
 
     // Real-time Expiration Logic

@@ -41,6 +41,7 @@ export const CampaignsPage = () => {
         buttonText: 'Ver detalles',
         imageOpacity: 60, bannerOpacity: 100, link: '', channels: ['push', 'email', 'whatsapp'],
         // Flash independent rewards
+        flashTitle: '', flashDescription: '',
         flashRewardType: 'FIXED', flashRewardValue: 50, flashRewardText: '',
         flashDays: [], flashGraceMins: 15
     });
@@ -74,6 +75,7 @@ export const CampaignsPage = () => {
             descFont: 'sans', descWeight: 'normal', descriptionSize: 'sm',
             buttonText: 'Ver detalles',
             imageOpacity: 60, bannerOpacity: 100, link: '', channels: ['push', 'email', 'whatsapp'],
+            flashTitle: '', flashDescription: '',
             flashRewardType: 'FIXED', flashRewardValue: 50, flashRewardText: '',
             flashDays: [], flashGraceMins: 15
         });
@@ -105,6 +107,8 @@ export const CampaignsPage = () => {
                 daysOfWeek: isFlashMode ? [] : formData.daysOfWeek,
 
                 // Si NO es flash, limpiamos los campos flash
+                flashTitle: isFlashMode ? formData.flashTitle : '',
+                flashDescription: isFlashMode ? formData.flashDescription : '',
                 flashRewardType: isFlashMode ? formData.flashRewardType : 'FIXED',
                 flashRewardValue: isFlashMode ? formData.flashRewardValue : 0,
                 flashRewardText: isFlashMode ? formData.flashRewardText : '',
@@ -168,7 +172,14 @@ export const CampaignsPage = () => {
             let template = "";
             let msg = "";
 
-            if (bonus.rewardType === 'INFO' || (bonus.rewardType as any) === 'TEXT') {
+            if (bonus.isFlash) {
+                template = config?.messaging?.templates?.flashOffer || DEFAULT_TEMPLATES.flashOffer;
+                const horario = bonus.endTime || '23:59';
+                msg = template
+                    .replace(/{titulo}/g, bonus.flashTitle || bonus.title || bonus.name)
+                    .replace(/{detalle}/g, bonus.flashDescription || bonus.description || (bonus.rewardText ? `¡${bonus.rewardText}!` : 'Consultanos.'))
+                    .replace(/{horario}/g, horario);
+            } else if (bonus.rewardType === 'INFO' || (bonus.rewardType as any) === 'TEXT') {
                 template = config?.messaging?.templates?.offer || DEFAULT_TEMPLATES.offer;
                 const vencimiento = bonus.endDate
                     ? new Date(bonus.endDate + 'T00:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
@@ -242,8 +253,18 @@ export const CampaignsPage = () => {
             if (selectedChannels.whatsapp) {
                 navigate('/admin/whatsapp', { state: { message: msg } });
             }
+
+            // --- AUDITORIA ---
+            await AuditService.log('campaign_diffusion', `Difusión masiva de campaña: ${bonus.name}`, [
+                {
+                    action: 'broadcast_executed',
+                    status: 'success',
+                    info: `Canales: ${Object.entries(selectedChannels).filter(([_, v]) => v).map(([k]) => k).join(', ')} | Tipo: ${bonus.isFlash ? 'Flash' : 'Estándar'}`
+                }
+            ]);
         } catch (error) {
             toast.error('Error durante la difusión');
+            console.error(error);
         }
     };
 
@@ -313,12 +334,12 @@ export const CampaignsPage = () => {
             <div className={`relative z-10 w-full h-full p-6 flex flex-col pointer-events-none ${getPositionClasses(formData.textPosition)}`}>
                 {formData.showTitle && (
                     <h4 className={`leading-[1.1] mb-1 uppercase tracking-tight drop-shadow-md ${getFontFamily(formData.titleFont)} ${getFontWeight(formData.titleWeight)} text-${formData.titleSize || '2xl'}`} style={{ color: formData.titleColor || formData.textColor }}>
-                        {formData.title || 'Título de la Campaña'}
+                        {(isFlashMode && formData.flashTitle) ? formData.flashTitle : (formData.title || 'Título de la Campaña')}
                     </h4>
                 )}
                 {formData.showDescription && (
                     <p className={`opacity-90 leading-snug whitespace-pre-wrap drop-shadow-sm line-clamp-3 ${getFontFamily(formData.descFont)} ${getFontWeight(formData.descWeight)} text-${formData.descriptionSize || 'sm'}`} style={{ color: formData.descriptionColor || formData.textColor }}>
-                        {formData.description || 'Descripción breve de la promoción...'}
+                        {(isFlashMode && formData.flashDescription) ? formData.flashDescription : (formData.description || 'Descripción breve de la promoción...')}
                     </p>
                 )}
             </div>
@@ -385,7 +406,7 @@ export const CampaignsPage = () => {
                                     <span className="text-[7px] font-black uppercase tracking-widest">Oferta Flash Activa</span>
                                 </div>
                                 <h3 className="text-xs font-black truncate leading-tight mb-2 italic">
-                                    {formData.title || 'Título Flash'}
+                                    {formData.flashTitle || formData.title || 'Título Flash'}
                                 </h3>
                                 <div className="flex items-center gap-2">
                                     <div className="bg-white/20 backdrop-blur-md px-2 py-1 rounded-lg border border-white/10 shrink-0">
@@ -411,8 +432,12 @@ export const CampaignsPage = () => {
                                 {formData.imageUrl ? <img src={formData.imageUrl} className="w-full h-full object-cover" alt="" /> : <ImageIcon size={24} className="text-gray-300 m-auto mt-4" />}
                             </div>
                             <div className="flex-1 min-w-0">
-                                <h4 className="font-bold text-gray-800 text-xs truncate leading-tight mb-1">{formData.title || 'Título'}</h4>
-                                <p className="text-[10px] text-gray-400 font-medium line-clamp-2 leading-relaxed">{formData.description || 'Descripción...'}</p>
+                                <h4 className="font-bold text-gray-800 text-xs truncate leading-tight mb-1">
+                                    {(isFlashMode && formData.flashTitle) ? formData.flashTitle : (formData.title || 'Título')}
+                                </h4>
+                                <p className="text-[10px] text-gray-400 font-medium line-clamp-2 leading-relaxed">
+                                    {(isFlashMode && formData.flashDescription) ? formData.flashDescription : (formData.description || 'Descripción...')}
+                                </p>
                                 <button className="mt-2 text-[9px] font-black text-purple-600 bg-purple-50 px-2 py-1 rounded inline-block">VER DETALLES</button>
                             </div>
                         </div>
@@ -528,9 +553,11 @@ export const CampaignsPage = () => {
 
                         {/* Content */}
                         <div className="px-2">
-                            <h3 className="text-xl font-bold text-gray-800 truncate mb-1">{bonus.name}</h3>
+                            <h3 className="text-xl font-bold text-gray-800 truncate mb-1">
+                                {bonus.isFlash ? (bonus.flashTitle || bonus.title || bonus.name) : bonus.name}
+                            </h3>
                             <p className={`text-xs line-clamp-2 h-8 leading-relaxed mb-4 font-medium ${bonus.active ? 'text-green-600' : 'text-gray-400'}`}>
-                                {bonus.description || 'Sin descripción pública configurada.'}
+                                {bonus.isFlash ? (bonus.flashDescription || bonus.description || 'Sin descripción flash.') : (bonus.description || 'Sin descripción pública configurada.')}
                             </p>
 
                             <div className="flex items-center justify-between pt-2 border-t border-gray-50 mt-4">
@@ -1126,6 +1153,29 @@ export const CampaignsPage = () => {
 
                                                 {isFlashMode && (
                                                     <div className="relative z-10 space-y-4 animate-fade-in-up">
+                                                        <div className="space-y-3 p-4 bg-white/50 rounded-2xl border border-red-100">
+                                                            <div className="space-y-1">
+                                                                <label className="text-[10px] font-black text-red-900 uppercase block ml-1">Título Flash Especial</label>
+                                                                <input
+                                                                    type="text"
+                                                                    placeholder="Ej: ¡FELIZ HORA FLASH! ⚡"
+                                                                    className="w-full p-3 rounded-xl bg-white border-none shadow-sm text-sm font-black text-red-600 focus:ring-2 focus:ring-red-200 outline-none placeholder:text-red-200"
+                                                                    value={formData.flashTitle}
+                                                                    onChange={e => setFormData({ ...formData, flashTitle: e.target.value })}
+                                                                />
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                <label className="text-[10px] font-black text-red-900 uppercase block ml-1">Descripción Flash</label>
+                                                                <textarea
+                                                                    placeholder="Breve mensaje para la oferta flash..."
+                                                                    rows={2}
+                                                                    className="w-full p-3 rounded-xl bg-white border-none shadow-sm text-xs font-medium text-red-600 focus:ring-2 focus:ring-red-200 outline-none resize-none placeholder:text-red-200"
+                                                                    value={formData.flashDescription}
+                                                                    onChange={e => setFormData({ ...formData, flashDescription: e.target.value })}
+                                                                />
+                                                            </div>
+                                                        </div>
+
                                                         <div className="grid grid-cols-2 gap-3">
                                                             <div className="space-y-1">
                                                                 <label className="text-[9px] font-black text-red-400 uppercase block ml-1">Inicia</label>

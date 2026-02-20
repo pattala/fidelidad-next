@@ -117,8 +117,10 @@ export const DEFAULT_TEMPLATES = {
     welcome: "¡Bienvenido al Club, {nombre}! 👋 Ya tienes {puntos} puntos de regalo. 🎁",
     campaign: "🚀 ¡Nueva Campaña!: {titulo}. {descripcion}. ¡No te la pierdas! 🔥",
     offer: "🔥 ¡Oferta Especial! {titulo}: {detalle}. Válido hasta el {vencimiento}. 📢",
+    flashOffer: "⚡ ¡OFERTA FLASH! {titulo}: {detalle}. Solo disponible hoy hasta las {horario} hs. 🔥",
     birthday: "¡Feliz cumpleaños, {nombre}! 🎂🎉 Te regalamos {puntos} puntos para que los disfrutes. ¡Que pases un gran día! ✨",
     birthdaySimple: "¡Feliz cumpleaños, {nombre}! 🎂🎉 Esperamos que pases un día increíble. ¡Te enviamos un gran saludo! ✨",
     referralReward: "¡Hola {nombre}! 🎁 Ganaste {puntos} puntos porque tu amigo {amigo} comenzó a usar el club. ¡Gracias por recomendarnos! ✨",
+    referralPoints: "🎁 ¡Buenas noticias! Ganaste {puntos} puntos porque {nombre_referido} se unió al club. ¡Gracias por recomendarnos! 🚀",
     expirationWarning: "¡Hola {nombre}! 📢 Te recordamos que tienes {puntos} puntos que vencen el {fecha}. ¡Aprovéchalos antes de que expiren! 🎁"
 };

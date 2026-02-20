@@ -149,9 +149,11 @@ export interface AppConfig {
             welcome?: string;
             campaign?: string;
             offer?: string;
+            flashOffer?: string;
             birthday?: string;
             birthdaySimple?: string;
             referralReward?: string;
+            referralPoints?: string;
             expirationWarning?: string;
         };
         enableExpirationWarnings?: boolean;

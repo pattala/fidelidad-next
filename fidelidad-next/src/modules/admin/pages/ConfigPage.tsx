@@ -162,7 +162,7 @@ export const ConfigPage = () => {
     }, [activeTab]);
 
     // Updated type definition in insertVar to include 'birthday'
-    const insertVar = (field: 'pointsAdded' | 'redemption' | 'welcome' | 'campaign' | 'offer' | 'birthday' | 'birthdaySimple' | 'referralReward' | 'expirationWarning', variable: string) => {
+    const insertVar = (field: 'pointsAdded' | 'redemption' | 'welcome' | 'campaign' | 'offer' | 'flashOffer' | 'birthday' | 'birthdaySimple' | 'referralReward' | 'referralPoints' | 'expirationWarning', variable: string) => {
         const currentTemplates = config.messaging?.templates || {};
         const currentValue = currentTemplates[field] || '';
         setConfig({
@@ -1441,6 +1441,36 @@ export const ConfigPage = () => {
                                     />
                                 </div>
 
+                                {/* Flash Offer Template */}
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2 font-mono flex items-center gap-2">
+                                        ⚡ Oferta Flash <span className="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full uppercase">Crítico / Urgente</span>
+                                    </label>
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">⚡</span>
+                                            <textarea
+                                                rows={2}
+                                                value={config.messaging?.templates?.flashOffer || ''}
+                                                onChange={e => setConfig({
+                                                    ...config,
+                                                    messaging: {
+                                                        ...config.messaging!,
+                                                        templates: { ...config.messaging?.templates, flashOffer: e.target.value }
+                                                    }
+                                                })}
+                                                placeholder={DEFAULT_TEMPLATES.flashOffer}
+                                                className="w-full pl-10 pr-3 py-3 rounded-lg border border-yellow-200 focus:ring-2 focus:ring-yellow-100 outline-none resize-none"
+                                            />
+                                        </div>
+                                        <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, flashOffer: DEFAULT_TEMPLATES.flashOffer } } })} className="px-3 py-2 text-gray-400 hover:text-yellow-600 rounded-lg hover:bg-yellow-50 transition">↺</button>
+                                    </div>
+                                    <VariableChips vars={['titulo', 'detalle', 'horario']} onSelect={v => insertVar('flashOffer', v)} />
+                                    <p className="text-[10px] text-gray-400 mt-1 italic">
+                                        * Se usa automáticamente para campañas marcadas como "Flash".
+                                    </p>
+                                </div>
+
                                 {/* Birthday Template */}
                                 <div className="space-y-6">
                                     <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
@@ -1547,6 +1577,32 @@ export const ConfigPage = () => {
                                             messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, referralReward: { channels: newChannels } } }
                                         })}
                                     />
+                                </div>
+
+                                {/* Referral Points Template (Puntos por referir) */}
+                                <div className="p-4 bg-orange-50/30 rounded-xl border border-orange-100">
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">🎁 Puntos a Favor (Referidor)</label>
+                                    <p className="text-[10px] text-gray-500 mb-2 leading-tight">Mismo evento que el anterior, pero enfocado en avisar los puntos ganados.</p>
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">🚀</span>
+                                            <textarea
+                                                rows={2}
+                                                value={config.messaging?.templates?.referralPoints || ''}
+                                                onChange={e => setConfig({
+                                                    ...config,
+                                                    messaging: {
+                                                        ...config.messaging!,
+                                                        templates: { ...config.messaging?.templates, referralPoints: e.target.value }
+                                                    }
+                                                })}
+                                                placeholder={DEFAULT_TEMPLATES.referralPoints}
+                                                className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-orange-100 outline-none resize-none"
+                                            />
+                                        </div>
+                                        <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, referralPoints: DEFAULT_TEMPLATES.referralPoints } } })} className="px-3 py-2 text-gray-400 hover:text-orange-600 rounded-lg hover:bg-orange-50 transition">↺</button>
+                                    </div>
+                                    <VariableChips vars={['nombre', 'nombre_referido', 'puntos']} onSelect={v => insertVar('referralPoints', v)} />
                                 </div>
 
                                 {/* Points Expiration Warning Configuration */}

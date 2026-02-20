@@ -60,6 +60,8 @@ export interface BonusRule {
 
     // Flash Reward (Independent)
     isFlash?: boolean;
+    flashTitle?: string;
+    flashDescription?: string;
     flashRewardType?: 'FIXED' | 'MULTIPLIER' | 'TEXT' | 'INFO';
     flashRewardValue?: number;
     flashRewardText?: string;

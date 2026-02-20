@@ -159,7 +159,8 @@ export default async function handler(req, res) {
                     activePromotions.push({
                         id: doc.id,
                         name: b.name || 'Sin nombre',
-                        title: b.title || b.name || 'Promoción',
+                        title: isApplyingFlash ? (b.flashTitle || b.title || b.name || 'Flash') : (b.title || b.name || 'Promoción'),
+                        description: isApplyingFlash ? (b.flashDescription || b.description || '') : (b.description || ''),
                         rewardType: rType,
                         rewardValue: Number(rValue) || 0,
                         rewardText: rText,
@@ -288,12 +289,14 @@ export default async function handler(req, res) {
                         if (rType === 'FIXED') totalBonus += (Number(rValue) || 0);
                         if (rType === 'MULTIPLIER') totalMultiplier *= (Number(rValue) || 1);
                         if (rType === 'TEXT' && rText) {
-                            promoDetails += (promoDetails ? ", " : " + Bono: ") + (b.name || b.title || "Flash") + ` (${rText})`;
+                            const promoName = useFlashReward ? (b.flashTitle || b.title || b.name || "Flash") : (b.title || b.name || "Promo");
+                            promoDetails += (promoDetails ? ", " : " + Bono: ") + promoName + ` (${rText})`;
                         }
 
                         if (rType !== 'TEXT') {
+                            const promoName = useFlashReward ? (b.flashTitle || b.title || b.name || "Flash") : (b.title || b.name || "Promo");
                             const bonusAction = rType === 'MULTIPLIER' ? `x${rValue}` : `+${rValue}`;
-                            promoDetails += (promoDetails ? ", " : " + Bono: ") + (b.name || b.title || "Promo") + ` (${bonusAction})`;
+                            promoDetails += (promoDetails ? ", " : " + Bono: ") + promoName + ` (${bonusAction})`;
                         }
                     }
                 });
@@ -777,8 +780,12 @@ export default async function handler(req, res) {
             }
 
             if (notifications.length > 0) {
-                console.log(`[assign-points] Triggering ${notifications.length} notifications.`);
-                await Promise.all(notifications);
+                try {
+                    console.log(`[assign-points] Triggering ${notifications.length} notifications.`);
+                    await Promise.allSettled(notifications);
+                } catch (notifyPError) {
+                    console.error("Error in parallel notifications:", notifyPError);
+                }
             }
 
             // --- FINAL AUDIT LOG (UNIFIED) ---
@@ -797,8 +804,8 @@ export default async function handler(req, res) {
                     console.error("Final audit log error:", auditErr);
                 }
             }
-        } catch (notifyErr) {
-            console.error("Error triggering notifications outside tx:", notifyErr);
+        } catch (notifyOuterErr) {
+            console.error("Error in post-transaction processing:", notifyOuterErr);
         }
 
         return res.status(200).json(result);

@@ -44,15 +44,24 @@ export interface BonusRule {
     descriptionSize?: 'xs' | 'sm' | 'base' | 'lg' | 'xl';
 
     imageOpacity?: number; // 0-100
+    bannerOpacity?: number; // 0-100 (Transparency for background)
 
     // showTitle removed from here as it moved up, but keeping compatibility if needed isn't strict.
     // Cleaned up below.
     buttonText?: string;
     link?: string;
 
-    rewardType: 'FIXED' | 'MULTIPLIER' | 'INFO';
+    // Standard Reward
+    rewardType: 'FIXED' | 'MULTIPLIER' | 'TEXT' | 'INFO';
     rewardValue: number;
-    rewardText?: string; // Nuevo campo para textos como "2x1", "50% OFF"
+    rewardText?: string;
+
+    // Flash Reward (Independent)
+    isFlash?: boolean;
+    flashRewardType?: 'FIXED' | 'MULTIPLIER' | 'TEXT' | 'INFO';
+    flashRewardValue?: number;
+    flashRewardText?: string;
+
     channels?: string[]; // push, email, whatsapp
 }
 

@@ -1391,25 +1391,6 @@ export const CampaignsPage = () => {
                                         </div>
                                     </div>
 
-                                    {/* Sticky Preview (Visible on large screens) */}
-                                    <div className="hidden lg:block w-96 bg-gray-50 p-8 border-l border-gray-100 overflow-y-auto shrink-0">
-                                        <div className="space-y-6">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <div className="p-2 bg-purple-100 text-purple-600 rounded-lg">
-                                                    <Monitor size={16} />
-                                                </div>
-                                                <h3 className="font-black text-gray-800 text-sm uppercase">Simulador PWA</h3>
-                                            </div>
-
-                                            <div className="flex justify-center">
-                                                <PWASimulator />
-                                            </div>
-
-                                            <div className="p-4 bg-purple-50 text-purple-800 rounded-xl text-xs font-medium leading-relaxed border border-purple-100">
-                                                💡 Usa el simulador para ver cómo se integrará tu campaña en el flujo de la aplicación.
-                                            </div>
-                                        </div>
-                                    </div>
                                 </div>
                             </>
                         )}

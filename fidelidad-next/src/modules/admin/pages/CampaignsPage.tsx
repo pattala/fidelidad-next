@@ -1232,98 +1232,10 @@ export const CampaignsPage = () => {
                                             </section>
 
                                             {isFlashMode && (
-                                                <div className="space-y-6 animate-fade-in">
-                                                    <section className="space-y-3">
-                                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block px-1">Beneficio Independiente Flash</label>
-                                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                                                            {[
-                                                                { id: 'FIXED', label: 'Puntos', icon: <Plus size={16} /> },
-                                                                { id: 'MULTIPLIER', label: 'X Puntos', icon: <Zap size={16} /> },
-                                                                { id: 'TEXT', label: 'Texto', icon: <Type size={16} /> },
-                                                            ].map(type => (
-                                                                <button
-                                                                    key={type.id} type="button"
-                                                                    onClick={() => setFormData({ ...formData, flashRewardType: type.id as any })}
-                                                                    className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${formData.flashRewardType === type.id ? 'border-red-500 bg-red-50 text-red-600' : 'border-gray-50 hover:border-gray-100 bg-white text-gray-400'}`}
-                                                                >
-                                                                    {type.icon}
-                                                                    <span className="font-bold text-[9px] uppercase">{type.label}</span>
-                                                                </button>
-                                                            ))}
-                                                        </div>
-
-                                                        {formData.flashRewardType === 'TEXT' && (
-                                                            <div className="bg-pink-50/50 p-4 rounded-2xl animate-fade-in border border-pink-100">
-                                                                <label className="text-[9px] font-black text-pink-400 uppercase mb-2 block">Texto Flash (ej: 3x2, Oferta)</label>
-                                                                <input
-                                                                    type="text" placeholder="Ej: ¡SOLO AHORA!"
-                                                                    className="w-full text-xl font-black bg-transparent border-b-2 border-pink-200 focus:border-pink-500 text-center outline-none text-pink-600 placeholder:text-pink-100"
-                                                                    value={formData.flashRewardText || ''}
-                                                                    onChange={e => setFormData({ ...formData, flashRewardText: e.target.value })}
-                                                                />
-                                                            </div>
-                                                        )}
-
-                                                        {formData.flashRewardType !== 'INFO' && formData.flashRewardType !== 'TEXT' && (
-                                                            <div className="bg-gray-50 p-4 rounded-2xl text-center">
-                                                                <div className="flex items-center justify-center gap-2">
-                                                                    <span className="text-2xl font-black text-gray-300">
-                                                                        {formData.flashRewardType === 'MULTIPLIER' ? 'x' : '+'}
-                                                                    </span>
-                                                                    <input
-                                                                        type="number" step={formData.flashRewardType === 'MULTIPLIER' ? "0.1" : "1"}
-                                                                        className="w-24 text-3xl font-black bg-transparent border-none focus:ring-0 text-center outline-none text-black"
-                                                                        value={formData.flashRewardValue} onChange={e => setFormData({ ...formData, flashRewardValue: parseFloat(e.target.value) || 0 })}
-                                                                    />
-                                                                    <span className="text-[10px] font-bold text-gray-400 uppercase">
-                                                                        {formData.flashRewardType === 'MULTIPLIER' ? 'Bonus' : 'Puntos'}
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                    </section>
-
-                                                    <section className="space-y-3">
-                                                        <div className="flex items-center gap-2 px-1">
-                                                            <Calendar size={14} className="text-gray-400" />
-                                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Días de la Oferta Flash</label>
-                                                        </div>
-                                                        <div className="flex justify-between gap-1.5">
-                                                            {DAYS.map(day => (
-                                                                <button
-                                                                    key={day.id} type="button"
-                                                                    onClick={() => toggleDay(day.id, true)}
-                                                                    className={`flex-1 h-12 rounded-xl text-[10px] font-black transition-all border-2 ${((formData as any).flashDays || []).includes(day.id) ? 'bg-red-500 border-red-500 text-white shadow-md' : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'}`}
-                                                                >
-                                                                    {day.label}
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                    </section>
-                                                    <section className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm animate-fade-in">
-                                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-4">Vista Previa Flash (Estática)</label>
-                                                        <div className="bg-red-600 text-white p-4 rounded-2xl flex items-center justify-between">
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="p-2 bg-white/20 rounded-lg">
-                                                                    <Zap size={20} fill="white" />
-                                                                </div>
-                                                                <div>
-                                                                    <p className="font-black text-xs uppercase tracking-tight">Oferta Flash Activa</p>
-                                                                    <p className="text-[10px] font-bold opacity-80 uppercase leading-none">Termina {formData.endTime || '--:--'}</p>
-                                                                </div>
-                                                            </div>
-                                                            <div className="text-right">
-                                                                <p className="font-black text-lg leading-none">
-                                                                    {formData.flashRewardType === 'MULTIPLIER' ? `x${formData.flashRewardValue}` :
-                                                                        formData.flashRewardType === 'FIXED' ? `+${formData.flashRewardValue}` :
-                                                                            formData.flashRewardText || 'PROMO'}
-                                                                </p>
-                                                                <p className="text-[9px] font-bold uppercase opacity-80">
-                                                                    {formData.flashRewardType === 'TEXT' ? 'Especial' : 'Puntos'}
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                    </section>
+                                                <div className="bg-red-50/50 p-4 rounded-3xl border border-red-200">
+                                                    <p className="text-[10px] text-red-800 font-bold uppercase text-center italic">
+                                                        ⚡ Configuración Flash Optimizada y Activa
+                                                    </p>
                                                 </div>
                                             )}
                                         </div>
@@ -1354,108 +1266,109 @@ export const CampaignsPage = () => {
                         </div>
 
                         {/* Botón Cerrar */}
-                        <button onClick={() => setIsModalOpen(false)} className="absolute top-8 right-8 text-gray-400 hover:text-black transition-colors p-2 rounded-full hover:bg-gray-100">
+                        <button
+                            onClick={() => setIsModalOpen(false)}
+                            className="absolute top-8 right-8 text-gray-400 hover:text-black transition-colors p-2 rounded-full hover:bg-gray-100"
+                        >
                             <X size={24} />
                         </button>
                     </div>
                 </div>
-            )
-            }
+            )}
 
-            {/* BROADCAST CONFIRMATION MODAL */}
-            {
-                isBroadcastModalOpen && broadcastData && (
-                    <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-                        <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
-                            <div className="bg-purple-600 p-6 text-white flex justify-between items-center">
-                                <div>
-                                    <h3 className="font-bold text-xl">Confirmar Difusión</h3>
-                                    <p className="text-purple-100 text-sm">Selecciona los canales para enviar</p>
-                                </div>
-                                <button onClick={() => setIsBroadcastModalOpen(false)} className="text-white hover:bg-white/10 p-1 rounded-lg">
-                                    <X size={24} />
-                                </button>
+            {/* BROADCAST MODAL */}
+            {isBroadcastModalOpen && broadcastData && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md" onClick={() => setIsBroadcastModalOpen(false)} />
+                    <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl relative z-10 overflow-hidden animate-scale-up">
+                        <div className="p-8 border-b border-gray-50 flex items-center gap-4">
+                            <div className="p-3 bg-purple-100 text-purple-600 rounded-2xl">
+                                <Megaphone size={28} />
                             </div>
-
-                            <div className="p-8">
-                                <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 mb-6">
-                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Mensaje Vista Previa:</p>
-                                    <p className="text-sm text-gray-600 italic leading-relaxed">
-                                        "{broadcastData.msg}"
-                                    </p>
-                                </div>
-
-                                <div className="space-y-3 mb-8">
-                                    {NotificationService.isChannelEnabled(broadcastData.config, broadcastData.eventType, 'push') && (
-                                        <label className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${selectedChannels.push ? 'border-purple-200 bg-purple-50' : 'border-gray-100 opacity-60'}`}>
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedChannels.push}
-                                                onChange={e => setSelectedChannels({ ...selectedChannels, push: e.target.checked })}
-                                                className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
-                                            />
-                                            <div className="flex-1">
-                                                <p className="font-bold text-gray-800 flex items-center gap-2">
-                                                    <Monitor size={16} className="text-purple-500" /> Notificación PUSH
-                                                </p>
-                                                <p className="text-[10px] text-gray-500 font-medium">Llega directo al celular del cliente</p>
-                                            </div>
-                                        </label>
-                                    )}
-
-                                    {NotificationService.isChannelEnabled(broadcastData.config, broadcastData.eventType, 'email') && (
-                                        <label className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${selectedChannels.email ? 'border-blue-200 bg-blue-50' : 'border-gray-100 opacity-60'}`}>
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedChannels.email}
-                                                onChange={e => setSelectedChannels({ ...selectedChannels, email: e.target.checked })}
-                                                className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
-                                            />
-                                            <div className="flex-1">
-                                                <p className="font-bold text-gray-800 flex items-center gap-2">
-                                                    <Sparkles size={16} className="text-blue-500" /> Correo Electrónico
-                                                </p>
-                                                <p className="text-[10px] text-gray-500 font-medium">Bandeja de entrada personalizada</p>
-                                            </div>
-                                        </label>
-                                    )}
-
-                                    {NotificationService.isChannelEnabled(broadcastData.config, broadcastData.eventType, 'whatsapp') && (
-                                        <label className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${selectedChannels.whatsapp ? 'border-green-200 bg-green-50' : 'border-gray-100 opacity-60'}`}>
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedChannels.whatsapp}
-                                                onChange={e => setSelectedChannels({ ...selectedChannels, whatsapp: e.target.checked })}
-                                                className="w-5 h-5 text-green-600 rounded focus:ring-green-500"
-                                            />
-                                            <div className="flex-1">
-                                                <p className="font-bold text-gray-800 flex items-center gap-2">
-                                                    <Megaphone size={16} className="text-green-500" /> WhatsApp
-                                                </p>
-                                                <p className="text-[10px] text-gray-500 font-medium">Redirige para envío manual/secuencial</p>
-                                            </div>
-                                        </label>
-                                    )}
-                                </div>
-
-                                <button
-                                    onClick={executeBroadcast}
-                                    className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 rounded-2xl shadow-xl shadow-purple-200 flex items-center justify-center gap-2 text-lg transition active:scale-95"
-                                >
-                                    <Send size={20} />
-                                    ¡Lanzar Difusión!
-                                </button>
-                                <button
-                                    onClick={() => setIsBroadcastModalOpen(false)}
-                                    className="w-full mt-2 py-3 text-gray-400 font-bold hover:bg-gray-50 rounded-xl transition text-sm"
-                                >
-                                    Cancelar
-                                </button>
+                            <div>
+                                <h2 className="text-xl font-black text-gray-800 uppercase tracking-tighter">Confirmar Difusión</h2>
+                                <p className="text-xs text-gray-400 font-bold uppercase">Selecciona los canales de envío</p>
                             </div>
                         </div>
+
+                        <div className="p-8">
+                            <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 mb-6">
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Mensaje Vista Previa:</p>
+                                <p className="text-sm text-gray-600 italic leading-relaxed">
+                                    "{broadcastData.msg}"
+                                </p>
+                            </div>
+
+                            <div className="space-y-3 mb-8">
+                                {NotificationService.isChannelEnabled(broadcastData.config, broadcastData.eventType, 'push') && (
+                                    <label className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${selectedChannels.push ? 'border-purple-200 bg-purple-50' : 'border-gray-100 opacity-60'}`}>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedChannels.push}
+                                            onChange={e => setSelectedChannels({ ...selectedChannels, push: e.target.checked })}
+                                            className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
+                                        />
+                                        <div className="flex-1">
+                                            <p className="font-bold text-gray-800 flex items-center gap-2">
+                                                <Monitor size={16} className="text-purple-500" /> Notificación PUSH
+                                            </p>
+                                            <p className="text-[10px] text-gray-500 font-medium">Llega directo al celular del cliente</p>
+                                        </div>
+                                    </label>
+                                )}
+
+                                {NotificationService.isChannelEnabled(broadcastData.config, broadcastData.eventType, 'email') && (
+                                    <label className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${selectedChannels.email ? 'border-blue-200 bg-blue-50' : 'border-gray-100 opacity-60'}`}>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedChannels.email}
+                                            onChange={e => setSelectedChannels({ ...selectedChannels, email: e.target.checked })}
+                                            className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
+                                        />
+                                        <div className="flex-1">
+                                            <p className="font-bold text-gray-800 flex items-center gap-2">
+                                                <Sparkles size={16} className="text-blue-500" /> Correo Electrónico
+                                            </p>
+                                            <p className="text-[10px] text-gray-500 font-medium">Bandeja de entrada personalizada</p>
+                                        </div>
+                                    </label>
+                                )}
+
+                                {NotificationService.isChannelEnabled(broadcastData.config, broadcastData.eventType, 'whatsapp') && (
+                                    <label className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${selectedChannels.whatsapp ? 'border-green-200 bg-green-50' : 'border-gray-100 opacity-60'}`}>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedChannels.whatsapp}
+                                            onChange={e => setSelectedChannels({ ...selectedChannels, whatsapp: e.target.checked })}
+                                            className="w-5 h-5 text-green-600 rounded focus:ring-green-500"
+                                        />
+                                        <div className="flex-1">
+                                            <p className="font-bold text-gray-800 flex items-center gap-2">
+                                                <Megaphone size={16} className="text-green-500" /> WhatsApp
+                                            </p>
+                                            <p className="text-[10px] text-gray-500 font-medium">Redirige para envío manual/secuencial</p>
+                                        </div>
+                                    </label>
+                                )}
+                            </div>
+
+                            <button
+                                onClick={executeBroadcast}
+                                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 rounded-2xl shadow-xl shadow-purple-200 flex items-center justify-center gap-2 text-lg transition active:scale-95"
+                            >
+                                <Send size={20} />
+                                ¡Lanzar Difusión!
+                            </button>
+                            <button
+                                onClick={() => setIsBroadcastModalOpen(false)}
+                                className="w-full mt-2 py-3 text-gray-400 font-bold hover:bg-gray-50 rounded-xl transition text-sm"
+                            >
+                                Cancelar
+                            </button>
+                        </div>
                     </div>
-                )
-            }
-        </div >
+                </div>
+            )}
+        </div>
     );
 };

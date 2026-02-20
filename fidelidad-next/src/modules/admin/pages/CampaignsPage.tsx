@@ -42,7 +42,7 @@ export const CampaignsPage = () => {
         imageOpacity: 60, bannerOpacity: 100, link: '', channels: ['push', 'email', 'whatsapp'],
         // Flash independent rewards
         flashRewardType: 'FIXED', flashRewardValue: 50, flashRewardText: '',
-        flashDays: []
+        flashDays: [], flashGraceMins: 15
     });
 
     const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
@@ -75,7 +75,7 @@ export const CampaignsPage = () => {
             buttonText: 'Ver detalles',
             imageOpacity: 60, bannerOpacity: 100, link: '', channels: ['push', 'email', 'whatsapp'],
             flashRewardType: 'FIXED', flashRewardValue: 50, flashRewardText: '',
-            flashDays: []
+            flashDays: [], flashGraceMins: 15
         });
         setEditingId(null);
         setActiveTab('BASIC');
@@ -98,8 +98,19 @@ export const CampaignsPage = () => {
             const payload = {
                 ...formData,
                 isFlash: isFlashMode,
-                // @ts-ignore
-                rewardValue: (formData.rewardType === 'INFO' || formData.rewardType === 'TEXT') ? 0 : formData.rewardValue,
+                // Mutua exclusión: Limpiar campos según el tipo elegido
+                rewardType: isFlashMode ? 'INFO' : formData.rewardType,
+                rewardValue: isFlashMode ? 0 : ((formData.rewardType === 'INFO' || formData.rewardType === 'TEXT') ? 0 : formData.rewardValue),
+                rewardText: isFlashMode ? '' : formData.rewardText,
+                daysOfWeek: isFlashMode ? [] : formData.daysOfWeek,
+
+                // Si NO es flash, limpiamos los campos flash
+                flashRewardType: isFlashMode ? formData.flashRewardType : 'FIXED',
+                flashRewardValue: isFlashMode ? formData.flashRewardValue : 0,
+                flashRewardText: isFlashMode ? formData.flashRewardText : '',
+                flashDays: isFlashMode ? formData.flashDays : [],
+                flashGraceMins: isFlashMode ? formData.flashGraceMins : 0,
+
                 startTime: isFlashMode ? formData.startTime : '',
                 endTime: isFlashMode ? formData.endTime : ''
             };
@@ -117,19 +128,10 @@ export const CampaignsPage = () => {
         } catch (error) { toast.error('Error al guardar'); }
     };
 
-    const handleEdit = (bonus: BonusRule) => {
-        setEditingId(bonus.id);
-        const normalizedData: Partial<BonusRule> = {
-            ...bonus,
-            titleFont: bonus.titleFont || (bonus as any).fontStyle || 'sans',
-            titleWeight: bonus.titleWeight || (bonus as any).fontWeight || 'bold',
-            descFont: bonus.descFont || (bonus as any).fontStyle || 'sans',
-            descWeight: bonus.descWeight || (bonus as any).fontWeight || 'normal',
-            titleSize: bonus.titleSize || '2xl',
-            descriptionSize: bonus.descriptionSize || 'sm'
-        };
-        setFormData(normalizedData);
-        setIsFlashMode(!!bonus.isFlash || !!(bonus.startTime || bonus.endTime));
+    const handleEdit = (campaign: BonusRule) => {
+        setFormData({ ...campaign });
+        setIsFlashMode(!!campaign.isFlash);
+        setEditingId(campaign.id);
         setActiveTab('BASIC');
         setIsModalOpen(true);
     };
@@ -640,6 +642,26 @@ export const CampaignsPage = () => {
                                                 />
                                             </section>
 
+                                            <section className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-3">Tipo de Campaña</label>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setIsFlashMode(false)}
+                                                        className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${!isFlashMode ? 'bg-white shadow-sm text-purple-600 border-2 border-purple-100 shadow-purple-100' : 'text-gray-400 hover:bg-gray-100'}`}
+                                                    >
+                                                        <Calendar size={18} /> Tradicional
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setIsFlashMode(true)}
+                                                        className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${isFlashMode ? 'bg-red-500 text-white shadow-lg shadow-red-100' : 'text-gray-400 hover:bg-gray-100'}`}
+                                                    >
+                                                        <Zap size={18} /> Oferta Flash
+                                                    </button>
+                                                </div>
+                                            </section>
+
                                             <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                 <div className="space-y-4">
                                                     <div className="flex justify-between items-center">
@@ -954,61 +976,80 @@ export const CampaignsPage = () => {
 
                                     {activeTab === 'RULES' && (
                                         <div className="space-y-8 animate-slide-in-right">
-                                            <section className="space-y-4">
-                                                <label className="text-xs font-black text-gray-600 uppercase">Tipo de Beneficio</label>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                                                    {[
-                                                        { id: 'FIXED', label: 'Puntos Fijos', sub: 'Suma X puntos a la cuenta', icon: <Plus size={24} />, color: 'bg-green-500' },
-                                                        { id: 'MULTIPLIER', label: 'Multiplicador', sub: 'Multiplica los puntos de la compra', icon: <Zap size={24} />, color: 'bg-purple-600' },
-                                                        { id: 'INFO', label: 'Solo Anuncio', sub: 'Informativo sin puntos extras', icon: <Megaphone size={24} />, color: 'bg-blue-500' },
-                                                    ].map(type => (
-                                                        <button
-                                                            key={type.id} type="button"
-                                                            onClick={() => setFormData({ ...formData, rewardType: type.id as any })}
-                                                            className={`p-5 rounded-3xl border-2 transition-all flex flex-col items-center text-center gap-2 ${formData.rewardType === type.id ? 'border-black bg-black text-white shadow-xl scale-[1.02]' : 'border-gray-100 hover:border-gray-200 bg-white'}`}
-                                                        >
-                                                            <div className={`p-3 rounded-2xl ${formData.rewardType === type.id ? 'bg-white/20' : 'bg-gray-100 text-gray-400'}`}>
-                                                                {type.icon}
-                                                            </div>
-                                                            <div>
-                                                                <p className="font-bold text-xs tracking-tight">{type.label}</p>
-                                                                <p className={`text-[9px] mt-0.5 leading-tight ${formData.rewardType === type.id ? 'text-white/60' : 'text-gray-400'}`}>{type.sub}</p>
-                                                            </div>
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </section>
-
-                                            {(formData.rewardType as any) === 'TEXT' && (
-                                                <section className="bg-pink-50 p-8 rounded-[3rem] text-center animate-fade-in border border-pink-100">
-                                                    <label className="text-xs font-black text-pink-400 uppercase mb-4 block">Texto del Beneficio</label>
-                                                    <input
-                                                        type="text" placeholder="Ej: 2x1, 50% OFF"
-                                                        className="w-full text-4xl font-black bg-transparent border-b-2 border-pink-200 focus:border-pink-500 text-center outline-none text-pink-600 placeholder:text-pink-200"
-                                                        value={formData.rewardText || ''}
-                                                        onChange={e => setFormData({ ...formData, rewardText: e.target.value })}
-                                                    />
-                                                    <p className="text-[10px] text-pink-400 mt-2 font-bold uppercase">Este texto reemplazará a los puntos en la visualización</p>
-                                                </section>
-                                            )}
-
-                                            {formData.rewardType !== 'INFO' && (formData.rewardType as any) !== 'TEXT' && (
-                                                <section className="bg-gray-50 p-8 rounded-[3rem] text-center animate-fade-in">
-                                                    <label className="text-xs font-black text-gray-400 uppercase mb-4 block">Valor del Beneficio</label>
-                                                    <div className="flex items-center justify-center gap-4">
-                                                        <span className="text-4xl font-black text-gray-300">
-                                                            {formData.rewardType === 'MULTIPLIER' ? 'x' : '+'}
-                                                        </span>
-                                                        <input
-                                                            type="number" step={formData.rewardType === 'MULTIPLIER' ? "0.1" : "1"}
-                                                            className="w-40 text-6xl font-black bg-transparent border-none focus:ring-0 text-center outline-none text-black"
-                                                            value={formData.rewardValue} onChange={e => setFormData({ ...formData, rewardValue: parseFloat(e.target.value) || 0 })}
-                                                        />
-                                                        <span className="text-xl font-bold text-gray-400 uppercase">
-                                                            {formData.rewardType === 'MULTIPLIER' ? 'Bonus' : 'Puntos'}
-                                                        </span>
+                                            {isFlashMode ? (
+                                                <div className="bg-red-50 p-8 rounded-[3rem] border border-red-100 text-center space-y-4">
+                                                    <div className="w-16 h-16 bg-red-500 text-white rounded-2xl flex items-center justify-center mx-auto shadow-lg">
+                                                        <Zap size={32} fill="white" />
                                                     </div>
-                                                </section>
+                                                    <h3 className="text-xl font-black text-red-900 uppercase">Modo Flash Activo</h3>
+                                                    <p className="text-sm text-red-600 font-medium">Las reglas de puntos para esta campaña se gestionan exclusivamente en la pestaña <strong>"Oferta Flash"</strong>.</p>
+                                                    <button
+                                                        onClick={() => setActiveTab('FLASH')}
+                                                        className="mt-4 bg-red-500 text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-red-600 transition"
+                                                    >
+                                                        Ir a Configuración Flash
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <section className="space-y-4">
+                                                        <label className="text-xs font-black text-gray-600 uppercase">Tipo de Beneficio</label>
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                                                            {[
+                                                                { id: 'FIXED', label: 'Puntos Fijos', sub: 'Suma X puntos a la cuenta', icon: <Plus size={24} />, color: 'bg-green-500' },
+                                                                { id: 'MULTIPLIER', label: 'Multiplicador', sub: 'Multiplica los puntos de la compra', icon: <Zap size={24} />, color: 'bg-purple-600' },
+                                                                { id: 'INFO', label: 'Solo Anuncio', sub: 'Informativo sin puntos extras', icon: <Megaphone size={24} />, color: 'bg-blue-500' },
+                                                                { id: 'TEXT', label: 'Texto Libre', sub: 'Muestra un texto en lugar de puntos', icon: <Type size={24} />, color: 'bg-pink-500' },
+                                                            ].map(type => (
+                                                                <button
+                                                                    key={type.id} type="button"
+                                                                    onClick={() => setFormData({ ...formData, rewardType: type.id as any })}
+                                                                    className={`p-5 rounded-3xl border-2 transition-all flex flex-col items-center text-center gap-2 ${formData.rewardType === type.id ? 'border-black bg-black text-white shadow-xl scale-[1.02]' : 'border-gray-100 hover:border-gray-200 bg-white'}`}
+                                                                >
+                                                                    <div className={`p-3 rounded-2xl ${formData.rewardType === type.id ? 'bg-white/20' : 'bg-gray-100 text-gray-400'}`}>
+                                                                        {type.icon}
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="font-bold text-xs tracking-tight">{type.label}</p>
+                                                                        <p className={`text-[9px] mt-0.5 leading-tight ${formData.rewardType === type.id ? 'text-white/60' : 'text-gray-400'}`}>{type.sub}</p>
+                                                                    </div>
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </section>
+
+                                                    {(formData.rewardType as any) === 'TEXT' && (
+                                                        <section className="bg-pink-50 p-8 rounded-[3rem] text-center animate-fade-in border border-pink-100">
+                                                            <label className="text-xs font-black text-pink-400 uppercase mb-4 block">Texto del Beneficio</label>
+                                                            <input
+                                                                type="text" placeholder="Ej: 2x1, 50% OFF"
+                                                                className="w-full text-4xl font-black bg-transparent border-b-2 border-pink-200 focus:border-pink-500 text-center outline-none text-pink-600 placeholder:text-pink-200"
+                                                                value={formData.rewardText || ''}
+                                                                onChange={e => setFormData({ ...formData, rewardText: e.target.value })}
+                                                            />
+                                                            <p className="text-[10px] text-pink-400 mt-2 font-bold uppercase">Este texto reemplazará a los puntos en la visualización</p>
+                                                        </section>
+                                                    )}
+
+                                                    {formData.rewardType !== 'INFO' && (formData.rewardType as any) !== 'TEXT' && (
+                                                        <section className="bg-gray-50 p-8 rounded-[3rem] text-center animate-fade-in">
+                                                            <label className="text-xs font-black text-gray-400 uppercase mb-4 block">Valor del Beneficio</label>
+                                                            <div className="flex items-center justify-center gap-4">
+                                                                <span className="text-4xl font-black text-gray-300">
+                                                                    {formData.rewardType === 'MULTIPLIER' ? 'x' : '+'}
+                                                                </span>
+                                                                <input
+                                                                    type="number" step={formData.rewardType === 'MULTIPLIER' ? "0.1" : "1"}
+                                                                    className="w-40 text-6xl font-black bg-transparent border-none focus:ring-0 text-center outline-none text-black"
+                                                                    value={formData.rewardValue} onChange={e => setFormData({ ...formData, rewardValue: parseFloat(e.target.value) || 0 })}
+                                                                />
+                                                                <span className="text-xl font-bold text-gray-400 uppercase">
+                                                                    {formData.rewardType === 'MULTIPLIER' ? 'Bonus' : 'Puntos'}
+                                                                </span>
+                                                            </div>
+                                                        </section>
+                                                    )}
+                                                </>
                                             )}
                                         </div>
                                     )}
@@ -1101,6 +1142,83 @@ export const CampaignsPage = () => {
                                                                 </div>
                                                             </div>
                                                         </div>
+
+                                                        <div className="bg-white/50 p-4 rounded-2xl border border-red-100 space-y-3">
+                                                            <div className="flex justify-between items-center">
+                                                                <label className="text-[10px] font-black text-red-900 uppercase">Tolerancia Extra</label>
+                                                                <span className="text-xs font-black text-red-500 bg-red-100 px-2 py-0.5 rounded-lg">{formData.flashGraceMins} min</span>
+                                                            </div>
+                                                            <input
+                                                                type="range" min="0" max="60" step="5"
+                                                                className="w-full accent-red-500 h-1.5 bg-red-100 rounded-lg appearance-none cursor-pointer"
+                                                                value={formData.flashGraceMins}
+                                                                onChange={e => setFormData({ ...formData, flashGraceMins: parseInt(e.target.value) })}
+                                                            />
+                                                            <p className="text-[9px] text-red-400 font-bold uppercase italic leading-tight">
+                                                                Tiempo adicional después del cierre donde la oferta sigue vigente con aviso de "TOLERANCIA".
+                                                            </p>
+                                                        </div>
+
+                                                        <section className="space-y-4 pt-4 border-t border-red-100">
+                                                            <label className="text-xs font-black text-red-900 uppercase">Premio Flash Especial</label>
+                                                            <div className="grid grid-cols-3 gap-3">
+                                                                {[
+                                                                    { id: 'FIXED', label: 'Puntos', icon: <Plus size={16} /> },
+                                                                    { id: 'MULTIPLIER', label: 'Mult.', icon: <Zap size={16} /> },
+                                                                    { id: 'TEXT', label: 'Texto', icon: <Type size={16} /> },
+                                                                ].map(type => (
+                                                                    <button
+                                                                        key={type.id} type="button"
+                                                                        onClick={() => setFormData({ ...formData, flashRewardType: type.id as any })}
+                                                                        className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${formData.flashRewardType === type.id ? 'border-red-500 bg-red-500 text-white' : 'border-white bg-white text-gray-400'}`}
+                                                                    >
+                                                                        {type.icon}
+                                                                        <span className="text-[9px] font-black uppercase">{type.label}</span>
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+
+                                                            <div className="bg-white p-4 rounded-xl shadow-sm border border-red-50">
+                                                                {formData.flashRewardType === 'TEXT' ? (
+                                                                    <input
+                                                                        type="text" placeholder="Ej: 2x1, 50% OFF"
+                                                                        className="w-full text-xl font-black bg-transparent border-none text-center outline-none text-red-600 placeholder:text-red-200"
+                                                                        value={formData.flashRewardText || ''}
+                                                                        onChange={e => setFormData({ ...formData, flashRewardText: e.target.value })}
+                                                                    />
+                                                                ) : (
+                                                                    <div className="flex items-center justify-center gap-2">
+                                                                        <span className="text-xl font-black text-red-300">
+                                                                            {formData.flashRewardType === 'MULTIPLIER' ? 'x' : '+'}
+                                                                        </span>
+                                                                        <input
+                                                                            type="number" step={formData.flashRewardType === 'MULTIPLIER' ? "0.1" : "1"}
+                                                                            className="w-20 text-3xl font-black bg-transparent border-none text-center outline-none text-red-600"
+                                                                            value={formData.flashRewardValue}
+                                                                            onChange={e => setFormData({ ...formData, flashRewardValue: parseFloat(e.target.value) || 0 })}
+                                                                        />
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </section>
+
+                                                        <section className="space-y-3">
+                                                            <label className="text-[10px] font-black text-red-900 uppercase block ml-1">Días Flash</label>
+                                                            <div className="flex flex-wrap gap-1.5">
+                                                                {DAYS.map(day => (
+                                                                    <button
+                                                                        key={day.id} type="button"
+                                                                        onClick={() => {
+                                                                            const current = formData.flashDays || [];
+                                                                            setFormData({ ...formData, flashDays: current.includes(day.id) ? current.filter(d => d !== day.id) : [...current, day.id] });
+                                                                        }}
+                                                                        className={`flex-1 min-w-[40px] py-2 rounded-lg font-black text-[9px] transition-all ${formData.flashDays?.includes(day.id) ? 'bg-red-500 text-white shadow-md' : 'bg-white text-red-300 hover:bg-red-50'}`}
+                                                                    >
+                                                                        {day.label.substring(0, 3)}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </section>
 
                                                         {/* INFO BANNER */}
                                                         <div className="bg-white/60 backdrop-blur-sm p-3 rounded-xl border border-red-200 flex gap-2">

@@ -338,7 +338,12 @@ function showFidelidadPanel() {
 
                     promosList.innerHTML = activePromos.map(p => {
                         const isFlash = p.isFlash;
-                        const label = p.rewardType === 'MULTIPLIER' ? `Multiplicador x${p.rewardValue}` : `Bonus +${p.rewardValue} pts`;
+                        // Usar rewardType/Value según si es flash o no (Paridad con API)
+                        const rType = isFlash ? (p.flashRewardType || p.rewardType) : p.rewardType;
+                        const rValue = isFlash ? (p.flashRewardValue || p.rewardValue) : p.rewardValue;
+                        const rText = isFlash ? (p.flashRewardText || p.rewardText) : p.rewardText;
+
+                        const label = rType === 'MULTIPLIER' ? `Multiplicador x${rValue}` : (rType === 'FIXED' ? `Bonus +${rValue} pts` : rText);
                         const title = p.title || p.name;
 
                         // Determinar estado de horario
@@ -351,10 +356,12 @@ function showFidelidadPanel() {
 
                             // Check grace period
                             let isInGrace = false;
+                            const flashGrace = Number(p.flashGraceMins) ?? 15;
+
                             if (isExpiredToday && p.endTime) {
                                 const [h, m] = p.endTime.split(':').map(Number);
                                 const endTimestamp = new Date(nowArg);
-                                endTimestamp.setUTCHours(h, m + GRACE_PERIOD_MINS, 0, 0);
+                                endTimestamp.setUTCHours(h, m + flashGrace, 0, 0);
                                 if (nowArg < endTimestamp) isInGrace = true;
                             }
 

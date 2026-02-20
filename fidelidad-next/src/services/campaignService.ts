@@ -64,6 +64,7 @@ export interface BonusRule {
     flashRewardValue?: number;
     flashRewardText?: string;
     flashDays?: number[];
+    flashGraceMins?: number;
 
     channels?: string[]; // push, email, whatsapp
 }

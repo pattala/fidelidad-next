@@ -128,17 +128,18 @@ export default async function handler(req, res) {
                 if (b.endDate && typeof b.endDate === 'string' && b.endDate < todayStr) return;
 
                 // 3. Filtro de hora (Marketing Dinámico / Ofertas Flash)
-                // Usamos un buffer de 20 min para el GET para que el front pueda mostrar "TOLERANCIA"
-                const GRACE_BUFFER_MINS = 20;
+                // Usamos un buffer de tolerancia para el GET para que el front pueda mostrar "TOLERANCIA"
+                const flashGrace = b.isFlash ? (Number(b.flashGraceMins) ?? 15) : 0;
+
                 if (b.startTime && typeof b.startTime === 'string' && b.startTime > currentTimeStr) return;
 
                 if (b.endTime && typeof b.endTime === 'string') {
                     // Si ya pasó la hora final, verificar si está dentro del buffer de tolerancia
                     const [endH, endM] = b.endTime.split(':').map(Number);
                     const endTimestamp = new Date(nowArg);
-                    endTimestamp.setUTCHours(endH, endM + GRACE_BUFFER_MINS, 0, 0);
+                    endTimestamp.setUTCHours(endH, endM + flashGrace, 0, 0);
 
-                    if (nowArg > endTimestamp) return; // Excedió incluso la tolerancia
+                    if (nowArg > endTimestamp) return; // Excedió la tolerancia (o la hora final si grace es 0)
                 }
 
                 // 2. Filtro por día de la semana (priorizar flashDays si es isFlash)
@@ -264,8 +265,6 @@ export default async function handler(req, res) {
                         const b = bsnap.data();
 
                         // Lógica de Recompensa Flash (Autónoma y sensible al tiempo)
-                        // Verificamos si estamos DENTRO de las horas flash para aplicar el premio flash.
-                        // Si es una campaña flash pero estamos fuera de horario, NO se aplica el premio flash.
                         let useFlashReward = b.isFlash;
                         if (b.isFlash && (b.startTime || b.endTime)) {
                             const now = new Date();
@@ -276,6 +275,8 @@ export default async function handler(req, res) {
                             const isBeforeEnd = !b.endTime || b.endTime >= curHHmm;
 
                             if (!isAfterStart || !isBeforeEnd) {
+                                // Si es flash pero fuera de horario, NO aplicamos puntos flash ni tradicionales.
+                                // Como handleSave limpia rewardType/Value si es Flash, esto resultará en 0 bonus.
                                 useFlashReward = false;
                             }
                         }

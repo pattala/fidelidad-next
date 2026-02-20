@@ -168,9 +168,6 @@ export const AdminLayout = () => {
                     <NavLink to="/admin/campaigns" className={navItemClass}>
                         <MessageCircle size={20} /> Campañas
                     </NavLink>
-                    <NavLink to="/admin/campaigns-v2" className={navItemClass}>
-                        <Sparkles size={20} className="text-purple-500" /> Campañas 1
-                    </NavLink>
 
                     {/* Messaging Group */}
                     <div>

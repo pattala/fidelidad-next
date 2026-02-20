@@ -1,116 +1,108 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Calendar, Target, Award, Save, X, Megaphone, Sparkles, ToggleLeft, ToggleRight, Edit, Send, Monitor } from 'lucide-react';
+import {
+    Plus, Trash2, Calendar, Target, Award, Save, X, Megaphone, Sparkles,
+    ToggleLeft, ToggleRight, Edit, Send, Monitor, Layout, Clock, Image as ImageIcon,
+    ChevronRight, Zap, Info, MousePointer2, MessageCircle, Type, Smartphone, AlignLeft, AlignCenter, AlignRight, Bold
+} from 'lucide-react';
 import toast from 'react-hot-toast';
-import { CampaignService } from '../../../services/campaignService';
+import { CampaignService, type BonusRule } from '../../../services/campaignService';
+import { AuditService } from '../../../services/auditService';
 import { ConfigService, DEFAULT_TEMPLATES } from '../../../services/configService';
-import type { BonusRule } from '../../../services/campaignService';
 import { useNavigate } from 'react-router-dom';
 import { collection, getDocs, query } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import { NotificationService } from '../../../services/notificationService';
 import { EmailService } from '../../../services/emailService';
-
 import { useAdminAuth } from '../contexts/AdminAuthContext';
+
+type TabType = 'BASIC' | 'VISUAL' | 'RULES' | 'FLASH' | 'SCHEDULE';
 
 export const CampaignsPage = () => {
     const navigate = useNavigate();
     const { isReadOnly } = useAdminAuth();
     const [bonuses, setBonuses] = useState<BonusRule[]>([]);
-    // const [loading, setLoading] = useState(false); // Unused
-
-    // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [intent, setIntent] = useState<'CAROUSEL' | 'BANNER' | 'POINTS' | null>(null);
-    const [editingId, setEditingId] = useState<string | null>(null); // Track if editing
+    const [activeTab, setActiveTab] = useState<TabType>('BASIC');
+    const [isFlashMode, setIsFlashMode] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
+
     const [formData, setFormData] = useState<Partial<BonusRule>>({
-        name: '', // Internal
-        title: '', // Public
-        showTitle: true,
-        description: '',
-        showDescription: true,
-        rewardType: 'FIXED',
-        rewardValue: 50,
-        daysOfWeek: [],
-        active: true,
-        startDate: '',
-        endDate: '',
-        imageUrl: '',
-        showInCarousel: false,
-        showInHomeBanner: false,
-        backgroundColor: '',
-        textColor: '#FFFFFF',
-        fontWeight: 'normal',
-        imageFit: 'contain',
-        textPosition: 'bottom-left',
-        fontStyle: 'sans',
+        name: '', title: '', showTitle: true, description: '', showDescription: true,
+        rewardType: 'FIXED', rewardValue: 50, rewardText: '', daysOfWeek: [], active: true,
+        startDate: '', endDate: '', startTime: '', endTime: '',
+        imageUrl: '', showInCarousel: true, showInHomeBanner: true,
+        backgroundColor: '#4F46E5', textColor: '#FFFFFF',
+        titleColor: '#FFFFFF', descriptionColor: '#FFFFFF',
+        imageFit: 'contain', textPosition: 'bottom-left',
+        // Typography - Title
+        titleFont: 'sans', titleWeight: 'bold', titleSize: '2xl',
+        // Typography - Description
+        descFont: 'sans', descWeight: 'normal', descriptionSize: 'sm',
         buttonText: 'Ver detalles',
-        // @ts-ignore
-        titleSize: '2xl', // Default
-        descriptionSize: 'sm', // Default
-        imageOpacity: 60, // Default
-        link: ''
+        imageOpacity: 60, bannerOpacity: 100, link: '', channels: ['push', 'email', 'whatsapp'],
+        // Flash independent rewards
+        flashRewardType: 'FIXED', flashRewardValue: 50, flashRewardText: '',
+        flashDays: []
     });
 
-    // Broadcast Modal State
     const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
-    const [broadcastData, setBroadcastData] = useState<{ bonus: BonusRule, msg: string, eventType: string, config: any } | null>(null);
+    const [broadcastData, setBroadcastData] = useState<any>(null);
     const [selectedChannels, setSelectedChannels] = useState({ push: true, email: true, whatsapp: true });
 
     const DAYS = [
-        { id: 0, label: 'Dom' },
-        { id: 1, label: 'Lun' },
-        { id: 2, label: 'Mar' },
-        { id: 3, label: 'Mie' },
-        { id: 4, label: 'Jue' },
-        { id: 5, label: 'Vie' },
-        { id: 6, label: 'Sab' }
+        { id: 1, label: 'Lun' }, { id: 2, label: 'Mar' }, { id: 3, label: 'Mie' },
+        { id: 4, label: 'Jue' }, { id: 5, label: 'Vie' }, { id: 6, label: 'Sab' }, { id: 0, label: 'Dom' }
     ];
 
     const fetchBonuses = async () => {
-        // setLoading(true);
         const data = await CampaignService.getAll();
         setBonuses(data);
-        // setLoading(false);
     };
 
-    useEffect(() => {
-        fetchBonuses();
-    }, []);
+    useEffect(() => { fetchBonuses(); }, []);
 
     const resetForm = () => {
         setFormData({
             name: '', title: '', showTitle: true, description: '', showDescription: true,
-            rewardType: 'FIXED', rewardValue: 50,
-            daysOfWeek: [], active: true, startDate: '', endDate: '',
-            startTime: '', endTime: '', // New fields
-            imageUrl: '',
-            showInCarousel: false, showInHomeBanner: false, backgroundColor: '',
-            textColor: '#FFFFFF', fontWeight: 'normal',
-            imageFit: 'contain', textPosition: 'bottom-left', fontStyle: 'sans',
+            rewardType: 'FIXED', rewardValue: 50, rewardText: '', daysOfWeek: [], active: true,
+            startDate: '', endDate: '', startTime: '', endTime: '',
+            imageUrl: '', showInCarousel: true, showInHomeBanner: true,
+            backgroundColor: '#4F46E5', textColor: '#FFFFFF',
+            titleColor: '#FFFFFF', descriptionColor: '#FFFFFF',
+            imageFit: 'contain', textPosition: 'bottom-left',
+            titleFont: 'sans', titleWeight: 'bold', titleSize: '2xl',
+            descFont: 'sans', descWeight: 'normal', descriptionSize: 'sm',
             buttonText: 'Ver detalles',
-            channels: ['push', 'email', 'whatsapp'],
-            // @ts-ignore
-            link: ''
+            imageOpacity: 60, bannerOpacity: 100, link: '', channels: ['push', 'email', 'whatsapp'],
+            flashRewardType: 'FIXED', flashRewardValue: 50, flashRewardText: '',
+            flashDays: []
         });
         setEditingId(null);
-        setIntent(null);
+        setActiveTab('BASIC');
+        setIsFlashMode(false);
     };
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            // Validate: If INFO, ensure we have at least image or description
             if (formData.rewardType === 'INFO' && !formData.imageUrl && !formData.description) {
                 toast.error('Un anuncio debe tener imagen o descripción');
+                return;
+            }
+            // @ts-ignore
+            if (formData.rewardType === 'TEXT' && !formData.rewardText) {
+                toast.error('Debes ingresar el texto del beneficio (Ej: 2x1)');
                 return;
             }
 
             const payload = {
                 ...formData,
-                // Ensure rewardValue is 0 if INFO, to avoid confusion
-                rewardValue: formData.rewardType === 'INFO' ? 0 : formData.rewardValue
+                isFlash: isFlashMode,
+                // @ts-ignore
+                rewardValue: (formData.rewardType === 'INFO' || formData.rewardType === 'TEXT') ? 0 : formData.rewardValue,
+                startTime: isFlashMode ? formData.startTime : '',
+                endTime: isFlashMode ? formData.endTime : ''
             };
-
             if (editingId) {
                 await CampaignService.update(editingId, payload);
                 toast.success('Campaña actualizada');
@@ -122,110 +114,82 @@ export const CampaignsPage = () => {
             setIsModalOpen(false);
             fetchBonuses();
             resetForm();
-        } catch (error) {
-            toast.error('Error al guardar campaña');
-        }
+        } catch (error) { toast.error('Error al guardar'); }
     };
 
     const handleEdit = (bonus: BonusRule) => {
         setEditingId(bonus.id);
-        // Map intent loosely for editing
-        if (bonus.showInCarousel) setIntent('CAROUSEL');
-        else if (bonus.showInHomeBanner) setIntent('BANNER');
-        else setIntent('POINTS');
-
-        setFormData({
+        const normalizedData: Partial<BonusRule> = {
             ...bonus,
-            // Fallback for old records without 'title'
-            title: bonus.title || bonus.name || '',
-            name: bonus.name || '',
-            description: bonus.description || '',
-            startDate: bonus.startDate || '',
-            endDate: bonus.endDate || '',
-            startTime: bonus.startTime || '',
-            endTime: bonus.endTime || '',
-            imageUrl: bonus.imageUrl || '',
-            showInCarousel: bonus.showInCarousel || false,
-            showInHomeBanner: bonus.showInHomeBanner || false,
-            backgroundColor: bonus.backgroundColor || '',
-            textColor: bonus.textColor || '#FFFFFF',
-            fontWeight: bonus.fontWeight || 'normal',
-            imageFit: bonus.imageFit || 'contain',
-            textPosition: bonus.textPosition || 'bottom-left',
-            fontStyle: bonus.fontStyle || 'sans',
-            showTitle: bonus.showTitle !== false,
-            showDescription: bonus.showDescription !== false,
-            descriptionSize: bonus.descriptionSize || 'sm',
-            imageOpacity: bonus.imageOpacity !== undefined ? bonus.imageOpacity : 60,
-            channels: bonus.channels || ['push', 'email', 'whatsapp'],
-            // @ts-ignore
-            link: bonus.link || ''
-        });
+            titleFont: bonus.titleFont || (bonus as any).fontStyle || 'sans',
+            titleWeight: bonus.titleWeight || (bonus as any).fontWeight || 'bold',
+            descFont: bonus.descFont || (bonus as any).fontStyle || 'sans',
+            descWeight: bonus.descWeight || (bonus as any).fontWeight || 'normal',
+            titleSize: bonus.titleSize || '2xl',
+            descriptionSize: bonus.descriptionSize || 'sm'
+        };
+        setFormData(normalizedData);
+        setIsFlashMode(!!bonus.isFlash || !!(bonus.startTime || bonus.endTime));
+        setActiveTab('BASIC');
         setIsModalOpen(true);
     };
 
     const handleToggleActive = async (bonus: BonusRule) => {
         try {
             const newStatus = !bonus.active;
-            setBonuses(bonuses.map(b => b.id === bonus.id ? { ...b, active: newStatus } : b));
             await CampaignService.update(bonus.id, { active: newStatus });
+            setBonuses(bonuses.map(b => b.id === bonus.id ? { ...b, active: newStatus } : b));
             toast.success(`Campaña ${newStatus ? 'activada' : 'desactivada'}`);
-        } catch (error) {
-            toast.error('Error al actualizar');
-            fetchBonuses();
-        }
+
+            // Log de auditoría
+            await AuditService.log('campaign_mgmt', `${newStatus ? 'Activación' : 'Desactivación'} de campaña: ${bonus.name}`, [
+                { action: 'campaign_toggle', status: 'success', info: `Estado: ${newStatus ? 'Activa' : 'Inactiva'}` }
+            ]);
+        } catch (error) { toast.error('Error'); }
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm('¿Eliminar esta campaña permanentemente?')) return;
+        if (!confirm('¿Eliminar esta campaña?')) return;
         try {
             await CampaignService.delete(id);
-            toast.success('Campaña eliminada');
+            toast.success('Eliminada');
             fetchBonuses();
-        } catch (error) {
-            toast.error('Error al eliminar');
-        }
+        } catch (error) { toast.error('Error'); }
     };
 
     const handleBroadcast = async (bonus: BonusRule) => {
         try {
             const config = await ConfigService.get();
-            const eventType = bonus.rewardType === 'INFO' ? 'offer' : 'campaign';
+            // @ts-ignore
+            const eventType = bonus.rewardType === 'INFO' || bonus.rewardType === 'TEXT' ? 'offer' : 'campaign';
 
-            // 1. Prepare Message
             let template = "";
             let msg = "";
 
-            if (bonus.rewardType === 'INFO') {
+            if (bonus.rewardType === 'INFO' || (bonus.rewardType as any) === 'TEXT') {
                 template = config?.messaging?.templates?.offer || DEFAULT_TEMPLATES.offer;
                 const vencimiento = bonus.endDate
                     ? new Date(bonus.endDate + 'T00:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
                     : 'agotar stock';
                 msg = template
-                    .replace(/{titulo}/g, bonus.title || bonus.name) // Use Public Title
-                    .replace(/{detalle}/g, bonus.description || 'Consultanos.')
+                    .replace(/{titulo}/g, bonus.title || bonus.name)
+                    .replace(/{detalle}/g, bonus.description || (bonus.rewardText ? `¡${bonus.rewardText}!` : 'Consultanos.'))
                     .replace(/{vencimiento}/g, vencimiento);
             } else {
                 template = config?.messaging?.templates?.campaign || DEFAULT_TEMPLATES.campaign;
                 msg = template
-                    .replace(/{titulo}/g, bonus.title || bonus.name) // Use Public Title
+                    .replace(/{titulo}/g, bonus.title || bonus.name)
                     .replace(/{descripcion}/g, bonus.description || '¡Sumá más puntos!');
             }
 
-            // Set data and open modal
             setBroadcastData({ bonus, msg, eventType, config });
-
-            // Set default selected channels based on campaign settings AND global enablement
             setSelectedChannels({
                 push: (bonus.channels?.includes('push') ?? true) && NotificationService.isChannelEnabled(config, eventType, 'push'),
                 email: (bonus.channels?.includes('email') ?? true) && NotificationService.isChannelEnabled(config, eventType, 'email'),
                 whatsapp: (bonus.channels?.includes('whatsapp') ?? true) && NotificationService.isChannelEnabled(config, eventType, 'whatsapp')
             });
-
             setIsBroadcastModalOpen(true);
-
         } catch (error) {
-            console.error(error);
             toast.error('Error al preparar difusión');
         }
     };
@@ -236,783 +200,1115 @@ export const CampaignsPage = () => {
         setIsBroadcastModalOpen(false);
 
         try {
-            // 1. PUSH
             if (selectedChannels.push) {
                 const loadingToast = toast.loading('Enviando Pushes...');
-                try {
-                    const q = query(collection(db, 'users'));
-                    const snap = await getDocs(q);
-                    let sentCount = 0;
-                    const pushPromises = snap.docs.map(doc => {
-                        const userData = doc.data();
-                        const userName = userData.name || '';
-                        const personalizedMsg = msg
-                            .replace(/{nombre}/g, userName.split(' ')[0])
-                            .replace(/{nombre_completo}/g, userName);
-
-                        sentCount++;
-                        return NotificationService.sendToClient(doc.id, {
-                            title: bonus.rewardType === 'INFO' ? '¡Nueva Oferta!' : '¡Nueva Campaña!',
-                            body: personalizedMsg,
-                            type: eventType,
-                            icon: config?.logoUrl
-                        });
+                const q = query(collection(db, 'users'));
+                const snap = await getDocs(q);
+                const pushPromises = snap.docs.map(doc => {
+                    const data = doc.data();
+                    const userName = data.name || '';
+                    const personalizedMsg = msg.replace(/{nombre}/g, userName.split(' ')[0]).replace(/{nombre_completo}/g, userName);
+                    return NotificationService.sendToClient(doc.id, {
+                        title: bonus.rewardType === 'INFO' ? '¡Nueva Oferta!' : '¡Nueva Campaña!',
+                        body: personalizedMsg,
+                        type: eventType,
+                        icon: config?.logoUrl
                     });
-                    await Promise.allSettled(pushPromises);
-                    toast.success(`Push enviado a ${sentCount} clientes`, { id: loadingToast });
-                } catch (err) {
-                    toast.error("Error enviando Pushes", { id: loadingToast });
-                }
+                });
+                await Promise.allSettled(pushPromises);
+                toast.success(`Push enviado correctamente`, { id: loadingToast });
             }
 
-            // 2. EMAIL
             if (selectedChannels.email) {
                 const loadingToast = toast.loading('Enviando Emails...');
-                try {
-                    const q = query(collection(db, 'users'));
-                    const snap = await getDocs(q);
-                    let sentCount = 0;
-                    const emailPromises = snap.docs.map(doc => {
-                        const data = doc.data();
-                        if (data.email) {
-                            const userName = data.name || '';
-                            const personalizedMsg = msg
-                                .replace(/{nombre}/g, userName.split(' ')[0])
-                                .replace(/{nombre_completo}/g, userName);
-
-                            sentCount++;
-                            const htmlContent = EmailService.generateBrandedTemplate(config, bonus.rewardType === 'INFO' ? '¡Oferta Especial!' : '¡Nueva Campaña!', personalizedMsg);
-                            return EmailService.sendEmail(data.email, bonus.rewardType === 'INFO' ? '¡Oferta Especial!' : '¡Nueva Campaña!', htmlContent);
-                        }
-                        return null;
-                    }).filter(Boolean);
-                    await Promise.allSettled(emailPromises);
-                    toast.success(`Email enviado a ${sentCount} clientes`, { id: loadingToast });
-                } catch (err) {
-                    toast.error("Error enviando Emails", { id: loadingToast });
-                }
+                const q = query(collection(db, 'users'));
+                const snap = await getDocs(q);
+                const emailPromises = snap.docs.map(doc => {
+                    const data = doc.data();
+                    if (data.email) {
+                        const userName = data.name || '';
+                        const personalizedMsg = msg.replace(/{nombre}/g, userName.split(' ')[0]).replace(/{nombre_completo}/g, userName);
+                        const htmlContent = EmailService.generateBrandedTemplate(config, bonus.rewardType === 'INFO' ? '¡Oferta Especial!' : '¡Nueva Campaña!', personalizedMsg);
+                        return EmailService.sendEmail(data.email, bonus.rewardType === 'INFO' ? '¡Oferta Especial!' : '¡Nueva Campaña!', htmlContent);
+                    }
+                    return null;
+                }).filter(Boolean);
+                await Promise.allSettled(emailPromises);
+                toast.success(`Emails enviados correctamente`, { id: loadingToast });
             }
 
-            // 3. WHATSAPP
             if (selectedChannels.whatsapp) {
                 navigate('/admin/whatsapp', { state: { message: msg } });
-                toast.success('Redirigiendo a Mensajería WhatsApp...');
             }
-
         } catch (error) {
-            console.error(error);
-            toast.error('Ocurrió un error durate la difusión');
+            toast.error('Error durante la difusión');
         }
     };
 
-    const toggleDay = (dayId: number) => {
-        setFormData(prev => {
-            const currentDays = prev.daysOfWeek || [];
-            const exists = currentDays.includes(dayId);
-            if (exists) return { ...prev, daysOfWeek: currentDays.filter(d => d !== dayId) };
-            return { ...prev, daysOfWeek: [...currentDays, dayId].sort() };
+    const toggleDay = (dayId: number, isFlash: boolean = false) => {
+        const field = isFlash ? 'flashDays' : 'daysOfWeek';
+        const current = (formData as any)[field] || [];
+        setFormData({
+            ...formData,
+            [field]: current.includes(dayId) ? current.filter((d: number) => d !== dayId) : [...current, dayId].sort()
         });
     };
 
-    return (
-        <div className="space-y-8 animate-fade-in pb-20">
-            {/* Header */}
-            <div className="flex justify-between items-center border-b border-gray-100 pb-6">
+
+
+    // Helper for Text Position
+    const getPositionClasses = (pos: string | undefined) => {
+        switch (pos) {
+            case 'top-left': return 'justify-start items-start text-left';
+            case 'top-center': return 'justify-start items-center text-center';
+            case 'top-right': return 'justify-start items-end text-right';
+            case 'center': return 'justify-center items-center text-center';
+            case 'bottom-right': return 'justify-end items-end text-right';
+            case 'bottom-center': return 'justify-end items-center text-center';
+            case 'bottom-left': return 'justify-end items-start text-left';
+            default: return 'justify-end items-start text-left';
+        }
+    };
+
+    const getFontFamily = (style: string | undefined) => {
+        switch (style) {
+            case 'serif': return 'font-serif';
+            case 'mono': return 'font-mono';
+            default: return 'font-sans';
+        }
+    };
+
+    const getFontWeight = (w: string | number | undefined) => {
+        switch (w) {
+            case 'bold': case '700': return 'font-bold';
+            case 'semibold': case '600': return 'font-semibold';
+            case 'light': case '300': return 'font-light';
+            default: return 'font-normal';
+        }
+    };
+
+    // Componente de Vista Previa Reutilizable
+    const PreviewCard = ({ className = "" }: { className?: string }) => (
+        <div className={`relative overflow-hidden rounded-[2rem] shadow-sm h-48 border border-gray-100 bg-gray-50 flex-shrink-0 ${className}`}>
+            <div className="absolute inset-0" style={{ backgroundColor: formData.backgroundColor, opacity: (formData.bannerOpacity || 100) / 100 }} />
+            {formData.imageUrl ? (
+                <>
+                    <img
+                        src={formData.imageUrl}
+                        className={`absolute inset-0 w-full h-full ${formData.imageFit === 'cover' ? 'object-cover' : 'object-contain'}`}
+                        style={{ opacity: (formData.imageOpacity || 0) / 100 }}
+                        alt=""
+                    />
+                    {/* GRADIENT OVERLAY */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+                </>
+            ) : (
+                <div className="absolute inset-0 flex items-center justify-center text-white/20">
+                    <ImageIcon size={48} />
+                </div>
+            )}
+
+            <div className={`relative z-10 w-full h-full p-6 flex flex-col pointer-events-none ${getPositionClasses(formData.textPosition)}`}>
+                {formData.showTitle && (
+                    <h4 className={`leading-[1.1] mb-1 uppercase tracking-tight drop-shadow-md ${getFontFamily(formData.titleFont)} ${getFontWeight(formData.titleWeight)} text-${formData.titleSize || '2xl'}`} style={{ color: formData.titleColor || formData.textColor }}>
+                        {formData.title || 'Título de la Campaña'}
+                    </h4>
+                )}
+                {formData.showDescription && (
+                    <p className={`opacity-90 leading-snug whitespace-pre-wrap drop-shadow-sm line-clamp-3 ${getFontFamily(formData.descFont)} ${getFontWeight(formData.descWeight)} text-${formData.descriptionSize || 'sm'}`} style={{ color: formData.descriptionColor || formData.textColor }}>
+                        {formData.description || 'Descripción breve de la promoción...'}
+                    </p>
+                )}
+            </div>
+        </div>
+    );
+
+    // PWA Simulator - NEW Component for Contextual Preview
+    const PWASimulator = () => (
+        <div className="mx-auto w-full max-w-[320px] bg-white border-2 border-gray-900 rounded-[2.5rem] overflow-hidden shadow-2xl relative select-none pointer-events-none transform scale-95 origin-top">
+            {/* Status Bar Mock */}
+            <div className="h-6 bg-gray-900 w-full flex justify-between items-center px-4">
+                <div className="flex gap-1">
+                    <div className="w-1 h-1 bg-white rounded-full opacity-50"></div>
+                    <div className="w-1 h-1 bg-white rounded-full opacity-50"></div>
+                </div>
+                <div className="w-12 h-3 bg-black rounded-b-xl opacity-50"></div>
+                <div className="w-3 h-3 border border-white rounded-sm opacity-50"></div>
+            </div>
+
+            {/* App Header */}
+            <div className="bg-red-900 text-white p-4 flex justify-between items-center h-14">
+                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold">JD</div>
+                <div className="text-[10px] font-black tracking-widest uppercase opacity-80">CLUB FIDELIDAD</div>
+                <div className="opacity-60"><Sparkles size={14} /></div>
+            </div>
+
+            <div className="p-3 bg-gray-50 h-[500px] overflow-y-auto space-y-4 relative">
+                {/* Carousel Section */}
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
-                        <Target className="text-purple-600" /> Campañas y Anuncios
-                    </h1>
-                    <p className="text-gray-500 mt-1">Configura reglas de puntos, bonos y banners publicitarios.</p>
+                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">Destacados</p>
+                    {formData.showInCarousel ? (
+                        <PreviewCard className="animate-fade-in" />
+                    ) : (
+                        <div className="h-32 bg-gray-200 rounded-[1.5rem] flex items-center justify-center border-2 border-dashed border-gray-300">
+                            <p className="text-[9px] text-gray-400 font-bold uppercase text-center px-4">Esta campaña NO aparecerá aquí</p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Points Balance Mock */}
+                <div className="bg-white p-4 rounded-[1.5rem] shadow-sm border border-gray-100 flex justify-between items-center">
+                    <div>
+                        <p className="text-[9px] font-bold text-gray-400 uppercase">Tus Puntos</p>
+                        <p className="text-2xl font-black text-purple-600">1.250 PTS</p>
+                    </div>
+                    <div className="w-10 h-10 bg-purple-50 text-purple-600 rounded-full flex items-center justify-center">
+                        <Award size={20} />
+                    </div>
+                </div>
+
+                {/* List/Banner Section */}
+                <div>
+                    <div className="flex justify-between items-center mb-2 px-1">
+                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Promos Vigentes</p>
+                        <p className="text-[8px] font-bold text-purple-600 uppercase">Ver Todas</p>
+                    </div>
+
+                    {formData.showInHomeBanner ? (
+                        <div className="bg-white p-3 rounded-[1.5rem] shadow-sm border border-gray-100 flex items-center gap-3 animate-fade-in">
+                            <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden shrink-0 relative">
+                                {formData.imageUrl ? <img src={formData.imageUrl} className="w-full h-full object-cover" alt="" /> : <ImageIcon size={24} className="text-gray-300 m-auto mt-4" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <h4 className="font-bold text-gray-800 text-xs truncate leading-tight mb-1">{formData.title || 'Título'}</h4>
+                                <p className="text-[10px] text-gray-400 font-medium line-clamp-2 leading-relaxed">{formData.description || 'Descripción...'}</p>
+                                <button className="mt-2 text-[9px] font-black text-purple-600 bg-purple-50 px-2 py-1 rounded inline-block">VER DETALLES</button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="h-20 bg-gray-200 rounded-[1.5rem] flex items-center justify-center border-2 border-dashed border-gray-300">
+                            <p className="text-[8px] text-gray-400 font-bold uppercase text-center px-4">No aparecerá en lista</p>
+                        </div>
+                    )}
+
+                    {/* Fake Other Items */}
+                    <div className="mt-2 opacity-40">
+                        <div className="bg-white p-3 rounded-[1.5rem] shadow-sm border border-gray-100 flex items-center gap-3">
+                            <div className="w-16 h-16 rounded-xl bg-gray-200 shrink-0"></div>
+                            <div className="flex-1 space-y-2">
+                                <div className="h-3 w-24 bg-gray-200 rounded-full"></div>
+                                <div className="h-2 w-32 bg-gray-100 rounded-full"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Nav Bar Mock */}
+            <div className="h-12 bg-white border-t border-gray-100 absolute bottom-0 w-full flex justify-around items-center px-4">
+                <div className="p-2 bg-purple-50 text-purple-600 rounded-xl"><Target size={18} /></div>
+                <div className="p-2 text-gray-300"><ImageIcon size={18} /></div>
+                <div className="p-2 text-gray-300"><Award size={18} /></div>
+            </div>
+        </div>
+    );
+
+
+    return (
+        <div className="space-y-6 animate-fade-in pb-20">
+            {/* Header Moderno */}
+            <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div className="flex items-center gap-4">
+                    <div className="p-3 bg-purple-100 text-purple-600 rounded-2xl">
+                        <Target size={28} />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-black text-gray-800 tracking-tight">Gestión de Campañas</h1>
+                        <p className="text-sm text-gray-500 font-medium italic">Gestión avanzada de beneficios y anuncios</p>
+                    </div>
                 </div>
                 {!isReadOnly && (
                     <button
                         onClick={() => { resetForm(); setIsModalOpen(true); }}
-                        className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-purple-200 transition flex items-center gap-2 active:scale-95"
+                        className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-purple-200 transition-all active:scale-95 flex items-center gap-2"
                     >
-                        <Plus size={20} /> Crear Nuevo
+                        <Plus size={20} /> Nueva Campaña
                     </button>
                 )}
             </div>
 
-            {/* Grid de Bonos */}
+            {/* Dashboard / Lista */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {bonuses.map(bonus => (
-                    <div key={bonus.id} className={`bg-white rounded-2xl border-2 transition-all relative overflow-hidden group flex flex-col ${bonus.active ? 'border-purple-100 shadow-sm hover:shadow-md' : 'border-gray-100 opacity-60 grayscale-[0.8] hover:grayscale-0'}`}>
+                    <div key={bonus.id} className={`bg-white rounded-[2.5rem] p-4 border border-gray-100 shadow-sm hover:shadow-xl transition-all group overflow-hidden relative ${!bonus.active ? 'opacity-75 grayscale bg-gray-50/50' : ''}`}>
+                        {/* Status Float */}
+                        <div className="absolute top-6 right-6 z-10">
+                            <button
+                                onClick={() => handleToggleActive(bonus)}
+                                className={`p-2 rounded-full backdrop-blur-md transition-all ${bonus.active ? 'bg-green-500/10 text-green-600' : 'bg-gray-100 text-gray-400'}`}
+                            >
+                                {bonus.active ? <ToggleRight size={32} /> : <ToggleLeft size={32} />}
+                            </button>
+                        </div>
 
-                        {/* Banner Image Preview */}
-                        <div className="h-32 bg-gray-100 relative overflow-hidden">
+                        {/* Banner Preview Area */}
+                        <div className="h-40 bg-gray-50 rounded-[2rem] overflow-hidden relative mb-4">
                             {bonus.imageUrl ? (
-                                <img src={bonus.imageUrl} alt={bonus.name} className="w-full h-full object-cover" />
+                                <img src={bonus.imageUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="" />
                             ) : (
-                                <div className="w-full h-full flex items-center justify-center text-gray-300">
-                                    {bonus.rewardType === 'INFO' ? <Megaphone size={32} /> : <Sparkles size={32} />}
+                                <div className="w-full h-full flex items-center justify-center text-gray-200">
+                                    <ImageIcon size={48} />
                                 </div>
                             )}
 
-                            {/* App Visibility Badge */}
-                            {(bonus.showInCarousel || bonus.showInHomeBanner) && (
-                                <div className="absolute top-2 left-2 flex flex-col gap-1">
-                                    {bonus.showInCarousel && (
-                                        <div className="bg-black/60 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                                            <span className="w-1 h-1 rounded-full bg-blue-400 animate-pulse"></span>
-                                            Carrusel
-                                        </div>
-                                    )}
-                                    {bonus.showInHomeBanner && (
-                                        <div className="bg-black/60 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                                            <span className="w-1 h-1 rounded-full bg-purple-400 animate-pulse"></span>
-                                            Banner Home
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* Status Toggle */}
-                            <div className="absolute top-2 right-2">
-                                <button
-                                    onClick={() => handleToggleActive(bonus)}
-                                    className={`bg-white/90 backdrop-blur rounded-full p-1 transition-colors shadow-sm ${bonus.active ? 'text-green-500' : 'text-gray-400'}`}
-                                    title={bonus.active ? 'Desactivar' : 'Activar'}
-                                >
-                                    {bonus.active ? <ToggleRight size={28} className="fill-current" /> : <ToggleLeft size={28} />}
-                                </button>
+                            {/* Tags de Tipo */}
+                            <div className="absolute bottom-4 left-4 flex flex-wrap gap-2">
+                                {bonus.isFlash && (
+                                    <span className="bg-red-500 text-white text-[10px] font-black px-3 py-1 rounded-full flex items-center gap-1 shadow-lg shadow-red-200">
+                                        <Zap size={10} fill="white" /> FLASH
+                                        <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse ml-0.5" />
+                                    </span>
+                                )}
+                                {bonus.isFlash && (bonus.flashRewardType === 'TEXT' ? (
+                                    <span className="bg-orange-500 text-white text-[10px] font-black px-3 py-1 rounded-full flex items-center gap-1 shadow-lg shadow-orange-200">
+                                        <Type size={10} fill="white" /> {bonus.flashRewardText || 'PROMO'}
+                                    </span>
+                                ) : (
+                                    <span className="bg-red-600 text-white text-[10px] font-black px-3 py-1 rounded-full flex items-center gap-1 shadow-lg shadow-red-200">
+                                        {bonus.flashRewardType === 'MULTIPLIER' ? <Zap size={10} fill="white" /> : <Sparkles size={10} />}
+                                        {bonus.flashRewardType === 'MULTIPLIER' ? `x${bonus.flashRewardValue}` : `+${bonus.flashRewardValue}`}
+                                    </span>
+                                ))}
+                                {(bonus.rewardType as any) === 'TEXT' ? (
+                                    <span className="bg-pink-500 text-white text-[10px] font-black px-3 py-1 rounded-full flex items-center gap-1">
+                                        <Type size={10} fill="white" /> PROMO
+                                    </span>
+                                ) : bonus.rewardType !== 'INFO' ? (
+                                    <span className="bg-purple-500 text-white text-[10px] font-black px-3 py-1 rounded-full flex items-center gap-1">
+                                        <Sparkles size={10} /> PUNTOS
+                                    </span>
+                                ) : (
+                                    <span className="bg-blue-500 text-white text-[10px] font-black px-3 py-1 rounded-full flex items-center gap-1">
+                                        <Info size={10} /> INFO
+                                    </span>
+                                )}
                             </div>
                         </div>
 
-                        <div className="p-5 flex-1 flex flex-col">
-                            <div className="flex items-start justify-between mb-2">
-                                <div>
-                                    <h3 className="font-bold text-gray-800 text-lg leading-tight line-clamp-1">{bonus.name}</h3>
-                                    <p className="text-xs text-gray-500 line-clamp-2 mt-1 min-h-[2.5em]">{bonus.description || 'Sin descripción'}</p>
+                        {/* Content */}
+                        <div className="px-2">
+                            <h3 className="text-xl font-bold text-gray-800 truncate mb-1">{bonus.name}</h3>
+                            <p className={`text-xs line-clamp-2 h-8 leading-relaxed mb-4 font-medium ${bonus.active ? 'text-green-600' : 'text-gray-400'}`}>
+                                {bonus.description || 'Sin descripción pública configurada.'}
+                            </p>
+
+                            <div className="flex items-center justify-between pt-2 border-t border-gray-50 mt-4">
+                                <div className="flex gap-1">
+                                    {(bonus.isFlash ? (bonus as any).flashDays || [] : bonus.daysOfWeek || []).map((dayId: number) => {
+                                        const d = DAYS.find(day => day.id === dayId);
+                                        return (
+                                            <div key={dayId} className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold ${bonus.active ? 'bg-black text-white' : 'bg-gray-300 text-white'}`}>
+                                                {d?.label.charAt(0)}
+                                            </div>
+                                        );
+                                    })}
                                 </div>
-                            </div>
-
-                            <div className={`font-bold text-sm px-3 py-1.5 rounded-lg inline-flex items-center gap-2 w-fit mb-4 ${bonus.rewardType === 'INFO'
-                                ? 'text-blue-600 bg-blue-50'
-                                : 'text-purple-600 bg-purple-50'
-                                }`}>
-                                {bonus.rewardType === 'INFO' ? (
-                                    <>
-                                        <Megaphone size={14} /> Solo Anuncio
-                                    </>
-                                ) : (
-                                    <>
-                                        <Sparkles size={14} />
-                                        {bonus.rewardType === 'MULTIPLIER' ? `Multiplica x${bonus.rewardValue}` : `+${bonus.rewardValue} Puntos`}
-                                    </>
-                                )}
-                            </div>
-
-                            <div className="mt-auto space-y-3">
-                                {/* Date Range */}
-                                {(bonus.startDate || bonus.endDate || bonus.startTime || bonus.endTime) && (
-                                    <div className="text-[11px] font-medium text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-100 flex flex-col gap-0.5 mt-1">
-                                        {(bonus.startDate || bonus.endDate) && (
-                                            <div className="flex items-center gap-1">
-                                                📅 {bonus.startDate || 'Inicio'} - {bonus.endDate || 'Fin'}
-                                            </div>
-                                        )}
-                                        {(bonus.startTime || bonus.endTime) && (
-                                            <div className="flex items-center gap-1 text-purple-600 font-bold">
-                                                ⏰ {bonus.startTime || '00:00'} - {bonus.endTime || '23:59'} hs
-                                            </div>
-                                        )}
+                                {bonus.isFlash && bonus.startTime && (
+                                    <div className="text-[9px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full flex items-center gap-1 border border-red-100">
+                                        <Clock size={10} /> {bonus.startTime} - {bonus.endTime}
                                     </div>
                                 )}
-
-                                {/* Days */}
-                                <div className="flex flex-wrap gap-1">
-                                    {DAYS.map(day => (
-                                        <span
-                                            key={day.id}
-                                            className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded ${bonus.daysOfWeek?.includes(day.id) ? 'bg-purple-100 text-purple-700' : 'bg-gray-50 text-gray-300'}`}
-                                        >
-                                            {day.label.slice(0, 1)}
-                                        </span>
-                                    ))}
-                                </div>
                             </div>
-                        </div>
 
-                        {/* Footer Actions */}
-                        <div className="px-5 py-3 border-t border-gray-50 flex justify-between items-center bg-gray-50/30">
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${bonus.active ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'}`}>
-                                {bonus.active ? 'ACTIVO' : 'PAUSADO'}
-                            </span>
-
-                            {!isReadOnly && (
+                            <div className="flex items-center justify-between pt-2 mt-2">
                                 <div className="flex gap-2">
-                                    <button
-                                        onClick={() => handleBroadcast(bonus)}
-                                        className="text-gray-400 hover:text-green-600 transition p-1.5 hover:bg-green-50 rounded-lg flex items-center gap-1"
-                                        title="Difundir por WhatsApp"
-                                    >
-                                        <Send size={16} />
-                                        <span className="text-xs font-bold">Difundir</span>
-                                    </button>
-                                    <div className="w-px h-4 bg-gray-200 self-center mx-1"></div>
-                                    <button
-                                        onClick={() => handleEdit(bonus)}
-                                        className="text-gray-400 hover:text-blue-500 transition p-1.5 hover:bg-blue-50 rounded-lg"
-                                        title="Editar"
-                                    >
-                                        <Edit size={16} />
-                                    </button>
-                                    <button
-                                        onClick={() => handleDelete(bonus.id)}
-                                        className="text-gray-400 hover:text-red-500 transition p-1.5 hover:bg-red-50 rounded-lg"
-                                        title="Eliminar"
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
+                                    {!isReadOnly && (
+                                        <>
+                                            <button onClick={() => handleEdit(bonus)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors">
+                                                <Edit size={18} />
+                                            </button>
+                                            <button onClick={() => handleDelete(bonus.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors">
+                                                <Trash2 size={18} />
+                                            </button>
+                                        </>
+                                    )}
                                 </div>
-                            )}
+                                <button
+                                    onClick={() => handleBroadcast(bonus)}
+                                    className="bg-gray-100 text-gray-700 px-4 py-2 rounded-xl text-xs font-bold hover:bg-green-600 hover:text-white transition-all flex items-center gap-2"
+                                >
+                                    <Send size={14} /> Difundir
+                                </button>
+                            </div>
                         </div>
                     </div>
                 ))}
             </div>
 
-            {/* Modal de Creación / Edición */}
+            {/* MODAL REDISEÑADO */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in overflow-y-auto">
-                    <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden animate-scale-up my-8">
-                        <div className="px-6 py-4 bg-purple-50 border-b border-purple-100 flex justify-between items-center sticky top-0 z-10">
-                            <h2 className="text-lg font-bold text-purple-900">
-                                {editingId ? 'Editar Elemento' : (intent ? `Nueva ${intent === 'CAROUSEL' ? 'Campaña Carrusel' : intent === 'BANNER' ? 'Campaña Banner' : 'Campaña de Puntos'}` : 'Nuevo Elemento')}
-                            </h2>
-                            <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 rounded-full p-1"><X size={20} /></button>
-                        </div>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8">
+                    <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md" onClick={() => setIsModalOpen(false)} />
 
-                        {!intent && !editingId ? (
-                            <div className="p-8 space-y-6">
-                                <p className="text-center text-gray-500 font-medium">¿Qué deseas crear hoy?</p>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <button
-                                        onClick={() => {
-                                            setIntent('CAROUSEL');
-                                            setFormData(prev => ({ ...prev, showInCarousel: true, rewardType: 'INFO' }));
-                                        }}
-                                        className="flex flex-col items-center gap-3 p-6 rounded-2xl border-2 border-gray-100 hover:border-purple-600 hover:bg-purple-50 transition-all group"
-                                    >
-                                        <div className="p-4 bg-gray-100 rounded-2xl text-gray-400 group-hover:bg-purple-100 group-hover:text-purple-600 transition-colors">
-                                            <Monitor size={32} />
-                                        </div>
-                                        <div className="text-center">
-                                            <span className="block font-bold text-gray-800">Carrusel Superior</span>
-                                            <span className="text-[10px] text-gray-500">Slide de impacto visual</span>
-                                        </div>
-                                    </button>
+                    <div className="bg-white w-full max-w-6xl h-[90vh] rounded-[3rem] shadow-2xl relative z-10 overflow-hidden flex flex-col md:flex-row animate-scale-up">
 
-                                    <button
-                                        onClick={() => {
-                                            setIntent('BANNER');
-                                            setFormData(prev => ({ ...prev, showInHomeBanner: true, rewardType: 'INFO' }));
-                                        }}
-                                        className="flex flex-col items-center gap-3 p-6 rounded-2xl border-2 border-gray-100 hover:border-blue-600 hover:bg-blue-50 transition-all group"
-                                    >
-                                        <div className="p-4 bg-gray-100 rounded-2xl text-gray-400 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
-                                            <Calendar size={32} />
-                                        </div>
-                                        <div className="text-center">
-                                            <span className="block font-bold text-gray-800">Banner de Inicio</span>
-                                            <span className="text-[10px] text-gray-500">Acción rápida en Home</span>
-                                        </div>
-                                    </button>
-
-                                    <button
-                                        onClick={() => {
-                                            setIntent('POINTS');
-                                            setFormData(prev => ({ ...prev, rewardType: 'FIXED' }));
-                                        }}
-                                        className="flex flex-col items-center gap-3 p-6 rounded-2xl border-2 border-gray-100 hover:border-green-600 hover:bg-green-50 transition-all group"
-                                    >
-                                        <div className="p-4 bg-gray-100 rounded-2xl text-gray-400 group-hover:bg-green-100 group-hover:text-green-600 transition-colors">
-                                            <Sparkles size={32} />
-                                        </div>
-                                        <div className="text-center">
-                                            <span className="block font-bold text-gray-800">Regla de Puntos</span>
-                                            <span className="text-[10px] text-gray-500">Lógica de fidelización</span>
-                                        </div>
-                                    </button>
-                                </div>
-                            </div>
-                        ) : (
-                            <form onSubmit={handleSave} className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[70vh] overflow-y-auto">
-
-                                {/* Columna Izquierda: Configuración Principal */}
-                                <div className="space-y-4">
-                                    <h3 className="font-bold text-gray-800 border-b pb-2 mb-2 text-sm">Configuración Principal</h3>
-
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-500 mb-1">Nombre Interno (Solo Admin)</label>
-                                        <input
-                                            type="text" required
-                                            placeholder="Ej: Promo Verano 2026 Admin"
-                                            className="w-full rounded-lg border-gray-200 border p-2 text-sm outline-none focus:ring-2 focus:ring-gray-100 bg-gray-50"
-                                            value={formData.name}
-                                            onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                        />
-                                    </div>
-
-                                    {(formData.showInCarousel || formData.showInHomeBanner || intent !== 'POINTS') && (
-                                        <>
-                                            <div>
-                                                <div className="flex justify-between items-center mb-1">
-                                                    <label className="block text-xs font-bold text-gray-500">Título Público</label>
-                                                    <label className="flex items-center gap-1 cursor-pointer">
-                                                        <input type="checkbox" className="w-3 h-3" checked={formData.showTitle} onChange={e => setFormData({ ...formData, showTitle: e.target.checked })} />
-                                                        <span className="text-[10px] text-gray-400">Mostrar</span>
-                                                    </label>
-                                                </div>
-                                                <input
-                                                    type="text"
-                                                    placeholder="Ej: ¡Oferta Imperdible!"
-                                                    className="w-full rounded-lg border-gray-200 border p-2 text-sm outline-none focus:ring-2 focus:ring-purple-100"
-                                                    value={formData.title}
-                                                    onChange={e => setFormData({ ...formData, title: e.target.value })}
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <div className="flex justify-between items-center mb-1">
-                                                    <label className="block text-xs font-bold text-gray-500">Descripción Pública</label>
-                                                    <label className="flex items-center gap-1 cursor-pointer">
-                                                        <input type="checkbox" className="w-3 h-3" checked={formData.showDescription} onChange={e => setFormData({ ...formData, showDescription: e.target.checked })} />
-                                                        <span className="text-[10px] text-gray-400">Mostrar</span>
-                                                    </label>
-                                                </div>
-                                                <textarea
-                                                    rows={2}
-                                                    placeholder="Detalles de la promo..."
-                                                    className="w-full rounded-lg border-gray-200 border p-2 text-sm outline-none focus:ring-2 focus:ring-purple-100 resize-none"
-                                                    value={formData.description}
-                                                    onChange={e => setFormData({ ...formData, description: e.target.value })}
-                                                />
-                                            </div>
-                                        </>
-                                    )}
-
-                                    {(intent === 'POINTS' || editingId) && (
-                                        <div>
-                                            <label className="block text-xs font-bold text-gray-500 mb-1">Tipo de Bono</label>
-                                            <select
-                                                className="w-full rounded-lg border-gray-200 border p-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-purple-100 bg-white"
-                                                value={formData.rewardType}
-                                                onChange={e => setFormData({ ...formData, rewardType: e.target.value as any })}
-                                            >
-                                                <option value="FIXED">🎁 Puntos Fijos (+)</option>
-                                                <option value="MULTIPLIER">🚀 Multiplicador (x)</option>
-                                                <option value="INFO">📢 Solo Informativo</option>
-                                            </select>
-                                        </div>
-                                    )}
-
-                                    {formData.rewardType !== 'INFO' && (
-                                        <div className="animate-fade-in-down">
-                                            <label className="block text-xs font-bold text-gray-500 mb-1">Valor</label>
-                                            <input
-                                                type="number" required min="1" step={formData.rewardType === 'MULTIPLIER' ? "0.1" : "1"}
-                                                className="w-full rounded-lg border-gray-200 border p-2 text-sm font-bold text-purple-600 outline-none focus:ring-2 focus:ring-purple-100"
-                                                value={formData.rewardValue}
-                                                onChange={e => setFormData({ ...formData, rewardValue: parseFloat(e.target.value) || 0 })}
-                                            />
-                                        </div>
-                                    )}
-
-                                    <div className="pt-2 border-t mt-4">
-                                        <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">Ubicaciones en la App</label>
-                                        <div className="space-y-2">
-                                            <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-gray-50 transition-colors">
-                                                <input
-                                                    type="checkbox"
-                                                    className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
-                                                    checked={formData.showInCarousel}
-                                                    onChange={e => setFormData({ ...formData, showInCarousel: e.target.checked })}
-                                                />
-                                                <span className="text-xs font-bold text-gray-700">Mostrar en Carrusel Superior</span>
-                                            </label>
-                                            <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-gray-50 transition-colors">
-                                                <input
-                                                    type="checkbox"
-                                                    className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
-                                                    checked={formData.showInHomeBanner}
-                                                    onChange={e => setFormData({ ...formData, showInHomeBanner: e.target.checked })}
-                                                />
-                                                <span className="text-xs font-bold text-gray-700">Mostrar en Banner de Inicio (Home)</span>
-                                            </label>
-                                        </div>
-                                    </div>
-
-                                    <div className="pt-2 border-t mt-2">
-                                        <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">Canales de Difusión</label>
-                                        <div className="flex gap-4">
-                                            <label className="flex items-center gap-2 cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    className="w-4 h-4 text-purple-600 rounded"
-                                                    checked={formData.channels?.includes('push')}
-                                                    onChange={e => {
-                                                        const current = formData.channels || [];
-                                                        setFormData({ ...formData, channels: e.target.checked ? [...current, 'push'] : current.filter(c => c !== 'push') });
-                                                    }}
-                                                />
-                                                <span className="text-xs font-bold text-gray-700">Push</span>
-                                            </label>
-                                            <label className="flex items-center gap-2 cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    className="w-4 h-4 text-purple-600 rounded"
-                                                    checked={formData.channels?.includes('email')}
-                                                    onChange={e => {
-                                                        const current = formData.channels || [];
-                                                        setFormData({ ...formData, channels: e.target.checked ? [...current, 'email'] : current.filter(c => c !== 'email') });
-                                                    }}
-                                                />
-                                                <span className="text-xs font-bold text-gray-700">Email</span>
-                                            </label>
-                                            <label className="flex items-center gap-2 cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    className="w-4 h-4 text-purple-600 rounded"
-                                                    checked={formData.channels?.includes('whatsapp')}
-                                                    onChange={e => {
-                                                        const current = formData.channels || [];
-                                                        setFormData({ ...formData, channels: e.target.checked ? [...current, 'whatsapp'] : current.filter(c => c !== 'whatsapp') });
-                                                    }}
-                                                />
-                                                <span className="text-xs font-bold text-gray-700">WhatsApp</span>
-                                            </label>
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-500 mb-1">Público y Programación</label>
-                                        <div className="flex flex-wrap gap-1.5 mb-2">
-                                            {DAYS.map(day => (
-                                                <button
-                                                    key={day.id}
-                                                    type="button"
-                                                    onClick={() => toggleDay(day.id)}
-                                                    className={`w-8 h-8 rounded text-[10px] font-bold transition border ${formData.daysOfWeek?.includes(day.id)
-                                                        ? 'bg-purple-600 text-white border-purple-600'
-                                                        : 'bg-white text-gray-400 border-gray-200 hover:border-gray-300'
-                                                        }`}
-                                                >
-                                                    {day.label.slice(0, 2)}
-                                                </button>
-                                            ))}
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-2 mt-2">
-                                            <div className="space-y-1">
-                                                <label className="text-[9px] font-bold text-gray-400 uppercase">Fecha Inicio</label>
-                                                <input
-                                                    type="date"
-                                                    className="w-full rounded-lg border-gray-200 border p-2 text-xs"
-                                                    value={formData.startDate}
-                                                    onChange={e => setFormData({ ...formData, startDate: e.target.value })}
-                                                />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <label className="text-[9px] font-bold text-gray-400 uppercase">Fecha Fin</label>
-                                                <input
-                                                    type="date"
-                                                    className="w-full rounded-lg border-gray-200 border p-2 text-xs"
-                                                    value={formData.endDate}
-                                                    onChange={e => setFormData({ ...formData, endDate: e.target.value })}
-                                                />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <label className="text-[9px] font-bold text-gray-400 uppercase">Hora Inicio (Oferta Flash)</label>
-                                                <input
-                                                    type="time"
-                                                    className="w-full rounded-lg border-gray-200 border p-2 text-xs focus:ring-2 focus:ring-red-100"
-                                                    value={formData.startTime}
-                                                    onChange={e => setFormData({ ...formData, startTime: e.target.value })}
-                                                />
-                                                <span className="text-[8px] text-gray-400 block italic leading-none">Solo para marketing dinámico</span>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <label className="text-[9px] font-bold text-gray-400 uppercase">Hora Fin (Oferta Flash)</label>
-                                                <input
-                                                    type="time"
-                                                    className="w-full rounded-lg border-gray-200 border p-2 text-xs focus:ring-2 focus:ring-red-100"
-                                                    value={formData.endTime}
-                                                    onChange={e => setFormData({ ...formData, endTime: e.target.value })}
-                                                />
-                                                <span className="text-[8px] text-gray-400 block italic leading-none">Desaparece tras 15m de tolerancia</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Columna Derecha: Diseño y Preview */}
-                                <div className="space-y-4">
-                                    {(formData.showInCarousel || formData.showInHomeBanner) ? (
-                                        <>
-                                            <h3 className="font-bold text-gray-800 border-b pb-2 mb-2 text-sm">Visual y Diseño</h3>
-
-                                            <div className="bg-gray-50 p-3 rounded-xl border border-gray-200">
-                                                <label className="block text-[10px] font-black text-gray-400 mb-2 uppercase text-center">Vista Previa</label>
-                                                <div className="relative overflow-hidden rounded-xl shadow-md h-32 w-full transition-all">
-                                                    {(() => {
-                                                        const hasImg = !!formData.imageUrl;
-                                                        const customStyle = {
-                                                            backgroundColor: formData.backgroundColor || '#4F46E5',
-                                                            color: formData.textColor || '#FFFFFF',
-                                                            fontWeight: formData.fontWeight as any || 'normal'
-                                                        };
-
-                                                        let textPosClass = 'items-end justify-start'; // Default: bottom-left
-                                                        if (formData.textPosition === 'bottom-center') textPosClass = 'items-end justify-center text-center';
-                                                        if (formData.textPosition === 'bottom-right') textPosClass = 'items-end justify-end text-right';
-                                                        if (formData.textPosition === 'center') textPosClass = 'items-center justify-center text-center';
-                                                        if (formData.textPosition === 'top-left') textPosClass = 'items-start justify-start';
-                                                        if (formData.textPosition === 'top-center') textPosClass = 'items-start justify-center text-center';
-                                                        if (formData.textPosition === 'top-right') textPosClass = 'items-start justify-end text-right';
-
-                                                        const titleClasses = {
-                                                            'sm': 'text-sm', 'base': 'text-base', 'lg': 'text-lg', 'xl': 'text-xl', '2xl': 'text-2xl', '3xl': 'text-3xl', '4xl': 'text-4xl'
-                                                        };
-                                                        const descClasses = {
-                                                            'xs': 'text-xs', 'sm': 'text-sm', 'base': 'text-base', 'lg': 'text-lg', 'xl': 'text-xl'
-                                                        };
-
-                                                        return (
-                                                            <div className={`w-full h-full relative flex ${textPosClass} px-3 py-2`} style={customStyle}>
-                                                                {hasImg && (
-                                                                    <img
-                                                                        src={formData.imageUrl}
-                                                                        className={`absolute inset-0 w-full h-full ${formData.imageFit === 'cover' ? 'object-cover' : 'object-contain'}`}
-                                                                        style={{ opacity: (formData.imageOpacity !== undefined ? formData.imageOpacity : 60) / 100 }}
-                                                                        alt=""
-                                                                    />
-                                                                )}
-                                                                <div className="relative z-10 w-full">
-                                                                    {formData.showTitle !== false && (
-                                                                        // @ts-ignore
-                                                                        <h4 className={`leading-tight font-black ${titleClasses[formData.titleSize || '2xl'] || 'text-2xl'}`}>
-                                                                            {formData.title || formData.name || 'Título Público'}
-                                                                        </h4>
-                                                                    )}
-                                                                    {formData.showDescription !== false && (
-                                                                        // @ts-ignore
-                                                                        <p className={`opacity-80 whitespace-pre-wrap ${descClasses[formData.descriptionSize || 'sm'] || 'text-sm'}`}>
-                                                                            {formData.description || 'Descripción pública...'}
-                                                                        </p>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })()}
-                                                </div>
-                                            </div>
-
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <div>
-                                                    <label className="block text-[10px] font-bold text-gray-500 mb-1">Fondo</label>
-                                                    <input type="color" className="w-full h-8 rounded cursor-pointer" value={formData.backgroundColor || '#4F46E5'} onChange={e => setFormData({ ...formData, backgroundColor: e.target.value })} />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[10px] font-bold text-gray-500 mb-1">Texto</label>
-                                                    <input type="color" className="w-full h-8 rounded cursor-pointer" value={formData.textColor || '#FFFFFF'} onChange={e => setFormData({ ...formData, textColor: e.target.value })} />
-                                                </div>
-                                            </div>
-
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <div>
-                                                    <label className="block text-[10px] font-bold text-gray-500 mb-1">Grosor Letra</label>
-                                                    <select className="w-full rounded border p-1.5 text-xs" value={formData.fontWeight} onChange={e => setFormData({ ...formData, fontWeight: e.target.value as any })}>
-                                                        <option value="normal">Común (Normal)</option>
-                                                        <option value="bold">Negrita (Bold)</option>
-                                                        <option value="900">Extra (Black)</option>
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[10px] font-bold text-gray-500 mb-1">Estilo Texto</label>
-                                                    <select className="w-full rounded border p-1.5 text-xs" value={formData.fontStyle} onChange={e => setFormData({ ...formData, fontStyle: e.target.value as any })}>
-                                                        <option value="sans">Moderna</option>
-                                                        <option value="serif">Elegante</option>
-                                                        <option value="mono">Mono</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-3 mt-3">
-                                                <div className="col-span-2">
-                                                    <label className="block text-[10px] font-bold text-gray-500 mb-1">Posición del Texto</label>
-                                                    <select className="w-full rounded border p-1.5 text-xs" value={formData.textPosition} onChange={e => setFormData({ ...formData, textPosition: e.target.value as any })}>
-                                                        <option value="bottom-left">Abajo Izquierda</option>
-                                                        <option value="bottom-center">Abajo Centro</option>
-                                                        <option value="bottom-right">Abajo Derecha</option>
-                                                        <option value="center">Centro</option>
-                                                        <option value="top-left">Arriba Izquierda</option>
-                                                        <option value="top-center">Arriba Centro</option>
-                                                        <option value="top-right">Arriba Derecha</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-
-                                            <div className="grid grid-cols-2 gap-3 mt-3">
-                                                <div>
-                                                    <label className="block text-[10px] font-bold text-gray-500 mb-1">Tam. Título</label>
-                                                    <select className="w-full rounded border p-1.5 text-xs" value={formData.titleSize || '2xl'} onChange={e => setFormData({ ...formData, titleSize: e.target.value as any })}>
-                                                        <option value="sm">Pequeño</option>
-                                                        <option value="base">Normal</option>
-                                                        <option value="lg">Grande</option>
-                                                        <option value="xl">Más Grande (XL)</option>
-                                                        <option value="2xl">Titulo (2XL)</option>
-                                                        <option value="3xl">Gigante (3XL)</option>
-                                                        <option value="4xl">Massive (4XL)</option>
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[10px] font-bold text-gray-500 mb-1">Tam. Descripción</label>
-                                                    <select className="w-full rounded border p-1.5 text-xs" value={formData.descriptionSize || 'sm'} onChange={e => setFormData({ ...formData, descriptionSize: e.target.value as any })}>
-                                                        <option value="xs">Muy Pequeño</option>
-                                                        <option value="sm">Pequeño (Default)</option>
-                                                        <option value="base">Normal</option>
-                                                        <option value="lg">Grande</option>
-                                                        <option value="xl">Muy Grande</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-[10px] font-bold text-gray-500 mb-1 flex justify-between">
-                                                    <span>Opacidad Imagen</span>
-                                                    <span>{formData.imageOpacity || 60}%</span>
-                                                </label>
-                                                <input
-                                                    type="range" min="0" max="100" step="10"
-                                                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                                                    style={{ accentColor: '#9333ea' }}
-                                                    value={formData.imageOpacity !== undefined ? formData.imageOpacity : 60}
-                                                    onChange={e => setFormData({ ...formData, imageOpacity: parseInt(e.target.value) })}
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-xs font-bold text-gray-500 mb-1">URL Imagen</label>
-                                                <input type="url" placeholder="https://..." className="w-full rounded border p-2 text-xs" value={formData.imageUrl} onChange={e => setFormData({ ...formData, imageUrl: e.target.value })} />
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-xs font-bold text-gray-500 mb-1">URL Destino / Link</label>
-                                                <input type="text" placeholder="/rewards o https://..." className="w-full rounded border p-2 text-xs" value={formData.link} onChange={e => setFormData({ ...formData, link: e.target.value })} />
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <div className="h-full flex items-center justify-center border-2 border-dashed border-gray-100 rounded-2xl p-8 text-center">
-                                            <p className="text-gray-400 text-sm italic">Esta regla es solo de puntos.<br />No tiene visual en la App.</p>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="col-span-full pt-4 border-t border-gray-50 flex gap-3">
-                                    <button type="button" onClick={() => { if (intent && !editingId) setIntent(null); else setIsModalOpen(false); }} className="flex-1 py-3 text-gray-500 font-medium hover:bg-gray-100 rounded-xl transition">
-                                        {intent && !editingId ? 'Volver' : 'Cancelar'}
-                                    </button>
-                                    <button type="submit" className="flex-1 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl shadow-lg transition active:scale-95 flex items-center justify-center gap-2">
-                                        <Save size={18} /> {editingId ? 'Actualizar' : 'Guardar'}
-                                    </button>
-                                </div>
-                            </form>
-                        )}
-                    </div>
-                </div>
-            )}
-
-            {/* BROADCAST CONFIRMATION MODAL */}
-            {isBroadcastModalOpen && broadcastData && (
-                <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
-                        <div className="bg-purple-600 p-6 text-white flex justify-between items-center">
-                            <div>
-                                <h3 className="font-bold text-xl">Confirmar Difusión</h3>
-                                <p className="text-purple-100 text-sm">Selecciona los canales para enviar</p>
-                            </div>
-                            <button onClick={() => setIsBroadcastModalOpen(false)} className="text-white hover:bg-white/10 p-1 rounded-lg">
-                                <X size={24} />
-                            </button>
-                        </div>
-
-                        <div className="p-8">
-                            <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 mb-6">
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Mensaje Vista Previa:</p>
-                                <p className="text-sm text-gray-600 italic leading-relaxed">
-                                    "{broadcastData.msg}"
+                        {/* Sidebar del Modal (Tabs) */}
+                        <div className="w-full md:w-64 bg-gray-50 border-r border-gray-100 p-8 flex flex-col shrink-0">
+                            <div className="mb-8">
+                                <h2 className="text-lg font-black text-gray-800 uppercase tracking-tighter">
+                                    {editingId ? 'Editar Campaña' : 'Nueva Campaña'}
+                                </h2>
+                                <p className="text-[10px] text-gray-400 font-bold uppercase py-1 px-2 bg-gray-200 w-fit rounded mt-1">
+                                    Configuración
                                 </p>
                             </div>
 
-                            <div className="space-y-3 mb-8">
-                                {NotificationService.isChannelEnabled(broadcastData.config, broadcastData.eventType, 'push') && (
-                                    <label className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${selectedChannels.push ? 'border-purple-200 bg-purple-50' : 'border-gray-100 opacity-60'}`}>
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedChannels.push}
-                                            onChange={e => setSelectedChannels({ ...selectedChannels, push: e.target.checked })}
-                                            className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
-                                        />
-                                        <div className="flex-1">
-                                            <p className="font-bold text-gray-800 flex items-center gap-2">
-                                                <Monitor size={16} className="text-purple-500" /> Notificación PUSH
-                                            </p>
-                                            <p className="text-[10px] text-gray-500 font-medium">Llega directo al celular del cliente</p>
+                            <nav className="space-y-2 flex-1">
+                                {[
+                                    { id: 'BASIC', label: 'Básico', icon: <Target size={18} />, desc: 'Nombre y Textos' },
+                                    { id: 'VISUAL', label: 'Visual', icon: <ImageIcon size={18} />, desc: 'Imagen y Colores' },
+                                    { id: 'RULES', label: 'Reglas', icon: <Sparkles size={18} />, desc: 'Bonos de Puntos' },
+                                    { id: 'SCHEDULE', label: 'Fechas', icon: <Calendar size={18} />, desc: 'Programación' },
+                                    { id: 'FLASH', label: 'Oferta Flash', icon: <Zap size={18} />, desc: 'Urgencia y Horarios' },
+                                ].map(tab => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id as TabType)}
+                                        className={`w-full flex items-center gap-3 p-4 rounded-2xl transition-all text-left group ${activeTab === tab.id ? 'bg-white shadow-md text-purple-600' : 'text-gray-500 hover:bg-gray-200/50'}`}
+                                    >
+                                        <div className={`p-2 rounded-xl ${activeTab === tab.id ? 'bg-purple-100' : 'bg-gray-200/50 group-hover:bg-white'}`}>
+                                            {tab.icon}
                                         </div>
-                                    </label>
-                                )}
-
-                                {NotificationService.isChannelEnabled(broadcastData.config, broadcastData.eventType, 'email') && (
-                                    <label className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${selectedChannels.email ? 'border-blue-200 bg-blue-50' : 'border-gray-100 opacity-60'}`}>
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedChannels.email}
-                                            onChange={e => setSelectedChannels({ ...selectedChannels, email: e.target.checked })}
-                                            className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
-                                        />
-                                        <div className="flex-1">
-                                            <p className="font-bold text-gray-800 flex items-center gap-2">
-                                                <Sparkles size={16} className="text-blue-500" /> Correo Electrónico
-                                            </p>
-                                            <p className="text-[10px] text-gray-500 font-medium">Bandeja de entrada personalizada</p>
+                                        <div>
+                                            <p className="font-bold text-sm leading-none">{tab.label}</p>
+                                            <p className="text-[10px] opacity-60 font-medium mt-1">{tab.desc}</p>
                                         </div>
-                                    </label>
-                                )}
+                                    </button>
+                                ))}
+                            </nav>
 
-                                {NotificationService.isChannelEnabled(broadcastData.config, broadcastData.eventType, 'whatsapp') && (
-                                    <label className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${selectedChannels.whatsapp ? 'border-green-200 bg-green-50' : 'border-gray-100 opacity-60'}`}>
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedChannels.whatsapp}
-                                            onChange={e => setSelectedChannels({ ...selectedChannels, whatsapp: e.target.checked })}
-                                            className="w-5 h-5 text-green-600 rounded focus:ring-green-500"
-                                        />
-                                        <div className="flex-1">
-                                            <p className="font-bold text-gray-800 flex items-center gap-2">
-                                                <Megaphone size={16} className="text-green-500" /> WhatsApp
-                                            </p>
-                                            <p className="text-[10px] text-gray-500 font-medium">Redirige para envío manual/secuencial</p>
-                                        </div>
-                                    </label>
-                                )}
-                            </div>
-
-                            <button
-                                onClick={executeBroadcast}
-                                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 rounded-2xl shadow-xl shadow-purple-200 flex items-center justify-center gap-2 text-lg transition active:scale-95"
-                            >
-                                <Send size={20} />
-                                ¡Lanzar Difusión!
-                            </button>
-                            <button
-                                onClick={() => setIsBroadcastModalOpen(false)}
-                                className="w-full mt-2 py-3 text-gray-400 font-bold hover:bg-gray-50 rounded-xl transition text-sm"
-                            >
-                                Cancelar
+                            <button onClick={handleSave} className="mt-8 bg-black text-white w-full py-4 rounded-2xl font-black text-sm hover:scale-[1.02] transition-transform active:scale-95 flex items-center justify-center gap-2">
+                                <Save size={20} /> {editingId ? 'Guardar Cambios' : 'Crear Campaña'}
                             </button>
                         </div>
+
+                        {/* Content del Modal + Preview Layout */}
+                        <div className="flex-1 flex overflow-hidden">
+                            <div className="flex-1 p-8 md:p-12 overflow-y-auto bg-white">
+                                <div className="max-w-xl mx-auto space-y-8">
+
+                                    {activeTab === 'BASIC' && (
+                                        <div className="space-y-6 animate-slide-in-right">
+                                            <section>
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <Info size={14} className="text-purple-600" />
+                                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Identificación Interna</label>
+                                                </div>
+                                                <input
+                                                    type="text" required placeholder="Nombre Interno (Ej: Promo Lunes Locos)"
+                                                    className="w-full text-2xl font-bold border-b-2 border-gray-100 focus:border-purple-600 outline-none transition-colors py-2"
+                                                    value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                                />
+                                            </section>
+
+                                            <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div className="space-y-4">
+                                                    <div className="flex justify-between items-center">
+                                                        <label className="text-xs font-black text-gray-600 uppercase">Título Público</label>
+                                                        <label className="flex items-center gap-1 cursor-pointer">
+                                                            <input type="checkbox" className="w-3 h-3 text-purple-600" checked={formData.showTitle} onChange={e => setFormData({ ...formData, showTitle: e.target.checked })} />
+                                                            <span className="text-[9px] font-bold text-gray-400">Mostrar</span>
+                                                        </label>
+                                                    </div>
+                                                    <input
+                                                        type="text" placeholder="Ej: ¡2x1 en toda la tienda!"
+                                                        className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 focus:bg-white focus:ring-2 focus:ring-purple-100 outline-none transition-all text-sm font-medium"
+                                                        value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })}
+                                                    />
+                                                </div>
+
+                                                <div className="space-y-4">
+                                                    <div className="flex justify-between items-center">
+                                                        <label className="text-xs font-black text-gray-600 uppercase">Descripción</label>
+                                                        <label className="flex items-center gap-1 cursor-pointer">
+                                                            <input type="checkbox" className="w-3 h-3 text-purple-600" checked={formData.showDescription} onChange={e => setFormData({ ...formData, showDescription: e.target.checked })} />
+                                                            <span className="text-[9px] font-bold text-gray-400">Mostrar</span>
+                                                        </label>
+                                                    </div>
+                                                    <textarea
+                                                        rows={1} placeholder="Detalles de la oferta..."
+                                                        className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 focus:bg-white focus:ring-2 focus:ring-purple-100 outline-none transition-all text-sm font-medium resize-none"
+                                                        value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })}
+                                                    />
+                                                </div>
+                                            </section>
+
+                                            <section className="bg-blue-50 p-6 rounded-[2rem] border border-blue-100">
+                                                <div className="flex justify-between items-center mb-4">
+                                                    <div>
+                                                        <label className="text-xs font-black text-blue-900 uppercase">Enlace de Acción</label>
+                                                        <p className="text-[9px] text-blue-400 font-bold uppercase mt-0.5">Exclusivo para el Banner (Promos Vigentes)</p>
+                                                    </div>
+                                                    <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-bold italic">Opcional</span>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <div className="p-3 bg-white rounded-xl text-blue-400 shadow-sm">
+                                                        <MousePointer2 size={20} />
+                                                    </div>
+                                                    <input
+                                                        type="url" placeholder="https://tu-web.com/promo"
+                                                        className="flex-1 p-3 rounded-xl bg-white shadow-sm border-none focus:ring-2 focus:ring-blue-200 outline-none text-sm placeholder:text-blue-200"
+                                                        value={formData.link} onChange={e => setFormData({ ...formData, link: e.target.value })}
+                                                    />
+                                                </div>
+                                            </section>
+
+                                            <section className="pt-4 border-t border-gray-100">
+                                                <div className="mb-4">
+                                                    <label className="text-xs font-black text-gray-500 uppercase block">Canales de Difusión Sugeridos</label>
+                                                    <p className="text-[9px] text-gray-400 font-bold uppercase mt-0.5 italic">Válidos también para la Oferta Flash</p>
+                                                </div>
+                                                <div className="flex gap-3">
+                                                    {['push', 'email', 'whatsapp'].map(channel => (
+                                                        <label key={channel} className={`flex-1 flex flex-col items-center gap-2 cursor-pointer p-4 rounded-xl border-2 transition-all ${formData.channels?.includes(channel) ? 'border-purple-600 bg-purple-50 text-purple-700' : 'border-gray-100 bg-white text-gray-400 hover:bg-gray-50'}`}>
+                                                            <div className={`p-2 rounded-full ${formData.channels?.includes(channel) ? 'bg-purple-200' : 'bg-gray-100'}`}>
+                                                                {channel === 'push' && <Monitor size={20} />}
+                                                                {channel === 'email' && <Sparkles size={20} />}
+                                                                {channel === 'whatsapp' && <MessageCircle size={20} />}
+                                                            </div>
+                                                            <span className="text-[10px] font-black uppercase tracking-wide">
+                                                                {channel === 'push' && 'Notif. Push'}
+                                                                {channel === 'email' && 'E-mail'}
+                                                                {channel === 'whatsapp' && 'WhatsApp'}
+                                                            </span>
+                                                            <input
+                                                                type="checkbox"
+                                                                className="hidden"
+                                                                checked={formData.channels?.includes(channel)}
+                                                                onChange={e => {
+                                                                    const current = formData.channels || [];
+                                                                    setFormData({ ...formData, channels: e.target.checked ? [...current, channel] : current.filter(c => c !== channel) });
+                                                                }}
+                                                            />
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                                <p className="text-[10px] text-gray-400 font-bold mt-4 uppercase italic text-center">Selecciona dónde quieres anunciar esto</p>
+                                            </section>
+                                        </div>
+                                    )}
+
+                                    {activeTab === 'VISUAL' && (
+                                        <div className="space-y-8 animate-slide-in-right">
+                                            <section className="space-y-4">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <ImageIcon size={14} className="text-purple-600" />
+                                                    <label className="text-xs font-black text-gray-600 uppercase tracking-widest">Configuración de Imagen (Carrusel / Banner)</label>
+                                                </div>
+                                                <div className="flex gap-4">
+                                                    <input
+                                                        type="url" placeholder="Pega el enlace de la imagen aquí..."
+                                                        className="flex-1 p-4 rounded-2xl bg-gray-50 border border-gray-100 focus:bg-white focus:ring-2 focus:ring-purple-100 outline-none transition-all text-sm font-medium"
+                                                        value={formData.imageUrl} onChange={e => setFormData({ ...formData, imageUrl: e.target.value })}
+                                                    />
+                                                </div>
+                                            </section>
+
+                                            <section className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <label className="flex items-center justify-between p-3 bg-white rounded-xl shadow-sm cursor-pointer hover:bg-gray-50 transition-colors">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`p-2 rounded-lg ${formData.showInCarousel ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-400'}`}>
+                                                            <Layout size={20} />
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-bold text-sm text-gray-700">Mostrar en Destacados</p>
+                                                            <p className="text-[10px] text-gray-400">Carrusel superior principal</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className={`w-10 h-6 shrink-0 rounded-full p-1 transition-colors duration-300 ${formData.showInCarousel ? 'bg-purple-600' : 'bg-gray-200'}`}>
+                                                        <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-300 ${formData.showInCarousel ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                    </div>
+                                                    <input
+                                                        type="checkbox" className="hidden"
+                                                        checked={formData.showInCarousel}
+                                                        onChange={e => setFormData({ ...formData, showInCarousel: e.target.checked })}
+                                                    />
+                                                </label>
+
+                                                <label className="flex items-center justify-between p-3 bg-white rounded-xl shadow-sm cursor-pointer hover:bg-gray-50 transition-colors">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`p-2 rounded-lg ${formData.showInHomeBanner ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
+                                                            <Monitor size={20} />
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-bold text-sm text-gray-700">Promos Vigentes</p>
+                                                            <p className="text-[10px] text-gray-400">Lista inferior en la App</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className={`w-10 h-6 shrink-0 rounded-full p-1 transition-colors duration-300 ${formData.showInHomeBanner ? 'bg-blue-600' : 'bg-gray-200'}`}>
+                                                        <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-300 ${formData.showInHomeBanner ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                    </div>
+                                                    <input
+                                                        type="checkbox" className="hidden"
+                                                        checked={formData.showInHomeBanner}
+                                                        onChange={e => setFormData({ ...formData, showInHomeBanner: e.target.checked })}
+                                                    />
+                                                </label>
+                                            </section>
+
+                                            <section className="space-y-4">
+                                                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-3">
+                                                    <div className="flex items-center gap-2 border-b border-gray-50 pb-2">
+                                                        <Type size={14} className="text-purple-600" />
+                                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tipografía Título</span>
+                                                    </div>
+                                                    <div className="grid grid-cols-3 gap-3">
+                                                        <div className="space-y-1">
+                                                            <label className="text-[9px] font-black text-gray-400 uppercase">Fuente</label>
+                                                            <select
+                                                                className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-100 text-[11px] font-bold outline-none"
+                                                                value={formData.titleFont} onChange={e => setFormData({ ...formData, titleFont: e.target.value as any })}
+                                                            >
+                                                                <option value="sans">Moderna</option>
+                                                                <option value="serif">Elegante</option>
+                                                                <option value="mono">Técnica</option>
+                                                            </select>
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <label className="text-[9px] font-black text-gray-400 uppercase">Grosor</label>
+                                                            <select
+                                                                className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-100 text-[11px] font-bold outline-none"
+                                                                value={formData.titleWeight} onChange={e => setFormData({ ...formData, titleWeight: e.target.value as any })}
+                                                            >
+                                                                <option value="light">Ligera</option>
+                                                                <option value="normal">Normal</option>
+                                                                <option value="bold">Negrita</option>
+                                                                <option value="black">Black</option>
+                                                            </select>
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <label className="text-[9px] font-black text-gray-400 uppercase">Tamaño</label>
+                                                            <select
+                                                                className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-100 text-[11px] font-bold outline-none"
+                                                                value={formData.titleSize} onChange={e => setFormData({ ...formData, titleSize: e.target.value as any })}
+                                                            >
+                                                                <option value="lg">Pequeño</option>
+                                                                <option value="xl">Mediano</option>
+                                                                <option value="2xl">Grande</option>
+                                                                <option value="4xl">Extra</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-3">
+                                                    <div className="flex items-center gap-2 border-b border-gray-50 pb-2">
+                                                        <AlignLeft size={14} className="text-gray-400" />
+                                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tipografía Descripción</span>
+                                                    </div>
+                                                    <div className="grid grid-cols-3 gap-3">
+                                                        <div className="space-y-1">
+                                                            <label className="text-[9px] font-black text-gray-400 uppercase">Fuente</label>
+                                                            <select
+                                                                className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-100 text-[11px] font-bold outline-none"
+                                                                value={formData.descFont} onChange={e => setFormData({ ...formData, descFont: e.target.value as any })}
+                                                            >
+                                                                <option value="sans">Moderna</option>
+                                                                <option value="serif">Elegante</option>
+                                                                <option value="mono">Técnica</option>
+                                                            </select>
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <label className="text-[9px] font-black text-gray-400 uppercase">Grosor</label>
+                                                            <select
+                                                                className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-100 text-[11px] font-bold outline-none"
+                                                                value={formData.descWeight} onChange={e => setFormData({ ...formData, descWeight: e.target.value as any })}
+                                                            >
+                                                                <option value="light">Ligera</option>
+                                                                <option value="normal">Normal</option>
+                                                                <option value="bold">Negrita</option>
+                                                            </select>
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <label className="text-[9px] font-black text-gray-400 uppercase">Tamaño</label>
+                                                            <select
+                                                                className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-100 text-[11px] font-bold outline-none"
+                                                                value={formData.descriptionSize} onChange={e => setFormData({ ...formData, descriptionSize: e.target.value as any })}
+                                                            >
+                                                                <option value="xs">Mini</option>
+                                                                <option value="sm">Chico</option>
+                                                                <option value="base">Normal</option>
+                                                                <option value="lg">Grande</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <section className="space-y-4">
+                                                    <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100 space-y-4">
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            <Layout size={14} className="text-purple-500" />
+                                                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest leading-none">Layout y Capas</label>
+                                                        </div>
+
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                            <div className="space-y-4">
+                                                                <div className="space-y-1">
+                                                                    <label className="text-[9px] font-black text-gray-400 uppercase">Posición del Texto</label>
+                                                                    <select
+                                                                        className="w-full p-2.5 rounded-xl bg-white border border-gray-100 text-[11px] font-bold outline-none shadow-sm"
+                                                                        value={formData.textPosition} onChange={e => setFormData({ ...formData, textPosition: e.target.value as any })}
+                                                                    >
+                                                                        <option value="bottom-left">Abajo Izq.</option>
+                                                                        <option value="bottom-center">Abajo Centro</option>
+                                                                        <option value="bottom-right">Abajo Der.</option>
+                                                                        <option value="top-left">Arriba Izq.</option>
+                                                                        <option value="top-center">Arriba Centro</option>
+                                                                        <option value="top-right">Arriba Der.</option>
+                                                                        <option value="center">Centro</option>
+                                                                    </select>
+                                                                </div>
+                                                                <div className="grid grid-cols-2 gap-3">
+                                                                    <div className="space-y-1">
+                                                                        <label className="text-[9px] font-black text-gray-400 uppercase">Fondo Banner</label>
+                                                                        <input type="color" className="w-full h-10 rounded-xl cursor-pointer border-2 border-white shadow-sm" value={formData.backgroundColor} onChange={e => setFormData({ ...formData, backgroundColor: e.target.value })} />
+                                                                    </div>
+                                                                    <div className="space-y-1">
+                                                                        <label className="text-[9px] font-black text-gray-400 uppercase">Color Título</label>
+                                                                        <input type="color" className="w-full h-10 rounded-xl cursor-pointer border-2 border-white shadow-sm" value={formData.titleColor || formData.textColor} onChange={e => setFormData({ ...formData, titleColor: e.target.value })} />
+                                                                    </div>
+                                                                    <div className="space-y-1 col-span-2">
+                                                                        <label className="text-[9px] font-black text-gray-400 uppercase">Color Descripción</label>
+                                                                        <input type="color" className="w-full h-10 rounded-xl cursor-pointer border-2 border-white shadow-sm" value={formData.descriptionColor || formData.textColor} onChange={e => setFormData({ ...formData, descriptionColor: e.target.value })} />
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="space-y-4">
+                                                                <div className="space-y-2">
+                                                                    <div className="flex justify-between items-center">
+                                                                        <label className="text-[9px] font-black text-gray-400 uppercase">Opacidad Imagen ({formData.imageOpacity}%)</label>
+                                                                    </div>
+                                                                    <input
+                                                                        type="range" className="w-full accent-purple-600 cursor-pointer h-2 bg-gray-200 rounded-lg appearance-none"
+                                                                        min="0" max="100" value={formData.imageOpacity}
+                                                                        onChange={e => setFormData({ ...formData, imageOpacity: parseInt(e.target.value) })}
+                                                                    />
+                                                                </div>
+                                                                <div className="space-y-2">
+                                                                    <div className="flex justify-between items-center">
+                                                                        <label className="text-[9px] font-black text-gray-400 uppercase">Transparencia Banner ({formData.bannerOpacity}%)</label>
+                                                                    </div>
+                                                                    <input
+                                                                        type="range" className="w-full accent-purple-600 cursor-pointer h-2 bg-gray-200 rounded-lg appearance-none"
+                                                                        min="0" max="100" value={formData.bannerOpacity}
+                                                                        onChange={e => setFormData({ ...formData, bannerOpacity: parseInt(e.target.value) })}
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Preview inline para móviles/tablets (se oculta en lg donde está el sidebar) */}
+                                                    <section className="lg:hidden space-y-4 pt-4 border-t border-gray-100">
+                                                        <label className="text-xs font-black text-gray-600 uppercase">Vista Previa PWA</label>
+                                                        <div className="flex justify-center bg-gray-100 p-6 rounded-[2rem]">
+                                                            <div className="w-full max-w-sm">
+                                                                <PWASimulator />
+                                                            </div>
+                                                        </div>
+                                                    </section>
+                                                </section>
+                                            </section>
+                                        </div>
+                                    )}
+
+                                    {activeTab === 'RULES' && (
+                                        <div className="space-y-8 animate-slide-in-right">
+                                            <section className="space-y-4">
+                                                <label className="text-xs font-black text-gray-600 uppercase">Tipo de Beneficio</label>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                                                    {[
+                                                        { id: 'FIXED', label: 'Puntos Fijos', sub: 'Suma X puntos a la cuenta', icon: <Plus size={24} />, color: 'bg-green-500' },
+                                                        { id: 'MULTIPLIER', label: 'Multiplicador', sub: 'Multiplica los puntos de la compra', icon: <Zap size={24} />, color: 'bg-purple-600' },
+                                                        { id: 'INFO', label: 'Solo Anuncio', sub: 'Informativo sin puntos extras', icon: <Megaphone size={24} />, color: 'bg-blue-500' },
+                                                    ].map(type => (
+                                                        <button
+                                                            key={type.id} type="button"
+                                                            onClick={() => setFormData({ ...formData, rewardType: type.id as any })}
+                                                            className={`p-5 rounded-3xl border-2 transition-all flex flex-col items-center text-center gap-2 ${formData.rewardType === type.id ? 'border-black bg-black text-white shadow-xl scale-[1.02]' : 'border-gray-100 hover:border-gray-200 bg-white'}`}
+                                                        >
+                                                            <div className={`p-3 rounded-2xl ${formData.rewardType === type.id ? 'bg-white/20' : 'bg-gray-100 text-gray-400'}`}>
+                                                                {type.icon}
+                                                            </div>
+                                                            <div>
+                                                                <p className="font-bold text-xs tracking-tight">{type.label}</p>
+                                                                <p className={`text-[9px] mt-0.5 leading-tight ${formData.rewardType === type.id ? 'text-white/60' : 'text-gray-400'}`}>{type.sub}</p>
+                                                            </div>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </section>
+
+                                            {(formData.rewardType as any) === 'TEXT' && (
+                                                <section className="bg-pink-50 p-8 rounded-[3rem] text-center animate-fade-in border border-pink-100">
+                                                    <label className="text-xs font-black text-pink-400 uppercase mb-4 block">Texto del Beneficio</label>
+                                                    <input
+                                                        type="text" placeholder="Ej: 2x1, 50% OFF"
+                                                        className="w-full text-4xl font-black bg-transparent border-b-2 border-pink-200 focus:border-pink-500 text-center outline-none text-pink-600 placeholder:text-pink-200"
+                                                        value={formData.rewardText || ''}
+                                                        onChange={e => setFormData({ ...formData, rewardText: e.target.value })}
+                                                    />
+                                                    <p className="text-[10px] text-pink-400 mt-2 font-bold uppercase">Este texto reemplazará a los puntos en la visualización</p>
+                                                </section>
+                                            )}
+
+                                            {formData.rewardType !== 'INFO' && (formData.rewardType as any) !== 'TEXT' && (
+                                                <section className="bg-gray-50 p-8 rounded-[3rem] text-center animate-fade-in">
+                                                    <label className="text-xs font-black text-gray-400 uppercase mb-4 block">Valor del Beneficio</label>
+                                                    <div className="flex items-center justify-center gap-4">
+                                                        <span className="text-4xl font-black text-gray-300">
+                                                            {formData.rewardType === 'MULTIPLIER' ? 'x' : '+'}
+                                                        </span>
+                                                        <input
+                                                            type="number" step={formData.rewardType === 'MULTIPLIER' ? "0.1" : "1"}
+                                                            className="w-40 text-6xl font-black bg-transparent border-none focus:ring-0 text-center outline-none text-black"
+                                                            value={formData.rewardValue} onChange={e => setFormData({ ...formData, rewardValue: parseFloat(e.target.value) || 0 })}
+                                                        />
+                                                        <span className="text-xl font-bold text-gray-400 uppercase">
+                                                            {formData.rewardType === 'MULTIPLIER' ? 'Bonus' : 'Puntos'}
+                                                        </span>
+                                                    </div>
+                                                </section>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {activeTab === 'SCHEDULE' && (
+                                        <div className="space-y-8 animate-slide-in-right">
+                                            <section className="bg-purple-50 p-8 rounded-[3rem] border border-purple-100">
+                                                <div className="flex items-center gap-4 mb-6">
+                                                    <div className="p-3 bg-purple-600 text-white rounded-2xl shadow-lg shadow-purple-200">
+                                                        <Calendar size={24} />
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-black text-purple-900 text-lg uppercase tracking-tight">Rango de Vigencia</h4>
+                                                        <p className="text-[10px] text-purple-600 font-bold opacity-60 uppercase tracking-widest">Periodo total de la campaña (Vacio = Sin fin de ciclo)</p>
+                                                    </div>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="space-y-2">
+                                                        <label className="text-[10px] font-black text-purple-400 uppercase block ml-2">Fecha Inicio</label>
+                                                        <input type="date" className="w-full p-4 rounded-2xl bg-white border-none shadow-sm text-sm font-bold focus:ring-2 focus:ring-purple-200 outline-none transition-all" value={formData.startDate} onChange={e => setFormData({ ...formData, startDate: e.target.value })} />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <label className="text-[10px] font-black text-purple-400 uppercase block ml-2">Fecha Fin</label>
+                                                        <input type="date" className="w-full p-4 rounded-2xl bg-white border-none shadow-sm text-sm font-bold focus:ring-2 focus:ring-purple-200 outline-none transition-all" value={formData.endDate} onChange={e => setFormData({ ...formData, endDate: e.target.value })} />
+                                                    </div>
+                                                </div>
+                                            </section>
+
+                                            <section className="space-y-4">
+                                                <label className="text-xs font-black text-gray-500 uppercase px-2">Días de la semana</label>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {DAYS.map(day => (
+                                                        <button
+                                                            key={day.id} type="button"
+                                                            onClick={() => {
+                                                                const current = formData.daysOfWeek || [];
+                                                                setFormData({ ...formData, daysOfWeek: current.includes(day.id) ? current.filter(d => d !== day.id) : [...current, day.id] });
+                                                            }}
+                                                            className={`flex-1 min-w-[60px] py-4 rounded-2xl font-black text-xs transition-all ${formData.daysOfWeek?.includes(day.id) ? 'bg-purple-600 text-white shadow-lg scale-105' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
+                                                        >
+                                                            {day.label}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                                <p className="text-[10px] text-gray-400 font-bold uppercase italic text-center">La campaña solo se mostrará los días seleccionados</p>
+                                            </section>
+                                        </div>
+                                    )}
+
+                                    {activeTab === 'FLASH' && (
+                                        <div className="space-y-6 animate-slide-in-right">
+                                            <section className="bg-red-50 p-6 rounded-3xl border border-red-100 transition-all overflow-hidden relative">
+                                                <div className="absolute -top-6 -right-6 text-red-100 rotate-12 opacity-50">
+                                                    <Zap size={100} fill="currentColor" />
+                                                </div>
+
+                                                <div className="relative z-10 flex items-center justify-between mb-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`p-3 rounded-2xl transition-colors ${isFlashMode ? 'bg-red-500 text-white shadow-lg' : 'bg-gray-200 text-gray-400'}`}>
+                                                            <Zap size={24} fill={isFlashMode ? "white" : "none"} />
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="font-black text-red-900 text-lg uppercase tracking-tighter">Oferta Flash ⚡</h4>
+                                                            <p className="text-[9px] text-red-600 font-bold opacity-60 uppercase tracking-widest leading-none">Activa horarios urgentes recurrentes</p>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        type="button" onClick={() => setIsFlashMode(!isFlashMode)}
+                                                        className={`p-1.5 rounded-full transition-all ${isFlashMode ? 'bg-red-500 text-white shadow-md' : 'bg-gray-200 text-gray-400'}`}
+                                                    >
+                                                        {isFlashMode ? <ToggleRight size={36} /> : <ToggleLeft size={36} />}
+                                                    </button>
+                                                </div>
+
+                                                {isFlashMode && (
+                                                    <div className="relative z-10 space-y-4 animate-fade-in-up">
+                                                        <div className="grid grid-cols-2 gap-3">
+                                                            <div className="space-y-1">
+                                                                <label className="text-[9px] font-black text-red-400 uppercase block ml-1">Inicia</label>
+                                                                <div className="relative">
+                                                                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-red-300" size={14} />
+                                                                    <input type="time" className="w-full pl-9 p-3 rounded-xl bg-white border-none shadow-sm text-sm font-black text-red-600 focus:ring-2 focus:ring-red-200 outline-none" value={formData.startTime} onChange={e => setFormData({ ...formData, startTime: e.target.value })} />
+                                                                </div>
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                <label className="text-[9px] font-black text-red-400 uppercase block ml-1">Finaliza</label>
+                                                                <div className="relative">
+                                                                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-red-300" size={14} />
+                                                                    <input type="time" className="w-full pl-9 p-3 rounded-xl bg-white border-none shadow-sm text-sm font-black text-red-600 focus:ring-2 focus:ring-red-200 outline-none" value={formData.endTime} onChange={e => setFormData({ ...formData, endTime: e.target.value })} />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* INFO BANNER */}
+                                                        <div className="bg-white/60 backdrop-blur-sm p-3 rounded-xl border border-red-200 flex gap-2">
+                                                            <Info className="text-red-500 shrink-0" size={16} />
+                                                            <p className="text-[10px] text-red-800 font-medium leading-tight">
+                                                                Esta promo se activará <b>TODOS</b> los días seleccionados entre las {formData.startTime || '--:--'} y las {formData.endTime || '--:--'}.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </section>
+
+                                            {isFlashMode && (
+                                                <div className="space-y-6 animate-fade-in">
+                                                    <section className="space-y-3">
+                                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block px-1">Beneficio Independiente Flash</label>
+                                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                                            {[
+                                                                { id: 'FIXED', label: 'Puntos', icon: <Plus size={16} /> },
+                                                                { id: 'MULTIPLIER', label: 'X Puntos', icon: <Zap size={16} /> },
+                                                                { id: 'TEXT', label: 'Texto', icon: <Type size={16} /> },
+                                                            ].map(type => (
+                                                                <button
+                                                                    key={type.id} type="button"
+                                                                    onClick={() => setFormData({ ...formData, flashRewardType: type.id as any })}
+                                                                    className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${formData.flashRewardType === type.id ? 'border-red-500 bg-red-50 text-red-600' : 'border-gray-50 hover:border-gray-100 bg-white text-gray-400'}`}
+                                                                >
+                                                                    {type.icon}
+                                                                    <span className="font-bold text-[9px] uppercase">{type.label}</span>
+                                                                </button>
+                                                            ))}
+                                                        </div>
+
+                                                        {formData.flashRewardType === 'TEXT' && (
+                                                            <div className="bg-pink-50/50 p-4 rounded-2xl animate-fade-in border border-pink-100">
+                                                                <label className="text-[9px] font-black text-pink-400 uppercase mb-2 block">Texto Flash (ej: 3x2, Oferta)</label>
+                                                                <input
+                                                                    type="text" placeholder="Ej: ¡SOLO AHORA!"
+                                                                    className="w-full text-xl font-black bg-transparent border-b-2 border-pink-200 focus:border-pink-500 text-center outline-none text-pink-600 placeholder:text-pink-100"
+                                                                    value={formData.flashRewardText || ''}
+                                                                    onChange={e => setFormData({ ...formData, flashRewardText: e.target.value })}
+                                                                />
+                                                            </div>
+                                                        )}
+
+                                                        {formData.flashRewardType !== 'INFO' && formData.flashRewardType !== 'TEXT' && (
+                                                            <div className="bg-gray-50 p-4 rounded-2xl text-center">
+                                                                <div className="flex items-center justify-center gap-2">
+                                                                    <span className="text-2xl font-black text-gray-300">
+                                                                        {formData.flashRewardType === 'MULTIPLIER' ? 'x' : '+'}
+                                                                    </span>
+                                                                    <input
+                                                                        type="number" step={formData.flashRewardType === 'MULTIPLIER' ? "0.1" : "1"}
+                                                                        className="w-24 text-3xl font-black bg-transparent border-none focus:ring-0 text-center outline-none text-black"
+                                                                        value={formData.flashRewardValue} onChange={e => setFormData({ ...formData, flashRewardValue: parseFloat(e.target.value) || 0 })}
+                                                                    />
+                                                                    <span className="text-[10px] font-bold text-gray-400 uppercase">
+                                                                        {formData.flashRewardType === 'MULTIPLIER' ? 'Bonus' : 'Puntos'}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </section>
+
+                                                    <section className="space-y-3">
+                                                        <div className="flex items-center gap-2 px-1">
+                                                            <Calendar size={14} className="text-gray-400" />
+                                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Días de la Oferta Flash</label>
+                                                        </div>
+                                                        <div className="flex justify-between gap-1.5">
+                                                            {DAYS.map(day => (
+                                                                <button
+                                                                    key={day.id} type="button"
+                                                                    onClick={() => toggleDay(day.id, true)}
+                                                                    className={`flex-1 h-12 rounded-xl text-[10px] font-black transition-all border-2 ${((formData as any).flashDays || []).includes(day.id) ? 'bg-red-500 border-red-500 text-white shadow-md' : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'}`}
+                                                                >
+                                                                    {day.label}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </section>
+                                                    <section className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm animate-fade-in">
+                                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-4">Vista Previa Flash (Estática)</label>
+                                                        <div className="bg-red-600 text-white p-4 rounded-2xl flex items-center justify-between">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="p-2 bg-white/20 rounded-lg">
+                                                                    <Zap size={20} fill="white" />
+                                                                </div>
+                                                                <div>
+                                                                    <p className="font-black text-xs uppercase tracking-tight">Oferta Flash Activa</p>
+                                                                    <p className="text-[10px] font-bold opacity-80 uppercase leading-none">Termina {formData.endTime || '--:--'}</p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <p className="font-black text-lg leading-none">
+                                                                    {formData.flashRewardType === 'MULTIPLIER' ? `x${formData.flashRewardValue}` :
+                                                                        formData.flashRewardType === 'FIXED' ? `+${formData.flashRewardValue}` :
+                                                                            formData.flashRewardText || 'PROMO'}
+                                                                </p>
+                                                                <p className="text-[9px] font-bold uppercase opacity-80">
+                                                                    {formData.flashRewardType === 'TEXT' ? 'Especial' : 'Puntos'}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </section>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Sticky Preview (Visible on large screens) */}
+                            <div className="hidden lg:block w-96 bg-gray-50 p-8 border-l border-gray-100 overflow-y-auto shrink-0">
+                                <div className="space-y-6">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <div className="p-2 bg-purple-100 text-purple-600 rounded-lg">
+                                            <Monitor size={16} />
+                                        </div>
+                                        <h3 className="font-black text-gray-800 text-sm uppercase">Simulador PWA</h3>
+                                    </div>
+
+                                    {/* Contextual PWA Simulator */}
+                                    <div className="flex justify-center">
+                                        <PWASimulator />
+                                    </div>
+
+                                    <div className="p-4 bg-purple-50 text-purple-800 rounded-xl text-xs font-medium leading-relaxed border border-purple-100">
+                                        💡 Usa el simulador para ver cómo se integrará tu campaña en el flujo de la aplicación.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Botón Cerrar */}
+                        <button onClick={() => setIsModalOpen(false)} className="absolute top-8 right-8 text-gray-400 hover:text-black transition-colors p-2 rounded-full hover:bg-gray-100">
+                            <X size={24} />
+                        </button>
                     </div>
                 </div>
-            )}
-        </div>
+            )
+            }
+
+            {/* BROADCAST CONFIRMATION MODAL */}
+            {
+                isBroadcastModalOpen && broadcastData && (
+                    <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                        <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
+                            <div className="bg-purple-600 p-6 text-white flex justify-between items-center">
+                                <div>
+                                    <h3 className="font-bold text-xl">Confirmar Difusión</h3>
+                                    <p className="text-purple-100 text-sm">Selecciona los canales para enviar</p>
+                                </div>
+                                <button onClick={() => setIsBroadcastModalOpen(false)} className="text-white hover:bg-white/10 p-1 rounded-lg">
+                                    <X size={24} />
+                                </button>
+                            </div>
+
+                            <div className="p-8">
+                                <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 mb-6">
+                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Mensaje Vista Previa:</p>
+                                    <p className="text-sm text-gray-600 italic leading-relaxed">
+                                        "{broadcastData.msg}"
+                                    </p>
+                                </div>
+
+                                <div className="space-y-3 mb-8">
+                                    {NotificationService.isChannelEnabled(broadcastData.config, broadcastData.eventType, 'push') && (
+                                        <label className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${selectedChannels.push ? 'border-purple-200 bg-purple-50' : 'border-gray-100 opacity-60'}`}>
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedChannels.push}
+                                                onChange={e => setSelectedChannels({ ...selectedChannels, push: e.target.checked })}
+                                                className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
+                                            />
+                                            <div className="flex-1">
+                                                <p className="font-bold text-gray-800 flex items-center gap-2">
+                                                    <Monitor size={16} className="text-purple-500" /> Notificación PUSH
+                                                </p>
+                                                <p className="text-[10px] text-gray-500 font-medium">Llega directo al celular del cliente</p>
+                                            </div>
+                                        </label>
+                                    )}
+
+                                    {NotificationService.isChannelEnabled(broadcastData.config, broadcastData.eventType, 'email') && (
+                                        <label className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${selectedChannels.email ? 'border-blue-200 bg-blue-50' : 'border-gray-100 opacity-60'}`}>
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedChannels.email}
+                                                onChange={e => setSelectedChannels({ ...selectedChannels, email: e.target.checked })}
+                                                className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
+                                            />
+                                            <div className="flex-1">
+                                                <p className="font-bold text-gray-800 flex items-center gap-2">
+                                                    <Sparkles size={16} className="text-blue-500" /> Correo Electrónico
+                                                </p>
+                                                <p className="text-[10px] text-gray-500 font-medium">Bandeja de entrada personalizada</p>
+                                            </div>
+                                        </label>
+                                    )}
+
+                                    {NotificationService.isChannelEnabled(broadcastData.config, broadcastData.eventType, 'whatsapp') && (
+                                        <label className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${selectedChannels.whatsapp ? 'border-green-200 bg-green-50' : 'border-gray-100 opacity-60'}`}>
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedChannels.whatsapp}
+                                                onChange={e => setSelectedChannels({ ...selectedChannels, whatsapp: e.target.checked })}
+                                                className="w-5 h-5 text-green-600 rounded focus:ring-green-500"
+                                            />
+                                            <div className="flex-1">
+                                                <p className="font-bold text-gray-800 flex items-center gap-2">
+                                                    <Megaphone size={16} className="text-green-500" /> WhatsApp
+                                                </p>
+                                                <p className="text-[10px] text-gray-500 font-medium">Redirige para envío manual/secuencial</p>
+                                            </div>
+                                        </label>
+                                    )}
+                                </div>
+
+                                <button
+                                    onClick={executeBroadcast}
+                                    className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 rounded-2xl shadow-xl shadow-purple-200 flex items-center justify-center gap-2 text-lg transition active:scale-95"
+                                >
+                                    <Send size={20} />
+                                    ¡Lanzar Difusión!
+                                </button>
+                                <button
+                                    onClick={() => setIsBroadcastModalOpen(false)}
+                                    className="w-full mt-2 py-3 text-gray-400 font-bold hover:bg-gray-50 rounded-xl transition text-sm"
+                                >
+                                    Cancelar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+        </div >
     );
 };

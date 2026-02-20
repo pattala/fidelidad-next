@@ -184,7 +184,9 @@ export const CampaignService = {
             // 2. Start Date Check
             if (b.startDate && b.startDate > todayStr) return false;
 
-            if (b.daysOfWeek && b.daysOfWeek.length > 0 && !b.daysOfWeek.includes(todayDay)) return false;
+            // 3. Days of week check (prioritize flashDays if it is flash)
+            const targetDays = b.isFlash ? b.flashDays : b.daysOfWeek;
+            if (targetDays && Array.isArray(targetDays) && targetDays.length > 0 && !targetDays.includes(todayDay)) return false;
 
             return true;
         });

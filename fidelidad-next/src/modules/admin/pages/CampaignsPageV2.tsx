@@ -97,6 +97,7 @@ export const CampaignsPageV2 = () => {
 
             const payload = {
                 ...formData,
+                isFlash: isFlashMode,
                 // @ts-ignore
                 rewardValue: (formData.rewardType === 'INFO' || formData.rewardType === 'TEXT') ? 0 : formData.rewardValue,
                 startTime: isFlashMode ? formData.startTime : '',
@@ -128,7 +129,7 @@ export const CampaignsPageV2 = () => {
             descriptionSize: bonus.descriptionSize || 'sm'
         };
         setFormData(normalizedData);
-        setIsFlashMode(!!(bonus.startTime || bonus.endTime));
+        setIsFlashMode(!!bonus.isFlash || !!(bonus.startTime || bonus.endTime));
         setActiveTab('BASIC');
         setIsModalOpen(true);
     };
@@ -468,6 +469,16 @@ export const CampaignsPageV2 = () => {
                                         <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse ml-0.5" />
                                     </span>
                                 )}
+                                {bonus.isFlash && (bonus.flashRewardType === 'TEXT' ? (
+                                    <span className="bg-orange-500 text-white text-[10px] font-black px-3 py-1 rounded-full flex items-center gap-1 shadow-lg shadow-orange-200">
+                                        <Type size={10} fill="white" /> {bonus.flashRewardText || 'PROMO'}
+                                    </span>
+                                ) : (
+                                    <span className="bg-red-600 text-white text-[10px] font-black px-3 py-1 rounded-full flex items-center gap-1 shadow-lg shadow-red-200">
+                                        {bonus.flashRewardType === 'MULTIPLIER' ? <Zap size={10} fill="white" /> : <Sparkles size={10} />}
+                                        {bonus.flashRewardType === 'MULTIPLIER' ? `x${bonus.flashRewardValue}` : `+${bonus.flashRewardValue}`}
+                                    </span>
+                                ))}
                                 {(bonus.rewardType as any) === 'TEXT' ? (
                                     <span className="bg-pink-500 text-white text-[10px] font-black px-3 py-1 rounded-full flex items-center gap-1">
                                         <Type size={10} fill="white" /> PROMO

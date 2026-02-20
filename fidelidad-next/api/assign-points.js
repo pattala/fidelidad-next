@@ -127,23 +127,32 @@ export default async function handler(req, res) {
                 if (b.startDate && typeof b.startDate === 'string' && b.startDate > todayStr) return;
                 if (b.endDate && typeof b.endDate === 'string' && b.endDate < todayStr) return;
 
-                // 2. Filtro por día de la semana
-                if (b.daysOfWeek && Array.isArray(b.daysOfWeek) && b.daysOfWeek.length > 0) {
-                    if (!b.daysOfWeek.includes(todayDay)) return;
+                // 2. Filtro por día de la semana (priorizar flashDays si es isFlash)
+                const targetDays = b.isFlash ? b.flashDays : b.daysOfWeek;
+                if (targetDays && Array.isArray(targetDays) && targetDays.length > 0) {
+                    if (!targetDays.includes(todayDay)) return;
                 }
 
                 // 3. Filtro de hora (Marketing Dinámico / Ofertas Flash)
                 if (b.startTime && typeof b.startTime === 'string' && b.startTime > currentTimeStr) return;
                 if (b.endTime && typeof b.endTime === 'string' && b.endTime < currentTimeStr) return;
 
-                // Tipos permitidos (SOLO FIXED y MULTIPLIER en este contexto)
-                if (b.rewardType === 'FIXED' || b.rewardType === 'MULTIPLIER') {
+                // Determinar Recompensa (Priorizar Flash si estamos dentro del filtro y es flash)
+                const isApplyingFlash = b.isFlash;
+                const rType = isApplyingFlash ? (b.flashRewardType || b.rewardType) : b.rewardType;
+                const rValue = isApplyingFlash ? (Number(b.flashRewardValue) ?? b.rewardValue) : b.rewardValue;
+                const rText = isApplyingFlash ? (b.flashRewardText || b.rewardText) : b.rewardText;
+
+                // Tipos permitidos (SOLO FIXED, MULTIPLIER, TEXT en este contexto si es flash, o los estándar)
+                if (rType === 'FIXED' || rType === 'MULTIPLIER' || (isApplyingFlash && rType === 'TEXT')) {
                     activePromotions.push({
                         id: doc.id,
                         name: b.name || 'Sin nombre',
                         title: b.title || b.name || 'Promoción',
-                        rewardType: b.rewardType,
-                        rewardValue: Number(b.rewardValue) || 0
+                        rewardType: rType,
+                        rewardValue: Number(rValue) || 0,
+                        rewardText: rText,
+                        isFlash: b.isFlash
                     });
                 }
             });
@@ -243,11 +252,23 @@ export default async function handler(req, res) {
                 bonusSnaps.forEach(bsnap => {
                     if (bsnap.exists) {
                         const b = bsnap.data();
-                        if (b.rewardType === 'FIXED') totalBonus += (Number(b.rewardValue) || 0);
-                        if (b.rewardType === 'MULTIPLIER') totalMultiplier *= (Number(b.rewardValue) || 1);
 
-                        const bonusAction = b.rewardType === 'MULTIPLIER' ? `x${b.rewardValue}` : `+${b.rewardValue}`;
-                        promoDetails += (promoDetails ? ", " : " + Bono: ") + (b.name || b.title || "Promo") + ` (${bonusAction})`;
+                        // Lógica de Recompensa Flash (Independiente)
+                        // Para aplicar flash en el POST, verificamos si es flash y cumplimos horario/día (ya filtrado en bonusIds usualmente por el frontend, pero validamos tipos)
+                        const rType = b.isFlash ? (b.flashRewardType || b.rewardType) : b.rewardType;
+                        const rValue = b.isFlash ? (Number(b.flashRewardValue) ?? b.rewardValue) : b.rewardValue;
+                        const rText = b.isFlash ? (b.flashRewardText || b.rewardText) : b.rewardText;
+
+                        if (rType === 'FIXED') totalBonus += (Number(rValue) || 0);
+                        if (rType === 'MULTIPLIER') totalMultiplier *= (Number(rValue) || 1);
+                        if (rType === 'TEXT' && rText) {
+                            promoDetails += (promoDetails ? ", " : " + Bono: ") + (b.name || b.title || "Flash") + ` (${rText})`;
+                        }
+
+                        if (rType !== 'TEXT') {
+                            const bonusAction = rType === 'MULTIPLIER' ? `x${rValue}` : `+${rValue}`;
+                            promoDetails += (promoDetails ? ", " : " + Bono: ") + (b.name || b.title || "Promo") + ` (${bonusAction})`;
+                        }
                     }
                 });
 

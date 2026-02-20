@@ -13,13 +13,8 @@ export const ClientAuthGuard = ({ children }: { children: React.ReactNode }) => 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
             if (!currentUser) {
-                // Dar un pequeño margen de 200ms por si el estado está reconciliando tras un refresh o cambio de solapa
-                setTimeout(() => {
-                    if (!auth.currentUser) {
-                        setLoading(false);
-                        navigate('/login');
-                    }
-                }, 200);
+                setLoading(false);
+                navigate('/login');
             } else {
                 try {
                     // Verify Firestore Document Existence

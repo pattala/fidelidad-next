@@ -12,20 +12,14 @@ const GuardInner = ({ children }: { children: React.ReactNode }) => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        const timeout = setTimeout(() => {
-            if (!loading) {
-                if (!user) {
-                    navigate('/admin/login');
-                    return;
-                }
-
-                if (!role) {
-                    console.warn("Acceso restringido: Usuario sin rol de admin verificado.");
-                    navigate('/admin/login');
-                }
+        if (!loading) {
+            if (!user) {
+                navigate('/admin/login');
+            } else if (!role) {
+                console.warn("Acceso restringido: Usuario sin rol de admin verificado.");
+                navigate('/admin/login');
             }
-        }, 100); // Pequeño delay para permitir que Firebase restablezca la sesión en nuevas solapas
-        return () => clearTimeout(timeout);
+        }
     }, [user, role, loading, navigate]);
 
     if (loading) return (

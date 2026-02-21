@@ -337,12 +337,12 @@ export const CampaignsPage = () => {
             <div className={`relative z-10 w-full h-full p-6 flex flex-col pointer-events-none ${getPositionClasses(formData.textPosition)}`}>
                 {formData.showTitle && (
                     <h4 className={`leading-[1.1] mb-1 uppercase tracking-tight drop-shadow-md ${getFontFamily(formData.titleFont)} ${getFontWeight(formData.titleWeight)} text-${formData.titleSize || '2xl'}`} style={{ color: formData.titleColor || formData.textColor }}>
-                        {(isFlashMode && formData.flashTitle) ? formData.flashTitle : (formData.title || 'Título de la Campaña')}
+                        {formData.title || 'Título de la Campaña'}
                     </h4>
                 )}
                 {formData.showDescription && (
                     <p className={`opacity-90 leading-snug whitespace-pre-wrap drop-shadow-sm line-clamp-3 ${getFontFamily(formData.descFont)} ${getFontWeight(formData.descWeight)} text-${formData.descriptionSize || 'sm'}`} style={{ color: formData.descriptionColor || formData.textColor }}>
-                        {(isFlashMode && formData.flashDescription) ? formData.flashDescription : (formData.description || 'Descripción breve de la promoción...')}
+                        {formData.description || 'Descripción breve de la promoción...'}
                     </p>
                 )}
             </div>
@@ -438,10 +438,10 @@ export const CampaignsPage = () => {
                             </div>
                             <div className="flex-1 min-w-0">
                                 <h4 className="font-bold text-gray-800 text-xs truncate leading-tight mb-1">
-                                    {(isFlashMode && formData.flashTitle) ? formData.flashTitle : (formData.title || 'Título')}
+                                    {formData.title || 'Título'}
                                 </h4>
                                 <p className="text-[10px] text-gray-400 font-medium line-clamp-2 leading-relaxed">
-                                    {(isFlashMode && formData.flashDescription) ? formData.flashDescription : (formData.description || 'Descripción...')}
+                                    {formData.description || 'Descripción...'}
                                 </p>
                                 <button className="mt-2 text-[9px] font-black text-purple-600 bg-purple-50 px-2 py-1 rounded inline-block">VER DETALLES</button>
                             </div>

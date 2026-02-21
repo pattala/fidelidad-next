@@ -137,7 +137,7 @@ export const CampaignCarousel = () => {
                     style={{ transform: `translateX(-${currentIndex * 100}%)` }}
                 >
                     {visibleCampaigns.map((camp) => {
-                        const hasImg = !!camp.imageUrl;
+                        const hasImg = !!camp.imageUrl && camp.imageUrl.trim() !== '';
                         const gradientBg = gradients[camp.id.charCodeAt(0) % gradients.length];
                         const customStyle = {
                             backgroundColor: camp.backgroundColor || '',

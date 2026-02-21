@@ -1403,9 +1403,17 @@ export const ClientsPage = () => {
                                                         </div>
                                                         <div className="flex items-center gap-2">
                                                             <span className="text-[9px] text-gray-400 font-bold">
-                                                                {promo.rewardType === 'MULTIPLIER' ? `Multiplicador x${promo.rewardValue}` :
-                                                                    promo.rewardType === 'FIXED' ? `Bonus +${promo.rewardValue} pts` :
-                                                                        promo.rewardType === 'TEXT' ? (promo.rewardText || 'Beneficio Especial') : 'Informativa / Flash'}
+                                                                {(() => {
+                                                                    const isFlash = promo.isFlash;
+                                                                    const rType = isFlash ? (promo.flashRewardType || promo.rewardType) : promo.rewardType;
+                                                                    const rValue = isFlash ? (promo.flashRewardValue ?? promo.rewardValue) : promo.rewardValue;
+                                                                    const rText = isFlash ? (promo.flashRewardText || promo.rewardText) : promo.rewardText;
+
+                                                                    if (rType === 'MULTIPLIER') return `Multiplicador x${rValue}`;
+                                                                    if (rType === 'FIXED') return `Bonus +${rValue} pts`;
+                                                                    if (rType === 'TEXT') return rText || 'Beneficio Especial';
+                                                                    return isFlash ? '⚡ Informativa / Flash' : 'Informativa';
+                                                                })()}
                                                             </span>
                                                             {(promo.startTime || promo.endTime) && (
                                                                 <span className="text-[9px] text-purple-400 font-black">

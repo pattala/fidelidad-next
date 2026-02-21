@@ -529,6 +529,16 @@ export default async function handler(req, res) {
                 info: `+${points} pts (${(concept || 'Carga manual')})`,
                 timestamp: new Date().toISOString()
             });
+
+            // AUDITORIA: Registro de Inbox
+            result.auditDetails.push({
+                userId: targetUid,
+                userName: result.guestData.name,
+                action: 'inbox_message_saved',
+                status: 'success',
+                info: `Mensaje guardado: +${points} pts`,
+                timestamp: new Date().toISOString()
+            });
         });
 
         // 5.5 ACTUALIZAR METADATA DE VENCIMIENTOS (Cache)

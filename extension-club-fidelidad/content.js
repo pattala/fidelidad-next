@@ -327,7 +327,7 @@ function showFidelidadPanel() {
 
                 // Renderizar Promos con Lógica de Horarios (Paridad con Admin)
                 currentPromos = promotions || [];
-                const activePromos = currentPromos.filter(p => p.rewardType !== 'INFO');
+                const activePromos = currentPromos.filter(p => p.rewardType === 'FIXED' || p.rewardType === 'MULTIPLIER' || p.rewardType === 'TEXT' || p.rewardType === 'INFO');
 
                 if (activePromos.length > 0) {
                     const GRACE_PERIOD_MINS = 15;
@@ -384,6 +384,7 @@ function showFidelidadPanel() {
                                     <div style="display: flex; align-items: center; gap: 4px;">
                                         <span class="cf-promo-name">${title}</span>
                                         ${statusHtml}
+                                        ${isFlash ? '<span class="cf-promo-status" style="background:#fef3c7; color:#92400e; font-size: 7px; border: 1px solid #f59e0b;">⚡ FLASH</span>' : ''}
                                     </div>
                                     <div style="display: flex; align-items: center; gap: 6px; margin-top: 2px;">
                                         <span class="cf-promo-desc">${label}</span>

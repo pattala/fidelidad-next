@@ -667,7 +667,7 @@ export const ClientsPage = () => {
         setNotifyWhatsapp(isWAEnabled);
 
         const promos = await CampaignService.getActiveBonusesForToday();
-        const calculablePromos = promos.filter(p => p.rewardType === 'FIXED' || p.rewardType === 'MULTIPLIER');
+        const calculablePromos = promos.filter(p => p.rewardType === 'FIXED' || p.rewardType === 'MULTIPLIER' || p.rewardType === 'INFO' || p.rewardType === 'TEXT');
 
         // --- REFINAMIENTO DE VISIBILIDAD (Marketing Dinámico) ---
         const GRACE_PERIOD_MINS = 15;
@@ -1403,7 +1403,9 @@ export const ClientsPage = () => {
                                                         </div>
                                                         <div className="flex items-center gap-2">
                                                             <span className="text-[9px] text-gray-400 font-bold">
-                                                                {promo.rewardType === 'MULTIPLIER' ? `Multiplicador x${promo.rewardValue}` : `Bonus +${promo.rewardValue} pts`}
+                                                                {promo.rewardType === 'MULTIPLIER' ? `Multiplicador x${promo.rewardValue}` :
+                                                                    promo.rewardType === 'FIXED' ? `Bonus +${promo.rewardValue} pts` :
+                                                                        promo.rewardType === 'TEXT' ? (promo.rewardText || 'Beneficio Especial') : 'Informativa / Flash'}
                                                             </span>
                                                             {(promo.startTime || promo.endTime) && (
                                                                 <span className="text-[9px] text-purple-400 font-black">

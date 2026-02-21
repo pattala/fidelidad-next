@@ -89,7 +89,7 @@ export const CampaignsPage = () => {
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            if (formData.rewardType === 'INFO' && !formData.imageUrl && !formData.description) {
+            if (!isFlashMode && formData.rewardType === 'INFO' && !formData.imageUrl && !formData.description) {
                 toast.error('Un anuncio debe tener imagen o descripción');
                 return;
             }

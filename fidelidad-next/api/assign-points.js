@@ -155,7 +155,7 @@ export default async function handler(req, res) {
                 const rText = isApplyingFlash ? (b.flashRewardText || b.rewardText) : b.rewardText;
 
                 // Tipos permitidos (SOLO FIXED, MULTIPLIER, TEXT en este contexto si es flash, o los estándar)
-                if (rType === 'FIXED' || rType === 'MULTIPLIER' || (isApplyingFlash && rType === 'TEXT')) {
+                if (rType === 'FIXED' || rType === 'MULTIPLIER' || rType === 'TEXT' || rType === 'INFO') {
                     activePromotions.push({
                         id: doc.id,
                         name: b.name || 'Sin nombre',
@@ -164,7 +164,10 @@ export default async function handler(req, res) {
                         rewardType: rType,
                         rewardValue: Number(rValue) || 0,
                         rewardText: rText,
-                        isFlash: b.isFlash
+                        isFlash: b.isFlash,
+                        startTime: b.startTime || '',
+                        endTime: b.endTime || '',
+                        flashGraceMins: b.flashGraceMins || 0
                     });
                 }
             });

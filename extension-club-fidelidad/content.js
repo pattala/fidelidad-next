@@ -352,25 +352,17 @@ function showFidelidadPanel() {
 
                         if (p.startTime || p.endTime) {
                             const isExpiredToday = p.endTime && p.endTime < curHHmm;
-                            const isActiveNow = !isExpiredToday && (!p.startTime || p.startTime <= curHHmm);
 
-                            // Check grace period
-                            let isInGrace = false;
-                            const flashGrace = Number(p.flashGraceMins) ?? 15;
-
-                            if (isExpiredToday && p.endTime) {
-                                const [h, m] = p.endTime.split(':').map(Number);
-                                const endTimestamp = new Date(nowArg);
-                                endTimestamp.setUTCHours(h, m + flashGrace, 0, 0);
-                                if (nowArg < endTimestamp) isInGrace = true;
-                            }
-
-                            if (isActiveNow) {
-                                statusHtml = `<span class="cf-promo-status active">¡ACTIVA!</span>`;
-                            } else if (isInGrace) {
+                            if (isExpiredToday) {
                                 statusHtml = `<span class="cf-promo-status grace">TOLERANCIA</span>`;
                             } else {
-                                isAutoSelect = false;
+                                const isNotStartedYet = p.startTime && p.startTime > curHHmm;
+                                if (isNotStartedYet) {
+                                    statusHtml = `<span class="cf-promo-status" style="background:#f3f4f6; color:#6b7280;">PRÓXIMAMENTE</span>`;
+                                    isAutoSelect = false;
+                                } else {
+                                    statusHtml = `<span class="cf-promo-status active">¡ACTIVA!</span>`;
+                                }
                             }
                         }
 

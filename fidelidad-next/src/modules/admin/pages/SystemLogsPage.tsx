@@ -156,6 +156,18 @@ export const SystemLogsPage = () => {
             case 'whatsapp_manual': return 'WhatsApp (Manual)';
             case 'points_assignment': return 'Asignación de Puntos';
             case 'prizes_redemption': return 'Canje de Premio';
+            case 'campaign_mgmt': return 'Gestión de Campañas';
+            case 'campaign_created': return 'Campaña Creada';
+            case 'campaign_updated': return 'Campaña Actualizada';
+            case 'campaign_deleted': return 'Campaña Eliminada';
+            case 'campaign_diffusion': return 'Difusión Masiva';
+            case 'user_mgmt': return 'Gestión de Usuario';
+            case 'user_updated_profile': return 'Perfil Actualizado';
+            case 'data_export': return 'Exportación de Datos';
+            case 'config_updated': return 'Configuración Actualizada';
+            case 'prize_created': return 'Premio Creado';
+            case 'prize_updated': return 'Premio Actualizado';
+            case 'prize_deleted': return 'Premio Eliminado';
             default: return type.replace(/_/g, ' ');
         }
     };
@@ -233,6 +245,13 @@ export const SystemLogsPage = () => {
                             <option value="push_notification">Push</option>
                             <option value="inbox_message">Inbox</option>
                             <option value="email_notification">Email</option>
+                            <option value="campaign_mgmt">Campañas (Act/Des)</option>
+                            <option value="campaign_created">Campañas (Nuevas)</option>
+                            <option value="campaign_diffusion">Campañas (Difusión)</option>
+                            <option value="user_mgmt">Usuarios / Historial</option>
+                            <option value="data_export">Exportación Excel</option>
+                            <option value="config_updated">Ajustes / Config</option>
+                            <option value="prize_created">Premios</option>
                         </select>
                     </div>
 

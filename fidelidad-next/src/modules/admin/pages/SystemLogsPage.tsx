@@ -154,15 +154,18 @@ export const SystemLogsPage = () => {
             case 'email_notification': return 'Correo Electrónico';
             case 'whatsapp_notification': return 'WhatsApp (Auto)';
             case 'whatsapp_manual': return 'WhatsApp (Manual)';
+            case 'user_mgmt': return 'Usuarios / Historial';
+            case 'user_updated_profile': return 'Perfil de Usuario Editado';
+            case 'client_deleted': return 'Cliente Borrado Definitivamente';
+            case 'points_history_deleted': return 'Ajuste Manual: Ítem de Historial Borrado';
+            case 'points_history_reset': return 'Ajuste Manual: Historial Reseteado';
             case 'points_assignment': return 'Asignación de Puntos';
             case 'prizes_redemption': return 'Canje de Premio';
-            case 'campaign_mgmt': return 'Gestión de Campañas';
-            case 'campaign_created': return 'Campaña Creada';
-            case 'campaign_updated': return 'Campaña Actualizada';
-            case 'campaign_deleted': return 'Campaña Eliminada';
-            case 'campaign_diffusion': return 'Difusión Masiva';
-            case 'user_mgmt': return 'Gestión de Usuario';
-            case 'user_updated_profile': return 'Perfil Actualizado';
+            case 'campaign_mgmt': return 'Campaña (Activación/Desact)';
+            case 'campaign_created': return 'Campaña (Nueva)';
+            case 'campaign_updated': return 'Campaña (Editada)';
+            case 'campaign_deleted': return 'Campaña (Borrada)';
+            case 'campaign_diffusion': return 'Campaña (Difusión Masiva)';
             case 'data_export': return 'Exportación de Datos';
             case 'config_updated': return 'Configuración Actualizada';
             case 'prize_created': return 'Premio Creado';
@@ -238,19 +241,23 @@ export const SystemLogsPage = () => {
                             <option value="">Todos los tipos</option>
                             <option value="expiration_engine">Vencimientos Auto</option>
                             <option value="points_assignment">Asignación Puntos</option>
-                            <option value="prizes_redemption">Canje Premios</option>
                             <option value="birthday_engine">Cumpleaños</option>
                             <option value="whatsapp_notification">WhatsApp Auto</option>
                             <option value="whatsapp_manual">WhatsApp Manual</option>
                             <option value="push_notification">Push</option>
                             <option value="inbox_message">Inbox</option>
                             <option value="email_notification">Email</option>
+                            <option value="points_assignment">Asignación de Puntos</option>
+                            <option value="prizes_redemption">Canjes de Premios</option>
                             <option value="campaign_mgmt">Campañas (Act/Des)</option>
                             <option value="campaign_created">Campañas (Nuevas)</option>
                             <option value="campaign_updated">Campañas (Editadas)</option>
                             <option value="campaign_deleted">Campañas (Borradas)</option>
                             <option value="campaign_diffusion">Campañas (Difusión)</option>
-                            <option value="user_mgmt">Usuarios / Historial</option>
+                            <option value="user_mgmt">Usuarios / Historial (General)</option>
+                            <option value="user_updated_profile">Usuarios (Edición Perfil)</option>
+                            <option value="points_history_deleted">Historial (Ajustes/Borrados)</option>
+                            <option value="client_deleted">Clientes (Borrado Permanente)</option>
                             <option value="data_export">Exportación Excel</option>
                             <option value="config_updated">Ajustes / Config</option>
                             <option value="prize_created">Premios</option>

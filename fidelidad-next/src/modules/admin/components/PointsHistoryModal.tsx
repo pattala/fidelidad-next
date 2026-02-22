@@ -218,8 +218,8 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
             await batch.commit();
 
             // --- AUDITORIA ---
-            AuditService.log('user_mgmt', `Movimiento eliminado: ${item.concept} (${client.name})`, [
-                { action: 'points_history_deleted', status: 'success', info: `Socio: ${client.name}, Puntos: ${item.amount}, Concepto: ${item.concept}` }
+            AuditService.log('points_history_deleted', `Movimiento eliminado: ${item.concept} (${client.name})`, [
+                { action: 'points_history_delete', status: 'success', info: `Socio: ${client.name}, Puntos: ${item.amount}, Concepto: ${item.concept}` }
             ]);
 
             toast.success('Movimiento eliminado y saldo ajustado.');
@@ -283,8 +283,8 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
             await batch.commit();
 
             // --- AUDITORIA ---
-            AuditService.log('user_mgmt', `Historial reseteado: ${currentClient.name}`, [
-                { action: 'points_history_reset', status: 'success', info: `Se eliminaron todos los movimientos de ${currentClient.name}` }
+            AuditService.log('points_history_reset', `Historial reseteado: ${currentClient.name}`, [
+                { action: 'points_history_reset_all', status: 'success', info: `Se eliminaron todos los movimientos de ${currentClient.name}` }
             ]);
 
             // Update local state to reflect 0 points immediately

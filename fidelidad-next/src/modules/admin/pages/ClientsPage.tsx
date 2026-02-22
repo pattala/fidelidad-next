@@ -337,7 +337,7 @@ export const ClientsPage = () => {
 
                 // --- AUDITORIA ---
                 AuditService.log('user_mgmt', `Perfil actualizado: ${formData.name}`, [
-                    { action: 'user_updated_profile', status: 'success', info: `DNI: ${formData.dni}, Email: ${formData.email}` }
+                    { action: 'user_updated_profile', status: 'success', info: `Cambios en perfil de ${formData.name}. DNI: ${formData.dni}, Tel: ${formData.phone}` }
                 ]);
 
                 toast.success('Cliente actualizado correctamente');
@@ -541,6 +541,10 @@ export const ClientsPage = () => {
             });
 
             if (response.ok) {
+                // --- AUDITORIA ---
+                AuditService.log('user_mgmt', `Cliente eliminado: ${name}`, [
+                    { action: 'client_deleted', status: 'success', info: `ID: ${id}, Nombre: ${name}` }
+                ]);
                 toast.success('Cliente y todos sus datos eliminados correctamente', { id: toastId });
             } else {
                 const err = await response.json();

@@ -379,7 +379,7 @@ export const ClientHomePage = () => {
 
             {/* HERO CAROUSEL */}
             <section className="relative z-10 mx-0">
-                <CampaignCarousel campaigns={carouselCampaigns} />
+                <CampaignCarousel campaigns={carouselCampaigns} loading={false} />
             </section>
 
             {/* BIRTHDAY BANNER */}

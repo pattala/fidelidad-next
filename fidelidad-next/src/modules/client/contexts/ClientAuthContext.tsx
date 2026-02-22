@@ -67,9 +67,15 @@ export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) 
 
             } else {
                 setUser(null);
-                setUserData(null);
-                setIsAdmin(false);
-                setLoading(false);
+                // Si llegamos aquí y Firebase dice que no hay usuario, 
+                // esperamos un micro-segundo por si es un cambio de estado transitorio
+                setTimeout(() => {
+                    if (!auth.currentUser) {
+                        setUserData(null);
+                        setIsAdmin(false);
+                        setLoading(false);
+                    }
+                }, 300);
             }
         });
 

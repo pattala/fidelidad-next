@@ -19,7 +19,10 @@ export const CampaignCarousel = ({ campaigns: propCampaigns, loading: propLoadin
     const allCampaigns = propCampaigns !== undefined ? propCampaigns : internalCampaigns;
 
     useEffect(() => {
-        if (propCampaigns !== undefined) return;
+        if (propCampaigns !== undefined) {
+            setInternalLoading(false);
+            return;
+        }
 
         const fetchCampaigns = async () => {
             try {

@@ -123,10 +123,16 @@ export const CampaignsPage = () => {
             if (editingId) {
                 await CampaignService.update(editingId, payload);
                 toast.success('Campaña actualizada');
+                await AuditService.log('campaign_updated', `Actualización de campaña: ${payload.name}`, [
+                    { action: 'campaign_update', campaignId: editingId, name: payload.name }
+                ]);
             } else {
                 // @ts-ignore
-                await CampaignService.create(payload);
+                const newId = await CampaignService.create(payload);
                 toast.success('Campaña creada');
+                await AuditService.log('campaign_created', `Nueva campaña: ${payload.name}`, [
+                    { action: 'campaign_create', name: payload.name }
+                ]);
             }
             setIsModalOpen(false);
             fetchBonuses();
@@ -157,11 +163,14 @@ export const CampaignsPage = () => {
         } catch (error) { toast.error('Error'); }
     };
 
-    const handleDelete = async (id: string) => {
+    const handleDelete = async (id: string, name?: string) => {
         if (!confirm('¿Eliminar esta campaña?')) return;
         try {
             await CampaignService.delete(id);
             toast.success('Eliminada');
+            await AuditService.log('campaign_deleted', `Campaña eliminada: ${name || id}`, [
+                { action: 'campaign_delete', campaignId: id, name }
+            ]);
             fetchBonuses();
         } catch (error) { toast.error('Error'); }
     };

@@ -692,12 +692,8 @@ export const ClientsPage = () => {
 
         setAvailablePromotions(filteredPromos);
 
-        // Auto-seleccionar solo las que están en horario (antes de tolerancia)
-        const autoSelected = filteredPromos.filter(p => {
-            if (p.startTime && p.startTime > curHHmm) return false;
-            if (p.endTime && p.endTime < curHHmm) return false;
-            return true;
-        }).map(p => p.id);
+        // Auto-seleccionar promos (incluyendo periodo de gracia para paridad con extensión)
+        const autoSelected = filteredPromos.map(p => p.id);
 
         setSelectedPromos(autoSelected);
         setPointsModalOpen(true);
@@ -1319,8 +1315,12 @@ export const ClientsPage = () => {
                                             let bonus = 0;
                                             if (applyPromotions) {
                                                 availablePromotions.filter(p => selectedPromos.includes(p.id)).forEach(b => {
-                                                    if (b.rewardType === 'MULTIPLIER') bonus += Math.floor(ptsBase * (b.rewardValue - 1));
-                                                    else bonus += (b.rewardValue || 0);
+                                                    const isFlash = b.isFlash;
+                                                    const rType = isFlash ? (b.flashRewardType || b.rewardType) : b.rewardType;
+                                                    const rValue = isFlash ? (b.flashRewardValue ?? b.rewardValue) : b.rewardValue;
+
+                                                    if (rType === 'MULTIPLIER') bonus += Math.floor(ptsBase * (rValue - 1));
+                                                    else bonus += (rValue || 0);
                                                 });
                                             }
                                             const totalFinal = ptsBase + bonus;
@@ -1393,9 +1393,11 @@ export const ClientsPage = () => {
 
                                                                 return (
                                                                     <div className="flex items-center gap-1">
-                                                                        <span className={`text-[8px] px-1 rounded-full font-black ${isActiveNow ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>
-                                                                            {isActiveNow ? '¡ACTIVA!' : 'TOLERANCIA'}
-                                                                        </span>
+                                                                        {isActiveNow ? (
+                                                                            <span className="text-[8px] px-1 rounded-full font-black bg-green-100 text-green-600">
+                                                                                ¡ACTIVA!
+                                                                            </span>
+                                                                        ) : null}
                                                                         <PointsTimer endTime={promo.endTime} />
                                                                     </div>
                                                                 );

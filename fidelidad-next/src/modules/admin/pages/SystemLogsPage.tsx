@@ -247,6 +247,8 @@ export const SystemLogsPage = () => {
                             <option value="email_notification">Email</option>
                             <option value="campaign_mgmt">Campañas (Act/Des)</option>
                             <option value="campaign_created">Campañas (Nuevas)</option>
+                            <option value="campaign_updated">Campañas (Editadas)</option>
+                            <option value="campaign_deleted">Campañas (Borradas)</option>
                             <option value="campaign_diffusion">Campañas (Difusión)</option>
                             <option value="user_mgmt">Usuarios / Historial</option>
                             <option value="data_export">Exportación Excel</option>

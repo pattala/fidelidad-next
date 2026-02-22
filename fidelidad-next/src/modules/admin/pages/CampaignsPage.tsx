@@ -90,11 +90,21 @@ export const CampaignsPage = () => {
         e.preventDefault();
         try {
             if (isFlashMode) {
+                // Validación estricta
+                if (!formData.flashDays || formData.flashDays.length === 0) {
+                    toast.error('Debes seleccionar al menos un día para la oferta flash');
+                    return;
+                }
+                if (!formData.startTime || !formData.endTime) {
+                    toast.error('Debes configurar el horario de inicio y fin');
+                    return;
+                }
+
                 const overlapping = bonuses.find(b => {
                     if (b.id === editingId || !b.isFlash || !b.active) return false;
 
                     // Check if days intersect
-                    const daysIntersect = formData.flashDays?.some(d => b.flashDays?.includes(d));
+                    const daysIntersect = formData.flashDays?.some(d => (b as any).flashDays?.includes(d));
                     if (!daysIntersect) return false;
 
                     // Check if times overlap
@@ -559,6 +569,12 @@ export const CampaignsPage = () => {
                                 </div>
                             )}
 
+                            {bonus.isFlash && (
+                                <div className="absolute top-4 -left-10 bg-red-600 text-white text-[9px] font-black py-1 w-40 text-center -rotate-45 shadow-lg z-20 uppercase tracking-widest border-b border-red-400">
+                                    Oferta Flash
+                                </div>
+                            )}
+
                             {bonus.isFlash && bonus.active && (
                                 <div className="absolute inset-0 bg-gradient-to-t from-red-500/10 to-transparent pointer-events-none" />
                             )}
@@ -566,9 +582,9 @@ export const CampaignsPage = () => {
                             {/* Tags de Tipo */}
                             <div className="absolute bottom-4 left-4 flex flex-wrap gap-2">
                                 {bonus.isFlash && (
-                                    <span className="bg-red-500 text-white text-[10px] font-black px-3 py-1 rounded-full flex items-center gap-1 shadow-lg shadow-red-200">
-                                        <Zap size={10} fill="white" /> FLASH
-                                        <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse ml-0.5" />
+                                    <span className="bg-red-500 text-white text-[10px] font-black px-3 py-1 rounded-full flex items-center gap-1 shadow-lg shadow-red-200 animate-pulse border border-red-400">
+                                        <Zap size={10} fill="white" className="animate-bounce" /> FLASH
+                                        <div className="w-1.5 h-1.5 bg-white rounded-full animate-ping ml-0.5" />
                                     </span>
                                 )}
                                 {bonus.isFlash && (bonus.flashRewardType === 'TEXT' ? (
@@ -589,11 +605,11 @@ export const CampaignsPage = () => {
                                     <span className="bg-purple-500 text-white text-[10px] font-black px-3 py-1 rounded-full flex items-center gap-1">
                                         <Sparkles size={10} /> PUNTOS
                                     </span>
-                                ) : (
+                                ) : bonus.rewardType !== 'INFO' || !bonus.isFlash ? (
                                     <span className="bg-blue-500 text-white text-[10px] font-black px-3 py-1 rounded-full flex items-center gap-1">
                                         <Info size={10} /> INFO
                                     </span>
-                                )}
+                                ) : null}
                             </div>
                         </div>
 

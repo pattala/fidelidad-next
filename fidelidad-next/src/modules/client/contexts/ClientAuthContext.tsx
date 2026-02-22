@@ -36,14 +36,15 @@ export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) 
                 const userRef = doc(db, 'users', firebaseUser.uid);
 
                 // Listen to User Data
-                unsubFirestore = onSnapshot(userRef, (snap) => {
+                unsubFirestore = onSnapshot(userRef, async (snap) => {
                     if (snap.exists()) {
                         setUserData(snap.data());
                         setIsAdmin(false);
                         setLoading(false);
                     } else {
                         // Check if admin (could be visiting PWA side)
-                        import('firebase/firestore').then(async ({ getDoc }) => {
+                        try {
+                            const { getDoc } = await import('firebase/firestore');
                             const adminSnap = await getDoc(adminRef);
                             if (adminSnap.exists()) {
                                 setIsAdmin(true);
@@ -53,8 +54,11 @@ export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) 
                                 setIsAdmin(false);
                                 setUserData(null);
                             }
+                        } catch (e) {
+                            console.error("Error checking admin status:", e);
+                        } finally {
                             setLoading(false);
-                        });
+                        }
                     }
                 }, (err) => {
                     console.error("Firestore Client Auth Error:", err);

@@ -265,7 +265,7 @@ export const ClientHomePage = () => {
         return () => unsubscribe();
     }, [user?.uid, currentTimeStore]);
 
-    const homeBanners = campaigns.filter(c => c.showInHomeBanner);
+    const homeBanners = campaigns.filter(c => c.showInCarousel || c.showInHomeBanner);
 
     const activeFlash = campaigns.find(c => {
         if (!c.startTime || !c.endTime) return false;
@@ -378,7 +378,7 @@ export const ClientHomePage = () => {
 
             {/* HERO CAROUSEL */}
             <section className="relative z-10 mx-0">
-                <CampaignCarousel />
+                <CampaignCarousel campaigns={homeBanners} />
             </section>
 
             {/* BIRTHDAY BANNER */}

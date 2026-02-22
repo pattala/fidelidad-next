@@ -69,6 +69,8 @@ export interface BonusRule {
     flashGraceMins?: number;
 
     channels?: string[]; // push, email, whatsapp
+    actionUrl?: string;  // URL for floating modal link
+    actionText?: string; // Text for floating modal button
 }
 
 const COLLECTION_NAME = 'campanas';

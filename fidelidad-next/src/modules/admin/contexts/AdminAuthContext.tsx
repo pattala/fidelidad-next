@@ -102,7 +102,7 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
         });
 
         return () => unsubscribe();
-    }, [user?.uid]);
+    }, []);
 
     return (
         <AdminAuthContext.Provider value={{ user, role, loading, isReadOnly: role === 'viewer' }}>

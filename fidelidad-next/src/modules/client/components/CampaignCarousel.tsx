@@ -1,30 +1,41 @@
 import { useEffect, useState } from 'react';
-import { CampaignService, type BonusRule } from '../../../services/campaignService';
+import { type BonusRule } from '../../../services/campaignService';
 import { Megaphone } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { CampaignActionModal } from './CampaignActionModal';
 
-export const CampaignCarousel = () => {
-    const [campaigns, setCampaigns] = useState<BonusRule[]>([]);
+interface CampaignCarouselProps {
+    campaigns?: BonusRule[];
+    loading?: boolean;
+}
+
+export const CampaignCarousel = ({ campaigns: propCampaigns, loading: propLoading }: CampaignCarouselProps) => {
+    const [internalCampaigns, setInternalCampaigns] = useState<BonusRule[]>([]);
+    const [internalLoading, setInternalLoading] = useState(true);
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [loading, setLoading] = useState(true);
+
+    const [selectedCampaign, setSelectedCampaign] = useState<BonusRule | null>(null);
+
+    const isLoading = propLoading !== undefined ? propLoading : internalLoading;
+    const allCampaigns = propCampaigns !== undefined ? propCampaigns : internalCampaigns;
 
     useEffect(() => {
+        if (propCampaigns !== undefined) return;
+
         const fetchCampaigns = async () => {
             try {
-                // Use centralized service which handles Date Logic (Start/End) and DaysOfWeek
+                const { CampaignService } = await import('../../../services/campaignService');
                 const fetchedCampaigns = await CampaignService.getActiveBonusesForToday();
-                // Filter only those marked for 'showInCarousel'
                 const validCampaigns = fetchedCampaigns.filter(c => c.showInCarousel);
-                setCampaigns(validCampaigns);
+                setInternalCampaigns(validCampaigns);
             } catch (error) {
                 console.error('Error fetching campaigns:', error);
             } finally {
-                setLoading(false);
+                setInternalLoading(false);
             }
         };
 
         fetchCampaigns();
-    }, []);
+    }, [propCampaigns]);
 
     // Real-time Expiration Logic
     const [now, setNow] = useState(new Date());
@@ -34,14 +45,19 @@ export const CampaignCarousel = () => {
         return () => clearInterval(interval);
     }, []);
 
-    const visibleCampaigns = campaigns.filter(camp => {
-        if (!camp.endTime) return true;
+    const visibleCampaigns = allCampaigns.filter(camp => {
         const curHHmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-        const todayStr = now.toLocaleDateString('en-CA');
 
-        if (camp.endDate === todayStr && camp.endTime < curHHmm) return false;
-        // Strict check for today if no date range
-        if (!camp.endDate && camp.endTime < curHHmm) return false; // assuming daily recurrence implies checks
+        // Flash timing check
+        if (camp.isFlash) {
+            if (camp.startTime && curHHmm < camp.startTime) return false;
+            if (camp.endTime && curHHmm >= camp.endTime) return false;
+        } else {
+            // Regular campaign duration checks
+            const todayStr = now.toLocaleDateString('en-CA');
+            if (camp.endDate === todayStr && camp.endTime && camp.endTime < curHHmm) return false;
+            if (!camp.endDate && camp.endTime && camp.endTime < curHHmm) return false;
+        }
 
         return true;
     });
@@ -51,14 +67,12 @@ export const CampaignCarousel = () => {
         if (visibleCampaigns.length <= 1) return;
         const interval = setInterval(() => {
             setCurrentIndex(prev => (prev + 1) % visibleCampaigns.length);
-        }, 6000); // 6 seconds for better readability
+        }, 6000);
         return () => clearInterval(interval);
     }, [visibleCampaigns.length]);
 
     const [touchStart, setTouchStart] = useState<number | null>(null);
     const [touchEnd, setTouchEnd] = useState<number | null>(null);
-
-    // Min swipe distance
     const minSwipeDistance = 50;
 
     const onTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
@@ -76,8 +90,6 @@ export const CampaignCarousel = () => {
         const isLeftSwipe = distance > minSwipeDistance;
         const isRightSwipe = distance < -minSwipeDistance;
 
-
-
         if (isLeftSwipe) {
             setCurrentIndex(prev => (prev + 1) % visibleCampaigns.length);
         } else if (isRightSwipe) {
@@ -85,9 +97,8 @@ export const CampaignCarousel = () => {
         }
     };
 
-    if (loading) return <div className="h-40 bg-gray-100 animate-pulse rounded-2xl mx-4 mb-6"></div>;
+    if (isLoading) return <div className="h-40 bg-gray-100 animate-pulse rounded-2xl mx-4 mb-6"></div>;
 
-    // Empty State: Show generic welcome slide if no campaigns
     if (visibleCampaigns.length === 0) {
         return (
             <div className="relative mb-6 mx-0">
@@ -107,7 +118,6 @@ export const CampaignCarousel = () => {
         );
     }
 
-    // Gradient palette for text-only ads (random or deterministic based on ID char)
     const gradients = [
         'bg-gradient-to-br from-pink-500 to-rose-500',
         'bg-gradient-to-br from-purple-600 to-indigo-600',
@@ -131,9 +141,8 @@ export const CampaignCarousel = () => {
                 onMouseUp={onTouchEnd}
                 onMouseLeave={() => touchStart && onTouchEnd()}
             >
-                {/* SLIDES CONTAINER */}
                 <div
-                    className="flex transition-transform duration-700 ease-in-out h-full w-full pointer-events-none"
+                    className="flex transition-transform duration-700 ease-in-out h-full w-full"
                     style={{ transform: `translateX(-${currentIndex * 100}%)` }}
                 >
                     {visibleCampaigns.map((camp) => {
@@ -149,8 +158,7 @@ export const CampaignCarousel = () => {
                         const imgFitClass = camp.imageFit === 'cover' ? 'object-cover' : 'object-contain';
                         const fontClass = camp.fontStyle === 'serif' ? 'font-serif' : camp.fontStyle === 'mono' ? 'font-mono' : 'font-sans';
 
-                        // Content Position
-                        let textPosClass = 'items-end justify-start'; // Default: bottom-left
+                        let textPosClass = 'items-end justify-start';
                         if (camp.textPosition === 'bottom-center') textPosClass = 'items-end justify-center text-center';
                         if (camp.textPosition === 'bottom-right') textPosClass = 'items-end justify-end text-right';
                         if (camp.textPosition === 'center') textPosClass = 'items-center justify-center text-center';
@@ -168,8 +176,13 @@ export const CampaignCarousel = () => {
                         return (
                             <div
                                 key={camp.id}
-                                className={`min-w-full h-full relative flex ${textPosClass} ${bgClass}`}
+                                className={`min-w-full h-full relative flex ${textPosClass} ${bgClass} cursor-pointer pointer-events-auto`}
                                 style={customStyle}
+                                onClick={() => {
+                                    if (camp.actionUrl) {
+                                        setSelectedCampaign(camp);
+                                    }
+                                }}
                             >
                                 {hasImg && (
                                     <>
@@ -183,7 +196,6 @@ export const CampaignCarousel = () => {
                                     </>
                                 )}
 
-                                {/* CONTENT CONTENT */}
                                 <div className={`relative z-10 p-8 ${fontClass} w-full`}>
                                     {camp.showTitle !== false && (
                                         <h3 className={`leading-[1.1] mb-1 uppercase tracking-tight drop-shadow-md ${titleClasses[camp.titleSize || '2xl'] || 'text-2xl'}`}>
@@ -202,7 +214,6 @@ export const CampaignCarousel = () => {
                 </div>
             </div>
 
-            {/* INDICATORS (NOW BELOW) */}
             {visibleCampaigns.length > 1 && (
                 <div className="flex justify-center gap-2 mt-4">
                     {visibleCampaigns.map((_, idx) => (
@@ -213,6 +224,17 @@ export const CampaignCarousel = () => {
                         />
                     ))}
                 </div>
+            )}
+
+            {selectedCampaign && (
+                <CampaignActionModal
+                    isOpen={!!selectedCampaign}
+                    onClose={() => setSelectedCampaign(null)}
+                    title={selectedCampaign.title || selectedCampaign.name}
+                    description={selectedCampaign.description}
+                    actionUrl={selectedCampaign.actionUrl}
+                    actionText={selectedCampaign.actionText}
+                />
             )}
         </div>
     );

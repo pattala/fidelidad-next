@@ -570,23 +570,77 @@ export const CampaignsPage = () => {
                             )}
 
                             {bonus.isFlash && (
-                                <div className="absolute top-4 -left-10 bg-red-600 text-white text-[9px] font-black py-1 w-40 text-center -rotate-45 shadow-lg z-20 uppercase tracking-widest border-b border-red-400">
+                                <div className="absolute top-5 -left-12 bg-gradient-to-r from-red-600 to-red-500 text-white text-[11px] font-black py-2 w-48 text-center -rotate-45 shadow-xl z-20 uppercase tracking-[0.2em] border-b-2 border-red-400/50 backdrop-blur-sm">
                                     Oferta Flash
+                                    <div className="absolute inset-0 bg-gradient-to-t from-white/20 to-transparent pointer-events-none" />
                                 </div>
                             )}
 
-                            {bonus.isFlash && bonus.active && (
-                                <div className="absolute inset-0 bg-gradient-to-t from-red-500/10 to-transparent pointer-events-none" />
-                            )}
+                            {(() => {
+                                if (!bonus.isFlash) return null;
+
+                                // Calcular estado dinámico usando TimeService
+                                const now = TimeService.now();
+                                const currentDay = now.getDay();
+                                const currentTime = now.getHours() * 100 + now.getMinutes();
+
+                                const isDayMatch = bonus.flashDays?.includes(currentDay);
+                                const startTimeInt = parseInt((bonus.startTime || '00:00').replace(':', ''));
+                                const endTimeInt = parseInt((bonus.endTime || '23:59').replace(':', ''));
+
+                                const isTimeMatch = currentTime >= startTimeInt && currentTime <= endTimeInt;
+                                const isCurrentlyOn = isDayMatch && isTimeMatch && bonus.active;
+                                const isFinishedToday = isDayMatch && currentTime > endTimeInt;
+
+                                if (isCurrentlyOn) {
+                                    return (
+                                        <div className="absolute inset-0 bg-gradient-to-t from-green-500/20 to-transparent pointer-events-none" />
+                                    );
+                                }
+                                if (isFinishedToday) {
+                                    return (
+                                        <div className="absolute inset-0 bg-gradient-to-t from-red-900/40 to-transparent pointer-events-none" />
+                                    );
+                                }
+                                return null;
+                            })()}
 
                             {/* Tags de Tipo */}
                             <div className="absolute bottom-4 left-4 flex flex-wrap gap-2">
-                                {bonus.isFlash && (
-                                    <span className="bg-red-500 text-white text-[10px] font-black px-3 py-1 rounded-full flex items-center gap-1 shadow-lg shadow-red-200 animate-pulse border border-red-400">
-                                        <Zap size={10} fill="white" className="animate-bounce" /> FLASH
-                                        <div className="w-1.5 h-1.5 bg-white rounded-full animate-ping ml-0.5" />
-                                    </span>
-                                )}
+                                {(() => {
+                                    if (!bonus.isFlash) return null;
+
+                                    const now = TimeService.now();
+                                    const currentDay = now.getDay();
+                                    const currentTime = now.getHours() * 100 + now.getMinutes();
+                                    const isDayMatch = bonus.flashDays?.includes(currentDay);
+                                    const startTimeInt = parseInt((bonus.startTime || '00:00').replace(':', ''));
+                                    const endTimeInt = parseInt((bonus.endTime || '23:59').replace(':', ''));
+
+                                    const isCurrentlyOn = isDayMatch && currentTime >= startTimeInt && currentTime <= endTimeInt && bonus.active;
+                                    const isFinishedToday = isDayMatch && currentTime > endTimeInt;
+
+                                    if (isCurrentlyOn) {
+                                        return (
+                                            <span className="bg-green-500 text-white text-[11px] font-black px-4 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg shadow-green-200 animate-pulse border-2 border-green-400 ring-2 ring-green-500/20">
+                                                <Zap size={12} fill="white" className="animate-bounce" /> FLASH ACTIVA
+                                                <div className="w-2 h-2 bg-white rounded-full animate-ping" />
+                                            </span>
+                                        );
+                                    } else if (isFinishedToday) {
+                                        return (
+                                            <span className="bg-red-600 text-white text-[11px] font-black px-4 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg shadow-red-200 border-2 border-red-400 grayscale-0">
+                                                <Clock size={12} /> FLASH TERMINADA
+                                            </span>
+                                        );
+                                    } else {
+                                        return (
+                                            <span className="bg-gray-500 text-white text-[11px] font-black px-4 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg shadow-gray-200 border-2 border-gray-400">
+                                                <Zap size={12} fill="white" /> FLASH PROGRAMADA
+                                            </span>
+                                        );
+                                    }
+                                })()}
                                 {bonus.isFlash && (bonus.flashRewardType === 'TEXT' ? (
                                     <span className="bg-orange-500 text-white text-[10px] font-black px-3 py-1 rounded-full flex items-center gap-1 shadow-lg shadow-orange-200">
                                         <Type size={10} fill="white" /> {bonus.flashRewardText || 'PROMO'}

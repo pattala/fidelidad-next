@@ -7,15 +7,11 @@ export default defineConfig({
     plugins: [
         react(),
         VitePWA({
+            strategies: 'injectManifest',
+            srcDir: 'src',
+            filename: 'sw.ts',
             registerType: 'autoUpdate',
             injectRegister: 'auto',
-            workbox: {
-                cleanupOutdatedCaches: true,
-                skipWaiting: true,
-                clientsClaim: true,
-                sourcemap: true
-            },
-            includeAssets: ['vite.svg'],
             manifest: {
                 name: 'Fidelidad App',
                 short_name: 'Fidelidad',

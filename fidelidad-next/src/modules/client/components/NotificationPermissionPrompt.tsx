@@ -24,11 +24,18 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
 
     useEffect(() => {
         if (!user || !userData) return;
-        checkNextStep();
+
+        // Retraso de cortesía para un "logueo limpio"
+        const timer = setTimeout(() => {
+            checkNextStep();
+        }, 3000);
+
+        return () => clearTimeout(timer);
     }, [user, userData]);
 
     const checkNextStep = () => {
         const permissions = userData.permissions || {};
+        const hasToken = !!userData.fcmToken || (Array.isArray(userData.fcmTokens) && userData.fcmTokens.length > 0);
 
         // 1. Check Notifications
         const notifStatus = permissions.notifications?.status || 'pending';

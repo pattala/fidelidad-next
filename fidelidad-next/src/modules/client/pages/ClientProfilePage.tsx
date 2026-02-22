@@ -7,14 +7,14 @@ import QRCode from "react-qr-code";
 import toast from 'react-hot-toast';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { useFcmToken } from '../../../hooks/useFcmToken';
+import { useClientAuth } from '../contexts/ClientAuthContext';
 
 // Assuming AppConfig is defined elsewhere or is a type alias for the config object
 // For the purpose of this edit, we'll assume it's a valid type.
 type AppConfig = any; // Placeholder if not defined, adjust as per actual project structure
 
 export const ClientProfilePage = () => {
-    const [userAuth, setUserAuth] = useState<any>(null);
-    const [userData, setUserData] = useState<any>(null);
+    const { user: userAuth, userData, loading: authLoading } = useClientAuth();
     const navigate = useNavigate();
     const { config, setHeaderTitle } = useOutletContext<{
         config: AppConfig,
@@ -42,20 +42,7 @@ export const ClientProfilePage = () => {
     const [editData, setEditData] = useState<any>({});
     const [loadingEdit, setLoadingEdit] = useState(false);
 
-    useEffect(() => {
-        const unsub = auth.onAuthStateChanged(u => {
-            if (u) {
-                setUserAuth(u);
-                const unsubDb = onSnapshot(doc(db, 'users', u.uid), (doc) => {
-                    setUserData(doc.data());
-                });
-                return () => unsubDb();
-            } else {
-                navigate('/login');
-            }
-        });
-        return unsub;
-    }, [navigate]);
+    // No longer need manual auth/db effect, ClientAuthContext handles it
 
     const handleLogout = async () => {
         await signOut(auth);

@@ -23,6 +23,7 @@ import { ClientPromosPage } from "./modules/client/pages/ClientPromosPage";
 import { ClientReferralsPage } from "./modules/client/pages/ClientReferralsPage";
 import { ClientAuthGuard } from "./modules/client/components/ClientAuthGuard";
 import { SystemLogsPage } from "./modules/admin/pages/SystemLogsPage";
+import { ClientAuthProvider } from "./modules/client/contexts/ClientAuthContext";
 
 export const router = createBrowserRouter([
     // Client App (PWA)
@@ -35,11 +36,12 @@ export const router = createBrowserRouter([
         element: <ClientRegisterPage />
     },
     {
-        path: "/",
         element: (
-            <ClientAuthGuard>
-                <ClientLayout />
-            </ClientAuthGuard>
+            <ClientAuthProvider>
+                <ClientAuthGuard>
+                    <ClientLayout />
+                </ClientAuthGuard>
+            </ClientAuthProvider>
         ),
         children: [
             {

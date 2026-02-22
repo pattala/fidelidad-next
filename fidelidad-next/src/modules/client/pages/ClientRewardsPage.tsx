@@ -3,6 +3,7 @@ import { db, auth } from '../../../lib/firebase';
 import { collection, query, where, getDocs, doc, onSnapshot } from 'firebase/firestore';
 import { Gift, Lock, CheckCircle, Search, Filter } from 'lucide-react';
 import { useOutletContext } from 'react-router-dom';
+import { useClientAuth } from '../contexts/ClientAuthContext';
 import type { AppConfig } from '../../../types';
 
 
@@ -12,9 +13,10 @@ export const ClientRewardsPage = () => {
         setHeaderTitle: (title: string | null) => void,
         setHeaderActions: (actions: React.ReactNode | null) => void
     }>();
+    const { user, userData } = useClientAuth();
     const [prizes, setPrizes] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [userPoints, setUserPoints] = useState(0);
+    const userPoints = Number(userData?.points) || 0;
 
     // Set Header State
     useEffect(() => {
@@ -36,25 +38,9 @@ export const ClientRewardsPage = () => {
     }, [userPoints, setHeaderTitle, setHeaderActions]);
 
     useEffect(() => {
-        // 1. Listen to User Points
-        const unsubAuth = auth.onAuthStateChanged(user => {
-            if (user) {
-                const unsubDb = onSnapshot(doc(db, 'users', user.uid), (doc) => {
-                    const data = doc.data();
-                    // Ensure points is a number
-                    const pts = Number(data?.points);
-                    setUserPoints(!isNaN(pts) ? pts : 0);
-                });
-                return () => unsubDb();
-            } else {
-                setUserPoints(0);
-            }
-        });
-
-        // 2. Fetch Prizes
+        // 1. Fetch Prizes
         const fetchPrizes = async () => {
             try {
-                // We can use PrizeService or direct query depending on if we want 'active' only logic
                 const q = query(
                     collection(db, 'prizes'),
                     where('active', '==', true),
@@ -71,7 +57,6 @@ export const ClientRewardsPage = () => {
         };
 
         fetchPrizes();
-        return () => unsubAuth();
     }, []);
 
     return (

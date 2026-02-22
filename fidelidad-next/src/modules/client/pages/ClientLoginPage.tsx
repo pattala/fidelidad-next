@@ -7,6 +7,7 @@ import { Mail, Lock, LogIn, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { ConfigService } from '../../../services/configService';
 import { useEffect } from 'react';
+import { onAuthStateChanged } from 'firebase/auth'; // Added for early redirect
 
 export const ClientLoginPage = () => {
     const [email, setEmail] = useState('');
@@ -17,6 +18,13 @@ export const ClientLoginPage = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
+        // Early redirect if already authenticated
+        const unsubAuth = onAuthStateChanged(auth, (u) => {
+            if (u) {
+                navigate('/');
+            }
+        });
+
         ConfigService.get().then(setConfig);
 
         // Update Favicon dynamically
@@ -34,8 +42,11 @@ export const ClientLoginPage = () => {
                 }
             }
         });
-        return () => unsubConfig();
-    }, []);
+        return () => {
+            unsubAuth();
+            unsubConfig();
+        };
+    }, [navigate]);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();

@@ -6,8 +6,10 @@ import { doc, onSnapshot, collection, query, where, addDoc } from 'firebase/fire
 import { db, auth } from '../../../lib/firebase';
 import { useFcmToken } from '../../../hooks/useFcmToken'; // Import Hook
 import { signOut } from 'firebase/auth'; // Added for Logout
+import { useClientAuth } from '../contexts/ClientAuthContext';
 
 export const ClientLayout = () => {
+    const { user, loading: authLoading, isAdmin } = useClientAuth();
     const [isContactOpen, setIsContactOpen] = useState(false);
     const [config, setConfig] = useState<any>({});
     const [unreadCount, setUnreadCount] = useState(0);
@@ -21,90 +23,77 @@ export const ClientLayout = () => {
 
     // Geolocation Tracking (Passive)
     useEffect(() => {
-        let watchId: number;
-        const unsubscribeAuth = auth.onAuthStateChanged(async (user) => {
-            if (user) {
-                const userDoc = await onSnapshot(doc(db, 'users', user.uid), (snap) => {
-                    const data = snap.data();
-                    if (data?.permissions?.geolocation?.status === 'granted' && navigator.geolocation) {
-                        const lastUpdate = data.lastLocation?.updatedAt?.toDate ? data.lastLocation.updatedAt.toDate() : new Date(0);
-                        const now = new Date();
-                        const diffMins = (now.getTime() - lastUpdate.getTime()) / 60000;
+        if (user && !isAdmin) {
+            const userRef = doc(db, 'users', user.uid);
+            const unsubDoc = onSnapshot(userRef, (snap) => {
+                const data = snap.data();
+                if (data?.permissions?.geolocation?.status === 'granted' && navigator.geolocation) {
+                    const lastUpdate = data.lastLocation?.updatedAt?.toDate ? data.lastLocation.updatedAt.toDate() : new Date(0);
+                    const now = new Date();
+                    const diffMins = (now.getTime() - lastUpdate.getTime()) / 60000;
 
-                        if (diffMins > 5) { // Only update every 5 minutes to avoid loops
-                            navigator.geolocation.getCurrentPosition(async (pos) => {
-                                const { updateDoc } = await import('firebase/firestore');
-                                await updateDoc(doc(db, 'users', user.uid), {
-                                    lastLocation: {
-                                        lat: pos.coords.latitude,
-                                        lng: pos.coords.longitude,
-                                        accuracy: pos.coords.accuracy,
-                                        updatedAt: new Date()
-                                    }
-                                });
-                            }, (err) => console.warn('Geo error:', err), { enableHighAccuracy: true });
-                        }
+                    if (diffMins > 5) {
+                        navigator.geolocation.getCurrentPosition(async (pos) => {
+                            const { updateDoc } = await import('firebase/firestore');
+                            await updateDoc(userRef, {
+                                lastLocation: {
+                                    lat: pos.coords.latitude,
+                                    lng: pos.coords.longitude,
+                                    accuracy: pos.coords.accuracy,
+                                    updatedAt: new Date()
+                                }
+                            });
+                        }, (err) => console.warn('Geo error:', err), { enableHighAccuracy: true });
                     }
-                });
-                return () => userDoc();
-            }
-        });
-        return () => unsubscribeAuth();
-    }, []);
+                }
+            });
+            return () => unsubDoc();
+        }
+    }, [user, isAdmin]);
 
     // Listen for unread messages
     useEffect(() => {
-        let unsubMessages: (() => void) | undefined;
-        let isInitialLoad = true;
+        if (user) {
+            let isInitialLoad = true;
+            const q = query(
+                collection(db, `users/${user.uid}/inbox`),
+                where('read', '==', false)
+            );
 
-        const unsubscribeAuth = auth.onAuthStateChanged((user) => {
-            if (user) {
-                const q = query(
-                    collection(db, `users/${user.uid}/inbox`),
-                    where('read', '==', false)
-                );
+            const unsubMessages = onSnapshot(q, (snap) => {
+                setUnreadCount(snap.size);
 
-                unsubMessages = onSnapshot(q, (snap) => {
-                    setUnreadCount(snap.size);
-
-                    if (!isInitialLoad) {
-                        snap.docChanges().forEach((change) => {
-                            if (change.type === "added") {
-                                const data = change.doc.data();
-                                toast((t) => (
-                                    <div
-                                        onClick={() => {
-                                            toast.dismiss(t.id);
-                                            navigate('/inbox');
-                                        }}
-                                        className="cursor-pointer flex items-center gap-3 w-full"
-                                    >
-                                        <div className="bg-purple-100 p-2 rounded-full text-purple-600">
-                                            <Mail size={18} />
-                                        </div>
-                                        <div className="flex-1">
-                                            <p className="font-bold text-sm text-gray-800">{data.title || 'Nuevo Mensaje'}</p>
-                                            <p className="text-xs text-gray-500 line-clamp-1">{data.body}</p>
-                                        </div>
+                if (!isInitialLoad) {
+                    snap.docChanges().forEach((change) => {
+                        if (change.type === "added") {
+                            const data = change.doc.data();
+                            toast((t) => (
+                                <div
+                                    onClick={() => {
+                                        toast.dismiss(t.id);
+                                        navigate('/inbox');
+                                    }}
+                                    className="cursor-pointer flex items-center gap-3 w-full"
+                                >
+                                    <div className="bg-purple-100 p-2 rounded-full text-purple-600">
+                                        <Mail size={18} />
                                     </div>
-                                ), { duration: 5000, position: 'top-center', style: { borderRadius: '1rem' } });
-                            }
-                        });
-                    }
-                    isInitialLoad = false;
-                });
-            } else {
-                if (unsubMessages) unsubMessages();
-                setUnreadCount(0);
-                isInitialLoad = true;
-            }
-        });
-
-        return () => {
-            unsubscribeAuth();
-            if (unsubMessages) unsubMessages();
-        };
-    }, [navigate]);
+                                    <div className="flex-1">
+                                        <p className="font-bold text-sm text-gray-800">{data.title || 'Nuevo Mensaje'}</p>
+                                        <p className="text-xs text-gray-500 line-clamp-1">{data.body}</p>
+                                    </div>
+                                </div>
+                            ), { duration: 5000, position: 'top-center', style: { borderRadius: '1rem' } });
+                        }
+                    });
+                }
+                isInitialLoad = false;
+            });
+            return () => unsubMessages();
+        } else {
+            setUnreadCount(0);
+        }
+    }, [user, navigate]);
 
     // Listen for global config
     useEffect(() => {

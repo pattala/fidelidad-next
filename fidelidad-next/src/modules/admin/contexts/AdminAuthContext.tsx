@@ -29,43 +29,72 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             if (firebaseUser) {
-                // If we already have the same user and role, don't trigger intermediate loading
-                // But on initialization we need to fetch the role
+                const userEmail = firebaseUser.email?.toLowerCase() || '';
+                const cacheKey = `admin_role_${firebaseUser.uid}`;
+                const cachedRole = localStorage.getItem(cacheKey) as AdminRole;
 
-                try {
-                    const userEmail = firebaseUser.email?.toLowerCase() || '';
-                    const isMaster = MASTER_ADMINS.map(e => e.toLowerCase()).includes(userEmail);
-                    const isDefaultAdmin = userEmail === 'admin@admin.com';
+                // If we have a cached role, use it immediately to avoid intermediate loading/redirects
+                if (cachedRole) {
+                    setRole(cachedRole);
+                    setUser(firebaseUser);
+                    // We still fetch fresh data, but don't set loading to true if we have a cache
+                    // to prevent flickering. However, on first init, we are already loading=true.
+                }
 
-                    let resolvedRole: AdminRole = null;
+                const fetchRole = async (retryCount = 0): Promise<void> => {
+                    try {
+                        const isMaster = MASTER_ADMINS.map(e => e.toLowerCase()).includes(userEmail);
+                        const isDefaultAdmin = userEmail === 'admin@admin.com';
 
-                    if (isMaster || isDefaultAdmin) {
-                        resolvedRole = 'admin';
-                    } else {
-                        // Parallel check for performance
-                        const [adminDoc, userDoc] = await Promise.all([
-                            getDoc(doc(db, 'admins', firebaseUser.uid)),
-                            getDoc(doc(db, 'users', firebaseUser.uid))
-                        ]);
+                        let resolvedRole: AdminRole = null;
 
-                        if (adminDoc.exists()) {
-                            resolvedRole = adminDoc.data().role as AdminRole;
-                        } else if (userDoc.exists() && userDoc.data().role === 'admin') {
+                        if (isMaster || isDefaultAdmin) {
                             resolvedRole = 'admin';
+                        } else {
+                            const [adminDoc, userDoc] = await Promise.all([
+                                getDoc(doc(db, 'admins', firebaseUser.uid)),
+                                getDoc(doc(db, 'users', firebaseUser.uid))
+                            ]);
+
+                            if (adminDoc.exists()) {
+                                resolvedRole = adminDoc.data().role as AdminRole;
+                            } else if (userDoc.exists() && userDoc.data().role === 'admin') {
+                                resolvedRole = 'admin';
+                            }
+                        }
+
+                        if (resolvedRole) {
+                            localStorage.setItem(cacheKey, resolvedRole);
+                            setRole(resolvedRole);
+                        } else if (!cachedRole) {
+                            // If no role found AND no cache, then it's definitely null
+                            setRole(null);
+                        }
+
+                        setUser(firebaseUser);
+                        setLoading(false);
+                    } catch (e) {
+                        console.error(`Error fetching admin role (attempt ${retryCount + 1}):`, e);
+
+                        if (retryCount < 2) {
+                            // Retry after 1s
+                            setTimeout(() => fetchRole(retryCount + 1), 1000);
+                        } else {
+                            // Max retries reached. Use cache if available, otherwise fail.
+                            if (cachedRole) {
+                                console.warn("Using cached role due to persistent network errors.");
+                                setRole(cachedRole);
+                            } else {
+                                setRole(null);
+                            }
+                            setLoading(false);
                         }
                     }
+                };
 
-                    setRole(resolvedRole);
-                    setUser(firebaseUser);
-                    setLoading(false);
-                } catch (e) {
-                    console.error("Error fetching admin role:", e);
-                    // In case of network error, we DON'T stop loading immediately to prevent redirect 
-                    // unless it persists. We can try one more time or just let it be.
-                    // For now, allow a fallback if it was already set or set null if confirmed missing.
-                    setLoading(false);
-                }
+                fetchRole();
             } else {
+                localStorage.removeItem(user ? `admin_role_${user.uid}` : ''); // Cleanup if possible
                 setUser(null);
                 setRole(null);
                 setLoading(false);
@@ -73,7 +102,7 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
         });
 
         return () => unsubscribe();
-    }, []);
+    }, [user?.uid]);
 
     return (
         <AdminAuthContext.Provider value={{ user, role, loading, isReadOnly: role === 'viewer' }}>

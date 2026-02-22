@@ -13,6 +13,7 @@ import { PointsExpirationModal } from '../components/PointsExpirationModal';
 import { NotificationPermissionPrompt } from '../components/NotificationPermissionPrompt';
 import { useFcmToken } from '../../../hooks/useFcmToken';
 import { ModernConfirmModal } from '../components/ModernConfirmModal';
+import { useClientAuth } from '../contexts/ClientAuthContext';
 
 // Subcomponent for the list to keep main component clean
 const RecentActivityList = ({ uid }: { uid?: string }) => {
@@ -105,8 +106,7 @@ const CountdownTimer = ({ targetTime }: { targetTime: string }) => {
 };
 
 export const ClientHomePage = () => {
-    const [user, setUser] = useState<any>(null);
-    const [userData, setUserData] = useState<any>(null);
+    const { user, userData, loading: authLoading, isAdmin } = useClientAuth();
     const [showExpirationModal, setShowExpirationModal] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [currentTimeStore, setCurrentTimeStore] = useState(new Date());
@@ -127,60 +127,54 @@ export const ClientHomePage = () => {
     };
 
     const displayData = userData || {
-        name: user?.displayName || 'Invitado',
+        name: isAdmin ? 'Administrador' : (authLoading ? 'Cargando...' : 'Invitado'),
         points: 0,
         accumulated_balance: 0
     };
 
-    const displayName = userData?.name || userData?.nombre || user?.displayName || 'Invitado';
+    const displayName = userData?.name || userData?.nombre || (isAdmin ? 'Administrador' : (authLoading ? 'Cargando...' : user?.displayName || 'Invitado'));
 
     useEffect(() => {
-        const unsubscribeAuth = auth.onAuthStateChanged(async (u) => {
-            setUser(u);
-            if (u) {
-                // Registro de Actividad (Ping)
-                const userRef = doc(db, 'users', u.uid);
+        if (user && !userData && !authLoading && !isAdmin) {
+            // This might happen if auth is ok but firestore doc is missing
+            console.warn("User authenticated but no firestore data found.");
+        }
 
-                // Actualizar última actividad y contador de forma silenciosa e inmediata
-                // Throttle: solo una vez por sesión de pestaña (o cada 30 min) para no inflar el historial
-                const lastPing = sessionStorage.getItem(`ping_${u.uid} `);
-                const nowMs = Date.now();
+        if (user) {
+            // Registro de Actividad (Ping)
+            const userRef = doc(db, 'users', user.uid);
+            const lastPing = sessionStorage.getItem(`ping_${user.uid}`);
+            const nowMs = Date.now();
 
-                if (!lastPing || (nowMs - Number(lastPing) > 30 * 60 * 1000)) {
+            if (!lastPing || (nowMs - Number(lastPing) > 30 * 60 * 1000)) {
+                (async () => {
                     try {
                         const { updateDoc, increment, serverTimestamp, collection, addDoc } = await import('firebase/firestore');
+                        const currentName = userData?.name || userData?.nombre || user.displayName || (isAdmin ? 'Admin' : 'Socio');
 
-                        // We need the latest name if possible
-                        const currentName = userData?.name || userData?.nombre || u.displayName || 'Socio';
+                        if (!isAdmin) {
+                            await updateDoc(userRef, {
+                                lastActive: serverTimestamp(),
+                                visitCount: increment(1)
+                            });
+                        }
 
-                        await updateDoc(userRef, {
-                            lastActive: serverTimestamp(),
-                            visitCount: increment(1)
-                        });
-                        // Guardar en historial para analítica de frecuencia
-                        await addDoc(collection(db, 'users', u.uid, 'visit_history'), {
+                        await addDoc(collection(db, 'users', user.uid, 'visit_history'), {
                             date: serverTimestamp(),
                             type: 'app_open',
                             clientName: currentName,
-                            clientEmail: u.email,
+                            clientEmail: user.email,
                             platform: 'pwa',
                             location: userData?.lastLocation || null
                         });
-                        sessionStorage.setItem(`ping_${u.uid} `, nowMs.toString());
+                        sessionStorage.setItem(`ping_${user.uid}`, nowMs.toString());
                     } catch (e) {
                         console.error("Error updating activity:", e);
                     }
-                }
-
-                const unsubDb = onSnapshot(userRef, (document) => {
-                    const data = document.data();
-                    setUserData(data);
-                });
-                return () => unsubDb();
+                })();
             }
-        });
-        return () => unsubscribeAuth();
-    }, []);
+        }
+    }, [user, !!userData, authLoading, isAdmin]);
 
     // CHEQUEO DE CUMPLEAÑOS (UNA SOLA VEZ AL CARGAR)
     const [birthdayChecked, setBirthdayChecked] = useState(false);

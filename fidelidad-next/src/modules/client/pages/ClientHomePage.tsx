@@ -1,21 +1,31 @@
 import { useEffect, useState } from 'react';
 import { auth, db } from '../../../lib/firebase';
-import { doc, onSnapshot, collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, limit, getDocs } from 'firebase/firestore';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { Share2, Clock, Check, AlertTriangle, ChevronRight, User as UserIcon, LogOut, Calendar, Sparkles, Cake, X } from 'lucide-react';
+import {
+    User as UserIcon,
+    LogOut,
+    Plus,
+    Calendar,
+    ChevronRight,
+    Search,
+    Clock,
+    Sparkles,
+    Cake,
+    X,
+} from 'lucide-react';
 import { TimeService } from '../../../services/timeService';
 import { signOut } from 'firebase/auth';
 import toast from 'react-hot-toast';
-import { CampaignService, type BonusRule } from '../../../services/campaignService';
+import { type BonusRule } from '../../../services/campaignService';
 import { CampaignCarousel } from '../components/CampaignCarousel';
 import { PointsExpirationWarning } from '../components/PointsExpirationWarning';
 import { PointsExpirationModal } from '../components/PointsExpirationModal';
 import { NotificationPermissionPrompt } from '../components/NotificationPermissionPrompt';
 import { useFcmToken } from '../../../hooks/useFcmToken';
 import { ModernConfirmModal } from '../components/ModernConfirmModal';
+import { CampaignActionModal } from '../components/CampaignActionModal';
 import { useClientAuth } from '../contexts/ClientAuthContext';
-
-// Subcomponent for the list to keep main component clean
 const RecentActivityList = ({ uid }: { uid?: string }) => {
     const [activities, setActivities] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -109,6 +119,7 @@ export const ClientHomePage = () => {
     const { user, userData, loading: authLoading, isAdmin } = useClientAuth();
     const [showExpirationModal, setShowExpirationModal] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const [selectedPromo, setSelectedPromo] = useState<BonusRule | null>(null);
     const [currentTimeStore, setCurrentTimeStore] = useState(new Date());
 
     const { config } = useOutletContext<{ config: any }>();
@@ -521,12 +532,8 @@ export const ClientHomePage = () => {
                                 </div>
                                 <button
                                     onClick={() => {
-                                        if (camp.link) {
-                                            if (camp.link.startsWith('http')) {
-                                                window.location.href = camp.link;
-                                            } else {
-                                                navigate(camp.link);
-                                            }
+                                        if (camp.actionUrl || camp.link) {
+                                            setSelectedPromo(camp);
                                         } else {
                                             toast('Solo informativo... consultanos en el local!', {
                                                 icon: '📢',
@@ -583,6 +590,17 @@ export const ClientHomePage = () => {
                 userId={user?.uid as string}
                 onClose={() => setShowExpirationModal(false)}
             />
+
+            {selectedPromo && (
+                <CampaignActionModal
+                    isOpen={!!selectedPromo}
+                    onClose={() => setSelectedPromo(null)}
+                    title={selectedPromo.title || selectedPromo.name}
+                    description={selectedPromo.description}
+                    actionUrl={selectedPromo.actionUrl || selectedPromo.link}
+                    actionText={selectedPromo.actionText || selectedPromo.buttonText}
+                />
+            )}
         </div>
     );
 };

@@ -79,9 +79,14 @@ const PointsTimer = ({ endTime }: { endTime?: string }) => {
     if (!endTime) return null;
 
     return (
-        <span className={`text-[9px] font-black px-1 rounded-sm ${isGrace ? 'bg-orange-50 text-orange-600' : 'bg-green-50 text-green-600 animate-pulse'}`}>
-            {isGrace ? 'TOLERANCIA: ' : 'CIERRA EN: '}{timeLeft}
-        </span>
+        <div className="flex items-center gap-1">
+            <span className={`text-[8px] px-1 rounded-full font-black ${isGrace ? 'bg-orange-100 text-orange-600' : 'bg-green-100 text-green-600 animate-pulse'}`}>
+                {isGrace ? 'TOLERANCIA' : '¡ACTIVA!'}
+            </span>
+            <span className={`text-[9px] font-black px-1 rounded-sm ${isGrace ? 'bg-orange-50 text-orange-600' : 'bg-green-50 text-green-600'}`}>
+                {isGrace ? 'CIERRA EN: ' : 'TERMINA EN: '}{timeLeft}
+            </span>
+        </div>
     );
 };
 
@@ -1392,14 +1397,7 @@ export const ClientsPage = () => {
                                                                 const isActiveNow = !isExpiredToday;
 
                                                                 return (
-                                                                    <div className="flex items-center gap-1">
-                                                                        {isActiveNow ? (
-                                                                            <span className="text-[8px] px-1 rounded-full font-black bg-green-100 text-green-600">
-                                                                                ¡ACTIVA!
-                                                                            </span>
-                                                                        ) : null}
-                                                                        <PointsTimer endTime={promo.endTime} />
-                                                                    </div>
+                                                                    <PointsTimer endTime={promo.endTime} />
                                                                 );
                                                             })()}
                                                         </div>

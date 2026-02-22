@@ -331,51 +331,39 @@ function showFidelidadPanel() {
 
                 if (activePromos.length > 0) {
                     const GRACE_PERIOD_MINS = 15;
-                    // Simular hora local AR (GMT-3)
-                    const now = new Date();
-                    const nowArg = new Date(now.getTime() - (3 * 60 * 60 * 1000));
-                    const curHHmm = `${String(nowArg.getUTCHours()).padStart(2, '0')}:${String(nowArg.getUTCMinutes()).padStart(2, '0')}`;
+
+                    function getARTime() {
+                        const now = new Date();
+                        const formatter = new Intl.DateTimeFormat('es-AR', {
+                            timeZone: 'America/Argentina/Buenos_Aires',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                            hour12: false
+                        });
+                        const parts = formatter.formatToParts(now);
+                        const h = parts.find(p => p.type === 'hour').value;
+                        const m = parts.find(p => p.type === 'minute').value;
+                        return { h: Number(h), m: Number(m), hhmm: `${h}:${m}`, now };
+                    }
 
                     promosList.innerHTML = activePromos.map(p => {
                         const isFlash = p.isFlash;
-                        // Usar rewardType/Value según si es flash o no (Paridad con API)
                         const rType = isFlash ? (p.flashRewardType || p.rewardType) : p.rewardType;
                         const rValue = isFlash ? (p.flashRewardValue || p.rewardValue) : p.rewardValue;
                         const rText = isFlash ? (p.flashRewardText || p.rewardText) : p.rewardText;
-
                         const label = rType === 'MULTIPLIER' ? `Multiplicador x${rValue}` : (rType === 'FIXED' ? `Bonus +${rValue} pts` : rText);
                         const title = p.title || p.name;
-
-                        // Determinar estado de horario
-                        let statusHtml = '';
-                        let isAutoSelect = true;
-
-                        if (p.startTime || p.endTime) {
-                            const isExpiredToday = p.endTime && p.endTime < curHHmm;
-
-                            if (isExpiredToday) {
-                                statusHtml = `<span class="cf-promo-status grace">TOLERANCIA</span>`;
-                            } else {
-                                const isNotStartedYet = p.startTime && p.startTime > curHHmm;
-                                if (isNotStartedYet) {
-                                    statusHtml = `<span class="cf-promo-status" style="background:#f3f4f6; color:#6b7280;">PRÓXIMAMENTE</span>`;
-                                    isAutoSelect = false;
-                                } else {
-                                    statusHtml = `<span class="cf-promo-status active">¡ACTIVA!</span>`;
-                                }
-                            }
-                        }
-
                         const timeRange = (p.startTime || p.endTime) ?
                             `<span class="cf-promo-time">⏰ ${p.startTime || '00:00'} a ${p.endTime || '23:59'} hs</span>` : '';
 
                         return `
-                            <label class="cf-promo-item">
-                                <input type="checkbox" class="cf-promo-check" value="${p.id}" ${isAutoSelect ? 'checked' : ''}>
+                            <label class="cf-promo-item" data-promo-id="${p.id}">
+                                <input type="checkbox" class="cf-promo-check" value="${p.id}" checked>
                                 <div class="cf-promo-info">
                                     <div style="display: flex; align-items: center; gap: 4px;">
                                         <span class="cf-promo-name">${title}</span>
-                                        ${statusHtml}
+                                        <div class="cf-promo-status-container" data-id="${p.id}"></div>
                                         ${isFlash ? '<span class="cf-promo-status" style="background:#fef3c7; color:#92400e; font-size: 7px; border: 1px solid #f59e0b;">⚡ FLASH</span>' : ''}
                                     </div>
                                     <div style="display: flex; align-items: center; gap: 6px; margin-top: 2px;">
@@ -386,6 +374,73 @@ function showFidelidadPanel() {
                             </label>
                         `;
                     }).join('');
+
+                    // Función de actualización de contadores
+                    if (window.cfTimerInterval) clearInterval(window.cfTimerInterval);
+
+                    const updateTimers = () => {
+                        const { h: curH, m: curM, hhmm: curHHmm, now } = getARTime();
+
+                        activePromos.forEach(p => {
+                            const container = promosList.querySelector(`.cf-promo-status-container[data-id="${p.id}"]`);
+                            if (!container) return;
+
+                            let statusHtml = '';
+                            if (p.startTime || p.endTime) {
+                                const isExpiredToday = p.endTime && p.endTime < curHHmm;
+
+                                if (isExpiredToday) {
+                                    // Cálculo de tiempo de gracia
+                                    const [endH, endM] = p.endTime.split(':').map(Number);
+                                    const endTimeDate = new Date(now);
+                                    endTimeDate.setHours(endH, endM, 0, 0);
+                                    const diff = (endTimeDate.getTime() + (GRACE_PERIOD_MINS * 60 * 1000)) - now.getTime();
+
+                                    if (diff > 0) {
+                                        const mm = Math.floor(diff / (1000 * 60));
+                                        const ss = Math.floor((diff % (1000 * 60)) / 1000);
+                                        const timeStr = `${mm}:${ss.toString().padStart(2, '0')}`;
+                                        statusHtml = `
+                                            <span class="cf-promo-status grace">TOLERANCIA</span>
+                                            <span class="cf-promo-time" style="color:#9a3412; font-weight:900;">CIERRA EN: ${timeStr}</span>
+                                        `;
+                                    } else {
+                                        // Realmente expirada y fuera de gracia
+                                        statusHtml = '';
+                                        const item = promosList.querySelector(`.cf-promo-item[data-promo-id="${p.id}"]`);
+                                        if (item) {
+                                            item.style.opacity = '0.5';
+                                            item.querySelector('input').checked = false;
+                                        }
+                                    }
+                                } else {
+                                    const isNotStartedYet = p.startTime && p.startTime > curHHmm;
+                                    if (isNotStartedYet) {
+                                        statusHtml = `<span class="cf-promo-status" style="background:#f3f4f6; color:#6b7280;">PRÓXIMAMENTE</span>`;
+                                    } else {
+                                        // Activa: Mostrar cuenta regresiva hasta el cierre
+                                        const [endH, endM] = (p.endTime || '23:59').split(':').map(Number);
+                                        const endTimeDate = new Date(now);
+                                        endTimeDate.setHours(endH, endM, 0, 0);
+                                        const diff = endTimeDate.getTime() - now.getTime();
+
+                                        const mm = Math.floor(diff / (1000 * 60));
+                                        const ss = Math.floor((diff % (1000 * 60)) / 1000);
+                                        const timeStr = `${mm}:${ss.toString().padStart(2, '0')}`;
+
+                                        statusHtml = `
+                                            <span class="cf-promo-status active">¡ACTIVA!</span>
+                                            <span class="cf-promo-time" style="color:#166534; font-weight:900;">TERMINA EN: ${timeStr}</span>
+                                        `;
+                                    }
+                                }
+                            }
+                            container.innerHTML = statusHtml;
+                        });
+                    };
+
+                    updateTimers();
+                    window.cfTimerInterval = setInterval(updateTimers, 1000);
 
                     // Add listeners to new checkboxes
                     const checks = promosList.querySelectorAll('.cf-promo-check');

@@ -25,7 +25,7 @@ export const CampaignCarousel = ({ campaigns: propCampaigns, loading: propLoadin
             try {
                 const { CampaignService } = await import('../../../services/campaignService');
                 const fetchedCampaigns = await CampaignService.getActiveBonusesForToday();
-                const validCampaigns = fetchedCampaigns.filter(c => c.showInCarousel);
+                const validCampaigns = fetchedCampaigns.filter(c => c.showInCarousel && !c.isFlash);
                 setInternalCampaigns(validCampaigns);
             } catch (error) {
                 console.error('Error fetching campaigns:', error);

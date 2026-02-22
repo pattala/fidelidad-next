@@ -265,7 +265,8 @@ export const ClientHomePage = () => {
         return () => unsubscribe();
     }, [user?.uid, currentTimeStore]);
 
-    const homeBanners = campaigns.filter(c => c.showInCarousel || c.showInHomeBanner);
+    const carouselCampaigns = campaigns.filter(c => c.showInCarousel && !c.isFlash);
+    const listCampaigns = campaigns.filter(c => c.showInHomeBanner && !c.isFlash);
 
     const activeFlash = campaigns.find(c => {
         if (!c.startTime || !c.endTime) return false;
@@ -378,7 +379,7 @@ export const ClientHomePage = () => {
 
             {/* HERO CAROUSEL */}
             <section className="relative z-10 mx-0">
-                <CampaignCarousel campaigns={homeBanners} />
+                <CampaignCarousel campaigns={carouselCampaigns} />
             </section>
 
             {/* BIRTHDAY BANNER */}
@@ -490,9 +491,9 @@ export const ClientHomePage = () => {
                     </span>
                 </div>
 
-                {homeBanners.length > 0 ? (
+                {listCampaigns.length > 0 ? (
                     <div className="flex flex-col gap-3">
-                        {homeBanners.map((camp) => (
+                        {listCampaigns.map((camp) => (
                             <div key={camp.id} className="bg-white rounded-2xl p-3 flex items-center justify-between gap-3 shadow-sm border border-gray-100 overflow-hidden relative">
                                 {camp.imageUrl && (
                                     <div className="absolute inset-0 opacity-[0.03] pointer-events-none">

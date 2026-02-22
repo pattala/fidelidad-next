@@ -67,15 +67,9 @@ export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) 
 
             } else {
                 setUser(null);
-                // Potential null user or session restoration in progress
-                // Let's wait a tiny bit to see if Firebase restores the session
-                setTimeout(() => {
-                    if (!auth.currentUser) {
-                        setUserData(null);
-                        setIsAdmin(false);
-                        setLoading(false);
-                    }
-                }, 500);
+                setUserData(null);
+                setIsAdmin(false);
+                setLoading(false);
             }
         });
 

@@ -276,11 +276,22 @@ export default async function handler(req, res) {
                             const curHHmm = `${String(nowArg.getUTCHours()).padStart(2, '0')}:${String(nowArg.getUTCMinutes()).padStart(2, '0')}`;
 
                             const isAfterStart = !b.startTime || b.startTime <= curHHmm;
-                            const isBeforeEnd = !b.endTime || b.endTime >= curHHmm;
+
+                            // Check end time with grace
+                            let isBeforeEnd = true;
+                            if (b.endTime) {
+                                const [endH, endM] = b.endTime.split(':').map(Number);
+                                const flashGrace = Number(b.flashGraceMins) || 0;
+                                const endTimestamp = new Date(nowArg);
+                                endTimestamp.setUTCHours(endH, endM + flashGrace, 0, 0);
+
+                                if (nowArg > endTimestamp) {
+                                    isBeforeEnd = false;
+                                }
+                            }
 
                             if (!isAfterStart || !isBeforeEnd) {
-                                // Si es flash pero fuera de horario, NO aplicamos puntos flash ni tradicionales.
-                                // Como handleSave limpia rewardType/Value si es Flash, esto resultará en 0 bonus.
+                                // Si es flash pero fuera de horario (incluyendo gracia), NO aplicamos.
                                 useFlashReward = false;
                             }
                         }

@@ -110,10 +110,23 @@ export const CampaignService = {
             for (const b of campaigns) {
                 if (b.active && b.endDate) {
                     const isExpiredDate = b.endDate < todayStr;
-                    const isExpiredTime = b.endDate === todayStr && b.endTime && b.endTime < now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+
+                    // Calculation for time-based expiration including grace
+                    let isExpiredTime = false;
+                    if (b.endDate === todayStr && b.endTime) {
+                        const [h, m] = b.endTime.split(':').map(Number);
+                        const grace = b.isFlash ? (Number(b.flashGraceMins) || 0) : 0;
+
+                        const expireTimestamp = new Date(now);
+                        expireTimestamp.setHours(h, m + grace, 0, 0);
+
+                        if (now > expireTimestamp) {
+                            isExpiredTime = true;
+                        }
+                    }
 
                     if (isExpiredDate || isExpiredTime) {
-                        console.log(`[CampaignService] Auto-deactivating expired campaign: ${b.name}`);
+                        console.log(`[CampaignService] Auto-deactivating expired campaign: ${b.name} (Grace: ${b.flashGraceMins || 0}m)`);
                         // Update DB
                         promises.push(this.update(b.id, { active: false }));
                         // Update in-memory object

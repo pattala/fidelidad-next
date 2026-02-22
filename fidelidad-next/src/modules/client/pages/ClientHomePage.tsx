@@ -87,14 +87,16 @@ const CountdownTimer = ({ targetTime }: { targetTime: string }) => {
 
     useEffect(() => {
         const calculate = () => {
-            const now = new Date();
+            const now = TimeService.now();
             const [h, m] = targetTime.split(':').map(Number);
-            const target = new Date();
+            const target = new Date(now);
             target.setHours(h, m, 0, 0);
 
             let diff = target.getTime() - now.getTime();
-            if (diff < 0) {
-                setTimeLeft("Terminada");
+
+            // Prevent negative values
+            if (diff <= 0) {
+                setTimeLeft('00:00:00');
                 return;
             }
 
@@ -282,8 +284,12 @@ export const ClientHomePage = () => {
     const activeFlash = campaigns.find(c => {
         if (!c.startTime || !c.endTime) return false;
         const now = currentTimeStore;
-        const curHHmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-        return curHHmm >= c.startTime && curHHmm < c.endTime;
+        const curHHmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:00`;
+        const startTimestamp = `${c.startTime}:00`;
+        const endTimestamp = `${c.endTime}:00`;
+
+        // Instant switch at end time (strict comparison)
+        return curHHmm >= startTimestamp && curHHmm < endTimestamp;
     });
 
     const pointsRatio = Number(config?.pointsPerPeso || 1);

@@ -1,5 +1,4 @@
-import { db, auth } from '../lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { auth } from '../lib/firebase';
 
 export type AuditAction =
     | 'prize_created' | 'prize_updated' | 'prize_deleted'
@@ -13,18 +12,26 @@ export const AuditService = {
     log: async (type: string, summary: string, details: any[] = []) => {
         try {
             const user = auth.currentUser;
+            const token = await user?.getIdToken();
             const executor = user?.email || user?.uid || 'admin';
 
-            await addDoc(collection(db, 'audit_logs'), {
-                timestamp: serverTimestamp(),
-                type,
-                status: 'success',
-                summary,
-                details,
-                executor
+            await fetch('/api/log-audit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': import.meta.env.VITE_API_KEY || '',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    type,
+                    status: 'success',
+                    summary,
+                    details,
+                    executor
+                })
             });
         } catch (error) {
-            console.error('Error logging audit from frontend:', error);
+            console.error('Error logging audit via API:', error);
         }
     }
 };

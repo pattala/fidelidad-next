@@ -108,20 +108,23 @@ export const CampaignsPage = () => {
                     const daysIntersect = formData.flashDays?.some(d => (b as any).flashDays?.includes(d));
                     if (!daysIntersect) return false;
 
-                    // Check if times overlap
+                    // Check if times overlap (including grace period of the existing ones)
                     const newStart = formData.startTime || '00:00';
                     const newEnd = formData.endTime || '23:59';
                     const oldStart = b.startTime || '00:00';
-                    const oldEnd = b.endTime || '23:59';
 
-                    return (newStart < oldEnd && newEnd > oldStart);
+                    // The old one is effectively active until its endTime + grace period
+                    const oldGraceMs = (b.flashGraceMins || 0) * 60 * 1000;
+                    const oldEndTime = new Date(`1970-01-01T${b.endTime || '23:59'}:00`);
+                    oldEndTime.setMilliseconds(oldEndTime.getMilliseconds() + oldGraceMs);
+                    const oldEndExtended = `${oldEndTime.getHours().toString().padStart(2, '0')}:${oldEndTime.getMinutes().toString().padStart(2, '0')}`;
+
+                    return (newStart < oldEndExtended && newEnd > oldStart);
                 });
 
-                if (overlapping) {
-                    toast(`Ojo: Esta oferta se solapa con "${overlapping.name}" en horario y días.`, {
-                        icon: '⚠️',
-                        duration: 5000
-                    });
+                if (overlapping && formData.active) {
+                    toast.error(`Error: No puedes activar esta oferta porque se solapa con "${overlapping.name}" (Active). Solo una oferta flash puede estar activa a la vez por rango horario.`);
+                    return;
                 }
             }
 
@@ -186,16 +189,44 @@ export const CampaignsPage = () => {
     };
 
     const handleToggleActive = async (bonus: BonusRule) => {
+        if (isReadOnly) return;
+
+        // --- VALIDACION DE SOLAPAMIENTO ESTRICTA ---
+        if (!bonus.active && bonus.isFlash) {
+            const overlapping = bonuses.find(b => {
+                if (b.id === bonus.id || !b.isFlash || !b.active) return false;
+
+                // Días
+                const daysIntersect = bonus.flashDays?.some(d => (b as any).flashDays?.includes(d));
+                if (!daysIntersect) return false;
+
+                // Horarios (Incluyendo gracia)
+                const newStart = bonus.startTime || '00:00';
+                const newEnd = bonus.endTime || '23:59';
+                const oldStart = b.startTime || '00:00';
+
+                const oldGraceMs = (b.flashGraceMins || 0) * 60 * 1000;
+                const oldEndTime = new Date(`1970-01-01T${b.endTime || '23:59'}:00`);
+                oldEndTime.setMilliseconds(oldEndTime.getMilliseconds() + oldGraceMs);
+                const oldEndExtended = `${oldEndTime.getHours().toString().padStart(2, '0')}:${oldEndTime.getMinutes().toString().padStart(2, '0')}`;
+
+                return (newStart < oldEndExtended && newEnd > oldStart);
+            });
+
+            if (overlapping) {
+                toast.error(`No se puede activar: Choca con "${overlapping.name}" que ya está activa.`);
+                return;
+            }
+        }
+
         try {
             const newStatus = !bonus.active;
             await CampaignService.update(bonus.id, { active: newStatus });
-            setBonuses(bonuses.map(b => b.id === bonus.id ? { ...b, active: newStatus } : b));
-            toast.success(`Campaña ${newStatus ? 'activada' : 'desactivada'}`);
-
-            // Log de auditoría
+            toast.success(newStatus ? 'Campaña activada' : 'Campaña desactivada');
             await AuditService.log('campaign_mgmt', `${newStatus ? 'Activación' : 'Desactivación'} de campaña: ${bonus.name}`, [
-                { action: 'campaign_toggle', status: 'success', info: `Estado: ${newStatus ? 'Activa' : 'Inactiva'}` }
+                { action: 'campaign_toggle', campaignId: bonus.id, active: newStatus }
             ]);
+            fetchBonuses();
         } catch (error) { toast.error('Error'); }
     };
 
@@ -618,14 +649,28 @@ export const CampaignsPage = () => {
                                     const startTimeInt = parseInt((bonus.startTime || '00:00').replace(':', ''));
                                     const endTimeInt = parseInt((bonus.endTime || '23:59').replace(':', ''));
 
+                                    // Tolerancia extendida
+                                    const graceMins = bonus.flashGraceMins || 0;
+                                    const endDateTime = new Date(`1970-01-01T${bonus.endTime || '23:59'}:00`);
+                                    endDateTime.setMinutes(endDateTime.getMinutes() + graceMins);
+                                    const extendedEndTimeInt = endDateTime.getHours() * 100 + endDateTime.getMinutes();
+
                                     const isCurrentlyOn = isDayMatch && currentTime >= startTimeInt && currentTime <= endTimeInt && bonus.active;
-                                    const isFinishedToday = isDayMatch && currentTime > endTimeInt;
+                                    const isGracePeriod = isDayMatch && currentTime > endTimeInt && currentTime <= extendedEndTimeInt && bonus.active;
+                                    const isFinishedToday = isDayMatch && currentTime > extendedEndTimeInt;
 
                                     if (isCurrentlyOn) {
                                         return (
                                             <span className="bg-green-500 text-white text-[11px] font-black px-4 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg shadow-green-200 animate-pulse border-2 border-green-400 ring-2 ring-green-500/20">
                                                 <Zap size={12} fill="white" className="animate-bounce" /> FLASH ACTIVA
                                                 <div className="w-2 h-2 bg-white rounded-full animate-ping" />
+                                            </span>
+                                        );
+                                    } else if (isGracePeriod) {
+                                        return (
+                                            <span className="bg-orange-500 text-white text-[11px] font-black px-4 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg shadow-orange-200 border-2 border-orange-400">
+                                                <Clock size={12} /> EN TOLERANCIA
+                                                <div className="w-2 h-2 bg-white/50 rounded-full animate-pulse" />
                                             </span>
                                         );
                                     } else if (isFinishedToday) {

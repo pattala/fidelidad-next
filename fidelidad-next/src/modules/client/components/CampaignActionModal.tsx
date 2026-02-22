@@ -16,12 +16,17 @@ export const CampaignActionModal = ({ isOpen, onClose, title, description, actio
 
     if (!isOpen) return null;
 
-    const isExternal = actionUrl?.startsWith('http') || actionUrl?.startsWith('www');
     const hasUrl = !!actionUrl;
+
+    // Detect if URL is an image
+    const isImage = actionUrl ? (
+        /\.(jpg|jpeg|png|webp|avif|gif|svg)$/i.test(actionUrl.split('?')[0]) ||
+        (actionUrl.includes('firebasestorage.googleapis.com') && actionUrl.includes('alt=media'))
+    ) : false;
 
     return (
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-            <div className={`bg-white w-full ${hasUrl ? 'max-w-4xl h-[92vh] sm:h-[85vh]' : 'max-w-md'} rounded-t-[2.5rem] sm:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col animate-scale-in`}>
+            <div className={`bg-white w-full ${hasUrl ? (isImage ? 'max-w-2xl h-auto' : 'max-w-4xl h-[92vh] sm:h-[85vh]') : 'max-w-md'} rounded-t-[2.5rem] sm:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col animate-scale-in max-h-[95vh]`}>
                 {/* Header */}
                 <div className="p-4 sm:p-6 border-b border-gray-50 flex justify-between items-center bg-white sticky top-0 z-20">
                     <div className="flex items-center gap-2">
@@ -52,30 +57,41 @@ export const CampaignActionModal = ({ isOpen, onClose, title, description, actio
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-hidden flex flex-col bg-gray-50/50">
+                <div className="flex-1 overflow-y-auto flex flex-col bg-gray-50/50">
                     {hasUrl ? (
-                        <div className="flex-1 w-full relative">
-                            <iframe
-                                src={actionUrl}
-                                className="w-full h-full border-none bg-white"
-                                title={title}
-                                onError={() => setIframeError(true)}
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                allowFullScreen
-                            />
-                            {iframeError && (
-                                <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center bg-white">
-                                    <AlertTriangle size={48} className="text-amber-500 mb-4" />
-                                    <h4 className="text-lg font-bold text-gray-800 mb-2">No se puede mostrar aquí</h4>
-                                    <p className="text-gray-600 mb-6">Algunos sitios no permiten cargarse dentro de otras apps por seguridad.</p>
-                                    <a
-                                        href={actionUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="bg-indigo-600 text-white px-8 py-4 rounded-3xl font-black uppercase tracking-widest shadow-lg hover:bg-indigo-700 transition"
-                                    >
-                                        Abrir en ventana completa
-                                    </a>
+                        <div className="flex-1 w-full relative flex items-center justify-center min-h-[40vh]">
+                            {isImage ? (
+                                <img
+                                    src={actionUrl}
+                                    className="max-w-full h-auto object-contain block mx-auto animate-fade-in"
+                                    alt={title}
+                                    style={{ maxHeight: 'calc(95vh - 80px)' }}
+                                />
+                            ) : (
+                                <div className="flex-1 w-full relative h-full">
+                                    <iframe
+                                        src={actionUrl}
+                                        className="w-full h-full min-h-[70vh] border-none bg-white"
+                                        title={title}
+                                        onError={() => setIframeError(true)}
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                        allowFullScreen
+                                    />
+                                    {iframeError && (
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center bg-white">
+                                            <AlertTriangle size={48} className="text-amber-500 mb-4" />
+                                            <h4 className="text-lg font-bold text-gray-800 mb-2">No se puede mostrar aquí</h4>
+                                            <p className="text-gray-600 mb-6">Algunos sitios no permiten cargarse dentro de otras apps por seguridad.</p>
+                                            <a
+                                                href={actionUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="bg-indigo-600 text-white px-8 py-4 rounded-3xl font-black uppercase tracking-widest shadow-lg hover:bg-indigo-700 transition"
+                                            >
+                                                Abrir en ventana completa
+                                            </a>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>

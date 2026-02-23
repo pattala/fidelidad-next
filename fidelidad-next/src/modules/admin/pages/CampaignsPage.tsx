@@ -1249,27 +1249,48 @@ export const CampaignsPage = () => {
                                                                             </div>
                                                                         </div>
 
-                                                                        <div className="space-y-4">
-                                                                            <div className="space-y-2">
-                                                                                <div className="flex justify-between items-center">
-                                                                                    <label className="text-[9px] font-black text-gray-400 uppercase">Opacidad Imagen ({formData.imageOpacity}%)</label>
+                                                                        <div className="flex flex-col gap-5">
+                                                                            <section className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm space-y-4">
+                                                                                <div className="flex justify-between items-center px-1">
+                                                                                    <div className="flex items-center gap-3">
+                                                                                        <div className="p-2 bg-purple-50 text-purple-600 rounded-xl">
+                                                                                            <ImageIcon size={18} />
+                                                                                        </div>
+                                                                                        <label className="text-xs font-black text-gray-500 uppercase tracking-widest">Opacidad Imagen</label>
+                                                                                    </div>
+                                                                                    <div className="bg-purple-600 text-white px-3 py-1 rounded-full">
+                                                                                        <span className="text-[10px] font-black">{formData.imageOpacity}%</span>
+                                                                                    </div>
                                                                                 </div>
-                                                                                <input
-                                                                                    type="range" className="w-full accent-purple-600 cursor-pointer h-2 bg-gray-200 rounded-lg appearance-none"
-                                                                                    min="0" max="100" value={formData.imageOpacity}
-                                                                                    onChange={e => setFormData({ ...formData, imageOpacity: parseInt(e.target.value) })}
-                                                                                />
-                                                                            </div>
-                                                                            <div className="space-y-2">
-                                                                                <div className="flex justify-between items-center">
-                                                                                    <label className="text-[9px] font-black text-gray-400 uppercase">Transparencia Banner ({formData.bannerOpacity}%)</label>
+                                                                                <div className="px-1">
+                                                                                    <input
+                                                                                        type="range" className="w-full accent-purple-600 cursor-pointer h-2.5 bg-gray-100 rounded-xl appearance-none"
+                                                                                        min="0" max="100" value={formData.imageOpacity}
+                                                                                        onChange={e => setFormData({ ...formData, imageOpacity: parseInt(e.target.value) })}
+                                                                                    />
                                                                                 </div>
-                                                                                <input
-                                                                                    type="range" className="w-full accent-purple-600 cursor-pointer h-2 bg-gray-200 rounded-lg appearance-none"
-                                                                                    min="0" max="100" value={formData.bannerOpacity}
-                                                                                    onChange={e => setFormData({ ...formData, bannerOpacity: parseInt(e.target.value) })}
-                                                                                />
-                                                                            </div>
+                                                                            </section>
+
+                                                                            <section className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm space-y-4">
+                                                                                <div className="flex justify-between items-center px-1">
+                                                                                    <div className="flex items-center gap-3">
+                                                                                        <div className="p-2 bg-purple-50 text-purple-600 rounded-xl">
+                                                                                            <Monitor size={18} />
+                                                                                        </div>
+                                                                                        <label className="text-xs font-black text-gray-500 uppercase tracking-widest">Transparencia Banner</label>
+                                                                                    </div>
+                                                                                    <div className="bg-purple-600 text-white px-3 py-1 rounded-full">
+                                                                                        <span className="text-[10px] font-black">{formData.bannerOpacity}%</span>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div className="px-1">
+                                                                                    <input
+                                                                                        type="range" className="w-full accent-purple-600 cursor-pointer h-2.5 bg-gray-100 rounded-xl appearance-none"
+                                                                                        min="0" max="100" value={formData.bannerOpacity}
+                                                                                        onChange={e => setFormData({ ...formData, bannerOpacity: parseInt(e.target.value) })}
+                                                                                    />
+                                                                                </div>
+                                                                            </section>
                                                                         </div>
                                                                     </div>
                                                                 </div>

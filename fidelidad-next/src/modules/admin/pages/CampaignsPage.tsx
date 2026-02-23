@@ -57,6 +57,15 @@ export const CampaignsPage = () => {
         { id: 4, label: 'Jue' }, { id: 5, label: 'Vie' }, { id: 6, label: 'Sab' }, { id: 0, label: 'Dom' }
     ];
 
+    const [now, setNow] = useState(TimeService.now());
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setNow(TimeService.now());
+        }, 1000);
+        return () => clearInterval(timer);
+    }, []);
+
     const fetchBonuses = async () => {
         const data = await CampaignService.getAll();
         setBonuses(data);
@@ -85,6 +94,14 @@ export const CampaignsPage = () => {
         setActiveTab('BASIC');
         setIsFlashMode(false);
         setIsTypeSelected(false);
+    };
+
+    const handleTypeSelection = (flashMode: boolean) => {
+        setIsFlashMode(flashMode);
+        setIsTypeSelected(true);
+        if (flashMode) {
+            setFormData(prev => ({ ...prev, active: false }));
+        }
     };
 
     const handleSave = async (e: React.FormEvent) => {
@@ -123,8 +140,11 @@ export const CampaignsPage = () => {
                 });
 
                 if (overlapping && formData.active) {
-                    toast.error(`Error: No puedes activar esta oferta porque se solapa con "${overlapping.name}" (Active). Solo una oferta flash puede estar activa a la vez por rango horario.`);
-                    return;
+                    toast(`Campaña guardada, pero se desactivó automáticamente por solaparse con "${overlapping.name}".`, {
+                        icon: '⚠️',
+                        duration: 6000
+                    });
+                    formData.active = false;
                 }
             }
 
@@ -214,7 +234,7 @@ export const CampaignsPage = () => {
             });
 
             if (overlapping) {
-                toast.error(`No se puede activar: Choca con "${overlapping.name}" que ya está activa.`);
+                toast.error(`No se puede activar: Choca con "${overlapping.name}" que ya está activa en este horario. Apágala primero para poder activar esta.`);
                 return;
             }
         }
@@ -611,8 +631,7 @@ export const CampaignsPage = () => {
                             {(() => {
                                 if (!bonus.isFlash) return null;
 
-                                // Calcular estado dinámico usando TimeService
-                                const now = TimeService.now();
+                                // Calcular estado dinámico
                                 const currentDay = now.getDay();
                                 const currentTime = now.getHours() * 100 + now.getMinutes();
 
@@ -642,7 +661,6 @@ export const CampaignsPage = () => {
                                 {(() => {
                                     if (!bonus.isFlash) return null;
 
-                                    const now = TimeService.now();
                                     const currentDay = now.getDay();
                                     const currentTime = now.getHours() * 100 + now.getMinutes();
                                     const isDayMatch = bonus.flashDays?.includes(currentDay);
@@ -658,6 +676,8 @@ export const CampaignsPage = () => {
                                     const isCurrentlyOn = isDayMatch && currentTime >= startTimeInt && currentTime <= endTimeInt && bonus.active;
                                     const isGracePeriod = isDayMatch && currentTime > endTimeInt && currentTime <= extendedEndTimeInt && bonus.active;
                                     const isFinishedToday = isDayMatch && currentTime > extendedEndTimeInt;
+                                    const isFutureDay = bonus.active && !isDayMatch;
+                                    const isFutureTime = bonus.active && isDayMatch && currentTime < startTimeInt;
 
                                     if (isCurrentlyOn) {
                                         return (
@@ -667,10 +687,24 @@ export const CampaignsPage = () => {
                                             </span>
                                         );
                                     } else if (isGracePeriod) {
+                                        // Cuenta regresiva live
+                                        const nowSecs = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+                                        const endSecs = endDateTime.getHours() * 3600 + endDateTime.getMinutes() * 60;
+                                        const diff = Math.max(0, endSecs - nowSecs);
+                                        const mm = Math.floor(diff / 60);
+                                        const ss = diff % 60;
+                                        const countdown = `${mm}:${ss.toString().padStart(2, '0')}`;
+
                                         return (
                                             <span className="bg-orange-500 text-white text-[11px] font-black px-4 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg shadow-orange-200 border-2 border-orange-400">
-                                                <Clock size={12} /> EN TOLERANCIA
+                                                <Clock size={12} /> EN TOLERANCIA {countdown}
                                                 <div className="w-2 h-2 bg-white/50 rounded-full animate-pulse" />
+                                            </span>
+                                        );
+                                    } else if (isFutureDay || isFutureTime) {
+                                        return (
+                                            <span className="bg-indigo-500 text-white text-[11px] font-black px-4 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg shadow-indigo-200 border-2 border-indigo-400">
+                                                <Calendar size={12} /> PROGRAMADA
                                             </span>
                                         );
                                     } else if (isFinishedToday) {
@@ -792,7 +826,7 @@ export const CampaignsPage = () => {
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
                                         <button
-                                            onClick={() => { setIsFlashMode(false); setIsTypeSelected(true); }}
+                                            onClick={() => handleTypeSelection(false)}
                                             className="group bg-white p-8 rounded-[2.5rem] border-2 border-transparent hover:border-purple-500 hover:shadow-xl transition-all text-left flex flex-col gap-4 shadow-sm"
                                         >
                                             <div className="w-14 h-14 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -800,12 +834,12 @@ export const CampaignsPage = () => {
                                             </div>
                                             <div>
                                                 <h3 className="text-xl font-black text-gray-800 uppercase tracking-tighter">Tradicional</h3>
-                                                <p className="text-sm text-gray-500 font-medium leading-relaxed">Campañas de puntos fijos, multiplicadores semanales y anuncios de larga duración.</p>
+                                                <p className="text-sm text-gray-500 font-medium leading-relaxed">Campaños de puntos fijos, multiplicadores semanales y anuncios de larga duración.</p>
                                             </div>
                                         </button>
 
                                         <button
-                                            onClick={() => { setIsFlashMode(true); setIsTypeSelected(true); setActiveTab('FLASH'); }}
+                                            onClick={() => { handleTypeSelection(true); setActiveTab('FLASH'); }}
                                             className="group bg-white p-8 rounded-[2.5rem] border-2 border-transparent hover:border-red-500 hover:shadow-xl transition-all text-left flex flex-col gap-4 shadow-sm"
                                         >
                                             <div className="w-14 h-14 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">

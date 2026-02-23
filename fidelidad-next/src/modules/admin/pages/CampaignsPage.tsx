@@ -1422,44 +1422,57 @@ export const CampaignsPage = () => {
                                                         </section>
 
                                                         {isFlashMode && (
-                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
-                                                                <section className="bg-white p-6 rounded-[2.5rem] border border-gray-100 space-y-4 shadow-sm">
-                                                                    <div className="flex items-center gap-2 mb-2">
-                                                                        <Clock size={14} className="text-red-600" />
-                                                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Horario de Activación</label>
+                                                            <div className="flex flex-col gap-6 animate-fade-in">
+                                                                <section className="bg-white p-8 rounded-[3rem] border border-gray-100 space-y-6 shadow-sm">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className="p-2 bg-red-50 rounded-xl text-red-600">
+                                                                            <Clock size={20} />
+                                                                        </div>
+                                                                        <label className="text-xs font-black text-gray-500 uppercase tracking-widest">Horario de Activación</label>
                                                                     </div>
-                                                                    <div className="grid grid-cols-2 gap-3">
-                                                                        <div>
-                                                                            <label className="text-[9px] font-black text-gray-400 uppercase block mb-1 ml-1">Inicio</label>
+                                                                    <div className="grid grid-cols-2 gap-6">
+                                                                        <div className="space-y-2">
+                                                                            <label className="text-[10px] font-black text-red-400 uppercase block ml-3">Inicio de Oferta</label>
                                                                             <input
-                                                                                type="time" className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 focus:bg-white text-sm font-black text-red-600 outline-none"
+                                                                                type="time" className="w-full p-5 rounded-[2rem] bg-gray-50 border border-gray-100 focus:bg-white text-lg font-black text-red-600 outline-none transition-all focus:ring-4 focus:ring-red-50 text-center"
                                                                                 value={formData.startTime} onChange={e => setFormData({ ...formData, startTime: e.target.value })}
                                                                             />
                                                                         </div>
-                                                                        <div>
-                                                                            <label className="text-[9px] font-black text-gray-400 uppercase block mb-1 ml-1">Fin</label>
+                                                                        <div className="space-y-2">
+                                                                            <label className="text-[10px] font-black text-red-400 uppercase block ml-3">Fin de Oferta</label>
                                                                             <input
-                                                                                type="time" className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 focus:bg-white text-sm font-black text-red-600 outline-none"
+                                                                                type="time" className="w-full p-5 rounded-[2rem] bg-gray-50 border border-gray-100 focus:bg-white text-lg font-black text-red-600 outline-none transition-all focus:ring-4 focus:ring-red-50 text-center"
                                                                                 value={formData.endTime} onChange={e => setFormData({ ...formData, endTime: e.target.value })}
                                                                             />
                                                                         </div>
                                                                     </div>
                                                                 </section>
 
-                                                                <section className="bg-red-50/30 p-6 rounded-[2.5rem] border border-red-100/50 space-y-3">
-                                                                    <div className="flex justify-between items-center mb-1">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <ToggleRight size={14} className="text-red-600" />
-                                                                            <label className="text-[10px] font-black text-red-900 uppercase">Margen Interno (Tolerancia)</label>
+                                                                <section className="bg-red-50/50 p-8 rounded-[3rem] border border-red-100/50 space-y-4">
+                                                                    <div className="flex justify-between items-center px-2">
+                                                                        <div className="flex items-center gap-3">
+                                                                            <div className="p-2 bg-red-600 text-white rounded-xl">
+                                                                                <ToggleRight size={20} />
+                                                                            </div>
+                                                                            <div>
+                                                                                <label className="text-xs font-black text-red-900 uppercase block leading-none">Margen Interno</label>
+                                                                                <span className="text-[9px] font-bold text-red-400 uppercase tracking-tighter italic">Tolerancia para validación externa</span>
+                                                                            </div>
                                                                         </div>
-                                                                        <span className="text-xs font-black text-red-600">{formData.flashGraceMins} Min</span>
+                                                                        <div className="bg-white px-4 py-2 rounded-2xl shadow-sm border border-red-100">
+                                                                            <span className="text-sm font-black text-red-600">{formData.flashGraceMins} Min</span>
+                                                                        </div>
                                                                     </div>
-                                                                    <input
-                                                                        type="range" min="0" max="120" step="5"
-                                                                        className="w-full h-2 bg-red-100 rounded-lg appearance-none cursor-pointer accent-red-600"
-                                                                        value={formData.flashGraceMins} onChange={e => setFormData({ ...formData, flashGraceMins: parseInt(e.target.value) })}
-                                                                    />
-                                                                    <p className="text-[9px] text-red-400 font-medium italic leading-tight">Margen extra para validación de puntos después del cierre. No afecta visibilidad.</p>
+                                                                    <div className="px-2">
+                                                                        <input
+                                                                            type="range" min="0" max="120" step="5"
+                                                                            className="w-full h-3 bg-red-100 rounded-xl appearance-none cursor-pointer accent-red-600"
+                                                                            value={formData.flashGraceMins} onChange={e => setFormData({ ...formData, flashGraceMins: parseInt(e.target.value) })}
+                                                                        />
+                                                                    </div>
+                                                                    <p className="text-[10px] text-red-400 font-bold italic leading-tight text-center px-4">
+                                                                        Este margen permite validar puntos unos minutos después del cierre nominal. No afecta la visibilidad en la App.
+                                                                    </p>
                                                                 </section>
                                                             </div>
                                                         )}

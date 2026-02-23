@@ -344,7 +344,10 @@ function showFidelidadPanel() {
                         const parts = formatter.formatToParts(now);
                         const h = parts.find(p => p.type === 'hour').value;
                         const m = parts.find(p => p.type === 'minute').value;
-                        return { h: Number(h), m: Number(m), hhmm: `${h}:${m}`, now };
+                        // Ensure 2-digit padding for h and m
+                        const paddedH = h.padStart(2, '0');
+                        const paddedM = m.padStart(2, '0');
+                        return { h: Number(h), m: Number(m), hhmm: `${paddedH}:${paddedM}`, now };
                     }
 
                     promosList.innerHTML = activePromos.map(p => {
@@ -387,14 +390,16 @@ function showFidelidadPanel() {
 
                             let statusHtml = '';
                             if (p.startTime || p.endTime) {
-                                const isExpiredToday = p.endTime && p.endTime < curHHmm;
+                                // Transition: Active until the exact second of endTime.
+                                // If curHHmm >= p.endTime, it's either in Grace or Expired.
+                                const isExpiredToday = p.endTime && curHHmm >= p.endTime;
 
                                 if (isExpiredToday) {
-                                    // Cálculo de tiempo de gracia
+                                    // Calculation for internal grace period (Tolerance)
                                     const [endH, endM] = p.endTime.split(':').map(Number);
                                     const endTimeDate = new Date(now);
                                     endTimeDate.setHours(endH, endM, 0, 0);
-                                    const diff = (endTimeDate.getTime() + (GRACE_PERIOD_MINS * 60 * 1000)) - now.getTime();
+                                    let diff = (endTimeDate.getTime() + (GRACE_PERIOD_MINS * 60 * 1000)) - now.getTime();
 
                                     if (diff > 0) {
                                         const mm = Math.floor(diff / (1000 * 60));
@@ -405,7 +410,7 @@ function showFidelidadPanel() {
                                             <span class="cf-promo-time" style="color:#9a3412; font-weight:900;">CIERRA EN: ${timeStr}</span>
                                         `;
                                     } else {
-                                        // Realmente expirada y fuera de gracia
+                                        // Fully expired and outside grace
                                         statusHtml = '';
                                         const item = promosList.querySelector(`.cf-promo-item[data-promo-id="${p.id}"]`);
                                         if (item) {
@@ -414,15 +419,18 @@ function showFidelidadPanel() {
                                         }
                                     }
                                 } else {
-                                    const isNotStartedYet = p.startTime && p.startTime > curHHmm;
+                                    const isNotStartedYet = p.startTime && curHHmm < p.startTime;
                                     if (isNotStartedYet) {
                                         statusHtml = `<span class="cf-promo-status" style="background:#f3f4f6; color:#6b7280;">PRÓXIMAMENTE</span>`;
                                     } else {
-                                        // Activa: Mostrar cuenta regresiva hasta el cierre
+                                        // Active: Show countdown until the end time
                                         const [endH, endM] = (p.endTime || '23:59').split(':').map(Number);
                                         const endTimeDate = new Date(now);
                                         endTimeDate.setHours(endH, endM, 0, 0);
-                                        const diff = endTimeDate.getTime() - now.getTime();
+                                        let diff = endTimeDate.getTime() - now.getTime();
+
+                                        // Protection against negative values just before transition
+                                        if (diff < 0) diff = 0;
 
                                         const mm = Math.floor(diff / (1000 * 60));
                                         const ss = Math.floor((diff % (1000 * 60)) / 1000);

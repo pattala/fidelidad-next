@@ -16,7 +16,7 @@ import { EmailService } from '../../../services/emailService';
 import { TimeService } from '../../../services/timeService';
 import { useAdminAuth } from '../contexts/AdminAuthContext';
 
-type TabType = 'BASIC' | 'VISUAL' | 'RULES' | 'FLASH' | 'SCHEDULE';
+type TabType = 'BASIC' | 'SCHEDULE' | 'RULES' | 'VISUAL' | 'CONTENT';
 
 export const CampaignsPage = () => {
     const navigate = useNavigate();
@@ -125,18 +125,14 @@ export const CampaignsPage = () => {
                     const daysIntersect = formData.flashDays?.some(d => (b as any).flashDays?.includes(d));
                     if (!daysIntersect) return false;
 
-                    // Check if times overlap (including grace period of the existing ones)
+                    // Check if nominal times overlap (STRICTLY NO GRACE)
                     const newStart = formData.startTime || '00:00';
                     const newEnd = formData.endTime || '23:59';
                     const oldStart = b.startTime || '00:00';
+                    const oldEnd = b.endTime || '23:59';
 
-                    // The old one is effectively active until its endTime + grace period
-                    const oldGraceMs = (b.flashGraceMins || 0) * 60 * 1000;
-                    const oldEndTime = new Date(`1970-01-01T${b.endTime || '23:59'}:00`);
-                    oldEndTime.setMilliseconds(oldEndTime.getMilliseconds() + oldGraceMs);
-                    const oldEndExtended = `${oldEndTime.getHours().toString().padStart(2, '0')}:${oldEndTime.getMinutes().toString().padStart(2, '0')}`;
-
-                    return (newStart < oldEndExtended && newEnd > oldStart);
+                    // Standard overlap formula
+                    return (newStart < oldEnd && newEnd > oldStart);
                 });
 
                 if (overlapping && formData.active) {
@@ -186,7 +182,6 @@ export const CampaignsPage = () => {
                     { action: 'campaign_update', campaignId: editingId, name: payload.name }
                 ]);
             } else {
-                // @ts-ignore
                 const newId = await CampaignService.create(payload);
                 toast.success('Campaña creada');
                 await AuditService.log('campaign_created', `Nueva campaña: ${payload.name}`, [
@@ -211,7 +206,6 @@ export const CampaignsPage = () => {
     const handleToggleActive = async (bonus: BonusRule) => {
         if (isReadOnly) return;
 
-        // --- VALIDACION DE SOLAPAMIENTO ESTRICTA ---
         if (!bonus.active && bonus.isFlash) {
             const overlapping = bonuses.find(b => {
                 if (b.id === bonus.id || !b.isFlash || !b.active) return false;
@@ -220,17 +214,13 @@ export const CampaignsPage = () => {
                 const daysIntersect = bonus.flashDays?.some(d => (b as any).flashDays?.includes(d));
                 if (!daysIntersect) return false;
 
-                // Horarios (Incluyendo gracia)
+                // Horarios Nominales (SIN TOLERANCIA)
                 const newStart = bonus.startTime || '00:00';
                 const newEnd = bonus.endTime || '23:59';
                 const oldStart = b.startTime || '00:00';
+                const oldEnd = b.endTime || '23:59';
 
-                const oldGraceMs = (b.flashGraceMins || 0) * 60 * 1000;
-                const oldEndTime = new Date(`1970-01-01T${b.endTime || '23:59'}:00`);
-                oldEndTime.setMilliseconds(oldEndTime.getMilliseconds() + oldGraceMs);
-                const oldEndExtended = `${oldEndTime.getHours().toString().padStart(2, '0')}:${oldEndTime.getMinutes().toString().padStart(2, '0')}`;
-
-                return (newStart < oldEndExtended && newEnd > oldStart);
+                return (newStart < oldEnd && newEnd > oldStart);
             });
 
             if (overlapping) {
@@ -839,8 +829,8 @@ export const CampaignsPage = () => {
                                         </button>
 
                                         <button
-                                            onClick={() => { handleTypeSelection(true); setActiveTab('FLASH'); }}
-                                            className="group bg-white p-8 rounded-[2.5rem] border-2 border-transparent hover:border-red-500 hover:shadow-xl transition-all text-left flex flex-col gap-4 shadow-sm"
+                                            onClick={() => { handleTypeSelection(true); setActiveTab('CONTENT'); }}
+                                            className="p-8 rounded-[2.5rem] bg-gradient-to-br from-red-50 to-orange-50 border-2 border-red-100 hover:border-red-300 transition-all text-left flex flex-col group active:scale-95"
                                         >
                                             <div className="w-14 h-14 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
                                                 <Zap size={32} />
@@ -878,12 +868,12 @@ export const CampaignsPage = () => {
 
                                         <nav className="space-y-2 flex-1">
                                             {[
-                                                { id: 'BASIC', label: 'Básico', icon: <Target size={18} />, desc: 'Nombre y Textos', show: !isFlashMode },
-                                                { id: 'FLASH', label: 'Configuración', icon: <Zap size={18} />, desc: 'Horarios y Premio', show: isFlashMode },
-                                                { id: 'RULES', label: 'Beneficio', icon: <Sparkles size={18} />, desc: 'Premios de Puntos', show: !isFlashMode },
-                                                { id: 'SCHEDULE', label: 'Fechas', icon: <Calendar size={18} />, desc: 'Programación', show: !isFlashMode },
-                                                { id: 'VISUAL', label: 'Visual', icon: <ImageIcon size={18} />, desc: 'Imagen y Diseño', show: !isFlashMode },
-                                            ].filter(t => t.show).map(tab => (
+                                                { id: 'BASIC', label: 'Básico', icon: <Target size={18} />, desc: 'Identificación' },
+                                                { id: 'CONTENT', label: 'Mensajes', icon: <Type size={18} />, desc: 'Textos y Canales' },
+                                                { id: 'SCHEDULE', label: 'Programación', icon: <Calendar size={18} />, desc: isFlashMode ? 'Horarios Flash' : 'Fechas' },
+                                                { id: 'RULES', label: 'Beneficio', icon: <Sparkles size={18} />, desc: 'Premio de Puntos' },
+                                                { id: 'VISUAL', label: 'Diseño', icon: <ImageIcon size={18} />, desc: 'Imagen y Estilo' },
+                                            ].map(tab => (
                                                 <button
                                                     key={tab.id}
                                                     onClick={() => setActiveTab(tab.id as TabType)}
@@ -925,6 +915,42 @@ export const CampaignsPage = () => {
                                                             <p className="text-[9px] text-gray-400 font-bold uppercase mt-2 italic">Este nombre solo lo ven los administradores</p>
                                                         </section>
 
+                                                        <section className="pt-4 border-t border-gray-100">
+                                                            <div className="mb-4">
+                                                                <label className="text-xs font-black text-gray-500 uppercase block">Canales de Notificación Sugeridos</label>
+                                                                <p className="text-[9px] text-gray-400 font-bold uppercase mt-0.5 italic">Se proponen automáticamente al difundir</p>
+                                                            </div>
+                                                            <div className="flex gap-3">
+                                                                {['push', 'email', 'whatsapp'].map(channel => (
+                                                                    <label key={channel} className={`flex-1 flex flex-col items-center gap-2 cursor-pointer p-4 rounded-xl border-2 transition-all ${formData.channels?.includes(channel) ? (isFlashMode ? 'border-red-500 bg-red-50 text-red-700' : 'border-purple-600 bg-purple-50 text-purple-700') : 'border-gray-100 bg-white text-gray-400 hover:bg-gray-50'}`}>
+                                                                        <div className={`p-2 rounded-full ${formData.channels?.includes(channel) ? (isFlashMode ? 'bg-red-200' : 'bg-purple-200') : 'bg-gray-100'}`}>
+                                                                            {channel === 'push' && <Monitor size={20} />}
+                                                                            {channel === 'email' && <Sparkles size={20} />}
+                                                                            {channel === 'whatsapp' && <MessageCircle size={20} />}
+                                                                        </div>
+                                                                        <span className="text-[10px] font-black uppercase tracking-wide">
+                                                                            {channel === 'push' && 'Push'}
+                                                                            {channel === 'email' && 'Email'}
+                                                                            {channel === 'whatsapp' && 'WApp'}
+                                                                        </span>
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            className="hidden"
+                                                                            checked={formData.channels?.includes(channel)}
+                                                                            onChange={e => {
+                                                                                const current = formData.channels || [];
+                                                                                setFormData({ ...formData, channels: e.target.checked ? [...current, channel] : current.filter(c => c !== channel) });
+                                                                            }}
+                                                                        />
+                                                                    </label>
+                                                                ))}
+                                                            </div>
+                                                        </section>
+                                                    </div>
+                                                )}
+
+                                                {activeTab === 'CONTENT' && (
+                                                    <div className="space-y-6 animate-slide-in-right">
                                                         {isFlashMode ? (
                                                             <div className="space-y-6">
                                                                 <section className="bg-red-50 p-6 rounded-[2rem] border border-red-100 space-y-4">
@@ -992,63 +1018,28 @@ export const CampaignsPage = () => {
                                                                         onChange={e => setFormData({ ...formData, description: e.target.value })}
                                                                     />
                                                                 </section>
-                                                            </div>
-                                                        )}
 
-                                                        {/* El resto de fields de BASIC que son comunes o se filtran */}
-                                                        {!isFlashMode && (
-                                                            <section className="bg-blue-50 p-6 rounded-[2rem] border border-blue-100">
-                                                                <div className="flex justify-between items-center mb-4">
-                                                                    <div>
-                                                                        <label className="text-xs font-black text-blue-900 uppercase">Enlace de Acción</label>
-                                                                        <p className="text-[9px] text-blue-400 font-bold uppercase mt-0.5">Exclusivo para el Banner (Promos Vigentes)</p>
-                                                                    </div>
-                                                                    <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-bold italic">Opcional</span>
-                                                                </div>
-                                                                <div className="flex gap-2">
-                                                                    <div className="p-3 bg-white rounded-xl text-blue-400 shadow-sm">
-                                                                        <MousePointer2 size={20} />
-                                                                    </div>
-                                                                    <input
-                                                                        type="url" placeholder="https://tu-web.com/promo"
-                                                                        className="flex-1 p-3 rounded-xl bg-white shadow-sm border-none focus:ring-2 focus:ring-blue-200 outline-none text-sm placeholder:text-blue-200"
-                                                                        value={formData.link} onChange={e => setFormData({ ...formData, link: e.target.value })}
-                                                                    />
-                                                                </div>
-                                                            </section>
-                                                        )}
-
-                                                        <section className="pt-4 border-t border-gray-100">
-                                                            <div className="mb-4">
-                                                                <label className="text-xs font-black text-gray-500 uppercase block">Canales de Notificación Sugeridos</label>
-                                                                <p className="text-[9px] text-gray-400 font-bold uppercase mt-0.5 italic">Se proponen automáticamente al difundir</p>
-                                                            </div>
-                                                            <div className="flex gap-3">
-                                                                {['push', 'email', 'whatsapp'].map(channel => (
-                                                                    <label key={channel} className={`flex-1 flex flex-col items-center gap-2 cursor-pointer p-4 rounded-xl border-2 transition-all ${formData.channels?.includes(channel) ? (isFlashMode ? 'border-red-500 bg-red-50 text-red-700' : 'border-purple-600 bg-purple-50 text-purple-700') : 'border-gray-100 bg-white text-gray-400 hover:bg-gray-50'}`}>
-                                                                        <div className={`p-2 rounded-full ${formData.channels?.includes(channel) ? (isFlashMode ? 'bg-red-200' : 'bg-purple-200') : 'bg-gray-100'}`}>
-                                                                            {channel === 'push' && <Monitor size={20} />}
-                                                                            {channel === 'email' && <Sparkles size={20} />}
-                                                                            {channel === 'whatsapp' && <MessageCircle size={20} />}
+                                                                <section className="bg-blue-50 p-6 rounded-[2rem] border border-blue-100">
+                                                                    <div className="flex justify-between items-center mb-4">
+                                                                        <div>
+                                                                            <label className="text-xs font-black text-blue-900 uppercase">Enlace de Acción</label>
+                                                                            <p className="text-[9px] text-blue-400 font-bold uppercase mt-0.5">Exclusivo para el Banner (Promos Vigentes)</p>
                                                                         </div>
-                                                                        <span className="text-[10px] font-black uppercase tracking-wide">
-                                                                            {channel === 'push' && 'Push'}
-                                                                            {channel === 'email' && 'Email'}
-                                                                            {channel === 'whatsapp' && 'WApp'}
-                                                                        </span>
+                                                                        <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-bold italic">Opcional</span>
+                                                                    </div>
+                                                                    <div className="flex gap-2">
+                                                                        <div className="p-3 bg-white rounded-xl text-blue-400 shadow-sm">
+                                                                            <MousePointer2 size={20} />
+                                                                        </div>
                                                                         <input
-                                                                            type="checkbox"
-                                                                            className="hidden"
-                                                                            checked={formData.channels?.includes(channel)}
-                                                                            onChange={e => {
-                                                                                const current = formData.channels || [];
-                                                                                setFormData({ ...formData, channels: e.target.checked ? [...current, channel] : current.filter(c => c !== channel) });
-                                                                            }}
+                                                                            type="url" placeholder="https://tu-web.com/promo"
+                                                                            className="flex-1 p-3 rounded-xl bg-white shadow-sm border-none focus:ring-2 focus:ring-blue-200 outline-none text-sm placeholder:text-blue-200"
+                                                                            value={formData.link} onChange={e => setFormData({ ...formData, link: e.target.value })}
                                                                         />
-                                                                    </label>
-                                                                ))}
+                                                                    </div>
+                                                                </section>
                                                             </div>
-                                                        </section>
+                                                        )}
                                                     </div>
                                                 )}
 
@@ -1282,19 +1273,48 @@ export const CampaignsPage = () => {
                                                 {activeTab === 'RULES' && (
                                                     <div className="space-y-8 animate-slide-in-right">
                                                         {isFlashMode ? (
-                                                            <div className="bg-red-50 p-8 rounded-[3rem] border border-red-100 text-center space-y-4">
-                                                                <div className="w-16 h-16 bg-red-500 text-white rounded-2xl flex items-center justify-center mx-auto shadow-lg">
-                                                                    <Zap size={32} fill="white" />
+                                                            <section className="space-y-4">
+                                                                <label className="text-xs font-black text-red-900 uppercase">Premio Flash Especial</label>
+                                                                <div className="grid grid-cols-3 gap-3">
+                                                                    {[
+                                                                        { id: 'FIXED', label: 'Puntos', icon: <Plus size={16} /> },
+                                                                        { id: 'MULTIPLIER', label: 'Mult.', icon: <Zap size={16} /> },
+                                                                        { id: 'TEXT', label: 'Texto', icon: <Type size={16} /> },
+                                                                    ].map(type => (
+                                                                        <button
+                                                                            key={type.id} type="button"
+                                                                            onClick={() => setFormData({ ...formData, flashRewardType: type.id as any })}
+                                                                            className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${formData.flashRewardType === type.id ? 'border-red-500 bg-red-500 text-white' : 'border-white bg-white text-gray-400'}`}
+                                                                        >
+                                                                            {type.icon}
+                                                                            <span className="text-[9px] font-black uppercase">{type.label}</span>
+                                                                        </button>
+                                                                    ))}
                                                                 </div>
-                                                                <h3 className="text-xl font-black text-red-900 uppercase">Modo Flash Activo</h3>
-                                                                <p className="text-sm text-red-600 font-medium">Las reglas de puntos para esta campaña se gestionan exclusivamente en la pestaña <strong>"Oferta Flash"</strong>.</p>
-                                                                <button
-                                                                    onClick={() => setActiveTab('FLASH')}
-                                                                    className="mt-4 bg-red-500 text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-red-600 transition"
-                                                                >
-                                                                    Ir a Configuración Flash
-                                                                </button>
-                                                            </div>
+
+                                                                <div className="bg-white p-4 rounded-xl shadow-sm border border-red-50">
+                                                                    {formData.flashRewardType === 'TEXT' ? (
+                                                                        <input
+                                                                            type="text" placeholder="Ej: 2x1, 50% OFF"
+                                                                            className="w-full text-xl font-black bg-transparent border-none text-center outline-none text-red-600 placeholder:text-red-200"
+                                                                            value={formData.flashRewardText || ''}
+                                                                            onChange={e => setFormData({ ...formData, flashRewardText: e.target.value })}
+                                                                        />
+                                                                    ) : (
+                                                                        <div className="flex items-center justify-center gap-2">
+                                                                            <span className="text-xl font-black text-red-300">
+                                                                                {formData.flashRewardType === 'MULTIPLIER' ? 'x' : '+'}
+                                                                            </span>
+                                                                            <input
+                                                                                type="number" step={formData.flashRewardType === 'MULTIPLIER' ? "0.1" : "1"}
+                                                                                className="w-20 text-3xl font-black bg-transparent border-none text-center outline-none text-red-600"
+                                                                                value={formData.flashRewardValue || 0}
+                                                                                onChange={e => setFormData({ ...formData, flashRewardValue: parseFloat(e.target.value) || 0 })}
+                                                                            />
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </section>
                                                         ) : (
                                                             <>
                                                                 <section className="space-y-4">
@@ -1361,174 +1381,105 @@ export const CampaignsPage = () => {
 
                                                 {activeTab === 'SCHEDULE' && (
                                                     <div className="space-y-8 animate-slide-in-right">
-                                                        <section className="bg-purple-50 p-8 rounded-[3rem] border border-purple-100">
+                                                        <section className={`${isFlashMode ? 'bg-red-50 border-red-100' : 'bg-purple-50 border-purple-100'} p-8 rounded-[3rem] border transition-colors`}>
                                                             <div className="flex items-center gap-4 mb-6">
-                                                                <div className="p-3 bg-purple-600 text-white rounded-2xl shadow-lg shadow-purple-200">
+                                                                <div className={`p-3 ${isFlashMode ? 'bg-red-600' : 'bg-purple-600'} text-white rounded-2xl shadow-lg`}>
                                                                     <Calendar size={24} />
                                                                 </div>
                                                                 <div>
-                                                                    <h4 className="font-black text-purple-900 text-lg uppercase tracking-tight">Rango de Vigencia</h4>
-                                                                    <p className="text-[10px] text-purple-600 font-bold opacity-60 uppercase tracking-widest">Periodo total de la campaña (Vacio = Sin fin de ciclo)</p>
+                                                                    <h4 className={`font-black ${isFlashMode ? 'text-red-900' : 'text-purple-900'} text-lg uppercase tracking-tight`}>Vigencia de la Campaña</h4>
+                                                                    <p className={`text-[10px] ${isFlashMode ? 'text-red-600' : 'text-purple-600'} font-bold opacity-60 uppercase tracking-widest`}>Periodo total de la campaña (Vacio = Permanente)</p>
                                                                 </div>
                                                             </div>
                                                             <div className="grid grid-cols-2 gap-4">
                                                                 <div className="space-y-2">
-                                                                    <label className="text-[10px] font-black text-purple-400 uppercase block ml-2">Fecha Inicio</label>
+                                                                    <label className={`text-[10px] font-black ${isFlashMode ? 'text-red-400' : 'text-purple-400'} uppercase block ml-2`}>Fecha Inicio</label>
                                                                     <input type="date" className="w-full p-4 rounded-2xl bg-white border-none shadow-sm text-sm font-bold focus:ring-2 focus:ring-purple-200 outline-none transition-all" value={formData.startDate} onChange={e => setFormData({ ...formData, startDate: e.target.value })} />
                                                                 </div>
                                                                 <div className="space-y-2">
-                                                                    <label className="text-[10px] font-black text-purple-400 uppercase block ml-2">Fecha Fin</label>
+                                                                    <label className={`text-[10px] font-black ${isFlashMode ? 'text-red-400' : 'text-purple-400'} uppercase block ml-2`}>Fecha Fin</label>
                                                                     <input type="date" className="w-full p-4 rounded-2xl bg-white border-none shadow-sm text-sm font-bold focus:ring-2 focus:ring-purple-200 outline-none transition-all" value={formData.endDate} onChange={e => setFormData({ ...formData, endDate: e.target.value })} />
                                                                 </div>
                                                             </div>
                                                         </section>
 
-                                                        <section className="space-y-4">
-                                                            <label className="text-xs font-black text-gray-500 uppercase px-2">Días de la semana</label>
-                                                            <div className="flex flex-wrap gap-2">
-                                                                {DAYS.map(day => (
-                                                                    <button
-                                                                        key={day.id} type="button"
-                                                                        onClick={() => {
-                                                                            const current = formData.daysOfWeek || [];
-                                                                            setFormData({ ...formData, daysOfWeek: current.includes(day.id) ? current.filter(d => d !== day.id) : [...current, day.id] });
-                                                                        }}
-                                                                        className={`flex-1 min-w-[60px] py-4 rounded-2xl font-black text-xs transition-all ${formData.daysOfWeek?.includes(day.id) ? 'bg-purple-600 text-white shadow-lg scale-105' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
-                                                                    >
-                                                                        {day.label}
-                                                                    </button>
-                                                                ))}
-                                                            </div>
-                                                            <p className="text-[10px] text-gray-400 font-bold uppercase italic text-center">La campaña solo se mostrará los días seleccionados</p>
-                                                        </section>
-                                                    </div>
-                                                )}
-
-                                                {activeTab === 'FLASH' && (
-                                                    <div className="space-y-6 animate-slide-in-right">
-                                                        <section>
-                                                            <div className="flex items-center gap-2 mb-2">
-                                                                <Target size={14} className="text-red-600" />
-                                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Identificación Interna</label>
-                                                            </div>
-                                                            <input
-                                                                type="text" required placeholder="Nombre Interno (Ej: Flash Lunes)"
-                                                                className="w-full text-2xl font-bold border-b-2 border-gray-100 focus:border-red-500 outline-none transition-colors py-2"
-                                                                value={formData.name || ''}
-                                                                onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                                            />
-                                                            <p className="text-[9px] text-gray-400 font-bold uppercase mt-2 italic">Solo para uso administrativo</p>
-                                                        </section>
-
-                                                        <section className="bg-red-50 p-6 rounded-[2rem] border border-red-100 space-y-4">
-                                                            <div className="flex justify-between items-center mb-2">
-                                                                <div className="flex items-center gap-2">
-                                                                    <Zap size={14} className="text-red-600" />
-                                                                    <label className="text-xs font-black text-red-900 uppercase">Título Público Oferta Flash</label>
-                                                                </div>
-                                                            </div>
-                                                            <textarea
-                                                                rows={2}
-                                                                placeholder="Título de la oferta..."
-                                                                className="w-full p-5 rounded-2xl bg-white shadow-sm border border-red-100 focus:ring-4 focus:ring-red-100 outline-none transition-all text-xl font-black text-red-700 placeholder:text-red-200 uppercase resize-none"
-                                                                value={formData.flashTitle || ''}
-                                                                onChange={e => setFormData({ ...formData, flashTitle: e.target.value })}
-                                                            />
-                                                            <p className="text-[10px] text-red-400 font-bold uppercase tracking-tight">Este es el título principal que verán los clientes en el banner naranja.</p>
-                                                        </section>
-
-                                                        <div className="grid grid-cols-2 gap-3">
-                                                            <div className="space-y-1">
-                                                                <label className="text-[9px] font-black text-red-400 uppercase block ml-1">Inicia</label>
-                                                                <div className="relative">
-                                                                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-red-300" size={14} />
-                                                                    <input type="time" className="w-full pl-9 p-3 rounded-xl bg-white border-none shadow-sm text-sm font-black text-red-600 focus:ring-2 focus:ring-red-200 outline-none" value={formData.startTime || ''} onChange={e => setFormData({ ...formData, startTime: e.target.value })} />
-                                                                </div>
-                                                            </div>
-                                                            <div className="space-y-1">
-                                                                <label className="text-[9px] font-black text-red-400 uppercase block ml-1">Finaliza</label>
-                                                                <div className="relative">
-                                                                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-red-300" size={14} />
-                                                                    <input type="time" className="w-full pl-9 p-3 rounded-xl bg-white border-none shadow-sm text-sm font-black text-red-600 focus:ring-2 focus:ring-red-200 outline-none" value={formData.endTime || ''} onChange={e => setFormData({ ...formData, endTime: e.target.value })} />
-                                                                </div>
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="bg-white/50 p-4 rounded-2xl border border-red-100 space-y-3">
-                                                            <div className="flex justify-between items-center">
-                                                                <label className="text-[10px] font-black text-red-900 uppercase">Tolerancia Extra</label>
-                                                                <span className="text-xs font-black text-red-500 bg-red-100 px-2 py-0.5 rounded-lg">{formData.flashGraceMins} min</span>
-                                                            </div>
-                                                            <input
-                                                                type="range" min="0" max="60" step="5"
-                                                                className="w-full accent-red-500 h-1.5 bg-red-100 rounded-lg appearance-none cursor-pointer"
-                                                                value={formData.flashGraceMins || 0}
-                                                                onChange={e => setFormData({ ...formData, flashGraceMins: parseInt(e.target.value) })}
-                                                            />
-                                                        </div>
-
-                                                        <section className="space-y-4 pt-4 border-t border-red-100">
-                                                            <label className="text-xs font-black text-red-900 uppercase">Premio Flash Especial</label>
-                                                            <div className="grid grid-cols-3 gap-3">
-                                                                {[
-                                                                    { id: 'FIXED', label: 'Puntos', icon: <Plus size={16} /> },
-                                                                    { id: 'MULTIPLIER', label: 'Mult.', icon: <Zap size={16} /> },
-                                                                    { id: 'TEXT', label: 'Texto', icon: <Type size={16} /> },
-                                                                ].map(type => (
-                                                                    <button
-                                                                        key={type.id} type="button"
-                                                                        onClick={() => setFormData({ ...formData, flashRewardType: type.id as any })}
-                                                                        className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${formData.flashRewardType === type.id ? 'border-red-500 bg-red-500 text-white' : 'border-white bg-white text-gray-400'}`}
-                                                                    >
-                                                                        {type.icon}
-                                                                        <span className="text-[9px] font-black uppercase">{type.label}</span>
-                                                                    </button>
-                                                                ))}
-                                                            </div>
-
-                                                            <div className="bg-white p-4 rounded-xl shadow-sm border border-red-50">
-                                                                {formData.flashRewardType === 'TEXT' ? (
-                                                                    <input
-                                                                        type="text" placeholder="Ej: 2x1, 50% OFF"
-                                                                        className="w-full text-xl font-black bg-transparent border-none text-center outline-none text-red-600 placeholder:text-red-200"
-                                                                        value={formData.flashRewardText || ''}
-                                                                        onChange={e => setFormData({ ...formData, flashRewardText: e.target.value })}
-                                                                    />
-                                                                ) : (
-                                                                    <div className="flex items-center justify-center gap-2">
-                                                                        <span className="text-xl font-black text-red-300">
-                                                                            {formData.flashRewardType === 'MULTIPLIER' ? 'x' : '+'}
-                                                                        </span>
-                                                                        <input
-                                                                            type="number" step={formData.flashRewardType === 'MULTIPLIER' ? "0.1" : "1"}
-                                                                            className="w-20 text-3xl font-black bg-transparent border-none text-center outline-none text-red-600"
-                                                                            value={formData.flashRewardValue || 0}
-                                                                            onChange={e => setFormData({ ...formData, flashRewardValue: parseFloat(e.target.value) || 0 })}
-                                                                        />
+                                                        {isFlashMode && (
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
+                                                                <section className="bg-white p-6 rounded-[2.5rem] border border-gray-100 space-y-4 shadow-sm">
+                                                                    <div className="flex items-center gap-2 mb-2">
+                                                                        <Clock size={14} className="text-red-600" />
+                                                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Horario de Activación</label>
                                                                     </div>
-                                                                )}
-                                                            </div>
-                                                        </section>
+                                                                    <div className="grid grid-cols-2 gap-3">
+                                                                        <div>
+                                                                            <label className="text-[9px] font-black text-gray-400 uppercase block mb-1 ml-1">Inicio</label>
+                                                                            <input
+                                                                                type="time" className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 focus:bg-white text-sm font-black text-red-600 outline-none"
+                                                                                value={formData.startTime} onChange={e => setFormData({ ...formData, startTime: e.target.value })}
+                                                                            />
+                                                                        </div>
+                                                                        <div>
+                                                                            <label className="text-[9px] font-black text-gray-400 uppercase block mb-1 ml-1">Fin</label>
+                                                                            <input
+                                                                                type="time" className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 focus:bg-white text-sm font-black text-red-600 outline-none"
+                                                                                value={formData.endTime} onChange={e => setFormData({ ...formData, endTime: e.target.value })}
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+                                                                </section>
 
-                                                        <section className="space-y-3">
-                                                            <label className="text-[10px] font-black text-red-900 uppercase block ml-1">Días Flash</label>
-                                                            <div className="flex flex-wrap gap-1.5">
-                                                                {DAYS.map(day => (
-                                                                    <button
-                                                                        key={day.id} type="button"
-                                                                        onClick={() => {
-                                                                            const current = formData.flashDays || [];
-                                                                            setFormData({ ...formData, flashDays: current.includes(day.id) ? current.filter(d => d !== day.id) : [...current, day.id] });
-                                                                        }}
-                                                                        className={`flex-1 min-w-[40px] py-2 rounded-lg font-black text-[9px] transition-all ${formData.flashDays?.includes(day.id) ? 'bg-red-500 text-white shadow-md' : 'bg-white text-red-300 hover:bg-red-50'}`}
-                                                                    >
-                                                                        {day.label.substring(0, 3)}
-                                                                    </button>
-                                                                ))}
+                                                                <section className="bg-red-50/30 p-6 rounded-[2.5rem] border border-red-100/50 space-y-3">
+                                                                    <div className="flex justify-between items-center mb-1">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <ToggleRight size={14} className="text-red-600" />
+                                                                            <label className="text-[10px] font-black text-red-900 uppercase">Tolerancia (Grace Period)</label>
+                                                                        </div>
+                                                                        <span className="text-xs font-black text-red-600">{formData.flashGraceMins} Min</span>
+                                                                    </div>
+                                                                    <input
+                                                                        type="range" min="0" max="120" step="5"
+                                                                        className="w-full h-2 bg-red-100 rounded-lg appearance-none cursor-pointer accent-red-600"
+                                                                        value={formData.flashGraceMins} onChange={e => setFormData({ ...formData, flashGraceMins: parseInt(e.target.value) })}
+                                                                    />
+                                                                    <p className="text-[9px] text-red-400 font-medium italic leading-tight">Tiempo extra para ver la oferta antes/después del horario nominal.</p>
+                                                                </section>
                                                             </div>
+                                                        )}
+
+                                                        <section className="space-y-4">
+                                                            <label className={`text-xs font-black ${isFlashMode ? 'text-red-500' : 'text-gray-500'} uppercase px-2`}>Días de la semana</label>
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {DAYS.map(day => {
+                                                                    const isActive = isFlashMode
+                                                                        ? formData.flashDays?.includes(day.id)
+                                                                        : formData.daysOfWeek?.includes(day.id);
+                                                                    return (
+                                                                        <button
+                                                                            key={day.id} type="button"
+                                                                            onClick={() => {
+                                                                                if (isFlashMode) {
+                                                                                    const current = formData.flashDays || [];
+                                                                                    setFormData({ ...formData, flashDays: current.includes(day.id) ? current.filter(d => d !== day.id) : [...current, day.id] });
+                                                                                } else {
+                                                                                    const current = formData.daysOfWeek || [];
+                                                                                    setFormData({ ...formData, daysOfWeek: current.includes(day.id) ? current.filter(d => d !== day.id) : [...current, day.id] });
+                                                                                }
+                                                                            }}
+                                                                            className={`flex-1 min-w-[60px] py-4 rounded-2xl font-black text-xs transition-all ${isActive ? (isFlashMode ? 'bg-red-600 text-white shadow-lg scale-105 shadow-red-100' : 'bg-purple-600 text-white shadow-lg scale-105') : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
+                                                                        >
+                                                                            {day.label}
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                            <p className="text-[10px] text-gray-400 font-bold uppercase italic text-center">
+                                                                {isFlashMode ? 'La oferta flash solo se activará en los días y horarios seleccionados' : 'La campaña tradicional solo estará visible los días seleccionados'}
+                                                            </p>
                                                         </section>
                                                     </div>
                                                 )}
+
+                                                {/* Eliminado el tab FLASH antiguo para evitar duplicados, ahora todo está en CONTENT y SCHEDULE */}
                                             </div>
                                         </div>
 

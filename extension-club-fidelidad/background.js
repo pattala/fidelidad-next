@@ -6,6 +6,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.type === 'API_CALL') {
         const { url, method, headers, body } = request.params;
 
+        const safeSendResponse = (data) => {
+            try {
+                sendResponse(data);
+            } catch (e) {
+                console.warn("[Extension] Channel closed before response could be sent.");
+            }
+        };
+
         fetch(url, {
             method: method || 'GET',
             headers: {
@@ -17,19 +25,19 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             .then(response => {
                 if (!response.ok) {
                     return response.json().then(errData => {
-                        sendResponse({ ok: false, error: errData.message || response.statusText });
+                        safeSendResponse({ ok: false, error: errData.message || response.statusText });
                     }).catch(() => {
-                        sendResponse({ ok: false, error: `Error HTTP: ${response.status}` });
+                        safeSendResponse({ ok: false, error: `Error HTTP: ${response.status}` });
                     });
                 }
-                return response.json().then(data => sendResponse({ ok: true, data }));
+                return response.json().then(data => safeSendResponse({ ok: true, data }));
             })
             .catch(error => {
                 console.error("❌ Error en Proxy API:", error);
-                sendResponse({ ok: false, error: error.message });
+                safeSendResponse({ ok: false, error: error.message });
             });
 
-        return true; // Mantener canal abierto para respuesta asincrónica
+        return true; // Keep channel open
     }
     // No devolvemos true para otros mensajes, cerrando el canal inmediatamente
 });

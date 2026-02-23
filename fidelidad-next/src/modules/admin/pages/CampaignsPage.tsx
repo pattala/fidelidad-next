@@ -16,7 +16,7 @@ import { EmailService } from '../../../services/emailService';
 import { TimeService } from '../../../services/timeService';
 import { useAdminAuth } from '../contexts/AdminAuthContext';
 
-type TabType = 'BASIC' | 'SCHEDULE' | 'RULES' | 'VISUAL' | 'CONTENT';
+type TabType = 'BASIC' | 'SCHEDULE' | 'RULES' | 'VISUAL' | 'CONTENT' | 'FLASH';
 
 export const CampaignsPage = () => {
     const navigate = useNavigate();
@@ -869,9 +869,13 @@ export const CampaignsPage = () => {
                                         <nav className="space-y-2 flex-1">
                                             {[
                                                 { id: 'BASIC', label: 'Básico', icon: <Target size={18} />, desc: 'Identificación' },
-                                                { id: 'CONTENT', label: 'Mensajes', icon: <Type size={18} />, desc: 'Textos y Canales' },
-                                                { id: 'SCHEDULE', label: 'Programación', icon: <Calendar size={18} />, desc: isFlashMode ? 'Horarios Flash' : 'Fechas' },
-                                                { id: 'RULES', label: 'Beneficio', icon: <Sparkles size={18} />, desc: 'Premio de Puntos' },
+                                                ...(isFlashMode ? [
+                                                    { id: 'FLASH', label: 'Oferta Flash', icon: <Zap size={18} />, desc: 'Configuración Especial' },
+                                                ] : [
+                                                    { id: 'CONTENT', label: 'Mensajes', icon: <Type size={18} />, desc: 'Textos y Canales' },
+                                                    { id: 'SCHEDULE', label: 'Programación', icon: <Calendar size={18} />, desc: 'Fechas y Días' },
+                                                    { id: 'RULES', label: 'Beneficio', icon: <Sparkles size={18} />, desc: 'Premio de Puntos' },
+                                                ]),
                                                 { id: 'VISUAL', label: 'Diseño', icon: <ImageIcon size={18} />, desc: 'Imagen y Estilo' },
                                             ].map(tab => (
                                                 <button
@@ -896,9 +900,9 @@ export const CampaignsPage = () => {
                                     </div>
 
                                     {/* Content del Modal + Preview Layout */}
-                                    <div className="flex-1 flex overflow-hidden">
+                                    <main className="flex-1 flex overflow-hidden">
                                         <div className="flex-1 p-8 md:p-12 overflow-y-auto bg-white">
-                                            <div className="max-w-xl mx-auto space-y-8">
+                                            <form id="campaign-form" onSubmit={handleSave} className="max-w-xl mx-auto space-y-8">
 
                                                 {activeTab === 'BASIC' && (
                                                     <div className="space-y-6 animate-slide-in-right">
@@ -949,97 +953,201 @@ export const CampaignsPage = () => {
                                                     </div>
                                                 )}
 
-                                                {activeTab === 'CONTENT' && (
+                                                {activeTab === 'CONTENT' && !isFlashMode && (
                                                     <div className="space-y-6 animate-slide-in-right">
-                                                        {isFlashMode ? (
-                                                            <div className="space-y-6">
-                                                                <section className="bg-red-50 p-6 rounded-[2rem] border border-red-100 space-y-4">
-                                                                    <div className="flex justify-between items-center mb-2">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <Zap size={14} className="text-red-600" />
-                                                                            <label className="text-xs font-black text-red-900 uppercase">Título Flash Especial</label>
-                                                                        </div>
+                                                        <div className="space-y-6">
+                                                            <section className="bg-white p-6 rounded-[2rem] border border-gray-100 space-y-4 shadow-sm">
+                                                                <div className="flex justify-between items-center mb-2">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <Type size={14} className="text-purple-600" />
+                                                                        <label className="text-xs font-black text-gray-800 uppercase">Título Público Tradicional</label>
                                                                     </div>
+                                                                    <label className="flex items-center gap-1 cursor-pointer">
+                                                                        <input type="checkbox" className="w-3 h-3 text-purple-600" checked={formData.showTitle} onChange={e => setFormData({ ...formData, showTitle: e.target.checked })} />
+                                                                        <span className="text-[9px] font-bold text-gray-400">Mostrar</span>
+                                                                    </label>
+                                                                </div>
+                                                                <input
+                                                                    type="text" placeholder="Ej: ¡Acumulá 500 puntos y canjeá!"
+                                                                    className="w-full p-4 rounded-xl bg-gray-50 border border-gray-100 focus:bg-white focus:ring-2 focus:ring-purple-100 outline-none transition-all text-sm font-bold"
+                                                                    value={formData.title}
+                                                                    onChange={e => setFormData({ ...formData, title: e.target.value })}
+                                                                />
+                                                            </section>
+
+                                                            <section className="bg-white p-6 rounded-[2rem] border border-gray-100 space-y-4 shadow-sm">
+                                                                <div className="flex justify-between items-center mb-2">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <AlignLeft size={14} className="text-purple-600" />
+                                                                        <label className="text-xs font-black text-gray-800 uppercase">Descripción Pública</label>
+                                                                    </div>
+                                                                    <label className="flex items-center gap-1 cursor-pointer">
+                                                                        <input type="checkbox" className="w-3 h-3 text-purple-600" checked={formData.showDescription} onChange={e => setFormData({ ...formData, showDescription: e.target.checked })} />
+                                                                        <span className="text-[9px] font-bold text-gray-400">Mostrar</span>
+                                                                    </label>
+                                                                </div>
+                                                                <textarea
+                                                                    rows={3} placeholder="Detalles de la oferta tradicional..."
+                                                                    className="w-full p-4 rounded-xl bg-gray-50 border border-gray-100 focus:bg-white focus:ring-2 focus:ring-purple-100 outline-none transition-all text-sm font-medium resize-none shadow-inner"
+                                                                    value={formData.description}
+                                                                    onChange={e => setFormData({ ...formData, description: e.target.value })}
+                                                                />
+                                                            </section>
+
+                                                            <section className="bg-blue-50 p-6 rounded-[2rem] border border-blue-100">
+                                                                <div className="flex justify-between items-center mb-4">
+                                                                    <div>
+                                                                        <label className="text-xs font-black text-blue-900 uppercase">Enlace de Acción</label>
+                                                                        <p className="text-[9px] text-blue-400 font-bold uppercase mt-0.5">Exclusivo para el Banner (Promos Vigentes)</p>
+                                                                    </div>
+                                                                    <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-bold italic">Opcional</span>
+                                                                </div>
+                                                                <div className="flex gap-2">
+                                                                    <div className="p-3 bg-white rounded-xl text-blue-400 shadow-sm">
+                                                                        <MousePointer2 size={20} />
+                                                                    </div>
+                                                                    <input
+                                                                        type="url" placeholder="https://tu-web.com/promo"
+                                                                        className="flex-1 p-3 rounded-xl bg-white shadow-sm border-none focus:ring-2 focus:ring-blue-200 outline-none text-sm placeholder:text-blue-200"
+                                                                        value={formData.link} onChange={e => setFormData({ ...formData, link: e.target.value })}
+                                                                    />
+                                                                </div>
+                                                            </section>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {activeTab === 'FLASH' && isFlashMode && (
+                                                    <div className="space-y-8 animate-slide-in-right">
+                                                        <section className="bg-red-50 p-6 rounded-[2rem] border border-red-100 space-y-4">
+                                                            <div className="flex items-center gap-2 mb-2">
+                                                                <Zap size={14} className="text-red-600" />
+                                                                <label className="text-xs font-black text-red-900 uppercase tracking-widest leading-none">Identidad de la Oferta</label>
+                                                            </div>
+                                                            <div className="space-y-4">
+                                                                <div>
+                                                                    <label className="text-[10px] font-black text-red-400 uppercase ml-2 mb-1 block">Título Mensaje</label>
                                                                     <input
                                                                         type="text" placeholder="Ej: ¡SOLO POR HOY: DOBLE PUNTOS!"
                                                                         className="w-full p-4 rounded-xl bg-white shadow-sm border border-red-100 focus:ring-2 focus:ring-red-200 outline-none transition-all text-sm font-black text-red-700 placeholder:text-red-200 uppercase"
                                                                         value={formData.flashTitle}
                                                                         onChange={e => setFormData({ ...formData, flashTitle: e.target.value })}
                                                                     />
-                                                                    <p className="text-[10px] text-red-400 font-bold uppercase tracking-tight">Este título aparecerá con el cronómetro y efectos visuales de urgencia.</p>
-                                                                </section>
-
-                                                                <section className="bg-white p-6 rounded-[2rem] border border-gray-100 space-y-4 shadow-sm">
-                                                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block">Descripción Flash</label>
+                                                                </div>
+                                                                <div>
+                                                                    <label className="text-[10px] font-black text-red-400 uppercase ml-2 mb-1 block">Breve Descripción</label>
                                                                     <textarea
-                                                                        rows={2} placeholder="Breve mensaje para la oferta flash..."
-                                                                        className="w-full p-4 rounded-xl bg-gray-50 border border-gray-100 focus:bg-white focus:ring-2 focus:ring-gray-100 outline-none transition-all text-sm font-medium resize-none shadow-inner"
+                                                                        rows={2} placeholder="Explica la oferta brevemente..."
+                                                                        className="w-full p-4 rounded-xl bg-white border border-red-100 focus:ring-2 focus:ring-red-200 outline-none transition-all text-sm font-medium resize-none shadow-inner"
                                                                         value={formData.flashDescription}
                                                                         onChange={e => setFormData({ ...formData, flashDescription: e.target.value })}
                                                                     />
-                                                                </section>
+                                                                </div>
                                                             </div>
-                                                        ) : (
-                                                            <div className="space-y-6">
-                                                                <section className="bg-white p-6 rounded-[2rem] border border-gray-100 space-y-4 shadow-sm">
-                                                                    <div className="flex justify-between items-center mb-2">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <Type size={14} className="text-purple-600" />
-                                                                            <label className="text-xs font-black text-gray-800 uppercase">Título Público Tradicional</label>
-                                                                        </div>
-                                                                        <label className="flex items-center gap-1 cursor-pointer">
-                                                                            <input type="checkbox" className="w-3 h-3 text-purple-600" checked={formData.showTitle} onChange={e => setFormData({ ...formData, showTitle: e.target.checked })} />
-                                                                            <span className="text-[9px] font-bold text-gray-400">Mostrar</span>
-                                                                        </label>
-                                                                    </div>
-                                                                    <input
-                                                                        type="text" placeholder="Ej: ¡Acumulá 500 puntos y canjeá!"
-                                                                        className="w-full p-4 rounded-xl bg-gray-50 border border-gray-100 focus:bg-white focus:ring-2 focus:ring-purple-100 outline-none transition-all text-sm font-bold"
-                                                                        value={formData.title}
-                                                                        onChange={e => setFormData({ ...formData, title: e.target.value })}
-                                                                    />
-                                                                </section>
+                                                        </section>
 
-                                                                <section className="bg-white p-6 rounded-[2rem] border border-gray-100 space-y-4 shadow-sm">
-                                                                    <div className="flex justify-between items-center mb-2">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <AlignLeft size={14} className="text-purple-600" />
-                                                                            <label className="text-xs font-black text-gray-800 uppercase">Descripción Pública</label>
-                                                                        </div>
-                                                                        <label className="flex items-center gap-1 cursor-pointer">
-                                                                            <input type="checkbox" className="w-3 h-3 text-purple-600" checked={formData.showDescription} onChange={e => setFormData({ ...formData, showDescription: e.target.checked })} />
-                                                                            <span className="text-[9px] font-bold text-gray-400">Mostrar</span>
-                                                                        </label>
-                                                                    </div>
-                                                                    <textarea
-                                                                        rows={3} placeholder="Detalles de la oferta tradicional..."
-                                                                        className="w-full p-4 rounded-xl bg-gray-50 border border-gray-100 focus:bg-white focus:ring-2 focus:ring-purple-100 outline-none transition-all text-sm font-medium resize-none shadow-inner"
-                                                                        value={formData.description}
-                                                                        onChange={e => setFormData({ ...formData, description: e.target.value })}
-                                                                    />
-                                                                </section>
-
-                                                                <section className="bg-blue-50 p-6 rounded-[2rem] border border-blue-100">
-                                                                    <div className="flex justify-between items-center mb-4">
-                                                                        <div>
-                                                                            <label className="text-xs font-black text-blue-900 uppercase">Enlace de Acción</label>
-                                                                            <p className="text-[9px] text-blue-400 font-bold uppercase mt-0.5">Exclusivo para el Banner (Promos Vigentes)</p>
-                                                                        </div>
-                                                                        <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-bold italic">Opcional</span>
-                                                                    </div>
-                                                                    <div className="flex gap-2">
-                                                                        <div className="p-3 bg-white rounded-xl text-blue-400 shadow-sm">
-                                                                            <MousePointer2 size={20} />
-                                                                        </div>
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                            <section className="bg-white p-6 rounded-[2.5rem] border border-gray-100 space-y-4 shadow-sm">
+                                                                <div className="flex items-center gap-2 mb-2">
+                                                                    <Clock size={14} className="text-red-600" />
+                                                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Horario de Activación</label>
+                                                                </div>
+                                                                <div className="grid grid-cols-2 gap-3">
+                                                                    <div>
+                                                                        <label className="text-[9px] font-black text-gray-400 uppercase block mb-1 ml-1">Inicio</label>
                                                                         <input
-                                                                            type="url" placeholder="https://tu-web.com/promo"
-                                                                            className="flex-1 p-3 rounded-xl bg-white shadow-sm border-none focus:ring-2 focus:ring-blue-200 outline-none text-sm placeholder:text-blue-200"
-                                                                            value={formData.link} onChange={e => setFormData({ ...formData, link: e.target.value })}
+                                                                            type="time" className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 focus:bg-white text-sm font-black text-red-600 outline-none"
+                                                                            value={formData.startTime} onChange={e => setFormData({ ...formData, startTime: e.target.value })}
                                                                         />
                                                                     </div>
-                                                                </section>
+                                                                    <div>
+                                                                        <label className="text-[9px] font-black text-gray-400 uppercase block mb-1 ml-1">Fin</label>
+                                                                        <input
+                                                                            type="time" className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 focus:bg-white text-sm font-black text-red-600 outline-none"
+                                                                            value={formData.endTime} onChange={e => setFormData({ ...formData, endTime: e.target.value })}
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            </section>
+
+                                                            <section className="bg-red-50/30 p-6 rounded-[2.5rem] border border-red-100/50 space-y-3">
+                                                                <div className="flex justify-between items-center mb-1">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <ToggleRight size={14} className="text-red-600" />
+                                                                        <label className="text-[10px] font-black text-red-900 uppercase">Tolerancia (Grace Period)</label>
+                                                                    </div>
+                                                                    <span className="text-xs font-black text-red-600">{formData.flashGraceMins} Min</span>
+                                                                </div>
+                                                                <input
+                                                                    type="range" min="0" max="120" step="5"
+                                                                    className="w-full h-2 bg-red-100 rounded-lg appearance-none cursor-pointer accent-red-600"
+                                                                    value={formData.flashGraceMins} onChange={e => setFormData({ ...formData, flashGraceMins: parseInt(e.target.value) })}
+                                                                />
+                                                                <p className="text-[9px] text-red-400 font-medium italic leading-tight">Tiempo extra antes/después.</p>
+                                                            </section>
+                                                        </div>
+
+                                                        <section className="bg-white p-6 rounded-[2rem] border border-gray-100 space-y-4 shadow-sm">
+                                                            <label className="text-xs font-black text-red-500 uppercase px-2">Días de la semana</label>
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {DAYS.map(day => (
+                                                                    <button
+                                                                        key={day.id} type="button"
+                                                                        onClick={() => {
+                                                                            const current = formData.flashDays || [];
+                                                                            const next = current.includes(day.id) ? current.filter(id => id !== day.id) : [...current, day.id];
+                                                                            setFormData({ ...formData, flashDays: next });
+                                                                        }}
+                                                                        className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${formData.flashDays?.includes(day.id) ? 'bg-red-600 text-white shadow-md scale-105' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
+                                                                    >
+                                                                        {day.label}
+                                                                    </button>
+                                                                ))}
                                                             </div>
-                                                        )}
+                                                        </section>
+
+                                                        <section className="bg-white p-6 rounded-[2rem] border border-gray-100 space-y-4 shadow-sm">
+                                                            <label className="text-xs font-black text-red-900 uppercase">Premio Flash Especial</label>
+                                                            <div className="grid grid-cols-3 gap-3">
+                                                                {[
+                                                                    { id: 'FIXED', label: 'Puntos', icon: <Plus size={16} /> },
+                                                                    { id: 'MULTIPLIER', label: 'Mult.', icon: <Zap size={16} /> },
+                                                                    { id: 'TEXT', label: 'Texto', icon: <Type size={16} /> },
+                                                                ].map(type => (
+                                                                    <button
+                                                                        key={type.id} type="button"
+                                                                        onClick={() => setFormData({ ...formData, flashRewardType: type.id as any })}
+                                                                        className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${formData.flashRewardType === type.id ? 'border-red-500 bg-red-500 text-white' : 'border-white bg-white text-gray-400'}`}
+                                                                    >
+                                                                        {type.icon}
+                                                                        <span className="text-[9px] font-black uppercase">{type.label}</span>
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+
+                                                            <div className="bg-white p-4 rounded-xl shadow-sm border border-red-50">
+                                                                {formData.flashRewardType === 'TEXT' ? (
+                                                                    <input
+                                                                        type="text" placeholder="Ej: 2x1, 50% OFF"
+                                                                        className="w-full text-xl font-black bg-transparent border-none text-center outline-none text-red-600 placeholder:text-red-200"
+                                                                        value={formData.flashRewardText || ''}
+                                                                        onChange={e => setFormData({ ...formData, flashRewardText: e.target.value })}
+                                                                    />
+                                                                ) : (
+                                                                    <div className="flex items-center justify-center gap-2">
+                                                                        <span className="text-xl font-black text-red-300">
+                                                                            {formData.flashRewardType === 'MULTIPLIER' ? 'x' : '+'}
+                                                                        </span>
+                                                                        <input
+                                                                            type="number" step={formData.flashRewardType === 'MULTIPLIER' ? "0.1" : "1"}
+                                                                            className="w-20 text-3xl font-black bg-transparent border-none text-center outline-none text-red-600"
+                                                                            value={formData.flashRewardValue || 0}
+                                                                            onChange={e => setFormData({ ...formData, flashRewardValue: parseFloat(e.target.value) || 0 })}
+                                                                        />
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </section>
                                                     </div>
                                                 )}
 
@@ -1270,217 +1378,113 @@ export const CampaignsPage = () => {
                                                     </div>
                                                 )}
 
-                                                {activeTab === 'RULES' && (
+                                                {activeTab === 'RULES' && !isFlashMode && (
                                                     <div className="space-y-8 animate-slide-in-right">
-                                                        {isFlashMode ? (
-                                                            <section className="space-y-4">
-                                                                <label className="text-xs font-black text-red-900 uppercase">Premio Flash Especial</label>
-                                                                <div className="grid grid-cols-3 gap-3">
-                                                                    {[
-                                                                        { id: 'FIXED', label: 'Puntos', icon: <Plus size={16} /> },
-                                                                        { id: 'MULTIPLIER', label: 'Mult.', icon: <Zap size={16} /> },
-                                                                        { id: 'TEXT', label: 'Texto', icon: <Type size={16} /> },
-                                                                    ].map(type => (
-                                                                        <button
-                                                                            key={type.id} type="button"
-                                                                            onClick={() => setFormData({ ...formData, flashRewardType: type.id as any })}
-                                                                            className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${formData.flashRewardType === type.id ? 'border-red-500 bg-red-500 text-white' : 'border-white bg-white text-gray-400'}`}
-                                                                        >
+                                                        <section className="space-y-4">
+                                                            <label className="text-xs font-black text-gray-600 uppercase">Tipo de Beneficio</label>
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                                                                {[
+                                                                    { id: 'FIXED', label: 'Puntos Fijos', sub: 'Suma X puntos a la cuenta', icon: <Plus size={24} />, color: 'bg-green-500' },
+                                                                    { id: 'MULTIPLIER', label: 'Multiplicador', sub: 'Multiplica los puntos de la compra', icon: <Zap size={24} />, color: 'bg-purple-600' },
+                                                                    { id: 'INFO', label: 'Solo Anuncio', sub: 'Informativo sin puntos extras', icon: <Megaphone size={24} />, color: 'bg-blue-500' },
+                                                                    { id: 'TEXT', label: 'Texto Libre', sub: 'Muestra un texto en lugar de puntos', icon: <Type size={24} />, color: 'bg-pink-500' },
+                                                                ].map(type => (
+                                                                    <button
+                                                                        key={type.id} type="button"
+                                                                        onClick={() => setFormData({ ...formData, rewardType: type.id as any })}
+                                                                        className={`p-5 rounded-3xl border-2 transition-all flex flex-col items-center text-center gap-2 ${formData.rewardType === type.id ? 'border-black bg-black text-white shadow-xl scale-[1.02]' : 'border-gray-100 hover:border-gray-200 bg-white'}`}
+                                                                    >
+                                                                        <div className={`p-3 rounded-2xl ${formData.rewardType === type.id ? 'bg-white/20' : 'bg-gray-100 text-gray-400'}`}>
                                                                             {type.icon}
-                                                                            <span className="text-[9px] font-black uppercase">{type.label}</span>
-                                                                        </button>
-                                                                    ))}
-                                                                </div>
-
-                                                                <div className="bg-white p-4 rounded-xl shadow-sm border border-red-50">
-                                                                    {formData.flashRewardType === 'TEXT' ? (
-                                                                        <input
-                                                                            type="text" placeholder="Ej: 2x1, 50% OFF"
-                                                                            className="w-full text-xl font-black bg-transparent border-none text-center outline-none text-red-600 placeholder:text-red-200"
-                                                                            value={formData.flashRewardText || ''}
-                                                                            onChange={e => setFormData({ ...formData, flashRewardText: e.target.value })}
-                                                                        />
-                                                                    ) : (
-                                                                        <div className="flex items-center justify-center gap-2">
-                                                                            <span className="text-xl font-black text-red-300">
-                                                                                {formData.flashRewardType === 'MULTIPLIER' ? 'x' : '+'}
-                                                                            </span>
-                                                                            <input
-                                                                                type="number" step={formData.flashRewardType === 'MULTIPLIER' ? "0.1" : "1"}
-                                                                                className="w-20 text-3xl font-black bg-transparent border-none text-center outline-none text-red-600"
-                                                                                value={formData.flashRewardValue || 0}
-                                                                                onChange={e => setFormData({ ...formData, flashRewardValue: parseFloat(e.target.value) || 0 })}
-                                                                            />
                                                                         </div>
-                                                                    )}
+                                                                        <div>
+                                                                            <p className="font-bold text-xs tracking-tight">{type.label}</p>
+                                                                            <p className={`text-[9px] mt-0.5 leading-tight ${formData.rewardType === type.id ? 'text-white/60' : 'text-gray-400'}`}>{type.sub}</p>
+                                                                        </div>
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </section>
+
+                                                        {(formData.rewardType as any) === 'TEXT' && (
+                                                            <section className="bg-pink-50 p-8 rounded-[3rem] text-center animate-fade-in border border-pink-100">
+                                                                <label className="text-xs font-black text-pink-400 uppercase mb-4 block">Texto del Beneficio</label>
+                                                                <input
+                                                                    type="text" placeholder="Ej: 2x1, 50% OFF"
+                                                                    className="w-full text-4xl font-black bg-transparent border-b-2 border-pink-200 focus:border-pink-500 text-center outline-none text-pink-600 placeholder:text-pink-200"
+                                                                    value={formData.rewardText || ''}
+                                                                    onChange={e => setFormData({ ...formData, rewardText: e.target.value })}
+                                                                />
+                                                                <p className="text-[10px] text-pink-400 mt-2 font-bold uppercase">Este texto reemplazará a los puntos en la visualización</p>
+                                                            </section>
+                                                        )}
+
+                                                        {formData.rewardType !== 'INFO' && (formData.rewardType as any) !== 'TEXT' && (
+                                                            <section className="bg-gray-50 p-8 rounded-[3rem] text-center animate-fade-in">
+                                                                <label className="text-xs font-black text-gray-400 uppercase mb-4 block">Valor del Beneficio</label>
+                                                                <div className="flex items-center justify-center gap-4">
+                                                                    <span className="text-4xl font-black text-gray-300">
+                                                                        {formData.rewardType === 'MULTIPLIER' ? 'x' : '+'}
+                                                                    </span>
+                                                                    <input
+                                                                        type="number" step={formData.rewardType === 'MULTIPLIER' ? "0.1" : "1"}
+                                                                        className="w-40 text-6xl font-black bg-transparent border-none focus:ring-0 text-center outline-none text-black"
+                                                                        value={formData.rewardValue} onChange={e => setFormData({ ...formData, rewardValue: parseFloat(e.target.value) || 0 })}
+                                                                    />
+                                                                    <span className="text-xl font-bold text-gray-400 uppercase">
+                                                                        {formData.rewardType === 'MULTIPLIER' ? 'Bonus' : 'Puntos'}
+                                                                    </span>
                                                                 </div>
                                                             </section>
-                                                        ) : (
-                                                            <>
-                                                                <section className="space-y-4">
-                                                                    <label className="text-xs font-black text-gray-600 uppercase">Tipo de Beneficio</label>
-                                                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                                                                        {[
-                                                                            { id: 'FIXED', label: 'Puntos Fijos', sub: 'Suma X puntos a la cuenta', icon: <Plus size={24} />, color: 'bg-green-500' },
-                                                                            { id: 'MULTIPLIER', label: 'Multiplicador', sub: 'Multiplica los puntos de la compra', icon: <Zap size={24} />, color: 'bg-purple-600' },
-                                                                            { id: 'INFO', label: 'Solo Anuncio', sub: 'Informativo sin puntos extras', icon: <Megaphone size={24} />, color: 'bg-blue-500' },
-                                                                            { id: 'TEXT', label: 'Texto Libre', sub: 'Muestra un texto en lugar de puntos', icon: <Type size={24} />, color: 'bg-pink-500' },
-                                                                        ].map(type => (
-                                                                            <button
-                                                                                key={type.id} type="button"
-                                                                                onClick={() => setFormData({ ...formData, rewardType: type.id as any })}
-                                                                                className={`p-5 rounded-3xl border-2 transition-all flex flex-col items-center text-center gap-2 ${formData.rewardType === type.id ? 'border-black bg-black text-white shadow-xl scale-[1.02]' : 'border-gray-100 hover:border-gray-200 bg-white'}`}
-                                                                            >
-                                                                                <div className={`p-3 rounded-2xl ${formData.rewardType === type.id ? 'bg-white/20' : 'bg-gray-100 text-gray-400'}`}>
-                                                                                    {type.icon}
-                                                                                </div>
-                                                                                <div>
-                                                                                    <p className="font-bold text-xs tracking-tight">{type.label}</p>
-                                                                                    <p className={`text-[9px] mt-0.5 leading-tight ${formData.rewardType === type.id ? 'text-white/60' : 'text-gray-400'}`}>{type.sub}</p>
-                                                                                </div>
-                                                                            </button>
-                                                                        ))}
-                                                                    </div>
-                                                                </section>
-
-                                                                {(formData.rewardType as any) === 'TEXT' && (
-                                                                    <section className="bg-pink-50 p-8 rounded-[3rem] text-center animate-fade-in border border-pink-100">
-                                                                        <label className="text-xs font-black text-pink-400 uppercase mb-4 block">Texto del Beneficio</label>
-                                                                        <input
-                                                                            type="text" placeholder="Ej: 2x1, 50% OFF"
-                                                                            className="w-full text-4xl font-black bg-transparent border-b-2 border-pink-200 focus:border-pink-500 text-center outline-none text-pink-600 placeholder:text-pink-200"
-                                                                            value={formData.rewardText || ''}
-                                                                            onChange={e => setFormData({ ...formData, rewardText: e.target.value })}
-                                                                        />
-                                                                        <p className="text-[10px] text-pink-400 mt-2 font-bold uppercase">Este texto reemplazará a los puntos en la visualización</p>
-                                                                    </section>
-                                                                )}
-
-                                                                {formData.rewardType !== 'INFO' && (formData.rewardType as any) !== 'TEXT' && (
-                                                                    <section className="bg-gray-50 p-8 rounded-[3rem] text-center animate-fade-in">
-                                                                        <label className="text-xs font-black text-gray-400 uppercase mb-4 block">Valor del Beneficio</label>
-                                                                        <div className="flex items-center justify-center gap-4">
-                                                                            <span className="text-4xl font-black text-gray-300">
-                                                                                {formData.rewardType === 'MULTIPLIER' ? 'x' : '+'}
-                                                                            </span>
-                                                                            <input
-                                                                                type="number" step={formData.rewardType === 'MULTIPLIER' ? "0.1" : "1"}
-                                                                                className="w-40 text-6xl font-black bg-transparent border-none focus:ring-0 text-center outline-none text-black"
-                                                                                value={formData.rewardValue} onChange={e => setFormData({ ...formData, rewardValue: parseFloat(e.target.value) || 0 })}
-                                                                            />
-                                                                            <span className="text-xl font-bold text-gray-400 uppercase">
-                                                                                {formData.rewardType === 'MULTIPLIER' ? 'Bonus' : 'Puntos'}
-                                                                            </span>
-                                                                        </div>
-                                                                    </section>
-                                                                )}
-                                                            </>
                                                         )}
                                                     </div>
                                                 )}
 
-                                                {activeTab === 'SCHEDULE' && (
+                                                {activeTab === 'SCHEDULE' && !isFlashMode && (
                                                     <div className="space-y-8 animate-slide-in-right">
-                                                        <section className={`${isFlashMode ? 'bg-red-50 border-red-100' : 'bg-purple-50 border-purple-100'} p-8 rounded-[3rem] border transition-colors`}>
+                                                        <section className="bg-purple-50 border-purple-100 p-8 rounded-[3rem] border transition-colors">
                                                             <div className="flex items-center gap-4 mb-6">
-                                                                <div className={`p-3 ${isFlashMode ? 'bg-red-600' : 'bg-purple-600'} text-white rounded-2xl shadow-lg`}>
+                                                                <div className="p-3 bg-purple-600 text-white rounded-2xl shadow-lg">
                                                                     <Calendar size={24} />
                                                                 </div>
                                                                 <div>
-                                                                    <h4 className={`font-black ${isFlashMode ? 'text-red-900' : 'text-purple-900'} text-lg uppercase tracking-tight`}>Vigencia de la Campaña</h4>
-                                                                    <p className={`text-[10px] ${isFlashMode ? 'text-red-600' : 'text-purple-600'} font-bold opacity-60 uppercase tracking-widest`}>Periodo total de la campaña (Vacio = Permanente)</p>
+                                                                    <h4 className="font-black text-purple-900 text-lg uppercase tracking-tight">Vigencia de la Campaña</h4>
+                                                                    <p className="text-[10px] text-purple-600 font-bold opacity-60 uppercase tracking-widest">Periodo total de la campaña (Vacio = Permanente)</p>
                                                                 </div>
                                                             </div>
                                                             <div className="grid grid-cols-2 gap-4">
                                                                 <div className="space-y-2">
-                                                                    <label className={`text-[10px] font-black ${isFlashMode ? 'text-red-400' : 'text-purple-400'} uppercase block ml-2`}>Fecha Inicio</label>
+                                                                    <label className="text-[10px] font-black text-purple-400 uppercase block ml-2">Fecha Inicio</label>
                                                                     <input type="date" className="w-full p-4 rounded-2xl bg-white border-none shadow-sm text-sm font-bold focus:ring-2 focus:ring-purple-200 outline-none transition-all" value={formData.startDate} onChange={e => setFormData({ ...formData, startDate: e.target.value })} />
                                                                 </div>
                                                                 <div className="space-y-2">
-                                                                    <label className={`text-[10px] font-black ${isFlashMode ? 'text-red-400' : 'text-purple-400'} uppercase block ml-2`}>Fecha Fin</label>
+                                                                    <label className="text-[10px] font-black text-purple-400 uppercase block ml-2">Fecha Fin</label>
                                                                     <input type="date" className="w-full p-4 rounded-2xl bg-white border-none shadow-sm text-sm font-bold focus:ring-2 focus:ring-purple-200 outline-none transition-all" value={formData.endDate} onChange={e => setFormData({ ...formData, endDate: e.target.value })} />
                                                                 </div>
                                                             </div>
                                                         </section>
 
-                                                        {isFlashMode && (
-                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
-                                                                <section className="bg-white p-6 rounded-[2.5rem] border border-gray-100 space-y-4 shadow-sm">
-                                                                    <div className="flex items-center gap-2 mb-2">
-                                                                        <Clock size={14} className="text-red-600" />
-                                                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Horario de Activación</label>
-                                                                    </div>
-                                                                    <div className="grid grid-cols-2 gap-3">
-                                                                        <div>
-                                                                            <label className="text-[9px] font-black text-gray-400 uppercase block mb-1 ml-1">Inicio</label>
-                                                                            <input
-                                                                                type="time" className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 focus:bg-white text-sm font-black text-red-600 outline-none"
-                                                                                value={formData.startTime} onChange={e => setFormData({ ...formData, startTime: e.target.value })}
-                                                                            />
-                                                                        </div>
-                                                                        <div>
-                                                                            <label className="text-[9px] font-black text-gray-400 uppercase block mb-1 ml-1">Fin</label>
-                                                                            <input
-                                                                                type="time" className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 focus:bg-white text-sm font-black text-red-600 outline-none"
-                                                                                value={formData.endTime} onChange={e => setFormData({ ...formData, endTime: e.target.value })}
-                                                                            />
-                                                                        </div>
-                                                                    </div>
-                                                                </section>
-
-                                                                <section className="bg-red-50/30 p-6 rounded-[2.5rem] border border-red-100/50 space-y-3">
-                                                                    <div className="flex justify-between items-center mb-1">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <ToggleRight size={14} className="text-red-600" />
-                                                                            <label className="text-[10px] font-black text-red-900 uppercase">Tolerancia (Grace Period)</label>
-                                                                        </div>
-                                                                        <span className="text-xs font-black text-red-600">{formData.flashGraceMins} Min</span>
-                                                                    </div>
-                                                                    <input
-                                                                        type="range" min="0" max="120" step="5"
-                                                                        className="w-full h-2 bg-red-100 rounded-lg appearance-none cursor-pointer accent-red-600"
-                                                                        value={formData.flashGraceMins} onChange={e => setFormData({ ...formData, flashGraceMins: parseInt(e.target.value) })}
-                                                                    />
-                                                                    <p className="text-[9px] text-red-400 font-medium italic leading-tight">Tiempo extra para ver la oferta antes/después del horario nominal.</p>
-                                                                </section>
-                                                            </div>
-                                                        )}
-
                                                         <section className="space-y-4">
-                                                            <label className={`text-xs font-black ${isFlashMode ? 'text-red-500' : 'text-gray-500'} uppercase px-2`}>Días de la semana</label>
+                                                            <label className="text-xs font-black text-gray-500 uppercase px-2">Días de la semana</label>
                                                             <div className="flex flex-wrap gap-2">
-                                                                {DAYS.map(day => {
-                                                                    const isActive = isFlashMode
-                                                                        ? formData.flashDays?.includes(day.id)
-                                                                        : formData.daysOfWeek?.includes(day.id);
-                                                                    return (
-                                                                        <button
-                                                                            key={day.id} type="button"
-                                                                            onClick={() => {
-                                                                                if (isFlashMode) {
-                                                                                    const current = formData.flashDays || [];
-                                                                                    setFormData({ ...formData, flashDays: current.includes(day.id) ? current.filter(d => d !== day.id) : [...current, day.id] });
-                                                                                } else {
-                                                                                    const current = formData.daysOfWeek || [];
-                                                                                    setFormData({ ...formData, daysOfWeek: current.includes(day.id) ? current.filter(d => d !== day.id) : [...current, day.id] });
-                                                                                }
-                                                                            }}
-                                                                            className={`flex-1 min-w-[60px] py-4 rounded-2xl font-black text-xs transition-all ${isActive ? (isFlashMode ? 'bg-red-600 text-white shadow-lg scale-105 shadow-red-100' : 'bg-purple-600 text-white shadow-lg scale-105') : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
-                                                                        >
-                                                                            {day.label}
-                                                                        </button>
-                                                                    );
-                                                                })}
+                                                                {DAYS.map(day => (
+                                                                    <button
+                                                                        key={day.id} type="button"
+                                                                        onClick={() => {
+                                                                            const current = formData.daysOfWeek || [];
+                                                                            const next = current.includes(day.id) ? current.filter(id => id !== day.id) : [...current, day.id];
+                                                                            setFormData({ ...formData, daysOfWeek: next });
+                                                                        }}
+                                                                        className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${formData.daysOfWeek?.includes(day.id) ? 'bg-purple-600 text-white shadow-md scale-105' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
+                                                                    >
+                                                                        {day.label}
+                                                                    </button>
+                                                                ))}
                                                             </div>
-                                                            <p className="text-[10px] text-gray-400 font-bold uppercase italic text-center">
-                                                                {isFlashMode ? 'La oferta flash solo se activará en los días y horarios seleccionados' : 'La campaña tradicional solo estará visible los días seleccionados'}
-                                                            </p>
                                                         </section>
                                                     </div>
                                                 )}
-
-                                                {/* Eliminado el tab FLASH antiguo para evitar duplicados, ahora todo está en CONTENT y SCHEDULE */}
-                                            </div>
+                                            </form>
                                         </div>
 
                                         {/* Sticky Preview (Visible on large screens) */}
@@ -1503,7 +1507,7 @@ export const CampaignsPage = () => {
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
+                                    </main>
                                 </>
                             )}
 
@@ -1514,8 +1518,8 @@ export const CampaignsPage = () => {
                             >
                                 <X size={24} />
                             </button>
-                        </div>
-                    </div>
+                        </div >
+                    </div >
                 )
             }
 

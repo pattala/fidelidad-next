@@ -457,14 +457,29 @@ export const CampaignsPage = () => {
 
             <div className="p-3 bg-gray-50 h-[500px] overflow-y-auto space-y-4 relative">
                 {isFlashMode && (
-                    <div className="bg-gradient-to-r from-red-600 to-orange-500 p-4 rounded-[1.5rem] shadow-lg text-white relative overflow-hidden mb-1 border-2 border-white/20 animate-pulse-slow">
+                    <div
+                        className="p-4 rounded-[1.5rem] shadow-lg text-white relative overflow-hidden mb-1 border-2 border-white/20 animate-pulse-slow"
+                        style={{
+                            backgroundColor: formData.backgroundColor || '#ef4444',
+                            backgroundImage: formData.imageUrl ? `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url(${formData.imageUrl})` : 'none',
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center'
+                        }}
+                    >
                         <div className="absolute -top-4 -right-4 opacity-10"><Clock size={40} /></div>
                         <div className="relative z-10">
                             <div className="flex items-center gap-1 mb-1">
                                 <Sparkles size={10} className="animate-bounce" />
                                 <span className="text-[7px] font-black uppercase tracking-widest">Oferta Flash Activa</span>
                             </div>
-                            <h3 className="text-xs font-black truncate leading-tight mb-2 italic">
+                            <h3
+                                className="text-xs font-black truncate leading-tight mb-2 italic"
+                                style={{
+                                    color: formData.titleColor || 'white',
+                                    fontFamily: formData.titleFont === 'mono' ? 'monospace' : formData.titleFont === 'serif' ? 'serif' : 'sans-serif',
+                                    fontWeight: formData.titleWeight || '900'
+                                }}
+                            >
                                 {formData.flashTitle || 'Título Flash'}
                             </h3>
                             <div className="flex items-center gap-2">
@@ -1026,64 +1041,63 @@ export const CampaignsPage = () => {
                                                             </div>
                                                             <div className="space-y-4">
                                                                 <div>
-                                                                    <label className="text-[10px] font-black text-red-400 uppercase ml-2 mb-1 block">Título Mensaje</label>
-                                                                    <input
-                                                                        type="text" placeholder="Ej: ¡SOLO POR HOY: DOBLE PUNTOS!"
-                                                                        className="w-full p-4 rounded-xl bg-white shadow-sm border border-red-100 focus:ring-2 focus:ring-red-200 outline-none transition-all text-sm font-black text-red-700 placeholder:text-red-200 uppercase"
+                                                                    <label className="text-[10px] font-black text-red-400 uppercase ml-2 mb-1 block">Título del Mensaje (Público)</label>
+                                                                    <textarea
+                                                                        rows={3}
+                                                                        placeholder="Ej: ¡SOLO POR HOY! COMPRANDO 3 CAJAS DE RAVIOLES... ¡TE REGALAMOS LOS PUNTOS DOBLES!"
+                                                                        className="w-full p-4 rounded-xl bg-white shadow-sm border border-red-100 focus:ring-2 focus:ring-red-200 outline-none transition-all text-base font-black text-red-700 placeholder:text-red-200 uppercase resize-none"
                                                                         value={formData.flashTitle}
                                                                         onChange={e => setFormData({ ...formData, flashTitle: e.target.value })}
                                                                     />
-                                                                </div>
-                                                                <div>
-                                                                    <label className="text-[10px] font-black text-red-400 uppercase ml-2 mb-1 block">Breve Descripción</label>
-                                                                    <textarea
-                                                                        rows={2} placeholder="Explica la oferta brevemente..."
-                                                                        className="w-full p-4 rounded-xl bg-white border border-red-100 focus:ring-2 focus:ring-red-200 outline-none transition-all text-sm font-medium resize-none shadow-inner"
-                                                                        value={formData.flashDescription}
-                                                                        onChange={e => setFormData({ ...formData, flashDescription: e.target.value })}
-                                                                    />
+                                                                    <p className="text-[9px] text-red-400 font-bold uppercase mt-2 italic px-2">Este mensaje es el que verán los clientes en la App y Notificaciones</p>
                                                                 </div>
                                                             </div>
                                                         </section>
 
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                        <div className="space-y-6">
                                                             <section className="bg-white p-6 rounded-[2.5rem] border border-gray-100 space-y-4 shadow-sm">
                                                                 <div className="flex items-center gap-2 mb-2">
-                                                                    <Clock size={14} className="text-red-600" />
-                                                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Horario de Activación</label>
+                                                                    <Clock size={16} className="text-red-600" />
+                                                                    <label className="text-xs font-black text-gray-500 uppercase tracking-widest">Horario de Activación</label>
                                                                 </div>
-                                                                <div className="grid grid-cols-2 gap-3">
-                                                                    <div>
-                                                                        <label className="text-[9px] font-black text-gray-400 uppercase block mb-1 ml-1">Inicio</label>
+                                                                <div className="grid grid-cols-2 gap-6 pt-2">
+                                                                    <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                                                                        <label className="text-[10px] font-black text-gray-400 uppercase block mb-2 ml-1">Hora Inicio</label>
                                                                         <input
-                                                                            type="time" className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 focus:bg-white text-sm font-black text-red-600 outline-none"
+                                                                            type="time" className="w-full bg-transparent text-xl font-black text-red-600 outline-none"
                                                                             value={formData.startTime} onChange={e => setFormData({ ...formData, startTime: e.target.value })}
                                                                         />
                                                                     </div>
-                                                                    <div>
-                                                                        <label className="text-[9px] font-black text-gray-400 uppercase block mb-1 ml-1">Fin</label>
+                                                                    <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                                                                        <label className="text-[10px] font-black text-gray-400 uppercase block mb-2 ml-1">Hora Fin</label>
                                                                         <input
-                                                                            type="time" className="w-full p-3 rounded-xl bg-gray-50 border border-gray-100 focus:bg-white text-sm font-black text-red-600 outline-none"
+                                                                            type="time" className="w-full bg-transparent text-xl font-black text-red-600 outline-none"
                                                                             value={formData.endTime} onChange={e => setFormData({ ...formData, endTime: e.target.value })}
                                                                         />
                                                                     </div>
                                                                 </div>
                                                             </section>
 
-                                                            <section className="bg-red-50/30 p-6 rounded-[2.5rem] border border-red-100/50 space-y-3">
-                                                                <div className="flex justify-between items-center mb-1">
+                                                            <section className="bg-red-50/50 p-6 rounded-[2.5rem] border border-red-100 space-y-4">
+                                                                <div className="flex justify-between items-center px-2">
                                                                     <div className="flex items-center gap-2">
-                                                                        <ToggleRight size={14} className="text-red-600" />
-                                                                        <label className="text-[10px] font-black text-red-900 uppercase">Tolerancia (Grace Period)</label>
+                                                                        <ToggleRight size={16} className="text-red-600" />
+                                                                        <label className="text-xs font-black text-red-900 uppercase tracking-widest">Tolerancia (Grace Period)</label>
                                                                     </div>
-                                                                    <span className="text-xs font-black text-red-600">{formData.flashGraceMins} Min</span>
+                                                                    <span className="text-sm font-black text-red-600 bg-red-100 px-3 py-1 rounded-full">{formData.flashGraceMins} Minutos</span>
                                                                 </div>
-                                                                <input
-                                                                    type="range" min="0" max="120" step="5"
-                                                                    className="w-full h-2 bg-red-100 rounded-lg appearance-none cursor-pointer accent-red-600"
-                                                                    value={formData.flashGraceMins} onChange={e => setFormData({ ...formData, flashGraceMins: parseInt(e.target.value) })}
-                                                                />
-                                                                <p className="text-[9px] text-red-400 font-medium italic leading-tight">Tiempo extra antes/después.</p>
+                                                                <div className="px-2">
+                                                                    <input
+                                                                        type="range" min="0" max="120" step="5"
+                                                                        className="w-full h-2 bg-red-200 rounded-lg appearance-none cursor-pointer accent-red-600"
+                                                                        value={formData.flashGraceMins} onChange={e => setFormData({ ...formData, flashGraceMins: parseInt(e.target.value) })}
+                                                                    />
+                                                                    <div className="flex justify-between mt-2 text-[10px] text-red-300 font-bold uppercase">
+                                                                        <span>Estricto (0)</span>
+                                                                        <span>2 Horas (120)</span>
+                                                                    </div>
+                                                                </div>
+                                                                <p className="text-[10px] text-red-400 font-bold italic leading-tight px-2 uppercase">Tiempo extra permitido antes y después del horario nominal.</p>
                                                             </section>
                                                         </div>
 
@@ -1157,22 +1171,24 @@ export const CampaignsPage = () => {
                                                     <div className="space-y-8 animate-slide-in-right">
                                                         <section className="space-y-4">
                                                             <div className="flex items-center gap-2 mb-2">
-                                                                <ImageIcon size={14} className="text-purple-600" />
-                                                                <label className="text-xs font-black text-gray-600 uppercase tracking-widest">Configuración de Imagen (Carrusel / Banner)</label>
+                                                                <ImageIcon size={14} className={isFlashMode ? "text-red-600" : "text-purple-600"} />
+                                                                <label className="text-xs font-black text-gray-600 uppercase tracking-widest">
+                                                                    {isFlashMode ? "Imagen de la Oferta (Opcional)" : "Configuración de Imagen (Carrusel / Banner)"}
+                                                                </label>
                                                             </div>
                                                             <div className="flex gap-4">
                                                                 <input
                                                                     type="url" placeholder="Pega el enlace de la imagen aquí..."
-                                                                    className="flex-1 p-4 rounded-2xl bg-gray-50 border border-gray-100 focus:bg-white focus:ring-2 focus:ring-purple-100 outline-none transition-all text-sm font-medium"
+                                                                    className={`flex-1 p-4 rounded-2xl bg-gray-50 border border-gray-100 outline-none transition-all text-sm font-medium focus:bg-white focus:ring-2 ${isFlashMode ? 'focus:ring-red-100' : 'focus:ring-purple-100'}`}
                                                                     value={formData.imageUrl} onChange={e => setFormData({ ...formData, imageUrl: e.target.value })}
                                                                 />
                                                             </div>
                                                         </section>
 
-                                                        <section className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <section className={`p-6 rounded-[2rem] border grid grid-cols-1 md:grid-cols-2 gap-4 ${isFlashMode ? 'bg-red-50/30 border-red-100' : 'bg-gray-50 border-gray-100'}`}>
                                                             <label className="flex items-center justify-between p-3 bg-white rounded-xl shadow-sm cursor-pointer hover:bg-gray-50 transition-colors">
                                                                 <div className="flex items-center gap-3">
-                                                                    <div className={`p-2 rounded-lg ${formData.showInCarousel ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-400'}`}>
+                                                                    <div className={`p-2 rounded-lg ${formData.showInCarousel ? (isFlashMode ? 'bg-red-100 text-red-600' : 'bg-purple-100 text-purple-600') : 'bg-gray-100 text-gray-400'}`}>
                                                                         <Layout size={20} />
                                                                     </div>
                                                                     <div>
@@ -1180,7 +1196,7 @@ export const CampaignsPage = () => {
                                                                         <p className="text-[10px] text-gray-400">Carrusel superior principal</p>
                                                                     </div>
                                                                 </div>
-                                                                <div className={`w-10 h-6 shrink-0 rounded-full p-1 transition-colors duration-300 ${formData.showInCarousel ? 'bg-purple-600' : 'bg-gray-200'}`}>
+                                                                <div className={`w-10 h-6 shrink-0 rounded-full p-1 transition-colors duration-300 ${formData.showInCarousel ? (isFlashMode ? 'bg-red-600' : 'bg-purple-600') : 'bg-gray-200'}`}>
                                                                     <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-300 ${formData.showInCarousel ? 'translate-x-4' : 'translate-x-0'}`} />
                                                                 </div>
                                                                 <input
@@ -1192,7 +1208,7 @@ export const CampaignsPage = () => {
 
                                                             <label className="flex items-center justify-between p-3 bg-white rounded-xl shadow-sm cursor-pointer hover:bg-gray-50 transition-colors">
                                                                 <div className="flex items-center gap-3">
-                                                                    <div className={`p-2 rounded-lg ${formData.showInHomeBanner ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
+                                                                    <div className={`p-2 rounded-lg ${formData.showInHomeBanner ? (isFlashMode ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600') : 'bg-gray-100 text-gray-400'}`}>
                                                                         <Monitor size={20} />
                                                                     </div>
                                                                     <div>
@@ -1200,7 +1216,7 @@ export const CampaignsPage = () => {
                                                                         <p className="text-[10px] text-gray-400">Lista inferior en la App</p>
                                                                     </div>
                                                                 </div>
-                                                                <div className={`w-10 h-6 shrink-0 rounded-full p-1 transition-colors duration-300 ${formData.showInHomeBanner ? 'bg-blue-600' : 'bg-gray-200'}`}>
+                                                                <div className={`w-10 h-6 shrink-0 rounded-full p-1 transition-colors duration-300 ${formData.showInHomeBanner ? (isFlashMode ? 'bg-red-600' : 'bg-blue-600') : 'bg-gray-200'}`}>
                                                                     <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-300 ${formData.showInHomeBanner ? 'translate-x-4' : 'translate-x-0'}`} />
                                                                 </div>
                                                                 <input

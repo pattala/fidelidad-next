@@ -877,7 +877,7 @@ export const CampaignsPage = () => {
                                                 { id: 'SCHEDULE', label: 'Programación', icon: <Calendar size={18} />, desc: isFlashMode ? 'Horarios Flash' : 'Fechas' },
                                                 { id: 'RULES', label: 'Beneficio', icon: <Sparkles size={18} />, desc: 'Premio de Puntos' },
                                                 { id: 'VISUAL', label: 'Diseño', icon: <ImageIcon size={18} />, desc: 'Imagen y Estilo' },
-                                            ].map(tab => (
+                                            ].filter(tab => !isFlashMode || tab.id !== 'VISUAL').map(tab => (
                                                 <button
                                                     key={tab.id}
                                                     onClick={() => setActiveTab(tab.id as TabType)}

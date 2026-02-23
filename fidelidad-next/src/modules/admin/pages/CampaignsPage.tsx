@@ -182,7 +182,7 @@ export const CampaignsPage = () => {
                     { action: 'campaign_update', campaignId: editingId, name: payload.name }
                 ]);
             } else {
-                const newId = await CampaignService.create(payload);
+                const newId = await CampaignService.create(payload as Omit<BonusRule, 'id'>);
                 toast.success('Campaña creada');
                 await AuditService.log('campaign_created', `Nueva campaña: ${payload.name}`, [
                     { action: 'campaign_create', name: payload.name }

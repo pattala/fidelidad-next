@@ -372,7 +372,7 @@ export const ClientHomePage = () => {
                             <span className="text-[10px] font-black uppercase tracking-[0.3em]">¡OFERTA FLASH ACTIVA!</span>
                         </div>
                         <h3 className="text-2xl font-black tracking-tight mb-1 uppercase italic">
-                            {activeFlash.title || activeFlash.name}
+                            {activeFlash.flashTitle || activeFlash.title || activeFlash.name}
                         </h3>
                         <div className="flex items-center gap-3 mt-3">
                             <div className="bg-white/20 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 shrink-0">

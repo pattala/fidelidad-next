@@ -118,28 +118,10 @@ export const CampaignsPage = () => {
                     return;
                 }
 
-                const overlapping = bonuses.find(b => {
-                    if (b.id === editingId || !b.isFlash || !b.active) return false;
-
-                    // Check if days intersect
-                    const daysIntersect = formData.flashDays?.some(d => (b as any).flashDays?.includes(d));
-                    if (!daysIntersect) return false;
-
-                    // Check if nominal times overlap (STRICTLY NO GRACE)
-                    const newStart = formData.startTime || '00:00';
-                    const newEnd = formData.endTime || '23:59';
-                    const oldStart = b.startTime || '00:00';
-                    const oldEnd = b.endTime || '23:59';
-
-                    // Standard overlap formula
-                    return (newStart < oldEnd && newEnd > oldStart);
-                });
-
-                if (overlapping && formData.active) {
-                    toast(`Campaña guardada, pero se desactivó automáticamente por solaparse con "${overlapping.name}".`, {
-                        icon: '⚠️',
-                        duration: 6000
-                    });
+                if (editingId) {
+                    // Si estamos editando y activando una campaña en el guardado (no debería pasar por el nuevo flujo, 
+                    // pero mantenemos consistencia), el check de solapamiento ya no bloquea, solo previene si se intenta guardar activa.
+                    // Sin embargo, según el nuevo flujo, Flash SIEMPRE se guarda inactiva.
                     formData.active = false;
                 }
             }
@@ -167,7 +149,6 @@ export const CampaignsPage = () => {
 
                 // Si NO es flash, limpiamos los campos flash
                 flashTitle: isFlashMode ? formData.flashTitle : '',
-                flashDescription: isFlashMode ? formData.flashDescription : '',
                 flashRewardType: isFlashMode ? formData.flashRewardType : 'FIXED',
                 flashRewardValue: isFlashMode ? formData.flashRewardValue : 0,
                 flashRewardText: isFlashMode ? formData.flashRewardText : '',
@@ -226,8 +207,29 @@ export const CampaignsPage = () => {
             });
 
             if (overlapping) {
-                toast.error(`No se puede activar: Choca con "${overlapping.name}" que ya está activa en este horario. Apágala primero para poder activar esta.`);
-                return;
+                if (confirm(`La oferta "${bonus.name}" se solapa con "${overlapping.name}", que ya está activa.\n\n¿Deseas desactivar "${overlapping.name}" y activar esta ahora?`)) {
+                    try {
+                        // 1. Desactivar la previa
+                        await CampaignService.update(overlapping.id, { active: false });
+                        await AuditService.log('campaign_mgmt', `Alternancia automática: Desactivación de "${overlapping.name}" por solapamiento con "${bonus.name}"`, [
+                            { action: 'campaign_auto_toggle_off', campaignId: overlapping.id, reason: 'overlap_switching', targetCampaignId: bonus.id }
+                        ]);
+
+                        // 2. Activar la nueva
+                        await CampaignService.update(bonus.id, { active: true });
+                        await AuditService.log('campaign_mgmt', `Alternancia automática: Activación de "${bonus.name}" (reemplaza a "${overlapping.name}")`, [
+                            { action: 'campaign_auto_toggle_on', campaignId: bonus.id, replacedId: overlapping.id }
+                        ]);
+
+                        toast.success(`Campaña "${bonus.name}" activada correctamente.`);
+                        fetchBonuses();
+                        return;
+                    } catch (e) {
+                        toast.error('Error al realizar el cambio de oferta');
+                        return;
+                    }
+                }
+                return; // User canceled
             }
         }
 
@@ -917,23 +919,25 @@ export const CampaignsPage = () => {
                                                             <p className="text-[9px] text-gray-400 font-bold uppercase mt-2 italic">Este nombre solo lo ven los administradores</p>
                                                         </section>
 
-                                                        <section className="pt-4 border-t border-gray-100 flex items-center justify-between">
-                                                            <div>
-                                                                <label className="text-xs font-black text-gray-500 uppercase block">Estado de Publicación</label>
-                                                                <p className="text-[9px] text-gray-400 font-bold uppercase mt-0.5 italic">Determina si la campaña está al aire</p>
-                                                            </div>
-                                                            <label className="flex items-center gap-3 cursor-pointer group">
-                                                                <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${formData.active ? 'text-green-600' : 'text-gray-400'}`}>
-                                                                    {formData.active ? 'Publicada' : 'Borrador'}
-                                                                </span>
-                                                                <div
-                                                                    onClick={() => setFormData({ ...formData, active: !formData.active })}
-                                                                    className={`w-12 h-6 rounded-full p-1 transition-all duration-300 flex items-center ${formData.active ? (isFlashMode ? 'bg-red-500 shadow-red-100' : 'bg-green-500 shadow-green-100') : 'bg-gray-200'}`}
-                                                                >
-                                                                    <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${formData.active ? 'translate-x-6' : 'translate-x-0'}`} />
+                                                        {!isFlashMode && (
+                                                            <section className="pt-4 border-t border-gray-100 flex items-center justify-between">
+                                                                <div>
+                                                                    <label className="text-xs font-black text-gray-500 uppercase block">Estado de Publicación</label>
+                                                                    <p className="text-[9px] text-gray-400 font-bold uppercase mt-0.5 italic">Determina si la campaña está al aire</p>
                                                                 </div>
-                                                            </label>
-                                                        </section>
+                                                                <label className="flex items-center gap-3 cursor-pointer group">
+                                                                    <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${formData.active ? 'text-green-600' : 'text-gray-400'}`}>
+                                                                        {formData.active ? 'Publicada' : 'Borrador'}
+                                                                    </span>
+                                                                    <div
+                                                                        onClick={() => setFormData({ ...formData, active: !formData.active })}
+                                                                        className={`w-12 h-6 rounded-full p-1 transition-all duration-300 flex items-center ${formData.active ? 'bg-green-500 shadow-green-100' : 'bg-gray-200'}`}
+                                                                    >
+                                                                        <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${formData.active ? 'translate-x-6' : 'translate-x-0'}`} />
+                                                                    </div>
+                                                                </label>
+                                                            </section>
+                                                        )}
 
                                                         <section className="pt-4 border-t border-gray-100">
                                                             <div className="mb-4">
@@ -988,8 +992,6 @@ export const CampaignsPage = () => {
                                                                     />
                                                                     <p className="text-[10px] text-red-400 font-bold uppercase tracking-tight">Este título aparecerá con el cronómetro y efectos visuales de urgencia.</p>
                                                                 </section>
-
-                                                                {/* Eliminada descripción breve para Flash por redundancia */}
                                                             </div>
                                                         ) : (
                                                             <div className="space-y-6">
@@ -1448,7 +1450,7 @@ export const CampaignsPage = () => {
                                                                     <div className="flex justify-between items-center mb-1">
                                                                         <div className="flex items-center gap-2">
                                                                             <ToggleRight size={14} className="text-red-600" />
-                                                                            <label className="text-[10px] font-black text-red-900 uppercase">Tolerancia (Grace Period)</label>
+                                                                            <label className="text-[10px] font-black text-red-900 uppercase">Margen Interno (Tolerancia)</label>
                                                                         </div>
                                                                         <span className="text-xs font-black text-red-600">{formData.flashGraceMins} Min</span>
                                                                     </div>
@@ -1457,7 +1459,7 @@ export const CampaignsPage = () => {
                                                                         className="w-full h-2 bg-red-100 rounded-lg appearance-none cursor-pointer accent-red-600"
                                                                         value={formData.flashGraceMins} onChange={e => setFormData({ ...formData, flashGraceMins: parseInt(e.target.value) })}
                                                                     />
-                                                                    <p className="text-[9px] text-red-400 font-medium italic leading-tight">Tiempo extra para ver la oferta antes/después del horario nominal.</p>
+                                                                    <p className="text-[9px] text-red-400 font-medium italic leading-tight">Margen extra para validación de puntos después del cierre. No afecta visibilidad.</p>
                                                                 </section>
                                                             </div>
                                                         )}

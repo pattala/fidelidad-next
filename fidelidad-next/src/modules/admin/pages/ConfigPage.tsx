@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Plus, Trash2, Palette, Calculator, Monitor, Settings, Home, Gift, MessageCircle, FileText, AlertTriangle, RefreshCw, ShieldAlert, Users, Clock } from 'lucide-react';
+import { Save, Plus, Trash2, Palette, Calculator, Monitor, Settings, Home, Gift, MessageCircle, FileText, AlertTriangle, RefreshCw, ShieldAlert, Users, Clock, Eye, Sparkles, Cake, Zap, UserPlus } from 'lucide-react';
 import { ConfigService, DEFAULT_TEMPLATES } from '../../../services/configService';
+import { EmailPreviewModal } from '../components/EmailPreviewModal';
 import { EmailService } from '../../../services/emailService';
 import { toast } from 'react-hot-toast';
 import { PointValueCalculatorModal } from '../components/PointValueCalculatorModal';
@@ -137,6 +138,41 @@ export const ConfigPage = () => {
     const [showCalculator, setShowCalculator] = useState(false);
     const [autoPointValue, setAutoPointValue] = useState<number>(0);
     const [lastAuditLog, setLastAuditLog] = useState<any>(null);
+
+    // Email Preview State
+    const [previewModal, setPreviewModal] = useState({
+        isOpen: false,
+        templateId: '',
+        title: '',
+        content: ''
+    });
+
+    const openPreview = (templateId: string, title?: string) => {
+        const content = config.messaging?.templates?.[templateId as keyof typeof config.messaging.templates] || DEFAULT_TEMPLATES[templateId as keyof typeof DEFAULT_TEMPLATES] || '';
+
+        // Subject logic: some templates don't have a separate subject field in the DB yet,
+        // so we use descriptive titles for the preview.
+        const subjects: Record<string, string> = {
+            welcome: `¡Bienvenido a ${config.siteName}!`,
+            pointsAdded: `Suma de Puntos - ${config.siteName}`,
+            redemption: `Canje Confirmado - ${config.siteName}`,
+            campaign: `Novedades en ${config.siteName}`,
+            offer: `Oferta Especial - ${config.siteName}`,
+            flashOffer: `OFERTA FLASH ⚡`,
+            birthday: `¡Feliz Cumpleaños! 🎂`,
+            birthdaySimple: `¡Muy Feliz Cumpleaños! 🎈`,
+            referralReward: `Premio por Invitación 🎁`,
+            referralPoints: `Puntos por Referido 🚀`,
+            expirationWarning: `Aviso de Vencimiento de Puntos 📢`
+        };
+
+        setPreviewModal({
+            isOpen: true,
+            templateId,
+            title: title || subjects[templateId] || 'Notificación',
+            content
+        });
+    };
 
     const fetchLastAuditLog = async () => {
         try {
@@ -1301,7 +1337,15 @@ export const ConfigPage = () => {
                                                 className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none resize-none"
                                             />
                                         </div>
-                                        <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, pointsAdded: DEFAULT_TEMPLATES.pointsAdded } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition">↺</button>
+                                        <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, pointsAdded: DEFAULT_TEMPLATES.pointsAdded } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition" title="Restaurar predeterminado">↺</button>
+                                        <button
+                                            type="button"
+                                            onClick={() => openPreview('pointsAdded')}
+                                            className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
+                                            title="Previsualizar Email"
+                                        >
+                                            <Eye size={18} />
+                                        </button>
                                     </div>
                                     <VariableChips vars={['nombre', 'nombre_completo', 'puntos', 'saldo']} onSelect={v => insertVar('pointsAdded', v)} />
                                     <ChannelSelector
@@ -1333,7 +1377,15 @@ export const ConfigPage = () => {
                                                 className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none resize-none"
                                             />
                                         </div>
-                                        <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, redemption: DEFAULT_TEMPLATES.redemption } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition">↺</button>
+                                        <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, redemption: DEFAULT_TEMPLATES.redemption } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition" title="Restaurar predeterminado">↺</button>
+                                        <button
+                                            type="button"
+                                            onClick={() => openPreview('redemption')}
+                                            className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
+                                            title="Previsualizar Email"
+                                        >
+                                            <Eye size={18} />
+                                        </button>
                                     </div>
                                     <VariableChips vars={['nombre', 'nombre_completo', 'premio', 'codigo']} onSelect={v => insertVar('redemption', v)} />
                                     <ChannelSelector
@@ -1365,7 +1417,15 @@ export const ConfigPage = () => {
                                                 className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none resize-none"
                                             />
                                         </div>
-                                        <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, welcome: DEFAULT_TEMPLATES.welcome } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition">↺</button>
+                                        <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, welcome: DEFAULT_TEMPLATES.welcome } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition" title="Restaurar predeterminado">↺</button>
+                                        <button
+                                            type="button"
+                                            onClick={() => openPreview('welcome')}
+                                            className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
+                                            title="Previsualizar Email"
+                                        >
+                                            <Eye size={18} />
+                                        </button>
                                     </div>
                                     <VariableChips vars={['nombre', 'nombre_completo', 'puntos', 'socio', 'dni']} onSelect={v => insertVar('welcome', v)} />
                                     <ChannelSelector
@@ -1397,7 +1457,15 @@ export const ConfigPage = () => {
                                                 className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none resize-none"
                                             />
                                         </div>
-                                        <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, campaign: DEFAULT_TEMPLATES.campaign } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition">↺</button>
+                                        <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, campaign: DEFAULT_TEMPLATES.campaign } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition" title="Restaurar predeterminado">↺</button>
+                                        <button
+                                            type="button"
+                                            onClick={() => openPreview('campaign')}
+                                            className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
+                                            title="Previsualizar Email"
+                                        >
+                                            <Eye size={18} />
+                                        </button>
                                     </div>
                                     <VariableChips vars={['titulo', 'descripcion']} onSelect={v => insertVar('campaign', v)} />
                                     <ChannelSelector
@@ -1429,7 +1497,15 @@ export const ConfigPage = () => {
                                                 className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none resize-none"
                                             />
                                         </div>
-                                        <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, offer: DEFAULT_TEMPLATES.offer } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition">↺</button>
+                                        <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, offer: DEFAULT_TEMPLATES.offer } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition" title="Restaurar predeterminado">↺</button>
+                                        <button
+                                            type="button"
+                                            onClick={() => openPreview('offer')}
+                                            className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
+                                            title="Previsualizar Email"
+                                        >
+                                            <Eye size={18} />
+                                        </button>
                                     </div>
                                     <VariableChips vars={['titulo', 'detalle', 'vencimiento']} onSelect={v => insertVar('offer', v)} />
                                     <ChannelSelector
@@ -1463,7 +1539,15 @@ export const ConfigPage = () => {
                                                 className="w-full pl-10 pr-3 py-3 rounded-lg border border-yellow-200 focus:ring-2 focus:ring-yellow-100 outline-none resize-none"
                                             />
                                         </div>
-                                        <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, flashOffer: DEFAULT_TEMPLATES.flashOffer } } })} className="px-3 py-2 text-gray-400 hover:text-yellow-600 rounded-lg hover:bg-yellow-50 transition">↺</button>
+                                        <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, flashOffer: DEFAULT_TEMPLATES.flashOffer } } })} className="px-3 py-2 text-gray-400 hover:text-yellow-600 rounded-lg hover:bg-yellow-50 transition" title="Restaurar predeterminado">↺</button>
+                                        <button
+                                            type="button"
+                                            onClick={() => openPreview('flashOffer')}
+                                            className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
+                                            title="Previsualizar Email"
+                                        >
+                                            <Eye size={18} />
+                                        </button>
                                     </div>
                                     <VariableChips vars={['titulo', 'detalle', 'horario']} onSelect={v => insertVar('flashOffer', v)} />
                                     <p className="text-[10px] text-gray-400 mt-1 italic">
@@ -1499,7 +1583,15 @@ export const ConfigPage = () => {
                                                             className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-pink-100 outline-none resize-none text-sm"
                                                         />
                                                     </div>
-                                                    <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, birthday: DEFAULT_TEMPLATES.birthday } } })} className="px-3 py-2 text-gray-300 hover:text-pink-600 transition">↺</button>
+                                                    <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, birthday: DEFAULT_TEMPLATES.birthday } } })} className="px-3 py-2 text-gray-300 hover:text-pink-600 transition" title="Restaurar predeterminado">↺</button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openPreview('birthday')}
+                                                        className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
+                                                        title="Previsualizar Email"
+                                                    >
+                                                        <Eye size={18} />
+                                                    </button>
                                                 </div>
                                                 <VariableChips vars={['nombre', 'nombre_completo', 'puntos']} onSelect={v => insertVar('birthday', v)} />
                                             </div>
@@ -1524,7 +1616,15 @@ export const ConfigPage = () => {
                                                             className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none resize-none text-sm"
                                                         />
                                                     </div>
-                                                    <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, birthdaySimple: DEFAULT_TEMPLATES.birthdaySimple } } })} className="px-3 py-2 text-gray-300 hover:text-blue-600 transition">↺</button>
+                                                    <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, birthdaySimple: DEFAULT_TEMPLATES.birthdaySimple } } })} className="px-3 py-2 text-gray-300 hover:text-blue-600 transition" title="Restaurar predeterminado">↺</button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openPreview('birthdaySimple')}
+                                                        className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
+                                                        title="Previsualizar Email"
+                                                    >
+                                                        <Eye size={18} />
+                                                    </button>
                                                 </div>
                                                 <VariableChips vars={['nombre', 'nombre_completo']} onSelect={v => insertVar('birthdaySimple', v)} />
                                             </div>
@@ -1567,7 +1667,15 @@ export const ConfigPage = () => {
                                                 className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none resize-none"
                                             />
                                         </div>
-                                        <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, referralReward: DEFAULT_TEMPLATES.referralReward } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition">↺</button>
+                                        <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, referralReward: DEFAULT_TEMPLATES.referralReward } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition" title="Restaurar predeterminado">↺</button>
+                                        <button
+                                            type="button"
+                                            onClick={() => openPreview('referralReward')}
+                                            className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
+                                            title="Previsualizar Email"
+                                        >
+                                            <Eye size={18} />
+                                        </button>
                                     </div>
                                     <VariableChips vars={['nombre', 'amigo', 'puntos']} onSelect={v => insertVar('referralReward', v)} />
                                     <ChannelSelector
@@ -1600,7 +1708,15 @@ export const ConfigPage = () => {
                                                 className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-orange-100 outline-none resize-none"
                                             />
                                         </div>
-                                        <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, referralPoints: DEFAULT_TEMPLATES.referralPoints } } })} className="px-3 py-2 text-gray-400 hover:text-orange-600 rounded-lg hover:bg-orange-50 transition">↺</button>
+                                        <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, referralPoints: DEFAULT_TEMPLATES.referralPoints } } })} className="px-3 py-2 text-gray-400 hover:text-orange-600 rounded-lg hover:bg-orange-50 transition" title="Restaurar predeterminado">↺</button>
+                                        <button
+                                            type="button"
+                                            onClick={() => openPreview('referralPoints')}
+                                            className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
+                                            title="Previsualizar Email"
+                                        >
+                                            <Eye size={18} />
+                                        </button>
                                     </div>
                                     <VariableChips vars={['nombre', 'nombre_referido', 'puntos']} onSelect={v => insertVar('referralPoints', v)} />
                                 </div>
@@ -1689,8 +1805,17 @@ export const ConfigPage = () => {
                                                     type="button"
                                                     onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, expirationWarning: DEFAULT_TEMPLATES.expirationWarning } } })}
                                                     className="px-3 py-2 text-gray-400 hover:text-orange-600 rounded-lg hover:bg-orange-50 transition"
+                                                    title="Restaurar predeterminado"
                                                 >
                                                     ↺
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => openPreview('expirationWarning')}
+                                                    className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
+                                                    title="Previsualizar Email"
+                                                >
+                                                    <Eye size={18} />
                                                 </button>
                                             </div>
                                             <VariableChips vars={['nombre', 'puntos', 'fecha']} onSelect={v => insertVar('expirationWarning', v)} />
@@ -1919,7 +2044,15 @@ export const ConfigPage = () => {
                     </button>
                 </div>
             </form >
+
+            <EmailPreviewModal
+                isOpen={previewModal.isOpen}
+                onClose={() => setPreviewModal({ ...previewModal, isOpen: false })}
+                config={config}
+                templateId={previewModal.templateId}
+                templateTitle={previewModal.title}
+                templateContent={previewModal.content}
+            />
         </div >
     );
 };
-

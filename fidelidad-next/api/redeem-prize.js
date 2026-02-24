@@ -250,7 +250,7 @@ export default async function handler(req, res) {
                 read: false
             });
 
-            result = { ok: true, pointsRedeemed: pointsNeeded, newBalance: newTotalPoints, unifiedMsg };
+            result = { ok: true, pointsRedeemed: pointsNeeded, newBalance: newTotalPoints, unifiedMsg, auditDetails: result.auditDetails || [] };
 
             // --- WHATSAPP LINK GENERATION (MANUAL TRIGGER) ---
             const isWhatsAppConfigured = whatsappEnabled && channels.includes('whatsapp');

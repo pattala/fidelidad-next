@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { db, auth } from '../../../lib/firebase';
 import { collection, query, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
-import { Clock, CheckCircle, AlertTriangle, User, MessageCircle, ArrowRight, ChevronDown, ChevronUp, History, Search, Calendar, Filter, Loader2, Play, Settings } from 'lucide-react';
+import { Clock, CheckCircle, AlertTriangle, User, MessageCircle, ArrowRight, ChevronDown, ChevronUp, History, Search, Calendar, Filter, Loader2, Play, Settings, Cake } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { TimeService } from '../../../services/timeService';
 
@@ -40,6 +40,41 @@ export const SystemLogsPage = () => {
     const [searchQuery, setSearchQuery] = useState('');
 
     const [isRunningExpirations, setIsRunningExpirations] = useState(false);
+    const [isRunningBirthdays, setIsRunningBirthdays] = useState(false);
+
+    const handleRunBirthdays = async () => {
+        if (!window.confirm("¿Deseas ejecutar ahora el proceso de saludos de cumpleaños y enviar las notificaciones (Push/Email/Inbox) según la fecha actual?")) return;
+
+        setIsRunningBirthdays(true);
+        const toastId = toast.loading('Ejecutando proceso de cumpleaños...');
+        try {
+            const token = await auth.currentUser?.getIdToken();
+            const res = await fetch('/api/check-birthdays', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': import.meta.env.VITE_API_KEY || '',
+                    'Authorization': `Bearer ${token}`,
+                    'x-executor-role': (auth.currentUser as any)?.reloadUserInfo?.customAttributes?.includes('editor') ? 'editor' : 'admin'
+                },
+                body: JSON.stringify({
+                    simulatedDate: TimeService.now().toISOString(),
+                    isManual: true
+                })
+            });
+            const data = await res.json();
+            if (data.ok) {
+                toast.success(`Éxito: ${data.summary?.totalToday || 0} socios procesados hoy.`, { id: toastId });
+                fetchLogs();
+            } else {
+                toast.error(`Error: ${data.error}`, { id: toastId });
+            }
+        } catch (e) {
+            toast.error('Error de conexión', { id: toastId });
+        } finally {
+            setIsRunningBirthdays(false);
+        }
+    };
 
     const handleRunExpirations = async () => {
         if (!window.confirm("¿Deseas ejecutar ahora la revisión de vencimientos y enviar las notificaciones pendientes?")) return;
@@ -147,7 +182,9 @@ export const SystemLogsPage = () => {
         switch (type) {
             case 'expiration_engine': return 'Motor de Vencimientos (Auto)';
             case 'manual_expiration': return 'Revisión Manual (Admin)';
-            case 'birthday_engine': return 'Proceso de Cumpleaños';
+            case 'birthday_engine': return 'Proceso de Cumpleaños (Auto)';
+            case 'manual_birthday': return 'Saludador Manual (Admin)';
+            case 'manual_birthday_gift': return 'Regalo de Cumpleaños Manual';
             case 'push_notification': return 'Notificación Push';
             case 'inbox_message': return 'Mensaje en Inbox';
             case 'email_notification': return 'Correo Electrónico';
@@ -195,6 +232,15 @@ export const SystemLogsPage = () => {
                     <p className="text-gray-500 text-sm">Historial de procesos automáticos y acciones del servidor</p>
                 </div>
                 <div className="flex items-center gap-2">
+                    <button
+                        onClick={handleRunBirthdays}
+                        disabled={isRunningBirthdays}
+                        className="flex items-center gap-2 px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-black transition-all shadow-lg shadow-pink-100 font-bold text-sm disabled:opacity-50"
+                        title="Saludar a todos los cumpleañeros de hoy"
+                    >
+                        {isRunningBirthdays ? <Loader2 size={18} className="animate-spin" /> : <Cake size={18} />}
+                        <span className="hidden sm:inline">Ejecutar Proceso de Cumpleaños</span>
+                    </button>
                     <button
                         onClick={handleRunExpirations}
                         disabled={isRunningExpirations}

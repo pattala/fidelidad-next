@@ -3,7 +3,7 @@ import { collection, getDocs, query, where, collectionGroup, orderBy, limit, doc
 import { db } from '../../../lib/firebase';
 import { ConfigService } from '../../../services/configService';
 import { TimeService } from '../../../services/timeService';
-import { ArrowUpRight, ArrowDownLeft, TrendingUp, Gift, User, Clock, RefreshCw, Cake, X } from 'lucide-react';
+import { ArrowUpRight, ArrowDownLeft, TrendingUp, Gift, User, Clock, RefreshCw, Cake, X, ChevronDown, CheckCircle, MessageCircle } from 'lucide-react';
 
 import { BirthdayService } from '../../../services/birthdayService';
 import toast from 'react-hot-toast';
@@ -39,6 +39,12 @@ export const DashboardPage = () => {
         return true;
     });
     const [whatsappMentionsGift, setWhatsappMentionsGift] = useState<{ [key: string]: boolean }>({});
+    const [isBirthdayMinimized, setIsBirthdayMinimized] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return sessionStorage.getItem('birthdayMinimized') === 'true';
+        }
+        return false;
+    });
 
     useEffect(() => {
         setLoading(true);
@@ -342,157 +348,206 @@ export const DashboardPage = () => {
                 </div>
             </div>
 
-            {/* Birthday Alert Section */}
+            {/* Birthday Alert Section - Floating Widget */}
             {isBirthdayAlertVisible && birthdaysOfToday.length > 0 && (
-                <div className="mb-8 animate-bounce-subtle relative group">
-                    <button
-                        onClick={() => {
-                            setIsBirthdayAlertVisible(false);
-                            sessionStorage.setItem('hideBirthdayAlert', 'true');
-                        }}
-                        className="absolute -top-2 -right-2 z-10 bg-white text-gray-400 hover:text-rose-500 p-1.5 rounded-full shadow-lg border border-gray-100 transition-all hover:scale-110 active:scale-95"
-                        title="Cerrar hasta la próxima sesión"
-                    >
-                        <X size={16} strokeWidth={3} />
-                    </button>
-                    <div className="bg-gradient-to-r from-pink-500 to-rose-500 p-1 rounded-2xl shadow-lg shadow-pink-100">
-                        <div className="bg-white p-6 rounded-[calc(1rem-1px)]">
-                            <div className="flex items-center justify-between mb-4">
-                                <h3 className="font-black text-xl text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-rose-600 flex items-center gap-2">
-                                    <Cake className="text-pink-500" size={24} />
-                                    ¡Cumpleaños de Hoy! 🎂
-                                </h3>
-                                <div className="flex items-center gap-2">
-                                    <span className="bg-pink-100 text-pink-600 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">
-                                        {birthdaysOfToday.length} {birthdaysOfToday.length === 1 ? 'Socio' : 'Socios'}
-                                    </span>
+                <div className={`fixed bottom-6 right-6 z-50 transition-all duration-300 transform ${isBirthdayMinimized ? 'w-14 h-14' : 'w-80 md:w-[400px]'}`}>
+                    {isBirthdayMinimized ? (
+                        <button
+                            onClick={() => {
+                                setIsBirthdayMinimized(false);
+                                sessionStorage.setItem('birthdayMinimized', 'false');
+                            }}
+                            className="w-14 h-14 bg-gradient-to-br from-pink-500 to-rose-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all animate-bounce-subtle"
+                            title="Ver cumpleañeros"
+                        >
+                            <Cake size={28} />
+                            <span className="absolute -top-1 -right-1 bg-white text-pink-600 text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center shadow-sm border border-pink-100">
+                                {birthdaysOfToday.length}
+                            </span>
+                        </button>
+                    ) : (
+                        <div className="bg-white rounded-2xl shadow-[0_20px_50px_rgba(219,39,119,0.3)] border border-pink-100 overflow-hidden flex flex-col max-h-[80vh] animate-in slide-in-from-bottom-5">
+                            {/* Header */}
+                            <div className="bg-gradient-to-r from-pink-500 to-rose-600 p-4 flex items-center justify-between shrink-0">
+                                <div className="flex items-center gap-2 text-white">
+                                    <Cake size={20} className="animate-pulse" />
+                                    <div>
+                                        <h3 className="font-black text-sm uppercase tracking-tight leading-none">¡Cumples de Hoy!</h3>
+                                        <p className="text-[10px] opacity-80 font-bold uppercase tracking-widest mt-0.5">
+                                            {birthdaysOfToday.length} {birthdaysOfToday.length === 1 ? 'Socio' : 'Socios'}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <button
+                                        onClick={() => {
+                                            setIsBirthdayMinimized(true);
+                                            sessionStorage.setItem('birthdayMinimized', 'true');
+                                        }}
+                                        className="p-1.5 hover:bg-white/20 rounded-lg text-white transition-colors"
+                                        title="Minimizar"
+                                    >
+                                        <ChevronDown size={18} />
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setIsBirthdayAlertVisible(false);
+                                            sessionStorage.setItem('hideBirthdayAlert', 'true');
+                                        }}
+                                        className="p-1.5 hover:bg-white/20 rounded-lg text-white transition-colors"
+                                        title="Cerrar permanentemente"
+                                    >
+                                        <X size={18} />
+                                    </button>
                                 </div>
                             </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+
+                            {/* List Content */}
+                            <div className="overflow-y-auto p-4 space-y-4 scrollbar-thin max-h-[60vh] bg-pink-50/20">
                                 {birthdaysOfToday.map(client => {
                                     const currentYear = TimeService.now().getFullYear().toString();
                                     const alreadyGifted = client.lastBirthdayPointsYear === currentYear;
                                     const alreadyGreeted = client.lastBirthdayGreetingYear === currentYear;
 
                                     return (
-                                        <div key={client.id} className="flex flex-col gap-3 p-3 bg-pink-50/50 rounded-xl border border-pink-100 hover:bg-pink-50 transition-colors group">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-pink-500 shadow-sm border border-pink-100 group-hover:scale-110 transition-transform">
-                                                    <Cake size={20} />
+                                        <div key={client.id} className="p-4 bg-white rounded-xl border border-pink-100 shadow-sm hover:shadow-md transition-all group">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center text-pink-600 shadow-inner group-hover:scale-110 transition-transform">
+                                                        <User size={20} />
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <p className="font-black text-gray-800 text-sm truncate uppercase tracking-tight">{client.name}</p>
+                                                        <p className="text-[9px] text-pink-600 font-bold uppercase tracking-widest">
+                                                            Socio #{client.socioNumber}
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                                <div className="min-w-0">
-                                                    <p className="font-bold text-gray-800 text-sm truncate">{client.name}</p>
-                                                    <p className="text-[10px] text-pink-600 font-bold uppercase tracking-tight flex items-center gap-1">
-                                                        Socio #{client.socioNumber}
-                                                    </p>
-                                                </div>
+                                                {alreadyGreeted && (
+                                                    <span className="bg-green-100 text-green-700 p-1 rounded-full border border-green-200" title="Saludo enviado">
+                                                        <CheckCircle size={14} />
+                                                    </span>
+                                                )}
                                             </div>
 
-                                            <div className="flex flex-col gap-2 mt-2">
+                                            <div className="flex flex-col gap-2">
+                                                {/* Estado de Notificación */}
+                                                <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-tighter mb-1">
+                                                    <span className="text-gray-400">Estado:</span>
+                                                    {alreadyGreeted ? (
+                                                        <span className="text-blue-600 flex items-center gap-1">
+                                                            ✓ Saludado {alreadyGifted && <span className="text-green-600">+ Regalo</span>}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-orange-500">Pendiente de saludo</span>
+                                                    )}
+                                                </div>
+
+                                                {/* Acciones principales */}
                                                 {!alreadyGreeted ? (
-                                                    <div className="flex flex-col gap-2">
-                                                        {!alreadyGifted ? (
-                                                            <div className="flex gap-2">
-                                                                <button
-                                                                    onClick={async () => {
-                                                                        if (!config) return;
-                                                                        const res: any = await BirthdayService.sendBirthdayGreeting(client.id, client, config, { mode: 'clean' });
-                                                                        if (res?.success) {
-                                                                            setBirthdaysOfToday(prev => prev.map(p => p.id === client.id ? { ...p, lastBirthdayGreetingYear: currentYear } : p));
-                                                                            toast.success("Saludo enviado por Email y Push.");
-                                                                        }
-                                                                    }}
-                                                                    className="flex-1 bg-white border border-yellow-400 text-yellow-600 text-[10px] font-bold py-2 rounded-lg hover:bg-yellow-50 transition shadow-sm"
-                                                                >
-                                                                    👋 Solo Saludar
-                                                                </button>
-                                                                <button
-                                                                    onClick={async () => {
-                                                                        if (!config) return;
-                                                                        if (!confirm("¿Confirmas Regalar Puntos + Enviar Notificaciones?")) return;
-                                                                        const giftSuccess = await BirthdayService.giveBirthdayPoints(client.id, client, config);
-                                                                        if (giftSuccess) {
-                                                                            const updatedClient = { ...client, lastBirthdayPointsYear: currentYear };
-                                                                            const res: any = await BirthdayService.sendBirthdayGreeting(client.id, updatedClient, config, { mode: 'full' });
-                                                                            setBirthdaysOfToday(prev => prev.map(p => p.id === client.id ? { ...p, lastBirthdayPointsYear: currentYear, lastBirthdayGreetingYear: currentYear } : p));
-                                                                            toast.success("Puntos acreditados y notificados.");
-                                                                        }
-                                                                    }}
-                                                                    className="flex-1 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-[10px] font-bold py-2 rounded-lg hover:shadow-md transition shadow-sm"
-                                                                >
-                                                                    🎁 Regalar y Saludar
-                                                                </button>
-                                                            </div>
-                                                        ) : (
-                                                            <div className="flex flex-col gap-2">
-                                                                <div className="text-[9px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded text-center border border-green-100">
-                                                                    ✅ Puntos ya acreditados (Auto)
-                                                                </div>
-                                                                <button
-                                                                    onClick={async () => {
-                                                                        if (!config) return;
-                                                                        const res: any = await BirthdayService.sendBirthdayGreeting(client.id, client, config, { mode: 'full' });
-                                                                        if (res?.success) {
-                                                                            setBirthdaysOfToday(prev => prev.map(p => p.id === client.id ? { ...p, lastBirthdayGreetingYear: currentYear } : p));
-                                                                            toast.success("Aviso de regalo enviado.");
-                                                                        }
-                                                                    }}
-                                                                    className="w-full bg-pink-500 text-white text-[10px] font-bold py-2 rounded-lg hover:bg-pink-600 transition"
-                                                                >
-                                                                    📩 Avisar Regalo + Saludo
-                                                                </button>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex flex-col gap-2 animate-fade-in">
-                                                        <div className="flex flex-col items-center justify-center gap-1 py-2 text-[10px] font-black text-blue-600 bg-blue-50 border border-blue-200 rounded-xl">
-                                                            <div className="flex items-center gap-1">
-                                                                <span>✅</span>
-                                                                <span className="uppercase tracking-tight">Saludo Enviado</span>
-                                                            </div>
-                                                            <span className="text-[8px] opacity-70 font-bold uppercase">(Email y Push / Inbox)</span>
-                                                        </div>
-                                                        <div className="flex items-center gap-2 mb-1">
-                                                            <label className="flex items-center gap-2 cursor-pointer select-none">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    checked={whatsappMentionsGift[client.id] ?? alreadyGifted}
-                                                                    onChange={(e) => setWhatsappMentionsGift(prev => ({ ...prev, [client.id]: e.target.checked }))}
-                                                                    className="w-3.5 h-3.5 rounded border-gray-300 text-pink-500 focus:ring-pink-200"
-                                                                />
-                                                                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tight">Incluir aviso de regalo</span>
-                                                            </label>
-                                                        </div>
+                                                    <div className="grid grid-cols-2 gap-2">
                                                         <button
                                                             onClick={async () => {
                                                                 if (!config) return;
-                                                                const mentionsGift = whatsappMentionsGift[client.id] ?? alreadyGifted;
-                                                                const mode = mentionsGift ? 'full' : 'clean';
-                                                                const res: any = await BirthdayService.sendBirthdayGreeting(client.id, client, config, { mode, whatsappOnly: true });
-                                                                if (res?.whatsappLink) {
-                                                                    window.open(res.whatsappLink, '_blank');
-                                                                } else {
-                                                                    toast.error("No se pudo generar el link de WhatsApp");
+                                                                const res: any = await BirthdayService.sendBirthdayGreeting(client.id, client, config, { mode: 'clean' });
+                                                                if (res?.success) {
+                                                                    setBirthdaysOfToday(prev => prev.map(p => p.id === client.id ? { ...p, lastBirthdayGreetingYear: currentYear } : p));
+                                                                    toast.success("Saludo enviado por Email y Push.");
                                                                 }
                                                             }}
-                                                            className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white text-[11px] font-black py-2.5 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
+                                                            className="bg-white border-2 border-pink-200 text-pink-600 text-[10px] font-black py-2 rounded-xl hover:bg-pink-50 transition uppercase tracking-tight"
                                                         >
-                                                            <span className="text-lg">💬</span> ABRIR WHATSAPP
+                                                            👋 Saludar
                                                         </button>
-                                                        <p className="text-[8px] text-gray-400 text-center italic">WhatsApp requiere apertura manual.</p>
+                                                        <button
+                                                            onClick={async () => {
+                                                                if (!config) return;
+                                                                if (!confirm("¿Confirmas Regalar Puntos + Enviar Notificaciones?")) return;
+                                                                const giftSuccess = await BirthdayService.giveBirthdayPoints(client.id, client, config);
+                                                                if (giftSuccess) {
+                                                                    const updatedClient = { ...client, lastBirthdayPointsYear: currentYear };
+                                                                    const res: any = await BirthdayService.sendBirthdayGreeting(client.id, updatedClient, config, { mode: 'full' });
+                                                                    setBirthdaysOfToday(prev => prev.map(p => p.id === client.id ? { ...p, lastBirthdayPointsYear: currentYear, lastBirthdayGreetingYear: currentYear } : p));
+                                                                    toast.success("Puntos acreditados y notificados.");
+                                                                }
+                                                            }}
+                                                            className="bg-pink-600 text-white text-[10px] font-black py-2 rounded-xl hover:bg-pink-700 transition shadow-lg shadow-pink-100 uppercase tracking-tight"
+                                                        >
+                                                            🎁 Regalar
+                                                        </button>
                                                     </div>
+                                                ) : (
+                                                    alreadyGifted ? (
+                                                        <div className="bg-green-50 text-green-700 py-2 rounded-xl border border-green-100 text-center text-[10px] font-black uppercase tracking-tight">
+                                                            ✨ ¡Regalo ya otorgado!
+                                                        </div>
+                                                    ) : (
+                                                        <button
+                                                            onClick={async () => {
+                                                                if (!config) return;
+                                                                if (!confirm("¿Confirmas regalar los puntos ahora? Se enviará Email y Push informando del regalo.")) return;
+                                                                const giftSuccess = await BirthdayService.giveBirthdayPoints(client.id, client, config);
+                                                                if (giftSuccess) {
+                                                                    const updatedClient = { ...client, lastBirthdayPointsYear: currentYear };
+                                                                    // Forzamos modo 'full' (con regalo) y avisamos por canales auto
+                                                                    await BirthdayService.sendBirthdayGreeting(client.id, updatedClient, config, { mode: 'full' });
+                                                                    setBirthdaysOfToday(prev => prev.map(p => p.id === client.id ? { ...p, lastBirthdayPointsYear: currentYear } : p));
+                                                                    toast.success("Regalo enviado con éxito.");
+                                                                }
+                                                            }}
+                                                            className="w-full bg-pink-100 text-pink-700 text-[10px] font-black py-2 rounded-xl border-2 border-dashed border-pink-300 hover:bg-pink-200 transition uppercase tracking-tight flex items-center justify-center gap-2"
+                                                        >
+                                                            <Gift size={14} /> 🎁 MEJORAR A REGALO
+                                                        </button>
+                                                    )
                                                 )}
+
+                                                {/* WhatsApp Section */}
+                                                <div className="mt-2 pt-2 border-t border-pink-100/50">
+                                                    <div className="flex items-center justify-between mb-2 px-1">
+                                                        <label className="flex items-center gap-2 cursor-pointer select-none group/toggle">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={whatsappMentionsGift[client.id] ?? alreadyGifted}
+                                                                onChange={(e) => setWhatsappMentionsGift(prev => ({ ...prev, [client.id]: e.target.checked }))}
+                                                                className="w-3.5 h-3.5 rounded border-pink-300 text-pink-600 focus:ring-pink-200"
+                                                            />
+                                                            <span className="text-[10px] font-bold text-gray-400 group-hover/toggle:text-pink-600 transition-colors uppercase tracking-tight">Incluir aviso de regalo</span>
+                                                        </label>
+                                                    </div>
+                                                    <button
+                                                        onClick={async () => {
+                                                            if (!config) return;
+                                                            const mentionsGift = whatsappMentionsGift[client.id] ?? alreadyGifted;
+                                                            const mode = mentionsGift ? 'full' : 'clean';
+                                                            const res: any = await BirthdayService.sendBirthdayGreeting(client.id, client, config, { mode, whatsappOnly: true });
+                                                            if (res?.whatsappLink) {
+                                                                window.open(res.whatsappLink, '_blank');
+                                                            } else {
+                                                                toast.error("No se pudo generar el link de WhatsApp");
+                                                            }
+                                                        }}
+                                                        className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white text-[11px] font-black py-2.5 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 group-hover:scale-[1.02]"
+                                                    >
+                                                        <MessageCircle size={18} /> ABRIR WHATSAPP
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     );
                                 })}
                             </div>
+
+                            {/* Footer */}
+                            <div className="p-3 bg-white border-t border-pink-100 shrink-0">
+                                <p className="text-[8px] text-gray-400 text-center font-bold uppercase tracking-widest italic leading-tight">
+                                    El proceso automático se encarga del saludo {config?.enableBirthdayBonus ? '+ regalo' : ''}. WhatsApp es manual.
+                                </p>
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
-            )
-            }
+            )}
 
             {/* Recent Activity Feed */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">

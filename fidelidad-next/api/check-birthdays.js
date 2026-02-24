@@ -151,7 +151,12 @@ export default async function handler(req, res) {
 
                 // 3. Enviar Mensaje
                 if (autoMessageEnabled) {
-                    const template = config?.messaging?.templates?.birthday || "¡Feliz cumpleaños {nombre}! 🎂 Que tengas un gran día.";
+                    const templateFull = config?.messaging?.templates?.birthday || "¡Feliz cumpleaños {nombre}! 🎂 Que tengas un gran día. Te regalamos {puntos} puntos.";
+                    const templateSimple = config?.messaging?.templates?.birthdaySimple || "¡Feliz cumpleaños {nombre}! 🎂 Que tengas un gran día.";
+
+                    // Elegir plantilla: Full solo si se agregaron puntos AHORA.
+                    const template = (pointsAdded > 0) ? templateFull : templateSimple;
+
                     const msg = template
                         .replace(/{nombre}/g, (userData.name || '').split(' ')[0])
                         .replace(/{puntos}/g, birthdayPoints.toString());

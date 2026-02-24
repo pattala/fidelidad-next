@@ -82,11 +82,17 @@ export const SystemLogsPage = () => {
     };
 
     const fetchLogs = async (isMore = false) => {
-        if (!isMore) setLoading(true);
-        else setLoadingMore(true);
+        if (!isMore) {
+            setLoading(true);
+            setLogs([]); // Limpiar para evitar mostrar datos viejos si el filtro falla
+        } else {
+            setLoadingMore(true);
+        }
 
         try {
-            let constraints: any[] = [orderBy('timestamp', 'desc')];
+            // Firestore: Restricciones de consulta
+            // IMPORTANTE: El orden recomendado es Equality (==) antes que OrderBy/Range
+            let constraints: any[] = [];
 
             if (typeFilter) {
                 constraints.push(where('type', '==', typeFilter));
@@ -100,6 +106,8 @@ export const SystemLogsPage = () => {
                 constraints.push(where('timestamp', '<=', Timestamp.fromDate(new Date(endDate + 'T23:59:59'))));
             }
 
+            constraints.push(orderBy('timestamp', 'desc'));
+
             if (isMore && lastDoc) {
                 constraints.push(startAfter(lastDoc));
             }
@@ -111,11 +119,11 @@ export const SystemLogsPage = () => {
 
             const newLogs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as AuditLog));
 
-            // Client-side search for summary/executor (since Firestore doesn't support full-text easily)
+            // Búsqueda local para summary/executor
             const filteredNewLogs = searchQuery
                 ? newLogs.filter(l =>
-                    l.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    l.executor.toLowerCase().includes(searchQuery.toLowerCase())
+                    l.summary?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    l.executor?.toLowerCase().includes(searchQuery.toLowerCase())
                 )
                 : newLogs;
 
@@ -127,8 +135,14 @@ export const SystemLogsPage = () => {
 
             setLastDoc(snap.docs[snap.docs.length - 1]);
             setHasMore(snap.docs.length === PAGE_SIZE);
-        } catch (err) {
+        } catch (err: any) {
             console.error("Error fetching logs:", err);
+            // Si falta el índice, Firestore da un error decorado con el link
+            if (err.message?.includes('index')) {
+                toast.error('Falta un índice en la base de datos para este filtro. Revisa la consola para crearlo.');
+            } else {
+                toast.error('Error al cargar la auditoría');
+            }
         } finally {
             setLoading(false);
             setLoadingMore(false);
@@ -240,13 +254,6 @@ export const SystemLogsPage = () => {
                         >
                             <option value="">Todos los tipos</option>
                             <option value="expiration_engine">Vencimientos Auto</option>
-                            <option value="points_assignment">Asignación Puntos</option>
-                            <option value="birthday_engine">Cumpleaños</option>
-                            <option value="whatsapp_notification">WhatsApp Auto</option>
-                            <option value="whatsapp_manual">WhatsApp Manual</option>
-                            <option value="push_notification">Push</option>
-                            <option value="inbox_message">Inbox</option>
-                            <option value="email_notification">Email</option>
                             <option value="points_assignment">Asignación de Puntos</option>
                             <option value="prizes_redemption">Canjes de Premios</option>
                             <option value="campaign_mgmt">Campañas (Act/Des)</option>

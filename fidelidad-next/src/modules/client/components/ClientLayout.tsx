@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Home, Gift, User, X, Mail, MapPin, Clock, Bell, LogOut, ChevronLeft } from 'lucide-react';
+import { Home, Gift, User, X, Mail, MapPin, Clock, Bell, LogOut, ChevronLeft, Shield } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { doc, onSnapshot, collection, query, where, addDoc } from 'firebase/firestore';
@@ -9,7 +9,7 @@ import { signOut } from 'firebase/auth'; // Added for Logout
 import { useClientAuth } from '../contexts/ClientAuthContext';
 
 export const ClientLayout = () => {
-    const { user, loading: authLoading, isAdmin } = useClientAuth();
+    const { user, userData, loading: authLoading, isAdmin } = useClientAuth();
     const [isContactOpen, setIsContactOpen] = useState(false);
     const [config, setConfig] = useState<any>({});
     const [unreadCount, setUnreadCount] = useState(0);
@@ -151,9 +151,16 @@ export const ClientLayout = () => {
                     </div>
                 </div>
 
-                <h1 className="font-black text-sm uppercase tracking-widest text-center flex-1 drop-shadow-sm truncate px-2">
-                    {config?.siteName || 'Club de Fidelidad'}
-                </h1>
+                <div className="flex flex-col items-center flex-1 overflow-hidden">
+                    <h1 className="font-black text-[11px] uppercase tracking-widest text-center drop-shadow-sm truncate w-full px-2">
+                        {config?.siteName || 'Club de Fidelidad'}
+                    </h1>
+                    {userData?.isTestUser && (
+                        <span className="bg-blue-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tighter flex items-center gap-0.5 shadow-sm">
+                            <Shield size={8} /> Test Mode
+                        </span>
+                    )}
+                </div>
 
                 <div className="w-10 flex justify-end">
                     <button

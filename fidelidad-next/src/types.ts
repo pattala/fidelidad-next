@@ -62,6 +62,7 @@ export interface Client {
         processed?: boolean;
         processedAt?: any;
     };
+    isTestUser?: boolean;
 }
 
 export interface User {
@@ -181,4 +182,5 @@ export interface Prize {
     active: boolean;
     imageUrl?: string;
     cashValue?: number; // Valor en pesos para reportes
+    isInternal?: boolean;
 }

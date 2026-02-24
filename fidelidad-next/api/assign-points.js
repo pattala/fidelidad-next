@@ -296,6 +296,11 @@ export default async function handler(req, res) {
                             }
                         }
 
+                        if (b.isInternal && !clientSnap.data().isTestUser) {
+                            console.log(`[API] Skipping internal bonus ${b.name} for non-test user ${targetUid}`);
+                            return;
+                        }
+
                         const rType = useFlashReward ? (b.flashRewardType || b.rewardType) : b.rewardType;
                         const rValue = useFlashReward ? (Number(b.flashRewardValue) ?? b.rewardValue) : b.rewardValue;
                         const rText = useFlashReward ? (b.flashRewardText || b.rewardText) : b.rewardText;

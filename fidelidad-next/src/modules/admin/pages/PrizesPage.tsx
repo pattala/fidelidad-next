@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Gift, Ticket, Edit, Package, X, Save, Image as ImageIcon } from 'lucide-react';
+import { Plus, Trash2, Gift, Ticket, Edit, Package, X, Save, Image as ImageIcon, Shield } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { PrizeService } from '../../../services/prizeService';
 import type { Prize } from '../../../types';
@@ -23,7 +23,8 @@ export const PrizesPage = () => {
         description: '',
         active: true,
         imageUrl: '',
-        cashValue: 0
+        cashValue: 0,
+        isInternal: false
     };
     const [formData, setFormData] = useState(INITIAL_FORM);
 
@@ -103,7 +104,8 @@ export const PrizesPage = () => {
             description: prize.description || '',
             active: prize.active,
             imageUrl: prize.imageUrl || '',
-            cashValue: prize.cashValue || 0
+            cashValue: prize.cashValue || 0,
+            isInternal: prize.isInternal || false
         });
         setIsModalOpen(true);
     };
@@ -161,6 +163,11 @@ export const PrizesPage = () => {
                                                 )}
                                             </div>
                                             <p className="font-bold text-gray-800">{prize.name}</p>
+                                            {prize.isInternal && (
+                                                <span className="bg-blue-100 text-blue-700 text-[10px] font-black px-2 py-0.5 rounded flex items-center gap-1 uppercase">
+                                                    <Shield size={10} /> Test
+                                                </span>
+                                            )}
                                         </div>
                                     </td>
                                     <td className="p-4">
@@ -325,10 +332,25 @@ export const PrizesPage = () => {
                                 </div>
                             </div>
 
+                            {/* Internal Toggle */}
+                            <div className="mt-4 flex items-center gap-3 p-4 bg-blue-50 rounded-2xl border border-blue-100 cursor-pointer" onClick={() => setFormData({ ...formData, isInternal: !formData.isInternal })}>
+                                <div className="flex-1">
+                                    <h4 className="text-sm font-bold text-blue-800 flex items-center gap-2">
+                                        <Shield size={16} /> Premio de Prueba
+                                    </h4>
+                                    <p className="text-[10px] text-blue-600 mt-0.5">
+                                        Sólo visible para usuarios con "Modo Test" activo.
+                                    </p>
+                                </div>
+                                <div className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.isInternal ? 'bg-blue-600' : 'bg-gray-200'}`}>
+                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.isInternal ? 'translate-x-6' : 'translate-x-1'}`} />
+                                </div>
+                            </div>
+
                             {/* Active Toggle */}
                             <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg cursor-pointer" onClick={() => setFormData({ ...formData, active: !formData.active })}>
-                                <div className={`w - 10 h - 6 rounded - full p - 1 transition - colors ${formData.active ? 'bg-green-500' : 'bg-gray-300'} `}>
-                                    <div className={`w - 4 h - 4 bg - white rounded - full transition - transform ${formData.active ? 'translate-x-4' : ''} `} />
+                                <div className={`w-10 h-6 rounded-full p-1 transition-colors ${formData.active ? 'bg-green-500' : 'bg-gray-300'}`}>
+                                    <div className={`w-4 h-4 bg-white rounded-full transition-transform ${formData.active ? 'translate-x-4' : ''}`} />
                                 </div>
                                 <span className="text-sm font-medium text-gray-700">Premio Activo (Visible para canje)</span>
                             </div>

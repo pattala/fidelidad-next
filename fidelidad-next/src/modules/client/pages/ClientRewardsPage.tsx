@@ -43,11 +43,18 @@ export const ClientRewardsPage = () => {
             try {
                 const q = query(
                     collection(db, 'prizes'),
-                    where('active', '==', true),
-                    where('stock', '>', 0)
+                    where('active', '==', true)
                 );
                 const snap = await getDocs(q);
-                const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                const data = snap.docs
+                    .map(d => ({ id: d.id, ...d.data() as any }))
+                    .filter(p => {
+                        // 1. Stock check
+                        if (p.stock <= 0) return false;
+                        // 2. Test Mode check
+                        if (p.isInternal && !userData?.isTestUser) return false;
+                        return true;
+                    });
                 setPrizes(data);
             } catch (error) {
                 console.error("Error fetching prizes", error);

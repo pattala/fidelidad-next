@@ -80,6 +80,11 @@ export default async function handler(req, res) {
         if (currentPoints < pointsNeeded) return res.status(400).json({ ok: false, error: "Insufficient points" });
         if ((Number(prizeData.stock) || 0) <= 0) return res.status(400).json({ ok: false, error: "No stock available" });
 
+        // Test Mode Restriction
+        if (prizeData.isInternal && !clientData.isTestUser) {
+            return res.status(403).json({ ok: false, error: "Internal prize restricted to test users" });
+        }
+
         // 3. FIFO Logic & Transaction
         let result = { ok: false };
         const now = new Date();

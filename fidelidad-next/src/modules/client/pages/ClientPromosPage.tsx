@@ -4,6 +4,7 @@ import { CampaignService, type BonusRule } from '../../../services/campaignServi
 import { Calendar, Tag, Clock, ChevronLeft, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { AppConfig } from '../../../types';
+import { useClientAuth } from '../contexts/ClientAuthContext';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 
@@ -12,6 +13,7 @@ export const ClientPromosPage = () => {
         config: AppConfig,
         setHeaderTitle: (title: string | null) => void
     }>();
+    const { userData } = useClientAuth();
     const [campaigns, setCampaigns] = useState<BonusRule[]>([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
@@ -41,6 +43,10 @@ export const ClientPromosPage = () => {
                 if (!b.active) return false;
                 if (b.startDate && b.startDate > todayStr) return false;
                 if (b.endDate && b.endDate < todayStr) return false;
+
+                // Test Mode check
+                if (b.isInternal && !userData?.isTestUser) return false;
+
                 return true;
             });
 

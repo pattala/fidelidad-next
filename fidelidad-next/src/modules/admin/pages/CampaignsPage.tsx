@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
     Plus, Trash2, Calendar, Target, Award, Save, X, Megaphone, Sparkles,
     ToggleLeft, ToggleRight, Edit, Send, Monitor, Layout, Clock, Image as ImageIcon,
-    ChevronRight, Zap, Info, MousePointer2, MessageCircle, Type, Smartphone, AlignLeft, AlignCenter, AlignRight, Bold, Play
+    ChevronRight, Zap, Info, MousePointer2, MessageCircle, Type, Smartphone, AlignLeft, AlignCenter, AlignRight, Bold, Play, Shield
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { CampaignService, type BonusRule } from '../../../services/campaignService';
@@ -44,8 +44,9 @@ export const CampaignsPage = () => {
         imageOpacity: 60, bannerOpacity: 100, link: '', channels: ['push', 'email', 'whatsapp'],
         // Flash independent rewards
         flashTitle: '', flashDescription: '',
-        flashRewardType: 'FIXED', flashRewardValue: 50, flashRewardText: '',
-        flashDays: [], flashGraceMins: 15
+        flashRewardText: '',
+        flashDays: [], flashGraceMins: 15,
+        isInternal: false
     });
 
     const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
@@ -88,7 +89,8 @@ export const CampaignsPage = () => {
             imageOpacity: 60, bannerOpacity: 100, link: '', channels: ['push', 'email', 'whatsapp'],
             flashTitle: '', flashDescription: '',
             flashRewardType: 'FIXED', flashRewardValue: 50, flashRewardText: '',
-            flashDays: [], flashGraceMins: 15
+            flashDays: [], flashGraceMins: 15,
+            isInternal: false
         });
         setEditingId(null);
         setActiveTab('BASIC');
@@ -156,7 +158,8 @@ export const CampaignsPage = () => {
                 flashGraceMins: isFlashMode ? formData.flashGraceMins : 0,
 
                 startTime: isFlashMode ? formData.startTime : '',
-                endTime: isFlashMode ? formData.endTime : ''
+                endTime: isFlashMode ? formData.endTime : '',
+                isInternal: !!formData.isInternal
             };
             if (editingId) {
                 await CampaignService.update(editingId, payload);
@@ -617,8 +620,20 @@ export const CampaignsPage = () => {
 
                             {bonus.isFlash && (
                                 <div className="absolute top-5 -left-12 bg-gradient-to-r from-red-600 to-red-500 text-white text-[11px] font-black py-2 w-48 text-center -rotate-45 shadow-xl z-20 uppercase tracking-[0.2em] border-b-2 border-red-400/50 backdrop-blur-sm">
+                                    <div className="absolute inset-0 bg-gradient-to-t from-white/20 to-transparent pointer-events-none" />
+                                </div>
+                            )}
+
+                            {bonus.isFlash && (
+                                <div className="absolute top-5 -left-12 bg-gradient-to-r from-red-600 to-red-500 text-white text-[11px] font-black py-2 w-48 text-center -rotate-45 shadow-xl z-20 uppercase tracking-[0.2em] border-b-2 border-red-400/50 backdrop-blur-sm">
                                     Oferta Flash
                                     <div className="absolute inset-0 bg-gradient-to-t from-white/20 to-transparent pointer-events-none" />
+                                </div>
+                            )}
+
+                            {bonus.isInternal && (
+                                <div className="absolute top-4 left-4 bg-blue-600 text-white text-[9px] font-black px-2 py-0.5 rounded shadow-lg z-20 flex items-center gap-1 uppercase">
+                                    <Shield size={10} /> Sólo Testers
                                 </div>
                             )}
 
@@ -969,6 +984,27 @@ export const CampaignsPage = () => {
                                                                     </label>
                                                                 ))}
                                                             </div>
+                                                        </section>
+
+                                                        <section className="pt-6 border-t border-gray-100 flex items-center justify-between bg-blue-50/50 p-6 rounded-[2rem]">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="p-3 bg-blue-100 text-blue-600 rounded-2xl">
+                                                                    <Shield size={24} />
+                                                                </div>
+                                                                <div>
+                                                                    <label className="text-xs font-black text-blue-900 uppercase block">Campaña Interna (Modo Test)</label>
+                                                                    <p className="text-[9px] text-blue-600 font-bold uppercase mt-0.5 italic">Sólo visible para "Usuarios de Prueba"</p>
+                                                                </div>
+                                                            </div>
+                                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    className="sr-only peer"
+                                                                    checked={formData.isInternal}
+                                                                    onChange={e => setFormData({ ...formData, isInternal: e.target.checked })}
+                                                                />
+                                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                                            </label>
                                                         </section>
                                                     </div>
                                                 )}

@@ -71,6 +71,7 @@ export interface BonusRule {
     channels?: string[]; // push, email, whatsapp
     actionUrl?: string;  // URL for floating modal link
     actionText?: string; // Text for floating modal button
+    isInternal?: boolean;
 }
 
 const COLLECTION_NAME = 'campanas';

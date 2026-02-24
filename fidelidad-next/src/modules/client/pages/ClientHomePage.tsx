@@ -13,6 +13,7 @@ import {
     Sparkles,
     Cake,
     X,
+    Shield
 } from 'lucide-react';
 import { TimeService } from '../../../services/timeService';
 import { signOut } from 'firebase/auth';
@@ -258,6 +259,9 @@ export const ClientHomePage = () => {
                 const targetDays = b.isFlash ? b.flashDays : b.daysOfWeek;
                 if (targetDays && Array.isArray(targetDays) && targetDays.length > 0 && !targetDays.includes(todayDay)) return false;
 
+                // Test Mode Filtering
+                if (b.isInternal && !userData?.isTestUser) return false;
+
                 return true;
             });
 
@@ -331,9 +335,16 @@ export const ClientHomePage = () => {
                                 </span>
                             )}
                         </div>
-                        <h2 className="text-2xl font-black uppercase tracking-tight text-[#4a148c] leading-none mt-1">
-                            {displayName}
-                        </h2>
+                        <div className="flex items-center gap-2 mt-1">
+                            <h2 className="text-2xl font-black uppercase tracking-tight text-[#4a148c] leading-none">
+                                {displayName}
+                            </h2>
+                            {userData?.isTestUser && (
+                                <span className="bg-blue-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm flex items-center gap-1 uppercase animate-pulse">
+                                    <Shield size={10} /> Tester
+                                </span>
+                            )}
+                        </div>
                     </div>
                 </div>
 

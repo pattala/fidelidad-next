@@ -12,11 +12,12 @@ export const EmailService = {
         const safeColor = primaryColor || '#0ea5e9'; // Using the same blue as backend for consistency
         const base = config.contact?.pwaUrl || 'https://fidelidad-next.vercel.app';
 
-        // Social Links Logic
-        const links: string[] = [];
         const contact = config.contact || {};
-        const iconStyle = "width: 24px; height: 24px; vertical-align: middle; margin: 0 8px;";
+        const termsUrl = contact.termsAndConditions || '#';
+        const address = contact.address;
+        const whatsapp = contact.whatsapp;
 
+        const links: string[] = [];
         if (contact.website) {
             links.push(`<a href="${contact.website}" style="display:inline-block; margin: 0 5px; text-decoration: none;"><img src="https://img.icons8.com/ios-filled/50/0ea5e9/internet.png" width="24" height="24" alt="Web" title="Website"/></a>`);
         }
@@ -36,7 +37,20 @@ export const EmailService = {
         }
 
         const socialContent = links.length > 0 ? `<div style="margin-top: 20px; text-align: center;">${links.join('')}</div>` : '';
-        const termsUrl = contact.termsAndConditions || '#';
+
+        const whatsappNumberRow = whatsapp
+            ? `<div style="margin-top: 15px; text-align: center; font-size: 14px; color: #64748b; font-weight: bold;">WhatsApp: ${whatsapp}</div>`
+            : '';
+
+        const addressBlock = address ? `
+            <div style="margin-top: 20px; text-align: center;">
+                <p style="margin: 0 0 12px 0; font-size: 14px; color: #64748b;">📍 ${address}</p>
+                <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}" 
+                   style="background-color: #f1f5f9; color: #475569; padding: 10px 20px; border-radius: 12px; text-decoration: none; font-size: 13px; font-weight: bold; display: inline-block;">
+                  Cómo llegar
+                </a>
+            </div>
+        ` : '';
 
         return `
 <!DOCTYPE html>
@@ -55,13 +69,13 @@ export const EmailService = {
         .content { padding: 0 32px 32px; color: #4b5563; line-height: 1.6; font-size: 16px; text-align: left; }
         .h1 { color: #111827; font-size: 24px; font-weight: bold; margin-bottom: 16px; text-align: center; }
         .footer { background-color: #f8fafc; padding: 24px; text-align: center; border-top: 1px solid #e2e8f0; }
-        .btn { display: inline-block; background-color: #0ea5e9; color: #ffffff !important; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; margin-bottom: 20px; }
+        .btn { display: inline-block; background-color: ${safeColor}; color: #ffffff !important; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; margin-bottom: 20px; }
     </style>
 </head>
 <body>
     <div class="wrapper">
         <div class="container">
-            <div style="background:#0ea5e9;height:8px;"></div>
+            <div style="background:${safeColor};height:8px;"></div>
             <!-- Header with Logo and Name -->
             <div class="header">
                 <img src="${safeLogo}" alt="${siteName}" />
@@ -81,6 +95,8 @@ export const EmailService = {
     
             <!-- Social Media Icons Section -->
             ${socialContent}
+            ${whatsappNumberRow}
+            ${addressBlock}
     
             <!-- Footer -->
             <div class="footer">

@@ -27,7 +27,9 @@ const MOCK_DATA: Record<string, string> = {
     horario: "20:00",
     amigo: "Sofía García",
     nombre_referido: "Carlos López",
-    siteName: "Club Fidelidad"
+    siteName: "Club Fidelidad",
+    direccion: "Av. Siempre Viva 742",
+    whatsapp: "+54 9 11 1234-5678"
 };
 
 export const EmailPreviewModal = ({ isOpen, onClose, config, templateTitle, templateContent, templateId }: EmailPreviewModalProps) => {

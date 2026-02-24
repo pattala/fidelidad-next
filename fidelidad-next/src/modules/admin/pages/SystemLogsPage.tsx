@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { db, auth } from '../../../lib/firebase';
-import { collection, query, orderBy, limit, getDocs, where, startAfter, Timestamp } from 'firebase/firestore';
+import { collection, query, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
 import { Clock, CheckCircle, AlertTriangle, User, MessageCircle, ArrowRight, ChevronDown, ChevronUp, History, Search, Calendar, Filter, Loader2, Play, Settings } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { TimeService } from '../../../services/timeService';
@@ -25,14 +25,12 @@ interface AuditLog {
     summary: string;
     details: AuditDetail[];
     executor: string;
+    role?: string;
 }
-
-const PAGE_SIZE = 50;
 
 export const SystemLogsPage = () => {
     const [logs, setLogs] = useState<AuditLog[]>([]);
     const [loading, setLoading] = useState(true);
-    const [loadingMore, setLoadingMore] = useState(false);
     const [expandedLog, setExpandedLog] = useState<string | null>(null);
 
     // Filters State
@@ -41,9 +39,6 @@ export const SystemLogsPage = () => {
     const [endDate, setEndDate] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
 
-    // Pagination State
-    const [lastDoc, setLastDoc] = useState<any>(null);
-    const [hasMore, setHasMore] = useState(true);
     const [isRunningExpirations, setIsRunningExpirations] = useState(false);
 
     const handleRunExpirations = async () => {
@@ -69,7 +64,6 @@ export const SystemLogsPage = () => {
             const data = await res.json();
             if (data.ok) {
                 toast.success(`Éxito: ${data.summary?.summary || 'Revisión completada'}`, { id: toastId });
-                // Refrescar los logs para ver el nuevo resultado
                 fetchLogs();
             } else {
                 toast.error(`Error: ${data.error}`, { id: toastId });
@@ -81,81 +75,72 @@ export const SystemLogsPage = () => {
         }
     };
 
-    const fetchLogs = async (isMore = false) => {
-        if (!isMore) {
-            setLoading(true);
-            setLogs([]); // Limpiar para evitar mostrar datos viejos si el filtro falla
-        } else {
-            setLoadingMore(true);
-        }
-
+    const fetchLogs = async () => {
+        setLoading(true);
         try {
-            // Firestore: Restricciones de consulta
-            // IMPORTANTE: El orden recomendado es Equality (==) antes que OrderBy/Range
-            let constraints: any[] = [];
+            // Traemos los últimos 1000 registros de una (límite razonable para marca blanca)
+            // Solo usamos orderBy para traer lo más reciente primero.
+            // Esto NO requiere índices manuales adicionales si no hay filtros 'where'.
+            const q = query(
+                collection(db, 'audit_logs'),
+                orderBy('timestamp', 'desc'),
+                limit(1000)
+            );
 
-            if (typeFilter) {
-                constraints.push(where('type', '==', typeFilter));
-            }
-
-            if (startDate) {
-                constraints.push(where('timestamp', '>=', Timestamp.fromDate(new Date(startDate + 'T00:00:00'))));
-            }
-
-            if (endDate) {
-                constraints.push(where('timestamp', '<=', Timestamp.fromDate(new Date(endDate + 'T23:59:59'))));
-            }
-
-            constraints.push(orderBy('timestamp', 'desc'));
-
-            if (isMore && lastDoc) {
-                constraints.push(startAfter(lastDoc));
-            }
-
-            constraints.push(limit(PAGE_SIZE));
-
-            const q = query(collection(db, 'audit_logs'), ...constraints);
             const snap = await getDocs(q);
-
-            const newLogs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as AuditLog));
-
-            // Búsqueda local para summary/executor
-            const filteredNewLogs = searchQuery
-                ? newLogs.filter(l =>
-                    l.summary?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    l.executor?.toLowerCase().includes(searchQuery.toLowerCase())
-                )
-                : newLogs;
-
-            if (isMore) {
-                setLogs(prev => [...prev, ...filteredNewLogs]);
-            } else {
-                setLogs(filteredNewLogs);
-            }
-
-            setLastDoc(snap.docs[snap.docs.length - 1]);
-            setHasMore(snap.docs.length === PAGE_SIZE);
+            const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as AuditLog));
+            setLogs(data);
         } catch (err: any) {
             console.error("Error fetching logs:", err);
-            // Si falta el índice, Firestore da un error decorado con el link
-            if (err.message?.includes('index')) {
-                toast.error('Falta un índice en la base de datos para este filtro. Revisa la consola para crearlo.');
-            } else {
-                toast.error('Error al cargar la auditoría');
-            }
+            toast.error('Error al cargar la auditoría');
         } finally {
             setLoading(false);
-            setLoadingMore(false);
         }
     };
 
+    // Filtrado local (JS) - "Itemización" en tiempo real
+    const filteredLogs = useMemo(() => {
+        return logs.filter(log => {
+            // 1. Filtro por Tipo
+            if (typeFilter && log.type !== typeFilter) return false;
+
+            // 2. Filtro por Búsqueda (Summary o Executor)
+            if (searchQuery) {
+                const search = searchQuery.toLowerCase();
+                const inSummary = log.summary?.toLowerCase().includes(search);
+                const inExecutor = log.executor?.toLowerCase().includes(search);
+                if (!inSummary && !inExecutor) return false;
+            }
+
+            // 3. Filtro por Fecha
+            if (startDate || endDate) {
+                const logDate = log.timestamp?.toDate ? log.timestamp.toDate() : new Date();
+                logDate.setHours(0, 0, 0, 0);
+
+                if (startDate) {
+                    const start = new Date(startDate + 'T00:00:00');
+                    start.setHours(0, 0, 0, 0);
+                    if (logDate < start) return false;
+                }
+                if (endDate) {
+                    const end = new Date(endDate + 'T00:00:00');
+                    end.setHours(0, 0, 0, 0);
+                    if (logDate > end) return false;
+                }
+            }
+
+            return true;
+        });
+    }, [logs, typeFilter, searchQuery, startDate, endDate]);
+
     useEffect(() => {
         fetchLogs();
-    }, [typeFilter, startDate, endDate]); // Re-fetch on filter change
+    }, []);
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
-        fetchLogs();
+        // El handleSearch ahora es redundante porque useMemo ya filtra en vivo,
+        // pero lo dejamos por compatibilidad con el botón de la lupa.
     };
 
     const getTypeLabel = (type: string) => {
@@ -319,17 +304,17 @@ export const SystemLogsPage = () => {
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 {loading ? (
                     <div className="p-10 text-center animate-pulse text-gray-400">Cargando registros...</div>
-                ) : logs.length === 0 ? (
+                ) : filteredLogs.length === 0 ? (
                     <div className="p-20 text-center text-gray-400">
                         <Clock size={48} className="mx-auto mb-4 opacity-20" />
-                        <p>No hay registros de auditoría aún.</p>
+                        <p>{logs.length > 0 ? 'No hay registros que coincidan con los filtros.' : 'No hay registros de auditoría aún.'}</p>
                     </div>
                 ) : (
                     <div className="divide-y divide-gray-50">
                         {(() => {
                             // Agrupar logs por fecha (D/M/A)
-                            const groupedLogs: { [key: string]: any[] } = {};
-                            logs.forEach(log => {
+                            const groupedLogs: { [key: string]: AuditLog[] } = {};
+                            filteredLogs.forEach(log => {
                                 const dateStr = log.timestamp?.toDate
                                     ? log.timestamp.toDate().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })
                                     : 'Reciente';
@@ -358,9 +343,7 @@ export const SystemLogsPage = () => {
                                                             {/* Identificadores rápidos (si es log de un solo socio) */}
                                                             {(() => {
                                                                 if (!log.details || log.details.length === 0) return null;
-                                                                // Si es un log consolidado de un solo socio (o el primero de varios)
-                                                                const first = log.details[0];
-                                                                // Si todos los detalles son del mismo usuario o es un tipo de operación manual
+                                                                const first = log.details[0] as any;
                                                                 const isManualOp = log.type === 'points_assignment' || log.type === 'prize_redemption' || log.type === 'whatsapp_manual';
 
                                                                 if (isManualOp && first.userId && first.userId !== 'system') {
@@ -562,17 +545,6 @@ export const SystemLogsPage = () => {
                                 </div>
                             ));
                         })()}
-                        {hasMore && (
-                            <div className="p-4 border-t border-gray-50 bg-gray-50/30">
-                                <button
-                                    onClick={() => fetchLogs(true)}
-                                    disabled={loadingMore}
-                                    className="w-full py-3 flex items-center justify-center gap-2 text-sm font-bold text-blue-600 hover:text-blue-800 transition"
-                                >
-                                    {loadingMore ? <Loader2 className="animate-spin" size={18} /> : 'Cargar más registros'}
-                                </button>
-                            </div>
-                        )}
                     </div>
                 )}
             </div>

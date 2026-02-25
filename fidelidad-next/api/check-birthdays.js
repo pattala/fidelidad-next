@@ -33,6 +33,11 @@ const transporter = nodemailer.createTransport({
 });
 
 export default async function handler(req, res) {
+    // 0. CORS Preflight
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+
     // Seguridad: Obtener identidad y verificar acceso
     const authHeader = req.headers["x-api-key"] || req.headers["authorization"] || req.headers["X-API-Key"];
     const cronHeader = req.headers["x-vercel-cron"] || req.headers["X-Vercel-Cron"];

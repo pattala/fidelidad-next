@@ -74,6 +74,15 @@ export const WhatsAppPage = () => {
                     }
                 }
 
+                // Multi-client pre-selection (from audit logs WhatsApp button)
+                const targetClientIds: string[] = state?.clientIds;
+                if (Array.isArray(targetClientIds) && targetClientIds.length > 0) {
+                    const validIds = targetClientIds.filter(id => list.some(c => c.id === id));
+                    if (validIds.length > 0) {
+                        setSelectedClients(new Set(validIds));
+                    }
+                }
+
             } catch (error) {
                 console.error(error);
                 toast.error('Error cargando datos');

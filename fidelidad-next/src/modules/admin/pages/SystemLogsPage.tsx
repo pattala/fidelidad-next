@@ -4,6 +4,7 @@ import { collection, query, orderBy, limit, getDocs, Timestamp } from 'firebase/
 import { Clock, CheckCircle, AlertTriangle, User, MessageCircle, ArrowRight, ChevronDown, ChevronUp, History, Search, Calendar, Filter, Loader2, Play, Settings, Cake } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { TimeService } from '../../../services/timeService';
+import { useNavigate } from 'react-router-dom';
 
 interface AuditDetail {
     userId?: string;
@@ -41,6 +42,7 @@ export const SystemLogsPage = () => {
 
     const [isRunningExpirations, setIsRunningExpirations] = useState(false);
     const [isRunningBirthdays, setIsRunningBirthdays] = useState(false);
+    const navigate = useNavigate();
 
     const handleRunBirthdays = async () => {
         if (!window.confirm("¿Deseas ejecutar ahora el proceso de saludos de cumpleaños y enviar las notificaciones (Push/Email/Inbox) según la fecha actual?")) return;
@@ -576,6 +578,34 @@ export const SystemLogsPage = () => {
                                                                                     </div>
                                                                                 ))}
                                                                             </div>
+                                                                            {/* Botón WhatsApp para logs de vencimientos/cumpleaños con usuarios notificados */}
+                                                                            {(() => {
+                                                                                const isExpirationLog = log.type === 'expiration_engine' || log.type === 'manual_expiration';
+                                                                                const isBirthdayLog = log.type === 'birthday_engine' || log.type === 'manual_birthday';
+                                                                                if (!isExpirationLog && !isBirthdayLog) return null;
+                                                                                const userIds = Object.keys(groupedByUser).filter(uid => uid !== 'system');
+                                                                                if (userIds.length === 0) return null;
+                                                                                return (
+                                                                                    <button
+                                                                                        onClick={(e) => {
+                                                                                            e.stopPropagation();
+                                                                                            const defaultMsg = isExpirationLog
+                                                                                                ? '¡Hola {nombre}! 📢 Tienes {puntos} puntos próximos a vencer. ⏳ Entrá a la App para ver el detalle y aprovecharlos antes de que se venzan. 🎁'
+                                                                                                : '¡Feliz Cumpleaños {nombre}! 🎂🎉 Desde el Club te deseamos un gran día. ¡Entrá a la App para ver tu sorpresa! 🎁';
+                                                                                            navigate('/admin/whatsapp', {
+                                                                                                state: {
+                                                                                                    message: defaultMsg,
+                                                                                                    clientIds: userIds
+                                                                                                }
+                                                                                            });
+                                                                                        }}
+                                                                                        className="mt-3 w-full flex items-center justify-center gap-2 py-2 px-4 bg-green-500 hover:bg-green-600 text-white font-bold text-xs rounded-lg shadow-sm transition"
+                                                                                    >
+                                                                                        <MessageCircle size={14} />
+                                                                                        Enviar por WhatsApp a {userIds.length} socio{userIds.length > 1 ? 's' : ''}
+                                                                                    </button>
+                                                                                );
+                                                                            })()}
                                                                         </div>
                                                                     );
                                                                 })()

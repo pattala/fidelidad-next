@@ -20,14 +20,12 @@ chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
         })
             .then(r => r.json())
             .then(data => {
-                if (data.skipped) {
-                    console.log("📋 [Club Fidelidad] Daily check ya ejecutado hoy.");
-                } else if (data.ok) {
-                    console.log("✅ [Club Fidelidad] Daily check ejecutado:", data.date);
+                if (data.ok) {
+                    console.log("✅ [Club Fidelidad] Daily check procesado. Pendientes:", data.summary?.totalToday, "cumples,", data.expirations?.summary?.totalInWindow, "vencimientos.");
 
-                    // Mostrar banner si hay pendientes
-                    const birthdayCount = data.summary?.notified || 0;
-                    const expirationCount = data.expirations?.summary?.notified || 0;
+                    // Mostrar bubble si hay pendientes hoy (aunque el motor automático ya haya corrido)
+                    const birthdayCount = data.summary?.totalToday || 0;
+                    const expirationCount = data.expirations?.summary?.totalInWindow || 0;
 
                     if (birthdayCount > 0 || expirationCount > 0) {
                         showGlobalAlert(birthdayCount, expirationCount, res.apiUrl);

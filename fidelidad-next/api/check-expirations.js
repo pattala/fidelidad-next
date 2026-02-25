@@ -135,6 +135,7 @@ export default async function handler(req, res) {
             processed: 0,
             expired: 0,
             notified: 0,
+            totalInWindow: 0,
             details: [], // { userName, userId, action, status, info }
             errors: []
         };
@@ -235,6 +236,7 @@ export default async function handler(req, res) {
                 try {
                     const userData = userDoc.data();
                     const userId = userDoc.id;
+                    logResults.totalInWindow++;
 
                     // NUEVA LÓGICA: Sumar TODOS los puntos que vencen en la ventana de aviso
                     const historyRef = userDoc.ref.collection('points_history');

@@ -86,11 +86,38 @@ export default async function handler(req, res) {
         const lastRun = checkSnap.exists ? checkSnap.data()?.lastRunDate : null;
 
         if (lastRun === todayAR) {
-            console.log(`[DailyCheck] Ya se ejecutó hoy (${todayAR}). Saltando.`);
+            console.log(`[DailyCheck] Ya se ejecutó hoy (${todayAR}). Saltando procesos pero calculando contadores.`);
+
+            // 1. Contar Cumpleaños Hoy
+            const usersSnap = await db.collection('users').where('birthDate', '!=', '').get();
+            const todayMsg = `${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
+            const birthdayCount = usersSnap.docs.filter(doc => doc.data().birthDate?.endsWith(todayMsg)).length;
+
+            // 2. Contar Vencimientos (Llamada simple a check-expirations o query local)
+            // Para simplicidad y performance, hacemos el query local equivalente
+            const configSnap = await db.collection('config').doc('general').get();
+            const config = configSnap.data();
+            const warningDays = Number(config?.messaging?.expirationWarningDays) || 7;
+            const windowEnd = new Date();
+            windowEnd.setDate(windowEnd.getDate() + warningDays);
+            const windowEndStr = windowEnd.toISOString().split('T')[0];
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            const expSnap = await db.collection('users')
+                .where('nextExpirationDate', '<=', windowEndStr)
+                .where('nextExpirationDate', '>', todayStr)
+                .get();
+
+            // Filtrar los que tienen puntos > 0
+            const expirationCount = expSnap.docs.filter(d => (d.data().points || 0) > 0).length;
+
             return res.status(200).json({
-                ok: true, skipped: true,
+                ok: true,
+                skipped: true,
                 message: `Ya se ejecutó hoy (${todayAR})`,
-                lastRun: todayAR
+                lastRun: todayAR,
+                summary: { notified: 0, totalToday: birthdayCount },
+                expirations: { summary: { notified: 0, totalInWindow: expirationCount } }
             });
         }
         console.log(`[DailyCheck] Ejecutando para ${todayAR}. Última: ${lastRun || 'nunca'}`);
@@ -309,7 +336,15 @@ export default async function handler(req, res) {
             skipped: false,
             summary: logResults,
             today: todayMD,
-            ...(isDailyMode ? { expirations: expirationsResult } : {})
+            ...(isDailyMode ? {
+                expirations: {
+                    ...expirationsResult,
+                    summary: {
+                        ...expirationsResult?.summary,
+                        totalInWindow: expirationsResult?.summary?.totalInWindow || 0
+                    }
+                }
+            } : {})
         });
 
     } catch (error) {

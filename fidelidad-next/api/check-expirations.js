@@ -269,24 +269,48 @@ export default async function handler(req, res) {
                         continue;
                     }
 
-                    // Chequeo de duplicados mejorado: avisar si cambió la fecha O el monto
-                    // O si la ITINERANCIA está activada (para obligar el re-envío)
-                    const isRepeatEnabled = config.messaging?.repeatExpirationWarnings === true;
+                    // --- ITINERANCIA INTELIGENTE ---
+                    // Toggle master ON/OFF + intervalo configurable en días
+                    const isItinerancyEnabled = config.messaging?.repeatExpirationWarnings === true;
+                    const reminderIntervalDays = Number(config.messaging?.expirationReminderIntervalDays) || 5;
 
-                    const alreadyNotified =
-                        !isRepeatEnabled &&
+                    // ¿Ya fue notificado para esta misma fecha+monto?
+                    const sameTargetAndAmount =
                         userData.lastExpirationNoticeTargetDate === userData.nextExpirationDate &&
                         userData.lastExpirationNoticeAmount === totalImpendingAmount;
 
-                    if (alreadyNotified) {
-                        console.log(`[Cron] Skipping ${userId}: Already notified and itinerancy is disabled.`);
-                        logResults.details.push({
-                            userId,
-                            userName: userData.name || userData.nombre || 'Socio',
-                            action: 'skipped_notification',
-                            info: `Ya notificado (Sin cambios: ${totalImpendingAmount} pts al ${userData.nextExpirationDate}). Itinerancia: OFF`
-                        });
-                        continue;
+                    let isItinerancy = false;
+                    if (sameTargetAndAmount) {
+                        if (!isItinerancyEnabled) {
+                            // Itinerancia OFF → saltar
+                            console.log(`[Cron] Skipping ${userId}: Already notified and itinerancy is disabled.`);
+                            logResults.details.push({
+                                userId,
+                                userName: userData.name || userData.nombre || 'Socio',
+                                action: 'skipped_notification',
+                                info: `Ya notificado (${totalImpendingAmount} pts al ${userData.nextExpirationDate}). Itinerancia: OFF`
+                            });
+                            continue;
+                        }
+                        // Itinerancia ON → chequear intervalo
+                        const lastNoticeDate = userData.lastExpirationNotice; // "YYYY-MM-DD"
+                        if (lastNoticeDate) {
+                            const daysSinceLastNotice = Math.floor(
+                                (new Date(referenceDateStr).getTime() - new Date(lastNoticeDate).getTime()) / (1000 * 60 * 60 * 24)
+                            );
+                            if (daysSinceLastNotice < reminderIntervalDays) {
+                                console.log(`[Cron] Skipping ${userId}: Itinerancy ON but only ${daysSinceLastNotice}/${reminderIntervalDays} days since last notice.`);
+                                logResults.details.push({
+                                    userId,
+                                    userName: userData.name || userData.nombre || 'Socio',
+                                    action: 'skipped_notification',
+                                    info: `Itinerancia: esperando (${daysSinceLastNotice}/${reminderIntervalDays} días). Próximo recordatorio en ${reminderIntervalDays - daysSinceLastNotice} día(s)`
+                                });
+                                continue;
+                            }
+                        }
+                        isItinerancy = true;
+                        console.log(`[Cron] Itinerancy triggered for ${userId}: ${reminderIntervalDays} days elapsed.`);
                     }
 
 
@@ -375,8 +399,8 @@ export default async function handler(req, res) {
                         socioNumber: userData?.socioNumber || userData?.numeroSocio || userData?.socio_number || '',
                         action: 'notified_expiration',
                         status: 'success',
-                        isItinerancy: isRepeatEnabled,
-                        info: `Enviado: "${msg}" | Desglose: ${breakdownStr}`
+                        isItinerancy: isItinerancy,
+                        info: `${isItinerancy ? '[ITINERANCIA] ' : ''}Enviado: "${msg}" | Desglose: ${breakdownStr}`
                     });
                 } catch (e) {
                     console.error(`[Cron] Error notifying ${userDoc.id}:`, e);

@@ -3,8 +3,8 @@ import { collection, getDocs, query, where, collectionGroup, orderBy, limit, doc
 import { db } from '../../../lib/firebase';
 import { ConfigService } from '../../../services/configService';
 import { TimeService } from '../../../services/timeService';
-import { ArrowUpRight, ArrowDownLeft, TrendingUp, Gift, User, Clock, RefreshCw, Cake, X, ChevronDown, CheckCircle, MessageCircle } from 'lucide-react';
-
+import { ArrowUpRight, ArrowDownLeft, TrendingUp, Gift, User, Clock, RefreshCw, Cake, X, ChevronDown, CheckCircle, MessageCircle, AlertTriangle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { BirthdayService } from '../../../services/birthdayService';
 import toast from 'react-hot-toast';
 
@@ -31,7 +31,9 @@ export const DashboardPage = () => {
     const [refreshing, setRefreshing] = useState(false);
     const [activityLimit, setActivityLimit] = useState(10);
     const [birthdaysOfToday, setBirthdaysOfToday] = useState<any[]>([]);
+    const [expiringUsers, setExpiringUsers] = useState<any[]>([]);
     const [config, setConfig] = useState<any>(null);
+    const navigate = useNavigate();
     const [isBirthdayAlertVisible, setIsBirthdayAlertVisible] = useState(() => {
         if (typeof window !== 'undefined') {
             return sessionStorage.getItem('hideBirthdayAlert') !== 'true';
@@ -64,6 +66,13 @@ export const DashboardPage = () => {
             const today = TimeService.now();
             const todayMD = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
             const todaysSelectedBirthdays: any[] = [];
+            const usersExpiring: any[] = [];
+
+            // Calculate warning window date (30 days ahead as broad detection)
+            const todayStr = today.toISOString().split('T')[0];
+            const windowEnd = new Date(today);
+            windowEnd.setDate(windowEnd.getDate() + 30);
+            const windowEndStr = windowEnd.toISOString().split('T')[0];
 
             snap.forEach(d => {
                 const data = d.data();
@@ -71,14 +80,20 @@ export const DashboardPage = () => {
                 const isGhost = !data.name && !data.nombre && !data.dni;
                 if (data.role !== 'admin' && !isGhost) {
                     clientCount++;
-                    points += (data.points ?? data.puntos ?? 0);
+                    const userPoints = data.points ?? data.puntos ?? 0;
+                    points += userPoints;
                     if (data.birthDate?.endsWith(todayMD)) {
                         todaysSelectedBirthdays.push({ id: d.id, ...data });
+                    }
+                    // Detect upcoming expirations
+                    if (data.nextExpirationDate && data.nextExpirationDate > todayStr && data.nextExpirationDate <= windowEndStr && userPoints > 0) {
+                        usersExpiring.push({ id: d.id, name: data.name || data.nombre || 'Socio', points: userPoints, nextExpirationDate: data.nextExpirationDate, phone: data.phone || data.telefono || '' });
                     }
                 }
             });
 
             setBirthdaysOfToday(todaysSelectedBirthdays);
+            setExpiringUsers(usersExpiring);
             setStats(prev => ({ ...prev, usersCount: clientCount, totalPoints: points }));
             setLoading(false);
         });
@@ -368,7 +383,51 @@ export const DashboardPage = () => {
                         <TrendingUp size={24} />
                     </div>
                 </div>
+
+                {/* KPI: Puntos por Vencer */}
+                {expiringUsers.length > 0 && (
+                    <div className="bg-gradient-to-br from-amber-50 to-orange-50 p-6 rounded-2xl shadow-sm border border-amber-200 flex items-center justify-between transition hover:shadow-md relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-20 h-20 bg-amber-100/50 rounded-full -translate-y-1/2 translate-x-1/2" />
+                        <div className="relative z-10">
+                            <h3 className="text-amber-700 text-sm font-medium mb-1">⏳ Próximos a Vencer</h3>
+                            <div className="flex flex-col">
+                                <p className="text-3xl font-bold text-amber-800">
+                                    {expiringUsers.reduce((acc, u) => acc + u.points, 0).toLocaleString()} pts
+                                </p>
+                                <span className="text-[10px] font-bold text-amber-600 mt-1 uppercase tracking-tight">
+                                    {expiringUsers.length} socio{expiringUsers.length > 1 ? 's' : ''} · ≈ ${(expiringUsers.reduce((acc, u) => acc + u.points, 0) * (stats.pointValueConfigured || 1)).toLocaleString()}
+                                </span>
+                            </div>
+                        </div>
+                        <div className="bg-amber-100 p-3 rounded-xl text-amber-600 relative z-10">
+                            <AlertTriangle size={24} />
+                        </div>
+                    </div>
+                )}
             </div>
+
+            {/* WhatsApp FAB for Expirations */}
+            {expiringUsers.length > 0 && (
+                <button
+                    onClick={() => {
+                        const defaultMsg = '¡Hola {nombre}! 📢 Tienes {puntos} puntos próximos a vencer. ⏳ Entrá a la App para ver el detalle y aprovecharlos antes de que se venzan. 🎁';
+                        navigate('/admin/whatsapp', {
+                            state: {
+                                message: defaultMsg,
+                                clientIds: expiringUsers.map(u => u.id)
+                            }
+                        });
+                    }}
+                    className="fixed bottom-8 left-8 z-50 flex items-center justify-center gap-2 px-6 py-4 bg-green-500 hover:bg-green-600 text-white font-bold rounded-full shadow-2xl hover:scale-110 active:scale-95 transition-all animate-in slide-in-from-left-10"
+                >
+                    <MessageCircle size={24} />
+                    <span className="hidden md:inline">Enviar WhatsApp a {expiringUsers.length}</span>
+                    <span className="md:hidden">{expiringUsers.length}</span>
+                    <span className="absolute -top-2 -right-2 bg-white text-green-600 text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center shadow-md border border-green-100">
+                        {expiringUsers.length}
+                    </span>
+                </button>
+            )}
 
             {/* Birthday Alert Section - Floating Widget */}
             {isBirthdayAlertVisible && birthdaysOfToday.length > 0 && (

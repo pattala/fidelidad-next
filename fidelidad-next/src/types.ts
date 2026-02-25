@@ -161,6 +161,7 @@ export interface AppConfig {
         repeatExpirationWarnings?: boolean;
         expirationWarningDays?: number;
         automaticCheckHour?: number; // 0-23
+        expirationReminderIntervalDays?: number;
     };
 
     // Sistema de Referidos

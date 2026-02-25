@@ -1781,7 +1781,29 @@ export const ConfigPage = () => {
                                             <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${config.messaging?.repeatExpirationWarnings ? 'translate-x-6' : 'translate-x-1'}`} />
                                         </button>
                                     </div>
-
+                                    {/* Interval days input - visible when itinerancy is ON */}
+                                    {config.messaging?.repeatExpirationWarnings && (
+                                        <div className="mt-3 ml-10 p-3 bg-white rounded-lg border border-orange-100 animate-fade-in">
+                                            <label className="flex items-center gap-3">
+                                                <span className="text-xs font-bold text-orange-800 whitespace-nowrap">Recordar cada</span>
+                                                <input
+                                                    type="number"
+                                                    min={1}
+                                                    max={30}
+                                                    value={config.messaging?.expirationReminderIntervalDays || 5}
+                                                    onChange={e => setConfig({
+                                                        ...config,
+                                                        messaging: { ...config.messaging!, expirationReminderIntervalDays: parseInt(e.target.value) || 5 }
+                                                    })}
+                                                    className="w-16 px-2 py-1 text-center text-sm font-bold border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-300 focus:outline-none"
+                                                />
+                                                <span className="text-xs text-orange-700">días después del primer aviso</span>
+                                            </label>
+                                            <p className="text-[10px] text-orange-600/60 mt-1.5 ml-0">
+                                                Ej: con ventana de 10 días y recordatorio cada 5, se envía al día 1 y al día 6.
+                                            </p>
+                                        </div>
+                                    )}
                                     {config.messaging?.enableExpirationWarnings && (
                                         <div className="space-y-4 animate-fade-in text-left border-l-2 border-orange-100 pl-4">
                                             <div className="flex gap-2">

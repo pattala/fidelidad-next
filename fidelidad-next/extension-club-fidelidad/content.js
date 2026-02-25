@@ -24,11 +24,64 @@ chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
                     console.log("📋 [Club Fidelidad] Daily check ya ejecutado hoy.");
                 } else if (data.ok) {
                     console.log("✅ [Club Fidelidad] Daily check ejecutado:", data.date);
+
+                    // Mostrar banner si hay pendientes
+                    const birthdayCount = data.summary?.notified || 0;
+                    const expirationCount = data.expirations?.summary?.notified || 0;
+
+                    if (birthdayCount > 0 || expirationCount > 0) {
+                        showGlobalAlert(birthdayCount, expirationCount, res.apiUrl);
+                    }
                 }
             })
             .catch(e => console.warn("⚠️ [Club Fidelidad] Daily check falló (no crítico):", e.message));
     }
 });
+
+function showGlobalAlert(birthdays, expirations, adminUrl) {
+    if (document.getElementById('cf-global-alert')) return;
+
+    const banner = document.createElement('div');
+    banner.id = 'cf-global-alert';
+    banner.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: #fef3c7;
+        color: #92400e;
+        padding: 8px 16px;
+        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        z-index: 999999;
+        border-bottom: 2px solid #f59e0b;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    `;
+
+    let text = '⚠️ ';
+    if (birthdays > 0 && expirations > 0) text += `Hay ${birthdays} cumpleaños y ${expirations} vencimientos hoy.`;
+    else if (birthdays > 0) text += `Hoy hay ${birthdays} cumpleaños de socios.`;
+    else text += `Hay ${expirations} avisos de vencimiento pendientes.`;
+
+    banner.innerHTML = `
+        <span>${text}</span>
+        <a href="${adminUrl}/admin/dashboard" target="_blank" style="background: #f59e0b; color: white; padding: 4px 10px; border-radius: 6px; text-decoration: none; font-size: 11px; text-transform: uppercase;">Abrir Panel</a>
+        <span id="cf-alert-close" style="cursor: pointer; opacity: 0.5; font-size: 18px; margin-left: 10px;">×</span>
+    `;
+
+    document.body.prepend(banner);
+    document.body.style.paddingTop = '40px'; // Shift content down
+
+    document.getElementById('cf-alert-close').onclick = () => {
+        banner.remove();
+        document.body.style.paddingTop = '0';
+    };
+}
 
 // Función para buscar el monto en el sitio
 function detectAmount() {

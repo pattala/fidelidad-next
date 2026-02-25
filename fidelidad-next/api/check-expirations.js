@@ -223,20 +223,36 @@ export default async function handler(req, res) {
         }
 
         // --- PASO B: ENVIAR AVISOS (Usuarios que vencen pronto) ---
-        console.log(`[Cron] Step B: Searching for notices > ${referenceDateStr} and <= ${warningDateStr}`);
+        // Usamos una ventana de 30 días para los contadores (match Dashboard)
+        const proactiveWindow = new Date(referenceDate);
+        proactiveWindow.setDate(proactiveWindow.getDate() + 30);
+        const proactiveWindowStr = proactiveWindow.toISOString().split('T')[0];
+
+        console.log(`[Cron] Step B: Searching for notices > ${referenceDateStr} and <= ${proactiveWindowStr}`);
         if (config.messaging?.enableExpirationWarnings !== false) {
-            const toNotifySnap = await db.collection('users')
-                .where('nextExpirationDate', '<=', warningDateStr)
+            const proactiveSnap = await db.collection('users')
+                .where('nextExpirationDate', '<=', proactiveWindowStr)
                 .where('nextExpirationDate', '>', referenceDateStr)
                 .get();
 
-            console.log(`[Cron] Found ${toNotifySnap.size} candidates for notices.`);
+            console.log(`[Cron] Found ${proactiveSnap.size} candidates in 30-day proactive window.`);
 
-            for (const userDoc of toNotifySnap.docs) {
+            for (const userDoc of proactiveSnap.docs) {
                 try {
                     const userData = userDoc.data();
                     const userId = userDoc.id;
+                    const userPoints = userData.points ?? userData.puntos ?? 0;
+
+                    if (userPoints <= 0) continue;
+
+                    // Contar para la burbuja de la extensión (match Dashboard 30 días)
                     logResults.totalInWindow++;
+
+                    // --- LÓGICA DE NOTIFICACIÓN AUTOMÁTICA ---
+                    // Solo notificar si está dentro de la ventana configurada (ej: 7 días)
+                    if (userData.nextExpirationDate > warningDateStr) {
+                        continue;
+                    }
 
                     // NUEVA LÓGICA: Sumar TODOS los puntos que vencen en la ventana de aviso
                     const historyRef = userDoc.ref.collection('points_history');

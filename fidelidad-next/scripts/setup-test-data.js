@@ -6,14 +6,26 @@
  */
 
 import admin from "firebase-admin";
+import fs from "fs";
+import path from "path";
 
+let sa;
 const raw = process.env.GOOGLE_CREDENTIALS_JSON;
-if (!raw) {
-    console.error("ERROR: GOOGLE_CREDENTIALS_JSON no encontrada.");
-    process.exit(1);
+
+if (raw) {
+    sa = JSON.parse(raw);
+} else {
+    // Intentar cargar desde archivo local en la raíz del proyecto
+    const saPath = path.resolve(process.cwd(), "service-account.json");
+    if (fs.existsSync(saPath)) {
+        console.log("📂 Cargando credenciales desde service-account.json...");
+        sa = JSON.parse(fs.readFileSync(saPath, "utf8"));
+    } else {
+        console.error("ERROR: No se encontró GOOGLE_CREDENTIALS_JSON ni service-account.json en la raíz.");
+        process.exit(1);
+    }
 }
 
-const sa = JSON.parse(raw);
 if (!admin.apps.length) {
     admin.initializeApp({ credential: admin.credential.cert(sa) });
 }

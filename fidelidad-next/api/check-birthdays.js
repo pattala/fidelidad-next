@@ -93,13 +93,9 @@ export default async function handler(req, res) {
             const todayMsg = `${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
             const birthdayCount = usersSnap.docs.filter(doc => doc.data().birthDate?.endsWith(todayMsg)).length;
 
-            // 2. Contar Vencimientos (Llamada simple a check-expirations o query local)
-            // Para simplicidad y performance, hacemos el query local equivalente
-            const configSnap = await db.collection('config').doc('general').get();
-            const config = configSnap.data();
-            const warningDays = Number(config?.messaging?.expirationWarningDays) || 7;
+            // 2. Contar Vencimientos (30 días de ventana para match con Dashboard FAB)
             const windowEnd = new Date();
-            windowEnd.setDate(windowEnd.getDate() + warningDays);
+            windowEnd.setDate(windowEnd.getDate() + 30);
             const windowEndStr = windowEnd.toISOString().split('T')[0];
             const todayStr = new Date().toISOString().split('T')[0];
 

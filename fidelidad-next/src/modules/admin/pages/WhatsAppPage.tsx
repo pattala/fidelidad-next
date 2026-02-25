@@ -24,6 +24,7 @@ export const WhatsAppPage = () => {
 
     // Message
     const [message, setMessage] = useState('');
+    const [notificationType, setNotificationType] = useState<'expiration' | 'birthday' | 'custom'>('custom');
 
     useEffect(() => {
         const loadJava = async () => {
@@ -36,6 +37,8 @@ export const WhatsAppPage = () => {
                 const state = location.state as any;
                 const incomingMessage = state?.message;
                 const targetClientId = state?.clientId;
+                const type = state?.notificationType || 'custom';
+                setNotificationType(type);
 
                 if (incomingMessage) {
                     setMessage(incomingMessage);
@@ -148,6 +151,25 @@ export const WhatsAppPage = () => {
         return `https://api.whatsapp.com/send?phone=${phoneNum}&text=${encodeURIComponent(processedMsg.trim())}`;
     };
 
+    const markAsHandled = async (clientId: string) => {
+        try {
+            const userRef = doc(db, 'users', clientId);
+            const today = new Date().toISOString().split('T')[0];
+            const updates: any = {};
+
+            if (notificationType === 'birthday') {
+                updates.lastBirthdayGreetingYear = new Date().getFullYear().toString();
+            } else {
+                // Default is expiration for safety (hides from bubble)
+                updates.lastExpirationNotice = today;
+            }
+
+            await updateDoc(userRef, updates);
+        } catch (e) {
+            console.error("Error marking as handled:", e);
+        }
+    };
+
     const handleSendIndividual = async (client: Client) => {
         if (isReadOnly) return;
         if (!client.phone) {
@@ -159,11 +181,7 @@ export const WhatsAppPage = () => {
 
         // AUDIT LOG & DB UPDATE
         try {
-            // Update user's last notification date
-            const userRef = doc(db, 'users', client.id);
-            await updateDoc(userRef, {
-                lastExpirationNotice: new Date().toISOString().split('T')[0]
-            });
+            await markAsHandled(client.id);
 
             const token = await auth.currentUser?.getIdToken();
             fetch('/api/log-audit', {
@@ -176,8 +194,8 @@ export const WhatsAppPage = () => {
                 body: JSON.stringify({
                     type: 'whatsapp_notification',
                     status: 'success',
-                    summary: `WhatsApp enviado manualmente a ${client.name}`,
-                    details: [{ userId: client.id, userName: client.name, action: 'whatsapp_click' }]
+                    summary: `WhatsApp enviado manualmente a ${client.name} (${notificationType})`,
+                    details: [{ userId: client.id, userName: client.name, action: 'whatsapp_click', type: notificationType }]
                 })
             });
         } catch (e) {
@@ -211,6 +229,13 @@ export const WhatsAppPage = () => {
         }
     };
 
+    const handleSkipCurrent = async () => {
+        const client = sendingQueue[currentIndex];
+        await markAsHandled(client.id);
+        toast.success(`Cliente ${client.name} marcado como gestionado.`);
+        handleNext();
+    };
+
     const handleSendCurrent = async () => {
         const client = sendingQueue[currentIndex];
         const link = generateLink(client);
@@ -218,11 +243,7 @@ export const WhatsAppPage = () => {
 
         // AUDIT LOG & DB UPDATE
         try {
-            // Update user's last notification date
-            const userRef = doc(db, 'users', client.id);
-            await updateDoc(userRef, {
-                lastExpirationNotice: new Date().toISOString().split('T')[0]
-            });
+            await markAsHandled(client.id);
 
             const token = await auth.currentUser?.getIdToken();
             fetch('/api/log-audit', {
@@ -235,8 +256,8 @@ export const WhatsAppPage = () => {
                 body: JSON.stringify({
                     type: 'whatsapp_notification',
                     status: 'success',
-                    summary: `WhatsApp enviado (Masivo) a ${client.name}`,
-                    details: [{ userId: client.id, userName: client.name, action: 'whatsapp_click_bulk' }]
+                    summary: `WhatsApp enviado (Masivo) a ${client.name} (${notificationType})`,
+                    details: [{ userId: client.id, userName: client.name, action: 'whatsapp_click_bulk', type: notificationType }]
                 })
             });
         } catch (e) {
@@ -463,10 +484,10 @@ export const WhatsAppPage = () => {
                             {/* Secondary Actions */}
                             <div className="flex gap-3 w-full">
                                 <button
-                                    onClick={handleNext}
+                                    onClick={handleSkipCurrent}
                                     className="flex-1 py-3 text-gray-500 font-bold hover:bg-gray-100 rounded-xl transition"
                                 >
-                                    Saltar
+                                    Anular / Saltar
                                 </button>
                                 <button
                                     onClick={() => setIsSendingMode(false)}

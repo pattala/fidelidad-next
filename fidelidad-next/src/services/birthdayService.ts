@@ -174,12 +174,13 @@ export const BirthdayService = {
                     }
                 }
 
-                // MARCAR SALUDO EN DB (CRÍTICO) - Solo si mandamos canales automáticos
-                // Para evitar bucles infinitos si falla el envío pero se intenta.
-                await updateDoc(doc(db, 'users', uid), {
-                    lastBirthdayGreetingYear: currentYear
-                });
             }
+
+            // MARCAR SALUDO EN DB (CRÍTICO)
+            // Marcamos como saludado el año actual para que no vuelva a aparecer en alertas ni auto-procesos.
+            await updateDoc(doc(db, 'users', uid), {
+                lastBirthdayGreetingYear: currentYear
+            });
 
             // WhatsApp link (Siempre se genera si hay teléfono)
             const phone = userData.phone || userData.telefono;

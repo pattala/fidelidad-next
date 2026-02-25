@@ -91,8 +91,8 @@ function showGlobalAlert(birthdays, expirations, adminUrl) {
                         <div style="flex: 1;">
                             <h4 style="margin: 0; font-size: 13px; font-weight: 800; color: #92400e;">Club Fidelidad</h4>
                             <p style="margin: 0; font-size: 11px; color: #b45309; line-height: 1.2;">
-                                ${birthdays > 0 ? `🎂 ${birthdays} cumple${birthdays > 1 ? 's' : ''}` : ''} 
-                                ${expirations > 0 ? ` ⏳ ${expirations} venc.${expirations > 1 ? 's' : ''}` : ''}
+                                ${birthdays > 0 ? `🎂 C: ${birthdays}` : ''} 
+                                ${expirations > 0 ? ` ⏳ V: ${expirations}` : ''}
                             </p>
                         </div>
                         <div style="display: flex; gap: 4px; align-items: center;">

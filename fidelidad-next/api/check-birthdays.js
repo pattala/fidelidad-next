@@ -93,17 +93,22 @@ export default async function handler(req, res) {
         if (lastRun === todayAR) {
             console.log(`[DailyCheck] Ya se ejecutó hoy (${todayAR}). Saltando procesos pero calculando contadores.`);
 
-            // 1. Contar Cumpleaños Hoy
+            // 1. Contar Cumpleaños Hoy (que no hayan sido saludados aún este año)
+            const today = new Date();
+            const currentYear = today.getFullYear().toString();
+            const todayMsg = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
             const usersSnap = await db.collection('users').where('birthDate', '!=', '').get();
-            const todayMsg = `${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
-            const birthdayCount = usersSnap.docs.filter(doc => doc.data().birthDate?.endsWith(todayMsg)).length;
+            const birthdayCount = usersSnap.docs.filter(doc => {
+                const data = doc.data();
+                return data.birthDate?.endsWith(todayMsg) && data.lastBirthdayGreetingYear !== currentYear;
+            }).length;
 
             // 2. Contar Vencimientos (30 días de ventana para match con Dashboard FAB)
             // Respetando itinerancia para que desaparezcan si ya fueron notificados
             const configSnap = await db.collection('config').doc('general').get();
             const configData = configSnap.data();
             const itinerancyDays = configData?.expirationItinerancyDays || 0;
-            const today = new Date();
             const todayStr = today.toISOString().split('T')[0];
 
             const windowEnd = new Date(today);

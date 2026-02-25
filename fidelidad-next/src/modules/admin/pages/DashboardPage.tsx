@@ -458,7 +458,8 @@ export const DashboardPage = () => {
                                     navigate('/admin/whatsapp', {
                                         state: {
                                             message: defaultMsg,
-                                            clientIds: expiringUsers.map(u => u.id)
+                                            clientIds: expiringUsers.map(u => u.id),
+                                            notificationType: 'expiration'
                                         }
                                     });
                                 }}

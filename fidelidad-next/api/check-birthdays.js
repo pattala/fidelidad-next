@@ -94,18 +94,34 @@ export default async function handler(req, res) {
             const birthdayCount = usersSnap.docs.filter(doc => doc.data().birthDate?.endsWith(todayMsg)).length;
 
             // 2. Contar Vencimientos (30 días de ventana para match con Dashboard FAB)
-            const windowEnd = new Date();
+            // Respetando itinerancia para que desaparezcan si ya fueron notificados
+            const configSnap = await db.collection('config').doc('general').get();
+            const configData = configSnap.data();
+            const itinerancyDays = configData?.expirationItinerancyDays || 0;
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+
+            const windowEnd = new Date(today);
             windowEnd.setDate(windowEnd.getDate() + 30);
             const windowEndStr = windowEnd.toISOString().split('T')[0];
-            const todayStr = new Date().toISOString().split('T')[0];
 
             const expSnap = await db.collection('users')
                 .where('nextExpirationDate', '<=', windowEndStr)
                 .where('nextExpirationDate', '>', todayStr)
                 .get();
 
-            // Filtrar los que tienen puntos > 0
-            const expirationCount = expSnap.docs.filter(d => (d.data().points || 0) > 0).length;
+            const expirationCount = expSnap.docs.filter(d => {
+                const data = d.data();
+                if ((data.points || 0) <= 0) return false;
+
+                // Si hay itinerancia, filtrar los ya notificados recientemente
+                if (itinerancyDays > 0 && data.lastExpirationNotice) {
+                    const lastNotice = new Date(data.lastExpirationNotice);
+                    const diffDays = Math.floor((today - lastNotice) / (1000 * 60 * 60 * 24));
+                    if (diffDays < itinerancyDays) return false;
+                }
+                return true;
+            }).length;
 
             return res.status(200).json({
                 ok: true,

@@ -237,13 +237,22 @@ export default async function handler(req, res) {
 
             console.log(`[Cron] Found ${proactiveSnap.size} candidates in 30-day proactive window.`);
 
+            const itinerancyDays = config.messaging?.expirationItinerancyDays || 0;
+            const today = referenceDate;
+
             for (const userDoc of proactiveSnap.docs) {
                 try {
                     const userData = userDoc.data();
-                    const userId = userDoc.id;
                     const userPoints = userData.points ?? userData.puntos ?? 0;
 
                     if (userPoints <= 0) continue;
+
+                    // Verificar si ya fue notificado recientemente (itinerancia)
+                    if (itinerancyDays > 0 && userData.lastExpirationNotice) {
+                        const lastNotice = new Date(userData.lastExpirationNotice);
+                        const diffDays = Math.floor((today - lastNotice) / (1000 * 60 * 60 * 24));
+                        if (diffDays < itinerancyDays) continue;
+                    }
 
                     // Contar para la burbuja de la extensión (match Dashboard 30 días)
                     logResults.totalInWindow++;

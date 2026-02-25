@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db, auth } from '../../../lib/firebase';
-import { collection, getDocs, query } from 'firebase/firestore';
+import { collection, getDocs, query, doc, updateDoc } from 'firebase/firestore';
 import { ConfigService, DEFAULT_TEMPLATES } from '../../../services/configService';
 import type { AppConfig } from '../../../types';
 import type { Client } from '../../../types';
@@ -157,8 +157,14 @@ export const WhatsAppPage = () => {
         const link = generateLink(client);
         window.open(link, '_blank');
 
-        // AUDIT LOG
+        // AUDIT LOG & DB UPDATE
         try {
+            // Update user's last notification date
+            const userRef = doc(db, 'users', client.id);
+            await updateDoc(userRef, {
+                lastExpirationNotice: new Date().toISOString().split('T')[0]
+            });
+
             const token = await auth.currentUser?.getIdToken();
             fetch('/api/log-audit', {
                 method: 'POST',
@@ -175,7 +181,7 @@ export const WhatsAppPage = () => {
                 })
             });
         } catch (e) {
-            console.error("Audit log error:", e);
+            console.error("Audit log/DB update error:", e);
         }
     };
 
@@ -210,8 +216,14 @@ export const WhatsAppPage = () => {
         const link = generateLink(client);
         window.open(link, '_blank');
 
-        // AUDIT LOG
+        // AUDIT LOG & DB UPDATE
         try {
+            // Update user's last notification date
+            const userRef = doc(db, 'users', client.id);
+            await updateDoc(userRef, {
+                lastExpirationNotice: new Date().toISOString().split('T')[0]
+            });
+
             const token = await auth.currentUser?.getIdToken();
             fetch('/api/log-audit', {
                 method: 'POST',
@@ -228,7 +240,7 @@ export const WhatsAppPage = () => {
                 })
             });
         } catch (e) {
-            console.error("Audit log error:", e);
+            console.error("Audit log/DB update error:", e);
         }
 
         handleNext();

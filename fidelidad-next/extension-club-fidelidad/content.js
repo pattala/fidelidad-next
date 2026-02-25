@@ -11,6 +11,23 @@ let currentPromos = []; // Store calculable promos globally for this context
 // Cargar configuración de storage
 chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
     config = res;
+
+    // --- DAILY CHECK: cumpleaños + vencimientos (1x/día, silencioso) ---
+    if (res.apiUrl && res.apiKey) {
+        fetch(`${res.apiUrl}/api/daily-check`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-api-key': res.apiKey }
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.skipped) {
+                    console.log("📋 [Club Fidelidad] Daily check ya ejecutado hoy.");
+                } else if (data.ok) {
+                    console.log("✅ [Club Fidelidad] Daily check ejecutado:", data.date);
+                }
+            })
+            .catch(e => console.warn("⚠️ [Club Fidelidad] Daily check falló (no crítico):", e.message));
+    }
 });
 
 // Función para buscar el monto en el sitio

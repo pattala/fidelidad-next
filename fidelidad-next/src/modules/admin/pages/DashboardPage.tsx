@@ -186,6 +186,28 @@ export const DashboardPage = () => {
         };
     }, [activityLimit]);
 
+    // --- DAILY CHECK: cumpleaños + vencimientos (1x/día, silencioso) ---
+    useEffect(() => {
+        if (!config) return;
+        const runDailyCheck = async () => {
+            try {
+                const SECRET = (import.meta as any).env?.VITE_API_KEY || '';
+                if (!SECRET) return;
+                const res = await fetch('/api/daily-check', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET }
+                });
+                const data = await res.json();
+                if (!data.skipped && data.ok) {
+                    console.log("✅ [Dashboard] Daily check ejecutado:", data.date);
+                }
+            } catch (e) {
+                console.warn("⚠️ [Dashboard] Daily check falló (no crítico):", e);
+            }
+        };
+        runDailyCheck();
+    }, [!!config]);
+
     // Handle derived stats update when dependencies change
     useEffect(() => {
         if (!config) return;

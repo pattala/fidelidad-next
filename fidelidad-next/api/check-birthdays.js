@@ -73,6 +73,28 @@ export default async function handler(req, res) {
 
     const app = initFirebaseAdmin();
     const db = app.firestore();
+    const isDailyMode = req.query?.mode === 'daily' || req.body?.mode === 'daily';
+
+    // --- DEDUPLICACIÓN (solo en modo daily) ---
+    if (isDailyMode) {
+        const arFormatter = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'America/Argentina/Buenos_Aires',
+            year: 'numeric', month: '2-digit', day: '2-digit'
+        });
+        const todayAR = arFormatter.format(new Date());
+        const checkSnap = await db.collection('config').doc('dailyCheck').get();
+        const lastRun = checkSnap.exists ? checkSnap.data()?.lastRunDate : null;
+
+        if (lastRun === todayAR) {
+            console.log(`[DailyCheck] Ya se ejecutó hoy (${todayAR}). Saltando.`);
+            return res.status(200).json({
+                ok: true, skipped: true,
+                message: `Ya se ejecutó hoy (${todayAR})`,
+                lastRun: todayAR
+            });
+        }
+        console.log(`[DailyCheck] Ejecutando para ${todayAR}. Última: ${lastRun || 'nunca'}`);
+    }
 
     try {
         const configSnap = await db.collection('config').doc('general').get();
@@ -242,10 +264,52 @@ export default async function handler(req, res) {
             console.error("[Birthdays] Error saving audit log:", logError);
         }
 
+        // --- MODO DAILY: también ejecutar vencimientos ---
+        let expirationsResult = null;
+        if (isDailyMode) {
+            try {
+                const currentHost = req.headers.host;
+                const baseUrl = currentHost
+                    ? `https://${currentHost}`
+                    : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+                const eRes = await fetch(`${baseUrl}/api/check-expirations`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': SECRET,
+                        'x-api-secret': SECRET,
+                        'x-executor-role': 'system'
+                    }
+                });
+                expirationsResult = await eRes.json();
+                console.log("[DailyCheck] Vencimientos:", JSON.stringify(expirationsResult).substring(0, 200));
+            } catch (e) {
+                console.error("[DailyCheck] Error en vencimientos:", e.message);
+                expirationsResult = { ok: false, error: e.message };
+            }
+
+            // Marcar como ejecutado
+            const arFormatter = new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'America/Argentina/Buenos_Aires',
+                year: 'numeric', month: '2-digit', day: '2-digit'
+            });
+            await db.collection('config').doc('dailyCheck').set({
+                lastRunDate: arFormatter.format(new Date()),
+                lastRunTimestamp: admin.firestore.FieldValue.serverTimestamp(),
+                executor: executorEmail,
+                results: {
+                    birthdaysOk: true,
+                    expirationsOk: expirationsResult?.ok || false
+                }
+            }, { merge: true });
+        }
+
         return res.status(200).json({
             ok: true,
+            skipped: false,
             summary: logResults,
-            today: todayMD
+            today: todayMD,
+            ...(isDailyMode ? { expirations: expirationsResult } : {})
         });
 
     } catch (error) {

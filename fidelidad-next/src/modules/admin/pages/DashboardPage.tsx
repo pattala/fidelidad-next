@@ -193,7 +193,7 @@ export const DashboardPage = () => {
             try {
                 const SECRET = (import.meta as any).env?.VITE_API_KEY || '';
                 if (!SECRET) return;
-                const res = await fetch('/api/daily-check', {
+                const res = await fetch('/api/check-birthdays?mode=daily', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET }
                 });

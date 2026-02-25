@@ -14,7 +14,7 @@ chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
 
     // --- DAILY CHECK: cumpleaños + vencimientos (1x/día, silencioso) ---
     if (res.apiUrl && res.apiKey) {
-        fetch(`${res.apiUrl}/api/daily-check`, {
+        fetch(`${res.apiUrl}/api/check-birthdays?mode=daily`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-api-key': res.apiKey }
         })

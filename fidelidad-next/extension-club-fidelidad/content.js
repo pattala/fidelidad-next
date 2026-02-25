@@ -1,6 +1,5 @@
-
-// Club Fidelidad - Content Script (VERSIÓN 29 - MODAL INFILTRATION)
-console.log("🚀 [Club Fidelidad] v29: Iniciando versión con infiltración en modal");
+// Club Fidelidad - Content Script (VERSIÓN 31 - DRAG & LOGS FIX)
+console.log("🚀 [Club Fidelidad] V31: Iniciando script con arreglos de arrastre y nuevos logs.");
 
 let config = { apiUrl: '', apiKey: '' };
 let apiRatios = { base: 100, perPeso: 1 };
@@ -11,39 +10,39 @@ let currentPromos = []; // Store calculable promos globally for this context
 // Cargar configuración de storage
 chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
     config = res;
-    console.log("⚙️ [Club Fidelidad] Configuración cargada:", res.apiUrl ? "URL OK" : "URL FALTANTE", res.apiKey ? "KEY OK" : "KEY FALTANTE");
+    console.log("⚙️ [Club Fidelidad] Configura-Check:", res.apiUrl ? `URL: ${res.apiUrl}` : "❌ URL NO ENCONTRADA", res.apiKey ? "✅ API KEY OK" : "❌ KEY NO ENCONTRADA");
 
     // --- DAILY CHECK: cumpleaños + vencimientos (1x/día, silencioso) ---
     if (res.apiUrl && res.apiKey) {
+        console.log("🔍 [Club Fidelidad] Consultando pendientes a servidor...");
         fetch(`${res.apiUrl}/api/check-birthdays?mode=daily`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-api-key': res.apiKey }
         })
             .then(r => r.json())
             .then(data => {
+                console.log("📊 [Club Fidelidad] Respuesta de pendientes:", data);
                 if (data.ok) {
-                    console.log("✅ [Club Fidelidad] Daily check procesado. Pendientes:", data.summary?.totalToday, "cumples,", data.expirations?.summary?.totalInWindow, "vencimientos.");
-                    console.log("📊 [Club Fidelidad] Data completa recibida:", data);
-
-                    // Mostrar bubble si hay pendientes hoy (aunque el motor automático ya haya corrido)
                     const birthdayCount = data.summary?.totalToday || 0;
                     const expirationCount = data.expirations?.summary?.totalInWindow || 0;
 
                     if (birthdayCount > 0 || expirationCount > 0) {
                         showGlobalAlert(birthdayCount, expirationCount, res.apiUrl);
+                    } else {
+                        console.log("ℹ️ [Club Fidelidad] Nada pendiente para alertar hoy.");
                     }
                 }
             })
-            .catch(e => console.warn("⚠️ [Club Fidelidad] Daily check falló (no crítico):", e.message));
+            .catch(e => console.error("❌ [Club Fidelidad] Error en check diario:", e.message));
     }
 });
 
 function showGlobalAlert(birthdays, expirations, adminUrl) {
     if (document.getElementById('cf-floating-alert')) return;
 
-    // Recuperar estado minimizado
     chrome.storage.local.get(['cf_alert_minimized'], (result) => {
         let isMinimized = result.cf_alert_minimized || false;
+        let isDraggingActive = false;
 
         const widget = document.createElement('div');
         widget.id = 'cf-floating-alert';
@@ -55,7 +54,6 @@ function showGlobalAlert(birthdays, expirations, adminUrl) {
             font-family: system-ui, -apple-system, sans-serif;
             display: flex;
             flex-direction: column;
-            align-items: flex-start;
             transition: opacity 0.3s ease, transform 0.3s ease;
             user-select: none;
         `;
@@ -64,27 +62,18 @@ function showGlobalAlert(birthdays, expirations, adminUrl) {
             if (isMinimized) {
                 widget.innerHTML = `
                     <div id="cf-alert-min" style="
-                        background: #f59e0b;
-                        color: white;
-                        width: 48px;
-                        height: 48px;
-                        border-radius: 50%;
-                        box-shadow: 0 10px 25px rgba(245, 158, 11, 0.4);
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        cursor: pointer;
-                        position: relative;
-                        border: 2px solid white;
+                        background: #f59e0b; color: white; width: 48px; height: 48px; border-radius: 50%;
+                        box-shadow: 0 10px 25px rgba(245, 158, 11, 0.4); display: flex; align-items: center; justify-content: center;
+                        cursor: grab; position: relative; border: 2px solid white;
                     ">
                         <span style="font-size: 24px;">📢</span>
-                        <span style="absolute; -top: 2px; -right: 2px; background: white; color: #b45309; font-size: 10px; font-weight: 900; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+                        <span style="position: absolute; top: -5px; right: -5px; background: white; color: #b45309; font-size: 10px; font-weight: 900; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
                             ${birthdays + expirations}
                         </span>
                     </div>
                 `;
                 widget.onclick = (e) => {
-                    if (isDraggingStarted) return;
+                    if (isDraggingActive) return;
                     isMinimized = false;
                     chrome.storage.local.set({ cf_alert_minimized: false });
                     renderContent();
@@ -92,18 +81,11 @@ function showGlobalAlert(birthdays, expirations, adminUrl) {
             } else {
                 widget.innerHTML = `
                     <div id="cf-alert-main" style="
-                        background: white;
-                        padding: 12px 16px;
-                        border-radius: 16px;
-                        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-                        border: 1px solid #fee2e2;
-                        display: flex;
-                        align-items: center;
-                        gap: 12px;
-                        min-width: 200px;
-                        cursor: default;
+                        background: white; padding: 12px 16px; border-radius: 16px;
+                        box-shadow: 0 10px 25px rgba(0,0,0,0.15); border: 1px solid #fee2e2;
+                        display: flex; align-items: center; gap: 12px; min-width: 200px;
                     ">
-                        <div id="cf-drag-handle" style="cursor: move; background: #fef3c7; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%;">
+                        <div id="cf-drag-handle" style="cursor: grab; background: #fef3c7; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%;">
                             <span style="font-size: 18px;">📢</span>
                         </div>
                         <div style="flex: 1;">
@@ -115,26 +97,19 @@ function showGlobalAlert(birthdays, expirations, adminUrl) {
                         </div>
                         <div style="display: flex; gap: 4px; align-items: center;">
                             <a href="${adminUrl}/admin/dashboard" target="_blank" style="
-                                background: #f59e0b;
-                                color: white;
-                                padding: 6px 12px;
-                                border-radius: 8px;
-                                text-decoration: none;
-                                font-size: 10px;
-                                font-weight: bold;
-                                text-transform: uppercase;
-                                white-space: nowrap;
+                                background: #f59e0b; color: white; padding: 6px 12px; border-radius: 8px;
+                                text-decoration: none; font-size: 10px; font-weight: bold; text-transform: uppercase;
                             ">Panel</a>
-                            <button id="cf-alert-minimize" style="background:none; border:none; color:#d1d5db; cursor:pointer; font-size:18px; padding:0 4px;">–</button>
-                            <button id="cf-alert-close" style="background:none; border:none; color:#d1d5db; cursor:pointer; font-size:18px; padding:0 4px;">×</button>
+                            <button id="cf-alert-minimize" title="Minimizar" style="background:none; border:none; color:#d1d5db; cursor:pointer; font-size:20px;">–</button>
+                            <button id="cf-alert-close" title="Cerrar" style="background:none; border:none; color:#d1d5db; cursor:pointer; font-size:20px;">×</button>
                         </div>
                     </div>
                 `;
-                document.getElementById('cf-alert-close').onclick = (e) => {
+                widget.querySelector('#cf-alert-close').onclick = (e) => {
                     e.stopPropagation();
                     widget.remove();
                 };
-                document.getElementById('cf-alert-minimize').onclick = (e) => {
+                widget.querySelector('#cf-alert-minimize').onclick = (e) => {
                     e.stopPropagation();
                     isMinimized = true;
                     chrome.storage.local.set({ cf_alert_minimized: true });
@@ -144,50 +119,41 @@ function showGlobalAlert(birthdays, expirations, adminUrl) {
             setupDragging();
         };
 
-        let isDraggingStarted = false;
         const setupDragging = () => {
-            const handle = isMinimized ? widget : document.getElementById('cf-drag-handle');
+            const handle = isMinimized ? widget : widget.querySelector('#cf-drag-handle');
             if (!handle) return;
 
             let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-
             handle.onmousedown = (e) => {
                 e.preventDefault();
-                isDraggingStarted = false;
+                isDraggingActive = false;
                 pos3 = e.clientX;
                 pos4 = e.clientY;
-                document.onmouseup = closeDragElement;
-                document.onmousemove = elementDrag;
+                document.onmouseup = () => {
+                    document.onmouseup = null;
+                    document.onmousemove = null;
+                    if (handle.style) handle.style.cursor = 'grab';
+                };
+                document.onmousemove = (me) => {
+                    me.preventDefault();
+                    isDraggingActive = true;
+                    if (handle.style) handle.style.cursor = 'grabbing';
+                    pos1 = pos3 - me.clientX;
+                    pos2 = pos4 - me.clientY;
+                    pos3 = me.clientX;
+                    pos4 = me.clientY;
+                    widget.style.top = (widget.offsetTop - pos2) + "px";
+                    widget.style.left = (widget.offsetLeft - pos1) + "px";
+                    widget.style.bottom = 'auto';
+                };
             };
-
-            function elementDrag(e) {
-                e.preventDefault();
-                isDraggingStarted = true;
-                pos1 = pos3 - e.clientX;
-                pos2 = pos4 - e.clientY;
-                pos3 = e.clientX;
-                pos4 = e.clientY;
-                widget.style.top = (widget.offsetTop - pos2) + "px";
-                widget.style.left = (widget.offsetLeft - pos1) + "px";
-                widget.style.bottom = 'auto';
-            }
-
-            function closeDragElement() {
-                document.onmouseup = null;
-                document.onmousemove = null;
-            }
         };
 
         renderContent();
         document.body.appendChild(widget);
-
-        // Animación de entrada
         widget.style.opacity = '0';
         widget.style.transform = 'translateY(20px)';
-        setTimeout(() => {
-            widget.style.opacity = '1';
-            widget.style.transform = 'translateY(0)';
-        }, 100);
+        setTimeout(() => { widget.style.opacity = '1'; widget.style.transform = 'translateY(0)'; }, 100);
     });
 }
 

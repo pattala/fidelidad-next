@@ -48,6 +48,33 @@ export const DashboardPage = () => {
         return false;
     });
 
+    // Dragging state for WhatsApp FAB
+    const [isDraggingFab, setIsDraggingFab] = useState(false);
+    const [fabPos, setFabPos] = useState({ x: 32, y: 32 }); // bottom-8 left-8 approx
+    const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+    const [hasMovedFab, setHasMovedFab] = useState(false);
+
+    useEffect(() => {
+        const handleGlobalMouseMove = (e: MouseEvent) => {
+            if (!isDraggingFab) return;
+            setHasMovedFab(true);
+            setFabPos({ x: e.clientX - (64 / 2), y: window.innerHeight - e.clientY - (64 / 2) });
+        };
+        const handleGlobalMouseUp = () => {
+            setIsDraggingFab(false);
+            setTimeout(() => setHasMovedFab(false), 100);
+        };
+
+        if (isDraggingFab) {
+            window.addEventListener('mousemove', handleGlobalMouseMove);
+            window.addEventListener('mouseup', handleGlobalMouseUp);
+        }
+        return () => {
+            window.removeEventListener('mousemove', handleGlobalMouseMove);
+            window.removeEventListener('mouseup', handleGlobalMouseUp);
+        };
+    }, [isDraggingFab, dragOffset]);
+
     useEffect(() => {
         setLoading(true);
 
@@ -408,27 +435,43 @@ export const DashboardPage = () => {
 
             {/* WhatsApp FAB for Expirations */}
             {expiringUsers.length > 0 && !sessionStorage.getItem('hideExpiringAlert') && (
-                <div className="fixed bottom-8 left-8 z-50 flex flex-col items-start gap-2 animate-in slide-in-from-left-10">
+                <div
+                    className="fixed z-50 flex flex-col items-start gap-2 animate-in slide-in-from-left-10"
+                    style={{
+                        bottom: fabPos.y,
+                        left: fabPos.x,
+                        cursor: isDraggingFab ? 'grabbing' : 'default'
+                    }}
+                >
                     <div className="flex items-center gap-2">
-                        <button
-                            onClick={() => {
-                                const defaultMsg = '¡Hola {nombre}! 📢 Tienes {puntos} puntos próximos a vencer. ⏳ Entrá a la App para ver el detalle y aprovecharlos antes de que se venzan. 🎁';
-                                navigate('/admin/whatsapp', {
-                                    state: {
-                                        message: defaultMsg,
-                                        clientIds: expiringUsers.map(u => u.id)
-                                    }
-                                });
+                        <div
+                            onMouseDown={(e) => {
+                                setIsDraggingFab(true);
+                                setDragOffset({ x: e.clientX, y: e.clientY });
                             }}
-                            className="flex items-center justify-center gap-2 px-6 py-4 bg-green-500 hover:bg-green-600 text-white font-bold rounded-full shadow-2xl hover:scale-110 active:scale-95 transition-all"
+                            className="bg-green-500 hover:bg-green-600 text-white font-bold rounded-full shadow-2xl flex items-center justify-center p-4 cursor-grab active:cursor-grabbing hover:scale-105 transition-transform"
                         >
-                            <MessageCircle size={24} />
-                            <span className="hidden md:inline">Enviar WhatsApp a {expiringUsers.length}</span>
-                            <span className="md:hidden">{expiringUsers.length}</span>
-                            <span className="absolute -top-2 -right-2 bg-white text-green-600 text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center shadow-md border border-green-100">
-                                {expiringUsers.length}
-                            </span>
-                        </button>
+                            <button
+                                onClick={() => {
+                                    if (hasMovedFab) return;
+                                    const defaultMsg = '¡Hola {nombre}! 📢 Tienes {puntos} puntos próximos a vencer. ⏳ Entrá a la App para ver el detalle y aprovecharlos antes de que se venzan. 🎁';
+                                    navigate('/admin/whatsapp', {
+                                        state: {
+                                            message: defaultMsg,
+                                            clientIds: expiringUsers.map(u => u.id)
+                                        }
+                                    });
+                                }}
+                                className="flex items-center gap-2"
+                            >
+                                <MessageCircle size={24} />
+                                <span className="hidden md:inline">Enviar WhatsApp a {expiringUsers.length}</span>
+                                <span className="md:hidden">{expiringUsers.length}</span>
+                                <span className="absolute -top-2 -right-2 bg-white text-green-600 text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center shadow-md border border-green-100">
+                                    {expiringUsers.length}
+                                </span>
+                            </button>
+                        </div>
                         <button
                             onClick={() => {
                                 sessionStorage.setItem('hideExpiringAlert', 'true');

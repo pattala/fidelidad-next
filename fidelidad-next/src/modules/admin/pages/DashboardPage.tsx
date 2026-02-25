@@ -407,26 +407,40 @@ export const DashboardPage = () => {
             </div>
 
             {/* WhatsApp FAB for Expirations */}
-            {expiringUsers.length > 0 && (
-                <button
-                    onClick={() => {
-                        const defaultMsg = '¡Hola {nombre}! 📢 Tienes {puntos} puntos próximos a vencer. ⏳ Entrá a la App para ver el detalle y aprovecharlos antes de que se venzan. 🎁';
-                        navigate('/admin/whatsapp', {
-                            state: {
-                                message: defaultMsg,
-                                clientIds: expiringUsers.map(u => u.id)
-                            }
-                        });
-                    }}
-                    className="fixed bottom-8 left-8 z-50 flex items-center justify-center gap-2 px-6 py-4 bg-green-500 hover:bg-green-600 text-white font-bold rounded-full shadow-2xl hover:scale-110 active:scale-95 transition-all animate-in slide-in-from-left-10"
-                >
-                    <MessageCircle size={24} />
-                    <span className="hidden md:inline">Enviar WhatsApp a {expiringUsers.length}</span>
-                    <span className="md:hidden">{expiringUsers.length}</span>
-                    <span className="absolute -top-2 -right-2 bg-white text-green-600 text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center shadow-md border border-green-100">
-                        {expiringUsers.length}
-                    </span>
-                </button>
+            {expiringUsers.length > 0 && !sessionStorage.getItem('hideExpiringAlert') && (
+                <div className="fixed bottom-8 left-8 z-50 flex flex-col items-start gap-2 animate-in slide-in-from-left-10">
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => {
+                                const defaultMsg = '¡Hola {nombre}! 📢 Tienes {puntos} puntos próximos a vencer. ⏳ Entrá a la App para ver el detalle y aprovecharlos antes de que se venzan. 🎁';
+                                navigate('/admin/whatsapp', {
+                                    state: {
+                                        message: defaultMsg,
+                                        clientIds: expiringUsers.map(u => u.id)
+                                    }
+                                });
+                            }}
+                            className="flex items-center justify-center gap-2 px-6 py-4 bg-green-500 hover:bg-green-600 text-white font-bold rounded-full shadow-2xl hover:scale-110 active:scale-95 transition-all"
+                        >
+                            <MessageCircle size={24} />
+                            <span className="hidden md:inline">Enviar WhatsApp a {expiringUsers.length}</span>
+                            <span className="md:hidden">{expiringUsers.length}</span>
+                            <span className="absolute -top-2 -right-2 bg-white text-green-600 text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center shadow-md border border-green-100">
+                                {expiringUsers.length}
+                            </span>
+                        </button>
+                        <button
+                            onClick={() => {
+                                sessionStorage.setItem('hideExpiringAlert', 'true');
+                                navigate(location.pathname); // Force re-render
+                            }}
+                            className="bg-white/90 hover:bg-white text-gray-400 hover:text-red-500 p-2 rounded-full shadow-lg border border-gray-100 transition-colors"
+                            title="Ocultar hoy"
+                        >
+                            <X size={16} />
+                        </button>
+                    </div>
+                </div>
             )}
 
             {/* Birthday Alert Section - Floating Widget */}

@@ -11,6 +11,7 @@ let currentPromos = []; // Store calculable promos globally for this context
 // Cargar configuración de storage
 chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
     config = res;
+    console.log("⚙️ [Club Fidelidad] Configuración cargada:", res.apiUrl ? "URL OK" : "URL FALTANTE", res.apiKey ? "KEY OK" : "KEY FALTANTE");
 
     // --- DAILY CHECK: cumpleaños + vencimientos (1x/día, silencioso) ---
     if (res.apiUrl && res.apiKey) {
@@ -22,6 +23,7 @@ chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
             .then(data => {
                 if (data.ok) {
                     console.log("✅ [Club Fidelidad] Daily check procesado. Pendientes:", data.summary?.totalToday, "cumples,", data.expirations?.summary?.totalInWindow, "vencimientos.");
+                    console.log("📊 [Club Fidelidad] Data completa recibida:", data);
 
                     // Mostrar bubble si hay pendientes hoy (aunque el motor automático ya haya corrido)
                     const birthdayCount = data.summary?.totalToday || 0;
@@ -39,86 +41,154 @@ chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
 function showGlobalAlert(birthdays, expirations, adminUrl) {
     if (document.getElementById('cf-floating-alert')) return;
 
-    const widget = document.createElement('div');
-    widget.id = 'cf-floating-alert';
-    widget.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        left: 20px;
-        z-index: 2147483647;
-        font-family: system-ui, -apple-system, sans-serif;
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        transition: all 0.3s ease;
-    `;
+    // Recuperar estado minimizado
+    chrome.storage.local.get(['cf_alert_minimized'], (result) => {
+        let isMinimized = result.cf_alert_minimized || false;
 
-    const total = birthdays + expirations;
-
-    // Contenido del widget
-    widget.innerHTML = `
-        <div id="cf-alert-main" style="
-            background: white;
-            padding: 12px 16px;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-            border: 1px solid #fee2e2;
+        const widget = document.createElement('div');
+        widget.id = 'cf-floating-alert';
+        widget.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 2147483647;
+            font-family: system-ui, -apple-system, sans-serif;
             display: flex;
-            align-items: center;
-            gap: 12px;
-            cursor: move;
-            min-width: 200px;
-        ">
-            <div style="background: #fef3c7; p-2 rounded-full; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%;">
-                <span style="font-size: 18px;">📢</span>
-            </div>
-            <div style="flex: 1;">
-                <h4 style="margin: 0; font-size: 13px; font-weight: 800; color: #92400e;">Club Fidelidad</h4>
-                <p style="margin: 0; font-size: 11px; color: #b45309; line-height: 1.2;">
-                    ${birthdays > 0 ? `🎂 ${birthdays} cumple${birthdays > 1 ? 's' : ''}` : ''} 
-                    ${expirations > 0 ? ` ⏳ ${expirations} venc.${expirations > 1 ? 's' : ''}` : ''}
-                </p>
-            </div>
-            <a href="${adminUrl}/admin/dashboard" target="_blank" style="
-                background: #f59e0b;
-                color: white;
-                padding: 6px 12px;
-                border-radius: 8px;
-                text-decoration: none;
-                font-size: 10px;
-                font-weight: bold;
-                text-transform: uppercase;
-                white-space: nowrap;
-            ">Panel</a>
-            <button id="cf-alert-close" style="
-                background: none;
-                border: none;
-                color: #d1d5db;
-                cursor: pointer;
-                font-size: 16px;
-                padding: 0 4px;
-                margin-left: 4px;
-            ">×</button>
-        </div>
-    `;
+            flex-direction: column;
+            align-items: flex-start;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            user-select: none;
+        `;
 
-    document.body.appendChild(widget);
+        const renderContent = () => {
+            if (isMinimized) {
+                widget.innerHTML = `
+                    <div id="cf-alert-min" style="
+                        background: #f59e0b;
+                        color: white;
+                        width: 48px;
+                        height: 48px;
+                        border-radius: 50%;
+                        box-shadow: 0 10px 25px rgba(245, 158, 11, 0.4);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        cursor: pointer;
+                        position: relative;
+                        border: 2px solid white;
+                    ">
+                        <span style="font-size: 24px;">📢</span>
+                        <span style="absolute; -top: 2px; -right: 2px; background: white; color: #b45309; font-size: 10px; font-weight: 900; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+                            ${birthdays + expirations}
+                        </span>
+                    </div>
+                `;
+                widget.onclick = (e) => {
+                    if (isDraggingStarted) return;
+                    isMinimized = false;
+                    chrome.storage.local.set({ cf_alert_minimized: false });
+                    renderContent();
+                };
+            } else {
+                widget.innerHTML = `
+                    <div id="cf-alert-main" style="
+                        background: white;
+                        padding: 12px 16px;
+                        border-radius: 16px;
+                        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+                        border: 1px solid #fee2e2;
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
+                        min-width: 200px;
+                        cursor: default;
+                    ">
+                        <div id="cf-drag-handle" style="cursor: move; background: #fef3c7; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%;">
+                            <span style="font-size: 18px;">📢</span>
+                        </div>
+                        <div style="flex: 1;">
+                            <h4 style="margin: 0; font-size: 13px; font-weight: 800; color: #92400e;">Club Fidelidad</h4>
+                            <p style="margin: 0; font-size: 11px; color: #b45309; line-height: 1.2;">
+                                ${birthdays > 0 ? `🎂 ${birthdays} cumple${birthdays > 1 ? 's' : ''}` : ''} 
+                                ${expirations > 0 ? ` ⏳ ${expirations} venc.${expirations > 1 ? 's' : ''}` : ''}
+                            </p>
+                        </div>
+                        <div style="display: flex; gap: 4px; align-items: center;">
+                            <a href="${adminUrl}/admin/dashboard" target="_blank" style="
+                                background: #f59e0b;
+                                color: white;
+                                padding: 6px 12px;
+                                border-radius: 8px;
+                                text-decoration: none;
+                                font-size: 10px;
+                                font-weight: bold;
+                                text-transform: uppercase;
+                                white-space: nowrap;
+                            ">Panel</a>
+                            <button id="cf-alert-minimize" style="background:none; border:none; color:#d1d5db; cursor:pointer; font-size:18px; padding:0 4px;">–</button>
+                            <button id="cf-alert-close" style="background:none; border:none; color:#d1d5db; cursor:pointer; font-size:18px; padding:0 4px;">×</button>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('cf-alert-close').onclick = (e) => {
+                    e.stopPropagation();
+                    widget.remove();
+                };
+                document.getElementById('cf-alert-minimize').onclick = (e) => {
+                    e.stopPropagation();
+                    isMinimized = true;
+                    chrome.storage.local.set({ cf_alert_minimized: true });
+                    renderContent();
+                };
+            }
+            setupDragging();
+        };
 
-    // Animación de entrada
-    widget.style.opacity = '0';
-    widget.style.transform = 'translateY(20px)';
-    setTimeout(() => {
-        widget.style.opacity = '1';
-        widget.style.transform = 'translateY(0)';
-    }, 100);
+        let isDraggingStarted = false;
+        const setupDragging = () => {
+            const handle = isMinimized ? widget : document.getElementById('cf-drag-handle');
+            if (!handle) return;
 
-    document.getElementById('cf-alert-close').onclick = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+
+            handle.onmousedown = (e) => {
+                e.preventDefault();
+                isDraggingStarted = false;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            };
+
+            function elementDrag(e) {
+                e.preventDefault();
+                isDraggingStarted = true;
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                widget.style.top = (widget.offsetTop - pos2) + "px";
+                widget.style.left = (widget.offsetLeft - pos1) + "px";
+                widget.style.bottom = 'auto';
+            }
+
+            function closeDragElement() {
+                document.onmouseup = null;
+                document.onmousemove = null;
+            }
+        };
+
+        renderContent();
+        document.body.appendChild(widget);
+
+        // Animación de entrada
         widget.style.opacity = '0';
         widget.style.transform = 'translateY(20px)';
-        setTimeout(() => widget.remove(), 300);
-    };
+        setTimeout(() => {
+            widget.style.opacity = '1';
+            widget.style.transform = 'translateY(0)';
+        }, 100);
+    });
 }
 
 // Función para buscar el monto en el sitio

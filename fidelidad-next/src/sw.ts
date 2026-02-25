@@ -4,8 +4,6 @@ import { clientsClaim } from 'workbox-core';
 import { registerRoute } from 'workbox-routing';
 import { NetworkFirst, CacheFirst, StaleWhileRevalidate } from 'workbox-strategies';
 import { ExpirationPlugin } from 'workbox-expiration';
-import { initializeApp } from 'firebase/app';
-import { getMessaging, onBackgroundMessage } from 'firebase/messaging/sw';
 
 declare let self: ServiceWorkerGlobalScope;
 
@@ -15,23 +13,9 @@ precacheAndRoute(self.__WB_MANIFEST);
 self.skipWaiting();
 clientsClaim();
 
-// 2. Firebase Setup
-const firebaseConfig = {
-    apiKey: "AIzaSyCiWY4sS9VaJUcfD0o5c_ZRFT0NxFdfOX8",
-    authDomain: "fidelidad-v2-f2ff4.firebaseapp.com",
-    projectId: "fidelidad-v2-f2ff4",
-    storageBucket: "fidelidad-v2-f2ff4.firebasestorage.app",
-    messagingSenderId: "770588553750",
-    appId: "1:770588553750:web:1cf6afeeac65541274fb37",
-    measurementId: "G-MMLYXW7ZQC"
-};
-
-const app = initializeApp(firebaseConfig);
-const messaging = getMessaging(app);
-
-onBackgroundMessage(messaging, (payload) => {
-    console.log('[SW Unified] Background message received:', payload);
-});
+// 2. Firebase: NO se usa onBackgroundMessage porque intercepta el push event
+//    e impide que el handler custom (abajo) muestre la notificación.
+//    El token FCM se gestiona desde la app principal, no desde el SW.
 
 // 3. Custom Push Handler (Parity with v5.0.0 behavior)
 self.addEventListener('push', (event) => {

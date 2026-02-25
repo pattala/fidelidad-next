@@ -272,7 +272,8 @@ export default async function handler(req, res) {
                     // --- ITINERANCIA INTELIGENTE ---
                     // Toggle master ON/OFF + intervalo configurable en días
                     const isItinerancyEnabled = config.messaging?.repeatExpirationWarnings === true;
-                    const reminderIntervalDays = Number(config.messaging?.expirationReminderIntervalDays) || 5;
+                    const rawInterval = config.messaging?.expirationReminderIntervalDays;
+                    const reminderIntervalDays = (rawInterval !== undefined && rawInterval !== null) ? Number(rawInterval) : 5;
 
                     // ¿Ya fue notificado para esta misma fecha+monto?
                     const sameTargetAndAmount =
@@ -294,7 +295,7 @@ export default async function handler(req, res) {
                         }
                         // Itinerancia ON → chequear intervalo
                         const lastNoticeDate = userData.lastExpirationNotice; // "YYYY-MM-DD"
-                        if (lastNoticeDate) {
+                        if (lastNoticeDate && reminderIntervalDays > 0) {
                             const daysSinceLastNotice = Math.floor(
                                 (new Date(referenceDateStr).getTime() - new Date(lastNoticeDate).getTime()) / (1000 * 60 * 60 * 24)
                             );
@@ -310,7 +311,7 @@ export default async function handler(req, res) {
                             }
                         }
                         isItinerancy = true;
-                        console.log(`[Cron] Itinerancy triggered for ${userId}: ${reminderIntervalDays} days elapsed.`);
+                        console.log(`[Cron] Itinerancy triggered for ${userId}: ${reminderIntervalDays > 0 ? reminderIntervalDays + ' days elapsed' : 'immediate'}.`);
                     }
 
 

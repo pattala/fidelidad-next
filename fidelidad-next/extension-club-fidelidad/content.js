@@ -39,47 +39,87 @@ chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
 });
 
 function showGlobalAlert(birthdays, expirations, adminUrl) {
-    if (document.getElementById('cf-global-alert')) return;
+    if (document.getElementById('cf-floating-alert')) return;
 
-    const banner = document.createElement('div');
-    banner.id = 'cf-global-alert';
-    banner.style.cssText = `
+    const widget = document.createElement('div');
+    widget.id = 'cf-floating-alert';
+    widget.style.cssText = `
         position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        background: #fef3c7;
-        color: #92400e;
-        padding: 8px 16px;
+        bottom: 20px;
+        left: 20px;
+        z-index: 2147483647;
         font-family: system-ui, -apple-system, sans-serif;
-        font-size: 13px;
-        font-weight: 600;
         display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 12px;
-        z-index: 999999;
-        border-bottom: 2px solid #f59e0b;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        flex-direction: column;
+        align-items: flex-start;
+        transition: all 0.3s ease;
     `;
 
-    let text = '⚠️ ';
-    if (birthdays > 0 && expirations > 0) text += `Hay ${birthdays} cumpleaños y ${expirations} vencimientos hoy.`;
-    else if (birthdays > 0) text += `Hoy hay ${birthdays} cumpleaños de socios.`;
-    else text += `Hay ${expirations} avisos de vencimiento pendientes.`;
+    const total = birthdays + expirations;
 
-    banner.innerHTML = `
-        <span>${text}</span>
-        <a href="${adminUrl}/admin/dashboard" target="_blank" style="background: #f59e0b; color: white; padding: 4px 10px; border-radius: 6px; text-decoration: none; font-size: 11px; text-transform: uppercase;">Abrir Panel</a>
-        <span id="cf-alert-close" style="cursor: pointer; opacity: 0.5; font-size: 18px; margin-left: 10px;">×</span>
+    // Contenido del widget
+    widget.innerHTML = `
+        <div id="cf-alert-main" style="
+            background: white;
+            padding: 12px 16px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            border: 1px solid #fee2e2;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: move;
+            min-width: 200px;
+        ">
+            <div style="background: #fef3c7; p-2 rounded-full; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%;">
+                <span style="font-size: 18px;">📢</span>
+            </div>
+            <div style="flex: 1;">
+                <h4 style="margin: 0; font-size: 13px; font-weight: 800; color: #92400e;">Club Fidelidad</h4>
+                <p style="margin: 0; font-size: 11px; color: #b45309; line-height: 1.2;">
+                    ${birthdays > 0 ? `🎂 ${birthdays} cumple${birthdays > 1 ? 's' : ''}` : ''} 
+                    ${expirations > 0 ? ` ⏳ ${expirations} venc.${expirations > 1 ? 's' : ''}` : ''}
+                </p>
+            </div>
+            <a href="${adminUrl}/admin/dashboard" target="_blank" style="
+                background: #f59e0b;
+                color: white;
+                padding: 6px 12px;
+                border-radius: 8px;
+                text-decoration: none;
+                font-size: 10px;
+                font-weight: bold;
+                text-transform: uppercase;
+                white-space: nowrap;
+            ">Panel</a>
+            <button id="cf-alert-close" style="
+                background: none;
+                border: none;
+                color: #d1d5db;
+                cursor: pointer;
+                font-size: 16px;
+                padding: 0 4px;
+                margin-left: 4px;
+            ">×</button>
+        </div>
     `;
 
-    document.body.prepend(banner);
-    document.body.style.paddingTop = '40px'; // Shift content down
+    document.body.appendChild(widget);
 
-    document.getElementById('cf-alert-close').onclick = () => {
-        banner.remove();
-        document.body.style.paddingTop = '0';
+    // Animación de entrada
+    widget.style.opacity = '0';
+    widget.style.transform = 'translateY(20px)';
+    setTimeout(() => {
+        widget.style.opacity = '1';
+        widget.style.transform = 'translateY(0)';
+    }, 100);
+
+    document.getElementById('cf-alert-close').onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        widget.style.opacity = '0';
+        widget.style.transform = 'translateY(20px)';
+        setTimeout(() => widget.remove(), 300);
     };
 }
 

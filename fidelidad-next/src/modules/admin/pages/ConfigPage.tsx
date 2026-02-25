@@ -1788,19 +1788,19 @@ export const ConfigPage = () => {
                                                 <span className="text-xs font-bold text-orange-800 whitespace-nowrap">Recordar cada</span>
                                                 <input
                                                     type="number"
-                                                    min={1}
+                                                    min={0}
                                                     max={30}
-                                                    value={config.messaging?.expirationReminderIntervalDays || 5}
+                                                    value={config.messaging?.expirationReminderIntervalDays ?? 5}
                                                     onChange={e => setConfig({
                                                         ...config,
-                                                        messaging: { ...config.messaging!, expirationReminderIntervalDays: parseInt(e.target.value) || 5 }
+                                                        messaging: { ...config.messaging!, expirationReminderIntervalDays: parseInt(e.target.value) || 0 }
                                                     })}
                                                     className="w-16 px-2 py-1 text-center text-sm font-bold border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-300 focus:outline-none"
                                                 />
                                                 <span className="text-xs text-orange-700">días después del primer aviso</span>
                                             </label>
                                             <p className="text-[10px] text-orange-600/60 mt-1.5 ml-0">
-                                                Ej: con ventana de 10 días y recordatorio cada 5, se envía al día 1 y al día 6.
+                                                0 = reenviar siempre. Ej: con ventana de 10 días y recordatorio cada 5, se envía al día 1 y al día 6.
                                             </p>
                                         </div>
                                     )}

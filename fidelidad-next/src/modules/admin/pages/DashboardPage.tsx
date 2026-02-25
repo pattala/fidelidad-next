@@ -101,6 +101,9 @@ export const DashboardPage = () => {
             windowEnd.setDate(windowEnd.getDate() + 30);
             const windowEndStr = windowEnd.toISOString().split('T')[0];
 
+            const itinerancyDays = config?.expirationItinerancyDays || 0;
+            const currentYear = today.getFullYear().toString();
+
             snap.forEach(d => {
                 const data = d.data();
                 // Filter: skip admins AND skip 'ghost' users (no name or no DNI)
@@ -109,12 +112,32 @@ export const DashboardPage = () => {
                     clientCount++;
                     const userPoints = data.points ?? data.puntos ?? 0;
                     points += userPoints;
+
+                    // 1. Birthdays (Only if not already greeted this year)
                     if (data.birthDate?.endsWith(todayMD)) {
-                        todaysSelectedBirthdays.push({ id: d.id, ...data });
+                        if (data.lastBirthdayGreetingYear !== currentYear) {
+                            todaysSelectedBirthdays.push({ id: d.id, ...data });
+                        }
                     }
-                    // Detect upcoming expirations
+
+                    // 2. Upcoming expirations (Respecting itinerancy)
                     if (data.nextExpirationDate && data.nextExpirationDate > todayStr && data.nextExpirationDate <= windowEndStr && userPoints > 0) {
-                        usersExpiring.push({ id: d.id, name: data.name || data.nombre || 'Socio', points: userPoints, nextExpirationDate: data.nextExpirationDate, phone: data.phone || data.telefono || '' });
+                        let shouldNotify = true;
+                        if (itinerancyDays > 0 && data.lastExpirationNotice) {
+                            const lastNotice = new Date(data.lastExpirationNotice);
+                            const diffDays = Math.floor((today.getTime() - lastNotice.getTime()) / (1000 * 60 * 60 * 24));
+                            if (diffDays < itinerancyDays) shouldNotify = false;
+                        }
+
+                        if (shouldNotify) {
+                            usersExpiring.push({
+                                id: d.id,
+                                name: data.name || data.nombre || 'Socio',
+                                points: userPoints,
+                                nextExpirationDate: data.nextExpirationDate,
+                                phone: data.phone || data.telefono || ''
+                            });
+                        }
                     }
                 }
             });
@@ -466,7 +489,7 @@ export const DashboardPage = () => {
                                 className="flex items-center gap-2"
                             >
                                 <MessageCircle size={24} />
-                                <span className="hidden md:inline">Enviar WhatsApp a {expiringUsers.length}</span>
+                                <span className="hidden md:inline">WhatsApp Vencimientos ({expiringUsers.length})</span>
                                 <span className="md:hidden">{expiringUsers.length}</span>
                                 <span className="absolute -top-2 -right-2 bg-white text-green-600 text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center shadow-md border border-green-100">
                                     {expiringUsers.length}

@@ -336,7 +336,7 @@ export const DashboardPage = () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'x-api-key': (import.meta as any).env?.VITE_API_KEY || '',
+                    'x-api-key': import.meta.env.VITE_API_KEY || '',
                     'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
@@ -352,7 +352,7 @@ export const DashboardPage = () => {
                         info: `${user.points} pts · Vence: ${user.nextExpirationDate}`
                     }]
                 })
-            });
+            }).catch(e => console.error('[Audit] log-audit failed:', e));
         } catch (e) {
             console.error('Error al marcar vencimiento gestionado:', e);
             toast.error('Error al actualizar');

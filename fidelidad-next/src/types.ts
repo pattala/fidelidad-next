@@ -155,7 +155,7 @@ export interface AppConfig {
             birthdaySimple?: string;
             referralReward?: string;
             referralPoints?: string;
-            expirationWarning?: string;
+            expirationWarning?: string; // Tono: Tenés {puntos} pts para gastar antes del {fecha}! Mirá lo que podés llevarte →
         };
         enableExpirationWarnings?: boolean;
         repeatExpirationWarnings?: boolean;
@@ -170,6 +170,15 @@ export interface AppConfig {
         pointsForReferrer: number;
         pointsForReferee: number;
         rewardCriteria: 'first_transaction' | 'registration';
+        challenge?: {
+            enabled: boolean;
+            startDate: string; // YYYY-MM-DD
+            endDate: string;   // YYYY-MM-DD
+            tiers: Array<{
+                count: number;
+                bonus: number;
+            }>;
+        };
     };
     enableDateSimulator?: boolean;
 }

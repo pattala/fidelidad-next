@@ -491,43 +491,97 @@ export default async function handler(req, res) {
             // --- RECOMPENSA AL REFERENTE ---
             if (referrerSnap && referrerSnap.exists) {
                 const rData = referrerSnap.data();
-                const referralBonusAmount = Number(config.referrals?.pointsForReferrer) || 200;
                 const rRef = referrerSnap.ref;
-                const newRPoints = (Number(rData.points) || 0) + referralBonusAmount;
+                let referralBonusAmount = Number(config.referrals?.pointsForReferrer) || 200;
+                let challengeBonus = 0;
+                let tierReached = null;
 
-                const rValidityDays = getValidityDays(referralBonusAmount, expirationRules);
+                // Lógica de Desafío (Progresivo + Deadline)
+                const challenge = config.referrals?.challenge;
+                if (challenge && challenge.enabled) {
+                    const now = new Date();
+                    const todayStr = now.toISOString().split('T')[0];
+                    if (todayStr >= challenge.startDate && todayStr <= challenge.endDate) {
+                        // Contar cuántos referidos trajo en ESTE período de desafío
+                        // Buscamos en el historial de puntos del referente
+                        const historySnap = await tx.get(rRef.collection('points_history')
+                            .where('reason', '==', 'referral_bonus')
+                            .where('date', '>=', admin.firestore.Timestamp.fromDate(new Date(challenge.startDate + 'T00:00:00')))
+                            .where('date', '<=', admin.firestore.Timestamp.fromDate(new Date(challenge.endDate + 'T23:59:59')))
+                        );
+
+                        const countInChallenge = historySnap.size + 1; // +1 por el actual que estamos procesando
+
+                        // Buscar el tier más alto alcanzado
+                        const tiers = challenge.tiers || [];
+                        const sortedTiers = [...tiers].sort((a, b) => b.count - a.count); // De mayor a menor
+                        const reached = sortedTiers.find(t => countInChallenge >= t.count);
+
+                        if (reached) {
+                            challengeBonus = Number(reached.bonus) || 0;
+                            tierReached = reached.count;
+                        }
+                    }
+                }
+
+                const totalAwarded = referralBonusAmount + challengeBonus;
+                const newRPoints = (Number(rData.points) || 0) + totalAwarded;
+
+                const rValidityDays = getValidityDays(totalAwarded, expirationRules);
                 const rExpirationDate = new Date();
                 rExpirationDate.setDate(rExpirationDate.getDate() + rValidityDays);
+
+                const conceptBase = `Bono Invitado: ${cData.name || 'Amigo'}`;
+                const conceptFinal = challengeBonus > 0
+                    ? `${conceptBase} (+${challengeBonus} pts Desafío Nivel ${tierReached})`
+                    : conceptBase;
 
                 tx.update(rRef, {
                     points: newRPoints,
                     puntos: newRPoints,
                     'referralStats.count': admin.firestore.FieldValue.increment(1),
-                    'referralStats.pointsEarned': admin.firestore.FieldValue.increment(referralBonusAmount),
+                    'referralStats.pointsEarned': admin.firestore.FieldValue.increment(totalAwarded),
                     historialPuntos: admin.firestore.FieldValue.arrayUnion({
                         fechaObtencion: admin.firestore.Timestamp.fromDate(new Date()),
-                        puntosObtenidos: referralBonusAmount,
-                        puntosDisponibles: referralBonusAmount,
+                        puntosObtenidos: totalAwarded,
+                        puntosDisponibles: totalAwarded,
                         diasCaducidad: rValidityDays,
-                        origen: `Bono Invitado: ${cData.name || 'Amigo'}`,
+                        origen: conceptFinal,
                         estado: 'Activo'
                     })
                 });
 
                 tx.set(rRef.collection('points_history').doc(), {
-                    amount: referralBonusAmount, type: 'credit', reason: 'referral_bonus', concept: `Bono Invitado: ${cData.name || 'Amigo'}`,
-                    date: admin.firestore.Timestamp.fromDate(new Date()), createdAt: admin.firestore.FieldValue.serverTimestamp(),
-                    expiresAt: admin.firestore.Timestamp.fromDate(rExpirationDate), remainingPoints: referralBonusAmount, balanceAfter: newRPoints
+                    amount: totalAwarded,
+                    type: 'credit',
+                    reason: 'referral_bonus',
+                    concept: conceptFinal,
+                    date: admin.firestore.Timestamp.fromDate(new Date()),
+                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                    expiresAt: admin.firestore.Timestamp.fromDate(rExpirationDate),
+                    remainingPoints: totalAwarded,
+                    balanceAfter: newRPoints
                 });
 
                 tx.set(rRef.collection('inbox').doc(), {
-                    title: '¡Puntos por Referido! 🎁', body: `Tu amigo ${cData.name || 'alguien'} realizó su primer consumo. ¡Ganaste ${bonusAmount} puntos!`,
-                    url: '/referrals', type: 'referralBonus', read: false, date: admin.firestore.FieldValue.serverTimestamp()
+                    title: '¡Puntos por Referido! 🎁',
+                    body: challengeBonus > 0
+                        ? `¡Golazo! Tu amigo ${cData.name || 'alguien'} se sumó y como estás en el Desafío ganaste ${totalAwarded} puntos (Nivel ${tierReached}).`
+                        : `Tu amigo ${cData.name || 'alguien'} realizó su primer consumo. ¡Ganaste ${referralBonusAmount} puntos!`,
+                    url: '/referrals',
+                    type: 'referralBonus',
+                    read: false,
+                    date: admin.firestore.FieldValue.serverTimestamp()
                 });
 
                 tx.set(db.collection('transactions').doc(), {
-                    uid: rRef.id, clientName: rData.name || 'Referente', points: bonusAmount, type: 'credit',
-                    reason: 'referral_bonus', concept: `Bono Invitado: ${cData.name || 'Amigo'}`, date: admin.firestore.FieldValue.serverTimestamp()
+                    uid: rRef.id,
+                    clientName: rData.name || 'Referente',
+                    points: totalAwarded,
+                    type: 'credit',
+                    reason: 'referral_bonus',
+                    concept: conceptFinal,
+                    date: admin.firestore.FieldValue.serverTimestamp()
                 });
 
                 result.referrerToNotify = {
@@ -535,7 +589,7 @@ export default async function handler(req, res) {
                     email: rData.email || rData.correo,
                     name: rData.name || 'Socio',
                     friendName: cData.name || 'Tu amigo',
-                    bonusAmount: bonusAmount
+                    bonusAmount: totalAwarded
                 };
                 result.referralProcessed = true;
             }

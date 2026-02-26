@@ -2,13 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { auth, db } from '../../../lib/firebase';
 import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
-import { Share2, Copy, Users, Gift, ArrowRight, CheckCircle2, Megaphone } from 'lucide-react';
+import { Share2, Copy, Users, Gift, ArrowRight, CheckCircle2, Megaphone, Zap, Clock, Trophy } from 'lucide-react';
+import { collection, query, where } from 'firebase/firestore';
 import toast from 'react-hot-toast';
 
 export const ClientReferralsPage = () => {
     const { config } = useOutletContext<{ config: any }>();
     const [userData, setUserData] = useState<any>(null);
     const [copied, setCopied] = useState(false);
+
+    const [challengeCount, setChallengeCount] = useState(0);
 
     useEffect(() => {
         const user = auth.currentUser;
@@ -30,8 +33,33 @@ export const ClientReferralsPage = () => {
                 }
             }
         });
-        return () => unsub();
-    }, []);
+
+        // Contar referidos que califican para el desafío actual
+        const challenge = config?.referrals?.challenge;
+        let unsubChallenge = () => { };
+
+        if (challenge?.enabled) {
+            const startDate = new Date(challenge.startDate);
+            const endDate = new Date(challenge.endDate);
+            endDate.setHours(23, 59, 59, 999);
+
+            const q = query(
+                collection(db, 'users'),
+                where('referrerUid', '==', user.uid),
+                where('createdAt', '>=', startDate),
+                where('createdAt', '<=', endDate)
+            );
+
+            unsubChallenge = onSnapshot(q, (snap) => {
+                setChallengeCount(snap.size);
+            });
+        }
+
+        return () => {
+            unsub();
+            unsubChallenge();
+        };
+    }, [config?.referrals?.challenge]);
 
     const referralCode = userData?.referralCode || 'GENERANDO...';
     // Usar la URL base de la config si existe, sino window.location
@@ -90,6 +118,72 @@ export const ClientReferralsPage = () => {
                     <p className="text-[10px] font-bold text-gray-500 uppercase">Puntos</p>
                 </div>
             </div>
+
+            {/* Referral Challenge Section */}
+            {config?.referrals?.challenge?.enabled && (
+                <div className="bg-gradient-to-br from-orange-500 to-red-600 rounded-[2.5rem] p-6 text-white shadow-xl relative overflow-hidden animate-in zoom-in-95 duration-500">
+                    <div className="absolute -top-4 -right-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
+                    <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-black/10 rounded-full blur-3xl"></div>
+
+                    <div className="flex justify-between items-start mb-6">
+                        <div className="space-y-1">
+                            <h3 className="text-xl font-black tracking-tight flex items-center gap-2">
+                                <Zap className="fill-current" size={20} /> Desafío Activo
+                            </h3>
+                            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider bg-black/20 px-2 py-1 rounded-full w-fit">
+                                <Clock size={12} /> vence {(new Date(config.referrals.challenge.endDate)).toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })}
+                            </div>
+                        </div>
+                        <div className="bg-white/20 p-3 rounded-2xl backdrop-blur-sm border border-white/20">
+                            <Trophy size={24} />
+                        </div>
+                    </div>
+
+                    <div className="space-y-4 relative z-10">
+                        <div className="flex justify-between items-end">
+                            <p className="text-xs font-bold opacity-80 uppercase tracking-widest">Tu Progreso</p>
+                            <p className="text-2xl font-black">{challengeCount} <span className="text-sm font-bold opacity-70">amigos</span></p>
+                        </div>
+
+                        {/* Progress Bar Multi-Tier */}
+                        <div className="space-y-3">
+                            <div className="h-4 w-full bg-black/20 rounded-full overflow-hidden p-1 border border-white/10">
+                                {(() => {
+                                    const tiers = config.referrals.challenge.tiers.sort((a: any, b: any) => a.count - b.count);
+                                    const maxCount = tiers[tiers.length - 1]?.count || 5;
+                                    const percentage = Math.min((challengeCount / maxCount) * 100, 100);
+                                    return (
+                                        <div
+                                            className="h-full bg-gradient-to-r from-yellow-300 to-white rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(255,255,255,0.5)]"
+                                            style={{ width: `${percentage}%` }}
+                                        />
+                                    );
+                                })()}
+                            </div>
+
+                            <div className="flex justify-between px-1">
+                                {config.referrals.challenge.tiers.sort((a: any, b: any) => a.count - b.count).map((tier: any, idx: number) => (
+                                    <div key={idx} className="flex flex-col items-center">
+                                        <div className={`w-1 h-2 rounded-full mb-1 ${challengeCount >= tier.count ? 'bg-white' : 'bg-white/30'}`} />
+                                        <p className={`text-[9px] font-black ${challengeCount >= tier.count ? 'text-white' : 'text-white/50'}`}>
+                                            {tier.count}am
+                                        </p>
+                                        <p className={`text-[8px] font-bold ${challengeCount >= tier.count ? 'text-white' : 'text-white/50'}`}>
+                                            +{tier.bonus}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="pt-2">
+                            <p className="text-[10px] font-medium leading-tight opacity-90 italic bg-white/10 p-3 rounded-xl border border-white/10">
+                                💡 ¡Sumá amigos antes del fin del desafío y ganá bonos extra de hasta {Math.max(...config.referrals.challenge.tiers.map((t: any) => t.bonus))} puntos!
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Share Card */}
             <div className="bg-gray-900 rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden group">

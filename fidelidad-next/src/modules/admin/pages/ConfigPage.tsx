@@ -807,7 +807,7 @@ export const ConfigPage = () => {
                                         </div>
 
                                         {config.referrals?.enabled && (
-                                            <div className="space-y-4 animate-fade-in pl-2 border-l-2 border-orange-200">
+                                            <div className="space-y-6 animate-fade-in pl-2 border-l-2 border-orange-200">
                                                 <div>
                                                     <label className="block text-xs font-bold text-orange-700 uppercase mb-2">Puntos para el Referidor (Quien invita)</label>
                                                     <div className="flex items-center gap-3">
@@ -840,6 +840,160 @@ export const ConfigPage = () => {
                                                     <p className="text-[10px] text-gray-400 mt-2 italic">
                                                         * Recomendamos 'Primer Consumo' para evitar cuentas falsas. El bono se asigna automáticamente cuando el invitado suma sus primeros puntos desde el facturador.
                                                     </p>
+                                                </div>
+
+                                                {/* NUEVO: Configuración de Desafío */}
+                                                <div className="pt-6 border-t border-orange-100">
+                                                    <div className="flex items-center justify-between mb-4">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="bg-orange-600 text-white p-1 rounded">
+                                                                <Zap size={14} />
+                                                            </div>
+                                                            <span className="text-sm font-bold text-gray-800">Desafío con Fecha Límite</span>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setConfig({
+                                                                ...config,
+                                                                referrals: {
+                                                                    ...config.referrals!,
+                                                                    challenge: {
+                                                                        enabled: !config.referrals?.challenge?.enabled,
+                                                                        startDate: config.referrals?.challenge?.startDate || new Date().toISOString().split('T')[0],
+                                                                        endDate: config.referrals?.challenge?.endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                                                                        tiers: config.referrals?.challenge?.tiers || [{ count: 1, bonus: 100 }]
+                                                                    }
+                                                                }
+                                                            })}
+                                                            className={`relative w-10 h-6 transition-colors rounded-full shadow-inner ${config.referrals?.challenge?.enabled ? 'bg-orange-500' : 'bg-gray-200'}`}
+                                                        >
+                                                            <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform ${config.referrals?.challenge?.enabled ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                        </button>
+                                                    </div>
+
+                                                    {config.referrals?.challenge?.enabled && (
+                                                        <div className="space-y-4 animate-fade-in pl-2 border-l-2 border-orange-400">
+                                                            <div className="grid grid-cols-2 gap-4">
+                                                                <div>
+                                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Fecha Inicio</label>
+                                                                    <input
+                                                                        type="date"
+                                                                        value={config.referrals.challenge?.startDate}
+                                                                        onChange={e => setConfig({
+                                                                            ...config,
+                                                                            referrals: {
+                                                                                ...config.referrals!,
+                                                                                challenge: { ...config.referrals!.challenge!, startDate: e.target.value }
+                                                                            }
+                                                                        })}
+                                                                        className="w-full p-2 border border-orange-100 rounded-lg text-xs font-bold text-gray-700 outline-none focus:ring-2 focus:ring-orange-50"
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Fecha Final</label>
+                                                                    <input
+                                                                        type="date"
+                                                                        value={config.referrals.challenge?.endDate}
+                                                                        onChange={e => setConfig({
+                                                                            ...config,
+                                                                            referrals: {
+                                                                                ...config.referrals!,
+                                                                                challenge: { ...config.referrals!.challenge!, endDate: e.target.value }
+                                                                            }
+                                                                        })}
+                                                                        className="w-full p-2 border border-orange-100 rounded-lg text-xs font-bold text-gray-700 outline-none focus:ring-2 focus:ring-orange-50"
+                                                                    />
+                                                                </div>
+                                                            </div>
+
+                                                            <div>
+                                                                <div className="flex justify-between items-center mb-2">
+                                                                    <label className="block text-[10px] font-bold text-orange-700 uppercase">Metas Progresivas (Tiers)</label>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            const tiers = [...(config.referrals!.challenge!.tiers || [])];
+                                                                            tiers.push({ count: (tiers[tiers.length - 1]?.count || 0) + 1, bonus: 0 });
+                                                                            setConfig({
+                                                                                ...config,
+                                                                                referrals: {
+                                                                                    ...config.referrals!,
+                                                                                    challenge: { ...config.referrals!.challenge!, tiers }
+                                                                                }
+                                                                            });
+                                                                        }}
+                                                                        className="text-[10px] bg-orange-100 text-orange-600 px-2 py-1 rounded font-bold hover:bg-orange-200 transition"
+                                                                    >
+                                                                        + Agregar Nivel
+                                                                    </button>
+                                                                </div>
+                                                                <div className="space-y-2">
+                                                                    {(config.referrals.challenge?.tiers || []).sort((a, b) => a.count - b.count).map((tier, idx) => (
+                                                                        <div key={idx} className="flex items-center gap-2 bg-white/50 p-2 rounded-lg border border-orange-100">
+                                                                            <span className="text-xs font-bold text-gray-400 w-4">{idx + 1}º</span>
+                                                                            <div className="flex flex-1 items-center gap-2">
+                                                                                <input
+                                                                                    type="number"
+                                                                                    placeholder="Cant"
+                                                                                    value={tier.count}
+                                                                                    onChange={e => {
+                                                                                        const tiers = [...(config.referrals!.challenge!.tiers || [])];
+                                                                                        tiers[idx].count = parseInt(e.target.value) || 0;
+                                                                                        setConfig({
+                                                                                            ...config,
+                                                                                            referrals: {
+                                                                                                ...config.referrals!,
+                                                                                                challenge: { ...config.referrals!.challenge!, tiers }
+                                                                                            }
+                                                                                        });
+                                                                                    }}
+                                                                                    className="w-14 p-1.5 border border-gray-100 rounded text-xs font-black text-center text-gray-700"
+                                                                                />
+                                                                                <span className="text-[10px] font-bold text-gray-400">Amigos</span>
+                                                                                <div className="h-4 w-px bg-gray-100" />
+                                                                                <span className="text-[10px] font-bold text-orange-600">Bono +</span>
+                                                                                <input
+                                                                                    type="number"
+                                                                                    placeholder="Puntos"
+                                                                                    value={tier.bonus}
+                                                                                    onChange={e => {
+                                                                                        const tiers = [...(config.referrals!.challenge!.tiers || [])];
+                                                                                        tiers[idx].bonus = parseInt(e.target.value) || 0;
+                                                                                        setConfig({
+                                                                                            ...config,
+                                                                                            referrals: {
+                                                                                                ...config.referrals!,
+                                                                                                challenge: { ...config.referrals!.challenge!, tiers }
+                                                                                            }
+                                                                                        });
+                                                                                    }}
+                                                                                    className="w-16 p-1.5 border border-orange-200 rounded text-xs font-black text-center text-orange-700"
+                                                                                />
+                                                                                <span className="text-[10px] font-bold text-gray-400 italic">pts extra</span>
+                                                                            </div>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    const tiers = [...(config.referrals!.challenge!.tiers || [])];
+                                                                                    tiers.splice(idx, 1);
+                                                                                    setConfig({
+                                                                                        ...config,
+                                                                                        referrals: {
+                                                                                            ...config.referrals!,
+                                                                                            challenge: { ...config.referrals!.challenge!, tiers }
+                                                                                        }
+                                                                                    });
+                                                                                }}
+                                                                                className="text-gray-300 hover:text-red-500 p-1"
+                                                                            >
+                                                                                <Trash2 size={12} />
+                                                                            </button>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         )}

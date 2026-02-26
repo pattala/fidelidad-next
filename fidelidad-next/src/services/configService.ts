@@ -122,5 +122,5 @@ export const DEFAULT_TEMPLATES = {
     birthdaySimple: "¡Feliz cumpleaños, {nombre}! 🎂🎉 Esperamos que pases un día increíble. ¡Te enviamos un gran saludo! ✨",
     referralReward: "¡Hola {nombre}! 🎁 Ganaste {puntos} puntos porque tu amigo {amigo} comenzó a usar el club. ¡Gracias por recomendarnos! ✨",
     referralPoints: "🎁 ¡Buenas noticias! Ganaste {puntos} puntos porque {nombre_referido} se unió al club. ¡Gracias por recomendarnos! 🚀",
-    expirationWarning: "¡Hola {nombre}! 📢 Te recordamos que tienes {puntos} puntos que vencen el {fecha}. ¡Aprovéchalos antes de que expiren! 🎁"
+    expirationWarning: "¡Hola {nombre}! 🚀 Tenés {puntos} puntos para gastar antes del {fecha}. ¡Canjealos hoy por un premio antes de que se venzan! 🎁✨"
 };

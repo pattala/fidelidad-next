@@ -413,10 +413,12 @@ export default async function handler(req, res) {
                     });
 
                     // Guardamos la fecha y el MONTO del vencimiento avisado
+                    // Reseteamos lastWhatsAppManualDate para que la burbuja del dashboard reaparezca
                     await userDoc.ref.update({
                         lastExpirationNotice: referenceDateStr,
                         lastExpirationNoticeTargetDate: userData.nextExpirationDate,
-                        lastExpirationNoticeAmount: totalImpendingAmount
+                        lastExpirationNoticeAmount: totalImpendingAmount,
+                        lastWhatsAppManualDate: null  // reset: el admin debe volver a gestionar el WhatsApp
                     });
 
                     logResults.notified++;

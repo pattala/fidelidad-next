@@ -124,12 +124,8 @@ export default async function handler(req, res) {
                 const data = d.data();
                 if ((data.points || 0) <= 0) return false;
 
-                // Si hay itinerancia, filtrar los ya notificados recientemente
-                if (itinerancyDays > 0 && data.lastExpirationNotice) {
-                    const lastNotice = new Date(data.lastExpirationNotice);
-                    const diffDays = Math.floor((today - lastNotice) / (1000 * 60 * 60 * 24));
-                    if (diffDays < itinerancyDays) return false;
-                }
+                // Ocultar solo si el admin ya gestionó manualmente el WhatsApp hoy
+                if (data.lastWhatsAppManualDate === todayStr) return false;
                 return true;
             }).length;
 

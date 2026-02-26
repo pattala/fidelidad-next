@@ -22,6 +22,7 @@ export const MetricsPage = () => {
     const [topUsers, setTopUsers] = useState<any[]>([]);
     const [topSpenders, setTopSpenders] = useState<any[]>([]);
     const [topVisitors, setTopVisitors] = useState<any[]>([]);
+    const [topReferrers, setTopReferrers] = useState<any[]>([]);
     const [registrationSources, setRegistrationSources] = useState<{ pwa: number, local: number }>({ pwa: 0, local: 0 });
     const [totalStats, setTotalStats] = useState({ emitted: 0, redeemed: 0, expired: 0 });
     const [prevTotalStats, setPrevTotalStats] = useState({ emitted: 0, redeemed: 0, expired: 0 });
@@ -239,6 +240,65 @@ export const MetricsPage = () => {
                 setTopVisitors(filteredVisitors.map(user => {
                     return { id: user.id, ...user, name: user.name || user.nombre || 'Socio', count: user.visitCount || 0, socioNumber: user.socioNumber || user.numeroSocio || '' };
                 }));
+
+                // 4. Ranking de Referidores (Desafío)
+                const challenge = appConfig?.referrals?.challenge;
+                if (challenge?.enabled) {
+                    const start = new Date(challenge.startDate);
+                    const end = new Date(challenge.endDate);
+                    end.setHours(23, 59, 59, 999);
+
+                    // Buscamos usuarios creados en este periodo que tengan referrerUid
+                    const qReferrals = query(
+                        collection(db, 'users'),
+                        where('createdAt', '>=', start),
+                        where('createdAt', '<=', end),
+                        where('referrerUid', '!=', null)
+                    );
+                    const snapReferrals = await getDocs(qReferrals);
+
+                    const refCounts = new Map<string, number>();
+                    snapReferrals.docs.forEach(d => {
+                        const refUid = d.data().referrerUid;
+                        if (refUid) refCounts.set(refUid, (refCounts.get(refUid) || 0) + 1);
+                    });
+
+                    const sortedRefs = Array.from(refCounts.entries())
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 5);
+
+                    if (sortedRefs.length > 0) {
+                        const uids = sortedRefs.map(s => s[0]);
+                        const usersSnap = await getDocs(query(collection(db, 'users'), where(documentId(), 'in', uids)));
+                        const usersMap = new Map();
+                        usersSnap.forEach(d => usersMap.set(d.id, d.data()));
+
+                        setTopReferrers(sortedRefs.map(([uid, count]) => {
+                            const uData = usersMap.get(uid);
+                            return {
+                                id: uid,
+                                name: uData?.name || uData?.nombre || 'Socio',
+                                count,
+                                socioNumber: uData?.socioNumber || uData?.numeroSocio || ''
+                            };
+                        }));
+                    } else {
+                        setTopReferrers([]);
+                    }
+                } else {
+                    // Si no hay desafío, mostrar top históricos
+                    const qTopHistory = query(collection(db, 'users'), orderBy('referralStats.count', 'desc'), limit(5));
+                    const snapTopHistory = await getDocs(qTopHistory);
+                    setTopReferrers(snapTopHistory.docs.map(d => {
+                        const data = d.data();
+                        return {
+                            id: d.id,
+                            name: data.name || data.nombre || 'Socio',
+                            count: data.referralStats?.count || 0,
+                            socioNumber: data.socioNumber || data.numeroSocio || ''
+                        };
+                    }));
+                }
 
             } catch (error) {
                 console.error("Error metrics:", error);
@@ -596,47 +656,28 @@ export const MetricsPage = () => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full">
-                            <div className="p-6 border-b border-gray-100 bg-gray-50/50">
-                                <h3 className="font-bold text-gray-800 flex items-center gap-2"><Users size={18} className="text-purple-500" /> Clientes con Mayor Saldo</h3>
-                                <p className="text-xs text-gray-400 mt-1">Acumulado total disponible hoy</p>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="bg-white rounded-2xl shadow-sm border border-orange-100 overflow-hidden flex flex-col h-full">
+                            <div className="p-6 border-b border-orange-50 bg-orange-50/30">
+                                <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                                    <Sparkles size={18} className="text-orange-500" /> Ranking de Referidores (Desafío)
+                                </h3>
+                                <p className="text-xs text-orange-600 font-medium mt-1">
+                                    {config?.referrals?.challenge?.enabled ? `Contando amigos del ${new Date(config.referrals.challenge.startDate).toLocaleDateString()} al ${new Date(config.referrals.challenge.endDate).toLocaleDateString()}` : 'Top histórico de invitaciones'}
+                                </p>
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-sm">
-                                    <thead className="bg-gray-50 text-gray-500 font-semibold"><tr><th className="p-4 pl-6">Cliente</th><th className="p-4 text-right pr-6">Saldo Puntos</th></tr></thead>
+                                    <thead className="bg-orange-50/50 text-gray-500 font-semibold"><tr><th className="p-4 pl-6">Socio</th><th className="p-4 text-right pr-6">Invitados</th></tr></thead>
                                     <tbody className="divide-y divide-gray-50">
-                                        {topUsers.map((user: any, i: number) => (
-                                            <tr key={user.id} className="hover:bg-purple-50/30 transition">
-                                                <td className="p-4 pl-6 font-medium text-gray-700 flex items-center gap-3">
-                                                    <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${i < 3 ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-500'}`}>{i + 1}</span>
-                                                    <div className="flex flex-col"><span>{user.name || 'Socio sin N° asignado'}</span><span className="text-[10px] text-gray-400 font-mono">{user.socioNumber ? `#${user.socioNumber}` : ''} {user.dni ? `| DNI: ${user.dni}` : ''}</span></div>
-                                                </td>
-                                                <td className="p-4 text-right pr-6 font-bold text-purple-600">{user.points?.toLocaleString() || 0}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full">
-                            <div className="p-6 border-b border-gray-100 bg-gray-50/50">
-                                <h3 className="font-bold text-gray-800 flex items-center gap-2"><Award size={18} className="text-green-500" /> Top Generadores (COMPRA)</h3>
-                                <p className="text-xs text-gray-400 mt-1">Más puntos generados en este periodo</p>
-                            </div>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left text-sm">
-                                    <thead className="bg-gray-50 text-gray-500 font-semibold"><tr><th className="p-4 pl-6">Cliente</th><th className="p-4 text-right pr-6">Gasto Estimado</th></tr></thead>
-                                    <tbody className="divide-y divide-gray-50">
-                                        {topSpenders.length === 0 ? (<tr><td colSpan={2} className="p-8 text-center text-gray-400 italic">Sin movimientos en este periodo</td></tr>) : (
-                                            topSpenders.map((user: any, i: number) => (
-                                                <tr key={user.id} className="hover:bg-green-50/30 transition">
+                                        {topReferrers.length === 0 ? (<tr><td colSpan={2} className="p-8 text-center text-gray-400 italic">No hay invitaciones registradas aún</td></tr>) : (
+                                            topReferrers.map((user: any, i: number) => (
+                                                <tr key={user.id} className="hover:bg-orange-50/30 transition">
                                                     <td className="p-4 pl-6 font-medium text-gray-700 flex items-center gap-3">
-                                                        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${i < 3 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{i + 1}</span>
-                                                        <div className="flex flex-col"><span>{user.name}</span><span className="text-[10px] text-gray-400 font-mono">{user.socioNumber ? `#${user.socioNumber}` : ''} {user.dni ? `| DNI: ${user.dni}` : ''}</span></div>
+                                                        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${i < 3 ? 'bg-orange-100 text-orange-700 shadow-sm' : 'bg-gray-100 text-gray-500'}`}>{i + 1}</span>
+                                                        <div className="flex flex-col"><span>{user.name}</span><span className="text-[10px] text-gray-400 font-mono">{user.socioNumber ? `#${user.socioNumber}` : ''}</span></div>
                                                     </td>
-                                                    <td className="p-4 text-right pr-6 font-bold text-green-600">${user.total.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
+                                                    <td className="p-4 text-right pr-6 font-black text-orange-600 text-lg">{user.count}</td>
                                                 </tr>
                                             ))
                                         )}
@@ -668,9 +709,58 @@ export const MetricsPage = () => {
                             </div>
                         </div>
                     </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full">
+                            <div className="p-6 border-b border-gray-100 bg-gray-50/50">
+                                <h3 className="font-bold text-gray-800 flex items-center gap-2"><Users size={18} className="text-purple-500" /> Clientes con Mayor Saldo</h3>
+                                <p className="text-xs text-gray-400 mt-1">Acumulado total disponible hoy</p>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-sm">
+                                    <thead className="bg-gray-50 text-gray-500 font-semibold"><tr><th className="p-4 pl-6">Cliente</th><th className="p-4 text-right pr-6">Saldo Puntos</th></tr></thead>
+                                    <tbody className="divide-y divide-gray-50">
+                                        {topUsers.map((user: any, i: number) => (
+                                            <tr key={user.id} className="hover:bg-purple-50/30 transition">
+                                                <td className="p-4 pl-6 font-medium text-gray-700 flex items-center gap-3">
+                                                    <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${i < 3 ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-500'}`}>{i + 1}</span>
+                                                    <div className="flex flex-col"><span>{user.name}</span><span className="text-[10px] text-gray-400 font-mono">{user.socioNumber ? `#${user.socioNumber}` : ''}</span></div>
+                                                </td>
+                                                <td className="p-4 text-right pr-6 font-bold text-purple-600">{user.points?.toLocaleString() || 0}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full">
+                            <div className="p-6 border-b border-gray-100 bg-gray-50/50">
+                                <h3 className="font-bold text-gray-800 flex items-center gap-2"><Award size={18} className="text-green-500" /> Top Generadores (COMPRA)</h3>
+                                <p className="text-xs text-gray-400 mt-1">Más puntos generados en este periodo</p>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-sm">
+                                    <thead className="bg-gray-50 text-gray-500 font-semibold"><tr><th className="p-4 pl-6">Cliente</th><th className="p-4 text-right pr-6">Gasto Estimado</th></tr></thead>
+                                    <tbody className="divide-y divide-gray-50">
+                                        {topSpenders.length === 0 ? (<tr><td colSpan={2} className="p-8 text-center text-gray-400 italic">Sin movimientos en este periodo</td></tr>) : (
+                                            topSpenders.map((user: any, i: number) => (
+                                                <tr key={user.id} className="hover:bg-green-50/30 transition">
+                                                    <td className="p-4 pl-6 font-medium text-gray-700 flex items-center gap-3">
+                                                        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${i < 3 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{i + 1}</span>
+                                                        <div className="flex flex-col"><span>{user.name}</span><span className="text-[10px] text-gray-400 font-mono">{user.socioNumber ? `#${user.socioNumber}` : ''}</span></div>
+                                                    </td>
+                                                    <td className="p-4 text-right pr-6 font-bold text-green-600">${user.total.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
                 </>
-            )
-            }
-        </div >
+            )}
+        </div>
     );
 };

@@ -86,7 +86,7 @@ export default async function handler(req, res) {
         }
 
         // 3. FIFO Logic & Transaction
-        let result = { ok: false };
+        let result = { ok: false, auditDetails: [] };
         const now = new Date();
 
         console.time("redemption-transaction");
@@ -178,7 +178,6 @@ export default async function handler(req, res) {
             });
 
             // AUDITORIA: Agregar detalle del canje
-            if (!result.auditDetails) result.auditDetails = [];
             result.auditDetails.push({
                 userId: targetUid,
                 userName: cData.name || cData.nombre || 'Socio',

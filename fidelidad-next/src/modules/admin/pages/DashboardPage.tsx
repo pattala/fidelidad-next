@@ -101,7 +101,7 @@ export const DashboardPage = () => {
             windowEnd.setDate(windowEnd.getDate() + 30);
             const windowEndStr = windowEnd.toISOString().split('T')[0];
 
-            const itinerancyDays = config?.expirationItinerancyDays || 0;
+            const itinerancyDays = config?.messaging?.expirationReminderIntervalDays ?? config?.expirationItinerancyDays ?? 0;
             const currentYear = today.getFullYear().toString();
 
             snap.forEach(d => {
@@ -121,7 +121,8 @@ export const DashboardPage = () => {
                     }
 
                     // 2. Upcoming expirations (Respecting itinerancy)
-                    if (data.nextExpirationDate && data.nextExpirationDate > todayStr && data.nextExpirationDate <= windowEndStr && userPoints > 0) {
+                    const hasPoints = userPoints > 0 || (data.nextExpirationAmount || 0) > 0;
+                    if (data.nextExpirationDate && data.nextExpirationDate > todayStr && data.nextExpirationDate <= windowEndStr && hasPoints) {
                         let shouldNotify = true;
                         if (itinerancyDays > 0 && data.lastExpirationNotice) {
                             const lastNotice = new Date(data.lastExpirationNotice);
@@ -133,7 +134,7 @@ export const DashboardPage = () => {
                             usersExpiring.push({
                                 id: d.id,
                                 name: data.name || data.nombre || 'Socio',
-                                points: userPoints,
+                                points: userPoints > 0 ? userPoints : (data.nextExpirationAmount || 0),
                                 nextExpirationDate: data.nextExpirationDate,
                                 phone: data.phone || data.telefono || ''
                             });

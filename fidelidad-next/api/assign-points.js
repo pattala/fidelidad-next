@@ -45,6 +45,7 @@ export default async function handler(req, res) {
             if (!q || q.length < 3) return res.status(200).json({ ok: true, clients: [] });
 
             const results = new Map();
+            const activePrizes = [];
             const searchPromises = [];
 
             // Determinar si la búsqueda es puramente numérica
@@ -172,12 +173,28 @@ export default async function handler(req, res) {
                 }
             });
 
+            // 6. Obtener Premios Activos
+            const prizeSnap = await db.collection('prizes').where('active', '==', true).get();
+            prizeSnap.forEach(doc => {
+                const p = doc.data();
+                activePrizes.push({
+                    id: doc.id,
+                    name: p.name,
+                    pointsRequired: p.pointsRequired,
+                    image: p.image || '',
+                    description: p.description || '',
+                    stock: p.stock ?? 99,
+                    isInternal: p.isInternal || false
+                });
+            });
+
             return res.status(200).json({
                 ok: true,
                 clients: Array.from(results.values()),
                 pointsMoneyBase,
                 pointsPerPeso,
                 activePromotions,
+                activePrizes,
                 todayStr // Para debugging
             });
         } catch (err) {
@@ -344,7 +361,7 @@ export default async function handler(req, res) {
 
         // 5. Idempotencia & Transacción
         const clientRef = db.collection("users").doc(targetUid);
-        let result = { ok: false, debug: {} };
+        let result = { ok: false, debug: {}, auditDetails: [] };
 
         const now = new Date();
         const argentinaOffset = -3 * 60 * 60 * 1000;

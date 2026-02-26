@@ -223,7 +223,7 @@ function showFidelidadPanel() {
     panel.innerHTML = `
         <div class="fidelidad-header">
             <div class="fidelidad-header-title">
-                <h1>Sumar Puntos</h1>
+                <h1 id="cf-main-title">Sumar Puntos</h1>
                 <span id="cf-client-name-header" style="font-size: 10px; opacity: 0.8; display: block;">Seleccione un cliente</span>
             </div>
             <span class="fidelidad-close" id="fidelidad-close">×</span>
@@ -236,44 +236,62 @@ function showFidelidadPanel() {
                 <div id="fidelidad-results" class="fidelidad-results" style="display:none;"></div>
             </div>
 
-            <!-- FORMULARIO DE PUNTOS -->
-            <div id="cf-points-form" style="display:none;">
-                <div class="cf-field">
-                    <label id="cf-amount-label" class="cf-label font-bold">Monto de la Compra ($)</label>
-                    <div class="cf-input-group">
-                        <span id="cf-currency-symbol" class="cf-addon">$</span>
-                        <input type="number" id="cf-input-amount" class="fidelidad-input cf-input-big" value="${detectedAmount}">
-                    </div>
-                    <div id="cf-preview-container" class="cf-preview-box" style="margin-top: 8px; font-size: 12px; color: #6b7280; display: none;">
-                        <!-- Preview text will be injected here -->
-                    </div>
-                </div>
+            <!-- TABS (Solo aparecen cuando hay cliente seleccionado) -->
+            <div id="cf-tabs-container" class="cf-tabs" style="display:none; margin-top: 15px;">
+                <button class="cf-tab active" data-tab="sumar">Sumar</button>
+                <button class="cf-tab" data-tab="canjes">Canjear</button>
+            </div>
 
-                <div class="cf-grid">
+            <!-- CONTENIDO TAB: SUMAR -->
+            <div id="cf-tab-content-sumar" class="cf-tab-content" style="display:none;">
+                <div id="cf-points-form">
                     <div class="cf-field">
-                        <label class="cf-label">Concepto</label>
-                        <input type="text" id="cf-concept" class="fidelidad-input" value="Compra en local">
+                        <label id="cf-amount-label" class="cf-label font-bold">Monto de la Compra ($)</label>
+                        <div class="cf-input-group">
+                            <span id="cf-currency-symbol" class="cf-addon">$</span>
+                            <input type="number" id="cf-input-amount" class="fidelidad-input cf-input-big" value="${detectedAmount}">
+                        </div>
+                        <div id="cf-preview-container" class="cf-preview-box" style="margin-top: 8px; font-size: 12px; color: #6b7280; display: none;">
+                            <!-- Preview text will be injected here -->
+                        </div>
                     </div>
-                    <div class="cf-field">
-                        <label class="cf-label">Fecha</label>
-                        <input type="date" id="cf-date" class="fidelidad-input" value="${today}">
-                    </div>
-                </div>
 
-                <!-- PROMOCIONES Y OPCIONES -->
-                <div id="cf-promos-container" class="cf-promos-box" style="margin-top: 20px;">
-                    <label class="cf-checkbox-label">
-                        <input type="checkbox" id="cf-apply-promos" checked> Aplicar Promociones / Bonus
-                    </label>
-                    <div id="cf-promos-list" class="cf-promos-list">
-                        <!-- Se llena vía API -->
+                    <div class="cf-grid">
+                        <div class="cf-field">
+                            <label class="cf-label">Concepto</label>
+                            <input type="text" id="cf-concept" class="fidelidad-input" value="Compra en local">
+                        </div>
+                        <div class="cf-field">
+                            <label class="cf-label">Fecha</label>
+                            <input type="date" id="cf-date" class="fidelidad-input" value="${today}">
+                        </div>
                     </div>
-                    <label class="cf-checkbox-label" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #f3f4f6;">
-                        <input type="checkbox" id="cf-notify-wa"> Notificar por WhatsApp
-                    </label>
-                </div>
 
-                <button id="fidelidad-submit" class="fidelidad-button">Asignar Puntos</button>
+                    <!-- PROMOCIONES Y OPCIONES -->
+                    <div id="cf-promos-container" class="cf-promos-box" style="margin-top: 20px;">
+                        <label class="cf-checkbox-label">
+                            <input type="checkbox" id="cf-apply-promos" checked> Aplicar Promociones / Bonus
+                        </label>
+                        <div id="cf-promos-list" class="cf-promos-list">
+                            <!-- Se llena vía API -->
+                        </div>
+                        <label class="cf-checkbox-label" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #f3f4f6;">
+                            <input type="checkbox" id="cf-notify-wa"> Notificar por WhatsApp
+                        </label>
+                    </div>
+
+                    <button id="fidelidad-submit" class="fidelidad-button">Asignar Puntos</button>
+                </div>
+            </div>
+
+            <!-- CONTENIDO TAB: CANJES -->
+            <div id="cf-tab-content-canjes" class="cf-tab-content" style="display:none;">
+                <div class="cf-prizes-summary" style="margin-bottom: 12px; background: #eeeff3; padding: 10px; border-radius: 12px; text-align: center;">
+                    <span style="font-size: 11px; color: #4b5563; font-weight: 700;">Saldo disponible: <strong id="cf-client-points-balance" style="color: #16a34a; font-size: 14px;">0</strong> pts</span>
+                </div>
+                <div id="cf-prizes-list" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 2px;">
+                    <!-- Se llena vía API -->
+                </div>
             </div>
 
             <div id="fidelidad-status" style="margin-top:10px; font-size: 12px; text-align: center;"></div>
@@ -329,6 +347,11 @@ function showFidelidadPanel() {
     const promosList = document.getElementById('cf-promos-list');
     const inputMonto = document.getElementById('cf-input-amount');
     const promosContainer = document.getElementById('cf-promos-container');
+    const tabsContainer = document.getElementById('cf-tabs-container');
+    const tabSumar = document.getElementById('cf-tab-content-sumar');
+    const tabCanjes = document.getElementById('cf-tab-content-canjes');
+    const prizesList = document.getElementById('cf-prizes-list');
+    const mainTitle = document.getElementById('cf-main-title');
 
     // MANTENER SIEMPRE EN PESOS EN LA EXTENSIÓN
     let isPesos = true;
@@ -386,6 +409,25 @@ function showFidelidadPanel() {
         updatePointsPreview();
     };
 
+    // TAB SWITCHING LOGIC
+    tabsContainer.querySelectorAll('.cf-tab').forEach(tab => {
+        tab.onclick = () => {
+            const target = tab.dataset.tab;
+            tabsContainer.querySelectorAll('.cf-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+
+            if (target === 'sumar') {
+                tabSumar.style.display = 'block';
+                tabCanjes.style.display = 'none';
+                mainTitle.innerText = 'Sumar Puntos';
+            } else {
+                tabSumar.style.display = 'none';
+                tabCanjes.style.display = 'block';
+                mainTitle.innerText = 'Canjear Premios';
+            }
+        };
+    });
+
     function killEvent(e) {
         if (document.activeElement === searchInput || document.activeElement.tagName === 'INPUT') {
             e.stopPropagation();
@@ -433,7 +475,7 @@ function showFidelidadPanel() {
             if (data.ok && data.clients && data.clients.length > 0) {
                 apiRatios.base = data.pointsMoneyBase || 100;
                 apiRatios.perPeso = data.pointsPerPeso || 1;
-                renderResults(data.clients, data.activePromotions || []);
+                renderResults(data.clients, data.activePromotions || [], data.activePrizes || []);
             } else {
                 resultsDiv.innerHTML = '<div class="fidelidad-result-item" style="cursor:default; color:#666; text-align:center;">No se encontraron socios</div>';
                 resultsDiv.style.display = 'block';
@@ -443,7 +485,7 @@ function showFidelidadPanel() {
         }
     }
 
-    function renderResults(clients, promotions) {
+    function renderResults(clients, promotions, allPrizes) {
         resultsDiv.innerHTML = '';
         clients.forEach(c => {
             const item = document.createElement('div');
@@ -465,9 +507,17 @@ function showFidelidadPanel() {
                 searchInput.value = selectedClient.name;
                 resultsDiv.style.display = 'none';
 
-                // Show Form & All Options
                 pointsForm.style.display = 'block';
+                tabSumar.style.display = 'block';
+                tabsContainer.style.display = 'flex';
                 statusDiv.innerText = '';
+
+                // Actualizar balance en pestaña canjes
+                const balanceEl = document.getElementById('cf-client-points-balance');
+                if (balanceEl) balanceEl.innerText = c.accumulated_points ?? (c.points ?? (c.puntos ?? 0));
+
+                // --- TAB CANJES: Renderizar Premios ---
+                renderPrizes(allPrizes, (c.accumulated_points ?? (c.points ?? (c.puntos ?? 0))));
 
                 // Renderizar Promos con Lógica de Horarios (Paridad con Admin)
                 currentPromos = promotions || [];
@@ -669,6 +719,103 @@ function showFidelidadPanel() {
                 <div style="font-size: 40px;">✅</div>
                 <div style="font-weight: bold; font-size: 18px; margin: 5px 0;">¡Puntos Asignados!</div>
                 <div style="font-size: 14px; color: #666; margin-bottom: 15px;">Se sumaron ${data.pointsAdded} puntos a ${selectedClient.name}.</div>
+                ${data.whatsappLink ? `<a href="${data.whatsappLink}" target="_blank" class="fidelidad-wa-link">ENVIAR WHATSAPP</a>` : ''}
+                <button class="fidelidad-button" style="background:#f3f4f6; color:#374151; margin-top:15px; border: 1px solid #d1d5db;" id="cf-final-close">CERRAR</button>
+            </div>
+        `;
+        document.getElementById('cf-final-close').onclick = () => {
+            window.removeEventListener('keydown', killEvent, true);
+            window.removeEventListener('keyup', killEvent, true);
+            window.removeEventListener('keypress', killEvent, true);
+            panel.remove();
+        };
+    }
+    function renderPrizes(prizes, userPoints) {
+        const prizesList = document.getElementById('cf-prizes-list');
+        if (!prizesList) return;
+
+        prizesList.innerHTML = '';
+        if (prizes.length === 0) {
+            prizesList.innerHTML = '<div style="grid-column: 1 / span 2; text-align: center; color: #9ca3af; font-size: 12px; padding: 20px;">No hay premios disponibles</div>';
+            return;
+        }
+
+        prizes.forEach(p => {
+            const canAfford = userPoints >= p.pointsRequired;
+            const hasStock = (p.stock || 0) > 0;
+            const isDisabled = !canAfford || !hasStock;
+
+            const card = document.createElement('div');
+            card.style.cssText = `
+                background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 8px;
+                display: flex; flex-direction: column; gap: 6px; transition: all 0.2s;
+                ${isDisabled ? 'opacity: 0.6; filter: grayscale(0.5);' : 'cursor: default;'}
+            `;
+
+            card.innerHTML = `
+                <div style="height: 60px; background: #f9fafb; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                    ${p.image ? `<img src="${p.image}" style="width: 100%; height: 100%; object-fit: cover;">` : '<span style="font-size: 24px;">🎁</span>'}
+                </div>
+                <div style="flex: 1;">
+                    <div style="font-size: 11px; font-weight: 800; color: #1f2937; line-height: 1.2; height: 26px; overflow: hidden;">${p.name}</div>
+                    <div style="font-size: 12px; font-weight: 900; color: #16a34a; margin-top: 4px;">${p.pointsRequired} pts</div>
+                </div>
+                <button class="cf-redeem-btn" data-id="${p.id}" ${isDisabled ? 'disabled' : ''} style="
+                    width: 100%; padding: 6px; border-radius: 6px; border: none;
+                    background: ${isDisabled ? '#d1d5db' : '#16a34a'};
+                    color: white; font-size: 10px; font-weight: 800; cursor: ${isDisabled ? 'not-allowed' : 'pointer'};
+                ">
+                    ${!hasStock ? 'SIN STOCK' : (canAfford ? 'CANJEAR' : 'FALTAN PTS')}
+                </button>
+            `;
+
+            if (!isDisabled) {
+                card.querySelector('.cf-redeem-btn').onclick = () => redeemPrize(p);
+            }
+            prizesList.appendChild(card);
+        });
+    }
+
+    async function redeemPrize(prize) {
+        if (!confirm(`¿Canjear "${prize.name}" por ${prize.pointsRequired} puntos para ${selectedClient.name}?`)) return;
+
+        const prizesList = document.getElementById('cf-prizes-list');
+        const originalContent = prizesList.innerHTML;
+
+        prizesList.innerHTML = '<div style="grid-column: 1 / span 2; text-align: center; padding: 40px; color: #16a34a;">Procesando canje...</div>';
+
+        try {
+            const res = await fetch(`${config.apiUrl}/api/redeem-prize`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey },
+                body: JSON.stringify({
+                    uid: selectedClient.id,
+                    prizeId: prize.id
+                })
+            });
+            const data = await res.json();
+            if (data.ok) {
+                renderRedemptionSuccess(data, prize);
+            } else {
+                alert(`Error al canjear: ${data.error}`);
+                prizesList.innerHTML = originalContent;
+            }
+        } catch (e) {
+            alert("Error de conexión al procesar canje");
+            prizesList.innerHTML = originalContent;
+        }
+    }
+
+    function renderRedemptionSuccess(data, prize) {
+        const body = document.querySelector('.fidelidad-body');
+        body.innerHTML = `
+            <div class="fidelidad-success" style="text-align: center; color: #16a34a; padding: 10px;">
+                <div style="font-size: 40px;">🎁</div>
+                <div style="font-weight: bold; font-size: 18px; margin: 5px 0;">¡Canje Exitoso!</div>
+                <div style="font-size: 14px; color: #666; margin-bottom: 15px;">
+                    ${selectedClient.name} canjeó <strong>${prize.name}</strong>.<br>
+                    Nuevo saldo: <strong>${data.newBalance} pts</strong>.
+                </div>
                 ${data.whatsappLink ? `<a href="${data.whatsappLink}" target="_blank" class="fidelidad-wa-link">ENVIAR WHATSAPP</a>` : ''}
                 <button class="fidelidad-button" style="background:#f3f4f6; color:#374151; margin-top:15px; border: 1px solid #d1d5db;" id="cf-final-close">CERRAR</button>
             </div>

@@ -246,27 +246,27 @@ export default async function handler(req, res) {
             const today = referenceDate;
 
             for (const userDoc of proactiveSnap.docs) {
+                const userId = userDoc.id;
                 try {
                     const userData = userDoc.data();
                     const userPoints = userData.points ?? userData.puntos ?? 0;
-
-                    if (userPoints <= 0) continue;
-
-                    // Verificar si ya fue notificado recientemente (itinerancia)
-                    if (itinerancyDays > 0 && userData.lastExpirationNotice) {
-                        const lastNotice = new Date(userData.lastExpirationNotice);
-                        const diffDays = Math.floor((today - lastNotice) / (1000 * 60 * 60 * 24));
-                        if (diffDays < itinerancyDays) continue;
+                    // Verificar si tiene puntos para avisar
+                    // Robustez: Algunos usuarios pueden no tener el campo 'points'/'puntos' en el root
+                    // pero sí tener 'nextExpirationAmount' calculado via scripts.
+                    if (userPoints <= 0 && (userData.nextExpirationAmount || 0) <= 0) {
+                        console.log(`[Cron] Skipping ${userId}: No root points and no nextExpirationAmount.`);
+                        continue;
                     }
-
-                    // Contar para la burbuja de la extensión (match Dashboard 30 días)
-                    logResults.totalInWindow++;
 
                     // --- LÓGICA DE NOTIFICACIÓN AUTOMÁTICA ---
                     // Solo notificar si está dentro de la ventana configurada (ej: 7 días)
                     if (userData.nextExpirationDate > warningDateStr) {
+                        // console.log(`[Cron] Skipping ${userId}: ${userData.nextExpirationDate} is beyond warning window ${warningDateStr}`);
                         continue;
                     }
+
+                    // Contar para la burbuja de la extensión (match Dashboard 30 días)
+                    logResults.totalInWindow++;
 
                     // NUEVA LÓGICA: Sumar TODOS los puntos que vencen en la ventana de aviso
                     const historyRef = userDoc.ref.collection('points_history');
@@ -304,7 +304,9 @@ export default async function handler(req, res) {
                     // --- ITINERANCIA INTELIGENTE ---
                     // Toggle master ON/OFF + intervalo configurable en días
                     const isItinerancyEnabled = config.messaging?.repeatExpirationWarnings === true;
-                    const rawInterval = config.messaging?.expirationReminderIntervalDays;
+                    const rawInterval = config.messaging?.expirationReminderIntervalDays !== undefined
+                        ? config.messaging?.expirationReminderIntervalDays
+                        : config.messaging?.expirationItinerancyDays;
                     const reminderIntervalDays = (rawInterval !== undefined && rawInterval !== null) ? Number(rawInterval) : 5;
 
                     // ¿Ya fue notificado para esta misma fecha+monto?
@@ -408,13 +410,6 @@ export default async function handler(req, res) {
                         read: false,
                         date: admin.firestore.FieldValue.serverTimestamp(),
                         expireAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000))
-                    });
-
-                    // Guardamos la fecha y el MONTO del vencimiento avisado
-                    await userDoc.ref.update({
-                        lastExpirationNotice: referenceDateStr,
-                        lastExpirationNoticeTargetDate: userData.nextExpirationDate,
-                        lastExpirationNoticeAmount: totalImpendingAmount
                     });
 
                     // Guardamos la fecha y el MONTO del vencimiento avisado

@@ -26,7 +26,7 @@ self.addEventListener('push', (event) => {
     let options: any = {
         body: 'Tienes una novedad en tu cuenta',
         icon: `${BASE_URL}/pwa-192x192.png`,
-        badge: `${BASE_URL}/pwa-72x72.png`,
+        badge: `${BASE_URL}/pwa-192x192.png`,
         vibrate: [200, 100, 200],
         silent: false,
         data: { url: '/inbox' }
@@ -36,7 +36,7 @@ self.addEventListener('push', (event) => {
         try {
             const payload = event.data.json();
             const notification = payload.notification || {};
-            const data = payload.data || {};
+            const data = payload.data || payload || {};
 
             title = notification.title || data.title || title;
             options.body = notification.body || data.body || options.body;
@@ -46,11 +46,17 @@ self.addEventListener('push', (event) => {
             if (payload.fcmMessageId) options.tag = payload.fcmMessageId;
 
         } catch (e) {
+            console.error('[SW] Error parsing push data:', e);
             options.body = event.data.text() || options.body;
         }
     }
 
-    event.waitUntil(self.registration.showNotification(title, options));
+    console.log('[SW] Showing notification:', title, options.body);
+    event.waitUntil(
+        self.registration.showNotification(title, options)
+            .then(() => console.log('[SW] Notification shown OK'))
+            .catch((err: any) => console.error('[SW] showNotification FAILED:', err))
+    );
 });
 
 // 4. Notification Click Handler

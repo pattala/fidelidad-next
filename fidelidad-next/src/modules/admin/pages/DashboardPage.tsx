@@ -124,16 +124,10 @@ export const DashboardPage = () => {
                     // 2. Upcoming expirations (Respecting itinerancy)
                     const hasPoints = userPoints > 0 || (data.nextExpirationAmount || 0) > 0;
                     if (data.nextExpirationDate && data.nextExpirationDate > todayStr && data.nextExpirationDate <= windowEndStr && hasPoints) {
+                        // Ocultar burbuja solo si el admin ya gestionó WhatsApp manualmente hoy
                         let shouldNotify = true;
-                        if (data.lastExpirationNotice) {
-                            if (data.lastExpirationNotice === todayStr) {
-                                // Siempre ocultar si ya fue gestionado hoy (enviado o anulado)
-                                shouldNotify = false;
-                            } else if (itinerancyDays > 0) {
-                                const lastNotice = new Date(data.lastExpirationNotice);
-                                const diffDays = Math.floor((today.getTime() - lastNotice.getTime()) / (1000 * 60 * 60 * 24));
-                                if (diffDays < itinerancyDays) shouldNotify = false;
-                            }
+                        if (data.lastWhatsAppManualDate === todayStr) {
+                            shouldNotify = false;
                         }
 
                         if (shouldNotify) {
@@ -328,7 +322,8 @@ export const DashboardPage = () => {
     const markExpirationHandled = async (user: any, action: 'sent' | 'cancelled') => {
         try {
             const today = new Date().toISOString().split('T')[0];
-            await updateDoc(doc(db, 'users', user.id), { lastExpirationNotice: today });
+            // Campo separado del engine automático — solo el admin lo setea al manejar WhatsApp
+            await updateDoc(doc(db, 'users', user.id), { lastWhatsAppManualDate: today });
             // Optimistic UI update
             setExpiringUsers(prev => prev.filter(u => u.id !== user.id));
             // Audit log

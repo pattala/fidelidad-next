@@ -160,8 +160,8 @@ export const WhatsAppPage = () => {
             if (notificationType === 'birthday') {
                 updates.lastBirthdayGreetingYear = new Date().getFullYear().toString();
             } else {
-                // Default is expiration for safety (hides from bubble)
-                updates.lastExpirationNotice = today;
+                // Campo separado del engine automático — no afecta la itinerancia de notificaciones
+                updates.lastWhatsAppManualDate = today;
             }
 
             await updateDoc(userRef, updates);

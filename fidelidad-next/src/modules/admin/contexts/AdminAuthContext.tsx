@@ -33,12 +33,12 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
                 const cacheKey = `admin_role_${firebaseUser.uid}`;
                 const cachedRole = localStorage.getItem(cacheKey) as AdminRole;
 
-                // If we have a cached role, use it immediately to avoid intermediate loading/redirects
+                // If we have a cached role, use it immediately and stop loading
+                // The background refresh will update if the role changed
                 if (cachedRole) {
                     setRole(cachedRole);
                     setUser(firebaseUser);
-                    // We still fetch fresh data, but don't set loading to true if we have a cache
-                    // to prevent flickering. However, on first init, we are already loading=true.
+                    setLoading(false); // ← fix: don't block UI waiting for network
                 }
 
                 const fetchRole = async (retryCount = 0): Promise<void> => {
@@ -67,7 +67,6 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
                             localStorage.setItem(cacheKey, resolvedRole);
                             setRole(resolvedRole);
                         } else if (!cachedRole) {
-                            // If no role found AND no cache, then it's definitely null
                             setRole(null);
                         }
 
@@ -77,10 +76,8 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
                         console.error(`Error fetching admin role (attempt ${retryCount + 1}):`, e);
 
                         if (retryCount < 2) {
-                            // Retry after 1s
                             setTimeout(() => fetchRole(retryCount + 1), 1000);
                         } else {
-                            // Max retries reached. Use cache if available, otherwise fail.
                             if (cachedRole) {
                                 console.warn("Using cached role due to persistent network errors.");
                                 setRole(cachedRole);
@@ -94,10 +91,15 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
 
                 fetchRole();
             } else {
-                localStorage.removeItem(user ? `admin_role_${user.uid}` : ''); // Cleanup if possible
-                setUser(null);
-                setRole(null);
-                setLoading(false);
+                // Grace period: give Firebase 800ms to restore session before treating as logged out
+                // This prevents false guest redirects during page load with LOCAL persistence
+                setTimeout(() => {
+                    if (!auth.currentUser) {
+                        setUser(null);
+                        setRole(null);
+                        setLoading(false);
+                    }
+                }, 800);
             }
         });
 

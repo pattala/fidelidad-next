@@ -257,7 +257,7 @@ export const DashboardPage = () => {
         if (!config) return;
         const runDailyCheck = async () => {
             try {
-                const SECRET = (import.meta as any).env?.VITE_API_KEY || '';
+                const SECRET = import.meta.env.VITE_API_KEY || '';
                 if (!SECRET) return;
                 const res = await fetch('/api/check-birthdays?mode=daily', {
                     method: 'POST',

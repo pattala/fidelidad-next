@@ -165,10 +165,10 @@ export const ClientReferralsPage = () => {
                                 {config.referrals.challenge.tiers.sort((a: any, b: any) => a.count - b.count).map((tier: any, idx: number) => (
                                     <div key={idx} className="flex flex-col items-center">
                                         <div className={`w-1 h-2 rounded-full mb-1 ${challengeCount >= tier.count ? 'bg-white' : 'bg-white/30'}`} />
-                                        <p className={`text-[9px] font-black ${challengeCount >= tier.count ? 'text-white' : 'text-white/50'}`}>
+                                        <p className={`text-[12px] font-black ${challengeCount >= tier.count ? 'text-white' : 'text-white/50'}`}>
                                             {tier.count}am
                                         </p>
-                                        <p className={`text-[8px] font-bold ${challengeCount >= tier.count ? 'text-white' : 'text-white/50'}`}>
+                                        <p className={`text-[10px] font-bold ${challengeCount >= tier.count ? 'text-white' : 'text-white/50'}`}>
                                             +{tier.bonus}
                                         </p>
                                     </div>

@@ -125,10 +125,15 @@ export const DashboardPage = () => {
                     const hasPoints = userPoints > 0 || (data.nextExpirationAmount || 0) > 0;
                     if (data.nextExpirationDate && data.nextExpirationDate > todayStr && data.nextExpirationDate <= windowEndStr && hasPoints) {
                         let shouldNotify = true;
-                        if (itinerancyDays > 0 && data.lastExpirationNotice) {
-                            const lastNotice = new Date(data.lastExpirationNotice);
-                            const diffDays = Math.floor((today.getTime() - lastNotice.getTime()) / (1000 * 60 * 60 * 24));
-                            if (diffDays < itinerancyDays) shouldNotify = false;
+                        if (data.lastExpirationNotice) {
+                            if (data.lastExpirationNotice === todayStr) {
+                                // Siempre ocultar si ya fue gestionado hoy (enviado o anulado)
+                                shouldNotify = false;
+                            } else if (itinerancyDays > 0) {
+                                const lastNotice = new Date(data.lastExpirationNotice);
+                                const diffDays = Math.floor((today.getTime() - lastNotice.getTime()) / (1000 * 60 * 60 * 24));
+                                if (diffDays < itinerancyDays) shouldNotify = false;
+                            }
                         }
 
                         if (shouldNotify) {

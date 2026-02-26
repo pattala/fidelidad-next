@@ -114,13 +114,18 @@ export const PushPage = () => {
                     return;
                 }
 
-                await NotificationService.sendToClient(targetId, {
+                const result = await NotificationService.sendToClient(targetId, {
                     title,
                     body,
                     type: 'manual',
-                    icon: config?.logoUrl // Branding
+                    icon: config?.logoUrl
                 });
-                toast.success('Enviado a 1 cliente', { id: toastId });
+                const sc = result?.successCount ?? 0;
+                const fc = result?.failureCount ?? 0;
+                if (sc > 0 && fc === 0) toast.success('✅ Push enviado con éxito', { id: toastId });
+                else if (sc > 0) toast.success(`⚠️ Enviado parcialmente (${sc} ok, ${fc} falla)`, { id: toastId });
+                else if (fc > 0) toast.error('❌ Push falló: token inválido o sin dispositivo registrado', { id: toastId });
+                else toast.error('❌ Sin tokens FCM para este cliente', { id: toastId });
 
             } else {
                 // ALL Users

@@ -54,10 +54,11 @@ export const NotificationService = {
             if (!response.ok) {
                 const errData = await response.json();
                 console.error('[NotificationService] API Error:', errData);
+                return errData;
             }
 
-            // NOTA: No hacemos addDoc aquí porque /api/send-notification 
-            // ya lo guarda en el 'inbox' automáticamente.
+            const result = await response.json();
+            return result; // { ok, successCount, failureCount, ... }
 
         } catch (error) {
             console.error('[NotificationService] Error in sendToClient:', error);

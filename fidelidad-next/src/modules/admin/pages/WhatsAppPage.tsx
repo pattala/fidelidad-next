@@ -485,15 +485,17 @@ export const WhatsAppPage = () => {
                             <div className="flex gap-3 w-full">
                                 <button
                                     onClick={handleSkipCurrent}
-                                    className="flex-1 py-3 text-gray-500 font-bold hover:bg-gray-100 rounded-xl transition"
+                                    title="Marca como gestionado sin abrir WhatsApp. Desaparece de la burbuja."
+                                    className="flex-1 py-3 text-gray-600 font-bold hover:bg-gray-100 rounded-xl transition text-sm"
                                 >
-                                    Anular / Saltar
+                                    ✓ Sin WhatsApp
                                 </button>
                                 <button
                                     onClick={() => setIsSendingMode(false)}
-                                    className="flex-1 py-3 text-red-500 font-bold hover:bg-red-50 rounded-xl transition"
+                                    title="Cierra este proceso. Los no enviados siguen en la burbuja."
+                                    className="flex-1 py-3 text-amber-600 font-bold hover:bg-amber-50 rounded-xl transition text-sm"
                                 >
-                                    Cancelar
+                                    🕐 Más tarde
                                 </button>
                             </div>
                         </div>

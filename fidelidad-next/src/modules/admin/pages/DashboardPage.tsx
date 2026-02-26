@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs, query, where, collectionGroup, orderBy, limit, doc, getDoc, onSnapshot } from 'firebase/firestore';
-import { db } from '../../../lib/firebase';
+import { collection, getDocs, query, where, collectionGroup, orderBy, limit, doc, getDoc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { db, auth } from '../../../lib/firebase';
 import { ConfigService } from '../../../services/configService';
 import { TimeService } from '../../../services/timeService';
 import { ArrowUpRight, ArrowDownLeft, TrendingUp, Gift, User, Clock, RefreshCw, Cake, X, ChevronDown, CheckCircle, MessageCircle, AlertTriangle } from 'lucide-react';
@@ -53,6 +53,7 @@ export const DashboardPage = () => {
     const [fabPos, setFabPos] = useState({ x: 32, y: 32 }); // bottom-8 left-8 approx
     const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
     const [hasMovedFab, setHasMovedFab] = useState(false);
+    const [isFabExpanded, setIsFabExpanded] = useState(false);
 
     useEffect(() => {
         const handleGlobalMouseMove = (e: MouseEvent) => {
@@ -304,6 +305,56 @@ export const DashboardPage = () => {
         }));
     }, [config, stats.totalPoints, stats.pointValueReal, stats.redeemedMoney]);
 
+    // --- Helpers para burbuja de WhatsApp de vencimientos ---
+    const generateExpirationWaLink = (user: any): string | null => {
+        if (!user.phone) return null;
+        let phone = user.phone.replace(/\D/g, '');
+        if (!phone.startsWith('54') && phone.length === 10) phone = '549' + phone;
+        const template = config?.messaging?.templates?.expirationWarning ||
+            '¡Hola {nombre}! 📢 Tienes {puntos} puntos próximos a vencer. ⏳ Entrá a la App para ver el detalle y aprovecharlos antes de que se venzan. 🎁';
+        const [y, m, d] = (user.nextExpirationDate || '').split('-');
+        const msg = template
+            .replace(/{nombre}/g, user.name.split(' ')[0])
+            .replace(/{puntos}/g, user.points.toString())
+            .replace(/{fecha}/g, d && m && y ? `${d}/${m}/${y}` : '');
+        return `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(msg.trim())}`;
+    };
+
+    const markExpirationHandled = async (user: any, action: 'sent' | 'cancelled') => {
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            await updateDoc(doc(db, 'users', user.id), { lastExpirationNotice: today });
+            // Optimistic UI update
+            setExpiringUsers(prev => prev.filter(u => u.id !== user.id));
+            // Audit log
+            const token = await auth.currentUser?.getIdToken();
+            fetch('/api/log-audit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': (import.meta as any).env?.VITE_API_KEY || '',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    type: action === 'sent' ? 'whatsapp_expiracion_enviado' : 'whatsapp_expiracion_anulado',
+                    status: 'success',
+                    summary: action === 'sent'
+                        ? `WhatsApp de vencimiento enviado a ${user.name}`
+                        : `Aviso de vencimiento anulado para ${user.name}`,
+                    details: [{
+                        userId: user.id,
+                        userName: user.name,
+                        action: action === 'sent' ? 'whatsapp_sent' : 'whatsapp_cancelled',
+                        info: `${user.points} pts · Vence: ${user.nextExpirationDate}`
+                    }]
+                })
+            });
+        } catch (e) {
+            console.error('Error al marcar vencimiento gestionado:', e);
+            toast.error('Error al actualizar');
+        }
+    };
+
     return (
         <div className="animate-fade-in pb-10">
             <div className="flex items-center justify-between mb-6">
@@ -457,36 +508,96 @@ export const DashboardPage = () => {
                 )}
             </div>
 
-            {/* WhatsApp FAB for Expirations */}
-            {expiringUsers.length > 0 && !sessionStorage.getItem('hideExpiringAlert') && (
+            {/* WhatsApp FAB for Expirations - Panel Expandible */}
+            {expiringUsers.length > 0 && (
                 <div
-                    className="fixed z-50 flex flex-col items-start gap-2 animate-in slide-in-from-left-10"
-                    style={{
-                        bottom: fabPos.y,
-                        left: fabPos.x,
-                        cursor: isDraggingFab ? 'grabbing' : 'default'
-                    }}
+                    className="fixed z-50 animate-in slide-in-from-left-10"
+                    style={{ bottom: fabPos.y, left: fabPos.x, cursor: isDraggingFab ? 'grabbing' : 'default' }}
                 >
-                    <div className="flex items-center gap-2">
+                    {isFabExpanded ? (
+                        /* ---- PANEL EXPANDIDO ---- */
+                        <div className="bg-white rounded-2xl shadow-2xl border border-green-100 w-80 overflow-hidden">
+                            {/* Header */}
+                            <div className="bg-green-600 text-white px-4 py-3 flex items-center justify-between">
+                                <span className="font-bold text-sm flex items-center gap-2">
+                                    <MessageCircle size={16} />
+                                    Avisos de Vencimiento ({expiringUsers.length})
+                                </span>
+                                <button onClick={() => setIsFabExpanded(false)} className="hover:bg-white/20 p-1 rounded-lg transition" title="Cerrar panel">
+                                    <X size={16} />
+                                </button>
+                            </div>
+                            {/* Lista de usuarios */}
+                            <div className="max-h-72 overflow-y-auto divide-y divide-gray-50">
+                                {expiringUsers.map(user => {
+                                    const waLink = generateExpirationWaLink(user);
+                                    const [y2, m2, d2] = (user.nextExpirationDate || '--').split('-');
+                                    return (
+                                        <div key={user.id} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50">
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-bold text-gray-800 truncate">{user.name}</p>
+                                                <p className="text-xs text-amber-600 font-medium">
+                                                    {user.points} pts · Vence {d2 ? `${d2}/${m2}/${y2}` : '—'}
+                                                </p>
+                                            </div>
+                                            <div className="flex items-center gap-1 shrink-0">
+                                                {/* Enviar → abre WA + marca gestionado */}
+                                                <button
+                                                    onClick={async () => {
+                                                        if (waLink) window.open(waLink, '_blank');
+                                                        else toast.error('Sin teléfono registrado');
+                                                        await markExpirationHandled(user, 'sent');
+                                                    }}
+                                                    title="Abrir WhatsApp y marcar como enviado"
+                                                    className="p-1.5 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition"
+                                                >
+                                                    <MessageCircle size={15} />
+                                                </button>
+                                                {/* Anular → marca gestionado sin WA */}
+                                                <button
+                                                    onClick={() => markExpirationHandled(user, 'cancelled')}
+                                                    title="Anular aviso (sin enviar WhatsApp)"
+                                                    className="p-1.5 bg-gray-100 hover:bg-red-100 text-gray-400 hover:text-red-500 rounded-lg transition"
+                                                >
+                                                    <X size={15} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            {/* Footer */}
+                            <div className="p-3 bg-gray-50 border-t border-gray-100 flex gap-2">
+                                <button
+                                    onClick={() => {
+                                        setIsFabExpanded(false);
+                                        const defaultMsg = config?.messaging?.templates?.expirationWarning ||
+                                            '¡Hola {nombre}! 📢 Tienes {puntos} puntos próximos a vencer. ⏳ Entrá a la App para ver el detalle y aprovecharlos antes de que se venzan. 🎁';
+                                        navigate('/admin/whatsapp', {
+                                            state: { message: defaultMsg, clientIds: expiringUsers.map(u => u.id), notificationType: 'expiration' }
+                                        });
+                                    }}
+                                    className="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs font-bold py-2 rounded-xl transition flex items-center justify-center gap-1"
+                                >
+                                    <MessageCircle size={13} /> Gestionar todos
+                                </button>
+                                <button
+                                    onClick={() => setIsFabExpanded(false)}
+                                    className="px-3 text-xs font-bold text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-xl transition"
+                                    title="Más tarde"
+                                >
+                                    🕐
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        /* ---- FAB COLAPSADO ---- */
                         <div
-                            onMouseDown={(e) => {
-                                setIsDraggingFab(true);
-                                setDragOffset({ x: e.clientX, y: e.clientY });
-                            }}
-                            className="bg-green-500 hover:bg-green-600 text-white font-bold rounded-full shadow-2xl flex items-center justify-center p-4 cursor-grab active:cursor-grabbing hover:scale-105 transition-transform"
+                            onMouseDown={(e) => { setIsDraggingFab(true); setDragOffset({ x: e.clientX, y: e.clientY }); }}
+                            className="bg-green-500 hover:bg-green-600 text-white font-bold rounded-full shadow-2xl flex items-center justify-center p-4 cursor-grab active:cursor-grabbing hover:scale-105 transition-transform relative"
                         >
                             <button
-                                onClick={() => {
-                                    if (hasMovedFab) return;
-                                    const defaultMsg = '¡Hola {nombre}! 📢 Tienes {puntos} puntos próximos a vencer. ⏳ Entrá a la App para ver el detalle y aprovecharlos antes de que se venzan. 🎁';
-                                    navigate('/admin/whatsapp', {
-                                        state: {
-                                            message: defaultMsg,
-                                            clientIds: expiringUsers.map(u => u.id),
-                                            notificationType: 'expiration'
-                                        }
-                                    });
-                                }}
+                                onClick={() => { if (!hasMovedFab) setIsFabExpanded(true); }}
                                 className="flex items-center gap-2"
                             >
                                 <MessageCircle size={24} />
@@ -497,17 +608,7 @@ export const DashboardPage = () => {
                                 </span>
                             </button>
                         </div>
-                        <button
-                            onClick={() => {
-                                sessionStorage.setItem('hideExpiringAlert', 'true');
-                                navigate(location.pathname); // Force re-render
-                            }}
-                            className="bg-white/90 hover:bg-white text-gray-400 hover:text-red-500 p-2 rounded-full shadow-lg border border-gray-100 transition-colors"
-                            title="Ocultar hoy"
-                        >
-                            <X size={16} />
-                        </button>
-                    </div>
+                    )}
                 </div>
             )}
 

@@ -23,3 +23,5 @@ dist-ssr
 *.sln
 *.sw?
 service-account.json
+backups/
+*.zip

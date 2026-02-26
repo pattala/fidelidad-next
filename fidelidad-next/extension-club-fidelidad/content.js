@@ -38,7 +38,16 @@ chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
 });
 
 function showGlobalAlert(birthdays, expirations, adminUrl) {
-    if (document.getElementById('cf-floating-alert')) return;
+    // Si el widget ya existe, solo actualizamos los contadores
+    const existingWidget = document.getElementById('cf-floating-alert');
+    if (existingWidget) {
+        const countEl = existingWidget.querySelector('#cf-alert-counts');
+        if (countEl) {
+            countEl.innerHTML = `${birthdays > 0 ? `🎂 C: ${birthdays}` : ''} ${expirations > 0 ? `⏳ V: ${expirations}` : ''}`;
+        }
+        if (birthdays === 0 && expirations === 0) existingWidget.remove();
+        return;
+    }
 
     chrome.storage.local.get(['cf_alert_minimized'], (result) => {
         let isMinimized = result.cf_alert_minimized || false;
@@ -90,9 +99,9 @@ function showGlobalAlert(birthdays, expirations, adminUrl) {
                         </div>
                         <div style="flex: 1;">
                             <h4 style="margin: 0; font-size: 13px; font-weight: 800; color: #92400e;">Club Fidelidad</h4>
-                            <p style="margin: 0; font-size: 11px; color: #b45309; line-height: 1.2;">
+                            <p id="cf-alert-counts" style="margin: 0; font-size: 11px; color: #b45309; line-height: 1.2;">
                                 ${birthdays > 0 ? `🎂 C: ${birthdays}` : ''} 
-                                ${expirations > 0 ? ` ⏳ V: ${expirations}` : ''}
+                                ${expirations > 0 ? `⏳ V: ${expirations}` : ''}
                             </p>
                         </div>
                         <div style="display: flex; gap: 4px; align-items: center;">
@@ -155,6 +164,32 @@ function showGlobalAlert(birthdays, expirations, adminUrl) {
         widget.style.transform = 'translateY(20px)';
         setTimeout(() => { widget.style.opacity = '1'; widget.style.transform = 'translateY(0)'; }, 100);
     });
+}
+
+// Refresca el contador C/V del widget si ya está visible
+async function refreshAlertCounts() {
+    if (!config.apiUrl || !config.apiKey) return;
+    try {
+        const r = await fetch(`${config.apiUrl}/api/check-birthdays?mode=daily`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey }
+        });
+        const data = await r.json();
+        if (data.ok) {
+            const birthdayCount = data.summary?.totalToday || 0;
+            const expirationCount = data.expirations?.summary?.totalInWindow || 0;
+            // showGlobalAlert ahora actualiza en lugar de ignorar si ya existe
+            if (birthdayCount > 0 || expirationCount > 0) {
+                showGlobalAlert(birthdayCount, expirationCount, config.apiUrl);
+            } else {
+                // Si ya no hay nada pendiente, ocultar el widget
+                const w = document.getElementById('cf-floating-alert');
+                if (w) w.remove();
+            }
+        }
+    } catch (e) {
+        console.warn('[Club Fidelidad] Error refrescando contadores:', e.message);
+    }
 }
 
 // Función para buscar el monto en el sitio
@@ -476,6 +511,8 @@ function showFidelidadPanel() {
                 apiRatios.base = data.pointsMoneyBase || 100;
                 apiRatios.perPeso = data.pointsPerPeso || 1;
                 renderResults(data.clients, data.activePromotions || [], data.activePrizes || []);
+                // Refrescar contador C/V del widget (igual que promos: datos frescos en cada búsqueda)
+                refreshAlertCounts();
             } else {
                 resultsDiv.innerHTML = '<div class="fidelidad-result-item" style="cursor:default; color:#666; text-align:center;">No se encontraron socios</div>';
                 resultsDiv.style.display = 'block';

@@ -322,8 +322,12 @@ export const DashboardPage = () => {
     const markExpirationHandled = async (user: any, action: 'sent' | 'cancelled') => {
         try {
             const today = new Date().toISOString().split('T')[0];
-            // Campo separado del engine automático — solo el admin lo setea al manejar WhatsApp
-            await updateDoc(doc(db, 'users', user.id), { lastWhatsAppManualDate: today });
+            // Campo manual: oculta la burbuja del dashboard
+            // Campo lastExpirationNotice: actualiza el contador de la extensión (check-birthdays)
+            await updateDoc(doc(db, 'users', user.id), {
+                lastWhatsAppManualDate: today,
+                lastExpirationNotice: today
+            });
             // Optimistic UI update
             setExpiringUsers(prev => prev.filter(u => u.id !== user.id));
             // Audit log

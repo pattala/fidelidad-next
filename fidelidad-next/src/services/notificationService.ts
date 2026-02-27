@@ -58,6 +58,7 @@ export const NotificationService = {
             }
 
             const result = await response.json();
+            console.log('[NotificationService] API Success Response:', result);
             return result; // { ok, successCount, failureCount, ... }
 
         } catch (error) {

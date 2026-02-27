@@ -185,8 +185,6 @@ async function createInboxSent({ db, clienteId, notifId, dataForDoc, token }) {
   return ref.id;
 }
 
-// ... (Helper functions resolveDestinatarios, createInboxSent remain same) ...
-
 // ---------- Core Logic (Reusable) ----------
 export async function sendNotificationInternal({
   db,
@@ -210,10 +208,16 @@ export async function sendNotificationInternal({
   // Si no trajeron tokens pero mandan clienteId → obtenemos los del cliente
   if (!tokens.length && clienteId) {
     try {
+      console.log(`[send-notification] Fetching tokens for clienteId: ${clienteId}`);
       const snap = await db.collection("users").doc(String(clienteId)).get();
-      const dataC = snap.exists ? snap.data() : null;
-      const fromCliente = Array.isArray(dataC?.fcmTokens) ? dataC.fcmTokens : [];
-      tokens = unique(fromCliente);
+      if (!snap.exists) {
+        console.warn(`[send-notification] User document NOT FOUND for id: ${clienteId}`);
+      } else {
+        const dataC = snap.data();
+        const fromCliente = Array.isArray(dataC?.fcmTokens) ? dataC.fcmTokens : [];
+        console.log(`[send-notification] Found ${fromCliente.length} tokens for client ${clienteId}`);
+        tokens = unique(fromCliente);
+      }
     } catch (e) {
       console.error("Error resolviendo tokens por clienteId:", e?.message || e);
     }

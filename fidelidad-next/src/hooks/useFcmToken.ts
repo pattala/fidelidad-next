@@ -35,28 +35,46 @@ export const useFcmToken = () => {
                     setToken(currentToken);
 
                     const userRef = doc(db, 'users', user.uid);
-                    const { getDoc, serverTimestamp } = await import('firebase/firestore');
+                    const { getDoc, updateDoc, arrayUnion, serverTimestamp } = await import('firebase/firestore');
 
-                    const userDoc = await getDoc(userRef);
-                    let tokens = userDoc.exists() ? (userDoc.data()?.fcmTokens || []) : [];
-                    if (!Array.isArray(tokens)) tokens = [];
-                    if (!tokens.includes(currentToken)) tokens.push(currentToken);
-                    if (tokens.length > 5) tokens = tokens.slice(-5);
-
-                    await setDoc(userRef, {
-                        fcmToken: currentToken,
-                        fcmTokens: tokens,
-                        lastFcmUpdate: serverTimestamp(),
-                        'permissions.notifications.status': 'granted'
-                    }, { merge: true });
+                    try {
+                        await updateDoc(userRef, {
+                            fcmToken: currentToken,
+                            fcmTokens: arrayUnion(currentToken),
+                            lastFcmUpdate: serverTimestamp(),
+                            'permissions.notifications.status': 'granted'
+                        });
+                    } catch (err: any) {
+                        if (err.code === 'not-found') {
+                            const { setDoc } = await import('firebase/firestore');
+                            await setDoc(userRef, {
+                                fcmToken: currentToken,
+                                fcmTokens: [currentToken],
+                                lastFcmUpdate: serverTimestamp(),
+                                permissions: {
+                                    notifications: {
+                                        status: 'granted',
+                                        updatedAt: new Date()
+                                    }
+                                }
+                            }, { merge: true });
+                        } else {
+                            throw err;
+                        }
+                    }
                 }
             } else if (Notification.permission === 'denied') {
                 const userRef = doc(db, 'users', user.uid);
-                await setDoc(userRef, {
-                    fcmToken: null,
-                    'permissions.notifications.status': 'denied',
-                    lastFcmUpdate: new Date()
-                }, { merge: true });
+                const { updateDoc } = await import('firebase/firestore');
+                try {
+                    await updateDoc(userRef, {
+                        fcmToken: null,
+                        'permissions.notifications.status': 'denied',
+                        lastFcmUpdate: new Date()
+                    });
+                } catch (e) {
+                    // Silently fail if doc doesn't exist
+                }
             }
         } catch (e: any) {
             console.error(`[FCM] Error (Attempt ${retryCount}):`, e);

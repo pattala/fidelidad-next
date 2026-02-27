@@ -209,7 +209,7 @@ export const ClientLayout = () => {
                     className={`fixed left-1/2 -translate-x-1/2 w-full max-w-md z-50 bg-white border-b border-gray-100 shadow-sm transition-all duration-500 overflow-hidden ${headerTitle ? 'h-[var(--action-bar-h)]' : 'h-0'}`}
                     style={{ top: 'calc(env(safe-area-inset-top) + var(--header-h))' }}
                 >
-                    <div className="h-full px-6 flex items-start pt-5 justify-between gap-4">
+                    <div className="h-full px-6 flex items-center justify-between gap-4">
                         <div className="flex-1 min-w-0">
                             <h2 className="text-2xl font-black text-gray-800 tracking-tight leading-none truncate">
                                 {headerTitle}

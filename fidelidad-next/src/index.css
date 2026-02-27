@@ -36,6 +36,7 @@ html {
 @media (min-width: 640px) {
     :root {
         --header-h: 84px;
+        --action-bar-h: 110px;
         /* Basic 64px + top margin offset */
     }
 }

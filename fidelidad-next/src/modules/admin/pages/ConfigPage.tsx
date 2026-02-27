@@ -3,6 +3,7 @@ import { Save, Plus, Trash2, Palette, Calculator, Monitor, Settings, Home, Gift,
 import { ConfigService, DEFAULT_TEMPLATES } from '../../../services/configService';
 import { EmailPreviewModal } from '../components/EmailPreviewModal';
 import { EmailService } from '../../../services/emailService';
+import { NotificationService } from '../../../services/notificationService';
 import { toast } from 'react-hot-toast';
 import { PointValueCalculatorModal } from '../components/PointValueCalculatorModal';
 // import { ChannelSelector } from '../components/ChannelSelector';
@@ -199,8 +200,8 @@ export const ConfigPage = () => {
         }
     }, [activeTab]);
 
-    // Updated type definition in insertVar to include 'birthday'
-    const insertVar = (field: 'pointsAdded' | 'redemption' | 'welcome' | 'campaign' | 'offer' | 'flashOffer' | 'birthday' | 'birthdaySimple' | 'referralReward' | 'referralPoints' | 'expirationWarning', variable: string) => {
+    // Updated type definition in insertVar to include 'birthday' and 'referralChallenge'
+    const insertVar = (field: 'pointsAdded' | 'redemption' | 'welcome' | 'campaign' | 'offer' | 'flashOffer' | 'birthday' | 'birthdaySimple' | 'referralReward' | 'referralPoints' | 'expirationWarning' | 'referralChallenge', variable: string) => {
         const currentTemplates = config.messaging?.templates || {};
         const currentValue = currentTemplates[field] || '';
         setConfig({
@@ -1025,90 +1026,7 @@ export const ConfigPage = () => {
                                                             </section>
 
 
-                                                            <div className="pt-4 border-t border-orange-100 space-y-4">
-                                                                <ChannelSelector
-                                                                    label="Citar Desafío en:"
-                                                                    channels={challengeChannels}
-                                                                    onChange={setChallengeChannels}
-                                                                />
-
-                                                                <div className="flex justify-center gap-3">
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => openPreview('referralChallenge', '¡NUEVO DESAFÍO ACTIVO! 🚀')}
-                                                                        className="flex items-center gap-2 px-4 py-2 bg-white border border-orange-200 text-orange-600 rounded-xl text-xs font-bold hover:bg-orange-50 transition active:scale-95"
-                                                                    >
-                                                                        <Eye size={16} />
-                                                                        Vista Previa Email
-                                                                    </button>
-
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={async () => {
-                                                                            const channelsStr = challengeChannels.join(', ') || 'Inbox (mínimo)';
-                                                                            if (!window.confirm(`¿Deseas difundir el desafío a todos los clientes a través de: ${channelsStr}?`)) return;
-
-                                                                            const toastId = toast.loading('Iniciando difusión...');
-                                                                            const title = '¡NUEVO DESAFÍO ACTIVO! 🚀';
-                                                                            const bodyTemplate = config.messaging?.templates?.referralChallenge || DEFAULT_TEMPLATES.referralChallenge;
-                                                                            const body = bodyTemplate;
-
-                                                                            try {
-                                                                                const token = await auth.currentUser?.getIdToken();
-
-                                                                                // 1. Push + Inbox (Broadcasting masivo en el servidor)
-                                                                                await fetch('/api/send-notification', {
-                                                                                    method: 'POST',
-                                                                                    headers: {
-                                                                                        'Content-Type': 'application/json',
-                                                                                        'Authorization': `Bearer ${token}`
-                                                                                    },
-                                                                                    body: JSON.stringify({
-                                                                                        broadcast: true,
-                                                                                        title,
-                                                                                        body,
-                                                                                        type: 'campaign',
-                                                                                        extraData: {
-                                                                                            skipPush: !challengeChannels.includes('push'),
-                                                                                            isInternal: config.referrals?.challenge?.isInternal || false
-                                                                                        }
-                                                                                    })
-                                                                                });
-
-                                                                                // 2. Email
-                                                                                if (challengeChannels.includes('email')) {
-                                                                                    const q = query(collection(db, 'users'));
-                                                                                    const snap = await getDocs(q);
-                                                                                    const emailPromises = snap.docs.map(doc => {
-                                                                                        const d = doc.data();
-                                                                                        if (d.email) {
-                                                                                            // Usar template con marca
-                                                                                            const htmlContent = EmailService.generateBrandedTemplate(config, title, body);
-                                                                                            return EmailService.sendEmail(d.email, title, htmlContent);
-                                                                                        }
-                                                                                        return null;
-                                                                                    }).filter(Boolean);
-                                                                                    await Promise.allSettled(emailPromises);
-                                                                                }
-
-                                                                                toast.success('¡Difusión completada!', { id: toastId });
-
-                                                                                // 3. WhatsApp
-                                                                                if (challengeChannels.includes('whatsapp')) {
-                                                                                    navigate('/admin/whatsapp', { state: { message: body } });
-                                                                                }
-
-                                                                            } catch (e) {
-                                                                                toast.error('Error en la difusión', { id: toastId });
-                                                                            }
-                                                                        }}
-                                                                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-rose-600 text-white rounded-xl text-xs font-black shadow-lg shadow-orange-200 hover:scale-105 transition active:scale-95"
-                                                                    >
-                                                                        <Megaphone size={16} />
-                                                                        Difundir Desafío
-                                                                    </button>
-                                                                </div>
-                                                            </div>
+                                                            {/* Referral Challenge Channels & Broadcast has been moved to Mensajes Automáticos */}
                                                         </div>
                                                     )}
                                                 </div>
@@ -1990,6 +1908,138 @@ export const ConfigPage = () => {
                                         </button>
                                     </div>
                                     <VariableChips vars={['nombre', 'nombre_referido', 'puntos']} onSelect={v => insertVar('referralPoints', v)} />
+                                </div>
+
+                                {/* Referral Challenge Template */}
+                                <div className="p-4 bg-orange-50/50 rounded-xl border border-orange-200">
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2 font-mono flex items-center gap-2">
+                                        ⚡ Desafío de Referidos <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full uppercase">Difusión Manual</span>
+                                    </label>
+                                    <p className="text-[10px] text-gray-500 mb-2 leading-tight">Envía este mensaje de forma manual para motivar a los usuarios durante un desafío activo.</p>
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">🚀</span>
+                                            <textarea
+                                                rows={2}
+                                                value={config.messaging?.templates?.referralChallenge || ''}
+                                                onChange={e => setConfig({
+                                                    ...config,
+                                                    messaging: {
+                                                        ...config.messaging!,
+                                                        templates: { ...config.messaging?.templates, referralChallenge: e.target.value }
+                                                    }
+                                                })}
+                                                placeholder={DEFAULT_TEMPLATES.referralChallenge || '¡Tenemos un nuevo desafío!'}
+                                                className="w-full pl-10 pr-3 py-3 rounded-lg border border-orange-200 focus:ring-2 focus:ring-orange-100 outline-none resize-none"
+                                            />
+                                        </div>
+                                        <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, referralChallenge: DEFAULT_TEMPLATES.referralChallenge } } })} className="px-3 py-2 text-gray-400 hover:text-orange-600 rounded-lg hover:bg-orange-50 transition" title="Restaurar predeterminado">↺</button>
+                                        <button
+                                            type="button"
+                                            onClick={() => openPreview('referralChallenge', '¡NUEVO DESAFÍO ACTIVO! 🚀')}
+                                            className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
+                                            title="Previsualizar Email"
+                                        >
+                                            <Eye size={18} />
+                                        </button>
+                                    </div>
+                                    <VariableChips vars={['nombre', 'nombre_completo', 'fecha_limite', 'puntos', 'meta']} onSelect={v => insertVar('referralChallenge', v)} />
+
+                                    <div className="mt-4 flex flex-col sm:flex-row items-center gap-4 justify-between bg-white p-3 rounded-lg border border-orange-100">
+                                        <div className="w-full sm:w-auto">
+                                            <ChannelSelector
+                                                channels={challengeChannels}
+                                                onChange={setChallengeChannels}
+                                            />
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={async () => {
+                                                const channelsStr = challengeChannels.join(', ') || 'Ninguno';
+                                                if (challengeChannels.length === 0) {
+                                                    toast.error("Selecciona al menos un canal");
+                                                    return;
+                                                }
+                                                if (!window.confirm(`¿Deseas difundir el desafío a todos los clientes a través de: ${channelsStr}?`)) return;
+
+                                                const toastId = toast.loading('Iniciando difusión...');
+                                                const title = '¡NUEVO DESAFÍO ACTIVO! 🚀';
+                                                const templateText = config.messaging?.templates?.referralChallenge || DEFAULT_TEMPLATES.referralChallenge || 'Desafío Activo';
+
+                                                try {
+                                                    // Get challenge end date from config for {fecha_limite} replacement
+                                                    const challengeEndDateRaw = config.referrals?.challenge?.endDate;
+                                                    let expirationDateFormatted = 'pronto';
+                                                    if (challengeEndDateRaw) {
+                                                        const [year, month, day] = challengeEndDateRaw.split('-');
+                                                        expirationDateFormatted = `${day}/${month}/${year}`;
+                                                    }
+
+                                                    const q = query(collection(db, 'users'));
+                                                    const snap = await getDocs(q);
+
+                                                    if (challengeChannels.includes('push')) {
+                                                        const pushPromises = snap.docs.map(doc => {
+                                                            const d = doc.data();
+                                                            const userName = d.name || '';
+                                                            let personalizedMsg = templateText
+                                                                .replace(/{nombre}/g, userName.split(' ')[0])
+                                                                .replace(/{nombre_completo}/g, userName)
+                                                                .replace(/{fecha_limite}/g, expirationDateFormatted)
+                                                                .replace(/{vencimiento}/g, expirationDateFormatted)
+                                                                .replace(/{puntos}/g, config.referrals?.challenge?.tiers?.[0]?.bonus?.toString() || '0')
+                                                                .replace(/{meta}/g, config.referrals?.challenge?.tiers?.[0]?.count?.toString() || '0');
+
+                                                            return NotificationService.sendToClient(doc.id, {
+                                                                title: title,
+                                                                body: personalizedMsg,
+                                                                type: 'campaign'
+                                                            });
+                                                        });
+                                                        await Promise.allSettled(pushPromises);
+                                                    }
+
+                                                    if (challengeChannels.includes('email')) {
+                                                        const emailPromises = snap.docs.map(doc => {
+                                                            const d = doc.data();
+                                                            if (d.email) {
+                                                                const userName = d.name || '';
+                                                                let personalizedMsg = templateText
+                                                                    .replace(/{nombre}/g, userName.split(' ')[0])
+                                                                    .replace(/{nombre_completo}/g, userName)
+                                                                    .replace(/{fecha_limite}/g, expirationDateFormatted)
+                                                                    .replace(/{vencimiento}/g, expirationDateFormatted)
+                                                                    .replace(/{puntos}/g, config.referrals?.challenge?.tiers?.[0]?.bonus?.toString() || '0')
+                                                                    .replace(/{meta}/g, config.referrals?.challenge?.tiers?.[0]?.count?.toString() || '0');
+
+                                                                const htmlContent = EmailService.generateBrandedTemplate(config, title, personalizedMsg);
+                                                                return EmailService.sendEmail(d.email, title, htmlContent);
+                                                            }
+                                                            return null;
+                                                        }).filter(Boolean);
+                                                        await Promise.allSettled(emailPromises);
+                                                    }
+
+                                                    if (challengeChannels.includes('whatsapp')) {
+                                                        let waMsg = templateText
+                                                            .replace(/{fecha_limite}/g, expirationDateFormatted)
+                                                            .replace(/{vencimiento}/g, expirationDateFormatted)
+                                                            .replace(/{puntos}/g, config.referrals?.challenge?.tiers?.[0]?.bonus?.toString() || '0')
+                                                            .replace(/{meta}/g, config.referrals?.challenge?.tiers?.[0]?.count?.toString() || '0');
+                                                        navigate('/admin/whatsapp', { state: { message: waMsg } });
+                                                    }
+
+                                                    toast.success('¡Difusión completada!', { id: toastId });
+                                                } catch (e) {
+                                                    toast.error('Error en la difusión', { id: toastId });
+                                                }
+                                            }}
+                                            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-rose-600 text-white rounded-xl text-sm font-black shadow-lg shadow-orange-200 hover:scale-105 transition active:scale-95 whitespace-nowrap"
+                                        >
+                                            <Megaphone size={18} />
+                                            ¡Difundir Desafío a Todos!
+                                        </button>
+                                    </div>
                                 </div>
 
                                 {/* Points Expiration Warning Configuration */}

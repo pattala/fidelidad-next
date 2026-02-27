@@ -117,6 +117,14 @@ export const ClientLayout = () => {
         return () => unsubConfig();
     }, []);
 
+    // Scroll to Top on Route Change
+    useEffect(() => {
+        const mainElement = document.querySelector('main');
+        if (mainElement) {
+            mainElement.scrollTo({ top: 0, behavior: 'auto' });
+        }
+    }, [location.pathname]);
+
     const isActive = (path: string) => location.pathname === path;
 
     return (
@@ -138,9 +146,15 @@ export const ClientLayout = () => {
                 }}
             >
                 <div className="flex items-center gap-1">
-                    {location.pathname !== '/' && (
+                    {(location.pathname !== '/' || isContactOpen) && (
                         <button
-                            onClick={() => navigate(-1)}
+                            onClick={() => {
+                                if (isContactOpen) {
+                                    setIsContactOpen(false);
+                                } else {
+                                    navigate(-1);
+                                }
+                            }}
                             className="p-2 hover:bg-white/10 rounded-xl transition-all active:scale-95 text-white"
                         >
                             <ChevronLeft size={24} strokeWidth={2.5} />
@@ -294,7 +308,7 @@ export const ClientLayout = () => {
 
             {/* Contact Modal */}
             {isContactOpen && (
-                <div className="absolute inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm animate-fade-in">
+                <div className="absolute inset-0 z-[110] flex items-end justify-center bg-black/40 backdrop-blur-sm animate-fade-in">
                     <div className="bg-white w-full rounded-t-[3rem] p-8 pb-12 animate-in-up shadow-2xl relative">
                         <button
                             onClick={() => setIsContactOpen(false)}
@@ -311,7 +325,7 @@ export const ClientLayout = () => {
                         </h2>
                         <p className="text-gray-500 text-sm mb-8 font-medium">¿En qué podemos ayudarte hoy?</p>
 
-                        <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+                        <div className="space-y-4 max-h-[80vh] overflow-y-auto pr-1">
                             {/* Address & Hours (New) */}
                             {(config?.contact?.address || config?.contact?.openingHours) && (
                                 <div className="space-y-3 mb-4">

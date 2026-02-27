@@ -311,7 +311,7 @@ export const ClientHomePage = () => {
 
     return (
         <div
-            className="relative font-sans text-gray-800 px-4 pb-12 space-y-8 animate-fade-in"
+            className="relative font-sans text-gray-800 px-4 pt-4 pb-12 space-y-8 animate-fade-in"
         >
             <NotificationPermissionPrompt
                 user={user}

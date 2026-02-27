@@ -106,7 +106,7 @@ export const ClientActivityPage = () => {
 
             {/* Timeline - Follows the scroll of the main container */}
             <div
-                className="px-4 pb-4 space-y-3 transition-all"
+                className="px-4 pt-6 pb-4 space-y-3 transition-all"
             >
                 {loading ? (
                     [...Array(3)].map((_, i) => (

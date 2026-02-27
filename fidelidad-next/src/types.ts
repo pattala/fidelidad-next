@@ -156,6 +156,7 @@ export interface AppConfig {
             referralReward?: string;
             referralPoints?: string;
             expirationWarning?: string; // Tono: Tenés {puntos} pts para gastar antes del {fecha}! Mirá lo que podés llevarte →
+            referralChallenge?: string;
         };
         enableExpirationWarnings?: boolean;
         repeatExpirationWarnings?: boolean;

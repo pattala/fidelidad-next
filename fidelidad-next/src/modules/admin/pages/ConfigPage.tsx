@@ -164,7 +164,8 @@ export const ConfigPage = () => {
             birthdaySimple: `¡Muy Feliz Cumpleaños! 🎈`,
             referralReward: `Premio por Invitación 🎁`,
             referralPoints: `Puntos por Referido 🚀`,
-            expirationWarning: `Aviso de Vencimiento de Puntos 📢`
+            expirationWarning: `Aviso de Vencimiento de Puntos 📢`,
+            referralChallenge: `¡NUEVO DESAFÍO ACTIVO! 🚀`
         };
 
         setPreviewModal({

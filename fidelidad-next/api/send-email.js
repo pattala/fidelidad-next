@@ -201,7 +201,7 @@ export default async function handler(req, res) {
           userName,
           to,
           subject,
-          points,
+          points: points || null,
           messageId: sendInfo?.messageId || null,
           error: sendError?.message || null,
           action: 'email_sent',

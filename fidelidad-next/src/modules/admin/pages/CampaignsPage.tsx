@@ -90,7 +90,8 @@ export const CampaignsPage = () => {
             flashTitle: '', flashDescription: '',
             flashRewardType: 'FIXED', flashRewardValue: 50, flashRewardText: '',
             flashDays: [], flashGraceMins: 15,
-            isInternal: false
+            isInternal: false,
+            autoBroadcast: false
         });
         setEditingId(null);
         setActiveTab('BASIC');
@@ -1533,6 +1534,32 @@ export const CampaignsPage = () => {
                                                                 </section>
                                                             </div>
                                                         )}
+
+                                                        <section className="bg-blue-50 p-8 rounded-[3rem] border border-blue-100 transition-colors mb-4">
+                                                            <div className="flex items-center justify-between">
+                                                                <div className="flex items-center gap-4">
+                                                                    <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-lg">
+                                                                        <Megaphone size={24} />
+                                                                    </div>
+                                                                    <div>
+                                                                        <h4 className="font-black text-blue-900 text-lg uppercase tracking-tight">Difusión Automática</h4>
+                                                                        <p className="text-[10px] text-blue-600 font-bold opacity-60 uppercase tracking-widest">Enviar Push/Email solo al iniciar la campaña</p>
+                                                                    </div>
+                                                                </div>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setFormData({ ...formData, autoBroadcast: !formData.autoBroadcast })}
+                                                                    className={`p-2 rounded-full transition-all ${formData.autoBroadcast ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-400'}`}
+                                                                >
+                                                                    {formData.autoBroadcast ? <ToggleRight size={32} /> : <ToggleLeft size={32} />}
+                                                                </button>
+                                                            </div>
+                                                            {formData.autoBroadcast && (
+                                                                <p className="mt-4 text-[10px] text-blue-800 font-medium bg-white/50 p-3 rounded-xl border border-blue-200/50 italic">
+                                                                    ✨ El sistema enviará automáticamente las notificaciones a todos los socios en cuanto la campaña comience (detectado en la próxima apertura de sesión).
+                                                                </p>
+                                                            )}
+                                                        </section>
 
                                                         <section className="space-y-4">
                                                             <label className={`text-xs font-black ${isFlashMode ? 'text-red-500' : 'text-gray-500'} uppercase px-2`}>Días de la semana</label>

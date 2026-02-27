@@ -69,6 +69,8 @@ export interface BonusRule {
     flashGraceMins?: number;
 
     channels?: string[]; // push, email, whatsapp
+    autoBroadcast?: boolean; // New: Automatic push/email broadcast
+    broadcastSentAt?: string; // New: ISO Timestamp of when it was sent
     actionUrl?: string;  // URL for floating modal link
     actionText?: string; // Text for floating modal button
     isInternal?: boolean;

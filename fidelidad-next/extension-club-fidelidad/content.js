@@ -15,9 +15,19 @@ chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
     // --- DAILY CHECK: cumpleaños + vencimientos (1x/día, silencioso) ---
     if (res.apiUrl && res.apiKey) {
         console.log("🔍 [Club Fidelidad] Consultando pendientes a servidor...");
+        const offsetStored = localStorage.getItem('fiddle_simulated_date_offset');
+        const offset = offsetStored ? parseInt(offsetStored, 10) : 0;
+        const now = new Date();
+        if (offset !== 0) {
+            now.setTime(now.getTime() + (offset * 24 * 60 * 60 * 1000));
+        }
+
         fetch(`${res.apiUrl}/api/check-birthdays?mode=daily`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-api-key': res.apiKey }
+            headers: { 'Content-Type': 'application/json', 'x-api-key': res.apiKey },
+            body: JSON.stringify({
+                simulatedDate: now.toISOString()
+            })
         })
             .then(r => r.json())
             .then(data => {
@@ -34,6 +44,13 @@ chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
                 }
             })
             .catch(e => console.error("❌ [Club Fidelidad] Error en check diario:", e.message));
+
+        // --- CAMPAIGN BROADCAST CHECK ---
+        fetch(`${res.apiUrl}/api/broadcast-campaigns`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-api-key': res.apiKey },
+            body: JSON.stringify({ executorEmail: 'extension-system', role: 'system' })
+        }).catch(e => console.error("❌ [Club Fidelidad] Error en broadcast campañas:", e.message));
     }
 });
 
@@ -564,7 +581,13 @@ function showFidelidadPanel() {
                     const GRACE_PERIOD_MINS = 15;
 
                     function getARTime() {
+                        const offsetStored = localStorage.getItem('fiddle_simulated_date_offset');
+                        const offset = offsetStored ? parseInt(offsetStored, 10) : 0;
                         const now = new Date();
+                        if (offset !== 0) {
+                            now.setTime(now.getTime() + (offset * 24 * 60 * 60 * 1000));
+                        }
+
                         const formatter = new Intl.DateTimeFormat('es-AR', {
                             timeZone: 'America/Argentina/Buenos_Aires',
                             hour: '2-digit',

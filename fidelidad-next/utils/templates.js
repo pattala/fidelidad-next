@@ -36,7 +36,7 @@ export function applyBlocksAndVars(str, data = {}) {
 
     // Reemplazo de {variables}
     out = out.replace(/\{(\w+)\}/g, (m, k) =>
-        (data[k] !== undefined && data[k] !== null) ? String(data[k]) : ""
+        (data[k] !== undefined && data[k] !== null) ? String(data[k]) : m
     );
 
     return out;

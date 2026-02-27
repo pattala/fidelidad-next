@@ -402,6 +402,14 @@ export default async function handler(req, res) {
         const validityDays = getValidityDays(points, expirationRules);
         const expirationDate = new Date(recordDate);
         expirationDate.setDate(expirationDate.getDate() + validityDays);
+        let expirationDateStr = "";
+        if (points > 0) {
+            const y = expirationDate.getFullYear();
+            const m = String(expirationDate.getMonth() + 1).padStart(2, '0');
+            const d = String(expirationDate.getDate()).padStart(2, '0');
+            expirationDateStr = `${d}/${m}/${y}`;
+        }
+
 
         await db.runTransaction(async (tx) => {
             const clientSnap = await tx.get(clientRef);
@@ -530,6 +538,10 @@ export default async function handler(req, res) {
                 const rValidityDays = getValidityDays(totalAwarded, expirationRules);
                 const rExpirationDate = new Date();
                 rExpirationDate.setDate(rExpirationDate.getDate() + rValidityDays);
+                const rY = rExpirationDate.getFullYear();
+                const rM = String(rExpirationDate.getMonth() + 1).padStart(2, '0');
+                const rD = String(rExpirationDate.getDate()).padStart(2, '0');
+                const rExpirationDateStr = `${rD}/${rM}/${rY}`;
 
                 const conceptBase = `Bono Invitado: ${cData.name || 'Amigo'}`;
                 const conceptFinal = challengeBonus > 0
@@ -589,7 +601,8 @@ export default async function handler(req, res) {
                     email: rData.email || rData.correo,
                     name: rData.name || 'Socio',
                     friendName: cData.name || 'Tu amigo',
-                    bonusAmount: totalAwarded
+                    bonusAmount: totalAwarded,
+                    expirationDateStr: rExpirationDateStr
                 };
                 result.referralProcessed = true;
             }
@@ -600,7 +613,8 @@ export default async function handler(req, res) {
                 phone: cData.phone || cData.telefono || '',
                 email: cData.email || cData.correo,
                 dni: cData.dni || '',
-                socioNumber: cData.socioNumber || cData.numeroSocio || cData.socio_number || ''
+                socioNumber: cData.socioNumber || cData.numeroSocio || cData.socio_number || '',
+                expirationDateStr: expirationDateStr
             };
 
             // AUDITORIA: Agregar detalle de los puntos sumados
@@ -729,6 +743,8 @@ export default async function handler(req, res) {
                     .replace(/{nombre_completo}/g, fullName)
                     .replace(/{puntos}/g, points.toString())
                     .replace(/{saldo}/g, (result.newBalance || 0).toString())
+                    .replace(/{fecha_limite}/g, result.guestData.expirationDateStr || '')
+                    .replace(/{vencimiento}/g, result.guestData.expirationDateStr || '')
                     .replace(/{siteName}/g, config.siteName || 'Club Fidelidad');
 
                 const isPushConfigured = messagingCfg.pushEnabled && channels.includes('push');
@@ -823,6 +839,8 @@ export default async function handler(req, res) {
                 rMsg = rMsg.replace(/{nombre}/g, rFirstName)
                     .replace(/{amigo}/g, rInfo.friendName)
                     .replace(/{puntos}/g, rInfo.bonusAmount.toString())
+                    .replace(/{fecha_limite}/g, rInfo.expirationDateStr || '')
+                    .replace(/{vencimiento}/g, rInfo.expirationDateStr || '')
                     .replace(/{siteName}/g, config.siteName || 'Club Fidelidad');
 
                 const isPushEnabled = messagingCfg.pushEnabled && channels.includes('push');

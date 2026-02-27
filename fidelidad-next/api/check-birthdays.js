@@ -79,9 +79,11 @@ export default async function handler(req, res) {
     const app = initFirebaseAdmin();
     const db = app.firestore();
     const isDailyMode = req.query?.mode === 'daily' || req.body?.mode === 'daily';
+    const simulatedDateStr = req.body?.simulatedDate || req.query?.simulatedDate;
+    const isManualSim = !!simulatedDateStr;
 
-    // --- DEDUPLICACIÓN (solo en modo daily) ---
-    if (isDailyMode) {
+    // --- DEDUPLICACIÓN (solo en modo daily y si no es simulación) ---
+    if (isDailyMode && !isManualSim) {
         const arFormatter = new Intl.DateTimeFormat('en-CA', {
             timeZone: 'America/Argentina/Buenos_Aires',
             year: 'numeric', month: '2-digit', day: '2-digit'
@@ -105,10 +107,8 @@ export default async function handler(req, res) {
             }).length;
 
             // 2. Contar Vencimientos (30 días de ventana para match con Dashboard FAB)
-            // Respetando itinerancia para que desaparezcan si ya fueron notificados
             const configSnap = await db.collection('config').doc('general').get();
             const configData = configSnap.data();
-            const itinerancyDays = configData?.expirationItinerancyDays || 0;
             const todayStr = today.toISOString().split('T')[0];
 
             const windowEnd = new Date(today);
@@ -123,11 +123,19 @@ export default async function handler(req, res) {
             const expirationCount = expSnap.docs.filter(d => {
                 const data = d.data();
                 if ((data.points || 0) <= 0) return false;
-
-                // Ocultar solo si el admin ya gestionó manualmente el WhatsApp hoy
                 if (data.lastWhatsAppManualDate === todayStr) return false;
                 return true;
             }).length;
+
+            // Log de control (para trazabilidad en auditoría)
+            await db.collection('audit_logs').add({
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                type: 'daily_check_skipped',
+                status: 'success',
+                summary: `Motor al día: Los procesos automáticos ya se ejecutaron hoy (${todayAR}).`,
+                details: [{ action: 'idle_check', info: 'Deduplicación activa.' }],
+                executor: executorEmail
+            });
 
             return res.status(200).json({
                 ok: true,
@@ -148,8 +156,9 @@ export default async function handler(req, res) {
 
         // Determinar Fecha de Referencia
         let referenceDate = new Date();
-        if (req.body?.simulatedDate) {
-            referenceDate = new Date(req.body.simulatedDate);
+        if (simulatedDateStr) {
+            referenceDate = new Date(simulatedDateStr);
+            console.log(`[Dashboard] Usando fecha simulada: ${simulatedDateStr}`);
         }
 
         const currentYear = referenceDate.getFullYear().toString();
@@ -324,7 +333,10 @@ export default async function handler(req, res) {
                         'x-api-key': SECRET,
                         'x-api-secret': SECRET,
                         'x-executor-role': 'system'
-                    }
+                    },
+                    body: JSON.stringify({
+                        simulatedDate: referenceDate.toISOString()
+                    })
                 });
                 expirationsResult = await eRes.json();
                 console.log("[DailyCheck] Vencimientos:", JSON.stringify(expirationsResult).substring(0, 200));

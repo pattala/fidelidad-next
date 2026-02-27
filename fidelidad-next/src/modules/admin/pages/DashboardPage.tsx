@@ -261,7 +261,10 @@ export const DashboardPage = () => {
                 if (!SECRET) return;
                 const res = await fetch('/api/check-birthdays?mode=daily', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET }
+                    headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET },
+                    body: JSON.stringify({
+                        simulatedDate: TimeService.now().toISOString()
+                    })
                 });
                 const data = await res.json();
                 if (!data.skipped && data.ok) {

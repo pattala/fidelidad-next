@@ -100,6 +100,9 @@ async function resolveDestinatarios({ db, tokens = [], audience, clienteId }) {
       snap.forEach(doc => {
         const data = doc.data() || {};
         const toks = Array.isArray(data.fcmTokens) ? data.fcmTokens : [];
+        const singular = data.fcmToken ? String(data.fcmToken).trim() : null;
+        if (singular && !toks.includes(singular)) toks.push(singular);
+
         if (toks.length === 0) {
           out.push({ id: doc.id, token: null });
         } else {
@@ -123,6 +126,9 @@ async function resolveDestinatarios({ db, tokens = [], audience, clienteId }) {
     if (snap.exists) {
       const data = snap.data() || {};
       const toks = Array.isArray(data.fcmTokens) ? data.fcmTokens : [];
+      const singular = data.fcmToken ? String(data.fcmToken).trim() : null;
+      if (singular && !toks.includes(singular)) toks.push(singular);
+
       if (toks.length === 0) {
         out.push({ id: snap.id, token: null });
       } else {
@@ -301,7 +307,13 @@ export async function sendNotificationInternal({
         for (const doc of snap.docs) {
           const d = doc.data() || {};
           const nuevos = (d.fcmTokens || []).filter(tk => !toClean.includes(tk));
-          await doc.ref.update({ fcmTokens: nuevos });
+          const updateData = { fcmTokens: nuevos };
+
+          if (d.fcmToken && toClean.includes(d.fcmToken)) {
+            updateData.fcmToken = null;
+          }
+
+          await doc.ref.update(updateData);
         }
       }
     } catch (cleanErr) {
@@ -368,8 +380,9 @@ export async function sendNotificationInternal({
           userId,
           userName: userNamesMap[userId] || 'Socio',
           action: pt.success ? 'push_sent' : 'push_failed',
-          status: pt.success ? 'success' : 'failed',
-          info: (pt.success ? 'Token: ' : 'Error: ') + pt.token.substring(0, 8) + '...'
+          info: pt.success
+            ? ('Token: ' + pt.token.substring(0, 8) + '...')
+            : ('Error: ' + (pt.errorCode || 'unknown') + ' - ' + (pt.errorMessage || 'No msg'))
         });
       });
     }

@@ -309,23 +309,30 @@ export const ClientLayout = () => {
             {/* Contact Modal */}
             {isContactOpen && (
                 <div className="absolute inset-0 z-[110] flex items-end justify-center bg-black/40 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white w-full rounded-t-[3rem] p-8 pb-12 animate-in-up shadow-2xl relative">
-                        <button
-                            onClick={() => setIsContactOpen(false)}
-                            className="absolute top-6 right-8 text-gray-400 hover:text-gray-600 transition"
-                        >
-                            <X size={24} />
-                        </button>
+                    <div
+                        className="bg-white w-full max-h-[90dvh] rounded-t-[3rem] shadow-2xl relative flex flex-col animate-in-up"
+                        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 2rem)' }}
+                    >
+                        {/* Modal Header */}
+                        <div className="p-8 pb-4 flex-none relative">
+                            <button
+                                onClick={() => setIsContactOpen(false)}
+                                className="absolute top-8 right-8 text-gray-400 hover:text-gray-600 transition"
+                            >
+                                <X size={24} />
+                            </button>
 
-                        <h2
-                            className="text-2xl font-black uppercase tracking-tight mb-2"
-                            style={{ color: config.primaryColor || '#4a148c' }}
-                        >
-                            Canales de Atención
-                        </h2>
-                        <p className="text-gray-500 text-sm mb-8 font-medium">¿En qué podemos ayudarte hoy?</p>
+                            <h2
+                                className="text-2xl font-black uppercase tracking-tight mb-1"
+                                style={{ color: config.primaryColor || '#4a148c' }}
+                            >
+                                Canales de Atención
+                            </h2>
+                            <p className="text-gray-500 text-sm font-medium">¿En qué podemos ayudarte hoy?</p>
+                        </div>
 
-                        <div className="space-y-4 max-h-[80vh] overflow-y-auto pr-1">
+                        {/* Modal Content */}
+                        <div className="flex-1 overflow-y-auto px-8 space-y-4 pr-3 scrollbar-hide">
                             {/* Address & Hours (New) */}
                             {(config?.contact?.address || config?.contact?.openingHours) && (
                                 <div className="space-y-3 mb-4">

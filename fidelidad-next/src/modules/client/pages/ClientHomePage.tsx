@@ -501,10 +501,10 @@ export const ClientHomePage = () => {
                         <div className="relative z-10 flex items-center justify-between">
                             <div>
                                 <h3 className="text-xl font-black tracking-tight mb-1 uppercase">
-                                    {isChallengeActive ? '¡DESAFÍO ACTIVO! 🚀' : 'Invita y Gana 🎁'}
+                                    {isChallengeActive ? '¡DESAFÍO: INVITA AMIGOS! 🚀' : 'Invita y Gana 🎁'}
                                 </h3>
                                 <p className="text-[10px] font-bold opacity-90 uppercase tracking-widest">
-                                    {isChallengeActive ? '¡Sumá bonos extra por cada amigo!' : 'Regala puntos a tus amigos'}
+                                    {isChallengeActive ? '¡Ganá bonos extra por cada amigo que traigas!' : 'Regala puntos a tus amigos'}
                                 </p>
                             </div>
                             <div className="bg-white/20 backdrop-blur-md p-2 rounded-xl">

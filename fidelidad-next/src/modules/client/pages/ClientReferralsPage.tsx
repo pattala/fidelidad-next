@@ -127,11 +127,11 @@ export const ClientReferralsPage = () => {
 
                     <div className="flex justify-between items-start mb-6">
                         <div className="space-y-1">
-                            <h3 className="text-xl font-black tracking-tight flex items-center gap-2">
-                                <Zap className="fill-current" size={20} /> Desafío Activo
+                            <h3 className="text-xl font-black tracking-tight flex items-center gap-2 uppercase">
+                                <Zap className="fill-current text-yellow-300" size={20} /> Desafío: Invita un Amigo
                             </h3>
                             <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider bg-black/20 px-2 py-1 rounded-full w-fit">
-                                <Clock size={12} /> vence {(new Date(config.referrals.challenge.endDate)).toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })}
+                                <Clock size={12} /> termina el {(new Date(config.referrals.challenge.endDate)).toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })}
                             </div>
                         </div>
                         <div className="bg-white/20 p-3 rounded-2xl backdrop-blur-sm border border-white/20">

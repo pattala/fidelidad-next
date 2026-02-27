@@ -992,6 +992,42 @@ export const ConfigPage = () => {
                                                                     ))}
                                                                 </div>
                                                             </div>
+
+                                                            {/* NUEVO: Botón de Difusión */}
+                                                            <div className="pt-4 border-t border-orange-100 flex justify-center">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={async () => {
+                                                                        if (!window.confirm("¿Deseas enviar una notificación Push a todos los clientes anunciando el desafío?")) return;
+                                                                        const toastId = toast.loading('Enviando anuncios...');
+                                                                        try {
+                                                                            const token = await auth.currentUser?.getIdToken();
+                                                                            const res = await fetch('/api/send-notification', {
+                                                                                method: 'POST',
+                                                                                headers: {
+                                                                                    'Content-Type': 'application/json',
+                                                                                    'Authorization': `Bearer ${token}`
+                                                                                },
+                                                                                body: JSON.stringify({
+                                                                                    target: 'all',
+                                                                                    title: '¡NUEVO DESAFÍO ACTIVO! 🚀',
+                                                                                    body: 'Traé amigos y ganá bonos extra de puntos por tiempo limitado. ¡Entrá ahora para participar!',
+                                                                                    type: 'campaign'
+                                                                                })
+                                                                            });
+                                                                            const data = await res.json();
+                                                                            if (data.success) toast.success('¡Notificación enviada a todos!', { id: toastId });
+                                                                            else toast.error('Error al enviar: ' + data.error, { id: toastId });
+                                                                        } catch (e) {
+                                                                            toast.error('Error de conexión', { id: toastId });
+                                                                        }
+                                                                    }}
+                                                                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-rose-600 text-white rounded-xl text-xs font-black shadow-lg shadow-orange-200 hover:scale-105 transition active:scale-95"
+                                                                >
+                                                                    <Megaphone size={16} />
+                                                                    Notificar Desafío a Todos
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                     )}
                                                 </div>

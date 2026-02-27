@@ -1002,7 +1002,16 @@ export const ConfigPage = () => {
                                                                     onChange={setChallengeChannels}
                                                                 />
 
-                                                                <div className="flex justify-center">
+                                                                <div className="flex justify-center gap-3">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => openPreview('referralChallenge', '¡NUEVO DESAFÍO ACTIVO! 🚀')}
+                                                                        className="flex items-center gap-2 px-4 py-2 bg-white border border-orange-200 text-orange-600 rounded-xl text-xs font-bold hover:bg-orange-50 transition active:scale-95"
+                                                                    >
+                                                                        <Eye size={16} />
+                                                                        Vista Previa Email
+                                                                    </button>
+
                                                                     <button
                                                                         type="button"
                                                                         onClick={async () => {
@@ -1011,12 +1020,13 @@ export const ConfigPage = () => {
 
                                                                             const toastId = toast.loading('Iniciando difusión...');
                                                                             const title = '¡NUEVO DESAFÍO ACTIVO! 🚀';
-                                                                            const body = 'Traé amigos y ganá bonos extra de puntos por tiempo limitado. ¡Entrá ahora para participar!';
+                                                                            const bodyTemplate = config.messaging?.templates?.referralChallenge || DEFAULT_TEMPLATES.referralChallenge;
+                                                                            const body = bodyTemplate;
 
                                                                             try {
                                                                                 const token = await auth.currentUser?.getIdToken();
 
-                                                                                // 1. Push + Inbox (Push si está seleccionado, Inbox siempre va en este app)
+                                                                                // 1. Push + Inbox
                                                                                 if (challengeChannels.includes('push')) {
                                                                                     await fetch('/api/send-notification', {
                                                                                         method: 'POST',
@@ -1032,9 +1042,6 @@ export const ConfigPage = () => {
                                                                                         })
                                                                                     });
                                                                                 } else {
-                                                                                    // Si no quieren Push, el Inbox debería ir igual pero el API de /api/send-notification actual
-                                                                                    // siempre intenta Push si hay tokens. Por ahora mantengamos la lógica estándar del app.
-                                                                                    // O podríamos llamar a una lógica que solo cree el Inbox, pero el usuario dijo "Push" en los checks.
                                                                                     await fetch('/api/send-notification', {
                                                                                         method: 'POST',
                                                                                         headers: {
@@ -1046,24 +1053,21 @@ export const ConfigPage = () => {
                                                                                             title,
                                                                                             body,
                                                                                             type: 'campaign',
-                                                                                            extraData: { skipPush: true } // Hipotético, el API debería soportarlo si queremos ser estrictos
+                                                                                            extraData: { skipPush: true }
                                                                                         })
                                                                                     });
                                                                                 }
 
                                                                                 // 2. Email
                                                                                 if (challengeChannels.includes('email')) {
-                                                                                    // En este app, el envío masivo de mail suele hacerse vía loop o API bulk.
-                                                                                    // Usaremos el patrón de CampaignsPage (loop de users o API dedicada si existe).
-                                                                                    // Para no sobrecargar el frontend, lo ideal sería un API bulk, pero si no hay,
-                                                                                    // el admin suele disparar el loop.
-                                                                                    // NOTA: Para el desafío, simplificamos usando la misma lógica que CampaignsPage si es posible.
                                                                                     const q = query(collection(db, 'users'));
                                                                                     const snap = await getDocs(q);
                                                                                     const emailPromises = snap.docs.map(doc => {
                                                                                         const d = doc.data();
                                                                                         if (d.email) {
-                                                                                            return EmailService.sendEmail(d.email, title, body);
+                                                                                            // Usar template con marca
+                                                                                            const htmlContent = EmailService.generateBrandedTemplate(config, title, body);
+                                                                                            return EmailService.sendEmail(d.email, title, htmlContent);
                                                                                         }
                                                                                         return null;
                                                                                     }).filter(Boolean);
@@ -1072,7 +1076,7 @@ export const ConfigPage = () => {
 
                                                                                 toast.success('¡Difusión completada!', { id: toastId });
 
-                                                                                // 3. WhatsApp (Redirección al final)
+                                                                                // 3. WhatsApp
                                                                                 if (challengeChannels.includes('whatsapp')) {
                                                                                     navigate('/admin/whatsapp', { state: { message: body } });
                                                                                 }

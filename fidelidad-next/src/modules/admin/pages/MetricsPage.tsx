@@ -252,8 +252,7 @@ export const MetricsPage = () => {
                     const qReferrals = query(
                         collection(db, 'users'),
                         where('createdAt', '>=', start),
-                        where('createdAt', '<=', end),
-                        where('referrerUid', '!=', null)
+                        where('createdAt', '<=', end)
                     );
                     const snapReferrals = await getDocs(qReferrals);
 

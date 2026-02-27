@@ -66,16 +66,17 @@ export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) 
                 });
 
             } else {
+                // If we get null, wait a bit longer to be absolutely sure 
+                // persistence didn't miss the window (common in some browsers/PWA)
                 setUser(null);
-                // Si llegamos aquí y Firebase dice que no hay usuario, 
-                // esperamos un micro-segundo por si es un cambio de estado transitorio
-                setTimeout(() => {
+                const timer = setTimeout(() => {
                     if (!auth.currentUser) {
                         setUserData(null);
                         setIsAdmin(false);
                         setLoading(false);
                     }
-                }, 300);
+                }, 1000); // 1 second should be plenty for persistence to settle
+                return () => clearTimeout(timer);
             }
         });
 

@@ -198,7 +198,7 @@ async function createInboxSent({ db, clienteId, notifId, dataForDoc, token }) {
   const base = {
     title: dataForDoc.title || "",
     body: dataForDoc.body || "",
-    url: dataForDoc.url || "/notificaciones",
+    url: dataForDoc.url || "/inbox",
     tag: dataForDoc.tag || null,
     source: dataForDoc.source || "simple",
     campaignId: dataForDoc.campaignId || null,
@@ -230,7 +230,7 @@ export async function sendNotificationInternal({
   title,
   body: msgBody,
   tokens: tokensIn = [],
-  click_action = "/mis-puntos",
+  click_action = "/activity",
   icon,
   badge,
   extraData = {},
@@ -321,7 +321,7 @@ export async function sendNotificationInternal({
       },
       webpush: {
         headers: { Urgent: "high" },
-        fcmOptions: { link: data.url || "/notificaciones" }
+        fcmOptions: { link: data.url || "/inbox" }
       }
     };
 

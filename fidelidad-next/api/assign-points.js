@@ -470,7 +470,7 @@ export default async function handler(req, res) {
 
                 tx.set(clientRef.collection('inbox').doc(), {
                     title: '¡Puntos Sumados! 💰', body: `¡Has sumado ${points} puntos! (${finalConcept})`,
-                    url: '/mis-puntos', type: 'pointsAdded', read: false, date: admin.firestore.FieldValue.serverTimestamp()
+                    url: '/activity', type: 'pointsAdded', read: false, date: admin.firestore.FieldValue.serverTimestamp()
                 });
 
                 tx.set(db.collection('transactions').doc(), {

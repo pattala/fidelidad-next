@@ -428,7 +428,7 @@ export default async function handler(req, res) {
                             batch.set(inboxRef, {
                                 title: subject,
                                 body,
-                                url: `${PWA_URL}/promociones`,
+                                url: `${PWA_URL}/promos`,
                                 source: 'campania_auto',
                                 status: 'sent',
                                 sentAt: admin.firestore.FieldValue.serverTimestamp()
@@ -452,7 +452,7 @@ export default async function handler(req, res) {
                                         data: {
                                             title: subject,
                                             body: body,
-                                            url: `${PWA_URL}/notificaciones`,
+                                            url: `${PWA_URL}/inbox`,
                                             icon: icon,
                                             badge: icon,
                                             image: camp.imageUrl ? getAbsoluteUrl(camp.imageUrl, PWA_URL) : "",
@@ -461,7 +461,7 @@ export default async function handler(req, res) {
                                         android: { priority: "high" },
                                         webpush: {
                                             headers: { Urgent: "high" },
-                                            fcmOptions: { link: `${PWA_URL}/notificaciones` }
+                                            fcmOptions: { link: `${PWA_URL}/inbox` }
                                         }
                                     });
                                     pushedCount += pushResp.successCount;

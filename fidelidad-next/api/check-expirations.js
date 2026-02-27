@@ -401,7 +401,7 @@ export default async function handler(req, res) {
                         await app.messaging().sendEachForMulticast({
                             tokens: userData.fcmTokens,
                             notification: { title, body: msg },
-                            data: { url: "/mis-puntos", icon: config.logoUrl || "" }
+                            data: { url: "/activity", icon: config.logoUrl || "" }
                         }).catch(e => console.error(`[Cron] Push error for ${userId}:`, e));
                     }
 
@@ -434,7 +434,7 @@ export default async function handler(req, res) {
                     await userDoc.ref.collection('inbox').add({
                         title,
                         body: `${msg}\n\nDetalle: ${breakdownStr}`,
-                        url: "/mis-puntos",
+                        url: "/activity",
                         type: "system",
                         read: false,
                         date: admin.firestore.FieldValue.serverTimestamp(),

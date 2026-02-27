@@ -270,16 +270,6 @@ export const DashboardPage = () => {
                 if (!data.skipped && data.ok) {
                     console.log("✅ [Dashboard] Daily check ejecutado:", data.date);
                 }
-
-                // 2. Revisar Difusión de Campañas Automáticas
-                await fetch('/api/broadcast-campaigns', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET },
-                    body: JSON.stringify({
-                        executorEmail: 'system',
-                        role: 'system'
-                    })
-                });
             } catch (e) {
                 console.warn("⚠️ [Dashboard] Daily/Campaign check falló (no crítico):", e);
             }

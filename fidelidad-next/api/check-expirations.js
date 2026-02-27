@@ -5,7 +5,7 @@
 
 import admin from "firebase-admin";
 import nodemailer from 'nodemailer';
-import { updateNextExpirationDate } from "./_expiration-utils.js";
+import { updateNextExpirationDate } from "../utils/_expiration-utils.js";
 import { buildHtmlLayout } from "../utils/emailLayout.js";
 
 // ---------- Inicialización Firebase Admin ----------

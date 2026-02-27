@@ -44,13 +44,6 @@ chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
                 }
             })
             .catch(e => console.error("❌ [Club Fidelidad] Error en check diario:", e.message));
-
-        // --- CAMPAIGN BROADCAST CHECK ---
-        fetch(`${res.apiUrl}/api/broadcast-campaigns`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-api-key': res.apiKey },
-            body: JSON.stringify({ executorEmail: 'extension-system', role: 'system' })
-        }).catch(e => console.error("❌ [Club Fidelidad] Error en broadcast campañas:", e.message));
     }
 });
 

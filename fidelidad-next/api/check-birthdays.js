@@ -331,14 +331,18 @@ export default async function handler(req, res) {
             console.error("[Birthdays] Error saving audit log:", logError);
         }
 
-        // --- MODO DAILY: también ejecutar vencimientos ---
+        // --- MODO DAILY: también ejecutar vencimientos y campañas ---
         let expirationsResult = null;
+        let campaignResults = null;
+
         if (isDailyMode) {
+            // 1. Ejecutar Vencimientos
             try {
                 const currentHost = req.headers.host;
                 const baseUrl = currentHost
                     ? `https://${currentHost}`
                     : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+
                 const eRes = await fetch(`${baseUrl}/api/check-expirations`, {
                     method: 'POST',
                     headers: {
@@ -358,6 +362,101 @@ export default async function handler(req, res) {
                 expirationsResult = { ok: false, error: e.message };
             }
 
+            // 2. Revisar Difusión de Campañas Automáticas
+            try {
+                const year = referenceDate.getFullYear();
+                const month = String(referenceDate.getMonth() + 1).padStart(2, '0');
+                const day = String(referenceDate.getDate()).padStart(2, '0');
+                const todayStr = `${year}-${month}-${day}`;
+                const currentTimeStr = `${String(referenceDate.getHours()).padStart(2, '0')}:${String(referenceDate.getMinutes()).padStart(2, '0')}`;
+
+                const campaignSnap = await db.collection('campanas')
+                    .where('active', '==', true)
+                    .where('autoBroadcast', '==', true)
+                    .get();
+
+                const pendingCampaigns = campaignSnap.docs.filter(doc => {
+                    const data = doc.data();
+                    if (data.broadcastSentAt) return false;
+                    if (data.startDate && data.startDate > todayStr) return false;
+                    if (data.startDate === todayStr && data.startTime && data.startTime > currentTimeStr) return false;
+                    return true;
+                });
+
+                if (pendingCampaigns.length > 0) {
+                    console.log(`[DailyCheck] Procesando ${pendingCampaigns.length} campañas para difusión.`);
+                    const siteName = config.siteName || 'Club Fidelidad';
+                    const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
+
+                    const usersSnap = await db.collection('users').get();
+                    const users = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+                    for (const campDoc of pendingCampaigns) {
+                        const camp = { id: campDoc.id, ...campDoc.data() };
+                        let pushedCount = 0;
+                        let inboxCount = 0;
+
+                        const subject = camp.title || camp.name;
+                        const body = camp.description || '¡Nueva campaña disponible!';
+
+                        // Inbox
+                        const batch = db.batch();
+                        users.forEach(user => {
+                            const inboxRef = db.collection('clientes').doc(user.id).collection('inbox').doc();
+                            batch.set(inboxRef, {
+                                title: subject,
+                                body,
+                                url: `${PWA_URL}/promociones`,
+                                source: 'campania_auto',
+                                status: 'sent',
+                                sentAt: admin.firestore.FieldValue.serverTimestamp()
+                            });
+                            inboxCount++;
+                        });
+                        await batch.commit();
+
+                        // Push tokens
+                        const tokens = users.flatMap(u => u.fcmTokens || []);
+                        if (tokens.length > 0) {
+                            try {
+                                const chunks = [];
+                                for (let i = 0; i < tokens.length; i += 500) {
+                                    chunks.push(tokens.slice(i, i + 500));
+                                }
+                                for (const chunk of chunks) {
+                                    const pushResp = await admin.messaging().sendEachForMulticast({
+                                        tokens: chunk,
+                                        notification: { title: subject, body },
+                                        data: { url: `${PWA_URL}/notificaciones` }
+                                    });
+                                    pushedCount += pushResp.successCount;
+                                }
+                            } catch (e) { console.error("Push Error:", e); }
+                        }
+
+                        await db.collection('campanas').doc(camp.id).update({ broadcastSentAt: referenceDate.toISOString() });
+
+                        await db.collection('audit_logs').add({
+                            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                            type: 'campaign_broadcast',
+                            status: 'success',
+                            summary: `Motor Automático: Difusión enviada para "${camp.name}"`,
+                            details: {
+                                campaignId: camp.id,
+                                pushed: pushedCount,
+                                inbox: inboxCount,
+                                executor: executorEmail
+                            },
+                            executor: executorEmail
+                        });
+                    }
+                    campaignResults = { ok: true, processed: pendingCampaigns.length };
+                }
+            } catch (campErr) {
+                console.error("[DailyCheck] Error en campañas:", campErr);
+                campaignResults = { ok: false, error: campErr.message };
+            }
+
             // Marcar como ejecutado
             const arFormatter = new Intl.DateTimeFormat('en-CA', {
                 timeZone: 'America/Argentina/Buenos_Aires',
@@ -369,7 +468,8 @@ export default async function handler(req, res) {
                 executor: executorEmail,
                 results: {
                     birthdaysOk: true,
-                    expirationsOk: expirationsResult?.ok || false
+                    expirationsOk: expirationsResult?.ok || false,
+                    campaignsOk: campaignResults?.ok || false
                 }
             }, { merge: true });
         }

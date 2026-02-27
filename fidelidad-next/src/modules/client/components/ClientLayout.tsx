@@ -121,7 +121,7 @@ export const ClientLayout = () => {
 
     return (
         <div
-            className="flex flex-col h-[100dvh] max-w-md mx-auto shadow-2xl relative font-sans transition-colors duration-500"
+            className="flex flex-col h-[100dvh] w-full max-w-md mx-auto sm:my-6 sm:h-[calc(100dvh-3rem)] sm:rounded-[3rem] sm:shadow-[0_20px_50px_rgba(0,0,0,0.3)] relative font-sans transition-all duration-500 overflow-hidden border-x border-gray-100/5 sm:border-t"
             style={{ backgroundColor: config.backgroundColor || '#f5f3f7' }}
         >
 
@@ -129,8 +129,13 @@ export const ClientLayout = () => {
             {/* 1) Header / Top Bar (Fixed) */}
             {/* 1) Fixed Top Header (Primary Color) */}
             <header
-                className="fixed top-0 left-0 right-0 h-16 z-[100] px-4 flex items-center justify-between text-white shadow-md transition-all duration-500 max-w-md mx-auto"
-                style={{ background: `linear-gradient(to right, ${config.primaryColor || '#4a148c'}, ${config.secondaryColor || '#880e4f'})` }}
+                className="fixed top-0 sm:top-6 left-1/2 -translate-x-1/2 w-full max-w-md h-auto z-[100] px-4 flex items-center justify-between text-white shadow-md transition-all duration-500 sm:rounded-t-[3rem]"
+                style={{
+                    background: `linear-gradient(to right, ${config.primaryColor || '#4a148c'}, ${config.secondaryColor || '#880e4f'})`,
+                    paddingTop: 'calc(env(safe-area-inset-top) + 0.75rem)',
+                    paddingBottom: '0.75rem',
+                    minHeight: 'var(--header-h)'
+                }}
             >
                 <div className="flex items-center gap-1">
                     {location.pathname !== '/' && (
@@ -181,7 +186,10 @@ export const ClientLayout = () => {
             </header>
 
             {/* 2) Fixed Action Bar (White) */}
-            <div className={`fixed top-16 left-0 right-0 z-50 bg-white border-b border-gray-100 shadow-sm transition-all duration-500 max-w-md mx-auto overflow-hidden ${headerTitle ? 'h-[80px]' : 'h-0'}`}>
+            <div
+                className={`fixed left-1/2 -translate-x-1/2 w-full max-w-md z-50 bg-white border-b border-gray-100 shadow-sm transition-all duration-500 overflow-hidden ${headerTitle ? 'h-[var(--action-bar-h)]' : 'h-0'}`}
+                style={{ top: 'calc(env(safe-area-inset-top) + var(--header-h))' }}
+            >
                 <div className="h-full px-6 flex items-center justify-between gap-4">
                     <div className="flex-1 min-w-0">
                         <h2 className="text-2xl font-black text-gray-800 tracking-tight leading-none truncate">
@@ -203,16 +211,25 @@ export const ClientLayout = () => {
 
             {/* 3) Main Content Area (Scrollable) */}
             <main
-                className="flex-1 overflow-y-auto pb-10 scrollbar-hide bg-white relative"
-                style={{ paddingTop: headerTitle ? '164px' : '84px' }} // Header(64) + ActionBar(80) + Gap(20)
+                className="flex-1 overflow-y-auto pb-20 scrollbar-hide bg-white relative"
+                style={{
+                    paddingTop: headerTitle ? 'calc(env(safe-area-inset-top) + var(--header-h) + var(--action-bar-h))' : 'calc(env(safe-area-inset-top) + var(--header-h))'
+                }}
             >
-                <div className="animate-fade-in max-w-md mx-auto">
+                <div className="animate-fade-in w-full">
                     <Outlet context={{ config, setHeaderTitle, setHeaderActions }} />
                 </div>
             </main>
 
             {/* 3) Bottom Navigation (Fixed) */}
-            <nav className="flex-none bg-white border-t border-gray-100 flex justify-around items-center px-2 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-40">
+            <nav
+                className="fixed bottom-0 sm:bottom-6 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-100 flex justify-around items-center px-2 z-40 sm:rounded-b-[3rem]"
+                style={{
+                    paddingTop: '0.75rem',
+                    paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)',
+                    boxShadow: '0 -4px 20px rgba(0,0,0,0.03)'
+                }}
+            >
                 <button
                     onClick={() => navigate('/')}
                     className={`flex flex-col items-center gap-1.5 transition-all duration-300 flex-1 ${isActive('/') ? '' : 'text-gray-400'}`}

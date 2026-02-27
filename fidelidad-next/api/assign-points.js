@@ -757,7 +757,7 @@ export default async function handler(req, res) {
                             headers: { 'Content-Type': 'application/json', ...internalAuth },
                             body: JSON.stringify({
                                 clienteId: targetUid, title: '¡Puntos Sumados! 💰', body: unifiedMsg,
-                                icon: config.logoUrl || '/logo.png',
+                                icon: config.logoUrl || '/pwa-192x192.png',
                                 points, executor,
                                 extraData: { skipInbox: true, source: 'extension_or_panel' }
                             })
@@ -853,7 +853,7 @@ export default async function handler(req, res) {
                             headers: { 'Content-Type': 'application/json', ...internalAuth },
                             body: JSON.stringify({
                                 clienteId: rInfo.uid, title: '¡Bono de Referido! 🎁', body: rMsg,
-                                icon: config.logoUrl || '/logo.png',
+                                icon: config.logoUrl || '/pwa-192x192.png',
                                 points: rInfo.bonusAmount, executor,
                                 extraData: { skipInbox: true }
                             })

@@ -1993,7 +1993,8 @@ export const ConfigPage = () => {
                                                             return NotificationService.sendToClient(doc.id, {
                                                                 title: title,
                                                                 body: personalizedMsg,
-                                                                type: 'campaign'
+                                                                type: 'campaign',
+                                                                icon: config.logoUrl || '/pwa-192x192.png'
                                                             });
                                                         });
                                                         await Promise.allSettled(pushPromises);

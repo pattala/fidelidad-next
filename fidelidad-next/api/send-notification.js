@@ -86,8 +86,32 @@ function asStringRecord(obj = {}) {
 // ---------- Resolución de destinatarios ----------
 // Devuelve una lista de { id: clienteId, token } (uno por token).
 // Devuelve una lista de { id: clienteId, token: string | null }
-async function resolveDestinatarios({ db, tokens = [], audience, clienteId }) {
+async function resolveDestinatarios({ db, tokens = [], audience, clienteId, extraParams = {} }) {
   const out = [];
+
+  // 0) Broadcast (Todos los usuarios)
+  if (extraParams?.broadcast === true || extraParams?.broadcast === "true") {
+    let q = db.collection("users");
+    if (extraParams?.isInternal === true || extraParams?.isInternal === "true") {
+      q = q.where("isTestUser", "==", true);
+    }
+    const snap = await q.get();
+    snap.forEach(doc => {
+      const data = doc.data() || {};
+      const toks = Array.isArray(data.fcmTokens) ? data.fcmTokens : [];
+      const singular = data.fcmToken ? String(data.fcmToken).trim() : null;
+      if (singular && !toks.includes(singular)) toks.push(singular);
+
+      if (toks.length === 0) {
+        out.push({ id: doc.id, token: null });
+      } else {
+        toks.forEach(tk => {
+          const clean = String(tk || "").trim();
+          if (clean) out.push({ id: doc.id, token: clean });
+        });
+      }
+    });
+  }
 
   // Helper: trae docs de una lista de ids
   async function fetchDocIds(docIds) {
@@ -232,7 +256,15 @@ export async function sendNotificationInternal({
   // ====== Resolver destinatarios para enviar y para tracking ======
   let destinatarios = [];
   try {
-    destinatarios = await resolveDestinatarios({ db, tokens, audience, clienteId });
+    const broadcast = (extraData?.broadcast === true || extraData?.broadcast === "true" || audience?.target === "all");
+    const isInternal = (extraData?.isInternal === true || extraData?.isInternal === "true");
+    destinatarios = await resolveDestinatarios({
+      db,
+      tokens,
+      audience,
+      clienteId,
+      extraParams: { broadcast, isInternal }
+    });
   } catch (e) {
     console.error("resolveDestinatarios error:", e?.message || e);
   }

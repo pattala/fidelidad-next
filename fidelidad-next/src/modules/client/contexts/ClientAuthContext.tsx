@@ -26,16 +26,19 @@ export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) 
 
     useEffect(() => {
         let unsubFirestore: (() => void) | undefined;
+        let resolveTimer: any | undefined;
 
         const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+            // Clear any pending resolve timer if auth state changes
+            if (resolveTimer) clearTimeout(resolveTimer);
+
             if (firebaseUser) {
-                // If we found a user, set it immediately
                 setUser(firebaseUser);
+                setLoading(true); // Ensure loading is true while fetching data
 
                 const userRef = doc(db, 'users', firebaseUser.uid);
                 const adminRef = doc(db, 'admins', firebaseUser.uid);
 
-                // Listen to User Data
                 if (unsubFirestore) unsubFirestore();
                 unsubFirestore = onSnapshot(userRef, async (snap) => {
                     if (snap.exists()) {
@@ -61,30 +64,26 @@ export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) 
                     }
                 }, (err: any) => {
                     console.error("Firestore Client Auth Error:", err);
-                    // If IDB fails, we might still have the user from auth
-                    if (err.message?.includes('IDBDatabase') || err.code === 'failed-precondition') {
-                        console.warn("Detected IDB issue, attempting fallback...");
-                    }
                     setLoading(false);
                 });
 
             } else {
-                // Wait 1.5s before deciding there's definitely no user (persistence safety)
-                const timer = setTimeout(() => {
+                // Wait 600ms before deciding there's no user (fast but safe for persistence)
+                resolveTimer = setTimeout(() => {
                     if (!auth.currentUser) {
                         setUser(null);
                         setUserData(null);
                         setIsAdmin(false);
                         setLoading(false);
                     }
-                }, 1500);
-                return () => clearTimeout(timer);
+                }, 600);
             }
         });
 
         return () => {
             unsubscribeAuth();
             if (unsubFirestore) unsubFirestore();
+            if (resolveTimer) clearTimeout(resolveTimer);
         };
     }, []);
 

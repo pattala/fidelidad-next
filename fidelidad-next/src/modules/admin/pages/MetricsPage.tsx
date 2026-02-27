@@ -248,7 +248,7 @@ export const MetricsPage = () => {
                     const end = new Date(challenge.endDate);
                     end.setHours(23, 59, 59, 999);
 
-                    // Buscamos usuarios creados en este periodo que tengan referrerUid
+                    // Buscamos usuarios creados en este periodo
                     const qReferrals = query(
                         collection(db, 'users'),
                         where('createdAt', '>=', start),
@@ -258,7 +258,8 @@ export const MetricsPage = () => {
 
                     const refCounts = new Map<string, number>();
                     snapReferrals.docs.forEach(d => {
-                        const refUid = d.data().referrerUid;
+                        const data = d.data();
+                        const refUid = data.referrerUid;
                         if (refUid) refCounts.set(refUid, (refCounts.get(refUid) || 0) + 1);
                     });
 

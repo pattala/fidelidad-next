@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Plus, Trash2, Palette, Calculator, Monitor, Settings, Home, Gift, MessageCircle, FileText, AlertTriangle, RefreshCw, ShieldAlert, Users, Clock, Eye, Sparkles, Cake, Zap, UserPlus, Megaphone } from 'lucide-react';
+import { Save, Plus, Trash2, Palette, Calculator, Monitor, Settings, Home, Gift, MessageCircle, FileText, AlertTriangle, RefreshCw, ShieldAlert, Shield, Users, Clock, Eye, Sparkles, Cake, Zap, UserPlus, Megaphone } from 'lucide-react';
 import { ConfigService, DEFAULT_TEMPLATES } from '../../../services/configService';
 import { EmailPreviewModal } from '../components/EmailPreviewModal';
 import { EmailService } from '../../../services/emailService';
@@ -863,7 +863,8 @@ export const ConfigPage = () => {
                                                                         enabled: !config.referrals?.challenge?.enabled,
                                                                         startDate: config.referrals?.challenge?.startDate || new Date().toISOString().split('T')[0],
                                                                         endDate: config.referrals?.challenge?.endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                                                                        tiers: config.referrals?.challenge?.tiers || [{ count: 1, bonus: 100 }]
+                                                                        tiers: config.referrals?.challenge?.tiers || [{ count: 1, bonus: 100 }],
+                                                                        isInternal: config.referrals?.challenge?.isInternal || false
                                                                     }
                                                                 }
                                                             })}
@@ -996,6 +997,34 @@ export const ConfigPage = () => {
                                                             </div>
 
                                                             {/* NUEVO: Selección de Canales y Botón de Difusión */}
+                                                            <section className="pt-4 border-t border-orange-100 flex items-center justify-between bg-blue-50/50 p-4 rounded-xl">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="p-2 bg-blue-100 text-blue-600 rounded-xl">
+                                                                        <Shield size={20} />
+                                                                    </div>
+                                                                    <div>
+                                                                        <label className="text-[10px] font-black text-blue-900 uppercase block">Desafío Interno (Modo Test)</label>
+                                                                        <p className="text-[8px] text-blue-600 font-bold uppercase mt-0.5 italic">Sólo visible para "Usuarios de Prueba"</p>
+                                                                    </div>
+                                                                </div>
+                                                                <label className="relative inline-flex items-center cursor-pointer">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        className="sr-only peer"
+                                                                        checked={config.referrals?.challenge?.isInternal || false}
+                                                                        onChange={e => setConfig({
+                                                                            ...config,
+                                                                            referrals: {
+                                                                                ...config.referrals!,
+                                                                                challenge: { ...config.referrals!.challenge!, isInternal: e.target.checked }
+                                                                            }
+                                                                        })}
+                                                                    />
+                                                                    <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                                                                </label>
+                                                            </section>
+
+
                                                             <div className="pt-4 border-t border-orange-100 space-y-4">
                                                                 <ChannelSelector
                                                                     label="Citar Desafío en:"
@@ -1027,37 +1056,24 @@ export const ConfigPage = () => {
                                                                             try {
                                                                                 const token = await auth.currentUser?.getIdToken();
 
-                                                                                // 1. Push + Inbox
-                                                                                if (challengeChannels.includes('push')) {
-                                                                                    await fetch('/api/send-notification', {
-                                                                                        method: 'POST',
-                                                                                        headers: {
-                                                                                            'Content-Type': 'application/json',
-                                                                                            'Authorization': `Bearer ${token}`
-                                                                                        },
-                                                                                        body: JSON.stringify({
-                                                                                            target: 'all',
-                                                                                            title,
-                                                                                            body,
-                                                                                            type: 'campaign'
-                                                                                        })
-                                                                                    });
-                                                                                } else {
-                                                                                    await fetch('/api/send-notification', {
-                                                                                        method: 'POST',
-                                                                                        headers: {
-                                                                                            'Content-Type': 'application/json',
-                                                                                            'Authorization': `Bearer ${token}`
-                                                                                        },
-                                                                                        body: JSON.stringify({
-                                                                                            target: 'all',
-                                                                                            title,
-                                                                                            body,
-                                                                                            type: 'campaign',
-                                                                                            extraData: { skipPush: true }
-                                                                                        })
-                                                                                    });
-                                                                                }
+                                                                                // 1. Push + Inbox (Broadcasting masivo en el servidor)
+                                                                                await fetch('/api/send-notification', {
+                                                                                    method: 'POST',
+                                                                                    headers: {
+                                                                                        'Content-Type': 'application/json',
+                                                                                        'Authorization': `Bearer ${token}`
+                                                                                    },
+                                                                                    body: JSON.stringify({
+                                                                                        broadcast: true,
+                                                                                        title,
+                                                                                        body,
+                                                                                        type: 'campaign',
+                                                                                        extraData: {
+                                                                                            skipPush: !challengeChannels.includes('push'),
+                                                                                            isInternal: config.referrals?.challenge?.isInternal || false
+                                                                                        }
+                                                                                    })
+                                                                                });
 
                                                                                 // 2. Email
                                                                                 if (challengeChannels.includes('email')) {

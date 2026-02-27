@@ -179,6 +179,7 @@ export interface AppConfig {
                 count: number;
                 bonus: number;
             }>;
+            isInternal?: boolean;
         };
     };
     enableDateSimulator?: boolean;

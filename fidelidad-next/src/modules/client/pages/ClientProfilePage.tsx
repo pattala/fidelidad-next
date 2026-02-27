@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { db, auth } from '../../../lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { signOut, updatePassword } from 'firebase/auth';
+import { signOut, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { LogOut, Key, ChevronRight, QrCode, FileText, X, ExternalLink, Eye, EyeOff, MapPin, Phone, User as UserIcon, Building } from 'lucide-react';
 import QRCode from "react-qr-code";
 import toast from 'react-hot-toast';
@@ -32,8 +32,10 @@ export const ClientProfilePage = () => {
 
     // Change Password State
     const [isChangePassOpen, setIsChangePassOpen] = useState(false);
+    const [currentPass, setCurrentPass] = useState('');
     const [newPass, setNewPass] = useState('');
     const [showPass, setShowPass] = useState(false);
+    const [showCurrentPass, setShowCurrentPass] = useState(false);
     const [loadingPass, setLoadingPass] = useState(false);
     const [isTermsOpen, setIsTermsOpen] = useState(false);
 
@@ -93,20 +95,30 @@ export const ClientProfilePage = () => {
 
     const handleChangePassword = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!userAuth || !userAuth.email) return;
+
         setLoadingPass(true);
         try {
-            if (userAuth) {
-                await updatePassword(userAuth, newPass);
-                toast.success("¡Contraseña actualizada!");
-                setIsChangePassOpen(false);
-                setNewPass('');
-            }
+            // Re-authenticate first
+            const credential = EmailAuthProvider.credential(userAuth.email, currentPass);
+            await reauthenticateWithCredential(userAuth, credential);
+
+            // If re-auth successful, update password
+            await updatePassword(userAuth, newPass);
+
+            toast.success("¡Contraseña actualizada!");
+            setIsChangePassOpen(false);
+            setNewPass('');
+            setCurrentPass('');
         } catch (error: any) {
             console.error(error);
-            toast.error("Error: " + error.message);
-            if (error.code === 'auth/requires-recent-login') {
-                toast.error("Por seguridad, vuelve a iniciar sesión para cambiar la clave.");
+            if (error.code === 'auth/wrong-password') {
+                toast.error("La contraseña actual es incorrecta.");
+            } else if (error.code === 'auth/requires-recent-login') {
+                toast.error("Por seguridad, vuelve a iniciar sesión.");
                 handleLogout();
+            } else {
+                toast.error("Error: " + (error.message || "No se pudo actualizar la contraseña"));
             }
         } finally {
             setLoadingPass(false);
@@ -316,6 +328,23 @@ export const ClientProfilePage = () => {
                     {isChangePassOpen && (
                         <div className="p-4 bg-gray-50/50 border-t border-gray-100 animate-fade-in">
                             <form onSubmit={handleChangePassword} className="flex flex-col gap-3">
+                                <div className="relative">
+                                    <input
+                                        type={showCurrentPass ? "text" : "password"}
+                                        placeholder="Contraseña actual"
+                                        className="w-full p-3 pr-12 rounded-xl border border-gray-200 text-sm outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                                        required
+                                        value={currentPass}
+                                        onChange={e => setCurrentPass(e.target.value)}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowCurrentPass(!showCurrentPass)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-orange-600 transition"
+                                    >
+                                        {showCurrentPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
+                                </div>
                                 <div className="relative">
                                     <input
                                         type={showPass ? "text" : "password"}

@@ -34,6 +34,9 @@ self.addEventListener('push', (event) => {
 
     if (event.data) {
         try {
+            const rawData = event.data.text();
+            console.log('[SW] Raw Push Data:', rawData);
+
             const payload = event.data.json();
             const notification = payload.notification || {};
             const data = payload.data || payload || {};
@@ -42,11 +45,15 @@ self.addEventListener('push', (event) => {
             options.body = notification.body || data.body || options.body;
             options.data.url = data.url || data.click_action || options.data.url;
 
-            if (data.icon && data.icon.startsWith('http')) {
+            if (data.icon && (data.icon.startsWith('http') || data.icon.startsWith('/'))) {
                 options.icon = data.icon;
-                options.badge = data.icon; // también usa el logo de marca en el badge izquierdo
+                options.badge = data.icon;
             }
-            if (payload.fcmMessageId) options.tag = payload.fcmMessageId;
+
+            // Interaction & Persistence
+            options.requireInteraction = true; // Stay until the user clicks or dismisses
+            options.tag = data.tag || data.id || 'fidelidad-notif'; // Group by tag
+            options.renotify = true;
 
         } catch (e) {
             console.error('[SW] Error parsing push data:', e);
@@ -54,11 +61,11 @@ self.addEventListener('push', (event) => {
         }
     }
 
-    console.log('[SW] Showing notification:', title, options.body);
+    console.log('[SW] Final Notification Object:', { title, options });
     event.waitUntil(
         self.registration.showNotification(title, options)
-            .then(() => console.log('[SW] Notification shown OK'))
-            .catch((err: any) => console.error('[SW] showNotification FAILED:', err))
+            .then(() => console.log('[SW] showNotification SUCCESS'))
+            .catch((err: any) => console.error('[SW] showNotification FAIL:', err))
     );
 });
 

@@ -29,28 +29,27 @@ export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) 
 
         const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
             if (firebaseUser) {
+                // If we found a user, set it immediately
                 setUser(firebaseUser);
 
-                // 1. Verify if Admin
-                const adminRef = doc(db, 'admins', firebaseUser.uid);
                 const userRef = doc(db, 'users', firebaseUser.uid);
+                const adminRef = doc(db, 'admins', firebaseUser.uid);
 
                 // Listen to User Data
+                if (unsubFirestore) unsubFirestore();
                 unsubFirestore = onSnapshot(userRef, async (snap) => {
                     if (snap.exists()) {
                         setUserData(snap.data());
                         setIsAdmin(false);
                         setLoading(false);
                     } else {
-                        // Check if admin (could be visiting PWA side)
                         try {
                             const { getDoc } = await import('firebase/firestore');
                             const adminSnap = await getDoc(adminRef);
                             if (adminSnap.exists()) {
                                 setIsAdmin(true);
-                                setUserData(null); // Admins don't have a socio document
+                                setUserData(null);
                             } else {
-                                // Real anonymous or missing doc
                                 setIsAdmin(false);
                                 setUserData(null);
                             }
@@ -60,22 +59,25 @@ export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) 
                             setLoading(false);
                         }
                     }
-                }, (err) => {
+                }, (err: any) => {
                     console.error("Firestore Client Auth Error:", err);
+                    // If IDB fails, we might still have the user from auth
+                    if (err.message?.includes('IDBDatabase') || err.code === 'failed-precondition') {
+                        console.warn("Detected IDB issue, attempting fallback...");
+                    }
                     setLoading(false);
                 });
 
             } else {
-                // If we get null, wait a bit longer to be absolutely sure 
-                // persistence didn't miss the window (common in some browsers/PWA)
-                setUser(null);
+                // Wait 1.5s before deciding there's definitely no user (persistence safety)
                 const timer = setTimeout(() => {
                     if (!auth.currentUser) {
+                        setUser(null);
                         setUserData(null);
                         setIsAdmin(false);
                         setLoading(false);
                     }
-                }, 1000); // 1 second should be plenty for persistence to settle
+                }, 1500);
                 return () => clearTimeout(timer);
             }
         });

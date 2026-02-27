@@ -249,7 +249,7 @@ export async function sendNotificationInternal({
   const invalidTokens = new Set();
   const perToken = [];
 
-  if (sendTokens.length > 0) {
+  if (sendTokens.length > 0 && !(extraData?.skipPush === true || extraData?.skipPush === "true")) {
     const baseMsg = {
       data,
       webpush: { fcmOptions: { link: data.url || "/notificaciones" } },

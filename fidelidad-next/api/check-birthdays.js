@@ -242,9 +242,22 @@ export default async function handler(req, res) {
                     // PUSH
                     if (userData.fcmTokens?.length) {
                         try {
+                            const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
+                            const icon = config.logoUrl || `${PWA_URL}/pwa-192x192.png`;
                             await app.messaging().sendEachForMulticast({
                                 tokens: userData.fcmTokens,
-                                data: { title, body: msg, url: "/", icon: config.logoUrl || "" }
+                                notification: { title, body: msg },
+                                data: {
+                                    url: "/",
+                                    icon: icon,
+                                    badge: icon
+                                },
+                                webpush: {
+                                    notification: {
+                                        icon: icon,
+                                        badge: icon
+                                    }
+                                }
                             });
                             actionsTaken.push("push_sent");
                         } catch (e) { console.error("Error push birthday:", e); }
@@ -424,10 +437,27 @@ export default async function handler(req, res) {
                                     chunks.push(tokens.slice(i, i + 500));
                                 }
                                 for (const chunk of chunks) {
+                                    const icon = config.logoUrl || `${PWA_URL}/pwa-192x192.png`;
                                     const pushResp = await admin.messaging().sendEachForMulticast({
                                         tokens: chunk,
-                                        notification: { title: subject, body },
-                                        data: { url: `${PWA_URL}/notificaciones` }
+                                        notification: {
+                                            title: subject,
+                                            body: body,
+                                            icon: icon
+                                        },
+                                        data: {
+                                            url: `${PWA_URL}/notificaciones`,
+                                            icon: icon,
+                                            badge: icon
+                                        },
+                                        webpush: {
+                                            notification: {
+                                                icon: icon,
+                                                badge: icon,
+                                                image: camp.imageUrl || null
+                                            },
+                                            fcmOptions: { link: `${PWA_URL}/notificaciones` }
+                                        }
                                     });
                                     pushedCount += pushResp.successCount;
                                 }

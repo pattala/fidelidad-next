@@ -293,8 +293,20 @@ export async function sendNotificationInternal({
 
   if (sendTokens.length > 0 && !(extraData?.skipPush === true || extraData?.skipPush === "true")) {
     const baseMsg = {
+      notification: {
+        title,
+        body: msgBody,
+        icon: data.icon || null
+      },
       data,
-      webpush: { fcmOptions: { link: data.url || "/notificaciones" } },
+      webpush: {
+        notification: {
+          icon: data.icon || null,
+          badge: data.badge || data.icon || null,
+          image: extraData?.image || null
+        },
+        fcmOptions: { link: data.url || "/notificaciones" }
+      },
       android: { priority: "high" }
     };
 

@@ -211,7 +211,7 @@ export const ClientLayout = () => {
 
             {/* 3) Main Content Area (Scrollable) */}
             <main
-                className="flex-1 overflow-y-auto pb-20 scrollbar-hide bg-white relative"
+                className="flex-1 overflow-y-auto pb-32 scrollbar-hide bg-white relative"
                 style={{
                     paddingTop: headerTitle ? 'calc(env(safe-area-inset-top) + var(--header-h) + var(--action-bar-h))' : 'calc(env(safe-area-inset-top) + var(--header-h))'
                 }}

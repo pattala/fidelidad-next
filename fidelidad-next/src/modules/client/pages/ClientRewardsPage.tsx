@@ -70,7 +70,7 @@ export const ClientRewardsPage = () => {
         <div className="bg-gray-50 pb-28 animate-fade-in">
 
             <div
-                className="px-4 pb-4 grid grid-cols-2 gap-4 transition-all"
+                className="px-4 pt-6 pb-4 grid grid-cols-2 gap-4 transition-all"
             >
                 {loading ? (
                     [...Array(4)].map((_, i) => (

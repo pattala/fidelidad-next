@@ -43,8 +43,9 @@ html {
 @layer base {
     body {
         @apply bg-transparent text-gray-900 overflow-hidden m-0 p-0 antialiased;
-        background-color: #000;
-        /* Fondo negro para los bordes del celular en desktop */
+        /* Fondo premium para desktop */
+        background: radial-gradient(circle at top left, #1a0633 0%, #0a0118 100%);
+        min-height: 100dvh;
     }
 }
 

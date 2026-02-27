@@ -32,6 +32,14 @@ const transporter = nodemailer.createTransport({
     },
 });
 
+function getAbsoluteUrl(url, baseUrl) {
+    if (!url) return "";
+    if (url.startsWith("http")) return url;
+    const base = (baseUrl || "").replace(/\/$/, "");
+    const path = url.startsWith("/") ? url : `/${url}`;
+    return `${base}${path}`;
+}
+
 export default async function handler(req, res) {
     // 0. CORS Preflight
     if (req.method === 'OPTIONS') {
@@ -243,20 +251,21 @@ export default async function handler(req, res) {
                     if (userData.fcmTokens?.length) {
                         try {
                             const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
-                            const icon = config.logoUrl || `${PWA_URL}/pwa-192x192.png`;
+                            const icon = getAbsoluteUrl(config.logoUrl || "/pwa-192x192.png", PWA_URL);
                             await app.messaging().sendEachForMulticast({
                                 tokens: userData.fcmTokens,
-                                notification: { title, body: msg },
                                 data: {
+                                    title,
+                                    body: msg,
                                     url: "/",
                                     icon: icon,
-                                    badge: icon
+                                    badge: icon,
+                                    type: "birthday"
                                 },
+                                android: { priority: "high" },
                                 webpush: {
-                                    notification: {
-                                        icon: icon,
-                                        badge: icon
-                                    }
+                                    headers: { Urgent: "high" },
+                                    fcmOptions: { link: "/" }
                                 }
                             });
                             actionsTaken.push("push_sent");
@@ -436,26 +445,22 @@ export default async function handler(req, res) {
                                 for (let i = 0; i < tokens.length; i += 500) {
                                     chunks.push(tokens.slice(i, i + 500));
                                 }
+                                const icon = getAbsoluteUrl(config.logoUrl || "/pwa-192x192.png", PWA_URL);
                                 for (const chunk of chunks) {
-                                    const icon = config.logoUrl || `${PWA_URL}/pwa-192x192.png`;
                                     const pushResp = await admin.messaging().sendEachForMulticast({
                                         tokens: chunk,
-                                        notification: {
+                                        data: {
                                             title: subject,
                                             body: body,
-                                            icon: icon
-                                        },
-                                        data: {
                                             url: `${PWA_URL}/notificaciones`,
                                             icon: icon,
-                                            badge: icon
+                                            badge: icon,
+                                            image: camp.imageUrl ? getAbsoluteUrl(camp.imageUrl, PWA_URL) : "",
+                                            type: "campaign_auto"
                                         },
+                                        android: { priority: "high" },
                                         webpush: {
-                                            notification: {
-                                                icon: icon,
-                                                badge: icon,
-                                                image: camp.imageUrl || null
-                                            },
+                                            headers: { Urgent: "high" },
                                             fcmOptions: { link: `${PWA_URL}/notificaciones` }
                                         }
                                     });

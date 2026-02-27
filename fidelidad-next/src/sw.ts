@@ -38,21 +38,32 @@ self.addEventListener('push', (event) => {
             console.log('[SW] Raw Push Data:', rawData);
 
             const payload = event.data.json();
-            const notification = payload.notification || {};
-            const data = payload.data || payload || {};
+            console.log('[SW] Payload JSON:', payload);
 
-            title = notification.title || data.title || title;
-            options.body = notification.body || data.body || options.body;
+            // FCM manda la info en 'data' si es modo data-only, 
+            // o en 'notification' si es modo tradicional.
+            const data = payload.data || payload || {};
+            const notification = payload.notification || {};
+
+            title = data.title || notification.title || title;
+            options.body = data.body || notification.body || options.body;
             options.data.url = data.url || data.click_action || options.data.url;
 
-            if (data.icon && (data.icon.startsWith('http') || data.icon.startsWith('/'))) {
-                options.icon = data.icon;
-                options.badge = data.icon;
+            // Manejo de Ícono y Badge (Priorizar lo que viene del server)
+            const iconFromData = data.icon || data.badge;
+            if (iconFromData && (iconFromData.startsWith('http') || iconFromData.startsWith('/'))) {
+                options.icon = iconFromData.startsWith('http') ? iconFromData : `${BASE_URL}${iconFromData}`;
+                options.badge = options.icon;
+            }
+
+            // Imagen grande (Campaña)
+            if (data.image) {
+                options.image = data.image.startsWith('http') ? data.image : `${BASE_URL}${data.image}`;
             }
 
             // Interaction & Persistence
-            options.requireInteraction = true; // Stay until the user clicks or dismisses
-            options.tag = data.tag || data.id || 'fidelidad-notif'; // Group by tag
+            options.requireInteraction = true;
+            options.tag = data.tag || data.id || 'fidelidad-notif';
             options.renotify = true;
 
         } catch (e) {

@@ -215,6 +215,15 @@ async function createInboxSent({ db, clienteId, notifId, dataForDoc, token }) {
   return ref.id;
 }
 
+// Helper para asegurar que una URL de imagen sea absoluta
+function getAbsoluteUrl(url, baseUrl) {
+  if (!url) return "";
+  if (url.startsWith("http")) return url;
+  const base = (baseUrl || "").replace(/\/$/, "");
+  const path = url.startsWith("/") ? url : `/${url}`;
+  return `${base}${path}`;
+}
+
 // ---------- Core Logic (Reusable) ----------
 export async function sendNotificationInternal({
   db,
@@ -292,32 +301,37 @@ export async function sendNotificationInternal({
   const perToken = [];
 
   if (sendTokens.length > 0 && !(extraData?.skipPush === true || extraData?.skipPush === "true")) {
+    const PWA_URL = process.env.PWA_URL || "";
+    const iconUrl = getAbsoluteUrl(data.icon || process.env.PUSH_ICON_URL, PWA_URL);
+
+    // MODO DATA-ONLY: No usamos el campo 'notification' del primer nivel 
+    // para evitar que el navegador/Android lo maneje como un simple Toast.
+    // Al mandar solo 'data', forzamos al Service Worker a interceptar y 
+    // mostrar la notificación de sistema con todo nuestro diseño (íconos, etc).
     const baseMsg = {
-      notification: {
-        title,
-        body: msgBody,
-        icon: data.icon || null
+      data: {
+        ...data,
+        icon: iconUrl,
+        badge: iconUrl,
+        image: extraData?.image ? getAbsoluteUrl(extraData.image, PWA_URL) : ""
       },
-      data,
+      android: {
+        priority: "high",
+        ttl: 2419200000 // 4 semanas
+      },
       webpush: {
-        notification: {
-          icon: data.icon || null,
-          badge: data.badge || data.icon || null,
-          image: extraData?.image || null
-        },
+        headers: { Urgent: "high" },
         fcmOptions: { link: data.url || "/notificaciones" }
-      },
-      android: { priority: "high" }
+      }
     };
 
-    console.log("FCM about to send:", JSON.stringify({ tokensCount: sendTokens.length, withAudience: !!(audience?.docIds?.length) }));
+    console.log("FCM about to send (DATA-ONLY):", JSON.stringify({ tokensCount: sendTokens.length }));
 
     const adminApp = initFirebaseAdmin();
     const batches = chunkArray(sendTokens, 500);
 
     for (const batchTokens of batches) {
       const message = { ...baseMsg, tokens: batchTokens };
-      console.log("PERF: Starting fcm-send-multicast-batch");
       const resp = await adminApp.messaging().sendEachForMulticast(message);
       console.log("PERF: Finished fcm-send-multicast-batch");
 

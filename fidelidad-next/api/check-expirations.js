@@ -138,7 +138,8 @@ export default async function handler(req, res) {
 
         const logResults = {
             processed: 0,
-            expired: 0,
+            expiredPoints: 0,
+            expiredUsersCount: 0,
             notified: 0,
             totalInWindow: 0,
             details: [], // { userName, userId, action, status, info }
@@ -154,6 +155,7 @@ export default async function handler(req, res) {
         for (const userDoc of toExpireSnap.docs) {
             try {
                 const userId = userDoc.id;
+                const userData = userDoc.data();
                 const historyRef = db.collection('users').doc(userId).collection('points_history');
 
                 // Query for UNPROCESSED expired items
@@ -188,7 +190,9 @@ export default async function handler(req, res) {
                 });
 
                 if (totalExpired > 0) {
-                    logResults.expired += totalExpired;
+                    logResults.expiredPoints += totalExpired;
+                    logResults.expiredUsersCount++;
+
                     logResults.details.push({
                         userId,
                         userName: userData?.name || userData?.nombre || 'Socio',
@@ -196,8 +200,9 @@ export default async function handler(req, res) {
                         socioNumber: userData?.socioNumber || userData?.numeroSocio || userData?.socio_number || '',
                         action: 'points_subtracted',
                         status: 'success',
-                        info: `${totalExpired} pts vencidos`
+                        info: `${totalExpired} pts vencidos (Ref: ${referenceDateStr})`
                     });
+
                     // Registrar Descuento
                     const newHistRef = historyRef.doc();
                     batch.set(newHistRef, {
@@ -214,7 +219,6 @@ export default async function handler(req, res) {
                     });
 
                     await batch.commit();
-                    logResults.expired++;
                     console.log(`[Cron] Expired ${totalExpired} pts for user ${userId}`);
                 }
 
@@ -316,8 +320,8 @@ export default async function handler(req, res) {
 
                     let isItinerancy = false;
                     if (sameTargetAndAmount) {
-                        if (!isItinerancyEnabled) {
-                            // Itinerancia OFF → saltar
+                        if (!isItinerancyEnabled && !isManual) {
+                            // Itinerancia OFF → saltar (salvo si es manual/simulación)
                             console.log(`[Cron] Skipping ${userId}: Already notified and itinerancy is disabled.`);
                             logResults.details.push({
                                 userId,
@@ -327,9 +331,9 @@ export default async function handler(req, res) {
                             });
                             continue;
                         }
-                        // Itinerancia ON → chequear intervalo
+                        // Itinerancia ON o modo Manual → chequear intervalo (salvo si es manual/simulación)
                         const lastNoticeDate = userData.lastExpirationNotice; // "YYYY-MM-DD"
-                        if (lastNoticeDate && reminderIntervalDays > 0) {
+                        if (lastNoticeDate && reminderIntervalDays > 0 && !isManual) {
                             const daysSinceLastNotice = Math.floor(
                                 (new Date(referenceDateStr).getTime() - new Date(lastNoticeDate).getTime()) / (1000 * 60 * 60 * 24)
                             );
@@ -339,7 +343,7 @@ export default async function handler(req, res) {
                                     userId,
                                     userName: userData.name || userData.nombre || 'Socio',
                                     action: 'skipped_notification',
-                                    info: `Itinerancia: esperando (${daysSinceLastNotice}/${reminderIntervalDays} días). Próximo recordatorio en ${reminderIntervalDays - daysSinceLastNotice} día(s)`
+                                    info: `Itinerancia: esperando (${daysSinceLastNotice}/${reminderIntervalDays} días).`
                                 });
                                 continue;
                             }
@@ -441,9 +445,9 @@ export default async function handler(req, res) {
 
         // PASO C: GUARDAR LOG DE AUDITORÍA
         try {
-            const summaryMessage = logResults.processed === 0 && logResults.expired === 0 && logResults.notified === 0
+            const summaryMessage = logResults.processed === 0 && logResults.expiredUsersCount === 0 && logResults.notified === 0
                 ? `Motor ejecutado. Sin vencimientos para hoy ni avisos nuevos en la ventana de ${warningDays} días.`
-                : `Procesados: ${logResults.processed}, Vencidos: ${logResults.expired} pts, Notificados: ${logResults.notified}`;
+                : `Socios Procesados: ${logResults.processed}, Vencidos: ${logResults.expiredPoints} pts (${logResults.expiredUsersCount} socios), Notificados: ${logResults.notified}`;
 
             await startLogRef.update({
                 status: logResults.errors.length === 0 ? 'success' : 'partial',

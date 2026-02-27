@@ -107,22 +107,40 @@ export default async function handler(req, res) {
 
         // 2. Determinar Fecha y Hora de Referencia
         let referenceDate = new Date();
-        const isManual = !!req.body?.simulatedDate;
+        const simulatedDateBody = req.body?.simulatedDate || req.query?.simulatedDate;
 
-        if (isManual) {
-            referenceDate = new Date(req.body.simulatedDate);
-            console.log(`[Cron] Manual execution detected. Using date: ${req.body.simulatedDate}`);
+        // Detectar si es una SIMULACIÓN REAL (fecha distinta a hoy) o solo un trigger de la sesión
+        // Un trigger de la sesión manda la fecha actual via TimeService.now()
+        const isSimulation = !!simulatedDateBody;
+
+        if (isSimulation) {
+            referenceDate = new Date(simulatedDateBody);
+            console.log(`[Cron] Simulated execution detected. Using date: ${simulatedDateBody}`);
         }
 
-        // LOG DE INICIO (SIEMPRE se registra para ver que Vercel llamó al endpoint)
+        // Determinar el tipo de LOG según el origen y parámetros
+        let logType = 'expiration_engine'; // Por defecto: Motor automático (System)
+        let logSummaryPrefix = 'Proceso Automático (Sistema)';
+
+        if (executorEmail !== 'system') {
+            if (isSimulation) {
+                logType = 'manual_expiration';
+                logSummaryPrefix = 'Simulación/Prueba (Admin)';
+            } else {
+                logType = 'session_refresh_check';
+                logSummaryPrefix = 'Revisión Automática (Sesión)';
+            }
+        }
+
+        // LOG DE INICIO
         const startLogRef = await db.collection('audit_logs').add({
             timestamp: admin.firestore.FieldValue.serverTimestamp(),
-            type: isManual ? 'manual_expiration' : 'expiration_engine',
+            type: logType,
             status: 'running',
-            summary: `Iniciando proceso de vencimientos (${isManual ? 'Manual' : 'Automático'}).`,
+            summary: `Iniciando ${logSummaryPrefix}...`,
             details: [],
             executor: executorEmail,
-            role: isManual ? (executorRole === 'system' ? 'admin' : executorRole) : 'system'
+            role: executorRole === 'system' && executorEmail !== 'system' ? 'admin' : executorRole
         });
 
         const referenceDateStr = referenceDate.toISOString().split('T')[0];
@@ -320,8 +338,8 @@ export default async function handler(req, res) {
 
                     let isItinerancy = false;
                     if (sameTargetAndAmount) {
-                        if (!isItinerancyEnabled && !isManual) {
-                            // Itinerancia OFF → saltar (salvo si es manual/simulación)
+                        if (!isItinerancyEnabled && !isSimulation) {
+                            // Itinerancia OFF → saltar (salvo si es simulación activa)
                             console.log(`[Cron] Skipping ${userId}: Already notified and itinerancy is disabled.`);
                             logResults.details.push({
                                 userId,
@@ -331,9 +349,10 @@ export default async function handler(req, res) {
                             });
                             continue;
                         }
-                        // Itinerancia ON o modo Manual → chequear intervalo (salvo si es manual/simulación)
+
+                        // Si itinerancia está ON, chequear intervalo (salvo si es simulación o intervalo es 0)
                         const lastNoticeDate = userData.lastExpirationNotice; // "YYYY-MM-DD"
-                        if (lastNoticeDate && reminderIntervalDays > 0 && !isManual) {
+                        if (lastNoticeDate && reminderIntervalDays > 0 && !isSimulation) {
                             const daysSinceLastNotice = Math.floor(
                                 (new Date(referenceDateStr).getTime() - new Date(lastNoticeDate).getTime()) / (1000 * 60 * 60 * 24)
                             );

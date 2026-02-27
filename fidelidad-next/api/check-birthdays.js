@@ -303,13 +303,26 @@ export default async function handler(req, res) {
 
         // 4. GUARDAR LOG DE AUDITORÍA CONSOLIDADO
         try {
+            let logType = 'birthday_engine';
+            let logSummaryPrefix = 'Motor Automático (Sistema)';
+
+            if (executorEmail !== 'system') {
+                if (isManualSim) {
+                    logType = 'manual_birthday_check';
+                    logSummaryPrefix = 'Simulación/Prueba (Admin)';
+                } else {
+                    logType = 'session_refresh_check';
+                    logSummaryPrefix = 'Revisión Automática (Sesión)';
+                }
+            }
+
             await db.collection('audit_logs').add({
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                type: 'birthday_engine',
+                type: logType,
                 status: logResults.errors.length === 0 ? 'success' : 'partial',
                 summary: logResults.totalToday === 0
-                    ? "Ejecutado: No hay cumpleaños para procesar hoy."
-                    : `Socios hoy: ${logResults.totalToday}, Procesados: ${logResults.processed}, Puntos: ${logResults.pointsGivenTotal}`,
+                    ? `${logSummaryPrefix}: No hay cumpleaños para procesar hoy.`
+                    : `${logSummaryPrefix}: Socios hoy: ${logResults.totalToday}, Procesados: ${logResults.processed}, Puntos: ${logResults.pointsGivenTotal}`,
                 details: logResults.details.slice(0, 500),
                 executor: executorEmail,
                 role: executorRole === 'system' && executorEmail !== 'system' ? 'admin' : executorRole

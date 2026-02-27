@@ -281,14 +281,20 @@ export default async function handler(req, res) {
                     }
 
                     // --- LÓGICA DE NOTIFICACIÓN AUTOMÁTICA ---
-                    // Solo notificar si está dentro de la ventana configurada (ej: 7 días)
-                    if (userData.nextExpirationDate > warningDateStr) {
-                        // console.log(`[Cron] Skipping ${userId}: ${userData.nextExpirationDate} is beyond warning window ${warningDateStr}`);
-                        continue;
+                    // 1. Contar para la burbuja de la extensión (siempre 30 días para match con Dashboard/FAB)
+                    const dashboardWindowDate = new Date(referenceDate);
+                    dashboardWindowDate.setDate(dashboardWindowDate.getDate() + 30);
+                    const dashboardWindowStr = dashboardWindowDate.toISOString().split('T')[0];
+
+                    if (userData.nextExpirationDate <= dashboardWindowStr) {
+                        logResults.totalInWindow++;
                     }
 
-                    // Contar para la burbuja de la extensión (match Dashboard 30 días)
-                    logResults.totalInWindow++;
+                    // 2. Solo proceder con el aviso automático si está dentro de la ventana de configuración (ej: 7 días)
+                    if (userData.nextExpirationDate > warningDateStr) {
+                        // Es un vencimiento futuro lejano; no disparamos notificación aún
+                        continue;
+                    }
 
                     // NUEVA LÓGICA: Sumar TODOS los puntos que vencen en la ventana de aviso
                     const historyRef = userDoc.ref.collection('points_history');

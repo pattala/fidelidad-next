@@ -184,6 +184,7 @@ export const SystemLogsPage = () => {
         switch (type) {
             case 'expiration_engine': return 'Motor de Vencimientos (Auto)';
             case 'manual_expiration': return 'Revisión Manual (Admin)';
+            case 'session_refresh_check': return 'Revisión Automática (Sesión)';
             case 'birthday_engine': return 'Proceso de Cumpleaños (Auto)';
             case 'manual_birthday': return 'Saludador Manual (Admin)';
             case 'manual_birthday_gift': return 'Regalo de Cumpleaños Manual';

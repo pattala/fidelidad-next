@@ -34,33 +34,29 @@ export const useFcmToken = () => {
                     console.log('[FCM] Token Retrieved Successfully');
                     setToken(currentToken);
 
-                    const userRef = doc(db, 'users', user.uid);
-                    const { getDoc, updateDoc, arrayUnion, serverTimestamp } = await import('firebase/firestore');
-
                     try {
+                        const response = await fetch('/api/register-fcm-token', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                token: currentToken,
+                                userId: user.uid
+                            })
+                        });
+                        const resData = await response.json();
+                        if (!resData.ok) throw new Error(resData.error || 'Error registrando token');
+                        console.log('[FCM] Token registered via API', resData);
+                    } catch (err: any) {
+                        console.error('[FCM] Error calling register-fcm-token API:', err);
+                        // Fallback manual si la API falla (opcional, pero mejor centralizar)
+                        const userRef = doc(db, 'users', user.uid);
+                        const { updateDoc, arrayUnion, serverTimestamp } = await import('firebase/firestore');
                         await updateDoc(userRef, {
                             fcmToken: currentToken,
                             fcmTokens: arrayUnion(currentToken),
                             lastFcmUpdate: serverTimestamp(),
                             'permissions.notifications.status': 'granted'
-                        });
-                    } catch (err: any) {
-                        if (err.code === 'not-found') {
-                            const { setDoc } = await import('firebase/firestore');
-                            await setDoc(userRef, {
-                                fcmToken: currentToken,
-                                fcmTokens: [currentToken],
-                                lastFcmUpdate: serverTimestamp(),
-                                permissions: {
-                                    notifications: {
-                                        status: 'granted',
-                                        updatedAt: new Date()
-                                    }
-                                }
-                            }, { merge: true });
-                        } else {
-                            throw err;
-                        }
+                        }).catch(() => { });
                     }
                 }
             } else if (Notification.permission === 'denied') {

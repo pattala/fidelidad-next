@@ -26,9 +26,11 @@ export const DashboardPage = () => {
         pointValueReal: 0,
         referralCount: 0
     });
+    const [forecastSummary, setForecastSummary] = useState<any>(null);
     const [recentActivity, setRecentActivity] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [fetchingForecast, setFetchingForecast] = useState(false);
     const [activityLimit, setActivityLimit] = useState(10);
     const [birthdaysOfToday, setBirthdaysOfToday] = useState<any[]>([]);
     const [expiringUsers, setExpiringUsers] = useState<any[]>([]);
@@ -251,6 +253,25 @@ export const DashboardPage = () => {
             window.removeEventListener('time-simulation-change', handleSimChange);
         };
     }, [activityLimit]);
+
+    useEffect(() => {
+        const fetchForecast = async () => {
+            setFetchingForecast(true);
+            try {
+                const SECRET = import.meta.env.VITE_API_KEY || '';
+                const fRes = await fetch('/api/get-expiration-forecast', {
+                    headers: { 'x-api-key': SECRET }
+                });
+                const fData = await fRes.json();
+                if (fData.ok) setForecastSummary(fData.summary);
+            } catch (e) {
+                console.error("Error fetching forecast:", e);
+            } finally {
+                setFetchingForecast(false);
+            }
+        };
+        fetchForecast();
+    }, []);
 
     // --- DAILY CHECK: cumpleaños + vencimientos (1x/día, silencioso) ---
     useEffect(() => {
@@ -514,6 +535,53 @@ export const DashboardPage = () => {
                     </div>
                 )}
             </div>
+
+            {/* QUICK FORECAST BAR (CASH FLOW) */}
+            {forecastSummary && (
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-8 overflow-hidden relative transition hover:shadow-md">
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
+                        <div className="flex items-center gap-4">
+                            <div className="bg-orange-500 text-white p-3 rounded-2xl shadow-lg shadow-orange-100">
+                                <Clock size={24} />
+                            </div>
+                            <div>
+                                <h3 className="text-gray-800 font-black text-lg flex items-center gap-2">
+                                    Pronóstico de Salida de Puntos
+                                </h3>
+                                <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Flujo de Caja (Pasivo por Periodo)</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 w-full md:w-auto">
+                            {forecastSummary.intervals.slice(0, 4).map((interval: any) => (
+                                <div key={interval.key} className="relative group cursor-pointer" onClick={() => navigate('/admin/metrics')}>
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 group-hover:text-orange-500 transition-colors">
+                                        {interval.label}
+                                    </p>
+                                    <p className="text-lg font-black text-gray-800 leading-none">
+                                        {interval.points.toLocaleString()} <span className="text-[10px] font-bold text-gray-300">pts</span>
+                                    </p>
+                                    <p className={`text-xs font-bold mt-1 ${interval.key === 'short' ? 'text-red-500' : 'text-orange-500'
+                                        }`}>
+                                        ≈ ${Math.round(interval.money).toLocaleString('es-AR')}
+                                    </p>
+                                    <div className={`absolute -left-3 top-0 bottom-0 w-1 rounded-full opacity-20 ${interval.key === 'short' ? 'bg-red-500' : 'bg-orange-400'
+                                        }`}></div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <button
+                            onClick={() => navigate('/admin/metrics')}
+                            className="bg-gray-50 hover:bg-gray-100 text-gray-500 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition flex items-center gap-2"
+                        >
+                            Ver detalle <ArrowUpRight size={14} />
+                        </button>
+                    </div>
+                    {/* Background decoration */}
+                    <div className="absolute top-0 right-0 bottom-0 w-1/3 bg-gradient-to-l from-orange-50/50 to-transparent pointer-events-none" />
+                </div>
+            )}
 
             {/* WhatsApp FAB for Expirations - Panel Expandible */}
             {expiringUsers.length > 0 && (

@@ -108,14 +108,16 @@ export default async function handler(req, res) {
         // 2. Determinar Fecha y Hora de Referencia
         let referenceDate = new Date();
         const simulatedDateBody = req.body?.simulatedDate || req.query?.simulatedDate;
+        const isFromUI = req.body?.isManual === true || req.query?.isManual === 'true';
 
-        // Detectar si es una SIMULACIÓN REAL (fecha distinta a hoy) o solo un trigger de la sesión
-        // Un trigger de la sesión manda la fecha actual via TimeService.now()
-        const isSimulation = !!simulatedDateBody;
+        // Detectar si es una SIMULACIÓN REAL (fecha distinta a hoy)
+        const todayStr = new Date().toISOString().split('T')[0];
+        const simulatedStr = simulatedDateBody ? new Date(simulatedDateBody).toISOString().split('T')[0] : null;
+        const isSimulation = simulatedStr && simulatedStr !== todayStr;
 
-        if (isSimulation) {
+        if (simulatedDateBody) {
             referenceDate = new Date(simulatedDateBody);
-            console.log(`[Cron] Simulated execution detected. Using date: ${simulatedDateBody}`);
+            console.log(`[Cron] Executed with date parameter. Using: ${simulatedDateBody} (Real Simulation: ${isSimulation})`);
         }
 
         // Determinar el tipo de LOG según el origen y parámetros
@@ -126,6 +128,9 @@ export default async function handler(req, res) {
             if (isSimulation) {
                 logType = 'manual_expiration';
                 logSummaryPrefix = 'Simulación/Prueba (Admin)';
+            } else if (isFromUI) {
+                logType = 'manual_expiration';
+                logSummaryPrefix = 'Revisión Forzada (Admin)';
             } else {
                 logType = 'session_refresh_check';
                 logSummaryPrefix = 'Revisión Automática (Sesión)';

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BarChart3, TrendingUp, Users, DollarSign, Award, Sparkles, Download, Clock, Calendar } from 'lucide-react';
+import { BarChart3, TrendingUp, Users, DollarSign, Award, Sparkles, Download, Clock, Calendar, RefreshCw } from 'lucide-react';
 import { collection, query, where, getDocs, orderBy, limit, documentId } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import {
@@ -29,6 +29,12 @@ export const MetricsPage = () => {
     const [loading, setLoading] = useState(true);
     const [config, setConfig] = useState<any>(null);
     const [movementsData, setMovementsData] = useState<any[]>([]);
+    const [forecastData, setForecastData] = useState<any>(null);
+    const [forecastDates, setForecastDates] = useState({
+        start: new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0],
+        end: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0]
+    });
+    const [fetchingForecast, setFetchingForecast] = useState(false);
 
     const [advancedStats, setAdvancedStats] = useState({
         averageTicket: 0,
@@ -47,6 +53,22 @@ export const MetricsPage = () => {
         referralCount: 0
     });
     const [heatmapData, setHeatmapData] = useState<number[][]>(Array(7).fill(0).map(() => Array(24).fill(0)));
+
+    const fetchForecast = async () => {
+        setFetchingForecast(true);
+        try {
+            const SECRET = import.meta.env.VITE_API_KEY || '';
+            const fRes = await fetch(`/api/get-expiration-forecast?startDate=${forecastDates.start}&endDate=${forecastDates.end}`, {
+                headers: { 'x-api-key': SECRET }
+            });
+            const fData = await fRes.json();
+            if (fData.ok) setForecastData(fData.summary);
+        } catch (e) {
+            console.error("Error fetching forecast:", e);
+        } finally {
+            setFetchingForecast(false);
+        }
+    };
 
     useEffect(() => {
         const fetchData = async () => {
@@ -300,6 +322,9 @@ export const MetricsPage = () => {
                     }));
                 }
 
+                // 5. Forecast (Cash Flow)
+                fetchForecast();
+
             } catch (error) {
                 console.error("Error metrics:", error);
                 toast.error("Error al cargar las métricas");
@@ -539,6 +564,111 @@ export const MetricsPage = () => {
                                 </>
                             );
                         })()}
+                    </div>
+
+                    {/* PRONÓSTICO DE VENCIMIENTOS (CASH FLOW) */}
+                    <div className="bg-gradient-to-br from-gray-50 to-white p-8 rounded-3xl border border-gray-100 shadow-sm mb-8">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+                            <div>
+                                <h3 className="text-xl font-black text-gray-800 flex items-center gap-2">
+                                    <Clock className="text-orange-500" /> Pronóstico de Vencimientos (Cash Flow)
+                                </h3>
+                                <p className="text-sm text-gray-500 mt-1">Estimación de puntos por vencer y su impacto financiero en el corto, mediano y largo plazo.</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-2 bg-white rounded-xl shadow-sm border border-gray-200 p-2">
+                                    <div className="flex items-center gap-2">
+                                        <label className="text-[9px] font-black text-gray-400 uppercase ml-1">Análisis Desde</label>
+                                        <input
+                                            type="date"
+                                            className="px-1 py-0.5 text-xs border-none focus:ring-0 outline-none font-bold text-gray-700"
+                                            value={forecastDates.start}
+                                            onChange={e => setForecastDates({ ...forecastDates, start: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="w-px h-3 bg-gray-200"></div>
+                                    <div className="flex items-center gap-2">
+                                        <label className="text-[9px] font-black text-gray-400 uppercase">Hasta</label>
+                                        <input
+                                            type="date"
+                                            className="px-1 py-0.5 text-xs border-none focus:ring-0 outline-none font-bold text-gray-700"
+                                            value={forecastDates.end}
+                                            onChange={e => setForecastDates({ ...forecastDates, end: e.target.value })}
+                                        />
+                                    </div>
+                                    <button
+                                        onClick={fetchForecast}
+                                        disabled={fetchingForecast}
+                                        className="ml-2 bg-orange-100 text-orange-600 p-1.5 rounded-lg hover:bg-orange-200 transition disabled:opacity-50"
+                                        title="Recalcular análisis"
+                                    >
+                                        {fetchingForecast ? <RefreshCw className="animate-spin" size={14} /> : <Calendar size={14} />}
+                                    </button>
+                                </div>
+                                <div className="bg-orange-50 px-4 py-2 rounded-2xl border border-orange-100">
+                                    <span className="text-[10px] font-black text-orange-600 uppercase tracking-widest block mb-0.5">Pasivo Potencial Total</span>
+                                    <span className="text-xl font-black text-orange-700">
+                                        ${forecastData?.totalMoney ? Math.round(forecastData.totalMoney).toLocaleString('es-AR') : '...'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                            {/* Bucket Personalizado */}
+                            {forecastData?.customRange && (
+                                <div className="bg-gradient-to-br from-orange-500 to-rose-600 p-5 rounded-2xl shadow-lg shadow-orange-100 text-white transform hover:scale-[1.02] transition pointer-events-none">
+                                    <p className="text-[10px] font-black opacity-80 uppercase tracking-widest mb-3">
+                                        Rango Seleccionado
+                                    </p>
+                                    <div className="space-y-1">
+                                        <p className="text-2xl font-black">
+                                            {forecastData.customRange.points.toLocaleString()} <span className="text-xs font-bold opacity-70">pts</span>
+                                        </p>
+                                        <p className="text-sm font-bold opacity-90">
+                                            ≈ ${Math.round(forecastData.customRange.money).toLocaleString('es-AR')}
+                                        </p>
+                                    </div>
+                                    <div className="mt-4 pt-4 border-t border-white/20 flex items-center justify-between">
+                                        <span className="text-[10px] font-bold opacity-70">{forecastData.customRange.count} Transacciones</span>
+                                        <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {forecastData?.intervals?.map((interval: any) => (
+                                <div key={interval.key} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition group">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 group-hover:text-orange-500 transition-colors">
+                                        {interval.label}
+                                    </p>
+                                    <div className="space-y-1">
+                                        <p className="text-2xl font-black text-gray-800">
+                                            {interval.points.toLocaleString()} <span className="text-xs font-bold text-gray-400">pts</span>
+                                        </p>
+                                        <p className="text-sm font-bold text-orange-600">
+                                            ≈ ${Math.round(interval.money).toLocaleString('es-AR')}
+                                        </p>
+                                    </div>
+                                    <div className="mt-4 pt-4 border-t border-gray-50 flex items-center justify-between">
+                                        <span className="text-[10px] font-bold text-gray-400">{interval.count} Transacciones</span>
+                                        <div className={`w-2 h-2 rounded-full ${interval.key === 'short' ? 'bg-red-500 animate-pulse' :
+                                            interval.key === 'medium' ? 'bg-orange-400' :
+                                                interval.key === 'long' ? 'bg-amber-300' : 'bg-green-200'
+                                            }`}></div>
+                                    </div>
+                                </div>
+                            ))}
+                            {!forecastData && [1, 2, 3, 4].map(i => (
+                                <div key={i} className="bg-gray-50 h-32 rounded-2xl animate-pulse"></div>
+                            ))}
+                        </div>
+
+                        <div className="mt-6 p-4 bg-blue-50/50 rounded-2xl border border-blue-100/50">
+                            <p className="text-xs text-blue-700 leading-relaxed">
+                                💡 <b>Consejo:</b> Si notas un volumen alto en "Próximos 7 días", considera lanzar una campaña de canje flash para que los socios aprovechen sus puntos antes de perderlos.
+                                El valor monetario está calculado a un ratio de <b>${Math.round(forecastData?.pointValue || config?.pointValue || 10)} por punto</b> (promedio de tus premios actuales).
+                            </p>
+                        </div>
                     </div>
 
                     {/* MAPA DE CALOR */}

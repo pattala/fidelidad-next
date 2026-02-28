@@ -365,7 +365,7 @@ export default async function handler(req, res) {
 
                 if (isEmailConfigured && (clientData.email || clientData.correo)) {
                     notifications.push(
-                        fetch(`${baseUrl}/api/send-email`, {
+                        fetch(`${baseUrl}/api/notifications?action=email`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', ...internalAuth },
                             body: JSON.stringify({

@@ -752,7 +752,7 @@ export default async function handler(req, res) {
 
                 if (isPushConfigured) {
                     notifications.push(
-                        fetch(`${baseUrl}/api/send-notification`, {
+                        fetch(`${baseUrl}/api/notifications?action=send`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', ...internalAuth },
                             body: JSON.stringify({
@@ -783,7 +783,7 @@ export default async function handler(req, res) {
 
                 if (isEmailConfigured && result.guestData.email) {
                     notifications.push(
-                        fetch(`${baseUrl}/api/send-email`, {
+                        fetch(`${baseUrl}/api/notifications?action=email`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', ...internalAuth },
                             body: JSON.stringify({
@@ -848,7 +848,7 @@ export default async function handler(req, res) {
 
                 if (isPushEnabled) {
                     notifications.push(
-                        fetch(`${baseUrl}/api/send-notification`, {
+                        fetch(`${baseUrl}/api/notifications?action=send`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', ...internalAuth },
                             body: JSON.stringify({
@@ -867,7 +867,7 @@ export default async function handler(req, res) {
 
                 if (isEmailEnabled && rInfo.email) {
                     notifications.push(
-                        fetch(`${baseUrl}/api/send-email`, {
+                        fetch(`${baseUrl}/api/notifications?action=email`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', ...internalAuth },
                             body: JSON.stringify({

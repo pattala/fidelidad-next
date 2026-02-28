@@ -265,11 +265,14 @@ async function handleForecast(req, res, db) {
         const customRange = { active: hasCustom, start: hasCustom ? new Date(customStartStr) : null, end: hasCustom ? new Date(customEndStr) : null, points: 0, money: 0, count: 0 };
         if (customRange.end) customRange.end.setHours(23, 59, 59, 999);
 
-        const creditsSnap = await db.collectionGroup('points_history').where('type', '==', 'credit').where('status', '==', 'active').where('remainingPoints', '>', 0).get();
+        const creditsSnap = await db.collectionGroup('points_history').where('type', '==', 'credit').get();
 
         creditsSnap.forEach(doc => {
             const data = doc.data();
             if (!data.expiresAt) return;
+            // Filter inactive points in memory since we drop the index requirement
+            if (data.status === 'expired' || !(data.remainingPoints > 0)) return;
+
             const expiresAt = data.expiresAt.toDate();
             const diffDays = Math.ceil((expiresAt.getTime() - startOfToday.getTime()) / 86400000);
 

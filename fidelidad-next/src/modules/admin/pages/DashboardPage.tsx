@@ -254,7 +254,35 @@ export const DashboardPage = () => {
         };
     }, [activityLimit]);
 
+
+    // --- DAILY CHECK: cumpleaños + vencimientos (1x/día, silencioso) ---
     useEffect(() => {
+        if (!config) return;
+        const runDailyCheck = async () => {
+            try {
+                const SECRET = import.meta.env.VITE_API_KEY || '';
+                if (!SECRET) return;
+
+                // Solo pasar simulatedDate si REALMENTE hay un offset activo
+                // De lo contrario, activamos la deduplicación del motor (/api/check-birthdays)
+                const hasOffset = TimeService.getOffsetInDays() !== 0;
+                const body: any = {};
+                if (hasOffset) body.simulatedDate = TimeService.now().toISOString();
+
+                const res = await fetch('/api/check-birthdays?mode=daily', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+                if (!data.skipped && data.ok) {
+                    console.log("✅ [Dashboard] Daily check ejecutado:", data.date);
+                }
+            } catch (e) {
+                console.warn("⚠️ [Dashboard] Daily/Campaign check falló (no crítico):", e);
+            }
+        };
+
         const fetchForecast = async () => {
             setFetchingForecast(true);
             try {
@@ -270,32 +298,9 @@ export const DashboardPage = () => {
                 setFetchingForecast(false);
             }
         };
-        fetchForecast();
-    }, []);
 
-    // --- DAILY CHECK: cumpleaños + vencimientos (1x/día, silencioso) ---
-    useEffect(() => {
-        if (!config) return;
-        const runDailyCheck = async () => {
-            try {
-                const SECRET = import.meta.env.VITE_API_KEY || '';
-                if (!SECRET) return;
-                const res = await fetch('/api/check-birthdays?mode=daily', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET },
-                    body: JSON.stringify({
-                        simulatedDate: TimeService.now().toISOString()
-                    })
-                });
-                const data = await res.json();
-                if (!data.skipped && data.ok) {
-                    console.log("✅ [Dashboard] Daily check ejecutado:", data.date);
-                }
-            } catch (e) {
-                console.warn("⚠️ [Dashboard] Daily/Campaign check falló (no crítico):", e);
-            }
-        };
         runDailyCheck();
+        fetchForecast();
     }, [!!config]);
 
     // Handle derived stats update when dependencies change
@@ -537,7 +542,17 @@ export const DashboardPage = () => {
             </div>
 
             {/* QUICK FORECAST BAR (CASH FLOW) */}
-            {forecastSummary && (
+            {fetchingForecast ? (
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-8 overflow-hidden relative animate-pulse">
+                    <div className="flex items-center gap-4">
+                        <div className="bg-gray-100 p-3 rounded-2xl w-12 h-12"></div>
+                        <div className="space-y-2">
+                            <div className="bg-gray-100 h-4 w-48 rounded"></div>
+                            <div className="bg-gray-50 h-3 w-32 rounded"></div>
+                        </div>
+                    </div>
+                </div>
+            ) : forecastSummary ? (
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-8 overflow-hidden relative transition hover:shadow-md">
                     <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
                         <div className="flex items-center gap-4">
@@ -559,11 +574,11 @@ export const DashboardPage = () => {
                                         {interval.label}
                                     </p>
                                     <p className="text-lg font-black text-gray-800 leading-none">
-                                        {interval.points.toLocaleString()} <span className="text-[10px] font-bold text-gray-300">pts</span>
+                                        {(interval.points || 0).toLocaleString()} <span className="text-[10px] font-bold text-gray-300">pts</span>
                                     </p>
                                     <p className={`text-xs font-bold mt-1 ${interval.key === 'short' ? 'text-red-500' : 'text-orange-500'
                                         }`}>
-                                        ≈ ${Math.round(interval.money).toLocaleString('es-AR')}
+                                        ≈ ${Math.round(interval.money || 0).toLocaleString('es-AR')}
                                     </p>
                                     <div className={`absolute -left-3 top-0 bottom-0 w-1 rounded-full opacity-20 ${interval.key === 'short' ? 'bg-red-500' : 'bg-orange-400'
                                         }`}></div>
@@ -581,7 +596,7 @@ export const DashboardPage = () => {
                     {/* Background decoration */}
                     <div className="absolute top-0 right-0 bottom-0 w-1/3 bg-gradient-to-l from-orange-50/50 to-transparent pointer-events-none" />
                 </div>
-            )}
+            ) : null}
 
             {/* WhatsApp FAB for Expirations - Panel Expandible */}
             {expiringUsers.length > 0 && (

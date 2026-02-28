@@ -135,6 +135,10 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error("Forecast Error:", error);
-        return res.status(500).json({ ok: false, error: error.message });
+        // Log more detailed info if possible
+        if (error.code === 'permission-denied') {
+            console.error("Firebase Permission Denied - Check collectionGroup index for points_history");
+        }
+        return res.status(500).json({ ok: false, error: error.message, code: error.code });
     }
 }

@@ -156,8 +156,10 @@ export default async function handler(req, res) {
         const warningDays = Number(config.messaging?.expirationWarningDays) || 7;
         const warningDate = new Date(referenceDate);
         warningDate.setDate(warningDate.getDate() + warningDays);
+        warningDate.setHours(23, 59, 59, 999); // Normalizar a fin de día
+
         const warningDateStr = warningDate.toISOString().split('T')[0];
-        console.log(`[Cron] Window: > ${referenceDateStr} and <= ${warningDateStr}`);
+        console.log(`[Cron] Window: > ${referenceDateStr} and <= ${warningDateStr} (Normalized: ${warningDate.toISOString()})`);
 
         const logResults = {
             processed: 0,

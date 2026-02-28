@@ -229,6 +229,13 @@ async function handleCheck(req, res, db) {
 
 // --- SUB-HANDLER: FORECAST ---
 async function handleForecast(req, res, db) {
+    // Auth Check
+    const authHeader = req.headers["x-api-key"] || req.headers["authorization"] || req.headers["X-API-Key"];
+    const SECRET = (process.env.API_SECRET_KEY || "").trim();
+    if (!authHeader || !authHeader.includes(SECRET)) {
+        return res.status(401).json({ ok: false, error: "Unauthorized" });
+    }
+
     try {
         const customStartStr = req.query?.startDate || req.body?.startDate;
         const customEndStr = req.query?.endDate || req.body?.endDate;
@@ -302,11 +309,7 @@ export default async function handler(req, res) {
     const action = req.query?.action || req.body?.action || 'check';
     const db = initFirebaseAdmin().firestore();
 
-    // Auth Check for action='forecast' (check has its own)
     if (action === 'forecast') {
-        const authHeader = req.headers["x-api-key"] || req.headers["authorization"];
-        const SECRET = (process.env.API_SECRET_KEY || "").trim();
-        if (!authHeader || !authHeader.includes(SECRET)) return res.status(401).json({ ok: false, error: "Unauthorized" });
         return handleForecast(req, res, db);
     }
 

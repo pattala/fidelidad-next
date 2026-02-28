@@ -35,7 +35,7 @@ export const useFcmToken = () => {
                     setToken(currentToken);
 
                     try {
-                        const response = await fetch('/api/register-fcm-token', {
+                        const response = await fetch('/api/notifications?action=register-token', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({

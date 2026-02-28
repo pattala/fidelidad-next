@@ -85,7 +85,7 @@ export const SystemLogsPage = () => {
         const toastId = toast.loading('Ejecutando revisión de vencimientos...');
         try {
             const token = await auth.currentUser?.getIdToken();
-            const res = await fetch('/api/check-expirations', {
+            const res = await fetch('/api/expirations?action=check', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

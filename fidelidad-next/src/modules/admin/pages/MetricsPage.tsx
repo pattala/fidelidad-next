@@ -58,7 +58,7 @@ export const MetricsPage = () => {
         setFetchingForecast(true);
         try {
             const SECRET = import.meta.env.VITE_API_KEY || '';
-            const fRes = await fetch(`/api/get-expiration-forecast?startDate=${forecastDates.start}&endDate=${forecastDates.end}`, {
+            const fRes = await fetch(`/api/expirations?action=forecast&startDate=${forecastDates.start}&endDate=${forecastDates.end}`, {
                 headers: { 'x-api-key': SECRET }
             });
             const fData = await fRes.json();

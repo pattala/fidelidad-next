@@ -30,8 +30,8 @@ export const NotificationService = {
             const idToken = await user.getIdToken();
 
             // 2. Llamar a la API de Vercel
-            // Usamos /api/send-notification que ahora está configurada para Windows
-            const response = await fetch('/api/send-notification', {
+            // Usamos /api/notifications que ahora está configurada para Windows
+            const response = await fetch('/api/notifications?action=send', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

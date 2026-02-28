@@ -389,7 +389,7 @@ export const ClientsPage = () => {
                 let apiSuccess = false;
                 try {
                     const token = await auth.currentUser?.getIdToken();
-                    const res = await fetch('/api/create-user', {
+                    const res = await fetch('/api/users?action=create', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -532,7 +532,7 @@ export const ClientsPage = () => {
 
         const toastId = toast.loading('Eliminando usuario y limpiando datos...');
         try {
-            const response = await fetch('/api/delete-user', {
+            const response = await fetch('/api/users?action=delete', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

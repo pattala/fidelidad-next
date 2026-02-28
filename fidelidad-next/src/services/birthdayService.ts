@@ -158,7 +158,7 @@ export const BirthdayService = {
                     try {
                         const token = await (await import('../lib/firebase')).auth.currentUser?.getIdToken();
                         if (token) {
-                            await fetch('/api/send-email', {
+                            await fetch('/api/notifications?action=email', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                                 body: JSON.stringify({

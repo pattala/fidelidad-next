@@ -287,7 +287,7 @@ export const DashboardPage = () => {
             setFetchingForecast(true);
             try {
                 const SECRET = import.meta.env.VITE_API_KEY || '';
-                const fRes = await fetch('/api/get-expiration-forecast', {
+                const fRes = await fetch('/api/expirations?action=forecast', {
                     headers: { 'x-api-key': SECRET }
                 });
                 const fData = await fRes.json();

@@ -210,7 +210,7 @@ export const ClientRegisterPage = () => {
             // A. Asignar N° Socio (Secuencial seguro)
             const shouldSendWelcome = config?.enableWelcomeMessage !== false;
 
-            await fetch('/api/assign-socio-number', {
+            await fetch('/api/users?action=assign-socio', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'x-api-key': apiKey },
                 body: JSON.stringify({ docId: user.uid, sendWelcome: shouldSendWelcome })

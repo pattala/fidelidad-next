@@ -215,7 +215,7 @@ const TeamManagement = () => {
 
         try {
             const token = await auth.currentUser?.getIdToken();
-            const response = await fetch('/api/delete-user', {
+            const response = await fetch('/api/users?action=delete', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

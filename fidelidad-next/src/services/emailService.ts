@@ -120,7 +120,7 @@ export const EmailService = {
         try {
             console.log(`[EmailService] Sending real email to ${to}:`, subject);
 
-            const response = await fetch('/api/send-email', {
+            const response = await fetch('/api/notifications?action=email', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

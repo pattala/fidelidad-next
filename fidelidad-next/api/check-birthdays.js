@@ -365,7 +365,7 @@ export default async function handler(req, res) {
                     ? `https://${currentHost}`
                     : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
-                const eRes = await fetch(`${baseUrl}/api/check-expirations`, {
+                const eRes = await fetch(`${baseUrl}/api/expirations?action=check`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

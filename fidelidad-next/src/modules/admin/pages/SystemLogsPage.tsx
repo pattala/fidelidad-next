@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { db, auth } from '../../../lib/firebase';
-import { collection, query, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
+import { collection, query, orderBy, limit, onSnapshot, Timestamp } from 'firebase/firestore';
 import { Clock, CheckCircle, AlertTriangle, User, MessageCircle, ArrowRight, ChevronDown, ChevronUp, History, Search, Calendar, Filter, Loader2, Play, Settings, Cake } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { TimeService } from '../../../services/timeService';
@@ -114,27 +114,31 @@ export const SystemLogsPage = () => {
         }
     };
 
-    const fetchLogs = async () => {
+    useEffect(() => {
         setLoading(true);
-        try {
-            // Traemos los últimos 1000 registros de una (límite razonable para marca blanca)
-            // Solo usamos orderBy para traer lo más reciente primero.
-            // Esto NO requiere índices manuales adicionales si no hay filtros 'where'.
-            const q = query(
-                collection(db, 'audit_logs'),
-                orderBy('timestamp', 'desc'),
-                limit(1000)
-            );
+        const q = query(
+            collection(db, 'audit_logs'),
+            orderBy('timestamp', 'desc'),
+            limit(500) // Reduced limit slightly for better real-time performance
+        );
 
-            const snap = await getDocs(q);
+        const unsubscribe = onSnapshot(q, (snap) => {
             const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as AuditLog));
             setLogs(data);
-        } catch (err: any) {
-            console.error("Error fetching logs:", err);
-            toast.error('Error al cargar la auditoría');
-        } finally {
             setLoading(false);
-        }
+        }, (err) => {
+            console.error("Error listening to logs:", err);
+            toast.error('Error al conectar con la auditoría en tiempo vivo');
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    const fetchLogs = () => {
+        // Now it's just a placeholder or a force-refresh trigger if needed,
+        // but the listener handles it automatically.
+        toast.success('Auditoría sincronizada en tiempo real');
     };
 
     // Filtrado local (JS) - "Itemización" en tiempo real
@@ -171,10 +175,6 @@ export const SystemLogsPage = () => {
             return true;
         });
     }, [logs, typeFilter, searchQuery, startDate, endDate]);
-
-    useEffect(() => {
-        fetchLogs();
-    }, []);
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();

@@ -163,7 +163,7 @@ export default async function handler(req, res) {
         const checkSnap = await db.collection('config').doc('dailyCheck').get();
         const lastRun = checkSnap.exists ? checkSnap.data()?.lastRunDate : null;
 
-        if (lastRun === todayAR) {
+        if (lastRun === todayAR && !isManualSim) {
             console.log(`[DailyCheck] Ya se ejecutó hoy (${todayAR}). Saltando procesos pero calculando contadores.`);
 
             // 1. Contar Cumpleaños Hoy (que no hayan sido saludados aún este año)
@@ -258,8 +258,8 @@ export default async function handler(req, res) {
                 const userData = userDoc.data();
                 const userId = userDoc.id;
 
-                // 1. Evitar duplicar saludo el mismo año
-                if (userData.lastBirthdayGreetingYear === currentYear) continue;
+                // 1. Evitar duplicar saludo el mismo año (Omitir si es simulación manual)
+                if (userData.lastBirthdayGreetingYear === currentYear && !isManualSim) continue;
 
                 const birthdayPoints = config?.birthdayPoints || 100;
                 const autoBonusEnabled = config?.enableBirthdayBonus === true;
@@ -268,8 +268,8 @@ export default async function handler(req, res) {
                 let pointsAdded = 0;
                 let actionsTaken = [];
 
-                // 2. Aplicar Bono de Puntos
-                if (autoBonusEnabled && userData.lastBirthdayPointsYear !== currentYear) {
+                // 2. Aplicar Bono de Puntos (Omitir si es simulación manual)
+                if (autoBonusEnabled && (userData.lastBirthdayPointsYear !== currentYear || isManualSim)) {
                     const historyRef = userDoc.ref.collection('points_history');
 
                     // Calcular expiración según reglas
@@ -366,7 +366,9 @@ export default async function handler(req, res) {
                     });
                     actionsTaken.push("inbox_saved");
 
-                    await userDoc.ref.update({ lastBirthdayGreetingYear: currentYear });
+                    if (!isManualSim) {
+                        await userDoc.ref.update({ lastBirthdayGreetingYear: currentYear });
+                    }
                 }
 
                 logResults.processed++;

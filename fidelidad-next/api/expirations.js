@@ -197,9 +197,9 @@ async function handleCheck(req, res, db) {
 
                     let isItinerancy = false;
                     if (sameTargetAndAmount) {
-                        if (!isItinerancyEnabled && !isSimulation) continue;
+                        if (!isItinerancyEnabled && !isSimulation && !isFromUI) continue;
                         const lastNoticeDate = userData.lastExpirationNotice;
-                        if (lastNoticeDate && reminderIntervalDays > 0 && !isSimulation) {
+                        if (lastNoticeDate && reminderIntervalDays > 0 && !isSimulation && !isFromUI) {
                             const diff = Math.floor((new Date(referenceDateStr).getTime() - new Date(lastNoticeDate).getTime()) / 86400000);
                             if (diff < reminderIntervalDays) continue;
                         }

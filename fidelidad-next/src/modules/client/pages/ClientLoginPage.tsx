@@ -56,6 +56,13 @@ export const ClientLoginPage = () => {
         try {
             // 1. Try Standard Login
             await signInWithEmailAndPassword(auth, email, pass);
+
+            // Trigger Campaign Engine (Silent)
+            fetch('/api/engine-campaigns?trigger=pwa', {
+                method: 'POST',
+                headers: { 'x-api-key': import.meta.env.VITE_API_KEY || '' }
+            }).catch(() => { });
+
             navigate('/');
             toast.success('¡Hola de nuevo!', { icon: '👋', duration: 3000 });
         } catch (err: any) {
@@ -90,6 +97,12 @@ export const ClientLoginPage = () => {
 
                             // 2. Delete the old document (to avoid duplicates)
                             await deleteDoc(doc(db, 'users', userDoc.id));
+
+                            // Trigger Campaign Engine (Silent)
+                            fetch('/api/engine-campaigns?trigger=pwa', {
+                                method: 'POST',
+                                headers: { 'x-api-key': import.meta.env.VITE_API_KEY || '' }
+                            }).catch(() => { });
 
                             navigate('/');
                             toast.success('¡Cuenta activada y sincronizada!', { duration: 4000 });

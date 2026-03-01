@@ -100,7 +100,20 @@ export const useFcmToken = () => {
         const unsubscribe = auth.onAuthStateChanged((user) => {
             if (user) retrieveToken();
         });
-        return () => unsubscribe();
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible' && auth.currentUser) {
+                console.log('[FCM] App visible, re-checking token...');
+                retrieveToken();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            unsubscribe();
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
     }, []);
 
     return { token, retrieveToken };

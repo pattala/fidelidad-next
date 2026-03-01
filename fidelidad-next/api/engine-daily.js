@@ -205,22 +205,22 @@ export default async function handler(req, res) {
                 return true;
             }).length;
 
-            const skipSummary = `Motor al día: Los procesos ya corrieron hoy (${todayAR}). Gatillo: ${logSourceLabel}. Cumpleaños hoy: ${birthdayCount}. Vencimientos: ${expirationCount}.`;
+            const skipSummary = `Motor al día (${todayAR}). Gatillo: ${logSourceLabel}. Cumpleaños: ${birthdayCount}. Vencimientos: ${expirationCount}.`;
 
             // Log de control enriquecido
             await db.collection('audit_logs').add({
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                type: 'daily_check_skipped',
+                type: 'daily_check_info', // Cambiado de 'daily_check_skipped'
                 status: 'success',
                 summary: skipSummary,
-                details: [{ action: 'idle_check', info: 'Deduplicación activa (Ya se ejecutó hoy).', trigger: triggerSource }],
+                details: [{ action: 'idle_check', info: 'Deduplicación activa (Todo al día).', trigger: triggerSource }],
                 executor: executorEmail
             });
 
             return res.status(200).json({
                 ok: true,
                 skipped: true,
-                message: `Ya se ejecutó hoy (${todayAR})`,
+                message: `Todo al día (${todayAR})`,
                 lastRun: todayAR,
                 summary: { notified: 0, totalToday: birthdayCount },
                 expirations: { summary: { notified: 0, totalInWindow: expirationCount } }
@@ -229,10 +229,6 @@ export default async function handler(req, res) {
     }
 
     try {
-        const configSnap = await db.collection('config').doc('general').get();
-        if (!configSnap.exists) return res.status(404).json({ ok: false, error: "Config not found" });
-        const config = configSnap.data();
-
         // Determinar Fecha de Referencia
         let referenceDate = new Date();
         if (simulatedDateStr) {
@@ -242,9 +238,7 @@ export default async function handler(req, res) {
 
         const currentYear = referenceDate.getFullYear().toString();
         const todayMD = `${String(referenceDate.getMonth() + 1).padStart(2, '0')}-${String(referenceDate.getDate()).padStart(2, '0')}`;
-
-        // El control de duplicidad es ignorado si se pide por request O si está desactivado globalmente
-        const finalIgnoreDeduplication = ignoreDeduplication || (config.enableDuplicateControl === false);
+        const todayStr = referenceDate.toISOString().split('T')[0];
 
         const logResults = {
             totalToday: 0,
@@ -254,22 +248,15 @@ export default async function handler(req, res) {
             errors: []
         };
 
-
-        // --- BUSQUEDA DE SOCIOS (Query por MM-DD) ---
-        // birthDate se guarda como YYYY-MM-DD. Buscamos los que terminan en todayMD.
-        // Firestore no soporta "ends-with", así que traemos los que tengan birthDate seteado y filtramos en memoria (o usamos un campo indexado MM-DD)
-        // Como la cantidad de socios no suele ser masiva, filtramos en memoria por ahora.
+        // --- PASO 1: CUMPLEAÑOS ---
         const usersSnap = await db.collection('users').where('birthDate', '!=', '').get();
         const birthdayUsers = usersSnap.docs.filter(doc => doc.data().birthDate?.endsWith(todayMD));
-
         logResults.totalToday = birthdayUsers.length;
 
         for (const userDoc of birthdayUsers) {
             try {
                 const userData = userDoc.data();
                 const userId = userDoc.id;
-
-                // 1. Evitar duplicar saludo el mismo año (Omitir si se ignora deduplicación)
                 if (userData.lastBirthdayGreetingYear === currentYear && !finalIgnoreDeduplication) continue;
 
                 const birthdayPoints = config?.birthdayPoints || 100;
@@ -279,13 +266,10 @@ export default async function handler(req, res) {
                 let pointsAdded = 0;
                 let actionsTaken = [];
 
-                // 2. Aplicar Bono de Puntos (Omitir si se ignora deduplicación)
                 if (autoBonusEnabled && (userData.lastBirthdayPointsYear !== currentYear || finalIgnoreDeduplication)) {
                     const historyRef = userDoc.ref.collection('points_history');
-
-                    // Calcular expiración según reglas
                     let expirationDate = new Date(referenceDate);
-                    expirationDate.setDate(expirationDate.getDate() + 365); // Default 1 año
+                    expirationDate.setDate(expirationDate.getDate() + 365);
 
                     await historyRef.add({
                         amount: birthdayPoints,
@@ -296,201 +280,97 @@ export default async function handler(req, res) {
                         remainingPoints: birthdayPoints,
                         balanceAfter: (Number(userData.points) || 0) + birthdayPoints
                     });
-
                     await userDoc.ref.update({
                         points: admin.firestore.FieldValue.increment(birthdayPoints),
                         lastBirthdayPointsYear: currentYear
                     });
-
                     pointsAdded = birthdayPoints;
                     logResults.pointsGivenTotal += birthdayPoints;
-                    actionsTaken.push("points_added");
+                    actionsTaken.push("puntos");
                 }
 
-                // 3. Enviar Mensaje
                 if (autoMessageEnabled) {
-                    const templateFull = config?.messaging?.templates?.birthday || "¡Feliz cumpleaños {nombre}! 🎂 Que tengas un gran día. Te regalamos {puntos} puntos.";
-                    const templateSimple = config?.messaging?.templates?.birthdaySimple || "¡Feliz cumpleaños {nombre}! 🎂 Que tengas un gran día.";
-
-                    // Elegir plantilla: Full solo si se agregaron puntos AHORA.
-                    const template = (pointsAdded > 0) ? templateFull : templateSimple;
-
-                    const msg = template
-                        .replace(/{nombre}/g, (userData.name || '').split(' ')[0])
-                        .replace(/{puntos}/g, birthdayPoints.toString());
-
+                    const template = (pointsAdded > 0) ? (config?.messaging?.templates?.birthday || "¡Feliz cumple {nombre}! 🎂 +{puntos} pts.") : (config?.messaging?.templates?.birthdaySimple || "¡Feliz cumple {nombre}! 🎂");
+                    const msg = template.replace(/{nombre}/g, (userData.name || '').split(' ')[0]).replace(/{puntos}/g, birthdayPoints.toString());
                     const title = "¡Feliz Cumpleaños! 🎂";
 
-                    // PUSH
                     if (userData.fcmTokens?.length) {
                         try {
                             const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
                             const icon = getAbsoluteUrl(config.logoUrl || "/pwa-192x192.png", PWA_URL);
                             await app.messaging().sendEachForMulticast({
                                 tokens: userData.fcmTokens,
-                                data: {
-                                    title,
-                                    body: msg,
-                                    url: "/",
-                                    icon: icon,
-                                    badge: icon,
-                                    type: "birthday"
-                                },
-                                android: { priority: "high" },
-                                webpush: {
-                                    headers: { Urgent: "high" },
-                                    fcmOptions: { link: "/" }
-                                }
+                                data: { title, body: msg, url: "/", icon: icon, type: "birthday" }
                             });
-                            actionsTaken.push("push_sent");
-                        } catch (e) { console.error("Error push birthday:", e); }
+                            actionsTaken.push("push");
+                        } catch (e) { }
                     }
-
-                    // EMAIL
                     if (userData.email && process.env.SMTP_USER) {
                         try {
-                            const innerHtml = `
-                                <div style="color: #333;">
-                                    <h2 style="color: #db2777; margin-top: 0;">${title}</h2>
-                                    <p style="font-size: 16px; line-height: 1.6;">${msg}</p>
-                                    <p style="margin-top: 24px; font-size: 14px; color: #64748b;">
-                                        ¡Esperamos que pases un día increíble! Gracias por ser parte de nuestra comunidad.
-                                    </p>
-                                </div>
-                            `;
-                            const html = buildHtmlLayout(innerHtml, config);
-                            await transporter.sendMail({
-                                from: `"${config.siteName || 'Club Fidelidad'}" <${process.env.SMTP_USER}>`,
-                                to: userData.email,
-                                subject: title,
-                                html
-                            });
-                            actionsTaken.push("email_sent");
-                        } catch (e) { console.error("Error email birthday:", e); }
+                            const innerHtml = `<div style="color: #333;"><h2 style="color: #db2777;">${title}</h2><p>${msg}</p></div>`;
+                            await transporter.sendMail({ from: `"${config.siteName || 'Club Fidelidad'}" <${process.env.SMTP_USER}>`, to: userData.email, subject: title, html: buildHtmlLayout(innerHtml, config) });
+                            actionsTaken.push("email");
+                        } catch (e) { }
                     }
-
-                    // INBOX
-                    await userDoc.ref.collection('inbox').add({
-                        title, body: msg, url: "/", type: "birthday", read: false,
-                        date: admin.firestore.FieldValue.serverTimestamp(),
-                        expireAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000))
-                    });
-                    actionsTaken.push("inbox_saved");
-
-                    if (!finalIgnoreDeduplication) {
-                        await userDoc.ref.update({ lastBirthdayGreetingYear: currentYear });
-                    }
+                    await userDoc.ref.collection('inbox').add({ title, body: msg, url: "/", type: "birthday", read: false, date: admin.firestore.FieldValue.serverTimestamp() });
+                    actionsTaken.push("inbox");
+                    if (!finalIgnoreDeduplication) await userDoc.ref.update({ lastBirthdayGreetingYear: currentYear });
                 }
-
                 logResults.processed++;
                 logResults.details.push({
-                    userId,
-                    userName: userData.name || userData.nombre || 'Socio',
-                    dni: userData.dni || '',
-                    socioNumber: userData.socioNumber || userData.numeroSocio || userData.socio_number || '',
-                    action: actionsTaken.join(', '),
-                    status: 'success',
-                    info: pointsAdded > 0 ? `+${pointsAdded} pts` : 'Solo saludo'
+                    userId, userName: userData.name || 'Socio',
+                    action: 'birthday', status: 'success', info: `${actionsTaken.join(', ')} (${pointsAdded} pts)`
                 });
-
-            } catch (userError) {
-                console.error(`[Birthdays] Error processing ${userDoc.id}:`, userError);
-                logResults.errors.push(`${userDoc.id}: ${userError.message}`);
-            }
+            } catch (userError) { logResults.errors.push(`${userDoc.id}: ${userError.message}`); }
         }
 
-        // 4. GUARDAR LOG DE AUDITORÍA CONSOLIDADO
-        try {
-            let logType = 'birthday_engine';
-            let logSummaryPrefix = 'Motor Automático (Sistema)';
-
-            if (executorEmail !== 'system') {
-                if (isManualSim) {
-                    logType = 'manual_birthday_check';
-                    logSummaryPrefix = 'Simulación/Prueba (Admin)';
-                } else {
-                    logType = 'session_refresh_check';
-                    logSummaryPrefix = 'Revisión Automática (Sesión)';
-                }
-            }
-
-            await db.collection('audit_logs').add({
-                timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                type: logType,
-                status: logResults.errors.length === 0 ? 'success' : 'partial',
-                summary: logResults.totalToday === 0
-                    ? `${logSummaryPrefix}: No hay cumpleaños para enviar hoy. Gatillo: ${logSourceLabel}.`
-                    : `${logSummaryPrefix}: Socios hoy: ${logResults.totalToday}, Procesados: ${logResults.processed}, Puntos: ${logResults.pointsGivenTotal}. Gatillo: ${logSourceLabel}.`,
-                details: logResults.details.slice(0, 500),
-                executor: executorEmail,
-                role: executorRole === 'system' && executorEmail !== 'system' ? 'admin' : executorRole
-            });
-        } catch (logError) {
-            console.error("[Birthdays] Error saving audit log:", logError);
-        }
-
-        // --- MODO DAILY: también ejecutar vencimientos ---
-        let expirationsResult = null;
-
+        // --- PASO 2: VENCIMIENTOS (CALL SILENT) ---
+        let expirationsResult = { ok: true, summary: { notified: 0, expiredPoints: 0, details: [] } };
         if (isDailyMode) {
-            // 1. Ejecutar Vencimientos
             try {
                 const currentHost = req.headers.host;
-                const baseUrl = currentHost
-                    ? `https://${currentHost}`
-                    : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
-
-                const eRes = await fetch(`${baseUrl}/api/expirations?action=check&trigger=${triggerSource}`, {
+                const baseUrl = currentHost ? `https://${currentHost}` : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+                const eRes = await fetch(`${baseUrl}/api/expirations?action=check&trigger=${triggerSource}&silent=true`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-api-key': SECRET,
-                        'x-api-secret': SECRET,
-                        'x-executor-role': 'system'
-                    },
-                    body: JSON.stringify({
-                        simulatedDate: referenceDate.toISOString()
-                    })
+                    headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET, 'x-api-secret': SECRET, 'x-executor-role': 'system' },
+                    body: JSON.stringify({ simulatedDate: referenceDate.toISOString(), ignoreDeduplication: finalIgnoreDeduplication })
                 });
                 expirationsResult = await eRes.json();
-                console.log("[DailyCheck] Vencimientos:", JSON.stringify(expirationsResult).substring(0, 200));
-            } catch (e) {
-                console.error("[DailyCheck] Error en vencimientos:", e.message);
-                expirationsResult = { ok: false, error: e.message };
-            }
+            } catch (e) { console.error("Error expirations:", e.message); }
+        }
 
-            // Marcar como ejecutado (solo si no es simulación)
-            if (!isManualSim) {
-                const arFormatter = new Intl.DateTimeFormat('en-CA', {
-                    timeZone: 'America/Argentina/Buenos_Aires',
-                    year: 'numeric', month: '2-digit', day: '2-digit'
-                });
-                await db.collection('config').doc('dailyCheck').set({
-                    lastRunDate: arFormatter.format(new Date()),
-                    lastRunTimestamp: admin.firestore.FieldValue.serverTimestamp(),
-                    executor: executorEmail,
-                    results: {
-                        birthdaysOk: true,
-                        expirationsOk: expirationsResult?.ok || false
-                    }
-                }, { merge: true });
-            }
+        // --- AUDITORIA CONSOLIDADA ---
+        const totalNotified = logResults.processed + (expirationsResult.summary?.notified || 0);
+        const auditSummary = `Motor Diario Ejecutado. Gatillo: ${logSourceLabel}. Total Notificaciones: ${totalNotified}. 
+            (Cumpleaños: ${logResults.processed}, Vencimientos: ${expirationsResult.summary?.notified || 0})`;
+
+        await db.collection('audit_logs').add({
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            type: 'daily_engine_run',
+            status: 'success',
+            summary: auditSummary,
+            details: [
+                ...logResults.details.map(d => ({ ...d, category: 'cumpleaños' })),
+                ...(expirationsResult.summary?.details || []).map(d => ({ ...d, category: 'vencimientos' }))
+            ].slice(0, 500),
+            executor: executorEmail
+        });
+
+        // Marcar como ejecutado
+        if (!isManualSim && isDailyMode) {
+            const arFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires', year: 'numeric', month: '2-digit', day: '2-digit' });
+            await db.collection('config').doc('dailyCheck').set({
+                lastRunDate: arFormatter.format(new Date()),
+                lastRunTimestamp: admin.firestore.FieldValue.serverTimestamp(),
+                executor: executorEmail
+            }, { merge: true });
         }
 
         return res.status(200).json({
             ok: true,
-            skipped: false,
-            summary: logResults,
-            today: todayMD,
-            ...(isDailyMode ? {
-                expirations: {
-                    ...expirationsResult,
-                    summary: {
-                        ...expirationsResult?.summary,
-                        totalInWindow: expirationsResult?.summary?.totalInWindow || 0
-                    }
-                }
-            } : {})
+            summary: auditSummary,
+            birthdays: logResults,
+            expirations: expirationsResult
         });
 
     } catch (error) {

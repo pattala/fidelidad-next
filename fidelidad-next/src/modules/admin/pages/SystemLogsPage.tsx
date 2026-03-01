@@ -235,11 +235,14 @@ export const SystemLogsPage = () => {
             case 'points_history_reset': return 'Ajuste Manual: Historial Reseteado';
             case 'points_assignment': return 'Asignación de Puntos';
             case 'prizes_redemption': return 'Canje de Premio';
+            case 'daily_check_info': return 'Motor al día (Check)';
+            case 'daily_engine_run': return 'Motor Diario (Ejecutado)';
+            case 'campaign_broadcast': return 'Difusión Masiva (Campaña)';
             case 'campaign_mgmt': return 'Campaña (Activación/Desact)';
             case 'campaign_created': return 'Campaña (Nueva)';
             case 'campaign_updated': return 'Campaña (Editada)';
             case 'campaign_deleted': return 'Campaña (Borrada)';
-            case 'campaign_diffusion': return 'Campaña (Difusión Masiva)';
+            case 'campaign_diffusion': return 'Campaña (Difusión Manual)';
             case 'data_export': return 'Exportación de Datos';
             case 'config_updated': return 'Configuración Actualizada';
             case 'prize_created': return 'Premio Creado';

@@ -98,6 +98,8 @@ async function handleCheck(req, res, db) {
         // El control de duplicidad es ignorado si se pide por request O si está desactivado globalmente
         const finalIgnoreDeduplication = ignoreDeduplication || (config.enableDuplicateControl === false);
 
+        const silent = req.body?.silent === true || req.query?.silent === 'true';
+
         let logType = 'expiration_engine';
         let logSummaryPrefix = 'Proceso Automático (Sistema)';
         if (executorEmail !== 'system') {
@@ -106,15 +108,18 @@ async function handleCheck(req, res, db) {
             else { logType = 'session_refresh_check'; logSummaryPrefix = 'Revisión Automática (Sesión)'; }
         }
 
-        const startLogRef = await db.collection('audit_logs').add({
-            timestamp: admin.firestore.FieldValue.serverTimestamp(),
-            type: logType,
-            status: 'running',
-            summary: `Iniciando ${logSummaryPrefix}... Gatillo: ${logSourceLabel}.`,
-            details: [],
-            executor: executorEmail,
-            role: executorRole === 'system' && executorEmail !== 'system' ? 'admin' : executorRole
-        });
+        let startLogRef = null;
+        if (!silent) {
+            startLogRef = await db.collection('audit_logs').add({
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                type: logType,
+                status: 'running',
+                summary: `Iniciando ${logSummaryPrefix}... Gatillo: ${logSourceLabel}.`,
+                details: [],
+                executor: executorEmail,
+                role: executorRole === 'system' && executorEmail !== 'system' ? 'admin' : executorRole
+            });
+        }
 
         const referenceDateStr = referenceDate.toISOString().split('T')[0];
         const startOfToday = new Date(referenceDate);
@@ -240,7 +245,13 @@ async function handleCheck(req, res, db) {
             }
         }
 
-        await startLogRef.update({ status: logResults.errors.length === 0 ? 'success' : 'partial', summary: `Motor ejecutado. Procesados: ${logResults.processed}, Vencidos: ${logResults.expiredPoints} pts, Notificados: ${logResults.notified}`, details: [{ action: 'engine_parameters', referenceDate: referenceDateStr }, ...logResults.details].slice(0, 500) });
+        if (startLogRef) {
+            await startLogRef.update({
+                status: logResults.errors.length === 0 ? 'success' : 'partial',
+                summary: `Motor ejecutado. Procesados: ${logResults.processed}, Vencidos: ${logResults.expiredPoints} pts, Notificados: ${logResults.notified}`,
+                details: [{ action: 'engine_parameters', referenceDate: referenceDateStr }, ...logResults.details].slice(0, 500)
+            });
+        }
         return res.status(200).json({ ok: true, summary: logResults });
     } catch (err) {
         console.error("Check Error:", err);

@@ -52,6 +52,7 @@ export const CampaignsPage = () => {
     const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
     const [broadcastData, setBroadcastData] = useState<any>(null);
     const [selectedChannels, setSelectedChannels] = useState({ push: true, email: true, whatsapp: true });
+    const [isRunningEngine, setIsRunningEngine] = useState(false);
 
     const DAYS = [
         { id: 1, label: 'Lun' }, { id: 2, label: 'Mar' }, { id: 3, label: 'Mie' },
@@ -91,7 +92,8 @@ export const CampaignsPage = () => {
             flashRewardType: 'FIXED', flashRewardValue: 50, flashRewardText: '',
             flashDays: [], flashGraceMins: 15,
             isInternal: false,
-            autoBroadcast: false
+            autoBroadcast: false,
+            broadcastLeadMins: 15
         });
         setEditingId(null);
         setActiveTab('BASIC');
@@ -160,6 +162,7 @@ export const CampaignsPage = () => {
 
                 startTime: isFlashMode ? formData.startTime : '',
                 endTime: isFlashMode ? formData.endTime : '',
+                broadcastLeadMins: formData.autoBroadcast ? (formData.broadcastLeadMins || 15) : 0,
                 isInternal: !!formData.isInternal
             };
             if (editingId) {
@@ -583,12 +586,40 @@ export const CampaignsPage = () => {
                     </div>
                 </div>
                 {!isReadOnly && (
-                    <button
-                        onClick={() => { resetForm(); setIsModalOpen(true); }}
-                        className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-purple-200 transition-all active:scale-95 flex items-center gap-2"
-                    >
-                        <Plus size={20} /> Nueva Campaña
-                    </button>
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={async () => {
+                                if (isRunningEngine) return;
+                                const confirmRun = confirm("¿Deseas ejecutar el motor de campañas manualmente ahora?\n\nEsto desactivará las expiradas e intentará enviar difusiones programadas (ignorando el control de duplicidad de hoy).");
+                                if (!confirmRun) return;
+
+                                setIsRunningEngine(true);
+                                const load = toast.loading("Ejecutando motor...");
+                                try {
+                                    const res = await CampaignService.runEngine('manual', true);
+                                    toast.success(`Motor finalizado: ${res.results.notified} notificaciones, ${res.results.deactivated} desactivadas.`, { id: load });
+                                    fetchBonuses();
+                                } catch (e) {
+                                    toast.error("Error al ejecutar el motor", { id: load });
+                                } finally {
+                                    setIsRunningEngine(false);
+                                }
+                            }}
+                            disabled={isRunningEngine}
+                            className={`px-4 py-3 rounded-2xl font-bold flex items-center gap-2 transition-all active:scale-95 ${isRunningEngine ? 'bg-gray-100 text-gray-400' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
+                            title="Mantenimiento y Difusión Manual"
+                        >
+                            <Play size={18} className={isRunningEngine ? 'animate-pulse' : ''} />
+                            <span className="hidden md:inline">Ejecutar Motor</span>
+                        </button>
+
+                        <button
+                            onClick={() => { resetForm(); setIsModalOpen(true); }}
+                            className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-purple-200 transition-all active:scale-95 flex items-center gap-2"
+                        >
+                            <Plus size={20} /> Nueva Campaña
+                        </button>
+                    </div>
                 )}
             </div>
 
@@ -1555,9 +1586,28 @@ export const CampaignsPage = () => {
                                                                 </button>
                                                             </div>
                                                             {formData.autoBroadcast && (
-                                                                <p className="mt-4 text-[10px] text-blue-800 font-medium bg-white/50 p-3 rounded-xl border border-blue-200/50 italic">
-                                                                    ✨ El sistema enviará automáticamente las notificaciones a todos los socios en cuanto la campaña comience (detectado en la próxima apertura de sesión).
-                                                                </p>
+                                                                <>
+                                                                    <p className="mt-4 text-[10px] text-blue-800 font-medium bg-white/50 p-3 rounded-xl border border-blue-200/50 italic">
+                                                                        ✨ El sistema enviará automáticamente las notificaciones a todos los socios unos minutos antes de que la campaña comience (o al inicio si eliges 0).
+                                                                    </p>
+                                                                    <div className="mt-4 bg-white/40 p-4 rounded-2xl border border-blue-200/30 space-y-3">
+                                                                        <div className="flex justify-between items-center">
+                                                                            <label className="text-[10px] font-black text-blue-900 uppercase">Antelación del Mensaje</label>
+                                                                            <span className="text-xs font-black text-blue-600 bg-white px-3 py-1 rounded-full shadow-sm">{formData.broadcastLeadMins || 0} Min</span>
+                                                                        </div>
+                                                                        <input
+                                                                            type="range" min="0" max="120" step="5"
+                                                                            className="w-full h-2 bg-blue-100 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                                                                            value={formData.broadcastLeadMins || 0}
+                                                                            onChange={e => setFormData({ ...formData, broadcastLeadMins: parseInt(e.target.value) })}
+                                                                        />
+                                                                        <p className="text-[9px] text-blue-400 font-bold italic text-center">
+                                                                            {formData.broadcastLeadMins === 0
+                                                                                ? "El mensaje saldrá exactamente al inicio."
+                                                                                : `El mensaje saldrá ${formData.broadcastLeadMins} minutos antes del inicio.`}
+                                                                        </p>
+                                                                    </div>
+                                                                </>
                                                             )}
                                                         </section>
 

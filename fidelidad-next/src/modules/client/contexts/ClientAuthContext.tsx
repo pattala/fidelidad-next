@@ -56,10 +56,12 @@ export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) 
                             if (configSnap.exists()) {
                                 const cfg = configSnap.data();
                                 if (cfg.messaging?.enableClientTrigger !== false) {
-                                    fetch('/api/engine-daily?mode=daily', { method: 'POST' }).catch(() => { });
+                                    fetch('/api/engine-daily?mode=daily&trigger=pwa', { method: 'POST' }).catch(() => { });
+                                    fetch('/api/engine-campaigns?trigger=pwa', { method: 'POST' }).catch(() => { });
                                 }
                             } else {
-                                fetch('/api/engine-daily?mode=daily', { method: 'POST' }).catch(() => { });
+                                fetch('/api/engine-daily?mode=daily&trigger=pwa', { method: 'POST' }).catch(() => { });
+                                fetch('/api/engine-campaigns?trigger=pwa', { method: 'POST' }).catch(() => { });
                             }
                         } catch (e) { }
                     } else {

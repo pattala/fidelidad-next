@@ -71,6 +71,7 @@ export interface BonusRule {
     channels?: string[]; // push, email, whatsapp
     autoBroadcast?: boolean; // New: Automatic push/email broadcast
     broadcastSentAt?: string; // New: ISO Timestamp of when it was sent
+    broadcastLeadMins?: number; // New: Minutes before startTime to send notification
     actionUrl?: string;  // URL for floating modal link
     actionText?: string; // Text for floating modal button
     isInternal?: boolean;
@@ -229,5 +230,22 @@ export const CampaignService = {
             if (b.endDate && b.endDate < todayStr) return false;
             return true;
         });
+    },
+
+    async runEngine(trigger: string = 'manual', ignoreDeduplication: boolean = false) {
+        try {
+            const response = await fetch(`/api/engine-campaigns?trigger=${trigger}&ignoreDeduplication=${ignoreDeduplication}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': (import.meta as any).env.VITE_API_KEY || ''
+                }
+            });
+            if (!response.ok) throw new Error('Error al ejecutar el motor');
+            return await response.json();
+        } catch (error) {
+            console.error('Error running campaign engine:', error);
+            throw error;
+        }
     }
 };

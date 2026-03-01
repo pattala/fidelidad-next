@@ -30,6 +30,12 @@ chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
                     return { skip: true };
                 }
 
+                // --- EXPLICIT TRIGGER: CAMPAIGN ENGINE (Mantenimiento y Difusión) ---
+                fetch(`${res.apiUrl}/api/engine-campaigns?trigger=extension`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-api-key': res.apiKey }
+                }).catch(e => console.error("❌ [Club Fidelidad] Error en trigger campañas:", e.message));
+
                 return fetch(`${res.apiUrl}/api/engine-daily?mode=daily&trigger=extension`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'x-api-key': res.apiKey },

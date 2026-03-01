@@ -82,6 +82,7 @@ async function handleCheck(req, res, db) {
         const todayStr = new Date().toISOString().split('T')[0];
         const simulatedStr = simulatedDateBody ? new Date(simulatedDateBody).toISOString().split('T')[0] : null;
         const isSimulation = simulatedStr && simulatedStr !== todayStr;
+        const ignoreDeduplication = req.body?.ignoreDeduplication === true || req.query?.ignoreDeduplication === 'true';
 
         if (simulatedDateBody) referenceDate = new Date(simulatedDateBody);
         const triggerSource = req.query?.trigger || req.body?.trigger || "unknown";
@@ -197,9 +198,9 @@ async function handleCheck(req, res, db) {
 
                     let isItinerancy = false;
                     if (sameTargetAndAmount) {
-                        if (!isItinerancyEnabled && !isSimulation && !isFromUI) continue;
+                        if (!isItinerancyEnabled && !ignoreDeduplication) continue;
                         const lastNoticeDate = userData.lastExpirationNotice;
-                        if (lastNoticeDate && reminderIntervalDays > 0 && !isSimulation && !isFromUI) {
+                        if (lastNoticeDate && reminderIntervalDays > 0 && !ignoreDeduplication) {
                             const diff = Math.floor((new Date(referenceDateStr).getTime() - new Date(lastNoticeDate).getTime()) / 86400000);
                             if (diff < reminderIntervalDays) continue;
                         }

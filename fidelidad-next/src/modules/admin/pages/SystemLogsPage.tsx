@@ -42,6 +42,7 @@ export const SystemLogsPage = () => {
 
     const [isRunningExpirations, setIsRunningExpirations] = useState(false);
     const [isRunningBirthdays, setIsRunningBirthdays] = useState(false);
+    const [ignoreDeduplication, setIgnoreDeduplication] = useState(false);
     const navigate = useNavigate();
 
     const handleRunBirthdays = async () => {
@@ -61,7 +62,8 @@ export const SystemLogsPage = () => {
                 },
                 body: JSON.stringify({
                     simulatedDate: TimeService.now().toISOString(),
-                    isManual: true
+                    isManual: true,
+                    ignoreDeduplication: ignoreDeduplication
                 })
             });
             const data = await res.json();
@@ -96,7 +98,8 @@ export const SystemLogsPage = () => {
                 },
                 body: JSON.stringify({
                     simulatedDate: TimeService.now().toISOString(),
-                    isManual: true
+                    isManual: true,
+                    ignoreDeduplication: ignoreDeduplication
                 })
             });
             const data = await res.json();
@@ -254,6 +257,22 @@ export const SystemLogsPage = () => {
                         {isRunningExpirations ? <Loader2 size={18} className="animate-spin" /> : <Play size={18} fill="currentColor" />}
                         <span className="hidden sm:inline">Ejecutar Revisión de Vencimientos</span>
                     </button>
+
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg">
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Duplicidad</span>
+                        <button
+                            onClick={() => setIgnoreDeduplication(!ignoreDeduplication)}
+                            className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none ${ignoreDeduplication ? 'bg-red-500' : 'bg-green-500'}`}
+                        >
+                            <span
+                                className={`${ignoreDeduplication ? 'translate-x-5' : 'translate-x-1'
+                                    } inline-block h-3 w-3 transform rounded-full bg-white transition-transform`}
+                            />
+                        </button>
+                        <span className={`text-[10px] font-bold uppercase ${ignoreDeduplication ? 'text-red-500' : 'text-green-500'}`}>
+                            {ignoreDeduplication ? 'Ignorada' : 'Activa'}
+                        </span>
+                    </div>
                     <button
                         onClick={() => fetchLogs()}
                         className="p-2 hover:bg-gray-100 rounded-lg transition text-gray-600 border border-gray-100"

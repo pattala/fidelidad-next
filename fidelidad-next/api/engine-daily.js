@@ -89,7 +89,8 @@ export default async function handler(req, res) {
     const isDailyMode = req.query?.mode === 'daily' || req.body?.mode === 'daily';
     const simulatedDateStr = req.body?.simulatedDate || req.query?.simulatedDate;
     const isManual = req.body?.isManual === true || req.query?.isManual === 'true';
-    const isManualSim = !!simulatedDateStr || isManual;
+    const ignoreDeduplication = req.body?.ignoreDeduplication === true || req.query?.ignoreDeduplication === 'true';
+    const isManualSim = !!simulatedDateStr || isManual || ignoreDeduplication;
 
     // --- TRIGGER & SOURCE IDENTIFICATION ---
     const triggerSource = req.query?.trigger || req.body?.trigger || "unknown"; // dashboard, pwa, extension, qstash
@@ -164,7 +165,7 @@ export default async function handler(req, res) {
         const checkSnap = await db.collection('config').doc('dailyCheck').get();
         const lastRun = checkSnap.exists ? checkSnap.data()?.lastRunDate : null;
 
-        if (lastRun === todayAR && !isManualSim) {
+        if (lastRun === todayAR && !ignoreDeduplication) {
             console.log(`[DailyCheck] Ya se ejecutó hoy (${todayAR}). Saltando procesos pero calculando contadores.`);
 
             // 1. Contar Cumpleaños Hoy (que no hayan sido saludados aún este año)
@@ -259,8 +260,8 @@ export default async function handler(req, res) {
                 const userData = userDoc.data();
                 const userId = userDoc.id;
 
-                // 1. Evitar duplicar saludo el mismo año (Omitir si es simulación manual)
-                if (userData.lastBirthdayGreetingYear === currentYear && !isManualSim) continue;
+                // 1. Evitar duplicar saludo el mismo año (Omitir si se ignora deduplicación)
+                if (userData.lastBirthdayGreetingYear === currentYear && !ignoreDeduplication) continue;
 
                 const birthdayPoints = config?.birthdayPoints || 100;
                 const autoBonusEnabled = config?.enableBirthdayBonus === true;
@@ -269,8 +270,8 @@ export default async function handler(req, res) {
                 let pointsAdded = 0;
                 let actionsTaken = [];
 
-                // 2. Aplicar Bono de Puntos (Omitir si es simulación manual)
-                if (autoBonusEnabled && (userData.lastBirthdayPointsYear !== currentYear || isManualSim)) {
+                // 2. Aplicar Bono de Puntos (Omitir si se ignora deduplicación)
+                if (autoBonusEnabled && (userData.lastBirthdayPointsYear !== currentYear || ignoreDeduplication)) {
                     const historyRef = userDoc.ref.collection('points_history');
 
                     // Calcular expiración según reglas
@@ -367,7 +368,7 @@ export default async function handler(req, res) {
                     });
                     actionsTaken.push("inbox_saved");
 
-                    if (!isManualSim) {
+                    if (!ignoreDeduplication) {
                         await userDoc.ref.update({ lastBirthdayGreetingYear: currentYear });
                     }
                 }

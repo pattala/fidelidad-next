@@ -3,18 +3,31 @@ import { useNavigate } from 'react-router-dom';
 import { useClientAuth } from '../contexts/ClientAuthContext';
 
 export const ClientAuthGuard = ({ children }: { children: React.ReactNode }) => {
-    const { user, loading } = useClientAuth();
+    const { user, userData, loading, isProfileMissing, isAdmin } = useClientAuth();
     const navigate = useNavigate();
 
     useEffect(() => {
-        if (!loading && !user) {
-            const currentPath = window.location.pathname;
-            if (currentPath !== '/login' && currentPath !== '/register') {
-                sessionStorage.setItem('client_redirect_to', currentPath + window.location.search);
+        const checkAuth = async () => {
+            if (!loading) {
+                if (!user) {
+                    const currentPath = window.location.pathname;
+                    if (currentPath !== '/login' && currentPath !== '/register') {
+                        sessionStorage.setItem('client_redirect_to', currentPath + window.location.search);
+                    }
+                    navigate('/login');
+                } else if (isProfileMissing && !isAdmin) {
+                    // User is authenticated but has no Firestore profile.
+                    // We should force a logout to avoid loops and send to login.
+                    const { auth } = await import('../../../lib/firebase');
+                    const { signOut } = await import('firebase/auth');
+                    await signOut(auth);
+                    navigate('/login');
+                }
             }
-            navigate('/login');
-        }
-    }, [user, loading, navigate]);
+        };
+
+        checkAuth();
+    }, [user, loading, isProfileMissing, isAdmin, navigate]);
 
     if (loading) return (
         <div className="h-screen w-full bg-gray-50 flex items-center justify-center flex-col gap-4">

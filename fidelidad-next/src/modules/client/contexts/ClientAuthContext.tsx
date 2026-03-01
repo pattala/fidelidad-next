@@ -9,6 +9,7 @@ interface ClientAuthContextType {
     userData: any | null;
     loading: boolean;
     isAdmin: boolean;
+    isProfileMissing?: boolean;
 }
 
 const ClientAuthContext = createContext<ClientAuthContextType>({
@@ -23,18 +24,20 @@ export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) 
     const [userData, setUserData] = useState<any | null>(null);
     const [loading, setLoading] = useState(true);
     const [isAdmin, setIsAdmin] = useState(false);
+    const [isProfileMissing, setIsProfileMissing] = useState(false);
 
     useEffect(() => {
         let unsubFirestore: (() => void) | undefined;
         let resolveTimer: any | undefined;
 
         const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
-            // Clear any pending resolve timer if auth state changes
+            // Clear any pending resolve timer
             if (resolveTimer) clearTimeout(resolveTimer);
 
             if (firebaseUser) {
                 setUser(firebaseUser);
-                setLoading(true); // Ensure loading is true while fetching data
+                setIsProfileMissing(false);
+                setLoading(true);
 
                 const userRef = doc(db, 'users', firebaseUser.uid);
                 const adminRef = doc(db, 'admins', firebaseUser.uid);
@@ -77,9 +80,11 @@ export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) 
                             } else {
                                 setIsAdmin(false);
                                 setUserData(null);
+                                setIsProfileMissing(true);
                             }
                         } catch (e) {
                             console.error("Error checking admin status:", e);
+                            setIsProfileMissing(true);
                         } finally {
                             setLoading(false);
                         }
@@ -90,15 +95,17 @@ export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) 
                 });
 
             } else {
-                // Wait 1500ms before deciding there's no user (fast but safe for persistence)
+                // Not authenticated
+                setLoading(true);
                 resolveTimer = setTimeout(() => {
                     if (!auth.currentUser) {
                         setUser(null);
                         setUserData(null);
                         setIsAdmin(false);
+                        setIsProfileMissing(false);
                         setLoading(false);
                     }
-                }, 1500);
+                }, 1000); // Reduced to 1s
             }
         });
 
@@ -110,7 +117,7 @@ export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) 
     }, []);
 
     return (
-        <ClientAuthContext.Provider value={{ user, userData, loading, isAdmin }}>
+        <ClientAuthContext.Provider value={{ user, userData, loading, isAdmin, isProfileMissing } as any}>
             {children}
         </ClientAuthContext.Provider>
     );

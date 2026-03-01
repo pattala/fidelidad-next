@@ -88,7 +88,8 @@ export default async function handler(req, res) {
     const db = app.firestore();
     const isDailyMode = req.query?.mode === 'daily' || req.body?.mode === 'daily';
     const simulatedDateStr = req.body?.simulatedDate || req.query?.simulatedDate;
-    const isManualSim = !!simulatedDateStr;
+    const isManual = req.body?.isManual === true || req.query?.isManual === 'true';
+    const isManualSim = !!simulatedDateStr || isManual;
 
     // --- TRIGGER & SOURCE IDENTIFICATION ---
     const triggerSource = req.query?.trigger || req.body?.trigger || "unknown"; // dashboard, pwa, extension, qstash

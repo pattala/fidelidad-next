@@ -264,12 +264,21 @@ export const DashboardPage = () => {
                 if (!SECRET) return;
 
                 // Solo pasar simulatedDate si REALMENTE hay un offset activo
-                // De lo contrario, activamos la deduplicación del motor (/api/check-birthdays)
+                // De lo contrario, activamos la deduplicación del motor (/api/engine-daily)
+                // y que el backend resuelva si ya se ejecutó hoy o no.
+
+                if (config.messaging?.enableDashboardTrigger === false) {
+                    console.log('[Dashboard] Engine trigger disabled by config.');
+                    return;
+                }
+
+                console.log('[Dashboard] Executing backend engine...');
+
                 const hasOffset = TimeService.getOffsetInDays() !== 0;
                 const body: any = {};
                 if (hasOffset) body.simulatedDate = TimeService.now().toISOString();
 
-                const res = await fetch('/api/check-birthdays?mode=daily', {
+                const res = await fetch('/api/engine-daily?mode=daily', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET },
                     body: JSON.stringify(body)

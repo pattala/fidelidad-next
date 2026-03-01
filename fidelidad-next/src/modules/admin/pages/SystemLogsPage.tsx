@@ -51,7 +51,7 @@ export const SystemLogsPage = () => {
         const toastId = toast.loading('Ejecutando proceso de cumpleaños...');
         try {
             const token = await auth.currentUser?.getIdToken();
-            const res = await fetch('/api/check-birthdays', {
+            const res = await fetch('/api/engine-daily', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

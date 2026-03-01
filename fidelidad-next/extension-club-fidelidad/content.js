@@ -21,16 +21,25 @@ chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
         if (offset !== 0) {
             now.setTime(now.getTime() + (offset * 24 * 60 * 60 * 1000));
         }
-
-        fetch(`${res.apiUrl}/api/check-birthdays?mode=daily`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-api-key': res.apiKey },
-            body: JSON.stringify({
-                simulatedDate: now.toISOString()
-            })
-        })
+        // --- ESTRATEGIA: Obtener configuración desde la API antes de disparar el engine ---
+        fetch(`${res.apiUrl}/api/config`, { headers: { 'x-api-key': res.apiKey } })
             .then(r => r.json())
+            .then(confData => {
+                if (confData?.config?.messaging?.enableExtensionTrigger === false) {
+                    console.log("ℹ️ [Club Fidelidad] Motor Automático desactivado para Extensión por configuración.");
+                    return { skip: true };
+                }
+
+                return fetch(`${res.apiUrl}/api/engine-daily?mode=daily`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-api-key': res.apiKey },
+                    body: JSON.stringify({
+                        simulatedDate: now.toISOString()
+                    })
+                }).then(r => r.json());
+            })
             .then(data => {
+                if (!data || data.skip) return;
                 console.log("📊 [Club Fidelidad] Respuesta de pendientes:", data);
                 if (data.ok) {
                     const birthdayCount = data.summary?.totalToday || 0;
@@ -180,7 +189,8 @@ function showGlobalAlert(birthdays, expirations, adminUrl) {
 async function refreshAlertCounts() {
     if (!config.apiUrl || !config.apiKey) return;
     try {
-        const r = await fetch(`${config.apiUrl}/api/check-birthdays?mode=daily`, {
+        // Dispara el check en modo SILENCIOSO y "Diario" a la API oficial
+        const r = await fetch(`${config.apiUrl}/api/engine-daily?mode=daily`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey }
         });

@@ -48,7 +48,12 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
         },
         enableExpirationWarnings: false,
         expirationWarningDays: 7,
-        automaticCheckHour: 9
+        automaticCheckHour: 9,
+        engineAllowedStartHour: 9,
+        engineAllowedEndHour: 22,
+        enableDashboardTrigger: true,
+        enableClientTrigger: true,
+        enableExtensionTrigger: true,
     },
     referrals: {
         enabled: true,

@@ -2220,6 +2220,90 @@ export const ConfigPage = () => {
                                             <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enableDateSimulator ? 'translate-x-5' : 'translate-x-0'}`} />
                                         </button>
                                     </div>
+
+                                    {/* Motor Automático Diario */}
+                                    <div className="p-6 bg-blue-50/50 rounded-2xl border border-blue-100 space-y-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold shadow-md shadow-blue-200">
+                                                <Settings size={20} />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-md font-black text-gray-800 tracking-tight">Motor Automático Diario</h4>
+                                                <p className="text-xs text-gray-500 uppercase tracking-widest font-bold">Ventana de Ejecución</p>
+                                            </div>
+                                        </div>
+                                        <p className="text-sm text-gray-600 leading-relaxed">
+                                            Define el rango horario en el que el sistema tiene permitido revisar vencimientos y enviar felicitaciones de cumpleaños u ofertas automáticas (Ej: de 9 a 22 hs). Esto evita molestar a tus clientes con notificaciones de madrugada.
+                                        </p>
+
+                                        <div className="flex items-center gap-4 bg-white p-4 rounded-xl border border-blue-50">
+                                            <label className="flex flex-col flex-1">
+                                                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Empieza a las</span>
+                                                <div className="relative">
+                                                    <input
+                                                        type="number" min="0" max="23"
+                                                        value={config.messaging?.engineAllowedStartHour ?? 9}
+                                                        onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, engineAllowedStartHour: parseInt(e.target.value) || 0 } })}
+                                                        className="w-full pl-3 pr-8 py-2 text-xl font-black text-gray-800 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+                                                    />
+                                                    <span className="absolute right-3 top-2.5 font-bold text-gray-400">hs</span>
+                                                </div>
+                                            </label>
+                                            <span className="text-gray-300 font-black">—</span>
+                                            <label className="flex flex-col flex-1">
+                                                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Corta a las</span>
+                                                <div className="relative">
+                                                    <input
+                                                        type="number" min="0" max="23"
+                                                        value={config.messaging?.engineAllowedEndHour ?? 22}
+                                                        onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, engineAllowedEndHour: parseInt(e.target.value) || 0 } })}
+                                                        className="w-full pl-3 pr-8 py-2 text-xl font-black text-gray-800 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+                                                    />
+                                                    <span className="absolute right-3 top-2.5 font-bold text-gray-400">hs</span>
+                                                </div>
+                                            </label>
+                                        </div>
+
+                                        <div className="mt-4 pt-4 border-t border-blue-100 flex flex-col gap-3">
+                                            <p className="text-xs font-bold text-blue-800 uppercase tracking-widest mb-1">Gatillos (Triggers) de Ejecución</p>
+                                            <label className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-50 hover:bg-blue-50/50 transition-colors cursor-pointer">
+                                                <div>
+                                                    <span className="text-sm font-bold text-gray-700 block">Ejecución en Dashboard</span>
+                                                    <span className="text-[10px] text-gray-500">Intenta arrancar en segundo plano al abrir este panel de Admin.</span>
+                                                </div>
+                                                <input
+                                                    type="checkbox"
+                                                    className="w-5 h-5 text-blue-600 rounded"
+                                                    checked={config.messaging?.enableDashboardTrigger !== false}
+                                                    onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, enableDashboardTrigger: e.target.checked } })}
+                                                />
+                                            </label>
+                                            <label className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-50 hover:bg-blue-50/50 transition-colors cursor-pointer">
+                                                <div>
+                                                    <span className="text-sm font-bold text-gray-700 block">Ejecución en PWA (Clientes)</span>
+                                                    <span className="text-[10px] text-gray-500">Un cliente real puede despabilar el motor de forma silenciosa.</span>
+                                                </div>
+                                                <input
+                                                    type="checkbox"
+                                                    className="w-5 h-5 text-blue-600 rounded"
+                                                    checked={config.messaging?.enableClientTrigger !== false}
+                                                    onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, enableClientTrigger: e.target.checked } })}
+                                                />
+                                            </label>
+                                            <label className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-50 hover:bg-blue-50/50 transition-colors cursor-pointer">
+                                                <div>
+                                                    <span className="text-sm font-bold text-gray-700 block">Ejecución en Extensión</span>
+                                                    <span className="text-[10px] text-gray-500">El plugin de Chrome del mostrador arranca el motor si no se usó hoy.</span>
+                                                </div>
+                                                <input
+                                                    type="checkbox"
+                                                    className="w-5 h-5 text-blue-600 rounded"
+                                                    checked={config.messaging?.enableExtensionTrigger !== false}
+                                                    onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, enableExtensionTrigger: e.target.checked } })}
+                                                />
+                                            </label>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 

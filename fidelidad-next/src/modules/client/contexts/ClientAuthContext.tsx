@@ -45,6 +45,20 @@ export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) 
                         setUserData(snap.data());
                         setIsAdmin(false);
                         setLoading(false);
+
+                        // Silent background trigger for daily engine
+                        try {
+                            const { getDoc, doc } = await import('firebase/firestore');
+                            const configSnap = await getDoc(doc(db, 'config', 'general'));
+                            if (configSnap.exists()) {
+                                const cfg = configSnap.data();
+                                if (cfg.messaging?.enableClientTrigger !== false) {
+                                    fetch('/api/engine-daily?mode=daily', { method: 'POST' }).catch(() => { });
+                                }
+                            } else {
+                                fetch('/api/engine-daily?mode=daily', { method: 'POST' }).catch(() => { });
+                            }
+                        } catch (e) { }
                     } else {
                         try {
                             const { getDoc } = await import('firebase/firestore');

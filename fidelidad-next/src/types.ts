@@ -162,7 +162,12 @@ export interface AppConfig {
         repeatExpirationWarnings?: boolean;
         expirationWarningDays?: number;
         automaticCheckHour?: number; // 0-23
-        expirationReminderIntervalDays?: number;
+        expirationReminderIntervalDays?: number; // Motor Automático Diario
+        engineAllowedStartHour?: number; // Default 9
+        engineAllowedEndHour?: number;
+        enableDashboardTrigger?: boolean;
+        enableClientTrigger?: boolean;
+        enableExtensionTrigger?: boolean;   // Default 22
     };
 
     // Sistema de Referidos

@@ -109,6 +109,16 @@ export default async function handler(req, res) {
 
         if (!isTriggerEnabled) {
             console.log(`[DailyCheck] Gatillo '${triggerSource}' desactivado por configuración.`);
+            if (triggerSource !== 'pwa') {
+                await db.collection('audit_logs').add({
+                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                    type: 'system_skip',
+                    status: 'skipped',
+                    summary: `Motor Diario Salteado: Gatillo '${triggerSource}' desactivado por configuración.`,
+                    executor: triggerSource,
+                    role: 'system'
+                });
+            }
             return res.status(200).json({ ok: true, skipped: true, message: `Gatillo '${triggerSource}' desactivado` });
         }
 
@@ -120,6 +130,16 @@ export default async function handler(req, res) {
 
         if (hourInt < minHour || hourInt >= maxHour) {
             console.log(`[DailyCheck] Fuera de horario permitido (${minHour} - ${maxHour} hs). Hora actual AR: ${hourInt}`);
+            if (triggerSource !== 'pwa') {
+                await db.collection('audit_logs').add({
+                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                    type: 'system_skip',
+                    status: 'skipped',
+                    summary: `Motor Diario Salteado: Fuera de ventana horaria (${minHour}-${maxHour} hs). Gatillo: ${triggerSource}.`,
+                    executor: triggerSource,
+                    role: 'system'
+                });
+            }
             return res.status(200).json({ ok: true, skipped: true, message: "Fuera de horario permitido", currentHour: hourInt, minHour, maxHour });
         }
     }

@@ -183,7 +183,7 @@ export const SystemLogsPage = () => {
     const getTypeLabel = (type: string) => {
         switch (type) {
             case 'expiration_engine': return 'Motor de Vencimientos (Auto)';
-            case 'manual_expiration': return 'Revisión Manual (Admin)';
+            case 'manual_expiration': return 'Revisión Simulada (Auto)';
             case 'session_refresh_check': return 'Revisión Automática (Sesión)';
             case 'birthday_engine': return 'Proceso de Cumpleaños (Auto)';
             case 'manual_birthday': return 'Saludador Manual (Admin)';
@@ -444,7 +444,7 @@ export const SystemLogsPage = () => {
                                                     </div>
                                                     <div className="text-right">
                                                         <p className="text-[10px] font-bold text-gray-400 uppercase">
-                                                            {log.timestamp?.toDate ? log.timestamp.toDate().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) : 'Reciente'}
+                                                            {log.timestamp?.toDate ? `${log.timestamp.toDate().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })} ${log.timestamp.toDate().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}` : 'Reciente'}
                                                         </p>
                                                         <div className="flex justify-end mt-1">
                                                             {expandedLog === log.id ? <ChevronUp size={16} className="text-gray-300" /> : <ChevronDown size={16} className="text-gray-300" />}

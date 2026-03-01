@@ -519,26 +519,6 @@ export const DashboardPage = () => {
                     </div>
                 </div>
 
-                {/* KPI: Puntos por Vencer */}
-                {expiringUsers.length > 0 && (
-                    <div className="bg-gradient-to-br from-amber-50 to-orange-50 p-6 rounded-2xl shadow-sm border border-amber-200 flex items-center justify-between transition hover:shadow-md relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-20 h-20 bg-amber-100/50 rounded-full -translate-y-1/2 translate-x-1/2" />
-                        <div className="relative z-10">
-                            <h3 className="text-amber-700 text-sm font-medium mb-1">⏳ Próximos a Vencer</h3>
-                            <div className="flex flex-col">
-                                <p className="text-3xl font-bold text-amber-800">
-                                    {expiringUsers.reduce((acc, u) => acc + u.points, 0).toLocaleString()} pts
-                                </p>
-                                <span className="text-[10px] font-bold text-amber-600 mt-1 uppercase tracking-tight">
-                                    {expiringUsers.length} socio{expiringUsers.length > 1 ? 's' : ''} · ≈ ${(expiringUsers.reduce((acc, u) => acc + u.points, 0) * (stats.pointValueConfigured || 1)).toLocaleString()}
-                                </span>
-                            </div>
-                        </div>
-                        <div className="bg-amber-100 p-3 rounded-xl text-amber-600 relative z-10">
-                            <AlertTriangle size={24} />
-                        </div>
-                    </div>
-                )}
             </div>
 
             {/* QUICK FORECAST BAR (CASH FLOW) */}

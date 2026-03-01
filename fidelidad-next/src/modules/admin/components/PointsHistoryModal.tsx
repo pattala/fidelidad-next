@@ -31,6 +31,12 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
     const [config, setConfig] = useState<any>(null);
 
     const [historyLimit, setHistoryLimit] = useState(50);
+    const [stats, setStats] = useState({
+        totalEarned: 0,
+        totalRedeemed: 0,
+        totalExpired: 0,
+        totalTransactions: 0
+    });
 
     // Fetch data wrapper
     const fetchData = async () => {
@@ -52,11 +58,10 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
                 setCurrentClient({ id: userSnap.id, ...userData });
             }
 
-            // B. Fetch History with dynamic limit
-            const historyQuery = query(
+            // B. Fetch History with NO limit for global stats (we'll slice it later for the UI)
+            const globalHistoryQuery = query(
                 collection(db, `users/${client.id}/points_history`),
-                orderBy('date', 'desc'),
-                limit(historyLimit)
+                orderBy('date', 'desc')
             );
 
             // C. Fetch ALL Expirations (Past and Future) to detect overdue points
@@ -67,14 +72,20 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
                 limit(300)
             );
 
-            const [historySnap, expirationSnap] = await Promise.all([
-                getDocs(historyQuery),
+            const [globalHistorySnap, expirationSnap] = await Promise.all([
+                getDocs(globalHistoryQuery),
                 getDocs(expirationQuery)
             ]);
 
             let calculatedTotalSpent = 0;
-            const historyData = historySnap.docs.map(doc => {
+            let tEarned = 0;
+            let tRedeemed = 0;
+            let tExpired = 0;
+
+            const allHistoryDocs = globalHistorySnap.docs.map(doc => {
                 const d = doc.data();
+
+                // 1. Calculate Money Spent
                 let itemMoney = 0;
                 if (d.type === 'credit') {
                     if (d.moneySpent !== undefined && d.moneySpent !== null) {
@@ -87,8 +98,15 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
                             itemMoney = Math.round((d.amount * 100) / safeRatio);
                         }
                     }
+                    calculatedTotalSpent += itemMoney;
+                    tEarned += d.amount;
+                } else if (d.type === 'debit') {
+                    if (d.status === 'expired' || d.isExpirationAdjustment) {
+                        tExpired += Math.abs(d.amount);
+                    } else {
+                        tRedeemed += Math.abs(d.amount);
+                    }
                 }
-                calculatedTotalSpent += itemMoney;
 
                 return {
                     id: doc.id,
@@ -97,6 +115,16 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
                     expiresAt: d.expiresAt?.toDate ? d.expiresAt.toDate() : (d.expiresAt ? new Date(d.expiresAt) : null)
                 };
             });
+
+            setStats({
+                totalEarned: tEarned,
+                totalRedeemed: tRedeemed,
+                totalExpired: tExpired,
+                totalTransactions: allHistoryDocs.length
+            });
+
+            // For the UI, we only show up to the historyLimit
+            const historyData = allHistoryDocs.slice(0, historyLimit);
 
             const todayStart = TimeService.startOfToday();
             const expirationMap: Record<string, { id: string, amount: number, date: Date, status: 'overdue' | 'today' | 'future' }> = {};
@@ -329,67 +357,87 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
                 </div>
 
                 {/* Stats Dashboard */}
-                <div className="px-6 pb-6 grid grid-cols-3 gap-4">
-                    {/* 1. Puntos Disponibles */}
-                    <div className="bg-blue-50/50 rounded-xl p-3 border border-blue-100 flex flex-col justify-center">
-                        <div className="flex items-center gap-2 mb-1">
-                            <TrendingUp size={14} className="text-blue-500" />
-                            <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wide">Puntos Actuales</p>
-                        </div>
-                        <p className="text-2xl font-black text-gray-800">{currentClient.points || 0}</p>
-                    </div>
-
-                    {/* 2. Dinero Gastado Total */}
-                    <div className="bg-green-50/50 rounded-xl p-3 border border-green-100 flex flex-col justify-center">
-                        <div className="flex items-center gap-2 mb-1">
-                            <DollarSign size={14} className="text-green-500" />
-                            <p className="text-[10px] font-bold text-green-600 uppercase tracking-wide">Total Gastado</p>
-                        </div>
-                        <p className="text-2xl font-black text-gray-800">
-                            ${totalSpent.toLocaleString('es-AR')}
-                        </p>
-                    </div>
-
-                    {/* 3. Vencimientos */}
-                    <div className="bg-orange-50/50 rounded-xl p-3 border border-orange-100 relative overflow-hidden flex flex-col">
-                        <div className="flex items-center gap-2 text-orange-700 mb-2">
-                            <AlertTriangle size={14} />
-                            <p className="text-[10px] font-bold uppercase tracking-wide">Vencimientos</p>
-                        </div>
-                        {nextExpirations.length === 0 ? (
-                            <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
-                                <Clock size={12} /> Sin datos
-                            </p>
-                        ) : (
-                            <div className="space-y-1">
-                                {nextExpirations.map((exp, idx) => {
-                                    let colorClass = "text-gray-600";
-                                    let bgClass = "bg-gray-100 text-gray-600";
-                                    let label = "";
-
-                                    if (exp.status === 'overdue') {
-                                        colorClass = "text-red-600 font-bold";
-                                        bgClass = "bg-red-100 text-red-700";
-                                        label = "(VENCIDO)";
-                                    } else if (exp.status === 'today') {
-                                        colorClass = "text-orange-600 font-bold";
-                                        bgClass = "bg-orange-100 text-orange-700";
-                                        label = "(HOY)";
-                                    }
-
-                                    return (
-                                        <div key={idx} className="flex justify-between items-center text-xs font-medium">
-                                            <span className={colorClass}>
-                                                {exp.date.toLocaleDateString()} <span className="text-[9px] opacity-75">{label}</span>
-                                            </span>
-                                            <span className={`${bgClass} px-1 rounded text-[10px]`}>
-                                                -{exp.amount}
-                                            </span>
-                                        </div>
-                                    );
-                                })}
+                <div className="px-6 pb-6 flex flex-col gap-4">
+                    {/* Fila 1: Histórico y Financiero */}
+                    <div className="grid grid-cols-2 gap-4">
+                        {/* Dinero Gastado Total */}
+                        <div className="bg-green-50/50 rounded-xl p-3 border border-green-100 flex flex-col justify-center">
+                            <div className="flex items-center gap-2 mb-1">
+                                <DollarSign size={14} className="text-green-500" />
+                                <p className="text-[10px] font-bold text-green-600 uppercase tracking-wide">Total Gastado</p>
                             </div>
-                        )}
+                            <p className="text-2xl font-black text-gray-800">
+                                ${totalSpent.toLocaleString('es-AR')}
+                            </p>
+                        </div>
+                        {/* Puntos Históricos */}
+                        <div className="bg-blue-50/50 rounded-xl p-3 border border-blue-100 flex flex-col justify-center">
+                            <div className="flex items-center gap-2 mb-1">
+                                <History size={14} className="text-blue-500" />
+                                <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wide">Puntos Emitidos Totales</p>
+                            </div>
+                            <div className="flex gap-2 items-baseline">
+                                <p className="text-2xl font-black text-gray-800">{stats.totalEarned.toLocaleString('es-AR')}</p>
+                                <span className="text-[10px] text-gray-400 font-bold">{stats.totalTransactions} visitas</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Fila 2: Ciclo de vida de los puntos */}
+                    <div className="grid grid-cols-3 gap-4">
+                        {/* 1. Puntos Actuales */}
+                        <div className="bg-blue-500 rounded-xl p-3 text-white flex flex-col justify-between shadow-sm">
+                            <p className="text-[10px] font-bold uppercase tracking-wide opacity-80 mb-2">Puntos Disponibles</p>
+                            <p className="text-2xl font-black">{currentClient.points || 0}</p>
+                        </div>
+
+                        {/* 2. Puntos Canjeados */}
+                        <div className="bg-amber-50 rounded-xl p-3 border border-amber-100 flex flex-col justify-between text-amber-800">
+                            <p className="text-[10px] font-bold uppercase tracking-wide mb-2 opacity-80 text-amber-600">Total Canjeado</p>
+                            <p className="text-2xl font-black">{stats.totalRedeemed.toLocaleString('es-AR')}</p>
+                        </div>
+
+                        {/* 3. Vencimientos */}
+                        <div className="bg-red-50/50 rounded-xl p-3 border border-red-100 overflow-hidden flex flex-col">
+                            <div className="flex items-center gap-2 text-red-600 mb-1">
+                                <AlertTriangle size={14} />
+                                <p className="text-[10px] font-bold uppercase tracking-wide">Vencidos: {stats.totalExpired.toLocaleString('es-AR')}</p>
+                            </div>
+                            {nextExpirations.length === 0 ? (
+                                <p className="text-[10px] text-gray-500 flex items-center gap-1 mt-1">
+                                    <Clock size={10} /> Sin riesgo visible
+                                </p>
+                            ) : (
+                                <div className="space-y-1 mt-1 max-h-16 overflow-y-auto pr-1 custom-scrollbar">
+                                    {nextExpirations.map((exp, idx) => {
+                                        let colorClass = "text-gray-500";
+                                        let bgClass = "bg-gray-100 text-gray-600";
+                                        let label = "";
+
+                                        if (exp.status === 'overdue') {
+                                            colorClass = "text-red-600 font-bold";
+                                            bgClass = "bg-red-100 text-red-700";
+                                            label = "(VENC)";
+                                        } else if (exp.status === 'today') {
+                                            colorClass = "text-orange-600 font-bold";
+                                            bgClass = "bg-orange-100 text-orange-700";
+                                            label = "(HOY)";
+                                        }
+
+                                        return (
+                                            <div key={idx} className="flex justify-between items-center text-[10px] font-medium">
+                                                <span className={colorClass}>
+                                                    {exp.date.toLocaleDateString()} <span className="text-[8px] opacity-75">{label}</span>
+                                                </span>
+                                                <span className={`${bgClass} px-1 rounded`}>
+                                                    -{exp.amount}
+                                                </span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 

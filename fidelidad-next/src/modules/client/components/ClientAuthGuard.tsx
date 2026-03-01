@@ -8,6 +8,10 @@ export const ClientAuthGuard = ({ children }: { children: React.ReactNode }) => 
 
     useEffect(() => {
         if (!loading && !user) {
+            const currentPath = window.location.pathname;
+            if (currentPath !== '/login' && currentPath !== '/register') {
+                sessionStorage.setItem('client_redirect_to', currentPath + window.location.search);
+            }
             navigate('/login');
         }
     }, [user, loading, navigate]);

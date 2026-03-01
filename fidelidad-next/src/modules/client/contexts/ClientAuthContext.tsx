@@ -90,7 +90,7 @@ export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) 
                 });
 
             } else {
-                // Wait 600ms before deciding there's no user (fast but safe for persistence)
+                // Wait 1500ms before deciding there's no user (fast but safe for persistence)
                 resolveTimer = setTimeout(() => {
                     if (!auth.currentUser) {
                         setUser(null);
@@ -98,7 +98,7 @@ export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) 
                         setIsAdmin(false);
                         setLoading(false);
                     }
-                }, 600);
+                }, 1500);
             }
         });
 

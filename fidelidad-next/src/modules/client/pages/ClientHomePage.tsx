@@ -141,12 +141,12 @@ export const ClientHomePage = () => {
     };
 
     const displayData = userData || {
-        name: isAdmin ? 'Administrador' : (authLoading ? 'Cargando...' : 'Invitado'),
+        name: isAdmin ? 'Administrador' : (authLoading || user ? 'Cargando...' : 'Invitado'),
         points: 0,
         accumulated_balance: 0
     };
 
-    const displayName = userData?.name || userData?.nombre || (isAdmin ? 'Administrador' : (authLoading ? 'Cargando...' : user?.displayName || 'Invitado'));
+    const displayName = userData?.name || userData?.nombre || (isAdmin ? 'Administrador' : (user || authLoading ? 'Cargando...' : 'Invitado'));
 
     useEffect(() => {
         if (user && !userData && !authLoading && !isAdmin) {

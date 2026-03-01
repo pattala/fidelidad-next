@@ -21,7 +21,9 @@ export const ClientLoginPage = () => {
         // Early redirect if already authenticated
         const unsubAuth = onAuthStateChanged(auth, (u) => {
             if (u) {
-                navigate('/');
+                const target = sessionStorage.getItem('client_redirect_to') || '/';
+                sessionStorage.removeItem('client_redirect_to');
+                navigate(target);
             }
         });
 

@@ -167,7 +167,8 @@ export interface AppConfig {
         engineAllowedEndHour?: number;
         enableDashboardTrigger?: boolean;
         enableClientTrigger?: boolean;
-        enableExtensionTrigger?: boolean;   // Default 22
+        enableExtensionTrigger?: boolean;
+        enableQStashTrigger?: boolean;
     };
 
     // Sistema de Referidos

@@ -90,22 +90,48 @@ export default async function handler(req, res) {
     const simulatedDateStr = req.body?.simulatedDate || req.query?.simulatedDate;
     const isManualSim = !!simulatedDateStr;
 
-    // --- TIME WINDOW GUARD (Solo automático diario) ---
+    // --- TRIGGER & SOURCE IDENTIFICATION ---
+    const triggerSource = req.query?.trigger || req.body?.trigger || "unknown"; // dashboard, pwa, extension, qstash
+
+    // --- TIME WINDOW & TOGGLE GUARDS (Solo automático diario) ---
     if (isDailyMode && !isManualSim) {
         const configSnap = await db.collection('config').doc('general').get();
         const configData = configSnap.exists ? configSnap.data() : {};
+        const messagingConfig = configData.messaging || {};
 
+        // 1. Check if the specific trigger is enabled
+        const isTriggerEnabled =
+            (triggerSource === 'dashboard' && (messagingConfig.enableDashboardTrigger ?? true)) ||
+            (triggerSource === 'pwa' && (messagingConfig.enableClientTrigger ?? true)) ||
+            (triggerSource === 'extension' && (messagingConfig.enableExtensionTrigger ?? true)) ||
+            (triggerSource === 'qstash' && (messagingConfig.enableQStashTrigger ?? true)) ||
+            (triggerSource === 'unknown'); // Default to allow if unknown for backward compatibility or direct calls
+
+        if (!isTriggerEnabled) {
+            console.log(`[DailyCheck] Gatillo '${triggerSource}' desactivado por configuración.`);
+            return res.status(200).json({ ok: true, skipped: true, message: `Gatillo '${triggerSource}' desactivado` });
+        }
+
+        // 2. Check Time Window
         const currentHour = new Date().toLocaleString("en-US", { timeZone: "America/Argentina/Buenos_Aires", hour: '2-digit', hour12: false });
         const hourInt = parseInt(currentHour, 10);
-        // Fallbacks to 9 and 22 if not defined in DB
-        const minHour = configData.messaging?.engineAllowedStartHour ?? 9;
-        const maxHour = configData.messaging?.engineAllowedEndHour ?? 22;
+        const minHour = messagingConfig.engineAllowedStartHour ?? 9;
+        const maxHour = messagingConfig.engineAllowedEndHour ?? 22;
 
         if (hourInt < minHour || hourInt >= maxHour) {
             console.log(`[DailyCheck] Fuera de horario permitido (${minHour} - ${maxHour} hs). Hora actual AR: ${hourInt}`);
             return res.status(200).json({ ok: true, skipped: true, message: "Fuera de horario permitido", currentHour: hourInt, minHour, maxHour });
         }
     }
+
+    const sourceLabelMap = {
+        'dashboard': 'Panel Admin',
+        'pwa': 'PWA Cliente',
+        'extension': 'Extensión',
+        'qstash': 'QStash (Cron)',
+        'unknown': 'Auto'
+    };
+    const logSourceLabel = sourceLabelMap[triggerSource] || 'Auto';
 
     // --- DEDUPLICACIÓN (solo en modo daily y si no es simulación) ---
     if (isDailyMode && !isManualSim) {

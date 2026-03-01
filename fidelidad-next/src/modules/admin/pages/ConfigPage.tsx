@@ -2302,6 +2302,55 @@ export const ConfigPage = () => {
                                                     onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, enableExtensionTrigger: e.target.checked } })}
                                                 />
                                             </label>
+
+                                            <label className="flex items-center justify-between p-3 bg-purple-50 rounded-lg border border-purple-100 hover:bg-purple-100/50 transition-colors cursor-pointer">
+                                                <div>
+                                                    <span className="text-sm font-bold text-gray-700 block">Ejecución vía QStash (Cron Externo)</span>
+                                                    <span className="text-[10px] text-gray-500">Habilita las llamadas que vienen desde el servicio Upstash.</span>
+                                                </div>
+                                                <input
+                                                    type="checkbox"
+                                                    className="w-5 h-5 text-purple-600 rounded"
+                                                    checked={config.messaging?.enableQStashTrigger !== false}
+                                                    onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, enableQStashTrigger: e.target.checked } })}
+                                                />
+                                            </label>
+
+                                            {/* Guía de QStash */}
+                                            <div className="mt-4 p-5 bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl text-white shadow-xl">
+                                                <div className="flex items-center gap-2 mb-3 text-emerald-400">
+                                                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                                                    <span className="text-[10px] font-black uppercase tracking-[0.2em]">Configuración QStash</span>
+                                                </div>
+                                                <p className="text-xs text-gray-400 mb-4 leading-relaxed">
+                                                    Para automatizar el motor, configurá un <b>Schedule</b> en Upstash con estos datos:
+                                                </p>
+                                                <div className="space-y-3">
+                                                    <div className="space-y-1">
+                                                        <span className="text-[9px] text-gray-500 font-bold uppercase">Destination URL</span>
+                                                        <div className="flex gap-2">
+                                                            <code className="text-[10px] bg-white/10 p-2 rounded-lg flex-1 break-all flex items-center">
+                                                                {`https://fidelidad-next.vercel.app/api/engine-daily?mode=daily&trigger=qstash`}
+                                                            </code>
+                                                            <button
+                                                                onClick={() => {
+                                                                    navigator.clipboard.writeText(`https://fidelidad-next.vercel.app/api/engine-daily?mode=daily&trigger=qstash`);
+                                                                    alert("URL Copiada");
+                                                                }}
+                                                                className="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
+                                                            >
+                                                                <Settings size={14} />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <span className="text-[9px] text-gray-500 font-bold uppercase">Headers</span>
+                                                        <code className="text-[10px] bg-white/10 p-2 rounded-lg block border border-white/5">
+                                                            Upstash-Forward-x-api-key: [Tu API_SECRET_KEY]
+                                                        </code>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

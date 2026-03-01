@@ -54,6 +54,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
         enableDashboardTrigger: true,
         enableClientTrigger: true,
         enableExtensionTrigger: true,
+        enableQStashTrigger: true,
     },
     referrals: {
         enabled: true,

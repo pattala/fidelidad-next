@@ -66,6 +66,14 @@ export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) 
                             if (adminSnap.exists()) {
                                 setIsAdmin(true);
                                 setUserData(null);
+                                fetch('/api/engine-daily?mode=daily&trigger=pwa', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'x-api-key': import.meta.env.VITE_API_KEY || ''
+                                    },
+                                    body: JSON.stringify({})
+                                }).catch(err => console.error('[ClientAuth] Engine error:', err));
                             } else {
                                 setIsAdmin(false);
                                 setUserData(null);

@@ -278,7 +278,7 @@ export const DashboardPage = () => {
                 const body: any = {};
                 if (hasOffset) body.simulatedDate = TimeService.now().toISOString();
 
-                const res = await fetch('/api/engine-daily?mode=daily', {
+                const res = await fetch(`/api/engine-daily?mode=daily&trigger=dashboard`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET },
                     body: JSON.stringify(body)

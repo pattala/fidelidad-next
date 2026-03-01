@@ -30,7 +30,7 @@ chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
                     return { skip: true };
                 }
 
-                return fetch(`${res.apiUrl}/api/engine-daily?mode=daily`, {
+                return fetch(`${res.apiUrl}/api/engine-daily?mode=daily&trigger=extension`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'x-api-key': res.apiKey },
                     body: JSON.stringify({

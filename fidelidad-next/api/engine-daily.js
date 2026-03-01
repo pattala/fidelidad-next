@@ -203,8 +203,8 @@ export default async function handler(req, res) {
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
                 type: 'daily_check_skipped',
                 status: 'success',
-                summary: `Motor al día: Los procesos automáticos ya se ejecutaron hoy (${todayAR}).`,
-                details: [{ action: 'idle_check', info: 'Deduplicación activa.' }],
+                summary: `Motor al día: Los procesos automáticos ya se ejecutaron hoy (${todayAR}). Gatillo: ${logSourceLabel}.`,
+                details: [{ action: 'idle_check', info: 'Deduplicación activa.', trigger: triggerSource }],
                 executor: executorEmail
             });
 
@@ -406,8 +406,8 @@ export default async function handler(req, res) {
                 type: logType,
                 status: logResults.errors.length === 0 ? 'success' : 'partial',
                 summary: logResults.totalToday === 0
-                    ? `${logSummaryPrefix}: No hay cumpleaños para procesar hoy.`
-                    : `${logSummaryPrefix}: Socios hoy: ${logResults.totalToday}, Procesados: ${logResults.processed}, Puntos: ${logResults.pointsGivenTotal}`,
+                    ? `${logSummaryPrefix}: No hay cumpleaños para enviar hoy. Gatillo: ${logSourceLabel}.`
+                    : `${logSummaryPrefix}: Socios hoy: ${logResults.totalToday}, Procesados: ${logResults.processed}, Puntos: ${logResults.pointsGivenTotal}. Gatillo: ${logSourceLabel}.`,
                 details: logResults.details.slice(0, 500),
                 executor: executorEmail,
                 role: executorRole === 'system' && executorEmail !== 'system' ? 'admin' : executorRole
@@ -428,7 +428,7 @@ export default async function handler(req, res) {
                     ? `https://${currentHost}`
                     : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
-                const eRes = await fetch(`${baseUrl}/api/expirations?action=check`, {
+                const eRes = await fetch(`${baseUrl}/api/expirations?action=check&trigger=${triggerSource}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -555,21 +555,23 @@ export default async function handler(req, res) {
                 campaignResults = { ok: false, error: campErr.message };
             }
 
-            // Marcar como ejecutado
-            const arFormatter = new Intl.DateTimeFormat('en-CA', {
-                timeZone: 'America/Argentina/Buenos_Aires',
-                year: 'numeric', month: '2-digit', day: '2-digit'
-            });
-            await db.collection('config').doc('dailyCheck').set({
-                lastRunDate: arFormatter.format(new Date()),
-                lastRunTimestamp: admin.firestore.FieldValue.serverTimestamp(),
-                executor: executorEmail,
-                results: {
-                    birthdaysOk: true,
-                    expirationsOk: expirationsResult?.ok || false,
-                    campaignsOk: campaignResults?.ok || false
-                }
-            }, { merge: true });
+            // Marcar como ejecutado (solo si no es simulación)
+            if (!isManualSim) {
+                const arFormatter = new Intl.DateTimeFormat('en-CA', {
+                    timeZone: 'America/Argentina/Buenos_Aires',
+                    year: 'numeric', month: '2-digit', day: '2-digit'
+                });
+                await db.collection('config').doc('dailyCheck').set({
+                    lastRunDate: arFormatter.format(new Date()),
+                    lastRunTimestamp: admin.firestore.FieldValue.serverTimestamp(),
+                    executor: executorEmail,
+                    results: {
+                        birthdaysOk: true,
+                        expirationsOk: expirationsResult?.ok || false,
+                        campaignsOk: campaignResults?.ok || false
+                    }
+                }, { merge: true });
+            }
         }
 
         return res.status(200).json({

@@ -51,7 +51,7 @@ export const SystemLogsPage = () => {
         const toastId = toast.loading('Ejecutando proceso de cumpleaños...');
         try {
             const token = await auth.currentUser?.getIdToken();
-            const res = await fetch('/api/engine-daily', {
+            const res = await fetch('/api/engine-daily?mode=daily&trigger=dashboard', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -67,7 +67,8 @@ export const SystemLogsPage = () => {
             const data = await res.json();
             if (data.ok) {
                 toast.success(`Éxito: ${data.summary?.totalToday || 0} socios procesados hoy.`, { id: toastId });
-                fetchLogs();
+                // Pequeño delay para asegurar que Firestore persistió el log
+                setTimeout(fetchLogs, 1500);
             } else {
                 toast.error(`Error: ${data.error}`, { id: toastId });
             }
@@ -85,7 +86,7 @@ export const SystemLogsPage = () => {
         const toastId = toast.loading('Ejecutando revisión de vencimientos...');
         try {
             const token = await auth.currentUser?.getIdToken();
-            const res = await fetch('/api/expirations?action=check', {
+            const res = await fetch('/api/engine-daily?mode=daily&trigger=dashboard', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -101,7 +102,8 @@ export const SystemLogsPage = () => {
             const data = await res.json();
             if (data.ok) {
                 toast.success(`Éxito: ${data.summary?.summary || 'Revisión completada'}`, { id: toastId });
-                fetchLogs();
+                // Pequeño delay para asegurar que Firestore persistió el log
+                setTimeout(fetchLogs, 1500);
             } else {
                 toast.error(`Error: ${data.error}`, { id: toastId });
             }

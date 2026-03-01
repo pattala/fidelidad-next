@@ -84,6 +84,15 @@ async function handleCheck(req, res, db) {
         const isSimulation = simulatedStr && simulatedStr !== todayStr;
 
         if (simulatedDateBody) referenceDate = new Date(simulatedDateBody);
+        const triggerSource = req.query?.trigger || req.body?.trigger || "unknown";
+        const sourceLabelMap = {
+            'dashboard': 'Panel Admin',
+            'pwa': 'PWA Cliente',
+            'extension': 'Extensión',
+            'qstash': 'QStash (Cron)',
+            'unknown': 'Auto'
+        };
+        const logSourceLabel = sourceLabelMap[triggerSource] || 'Auto';
 
         let logType = 'expiration_engine';
         let logSummaryPrefix = 'Proceso Automático (Sistema)';
@@ -97,7 +106,7 @@ async function handleCheck(req, res, db) {
             timestamp: admin.firestore.FieldValue.serverTimestamp(),
             type: logType,
             status: 'running',
-            summary: `Iniciando ${logSummaryPrefix}...`,
+            summary: `Iniciando ${logSummaryPrefix}... Gatillo: ${logSourceLabel}.`,
             details: [],
             executor: executorEmail,
             role: executorRole === 'system' && executorEmail !== 'system' ? 'admin' : executorRole
@@ -215,6 +224,14 @@ async function handleCheck(req, res, db) {
                     await userDoc.ref.collection('inbox').add({ title, body: `${msg}\n\nDetalle: ${breakdownStr}`, url: "/activity", type: "system", read: false, date: admin.firestore.FieldValue.serverTimestamp(), expireAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 2592000000)) });
                     await userDoc.ref.update({ lastExpirationNotice: referenceDateStr, lastExpirationNoticeTargetDate: userData.nextExpirationDate, lastExpirationNoticeAmount: totalImpendingAmount, lastWhatsAppManualDate: null });
                     logResults.notified++;
+                    logResults.details.push({
+                        userId: userDoc.id,
+                        userName: userData?.name || 'Socio',
+                        action: 'expiration_warning',
+                        status: 'success',
+                        info: `${totalImpendingAmount} pts vencen ${displayDate}`,
+                        isItinerancy
+                    });
                 } catch (e) { console.error(`[Cron] Error notifying ${userDoc.id}:`, e); }
             }
         }

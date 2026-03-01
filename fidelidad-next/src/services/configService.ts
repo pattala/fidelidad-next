@@ -62,7 +62,8 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
         pointsForReferee: 100,
         rewardCriteria: 'first_transaction'
     },
-    enableDateSimulator: false
+    enableDateSimulator: false,
+    enableDuplicateControl: true
 };
 
 export const ConfigService = {

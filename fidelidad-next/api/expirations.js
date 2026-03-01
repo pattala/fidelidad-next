@@ -196,11 +196,14 @@ async function handleCheck(req, res, db) {
                     const reminderIntervalDays = rawInterval !== undefined ? Number(rawInterval) : 5;
                     const sameTargetAndAmount = userData.lastExpirationNoticeTargetDate === userData.nextExpirationDate && userData.lastExpirationNoticeAmount === totalImpendingAmount;
 
+                    // El control de duplicidad es ignorado si se pide por request O si está desactivado globalmente
+                    const finalIgnoreDeduplication = ignoreDeduplication || (config.enableDuplicateControl === false);
+
                     let isItinerancy = false;
                     if (sameTargetAndAmount) {
-                        if (!isItinerancyEnabled && !ignoreDeduplication) continue;
+                        if (!isItinerancyEnabled && !finalIgnoreDeduplication) continue;
                         const lastNoticeDate = userData.lastExpirationNotice;
-                        if (lastNoticeDate && reminderIntervalDays > 0 && !ignoreDeduplication) {
+                        if (lastNoticeDate && reminderIntervalDays > 0 && !finalIgnoreDeduplication) {
                             const diff = Math.floor((new Date(referenceDateStr).getTime() - new Date(lastNoticeDate).getTime()) / 86400000);
                             if (diff < reminderIntervalDays) continue;
                         }

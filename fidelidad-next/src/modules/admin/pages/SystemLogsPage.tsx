@@ -5,6 +5,7 @@ import { Clock, CheckCircle, AlertTriangle, User, MessageCircle, ArrowRight, Che
 import { toast } from 'react-hot-toast';
 import { TimeService } from '../../../services/timeService';
 import { useNavigate } from 'react-router-dom';
+import { ConfigService } from '../../../services/configService';
 
 interface AuditDetail {
     userId?: string;
@@ -43,6 +44,7 @@ export const SystemLogsPage = () => {
     const [isRunningExpirations, setIsRunningExpirations] = useState(false);
     const [isRunningBirthdays, setIsRunningBirthdays] = useState(false);
     const [ignoreDeduplication, setIgnoreDeduplication] = useState(false);
+    const [isSavingConfig, setIsSavingConfig] = useState(false);
     const navigate = useNavigate();
 
     const handleRunBirthdays = async () => {
@@ -114,6 +116,34 @@ export const SystemLogsPage = () => {
             toast.error('Error de conexión', { id: toastId });
         } finally {
             setIsRunningExpirations(false);
+        }
+    };
+
+    useEffect(() => {
+        const loadConfig = async () => {
+            const config = await ConfigService.get();
+            // Invertimos la lógica: "ignoreDeduplication" es true si "enableDuplicateControl" es false
+            setIgnoreDeduplication(config.enableDuplicateControl === false);
+        };
+        loadConfig();
+    }, []);
+
+    const toggleDeduplication = async () => {
+        const newValue = !ignoreDeduplication;
+        setIgnoreDeduplication(newValue);
+        setIsSavingConfig(true);
+        try {
+            const config = await ConfigService.get();
+            await ConfigService.save({
+                ...config,
+                enableDuplicateControl: !newValue // enableDuplicateControl es lo opuesto a ignoreDeduplication
+            });
+            toast.success(newValue ? 'Control de duplicidad desactivado GLOBALMENTE' : 'Control de duplicidad activado');
+        } catch (e) {
+            toast.error('Error al guardar configuración');
+            setIgnoreDeduplication(!newValue);
+        } finally {
+            setIsSavingConfig(false);
         }
     };
 
@@ -261,8 +291,9 @@ export const SystemLogsPage = () => {
                     <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg">
                         <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Duplicidad</span>
                         <button
-                            onClick={() => setIgnoreDeduplication(!ignoreDeduplication)}
-                            className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none ${ignoreDeduplication ? 'bg-red-500' : 'bg-green-500'}`}
+                            onClick={toggleDeduplication}
+                            disabled={isSavingConfig}
+                            className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none ${ignoreDeduplication ? 'bg-red-500' : 'bg-green-500'} ${isSavingConfig ? 'opacity-50' : ''}`}
                         >
                             <span
                                 className={`${ignoreDeduplication ? 'translate-x-5' : 'translate-x-1'
@@ -270,7 +301,7 @@ export const SystemLogsPage = () => {
                             />
                         </button>
                         <span className={`text-[10px] font-bold uppercase ${ignoreDeduplication ? 'text-red-500' : 'text-green-500'}`}>
-                            {ignoreDeduplication ? 'Ignorada' : 'Activa'}
+                            {ignoreDeduplication ? 'Ignorada (Global)' : 'Activa (Seguro)'}
                         </span>
                     </div>
                     <button

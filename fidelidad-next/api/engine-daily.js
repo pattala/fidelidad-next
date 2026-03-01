@@ -165,7 +165,7 @@ export default async function handler(req, res) {
         const checkSnap = await db.collection('config').doc('dailyCheck').get();
         const lastRun = checkSnap.exists ? checkSnap.data()?.lastRunDate : null;
 
-        if (lastRun === todayAR && !ignoreDeduplication) {
+        if (lastRun === todayAR && !finalIgnoreDeduplication) {
             console.log(`[DailyCheck] Ya se ejecutó hoy (${todayAR}). Saltando procesos pero calculando contadores.`);
 
             // 1. Contar Cumpleaños Hoy (que no hayan sido saludados aún este año)
@@ -237,6 +237,9 @@ export default async function handler(req, res) {
         const currentYear = referenceDate.getFullYear().toString();
         const todayMD = `${String(referenceDate.getMonth() + 1).padStart(2, '0')}-${String(referenceDate.getDate()).padStart(2, '0')}`;
 
+        // El control de duplicidad es ignorado si se pide por request O si está desactivado globalmente
+        const finalIgnoreDeduplication = ignoreDeduplication || (config.enableDuplicateControl === false);
+
         const logResults = {
             totalToday: 0,
             processed: 0,
@@ -261,7 +264,7 @@ export default async function handler(req, res) {
                 const userId = userDoc.id;
 
                 // 1. Evitar duplicar saludo el mismo año (Omitir si se ignora deduplicación)
-                if (userData.lastBirthdayGreetingYear === currentYear && !ignoreDeduplication) continue;
+                if (userData.lastBirthdayGreetingYear === currentYear && !finalIgnoreDeduplication) continue;
 
                 const birthdayPoints = config?.birthdayPoints || 100;
                 const autoBonusEnabled = config?.enableBirthdayBonus === true;
@@ -271,7 +274,7 @@ export default async function handler(req, res) {
                 let actionsTaken = [];
 
                 // 2. Aplicar Bono de Puntos (Omitir si se ignora deduplicación)
-                if (autoBonusEnabled && (userData.lastBirthdayPointsYear !== currentYear || ignoreDeduplication)) {
+                if (autoBonusEnabled && (userData.lastBirthdayPointsYear !== currentYear || finalIgnoreDeduplication)) {
                     const historyRef = userDoc.ref.collection('points_history');
 
                     // Calcular expiración según reglas
@@ -368,7 +371,7 @@ export default async function handler(req, res) {
                     });
                     actionsTaken.push("inbox_saved");
 
-                    if (!ignoreDeduplication) {
+                    if (!finalIgnoreDeduplication) {
                         await userDoc.ref.update({ lastBirthdayGreetingYear: currentYear });
                     }
                 }

@@ -189,6 +189,7 @@ export interface AppConfig {
         };
     };
     enableDateSimulator?: boolean;
+    enableDuplicateControl?: boolean;
 }
 
 export interface Prize {

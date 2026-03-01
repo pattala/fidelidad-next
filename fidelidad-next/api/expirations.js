@@ -95,10 +95,13 @@ async function handleCheck(req, res, db) {
         };
         const logSourceLabel = sourceLabelMap[triggerSource] || 'Auto';
 
+        // El control de duplicidad es ignorado si se pide por request O si está desactivado globalmente
+        const finalIgnoreDeduplication = ignoreDeduplication || (config.enableDuplicateControl === false);
+
         let logType = 'expiration_engine';
         let logSummaryPrefix = 'Proceso Automático (Sistema)';
         if (executorEmail !== 'system') {
-            if (isSimulation) { logType = 'manual_expiration'; logSummaryPrefix = 'Simulación/Prueba (Admin)'; }
+            if (isSimulation || finalIgnoreDeduplication) { logType = 'manual_expiration'; logSummaryPrefix = 'Simulación/Prueba (Admin)'; }
             else if (isFromUI) { logType = 'manual_expiration'; logSummaryPrefix = 'Revisión Forzada (Admin)'; }
             else { logType = 'session_refresh_check'; logSummaryPrefix = 'Revisión Automática (Sesión)'; }
         }
@@ -195,9 +198,6 @@ async function handleCheck(req, res, db) {
                     const rawInterval = config.messaging?.expirationReminderIntervalDays ?? config.messaging?.expirationItinerancyDays;
                     const reminderIntervalDays = rawInterval !== undefined ? Number(rawInterval) : 5;
                     const sameTargetAndAmount = userData.lastExpirationNoticeTargetDate === userData.nextExpirationDate && userData.lastExpirationNoticeAmount === totalImpendingAmount;
-
-                    // El control de duplicidad es ignorado si se pide por request O si está desactivado globalmente
-                    const finalIgnoreDeduplication = ignoreDeduplication || (config.enableDuplicateControl === false);
 
                     let isItinerancy = false;
                     if (sameTargetAndAmount) {

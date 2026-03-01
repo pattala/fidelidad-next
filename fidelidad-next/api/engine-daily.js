@@ -86,20 +86,28 @@ export default async function handler(req, res) {
 
     const app = initFirebaseAdmin();
     const db = app.firestore();
+
+    // 1. CARGAR CONFIGURACIÓN (CENTRALIZADO)
+    const configSnap = await db.collection('config').doc('general').get();
+    if (!configSnap.exists) return res.status(404).json({ ok: false, error: "Config not found" });
+    const config = configSnap.data();
+
+    // 2. PARÁMETROS DE CONTROL
     const isDailyMode = req.query?.mode === 'daily' || req.body?.mode === 'daily';
     const simulatedDateStr = req.body?.simulatedDate || req.query?.simulatedDate;
     const isManual = req.body?.isManual === true || req.query?.isManual === 'true';
-    const ignoreDeduplication = req.body?.ignoreDeduplication === true || req.query?.ignoreDeduplication === 'true';
-    const isManualSim = !!simulatedDateStr || isManual || ignoreDeduplication;
+    const reqIgnoreDeduplication = req.body?.ignoreDeduplication === true || req.query?.ignoreDeduplication === 'true';
 
-    // --- TRIGGER & SOURCE IDENTIFICATION ---
+    // El control de duplicidad es ignorado si se pide por request O si está desactivado globalmente
+    const finalIgnoreDeduplication = reqIgnoreDeduplication || (config.enableDuplicateControl === false);
+    // isManualSim define si "saltamos" los guards de seguridad (horario, deduplicación, etc)
+    const isManualSim = !!simulatedDateStr || isManual || finalIgnoreDeduplication;
+
     const triggerSource = req.query?.trigger || req.body?.trigger || "unknown"; // dashboard, pwa, extension, qstash
 
     // --- TIME WINDOW & TOGGLE GUARDS (Solo automático diario) ---
     if (isDailyMode && !isManualSim) {
-        const configSnap = await db.collection('config').doc('general').get();
-        const configData = configSnap.exists ? configSnap.data() : {};
-        const messagingConfig = configData.messaging || {};
+        const messagingConfig = config.messaging || {};
 
         // 1. Check if the specific trigger is enabled
         const isTriggerEnabled =
@@ -107,7 +115,7 @@ export default async function handler(req, res) {
             (triggerSource === 'pwa' && (messagingConfig.enableClientTrigger ?? true)) ||
             (triggerSource === 'extension' && (messagingConfig.enableExtensionTrigger ?? true)) ||
             (triggerSource === 'qstash' && (messagingConfig.enableQStashTrigger ?? true)) ||
-            (triggerSource === 'unknown'); // Default to allow if unknown for backward compatibility or direct calls
+            (triggerSource === 'unknown');
 
         if (!isTriggerEnabled) {
             console.log(`[DailyCheck] Gatillo '${triggerSource}' desactivado por configuración.`);
@@ -155,7 +163,7 @@ export default async function handler(req, res) {
     };
     const logSourceLabel = sourceLabelMap[triggerSource] || 'Auto';
 
-    // --- DEDUPLICACIÓN (solo en modo daily y si no es simulación) ---
+    // --- DEDUPLICACIÓN (solo en modo daily y si no es manual/override) ---
     if (isDailyMode && !isManualSim) {
         const arFormatter = new Intl.DateTimeFormat('en-CA', {
             timeZone: 'America/Argentina/Buenos_Aires',
@@ -179,13 +187,10 @@ export default async function handler(req, res) {
                 return data.birthDate?.endsWith(todayMsg) && data.lastBirthdayGreetingYear !== currentYear;
             }).length;
 
-            // 2. Contar Vencimientos (30 días de ventana para match con Dashboard FAB)
-            const configSnap = await db.collection('config').doc('general').get();
-            const configData = configSnap.data();
+            // 2. Contar Vencimientos (30 días de ventana)
             const todayStr = today.toISOString().split('T')[0];
-
             const windowEnd = new Date(today);
-            windowEnd.setDate(windowEnd.getDate() + 30);
+            windowEnd.setDate(windowEnd.getDate() + (config.messaging?.expirationWarningDays || 30));
             const windowEndStr = windowEnd.toISOString().split('T')[0];
 
             const expSnap = await db.collection('users')
@@ -200,13 +205,15 @@ export default async function handler(req, res) {
                 return true;
             }).length;
 
-            // Log de control (para trazabilidad en auditoría)
+            const skipSummary = `Motor al día: Los procesos ya corrieron hoy (${todayAR}). Gatillo: ${logSourceLabel}. Cumpleaños hoy: ${birthdayCount}. Vencimientos: ${expirationCount}.`;
+
+            // Log de control enriquecido
             await db.collection('audit_logs').add({
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
                 type: 'daily_check_skipped',
                 status: 'success',
-                summary: `Motor al día: Los procesos automáticos ya se ejecutaron hoy (${todayAR}). Gatillo: ${logSourceLabel}.`,
-                details: [{ action: 'idle_check', info: 'Deduplicación activa.', trigger: triggerSource }],
+                summary: skipSummary,
+                details: [{ action: 'idle_check', info: 'Deduplicación activa (Ya se ejecutó hoy).', trigger: triggerSource }],
                 executor: executorEmail
             });
 
@@ -219,7 +226,6 @@ export default async function handler(req, res) {
                 expirations: { summary: { notified: 0, totalInWindow: expirationCount } }
             });
         }
-        console.log(`[DailyCheck] Ejecutando para ${todayAR}. Última: ${lastRun || 'nunca'}`);
     }
 
     try {

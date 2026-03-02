@@ -21,29 +21,22 @@ chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
         if (offset !== 0) {
             now.setTime(now.getTime() + (offset * 24 * 60 * 60 * 1000));
         }
-        // --- ESTRATEGIA: Obtener configuración desde la API antes de disparar el engine ---
-        fetch(`${res.apiUrl}/api/config`, { headers: { 'x-api-key': res.apiKey } })
-            .then(r => r.json())
-            .then(confData => {
-                if (confData?.config?.messaging?.enableExtensionTrigger === false) {
-                    console.log("ℹ️ [Club Fidelidad] Motor Automático desactivado para Extensión por configuración.");
-                    return { skip: true };
-                }
+        // --- EXPLICIT TRIGGER: CAMPAIGN ENGINE (Mantenimiento y Difusión) ---
+        fetch(`${res.apiUrl}/api/engine-campaigns?trigger=extension`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-api-key': res.apiKey }
+        }).catch(e => console.error("❌ [Club Fidelidad] Error en trigger campañas:", e.message));
 
-                // --- EXPLICIT TRIGGER: CAMPAIGN ENGINE (Mantenimiento y Difusión) ---
-                fetch(`${res.apiUrl}/api/engine-campaigns?trigger=extension`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-api-key': res.apiKey }
-                }).catch(e => console.error("❌ [Club Fidelidad] Error en trigger campañas:", e.message));
-
-                return fetch(`${res.apiUrl}/api/engine-daily?mode=daily&trigger=extension`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-api-key': res.apiKey },
-                    body: JSON.stringify({
-                        simulatedDate: now.toISOString()
-                    })
-                }).then(r => r.json());
+        fetch(`${res.apiUrl}/api/engine-daily?mode=daily&trigger=extension`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-api-key': res.apiKey },
+            body: JSON.stringify({
+                simulatedDate: now.toISOString()
             })
+        }).then(r => {
+            if (!r.ok) throw new Error(`HTTP Error ${r.status}`);
+            return r.json();
+        })
             .then(data => {
                 if (!data || data.skip) return;
                 console.log("📊 [Club Fidelidad] Respuesta de pendientes:", data);

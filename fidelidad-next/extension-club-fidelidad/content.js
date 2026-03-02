@@ -57,7 +57,7 @@ chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
 
                 console.log("📊 [Club Fidelidad] Respuesta de pendientes:", data);
                 if (data.ok) {
-                    const birthdayCount = data.summary?.totalToday || 0;
+                    const birthdayCount = data.birthdays?.totalToday || 0;
                     const expirationCount = data.expirations?.summary?.totalInWindow || 0;
 
                     if (birthdayCount > 0 || expirationCount > 0) {

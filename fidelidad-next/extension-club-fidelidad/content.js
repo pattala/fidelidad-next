@@ -38,7 +38,23 @@ chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
             return r.json();
         })
             .then(data => {
-                if (!data || data.skip) return;
+                if (!data) return;
+
+                // Si el motor ya corrió hoy (skip), pero avisa que los pending son 0,
+                // de todos modos hay que limpiar la pantalla si había widget viejo.
+                if (data.skip) {
+                    console.log("ℹ️ [Club Fidelidad] Motor ya ejecutado hoy. Validando pendientes...");
+                    const bCount = data.summary?.totalToday || 0;
+                    const eCount = data.expirations?.summary?.totalInWindow || 0;
+                    if (bCount === 0 && eCount === 0) {
+                        const existingWidget = document.getElementById('cf-floating-alert');
+                        if (existingWidget) existingWidget.remove();
+                    } else {
+                        showGlobalAlert(bCount, eCount, res.apiUrl);
+                    }
+                    return;
+                }
+
                 console.log("📊 [Club Fidelidad] Respuesta de pendientes:", data);
                 if (data.ok) {
                     const birthdayCount = data.summary?.totalToday || 0;

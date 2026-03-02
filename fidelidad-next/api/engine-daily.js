@@ -201,7 +201,7 @@ export default async function handler(req, res) {
             const expirationCount = expSnap.docs.filter(d => {
                 const data = d.data();
                 if ((data.points || 0) <= 0) return false;
-                if (data.lastWhatsAppManualDate === todayStr) return false;
+                if (data.lastWhatsAppManualDate && data.lastWhatsAppManualDate >= todayStr) return false;
                 return true;
             }).length;
 

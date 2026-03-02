@@ -99,10 +99,11 @@ export const DashboardPage = () => {
             const usersExpiring: any[] = [];
 
             // Calculate warning window date (30 days ahead as broad detection)
-            const todayStr = today.toISOString().split('T')[0];
+            // Fix: Use local date formatting to avoid UTC midnight shifts
+            const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
             const windowEnd = new Date(today);
             windowEnd.setDate(windowEnd.getDate() + 30);
-            const windowEndStr = windowEnd.toISOString().split('T')[0];
+            const windowEndStr = `${windowEnd.getFullYear()}-${String(windowEnd.getMonth() + 1).padStart(2, '0')}-${String(windowEnd.getDate()).padStart(2, '0')}`;
 
             const itinerancyDays = config?.messaging?.expirationReminderIntervalDays ?? config?.expirationItinerancyDays ?? 0;
             const currentYear = today.getFullYear().toString();
@@ -126,9 +127,9 @@ export const DashboardPage = () => {
                     // 2. Upcoming expirations (Respecting itinerancy)
                     const hasPoints = userPoints > 0 || (data.nextExpirationAmount || 0) > 0;
                     if (data.nextExpirationDate && data.nextExpirationDate > todayStr && data.nextExpirationDate <= windowEndStr && hasPoints) {
-                        // Ocultar burbuja solo si el admin ya gestionó WhatsApp manualmente hoy
+                        // Ocultar burbuja solo si el admin ya gestionó WhatsApp manualmente hoy (o simulado en el futuro)
                         let shouldNotify = true;
-                        if (data.lastWhatsAppManualDate === todayStr) {
+                        if (data.lastWhatsAppManualDate && data.lastWhatsAppManualDate >= todayStr) {
                             shouldNotify = false;
                         }
 

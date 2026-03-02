@@ -181,8 +181,8 @@ async function handleCheck(req, res, db) {
                     const userPoints = userData.points || 0;
                     if (userPoints <= 0 && (userData.nextExpirationAmount || 0) <= 0) continue;
 
-                    // Si ya se gestionó manualmente hoy, lo ignoramos para los contadores y notificaciones
-                    if (userData.lastWhatsAppManualDate === referenceDateStr) continue;
+                    // Si ya se gestionó manualmente hoy (o en el futuro de una simulación), lo ignoramos para los contadores y notificaciones
+                    if (userData.lastWhatsAppManualDate && userData.lastWhatsAppManualDate >= referenceDateStr) continue;
                     if (userData.nextExpirationDate > warningDateStr) continue;
 
                     const historyRef = userDoc.ref.collection('points_history');

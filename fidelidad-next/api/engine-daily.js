@@ -188,10 +188,10 @@ export default async function handler(req, res) {
             }).length;
 
             // 2. Contar Vencimientos (30 días de ventana)
-            const todayStr = today.toISOString().split('T')[0];
+            const todayStr = todayAR; // Use AR time mapped earlier
             const windowEnd = new Date(today);
             windowEnd.setDate(windowEnd.getDate() + (config.messaging?.expirationWarningDays || 30));
-            const windowEndStr = windowEnd.toISOString().split('T')[0];
+            const windowEndStr = arFormatter.format(windowEnd);
 
             const expSnap = await db.collection('users')
                 .where('nextExpirationDate', '<=', windowEndStr)

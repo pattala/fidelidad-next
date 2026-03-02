@@ -180,6 +180,10 @@ async function handleCheck(req, res, db) {
                     const userData = userDoc.data();
                     const userPoints = userData.points || 0;
                     if (userPoints <= 0 && (userData.nextExpirationAmount || 0) <= 0) continue;
+
+                    // Si ya se gestionó manualmente hoy, lo ignoramos para los contadores y notificaciones
+                    if (userData.lastWhatsAppManualDate === referenceDateStr) continue;
+
                     if (userData.nextExpirationDate <= proactivePinStr) logResults.totalInWindow++;
                     if (userData.nextExpirationDate > warningDateStr) continue;
 

@@ -207,15 +207,18 @@ export default async function handler(req, res) {
 
             const skipSummary = `Motor al día (${todayAR}). Gatillo: ${logSourceLabel}. Cumpleaños: ${birthdayCount}. Vencimientos: ${expirationCount}.`;
 
-            // Log de control enriquecido
-            await db.collection('audit_logs').add({
-                timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                type: 'daily_check_info', // Cambiado de 'daily_check_skipped'
-                status: 'success',
-                summary: skipSummary,
-                details: [{ action: 'idle_check', info: 'Deduplicación activa (Todo al día).', trigger: triggerSource }],
-                executor: executorEmail
-            });
+            // Solo guardamos el log en Audit Logs si el disparo provino de una interacción real humana
+            // (extensión, dashboard, pwa) para no saturar la base de datos con los pings cada hora del cron.
+            if (['dashboard', 'pwa', 'extension'].includes(triggerSource)) {
+                await db.collection('audit_logs').add({
+                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                    type: 'daily_check_info',
+                    status: 'success',
+                    summary: skipSummary,
+                    details: [{ action: 'idle_check', info: 'Deduplicación activa (Todo al día).', trigger: triggerSource }],
+                    executor: executorEmail
+                });
+            }
 
             return res.status(200).json({
                 ok: true,

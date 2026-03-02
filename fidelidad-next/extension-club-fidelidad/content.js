@@ -48,6 +48,8 @@ chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
                         showGlobalAlert(birthdayCount, expirationCount, res.apiUrl);
                     } else {
                         console.log("ℹ️ [Club Fidelidad] Nada pendiente para alertar hoy.");
+                        const existingWidget = document.getElementById('cf-floating-alert');
+                        if (existingWidget) existingWidget.remove();
                     }
                 }
             })

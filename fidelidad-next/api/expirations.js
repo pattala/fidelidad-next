@@ -183,8 +183,6 @@ async function handleCheck(req, res, db) {
 
                     // Si ya se gestionó manualmente hoy, lo ignoramos para los contadores y notificaciones
                     if (userData.lastWhatsAppManualDate === referenceDateStr) continue;
-
-                    if (userData.nextExpirationDate <= proactivePinStr) logResults.totalInWindow++;
                     if (userData.nextExpirationDate > warningDateStr) continue;
 
                     const historyRef = userDoc.ref.collection('points_history');
@@ -202,6 +200,9 @@ async function handleCheck(req, res, db) {
                         }
                     });
                     if (totalImpendingAmount <= 0) continue;
+
+                    // El usuario tiene puntos por vencer, por lo tanto suma al contador de la extensión
+                    if (userData.nextExpirationDate <= proactivePinStr) logResults.totalInWindow++;
 
                     const isItinerancyEnabled = config.messaging?.repeatExpirationWarnings === true;
                     const rawInterval = config.messaging?.expirationReminderIntervalDays ?? config.messaging?.expirationItinerancyDays;

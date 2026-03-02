@@ -359,12 +359,15 @@ export const DashboardPage = () => {
 
     const markExpirationHandled = async (user: any, action: 'sent' | 'cancelled') => {
         try {
-            const today = new Date().toISOString().split('T')[0];
+            // Fix: Use correct Time parsing instead of plain new Date() which uses device local/UTC depending on context
+            const arTodayDate = TimeService.now();
+            const todayAR = `${arTodayDate.getFullYear()}-${String(arTodayDate.getMonth() + 1).padStart(2, '0')}-${String(arTodayDate.getDate()).padStart(2, '0')}`;
+
             // Campo manual: oculta la burbuja del dashboard
             // Campo lastExpirationNotice: actualiza el contador de la extensión (check-birthdays)
             await updateDoc(doc(db, 'users', user.id), {
-                lastWhatsAppManualDate: today,
-                lastExpirationNotice: today
+                lastWhatsAppManualDate: todayAR,
+                lastExpirationNotice: todayAR
             });
             // Optimistic UI update
             setExpiringUsers(prev => prev.filter(u => u.id !== user.id));

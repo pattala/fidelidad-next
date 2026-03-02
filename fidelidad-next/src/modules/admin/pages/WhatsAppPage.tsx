@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 
 import { useLocation } from 'react-router-dom';
 import { useAdminAuth } from '../contexts/AdminAuthContext';
+import { TimeService } from '../../../services/timeService';
 
 export const WhatsAppPage = () => {
     const { isReadOnly } = useAdminAuth();
@@ -154,14 +155,17 @@ export const WhatsAppPage = () => {
     const markAsHandled = async (clientId: string) => {
         try {
             const userRef = doc(db, 'users', clientId);
-            const today = new Date().toISOString().split('T')[0];
+
+            const arTodayDate = TimeService.now();
+            const todayAR = `${arTodayDate.getFullYear()}-${String(arTodayDate.getMonth() + 1).padStart(2, '0')}-${String(arTodayDate.getDate()).padStart(2, '0')}`;
+
             const updates: any = {};
 
             if (notificationType === 'birthday') {
-                updates.lastBirthdayGreetingYear = new Date().getFullYear().toString();
+                updates.lastBirthdayGreetingYear = arTodayDate.getFullYear().toString();
             } else {
-                updates.lastWhatsAppManualDate = today;  // oculta burbuja dashboard
-                updates.lastExpirationNotice = today;    // actualiza contador extensión
+                updates.lastWhatsAppManualDate = todayAR;  // oculta burbuja dashboard
+                updates.lastExpirationNotice = todayAR;    // actualiza contador extensión
             }
 
             await updateDoc(userRef, updates);

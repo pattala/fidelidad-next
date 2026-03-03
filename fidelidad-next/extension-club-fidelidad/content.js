@@ -229,6 +229,13 @@ async function refreshAlertCounts() {
     }
 }
 
+// Auto-refresh when regaining focus (e.g. returning from Admin Panel)
+window.addEventListener('focus', () => {
+    refreshAlertCounts();
+    // Also re-trigger amount detection in case the DOM changed while away
+    setTimeout(() => detectAmount(), 500);
+});
+
 // Función para buscar el monto en el sitio
 function detectAmount() {
     const selectors = [
@@ -270,12 +277,23 @@ function detectAmount() {
             detectedAmount = val;
             showFidelidadPanel();
         }
+    } else {
+        // Reset detected amount if no input is found so it can trigger again when it appears
+        if (detectedAmount > 0) detectedAmount = 0;
     }
 }
 
-const observer = new MutationObserver(() => detectAmount());
-observer.observe(document.body, { childList: true, subtree: true });
+let detectTimeout = null;
+const observer = new MutationObserver(() => {
+    // Debounce the detection to avoid performance issues during intensive DOM mutations
+    if (detectTimeout) clearTimeout(detectTimeout);
+    detectTimeout = setTimeout(() => detectAmount(), 300);
+});
+observer.observe(document.body, { childList: true, subtree: true, attributes: true, characterData: true });
+// Initial detection sequence
 detectAmount();
+setTimeout(detectAmount, 1000);
+setTimeout(detectAmount, 2500);
 
 function showFidelidadPanel() {
     if (document.getElementById('fidelidad-panel')) {

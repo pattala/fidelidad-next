@@ -118,6 +118,10 @@ export interface AppConfig {
     enableBirthdayMessage?: boolean;
     enableExternalIntegration?: boolean;
 
+    // Gamification & Bonos
+    enableAddressBonus?: boolean;
+    pointsForAddress?: number;
+
     // Vencimiento por Rangos
     expirationRules?: Array<{
         minPoints: number;
@@ -169,6 +173,7 @@ export interface AppConfig {
         enableClientTrigger?: boolean;
         enableExtensionTrigger?: boolean;
         enableQStashTrigger?: boolean;
+        notificationPromptIntervalDays?: number; // Días para repetir aviso de permisos
     };
 
     // Sistema de Referidos

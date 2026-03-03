@@ -46,7 +46,7 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
         let showNotif = false;
         if (notifStatus === 'pending') showNotif = true;
         else if (notifStatus === 'later') showNotif = true;
-        else if (notifDenied && Date.now() > notifNextPrompt) showNotif = true;
+        else if ((notifStatus === 'denied' || notifStatus === 'dismissed') && Date.now() > notifNextPrompt) showNotif = true;
 
         if (Notification.permission === 'granted' && notifStatus !== 'granted') {
             updatePermission('notifications', 'granted');
@@ -73,7 +73,7 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
         let showGeo = false;
         if (geoStatus === 'pending') showGeo = true;
         else if (geoStatus === 'later') showGeo = true;
-        else if (geoDenied && Date.now() > geoNextPrompt) showGeo = true;
+        else if ((geoStatus === 'denied' || geoStatus === 'dismissed') && Date.now() > geoNextPrompt) showGeo = true;
 
         if (showGeo && !geoBlocked) {
             setStep('geolocation');
@@ -149,7 +149,11 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
     const handleLater = async () => {
         const type = step as 'notifications' | 'geolocation';
         setStep('none'); // Close immediately
-        await updatePermission(type, 'dismissed');
+
+        const days = config?.messaging?.notificationPromptIntervalDays || 30;
+        const nextPrompt = Date.now() + (days * 24 * 60 * 60 * 1000);
+
+        await updatePermission(type, 'dismissed', nextPrompt);
     };
 
     const handleNo = async () => {

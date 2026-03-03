@@ -228,7 +228,20 @@ export const ClientRegisterPage = () => {
                 }).catch(e => console.warn('Error asignando puntos:', e));
             }
 
-            // C. Enviar Notificación Inbox/Push (si mensaje está activado)
+            // C. Asignar Bono por Domicilio (Opcional)
+            const hasAddress = street.trim() !== '' && number.trim() !== '';
+            if (hasAddress && config?.enableAddressBonus !== false) {
+                await fetch('/api/assign-points', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'x-api-key': apiKey },
+                    body: JSON.stringify({
+                        uid: user.uid,
+                        reason: 'profile_address'
+                    })
+                }).catch(e => console.warn('Error asignando puntos de domicilio:', e));
+            }
+
+            // D. Enviar Notificación Inbox/Push (si mensaje está activado)
             if (shouldSendWelcome) {
                 try {
                     // Si hay puntos, mencionarlos, si no, mensaje genérico o sin puntos
@@ -412,7 +425,6 @@ export const ClientRegisterPage = () => {
                                 <select
                                     value={province}
                                     onChange={e => { setProvince(e.target.value); setPartido(''); setLocalidad(''); }}
-                                    required
                                     className="w-full bg-gray-50 px-4 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none"
                                 >
                                     <option value="">Provincia</option>
@@ -421,7 +433,6 @@ export const ClientRegisterPage = () => {
                                 <select
                                     value={partido}
                                     onChange={e => { setPartido(e.target.value); setLocalidad(''); }}
-                                    required
                                     disabled={!province}
                                     className="w-full bg-gray-50 px-4 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none disabled:opacity-50"
                                 >
@@ -431,7 +442,6 @@ export const ClientRegisterPage = () => {
                                 <select
                                     value={localidad}
                                     onChange={e => setLocalidad(e.target.value)}
-                                    required
                                     disabled={!partido}
                                     className="w-full bg-gray-50 px-4 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none disabled:opacity-50"
                                 >
@@ -445,7 +455,6 @@ export const ClientRegisterPage = () => {
                                     <MapPin className="absolute left-3 top-3.5 text-gray-400" size={18} />
                                     <input
                                         type="text"
-                                        required
                                         placeholder="Calle"
                                         className="w-full bg-gray-50 pl-10 pr-3 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none"
                                         value={street}
@@ -454,7 +463,6 @@ export const ClientRegisterPage = () => {
                                 </div>
                                 <input
                                     type="text"
-                                    required
                                     placeholder="N°"
                                     className="w-20 bg-gray-50 px-3 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none text-center"
                                     value={number}
@@ -516,13 +524,31 @@ export const ClientRegisterPage = () => {
                                 </label>
                             </div>
 
-                            <button
-                                type="submit"
-                                disabled={loading || !termsAccepted}
-                                className="w-full bg-purple-600 text-white py-4 rounded-2xl font-bold text-sm shadow-lg shadow-purple-200 hover:bg-purple-700 active:scale-95 transition-all flex items-center justify-center gap-2 group mt-6 disabled:opacity-70 disabled:grayscale"
-                            >
-                                {loading ? 'Registrando...' : 'Finalizar Registro'}
-                            </button>
+                            <div className="flex flex-col gap-3 mt-6">
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="w-full bg-purple-600 text-white py-4 rounded-2xl font-bold text-sm shadow-lg shadow-purple-200 hover:bg-purple-700 active:scale-95 transition-all flex items-center justify-center gap-2 group disabled:opacity-70 disabled:grayscale"
+                                >
+                                    {loading ? 'Registrando...' : 'Finalizar Registro'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        if (!termsAccepted) {
+                                            toast.error('Debes aceptar los términos y condiciones para finalizar');
+                                            return;
+                                        }
+                                        setStreet('');
+                                        setNumber('');
+                                        handleRegister(e);
+                                    }}
+                                    disabled={loading}
+                                    className="w-full bg-gray-100 text-gray-600 py-3 rounded-2xl font-bold text-xs hover:bg-gray-200 active:scale-95 transition-all disabled:opacity-70"
+                                >
+                                    Saltar y finalizar
+                                </button>
+                            </div>
                         </form>
                     )}
                 </div>

@@ -942,9 +942,19 @@ export const ClientsPage = () => {
                                             <div title={`Notificaciones: ${client.permissions?.notifications?.status === 'granted' ? (client.fcmToken ? 'Activas (Con Token)' : 'Permiso concedido pero falta registrar Token') : 'Pendiente/Denegado'}`} className={`p-1.5 rounded-md ${(client.permissions?.notifications?.status === 'granted' && client.fcmToken) ? 'text-purple-600 bg-purple-50 border border-purple-100 shadow-sm' : 'text-gray-300 bg-gray-50'}`}>
                                                 <Bell size={14} />
                                             </div>
-                                            <div title={`Ubicación: ${client.permissions?.geolocation?.status === 'granted' ? (client.lastLocation ? 'Activa (Con Coordenadas)' : 'Permiso concedido pero sin datos aún') : 'Pendiente/Denegado'}`} className={`p-1.5 rounded-md ${(client.permissions?.geolocation?.status === 'granted' && client.lastLocation) ? 'text-green-600 bg-green-50 border border-green-100 shadow-sm' : 'text-gray-300 bg-gray-50'}`}>
+                                            <button
+                                                onClick={() => {
+                                                    if (client.lastLocation) {
+                                                        const coords = `${client.lastLocation.lat}, ${client.lastLocation.lng}`;
+                                                        navigator.clipboard.writeText(coords);
+                                                        toast.success(`Coordenadas copiadas: ${coords}`);
+                                                    }
+                                                }}
+                                                title={`Ubicación: ${client.permissions?.geolocation?.status === 'granted' ? (client.lastLocation ? 'Activa (Con Coordenadas - Clic para copiar)' : 'Permiso concedido pero sin datos aún') : 'Pendiente/Denegado'}`}
+                                                className={`p-1.5 rounded-md transition-all ${(client.permissions?.geolocation?.status === 'granted' && client.lastLocation) ? 'text-green-600 bg-green-50 border border-green-100 shadow-sm hover:scale-110 active:scale-95' : 'text-gray-300 bg-gray-50'}`}
+                                            >
                                                 <MapPin size={14} />
-                                            </div>
+                                            </button>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 text-center">

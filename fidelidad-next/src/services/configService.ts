@@ -31,6 +31,8 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
     enableWelcomeBonus: true,
     birthdayPoints: 100,
     enableBirthdayBonus: true,
+    enableAddressBonus: true,
+    pointsForAddress: 50,
     expirationRules: [],
     messaging: {
         emailEnabled: true,
@@ -55,6 +57,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
         enableClientTrigger: true,
         enableExtensionTrigger: true,
         enableQStashTrigger: true,
+        notificationPromptIntervalDays: 30,
     },
     referrals: {
         enabled: true,

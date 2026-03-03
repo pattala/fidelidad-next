@@ -90,7 +90,8 @@ Esta guía asegura que verifiquemos no solo el saldo, sino la **infraestructura 
 *Objetivo: Ver que los 4 canales de comunicación se activen tras la acción de la extensión.*
 
 1.  **Resultados tras el Paso Anterior:**
-    *   **Canal 1 (Push - Cliente):** Notificación inmediata con sonido/vibración en el celular.
+    *   **Canal 1 (Push - Cliente):** Notificación inmediata. 
+        *   **Verificación de Logo:** Asegúrate de que el logo del club se vea grande y nítido, no como un "planeta" genérico o un ícono pequeño del sistema.
     *   **Canal 2 (Inbox - Cliente):** En la PWA -> Campanita, aparece el mensaje detallado.
     *   **Canal 3 (Email - Cliente):** Llega el correo a `test_pablo@ejemplo.com`.
     *   **Canal 4 (Auditoría - Admin):** En Panel Admin -> **Logs / Auditoría**, la entrada debe marcar: `Email: OK`, `Push: OK`, `Inbox: OK`.

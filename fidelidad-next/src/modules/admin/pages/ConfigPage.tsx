@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Plus, Trash2, Palette, Calculator, Monitor, Settings, Home, Gift, MessageCircle, FileText, AlertTriangle, RefreshCw, ShieldAlert, Shield, Users, Clock, Eye, Sparkles, Cake, Zap, UserPlus, Megaphone } from 'lucide-react';
+import { Save, Plus, Trash2, Palette, Calculator, Monitor, Settings, Home, Gift, MessageCircle, FileText, AlertTriangle, RefreshCw, ShieldAlert, Shield, Users, Clock, Eye, Sparkles, Cake, Zap, UserPlus, Megaphone, Bell } from 'lucide-react';
 import { ConfigService, DEFAULT_TEMPLATES } from '../../../services/configService';
 import { EmailPreviewModal } from '../components/EmailPreviewModal';
 import { EmailService } from '../../../services/emailService';
@@ -582,6 +582,33 @@ export const ConfigPage = () => {
                                                     </div>
                                                 )}
 
+                                                {/* NUEVO: Bono por Domicilio */}
+                                                <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                                                    <div className="flex-1">
+                                                        <span className="text-sm font-bold text-gray-800">Bono por Domicilio Completo</span>
+                                                        <p className="text-xs text-gray-500">Regalar puntos si el socio completa su dirección al registrarse.</p>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setConfig({ ...config, enableAddressBonus: !config.enableAddressBonus })}
+                                                        className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.enableAddressBonus ? 'bg-emerald-600' : 'bg-gray-200'}`}
+                                                    >
+                                                        <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enableAddressBonus ? 'translate-x-5' : 'translate-x-0'}`} />
+                                                    </button>
+                                                </div>
+
+                                                {config.enableAddressBonus && (
+                                                    <div className="flex items-center gap-3 animate-fade-in pl-2 border-l-2 border-emerald-200">
+                                                        <input
+                                                            type="number"
+                                                            value={config.pointsForAddress || 50}
+                                                            onChange={e => setConfig({ ...config, pointsForAddress: parseInt(e.target.value) || 0 })}
+                                                            className="w-24 p-2 rounded-lg border border-gray-200 outline-none focus:ring-2 focus:ring-emerald-100 font-bold text-gray-700 text-center"
+                                                        />
+                                                        <span className="text-gray-500 text-sm font-medium">puntos por dirección.</span>
+                                                    </div>
+                                                )}
+
                                                 {/* 2. Automatic Message */}
                                                 <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                                                     <div className="flex-1">
@@ -814,6 +841,28 @@ export const ConfigPage = () => {
                                                             <div className="flex flex-col">
                                                                 <span className="text-sm font-bold text-gray-700">Días entre avisos.</span>
                                                                 <p className="text-[9px] text-gray-400 italic">El motor no enviará un nuevo aviso si pasaron menos de estos días desde el último.</p>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* NUEVO: Intervalo para Permisos PWA */}
+                                                        <div className="mt-4 pt-4 border-t border-blue-50">
+                                                            <label className="block text-xs font-bold text-purple-600 uppercase mb-2 ml-1 flex items-center gap-2">
+                                                                <Bell size={12} /> Re-intento de Permisos PWA
+                                                            </label>
+                                                            <div className="flex items-center gap-3">
+                                                                <input
+                                                                    type="number"
+                                                                    value={config.messaging?.notificationPromptIntervalDays || 30}
+                                                                    onChange={e => setConfig({
+                                                                        ...config,
+                                                                        messaging: { ...config.messaging!, notificationPromptIntervalDays: parseInt(e.target.value) || 0 }
+                                                                    })}
+                                                                    className="w-20 p-2 rounded-lg border border-purple-200 outline-none focus:ring-2 focus:ring-purple-50 font-black text-center text-purple-700"
+                                                                />
+                                                                <div className="flex flex-col">
+                                                                    <span className="text-sm font-bold text-gray-700">Días para volver a preguntar.</span>
+                                                                    <p className="text-[9px] text-gray-400 italic">Frecuencia con la que se pide permiso de Notificaciones/GPS si el usuario puso "Luego".</p>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>

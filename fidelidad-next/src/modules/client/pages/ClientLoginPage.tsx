@@ -18,14 +18,14 @@ export const ClientLoginPage = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        // Early redirect if already authenticated
-        const unsubAuth = onAuthStateChanged(auth, (u) => {
-            if (u) {
-                const target = sessionStorage.getItem('client_redirect_to') || '/';
-                sessionStorage.removeItem('client_redirect_to');
-                navigate(target);
-            }
-        });
+        // Redirection removed to allow manual login testing
+        // const unsubAuth = onAuthStateChanged(auth, (u) => {
+        //     if (u) {
+        //         const target = sessionStorage.getItem('client_redirect_to') || '/';
+        //         sessionStorage.removeItem('client_redirect_to');
+        //         navigate(target);
+        //     }
+        // });
 
         ConfigService.get().then(setConfig);
 

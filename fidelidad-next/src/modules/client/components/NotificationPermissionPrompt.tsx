@@ -112,6 +112,7 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
     const handleYes = async () => {
         if (step === 'notifications') {
             const permission = await Notification.requestPermission();
+            setStep('none'); // Close immediately for better UX
             if (permission === 'granted') {
                 await updatePermission('notifications', 'granted');
                 toast.success('¡Genial! Te avisaremos de ofertas.');
@@ -121,6 +122,7 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
             }
         } else if (step === 'geolocation') {
             if ('geolocation' in navigator) {
+                setStep('none'); // Close immediately for better UX
                 navigator.geolocation.getCurrentPosition(
                     async (position) => {
                         await updatePermission('geolocation', 'granted');
@@ -135,7 +137,7 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
                     },
                     async (error) => {
                         console.error("Geo error:", error);
-                        await updatePermission('geolocation', 'later');
+                        await updatePermission('geolocation', 'dismissed');
                     }
                 );
             } else {
@@ -145,8 +147,9 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
     };
 
     const handleLater = async () => {
-        if (step === 'notifications') await updatePermission('notifications', 'later');
-        if (step === 'geolocation') await updatePermission('geolocation', 'later');
+        const type = step as 'notifications' | 'geolocation';
+        setStep('none'); // Close immediately
+        await updatePermission(type, 'dismissed');
     };
 
     const handleNo = async () => {

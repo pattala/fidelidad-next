@@ -753,6 +753,72 @@ export const ConfigPage = () => {
                                                     </tbody>
                                                 </table>
                                             </div>
+
+                                            {/* SECCIÓN NUEVA: Itinerancia y Avisos */}
+                                            <div className="mt-6 pt-6 border-t border-gray-100 space-y-4">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <span className="bg-orange-100 text-orange-600 p-1.5 rounded-lg"><Clock size={16} /></span>
+                                                    <h4 className="text-sm font-bold text-gray-800">Itinerancia de Avisos (Recordatorios)</h4>
+                                                </div>
+
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div className="bg-orange-50/30 p-4 rounded-xl border border-orange-100/50">
+                                                        <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Anticipación del Aviso</label>
+                                                        <div className="flex items-center gap-3">
+                                                            <input
+                                                                type="number"
+                                                                value={config.messaging?.expirationWarningDays || 7}
+                                                                onChange={e => setConfig({
+                                                                    ...config,
+                                                                    messaging: { ...config.messaging!, expirationWarningDays: parseInt(e.target.value) || 0 }
+                                                                })}
+                                                                className="w-20 p-2 rounded-lg border border-gray-200 outline-none focus:ring-2 focus:ring-orange-100 font-bold text-center"
+                                                            />
+                                                            <span className="text-sm font-medium text-gray-600">días antes del vencimiento.</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="bg-blue-50/30 p-4 rounded-xl border border-blue-100/50 flex items-center justify-between">
+                                                        <div>
+                                                            <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Repetir Avisos</label>
+                                                            <span className="text-[10px] text-gray-500 font-medium">Habilita la "Itinerancia" (múltiples avisos).</span>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setConfig({
+                                                                ...config,
+                                                                messaging: { ...config.messaging!, repeatExpirationWarnings: !config.messaging?.repeatExpirationWarnings }
+                                                            })}
+                                                            className={`relative w-10 h-6 transition-colors rounded-full shadow-inner ${config.messaging?.repeatExpirationWarnings ? 'bg-blue-600' : 'bg-gray-200'}`}
+                                                        >
+                                                            <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform ${config.messaging?.repeatExpirationWarnings ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {config.messaging?.repeatExpirationWarnings && (
+                                                    <div className="bg-white p-4 rounded-xl border-2 border-dashed border-blue-100 animate-fade-in">
+                                                        <label className="block text-xs font-bold text-blue-600 uppercase mb-2 ml-1 flex items-center gap-2">
+                                                            <Clock size={12} /> Intervalo de Repetición
+                                                        </label>
+                                                        <div className="flex items-center gap-3">
+                                                            <input
+                                                                type="number"
+                                                                value={config.messaging?.expirationReminderIntervalDays || 5}
+                                                                onChange={e => setConfig({
+                                                                    ...config,
+                                                                    messaging: { ...config.messaging!, expirationReminderIntervalDays: parseInt(e.target.value) || 0 }
+                                                                })}
+                                                                className="w-20 p-2 rounded-lg border border-blue-200 outline-none focus:ring-2 focus:ring-blue-50 font-black text-center text-blue-700"
+                                                            />
+                                                            <div className="flex flex-col">
+                                                                <span className="text-sm font-bold text-gray-700">Días entre avisos.</span>
+                                                                <p className="text-[9px] text-gray-400 italic">El motor no enviará un nuevo aviso si pasaron menos de estos días desde el último.</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -2217,7 +2283,25 @@ export const ConfigPage = () => {
                                             onClick={() => setConfig({ ...config, enableDateSimulator: !config.enableDateSimulator })}
                                             className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.enableDateSimulator ? 'bg-purple-600' : 'bg-gray-200'}`}
                                         >
-                                            <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enableDateSimulator ? 'translate-x-5' : 'translate-x-0'}`} />
+                                        </button>
+                                    </div>
+
+                                    {/* SECCIÓN NUEVA: Control de Duplicados */}
+                                    <div className="flex items-center justify-between p-6 bg-red-50/50 rounded-2xl border border-red-100">
+                                        <div className="flex-1">
+                                            <span className="text-sm font-black text-red-900 uppercase flex items-center gap-2">
+                                                <Shield size={16} /> Control de Ejecución Diaria
+                                            </span>
+                                            <p className="text-[10px] text-red-600 font-bold mt-1">
+                                                Evita que el motor automático envíe avisos duplicados si se ejecuta varias veces el mismo día.
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setConfig({ ...config, enableDuplicateControl: config.enableDuplicateControl === undefined ? true : !config.enableDuplicateControl })}
+                                            className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.enableDuplicateControl !== false ? 'bg-red-600' : 'bg-gray-200'}`}
+                                        >
+                                            <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enableDuplicateControl !== false ? 'translate-x-5' : 'translate-x-0'}`} />
                                         </button>
                                     </div>
 

@@ -296,15 +296,16 @@ export const ClientRegisterPage = () => {
                 </div>
             )}
 
-            {/* Atrás Button - Solo en paso 2 */}
-            <div className={`relative z-10 w-full max-w-sm pt-4 sm:pt-0 pb-4 sm:pb-0 transition-all ${step === 2 ? 'mt-12 sm:mt-0' : 'my-auto'}`}>
+            <div className="relative z-10 w-full max-w-sm my-auto shrink-0 pt-4 sm:pt-0 pb-4 sm:pb-0 transition-all">
                 {step === 2 && (
-                    <button
-                        onClick={() => setStep(1)}
-                        className="absolute -top-14 sm:-top-16 left-0 flex items-center justify-center gap-1.5 text-gray-500 font-bold text-xs sm:text-sm hover:text-gray-900 hover:bg-white transition bg-gray-200/50 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full shadow-none w-fit border border-gray-300/50"
-                    >
-                        <ArrowLeft size={14} className="sm:w-[16px] sm:h-[16px]" /> Atrás
-                    </button>
+                    <div className="mb-4 flex justify-start">
+                        <button
+                            onClick={() => setStep(1)}
+                            className="flex items-center justify-center gap-1.5 text-gray-500 font-bold text-xs sm:text-sm hover:text-gray-900 hover:bg-white transition bg-gray-200/50 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full shadow-none w-fit border border-gray-300/50"
+                        >
+                            <ArrowLeft size={14} className="sm:w-[16px] sm:h-[16px]" /> Atrás
+                        </button>
+                    </div>
                 )}
 
                 {/* Logo / Brand - Homologado con Login */}

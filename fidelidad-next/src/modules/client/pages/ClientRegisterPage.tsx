@@ -282,7 +282,7 @@ export const ClientRegisterPage = () => {
     const availableLocalidades = (province && partido) ? (ARGENTINA_LOCATIONS[province][partido] || []) : [];
 
     return (
-        <div className="min-h-[100dvh] bg-gray-50 flex flex-col items-center justify-start sm:justify-center p-4 sm:p-6 relative overflow-x-hidden w-full overflow-y-auto">
+        <div className="min-h-[100dvh] bg-gray-50 flex flex-col items-center justify-start p-4 sm:p-6 pb-20 relative overflow-x-hidden w-full overflow-y-auto">
             {/* Loading Overlay */}
             {loading && (
                 <div className="fixed inset-0 z-[200] bg-white/80 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in">
@@ -300,12 +300,12 @@ export const ClientRegisterPage = () => {
             <div className="absolute top-0 right-0 w-64 h-64 bg-purple-200/50 rounded-full blur-3xl -mr-20 -mt-20"></div>
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-teal-200/50 rounded-full blur-3xl -ml-16 -mb-16"></div>
 
-            <div className="relative z-10 w-full max-w-sm my-auto pt-4 sm:pt-0 pb-4 sm:pb-0">
+            <div className="relative z-10 w-full max-w-sm mt-12 sm:mt-0 pt-4 sm:pt-0 pb-4 sm:pb-0">
                 <button
                     onClick={() => step === 1 ? navigate('/login') : setStep(1)}
-                    className="mb-6 sm:mb-8 flex items-center justify-center gap-2 text-gray-600 font-bold text-xs sm:text-sm hover:text-gray-900 hover:bg-white transition bg-white/60 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full shadow-sm backdrop-blur-sm w-fit mx-auto border border-white/50"
+                    className="absolute -top-14 sm:-top-16 left-0 flex items-center justify-center gap-1.5 text-gray-500 font-bold text-xs sm:text-sm hover:text-gray-900 hover:bg-white transition bg-gray-200/50 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full shadow-none w-fit border border-gray-300/50"
                 >
-                    <ArrowLeft size={16} className="sm:w-[18px] sm:h-[18px]" /> {step === 1 ? 'Volver' : 'Atrás'}
+                    <ArrowLeft size={14} className="sm:w-[16px] sm:h-[16px]" /> Atrás
                 </button>
 
                 {/* Logo / Brand - Homologado con Login */}

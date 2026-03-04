@@ -296,7 +296,7 @@ export const ClientRegisterPage = () => {
                 </div>
             )}
 
-            <div className="relative z-10 w-full max-w-sm my-auto shrink-0 pt-4 sm:pt-0 pb-4 sm:pb-0 transition-all">
+            <div className={`relative z-10 w-full max-w-sm shrink-0 pt-4 sm:pt-0 pb-4 sm:pb-0 transition-all ${step === 2 ? 'mt-4 sm:mt-8 mb-auto' : 'my-auto'}`}>
                 {step === 2 && (
                     <div className="mb-4 flex justify-start">
                         <button

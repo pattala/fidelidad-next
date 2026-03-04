@@ -282,7 +282,7 @@ export const ClientRegisterPage = () => {
     const availableLocalidades = (province && partido) ? (ARGENTINA_LOCATIONS[province][partido] || []) : [];
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 relative">
+        <div className="min-h-[100dvh] bg-gray-50 flex flex-col items-center justify-start sm:justify-center p-4 sm:p-6 relative overflow-x-hidden w-full overflow-y-auto">
             {/* Loading Overlay */}
             {loading && (
                 <div className="fixed inset-0 z-[200] bg-white/80 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in">
@@ -300,39 +300,41 @@ export const ClientRegisterPage = () => {
             <div className="absolute top-0 right-0 w-64 h-64 bg-purple-200/50 rounded-full blur-3xl -mr-20 -mt-20"></div>
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-teal-200/50 rounded-full blur-3xl -ml-16 -mb-16"></div>
 
-            <div className="relative z-10 w-full max-w-sm">
+            <div className="relative z-10 w-full max-w-sm my-auto py-8 sm:py-0">
                 <button
                     onClick={() => step === 1 ? navigate('/login') : setStep(1)}
-                    className="mb-6 flex items-center gap-2 text-gray-500 font-bold text-sm hover:text-purple-600 transition"
+                    className="mb-8 flex items-center justify-center gap-2 text-gray-600 font-bold text-sm hover:text-gray-900 hover:bg-white transition bg-white/60 px-5 py-2.5 rounded-full shadow-sm backdrop-blur-sm w-fit mx-auto border border-white/50"
                 >
                     <ArrowLeft size={18} /> {step === 1 ? 'Volver al Login' : 'Volver a Datos Personales'}
                 </button>
 
-                <div className="mb-8 text-center">
-                    <div className="w-16 h-16 bg-white rounded-2xl mx-auto shadow-lg shadow-purple-500/5 flex items-center justify-center mb-4 overflow-hidden p-1.5">
+                {/* Logo / Brand - Homologado con Login */}
+                <div className="mb-10 text-center">
+                    <div className="w-20 h-20 bg-white rounded-3xl mx-auto shadow-xl shadow-purple-500/10 flex items-center justify-center mb-4 transform -rotate-3 overflow-hidden p-2">
                         {config?.logoUrl ? (
                             <img src={config.logoUrl} alt="Logo" className="w-full h-full object-contain" />
                         ) : (
-                            <span className="text-3xl">🚀</span>
+                            <span className="text-4xl">🚀</span>
                         )}
                     </div>
-                    <h1 className="text-xl font-black text-gray-800 tracking-tight">
+                    <h1 className="text-3xl font-black text-gray-800 tracking-tight">
                         {config?.siteName || 'Club Fidelidad'}
                     </h1>
+                    <p className="text-gray-500 font-medium mt-1">Crea tu cuenta gratis</p>
                 </div>
 
-                <div className="bg-white p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 border border-gray-100 backdrop-blur-sm animate-fade-in">
+                <div className="bg-white p-6 sm:p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 border border-gray-100 backdrop-blur-sm animate-fade-in">
                     <div className="mb-6 text-center">
                         {refCode && (
                             <div className="mb-4 p-3 bg-purple-50 rounded-2xl border border-purple-100 animate-bounce-subtle">
                                 <p className="text-[10px] font-black uppercase text-purple-400 tracking-widest mb-1">¡Invitación Especial!</p>
                                 <p className="text-xs font-bold text-purple-700 flex items-center justify-center gap-1">
-                                    <Gift size={14} /> Te han invitado a sumarte al club
+                                    <Gift size={14} /> Te han invitado a sumarte
                                 </p>
                             </div>
                         )}
-                        <h2 className="text-xl font-bold text-gray-800">
-                            {step === 1 ? 'Crear Cuenta' : 'Tu Dirección'}
+                        <h2 className="text-xl font-bold text-gray-800 mb-6">
+                            {step === 1 ? 'Datos Personales' : 'Tu Dirección'}
                         </h2>
                         <div className="flex justify-center gap-2 mt-2">
                             <div className={`h-1.5 w-8 rounded-full ${step === 1 ? 'bg-purple-600' : 'bg-gray-200'}`}></div>
@@ -524,7 +526,7 @@ export const ClientRegisterPage = () => {
                                 </label>
                             </div>
 
-                            <div className="flex flex-col gap-3 mt-6">
+                            <div className="flex flex-col gap-3 mt-8">
                                 <button
                                     type="submit"
                                     disabled={loading}

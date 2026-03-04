@@ -297,7 +297,7 @@ export const ClientRegisterPage = () => {
             )}
 
             {/* Atrás Button - Solo en paso 2 */}
-            <div className="relative z-10 w-full max-w-sm mt-12 sm:mt-0 pt-4 sm:pt-0 pb-4 sm:pb-0">
+            <div className={`relative z-10 w-full max-w-sm pt-4 sm:pt-0 pb-4 sm:pb-0 transition-all ${step === 2 ? 'mt-12 sm:mt-0' : 'my-auto'}`}>
                 {step === 2 && (
                     <button
                         onClick={() => setStep(1)}

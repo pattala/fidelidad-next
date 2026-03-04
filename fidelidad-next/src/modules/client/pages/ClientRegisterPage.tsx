@@ -282,7 +282,7 @@ export const ClientRegisterPage = () => {
     const availableLocalidades = (province && partido) ? (ARGENTINA_LOCATIONS[province][partido] || []) : [];
 
     return (
-        <div className="min-h-[100dvh] bg-gray-50 items-center p-4 sm:p-6 pb-24 relative overflow-x-hidden w-full overflow-y-auto block sm:flex sm:flex-col">
+        <div className="min-h-[100dvh] bg-gray-50 flex flex-col justify-start items-center p-4 sm:p-6 pb-24 relative overflow-x-hidden w-full">
             {/* Loading Overlay */}
             {loading && (
                 <div className="fixed inset-0 z-[200] bg-white/80 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in">
@@ -299,20 +299,15 @@ export const ClientRegisterPage = () => {
             <div className="absolute top-0 right-0 w-64 h-64 bg-purple-200/50 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-teal-200/50 rounded-full blur-3xl -ml-16 -mb-16 pointer-events-none"></div>
 
-            {/* Spacer superior adaptativo (ancla el scroll al inicio en content overflow) */}
-            <div className="hidden sm:block flex-grow pointer-events-none"></div>
-
-            <div className="relative z-10 w-full max-w-sm shrink-0 py-8 sm:py-8 transition-all mx-auto">
-                {step === 2 && (
-                    <div className="mb-4 flex justify-start">
-                        <button
-                            onClick={() => setStep(1)}
-                            className="flex items-center justify-center gap-1.5 text-gray-500 font-bold text-xs sm:text-sm hover:text-gray-900 hover:bg-white transition bg-gray-200/50 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full shadow-none w-fit border border-gray-300/50"
-                        >
-                            <ArrowLeft size={14} className="sm:w-[16px] sm:h-[16px]" /> Atrás
-                        </button>
-                    </div>
-                )}
+            <div className="relative z-10 w-full max-w-sm shrink-0 mt-4 sm:mt-8 mb-auto transition-all mx-auto">
+                <div className="mb-4 flex justify-start w-full">
+                    <button
+                        onClick={() => step === 2 ? setStep(1) : navigate('/login')}
+                        className="flex items-center justify-center gap-1.5 text-gray-500 font-bold text-xs sm:text-sm hover:text-gray-900 hover:bg-white transition bg-gray-200/50 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full shadow-none w-fit border border-gray-300/50"
+                    >
+                        <ArrowLeft size={14} className="sm:w-[16px] sm:h-[16px]" /> Atrás
+                    </button>
+                </div>
 
                 {/* Logo / Brand - Homologado con Login */}
                 <div className="mb-6 sm:mb-10 text-center">

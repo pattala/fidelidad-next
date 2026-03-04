@@ -121,16 +121,13 @@ export const ClientLoginPage = () => {
     };
 
     return (
-        <div className="min-h-[100dvh] bg-gray-50 flex-col items-center p-4 sm:p-6 pb-12 sm:pb-8 relative overflow-x-hidden w-full overflow-y-auto block sm:flex">
+        <div className="min-h-[100dvh] bg-gray-50 flex flex-col justify-start items-center p-4 sm:p-6 pb-12 sm:pb-8 relative overflow-x-hidden w-full">
 
             {/* Background Decoration */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-purple-200/50 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-teal-200/50 rounded-full blur-3xl -ml-16 -mb-16 pointer-events-none"></div>
 
-            {/* Spacer superior adaptativo (nunca corta el contenido superior) */}
-            <div className="hidden sm:block flex-grow pointer-events-none"></div>
-
-            <div className="relative z-10 w-full max-w-sm shrink-0 py-8 sm:py-0 mx-auto">
+            <div className="relative z-10 w-full max-w-sm shrink-0 mt-8 mb-auto mx-auto">
 
                 {/* Logo / Brand */}
                 <div className="mb-6 sm:mb-10 text-center">

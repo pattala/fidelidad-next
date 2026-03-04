@@ -282,7 +282,7 @@ export const ClientRegisterPage = () => {
     const availableLocalidades = (province && partido) ? (ARGENTINA_LOCATIONS[province][partido] || []) : [];
 
     return (
-        <div className="min-h-[100dvh] bg-gray-50 flex flex-col items-center p-4 sm:p-6 pb-20 relative overflow-x-hidden w-full overflow-y-auto">
+        <div className="min-h-[100dvh] bg-gray-50 items-center p-4 sm:p-6 pb-24 relative overflow-x-hidden w-full overflow-y-auto block sm:flex sm:flex-col">
             {/* Loading Overlay */}
             {loading && (
                 <div className="fixed inset-0 z-[200] bg-white/80 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in">
@@ -300,9 +300,9 @@ export const ClientRegisterPage = () => {
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-teal-200/50 rounded-full blur-3xl -ml-16 -mb-16 pointer-events-none"></div>
 
             {/* Spacer superior adaptativo (ancla el scroll al inicio en content overflow) */}
-            <div className="flex-grow pointer-events-none"></div>
+            <div className="hidden sm:block flex-grow pointer-events-none"></div>
 
-            <div className="relative z-10 w-full max-w-sm shrink-0 py-4 sm:py-8 transition-all">
+            <div className="relative z-10 w-full max-w-sm shrink-0 py-8 sm:py-8 transition-all mx-auto">
                 {step === 2 && (
                     <div className="mb-4 flex justify-start">
                         <button
@@ -628,7 +628,7 @@ export const ClientRegisterPage = () => {
             )}
 
             {/* Spacer inferior adaptativo */}
-            <div className="flex-grow pointer-events-none"></div>
+            <div className="hidden sm:block flex-grow pointer-events-none"></div>
         </div>
     );
 };

@@ -296,17 +296,16 @@ export const ClientRegisterPage = () => {
                 </div>
             )}
 
-            {/* Background Decoration */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-purple-200/50 rounded-full blur-3xl -mr-20 -mt-20"></div>
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-teal-200/50 rounded-full blur-3xl -ml-16 -mb-16"></div>
-
+            {/* Atrás Button - Solo en paso 2 */}
             <div className="relative z-10 w-full max-w-sm mt-12 sm:mt-0 pt-4 sm:pt-0 pb-4 sm:pb-0">
-                <button
-                    onClick={() => step === 1 ? navigate('/login') : setStep(1)}
-                    className="absolute -top-14 sm:-top-16 left-0 flex items-center justify-center gap-1.5 text-gray-500 font-bold text-xs sm:text-sm hover:text-gray-900 hover:bg-white transition bg-gray-200/50 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full shadow-none w-fit border border-gray-300/50"
-                >
-                    <ArrowLeft size={14} className="sm:w-[16px] sm:h-[16px]" /> Atrás
-                </button>
+                {step === 2 && (
+                    <button
+                        onClick={() => step === 1 ? navigate('/login') : setStep(1)}
+                        className="absolute -top-14 sm:-top-16 left-0 flex items-center justify-center gap-1.5 text-gray-500 font-bold text-xs sm:text-sm hover:text-gray-900 hover:bg-white transition bg-gray-200/50 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full shadow-none w-fit border border-gray-300/50"
+                    >
+                        <ArrowLeft size={14} className="sm:w-[16px] sm:h-[16px]" /> Atrás
+                    </button>
+                )}
 
                 {/* Logo / Brand - Homologado con Login */}
                 <div className="mb-6 sm:mb-10 text-center">
@@ -422,6 +421,19 @@ export const ClientRegisterPage = () => {
                         </form>
                     ) : (
                         <form onSubmit={handleRegister} className="space-y-3 sm:space-y-4">
+
+                            {config?.enableAddressBonus !== false && (
+                                <div className="mb-2 p-3 bg-teal-50 rounded-2xl border border-teal-100/50 flex items-start gap-3 shadow-sm">
+                                    <div className="bg-teal-100 p-2 rounded-full text-teal-600 shrink-0">
+                                        <Gift size={16} />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-bold text-teal-800">¡Obtén puntos extra! 🎁</p>
+                                        <p className="text-[10px] text-teal-600 mt-0.5 leading-tight">Completa tu dirección (Calle y N°) ahora y suma puntos extra al terminar tu registro.</p>
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="space-y-2">
                                 <label className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Zona</label>
                                 <select
@@ -461,6 +473,7 @@ export const ClientRegisterPage = () => {
                                         className="w-full bg-gray-50 pl-9 pr-3 py-3 sm:py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none"
                                         value={street}
                                         onChange={e => setStreet(e.target.value)}
+                                        required={number.length > 0} // Requerido si carga numero
                                     />
                                 </div>
                                 <input
@@ -469,6 +482,7 @@ export const ClientRegisterPage = () => {
                                     className="w-16 sm:w-20 bg-gray-50 px-2 sm:px-3 py-3 sm:py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none text-center"
                                     value={number}
                                     onChange={e => setNumber(e.target.value)}
+                                    required={street.length > 0} // Requerido si carga calle
                                 />
                             </div>
 
@@ -541,8 +555,12 @@ export const ClientRegisterPage = () => {
                                             toast.error('Debes aceptar los términos y condiciones para finalizar');
                                             return;
                                         }
+                                        // Limpiamos los datos para no generar bonificaciones engañosas si saltan
                                         setStreet('');
                                         setNumber('');
+                                        setProvince('');
+                                        setPartido('');
+                                        setLocalidad('');
                                         handleRegister(e);
                                     }}
                                     disabled={loading}

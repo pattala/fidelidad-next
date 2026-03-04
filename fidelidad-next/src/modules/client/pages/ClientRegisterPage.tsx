@@ -399,6 +399,31 @@ export const ClientRegisterPage = () => {
                                 </div>
                             </div>
 
+                            {/* Banner Dinámico de Marketing (Upfront Value Proposition) */}
+                            {((config?.enableWelcomeBonus !== false && Number(config?.welcomePoints || 0) > 0) ||
+                                (config?.enableAddressBonus !== false && Number(config?.pointsForAddress || 0) > 0)) && step === 1 && (
+                                    <div className="mb-6 p-4 sm:p-5 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100/50 shadow-inner flex items-center gap-4 animate-fade-in relative overflow-hidden">
+                                        <div className="absolute -right-4 -top-4 text-purple-100/40 transform rotate-12">
+                                            <Gift size={80} />
+                                        </div>
+                                        <div className="bg-white p-3 rounded-full shadow-sm text-indigo-600 shrink-0 relative z-10">
+                                            <Gift size={24} className="animate-pulse" />
+                                        </div>
+                                        <div className="relative z-10">
+                                            <h3 className="text-sm sm:text-base text-indigo-900 font-extrabold leading-tight">
+                                                ¡Gana {
+                                                    (config?.enableWelcomeBonus !== false && config?.enableAddressBonus !== false)
+                                                        ? `hasta ${(Number(config?.welcomePoints || 0) + Number(config?.pointsForAddress || 50))} Puntos`
+                                                        : `${Number(config?.welcomePoints || 0)} Puntos`
+                                                } de regalo hoy!
+                                            </h3>
+                                            <p className="text-xs sm:text-sm text-indigo-700 font-medium mt-0.5">
+                                                Completa tu cuenta y obtén tu premio al instante.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
                             {step === 1 ? (
                                 <form onSubmit={handleNextStep} className="space-y-3 sm:space-y-4">
                                     <div className="relative">
@@ -598,14 +623,16 @@ export const ClientRegisterPage = () => {
                                         </label>
                                     </div>
 
-                                    <div className="flex flex-col gap-2 sm:gap-3 mt-4 sm:mt-8">
+                                    <div className="flex flex-col gap-3 mt-4 sm:mt-6">
                                         <button
                                             type="submit"
-                                            disabled={loading}
+                                            disabled={loading || !termsAccepted}
                                             className="w-full bg-purple-600 text-white py-3 sm:py-4 rounded-2xl font-bold text-sm shadow-lg shadow-purple-200 hover:bg-purple-700 active:scale-95 transition-all flex items-center justify-center gap-2 group disabled:opacity-70 disabled:grayscale"
                                         >
-                                            {loading ? 'Registrando...' : 'Finalizar Registro'}
+                                            {loading ? 'Registrando...' : 'Finalizar y Ganar Puntos'}
+                                            {!loading && config?.enableAddressBonus !== false && <Gift size={18} className="group-hover:rotate-12 transition-transform" />}
                                         </button>
+
                                         <button
                                             type="button"
                                             onClick={(e) => {
@@ -622,9 +649,9 @@ export const ClientRegisterPage = () => {
                                                 handleRegister(e);
                                             }}
                                             disabled={loading}
-                                            className="w-full bg-gray-100 text-gray-600 py-2 sm:py-3 rounded-2xl font-bold text-[11px] sm:text-xs hover:bg-gray-200 active:scale-95 transition-all disabled:opacity-70"
+                                            className="w-full text-center text-[11px] sm:text-xs font-medium text-gray-400 hover:text-gray-600 transition-colors mt-1 underline decoration-gray-300 underline-offset-2"
                                         >
-                                            Saltar y finalizar
+                                            No gracias, prefiero perder estos {config?.pointsForAddress || 50} puntos extra y continuar sin cargar el domicilio
                                         </button>
                                     </div>
                                 </form>

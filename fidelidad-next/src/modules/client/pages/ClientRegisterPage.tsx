@@ -300,40 +300,40 @@ export const ClientRegisterPage = () => {
             <div className="absolute top-0 right-0 w-64 h-64 bg-purple-200/50 rounded-full blur-3xl -mr-20 -mt-20"></div>
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-teal-200/50 rounded-full blur-3xl -ml-16 -mb-16"></div>
 
-            <div className="relative z-10 w-full max-w-sm my-auto py-8 sm:py-0">
+            <div className="relative z-10 w-full max-w-sm my-auto pt-4 sm:pt-0 pb-4 sm:pb-0">
                 <button
                     onClick={() => step === 1 ? navigate('/login') : setStep(1)}
-                    className="mb-8 flex items-center justify-center gap-2 text-gray-600 font-bold text-sm hover:text-gray-900 hover:bg-white transition bg-white/60 px-5 py-2.5 rounded-full shadow-sm backdrop-blur-sm w-fit mx-auto border border-white/50"
+                    className="mb-6 sm:mb-8 flex items-center justify-center gap-2 text-gray-600 font-bold text-xs sm:text-sm hover:text-gray-900 hover:bg-white transition bg-white/60 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full shadow-sm backdrop-blur-sm w-fit mx-auto border border-white/50"
                 >
-                    <ArrowLeft size={18} /> {step === 1 ? 'Volver al Login' : 'Volver a Datos Personales'}
+                    <ArrowLeft size={16} className="sm:w-[18px] sm:h-[18px]" /> {step === 1 ? 'Volver' : 'Atrás'}
                 </button>
 
                 {/* Logo / Brand - Homologado con Login */}
-                <div className="mb-10 text-center">
-                    <div className="w-20 h-20 bg-white rounded-3xl mx-auto shadow-xl shadow-purple-500/10 flex items-center justify-center mb-4 transform -rotate-3 overflow-hidden p-2">
+                <div className="mb-6 sm:mb-10 text-center">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-3xl mx-auto shadow-xl shadow-purple-500/10 flex items-center justify-center mb-2 sm:mb-4 transform -rotate-3 overflow-hidden p-2">
                         {config?.logoUrl ? (
                             <img src={config.logoUrl} alt="Logo" className="w-full h-full object-contain" />
                         ) : (
-                            <span className="text-4xl">🚀</span>
+                            <span className="text-3xl sm:text-4xl">🚀</span>
                         )}
                     </div>
-                    <h1 className="text-3xl font-black text-gray-800 tracking-tight">
+                    <h1 className="text-2xl sm:text-3xl font-black text-gray-800 tracking-tight">
                         {config?.siteName || 'Club Fidelidad'}
                     </h1>
-                    <p className="text-gray-500 font-medium mt-1">Crea tu cuenta gratis</p>
+                    <p className="text-xs sm:text-sm text-gray-500 font-medium mt-1">Crea tu cuenta gratis</p>
                 </div>
 
-                <div className="bg-white p-6 sm:p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 border border-gray-100 backdrop-blur-sm animate-fade-in">
-                    <div className="mb-6 text-center">
+                <div className="bg-white p-5 sm:p-8 rounded-[1.5rem] sm:rounded-[2rem] shadow-xl shadow-gray-200/50 border border-gray-100 backdrop-blur-sm animate-fade-in">
+                    <div className="mb-4 sm:mb-6 text-center">
                         {refCode && (
-                            <div className="mb-4 p-3 bg-purple-50 rounded-2xl border border-purple-100 animate-bounce-subtle">
-                                <p className="text-[10px] font-black uppercase text-purple-400 tracking-widest mb-1">¡Invitación Especial!</p>
+                            <div className="mb-3 sm:mb-4 p-2 sm:p-3 bg-purple-50 rounded-2xl border border-purple-100 animate-bounce-subtle">
+                                <p className="text-[9px] sm:text-[10px] font-black uppercase text-purple-400 tracking-widest mb-0.5 sm:mb-1">¡Invitación Especial!</p>
                                 <p className="text-xs font-bold text-purple-700 flex items-center justify-center gap-1">
                                     <Gift size={14} /> Te han invitado a sumarte
                                 </p>
                             </div>
                         )}
-                        <h2 className="text-xl font-bold text-gray-800 mb-6">
+                        <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-4 sm:mb-6">
                             {step === 1 ? 'Datos Personales' : 'Tu Dirección'}
                         </h2>
                         <div className="flex justify-center gap-2 mt-2">
@@ -343,91 +343,91 @@ export const ClientRegisterPage = () => {
                     </div>
 
                     {step === 1 ? (
-                        <form onSubmit={handleNextStep} className="space-y-4">
+                        <form onSubmit={handleNextStep} className="space-y-3 sm:space-y-4">
                             <div className="relative">
-                                <User className="absolute left-4 top-3.5 text-gray-400" size={20} />
+                                <User className="absolute left-4 top-3 sm:top-3.5 text-gray-400" size={18} />
                                 <input
                                     type="text"
                                     required
                                     placeholder="Nombre Completo"
-                                    className="w-full bg-gray-50 pl-12 pr-4 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50 outline-none transition-all"
+                                    className="w-full bg-gray-50 pl-11 pr-4 py-3 sm:py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50 outline-none transition-all"
                                     value={name}
                                     onChange={e => setName(e.target.value)}
                                 />
                             </div>
                             <div className="relative">
-                                <Phone className="absolute left-4 top-3.5 text-gray-400" size={20} />
+                                <Phone className="absolute left-4 top-3 sm:top-3.5 text-gray-400" size={18} />
                                 <input
                                     type="tel"
                                     required
                                     placeholder="Celular"
-                                    className="w-full bg-gray-50 pl-12 pr-4 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50 outline-none transition-all"
+                                    className="w-full bg-gray-50 pl-11 pr-4 py-3 sm:py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50 outline-none transition-all"
                                     value={phone}
                                     onChange={e => setPhone(e.target.value)}
                                 />
                             </div>
                             <div className="relative">
-                                <Building className="absolute left-4 top-3.5 text-gray-400" size={20} />
+                                <Building className="absolute left-4 top-3 sm:top-3.5 text-gray-400" size={18} />
                                 <input
                                     type="text"
                                     required
                                     placeholder="DNI (Sin puntos)"
-                                    className="w-full bg-gray-50 pl-12 pr-4 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50 outline-none transition-all"
+                                    className="w-full bg-gray-50 pl-11 pr-4 py-3 sm:py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50 outline-none transition-all"
                                     value={dni}
                                     onChange={e => setDni(e.target.value.replace(/\D/g, ''))}
                                 />
                             </div>
-                            <div className="relative">
-                                <Cake className="absolute left-4 top-3.5 text-gray-400" size={20} />
+                            <div className="relative hidden">
+                                <Cake className="absolute left-4 top-3 sm:top-3.5 text-gray-400" size={18} />
                                 <input
                                     type="date"
-                                    required
-                                    className="w-full bg-gray-50 pl-12 pr-4 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50 outline-none transition-all"
+                                    required={false}
+                                    className="w-full bg-gray-50 pl-11 pr-4 py-3 sm:py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50 outline-none transition-all"
                                     value={birthDate}
                                     onChange={e => setBirthDate(e.target.value)}
                                 />
                             </div>
                             <div className="relative">
-                                <Mail className="absolute left-4 top-3.5 text-gray-400" size={20} />
+                                <Mail className="absolute left-4 top-3 sm:top-3.5 text-gray-400" size={18} />
                                 <input
                                     type="email"
                                     required
                                     placeholder="Email"
-                                    className="w-full bg-gray-50 pl-12 pr-4 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50 outline-none transition-all"
+                                    className="w-full bg-gray-50 pl-11 pr-4 py-3 sm:py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50 outline-none transition-all"
                                     value={email}
                                     onChange={e => setEmail(e.target.value)}
                                 />
                             </div>
                             <div className="relative">
-                                <Lock className="absolute left-4 top-3.5 text-gray-400" size={20} />
+                                <Lock className="absolute left-4 top-3 sm:top-3.5 text-gray-400" size={18} />
                                 <input
                                     type={showPass ? "text" : "password"}
                                     required
                                     placeholder="Contraseña (min 6 chars)"
-                                    className="w-full bg-gray-50 pl-12 pr-12 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50 outline-none transition-all"
+                                    className="w-full bg-gray-50 pl-11 pr-11 py-3 sm:py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50 outline-none transition-all"
                                     value={pass}
                                     onChange={e => setPass(e.target.value)}
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPass(!showPass)}
-                                    className="absolute right-4 top-3.5 text-gray-400 hover:text-purple-600 transition"
+                                    className="absolute right-4 top-3 sm:top-3.5 text-gray-400 hover:text-purple-600 transition"
                                 >
-                                    {showPass ? <EyeOff size={20} /> : <Eye size={20} />}
+                                    {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
                                 </button>
                             </div>
-                            <button type="submit" className="w-full bg-gray-900 text-white py-4 rounded-2xl font-bold text-sm shadow-lg hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 group mt-4">
+                            <button type="submit" className="w-full bg-gray-900 text-white py-3 sm:py-4 rounded-2xl font-bold text-sm shadow-lg hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 group mt-4">
                                 Continuar <ArrowRight size={18} />
                             </button>
                         </form>
                     ) : (
-                        <form onSubmit={handleRegister} className="space-y-4">
+                        <form onSubmit={handleRegister} className="space-y-3 sm:space-y-4">
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Zona</label>
+                                <label className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Zona</label>
                                 <select
                                     value={province}
                                     onChange={e => { setProvince(e.target.value); setPartido(''); setLocalidad(''); }}
-                                    className="w-full bg-gray-50 px-4 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none"
+                                    className="w-full bg-gray-50 px-4 py-3 sm:py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none"
                                 >
                                     <option value="">Provincia</option>
                                     {provinces.map(p => <option key={p} value={p}>{p}</option>)}
@@ -436,7 +436,7 @@ export const ClientRegisterPage = () => {
                                     value={partido}
                                     onChange={e => { setPartido(e.target.value); setLocalidad(''); }}
                                     disabled={!province}
-                                    className="w-full bg-gray-50 px-4 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none disabled:opacity-50"
+                                    className="w-full bg-gray-50 px-4 py-3 sm:py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none disabled:opacity-50"
                                 >
                                     <option value="">Partido/Departamento</option>
                                     {availablePartidos.map(p => <option key={p} value={p}>{p}</option>)}
@@ -445,7 +445,7 @@ export const ClientRegisterPage = () => {
                                     value={localidad}
                                     onChange={e => setLocalidad(e.target.value)}
                                     disabled={!partido}
-                                    className="w-full bg-gray-50 px-4 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none disabled:opacity-50"
+                                    className="w-full bg-gray-50 px-4 py-3 sm:py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none disabled:opacity-50"
                                 >
                                     <option value="">Localidad/Barrio</option>
                                     {availableLocalidades.map(l => <option key={l} value={l}>{l}</option>)}
@@ -454,11 +454,11 @@ export const ClientRegisterPage = () => {
 
                             <div className="flex gap-2">
                                 <div className="relative flex-1">
-                                    <MapPin className="absolute left-3 top-3.5 text-gray-400" size={18} />
+                                    <MapPin className="absolute left-3 top-3 sm:top-3.5 text-gray-400" size={16} />
                                     <input
                                         type="text"
                                         placeholder="Calle"
-                                        className="w-full bg-gray-50 pl-10 pr-3 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none"
+                                        className="w-full bg-gray-50 pl-9 pr-3 py-3 sm:py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none"
                                         value={street}
                                         onChange={e => setStreet(e.target.value)}
                                     />
@@ -466,7 +466,7 @@ export const ClientRegisterPage = () => {
                                 <input
                                     type="text"
                                     placeholder="N°"
-                                    className="w-20 bg-gray-50 px-3 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none text-center"
+                                    className="w-16 sm:w-20 bg-gray-50 px-2 sm:px-3 py-3 sm:py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none text-center"
                                     value={number}
                                     onChange={e => setNumber(e.target.value)}
                                 />
@@ -474,21 +474,21 @@ export const ClientRegisterPage = () => {
 
                             <div className="flex gap-2">
                                 <div className="relative flex-1">
-                                    <Building className="absolute left-3 top-3.5 text-gray-400" size={18} />
+                                    <Building className="absolute left-3 top-3 sm:top-3.5 text-gray-400" size={16} />
                                     <input
                                         type="text"
                                         placeholder="Piso"
-                                        className="w-full bg-gray-50 pl-10 pr-3 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none"
+                                        className="w-full bg-gray-50 pl-9 pr-2 py-3 sm:py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none"
                                         value={floor}
                                         onChange={e => setFloor(e.target.value)}
                                     />
                                 </div>
                                 <div className="relative flex-1">
-                                    <Home className="absolute left-3 top-3.5 text-gray-400" size={18} />
+                                    <Home className="absolute left-3 top-3 sm:top-3.5 text-gray-400" size={16} />
                                     <input
                                         type="text"
                                         placeholder="Depto"
-                                        className="w-full bg-gray-50 pl-10 pr-3 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none"
+                                        className="w-full bg-gray-50 pl-9 pr-2 py-3 sm:py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none"
                                         value={apt}
                                         onChange={e => setApt(e.target.value)}
                                     />
@@ -496,7 +496,7 @@ export const ClientRegisterPage = () => {
                                 <input
                                     type="text"
                                     placeholder="CP"
-                                    className="w-20 bg-gray-50 px-3 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none text-center"
+                                    className="w-16 sm:w-20 bg-gray-50 px-2 sm:px-3 py-3 sm:py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none text-center"
                                     value={cp}
                                     onChange={e => setCp(e.target.value)}
                                 />
@@ -526,11 +526,11 @@ export const ClientRegisterPage = () => {
                                 </label>
                             </div>
 
-                            <div className="flex flex-col gap-3 mt-8">
+                            <div className="flex flex-col gap-2 sm:gap-3 mt-4 sm:mt-8">
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="w-full bg-purple-600 text-white py-4 rounded-2xl font-bold text-sm shadow-lg shadow-purple-200 hover:bg-purple-700 active:scale-95 transition-all flex items-center justify-center gap-2 group disabled:opacity-70 disabled:grayscale"
+                                    className="w-full bg-purple-600 text-white py-3 sm:py-4 rounded-2xl font-bold text-sm shadow-lg shadow-purple-200 hover:bg-purple-700 active:scale-95 transition-all flex items-center justify-center gap-2 group disabled:opacity-70 disabled:grayscale"
                                 >
                                     {loading ? 'Registrando...' : 'Finalizar Registro'}
                                 </button>
@@ -546,7 +546,7 @@ export const ClientRegisterPage = () => {
                                         handleRegister(e);
                                     }}
                                     disabled={loading}
-                                    className="w-full bg-gray-100 text-gray-600 py-3 rounded-2xl font-bold text-xs hover:bg-gray-200 active:scale-95 transition-all disabled:opacity-70"
+                                    className="w-full bg-gray-100 text-gray-600 py-2 sm:py-3 rounded-2xl font-bold text-[11px] sm:text-xs hover:bg-gray-200 active:scale-95 transition-all disabled:opacity-70"
                                 >
                                     Saltar y finalizar
                                 </button>

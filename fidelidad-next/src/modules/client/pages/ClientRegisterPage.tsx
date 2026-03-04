@@ -300,7 +300,7 @@ export const ClientRegisterPage = () => {
             <div className="relative z-10 w-full max-w-sm mt-12 sm:mt-0 pt-4 sm:pt-0 pb-4 sm:pb-0">
                 {step === 2 && (
                     <button
-                        onClick={() => step === 1 ? navigate('/login') : setStep(1)}
+                        onClick={() => setStep(1)}
                         className="absolute -top-14 sm:-top-16 left-0 flex items-center justify-center gap-1.5 text-gray-500 font-bold text-xs sm:text-sm hover:text-gray-900 hover:bg-white transition bg-gray-200/50 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full shadow-none w-fit border border-gray-300/50"
                     >
                         <ArrowLeft size={14} className="sm:w-[16px] sm:h-[16px]" /> Atrás

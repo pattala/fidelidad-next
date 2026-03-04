@@ -282,7 +282,7 @@ export const ClientRegisterPage = () => {
     const availableLocalidades = (province && partido) ? (ARGENTINA_LOCATIONS[province][partido] || []) : [];
 
     return (
-        <div className="min-h-[100dvh] bg-gray-50 flex flex-col items-center justify-start p-4 sm:p-6 pb-20 relative overflow-x-hidden w-full overflow-y-auto">
+        <div className="min-h-[100dvh] bg-gray-50 flex flex-col items-center p-4 sm:p-6 pb-20 relative overflow-x-hidden w-full overflow-y-auto">
             {/* Loading Overlay */}
             {loading && (
                 <div className="fixed inset-0 z-[200] bg-white/80 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in">
@@ -295,8 +295,14 @@ export const ClientRegisterPage = () => {
                     <p className="text-sm text-gray-500 font-medium mt-2">Estamos preparando tu cuenta y tus puntos</p>
                 </div>
             )}
+            {/* Background Decoration */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-purple-200/50 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-teal-200/50 rounded-full blur-3xl -ml-16 -mb-16 pointer-events-none"></div>
 
-            <div className={`relative z-10 w-full max-w-sm shrink-0 pt-4 sm:pt-0 pb-4 sm:pb-0 transition-all ${step === 2 ? 'mt-4 sm:mt-8 mb-auto' : 'my-auto'}`}>
+            {/* Spacer superior adaptativo (ancla el scroll al inicio en content overflow) */}
+            <div className="flex-grow pointer-events-none"></div>
+
+            <div className="relative z-10 w-full max-w-sm shrink-0 py-4 sm:py-8 transition-all">
                 {step === 2 && (
                     <div className="mb-4 flex justify-start">
                         <button
@@ -620,6 +626,9 @@ export const ClientRegisterPage = () => {
                     </div>
                 </div>
             )}
+
+            {/* Spacer inferior adaptativo */}
+            <div className="flex-grow pointer-events-none"></div>
         </div>
     );
 };

@@ -207,57 +207,100 @@ export const ClientRegisterPage = () => {
             const apiKey = import.meta.env.VITE_API_KEY;
 
             // Prepare for sequential steps with informative toast/loading
-            // A. Asignar N° Socio (Secuencial seguro)
+            // A. Asignar N° Socio (Secuencial seguro) - SILENCIADO
             const shouldSendWelcome = config?.enableWelcomeMessage !== false;
 
             await fetch('/api/users?action=assign-socio', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'x-api-key': apiKey },
-                body: JSON.stringify({ docId: user.uid, sendWelcome: shouldSendWelcome })
+                body: JSON.stringify({ docId: user.uid, sendWelcome: false }) // Email unificado se hace al final
             }).catch(e => console.warn('Error asignando socio:', e));
 
-            // B. Asignar Puntos de Bienvenida
+            let totalBonusPoints = 0;
+            let earnedWelcomeBonus = false;
+            let earnedAddressBonus = false;
+
+            // B. Asignar Puntos de Bienvenida - SILENCIADO
             if (config?.enableWelcomeBonus !== false) {
-                await fetch('/api/assign-points', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'x-api-key': apiKey },
-                    body: JSON.stringify({
-                        uid: user.uid,
-                        reason: 'welcome_signup'
-                    })
-                }).catch(e => console.warn('Error asignando puntos:', e));
+                const welcomePts = Number(config?.welcomePoints || 0);
+                if (welcomePts > 0) {
+                    await fetch('/api/assign-points', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'x-api-key': apiKey },
+                        body: JSON.stringify({
+                            uid: user.uid,
+                            reason: 'welcome_signup',
+                            skipNotifications: true
+                        })
+                    }).then(res => {
+                        if (res.ok) { totalBonusPoints += welcomePts; earnedWelcomeBonus = true; }
+                    }).catch(e => console.warn('Error asignando puntos:', e));
+                }
             }
 
-            // C. Asignar Bono por Domicilio (Opcional)
+            // C. Asignar Bono por Domicilio (Opcional) - SILENCIADO
             const hasAddress = street.trim() !== '' && number.trim() !== '';
             if (hasAddress && config?.enableAddressBonus !== false) {
-                await fetch('/api/assign-points', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'x-api-key': apiKey },
-                    body: JSON.stringify({
-                        uid: user.uid,
-                        reason: 'profile_address'
-                    })
-                }).catch(e => console.warn('Error asignando puntos de domicilio:', e));
+                const addressPts = Number(config?.pointsForAddress || 50);
+                if (addressPts > 0) {
+                    await fetch('/api/assign-points', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'x-api-key': apiKey },
+                        body: JSON.stringify({
+                            uid: user.uid,
+                            reason: 'profile_address',
+                            skipNotifications: true
+                        })
+                    }).then(res => {
+                        if (res.ok) { totalBonusPoints += addressPts; earnedAddressBonus = true; }
+                    }).catch(e => console.warn('Error asignando puntos de domicilio:', e));
+                }
             }
 
-            // D. Enviar Notificación Inbox/Push (si mensaje está activado)
+            // D. Enviar Notificación Inbox/Push y EMAIL UNIFICADO
             if (shouldSendWelcome) {
                 try {
-                    // Si hay puntos, mencionarlos, si no, mensaje genérico o sin puntos
-                    const pts = config?.enableWelcomeBonus !== false ? Number(config?.welcomePoints || 0) : 0;
-                    const bodyMsg = pts > 0
-                        ? `Gracias por registrarte, ${name.split(' ')[0]}. ¡Ya tienes ${pts} puntos de regalo!`
-                        : `Gracias por registrarte, ${name.split(' ')[0]}. ¡Nos alegra tenerte en el Club!`;
+                    const nameOnly = name.split(' ')[0];
+                    let bodyMsg = `¡Hola ${nameOnly}! Bienvenido al Club. Nos alegra muchísimo tenerte.`;
 
+                    if (totalBonusPoints > 0) {
+                        if (earnedWelcomeBonus && earnedAddressBonus) {
+                            bodyMsg = `¡Hola ${nameOnly}! Bienvenido al Club. Sumaste ${totalBonusPoints} puntos de regalo en total (por registrarte y por completar tu domicilio).`;
+                        } else if (earnedWelcomeBonus) {
+                            bodyMsg = `¡Hola ${nameOnly}! Bienvenido al Club. Sumaste ${totalBonusPoints} puntos de regalo por crear tu cuenta hoy.`;
+                        } else if (earnedAddressBonus) {
+                            bodyMsg = `¡Hola ${nameOnly}! Bienvenido al Club. Sumaste automáticamente ${totalBonusPoints} puntos extras por proveer tu domicilio.`;
+                        }
+                    }
+
+                    // 1. Inbox / Push (Siempre ocurre)
                     await NotificationService.sendToClient(user.uid, {
                         title: '¡Bienvenido al Club! 🎉',
                         body: bodyMsg,
                         type: 'welcome',
                         icon: config?.logoUrl || '/logo.png'
                     });
+
+                    // 2. Correo de Bienvenida (con formato lindo HTML)
+                    await fetch('/api/notifications?action=email', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`,
+                            'x-api-key': apiKey
+                        },
+                        body: JSON.stringify({
+                            to: email,
+                            templateId: 'manual_override',
+                            templateData: {
+                                subject: '¡Bienvenido al Club Fidelidad! 🎉',
+                                htmlContent: `<h2 style="color:#4f46e5; text-align:center;">¡Hola ${nameOnly}!</h2><p style="font-size:16px; text-align:center; color:#4b5563;">${bodyMsg}</p><br/><div style="text-align:center;"><a href="https://${window.location.host}/login" style="background-color:#4f46e5;color:white;padding:12px 24px;border-radius:12px;text-decoration:none;font-weight:bold;display:inline-block;">Ingresar a la VIRTUAL WALLET</a></div>`
+                            }
+                        })
+                    }).catch(err => console.error("Error enviando email unificado de bienvenida:", err));
+
                 } catch (notiError) {
-                    console.warn("No se pudo enviar la notificación inbox:", notiError);
+                    console.warn("No se pudo enviar notificaciones iniciales:", notiError);
                 }
             }
 

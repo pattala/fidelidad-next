@@ -206,7 +206,7 @@ export default async function handler(req, res) {
 
     try {
         const db = getDb();
-        const { uid, reason, amountOverride, amount, concept, metadata, bonusIds, applyWhatsApp } = req.body || {};
+        const { uid, reason, amountOverride, amount, concept, metadata, bonusIds, applyWhatsApp, skipNotifications } = req.body || {};
 
         // 1. Autenticación (DUAL MODE)
         let isAdmin = false;
@@ -734,7 +734,7 @@ export default async function handler(req, res) {
             const notifications = [];
 
             // --- 6.1 NOTIFICACIÓN AL CLIENTE (INVITADO) ---
-            if (points > 0) {
+            if (points > 0 && !skipNotifications) {
                 let unifiedMsg = templates[event] || "¡Sumaste {puntos} puntos! Tu saldo actual es {saldo}.";
                 const fullName = result.guestData.name || 'Cliente';
                 const firstName = fullName.split(' ')[0];

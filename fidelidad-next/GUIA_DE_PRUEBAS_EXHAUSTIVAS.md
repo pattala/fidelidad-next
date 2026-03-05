@@ -17,37 +17,57 @@ Antes de empezar a probar como usuario, debes asegurarte de que el "terreno" (el
 
 ### 1.2 Configuración Exacta (Pestaña "Configuración")
 Asegúrate de tener estos valores **exactamente así** antes de iniciar:
-- [ ] **Mail de Bienvenida:** ✅ Activo.
-- [ ] **Puntos por Registro:** ✅ Activo. Valor: `100`. (Para saber instantáneamente que entraron bien).
-- [ ] **Puntos por Domicilio:** ✅ Activo. Valor: `50`.
-- [ ] **Tabla de Vencimientos:** Revisa que los puntos de Registro y Domicilio tengan sus días de vencimiento configurados correctamente en la tabla de vencimientos (Ej: Vencen a los 365 días).
+- [ok] **Mail de Bienvenida:** ✅ Activo.
+- [ok] **Puntos por Registro:** ✅ Activo. Valor: `100`. (Para saber instantáneamente que entraron bien).
+- [ok] **Puntos por Domicilio:** ✅ Activo. Valor: `50`.
+- [ok] **Tabla de Vencimientos:** Revisa la regla configurada. *Los puntos SIEMPRE vencen en la cantidad de tiempo que diga la tabla, sin importar su origen (Ej: igual para registro, bienvenida o cumpleaños).*
 
-- [ ] **Días de preaviso de vencimiento:** `7` días.
-- [ ] **Intervalo de repetición (Vencimientos):** `2` días.
-- [ ] **Re-intento de Permisos PWA:** ✅ Activo. Y configura en `7` días.
-- [ ] GUARDA LOS CAMBIOS en el panel de configuración.
+- [ok] **Días de preaviso de vencimiento:** `7` días o los configurado
+- [ok] **Intervalo de repetición (Vencimientos):** `2` días o los configurados
+- [ok] **Re-intento de Permisos PWA:** ✅ Activo. Y configura en `7` días o los configurdados
+- [ok] **Integraciones Externas:** Configurado y ✅ Activo (si vas a hacer pruebas de envío/API externa de referidos por terceros).
+- [ok] **Sistema de Referidos:** ✅ Activo. Con asignación de Puntos para el Inivitado y para el que Invita bien definidos, y "Críterio de recompensa" elegido (Registro o Primera Transacción).
+- [ok] **Desafíos (Fecha Límite):** Si activaste un Desafío de Referidos, verifica que la fecha de inicio y la **fecha límite** cubran el día de tu prueba, para certificar que aparecen en la app del cliente.
+- [ok] GUARDA LOS CAMBIOS en el panel de configuración.
 
----
+--
 
 ## 📱 PARTE 2: PRUEBAS DEL CLIENTE (PWA)
 
 **⚠️ IMPORTANTE SOBRE EL ENTORNO DE PRUEBA:**
 *   **NO uses el modo Incógnito/InPrivate** para la prueba de Permisos (Paso 2.2). Los navegadores modernos bloquean directamente las notificaciones Push y la Geolocalización en incógnito, por lo que la app no registrará bien tus elecciones.
 *   **La forma correcta de limpiar tu usuario para una prueba nueva es:** En Chrome (PC o Celular), ve a *Configuración del sitio* -> *Fidelidad* -> **Borrar datos y Restablecer permisos**. Luego, refresca la página.
-*   **Doble Prueba (El Mejor Enfoque):** Para evitar que los tokens de notificaciones o las sesiones choquen, **crea DOS usuarios de prueba distintos** (ej: `pablo.pc@test.com` y `pablo.movil@test.com`). Haz el recorrido 2.1 al 2.3 en la computadora con el primero y simultáneamente en tu celular con el segundo.
+*   **Doble Prueba (El Mejor Enfoque):** Para evitar que los tokens de notificaciones o las sesiones choquen, **crea DOS usuarios distintos y MANTENLOS SEPARADOS**:
+    *   **Usuario A (`pc@test.com`)**: Regístralo desde tu **Computadora (Chrome Desktop)** y haz TODO el recorrido con él exclusivamente en la PC. *Nota: Recuerda que en Windows/Mac, los navegadores a veces te tiran el prompt genérico chiquito de permisos arriba a la izquierda ni bien entras.*
+    *   **Usuario B (`movil@test.com`)**: Regístralo desde tu **Celular (Safari/Chrome Móvil)** y haz TODO el recorrido con él exclusivamente en el celular (o instalando la app a la pantalla de inicio).
 
-### 2.1 El Registro (El Embudo Principal)
-**Objetivo:** Validar que el usuario entra, se le asigna DNI/Socio correcto, recibe los premios iniciales y UN SOLO email. Repite este bloque en tu PC (Usuario A) y en tu Celular (Usuario B).
+### 2.1 El Registro / LoginInicial (El Embudo Principal)
+**Objetivo:** Validar la entrada de clientes a la app. 
 
+*Tienes dos formas de probar esto, sigue la que corresponda al usuario que creaste:*
+
+#### Ruta A: Alta desde cero en la PWA (Ideal Celular/Usuario B)
 - [ ] Entra a la URL de la PWA (`/login`).
-- [ ] Haz clic en "Crear Cuenta" o "Registrarme".
+- [ ] Haz clic en **"Crear Cuenta"** o **"Registrarme"**.
 - [ ] **Verificación visual:** El banner inicial debe decir "Registrate y gana 150 puntos" (suma de los 100 + 50 que configuraste).
-- [ ] Completa Nombre, Apellido, Email, DNI/Teléfono.
-- [ ] Llega al paso del Domicilio. **Completa los datos del domicilio.**
-- [ ] Haz clic en el botón principal ("Completar y ganar puntos").
-- [ ] **Expectativa en la App:** Te debe llevar a la pantalla de Inicio ("Home") directamente, mostrando **150 Puntos** en el marcador.
-- [ ] **Expectativa en Email:** Ve a la bandeja de entrada del email con el que te registraste. Debes haber recibido **UN SOLO EMAIL**. Ese email debe decir "¡Bienvenido!" y celebrar que ganaste 150 puntos. *(Si llegan dos, o llega vacío, repórtalo).*
+- [ ] Completa los datos y pon el domicilio. Haz clic en "Completar y ganar puntos".
+- [ ] **Expectativa PWA:** Te lleva al Inicio ("Home"), mostrando **150 Puntos**.
+- [ ] **Expectativa Email:** Recibes **UN SOLO EMAIL** de bienvenida celebrando los 150 puntos.
 
+#### Ruta B: Cliente ya creado en el Panel (Ideal PC/Usuario A)
+- [ ] Entra al Panel de Administración, ve a "Clientes" y haz clic en "Nuevo Cliente".
+- [ ] Completa sus datos básicos y dirección. En el Paso 2 verás la sección **🎁 Premios de Bienvenida y Notificaciones**.
+- [ ] **Verificación visual:** Si tienes configurados puntos por registro o vivienda, aparecerán los "checkbox" para otorgarlos. Actívalos.
+- [ ] Activa también **"Enviar WhatsApp de Bienvenida"**.
+- [ ] Guarda el cliente. 
+- [ ] **Expectativa WhatsApp:** Se abrirá una ventana/pestaña nueva para enviar un WP con el mensaje de bienvenida y los puntos correctos.
+- [ ] **Expectativa Email:** Recibirás **UN SOLO EMAIL** de bienvenida.
+- [ ] Entra a la PWA (`/login`).
+- [ ] En lugar de "Crear Cuenta", **ingresa directamente el teléfono o DNI** que le pusiste a ese usuario en el panel.
+- [ ] Ingresa el código PIN/OTP para acceder.
+- [ ] **Expectativa PWA:** Te lleva al Inicio ("Home"). Debe mostrar la suma de los puntos que decidiste otorgarle en el panel, y en el historial debe decir "🎁 Bienvenida al sistema (Registro + Domicilio)".
+
+---
 ### 2.2 Validación de los Pop-ups Persuasivos (Permisos)
 **Objetivo:** Validar que los permisos no sean molestos, los copys sean los acordados y la lógica de "memoria" funcione.
 

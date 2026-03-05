@@ -117,6 +117,11 @@ export const ClientsPage = () => {
     const [availablePromotions, setAvailablePromotions] = useState<any[]>([]);
     const [selectedPromos, setSelectedPromos] = useState<string[]>([]);
 
+    // Toggles Alta Cliente
+    const [applyWelcomeBonus, setApplyWelcomeBonus] = useState(true);
+    const [applyAddressBonus, setApplyAddressBonus] = useState(true);
+    const [sendWelcomeWa, setSendWelcomeWa] = useState(false);
+
     // Estado Modal Canje
     const [redemptionModalOpen, setRedemptionModalOpen] = useState(false);
     const [selectedClientForRedemption, setSelectedClientForRedemption] = useState<Client | null>(null);
@@ -442,19 +447,31 @@ export const ClientsPage = () => {
             // --- ACCIONES POST-ALTA ---
             if (!editingId && newDocId) {
                 const freshConfig = await ConfigService.get();
-                const pts = Number(freshConfig?.welcomePoints || 0);
 
-                if (pts > 0) {
+                let totalWelcomePts = 0;
+                const conceptParts: string[] = [];
+
+                if (applyWelcomeBonus && Number(freshConfig?.welcomePoints || 0) > 0) {
+                    totalWelcomePts += Number(freshConfig?.welcomePoints);
+                    conceptParts.push('Registro');
+                }
+
+                const hasAddress = formData.calle.trim() !== '' || formData.localidad.trim() !== '';
+                if (applyAddressBonus && Number(freshConfig?.pointsForAddress || 0) > 0 && hasAddress) {
+                    totalWelcomePts += Number(freshConfig?.pointsForAddress);
+                    conceptParts.push('Domicilio');
+                }
+
+                if (totalWelcomePts > 0) {
                     let days = 365;
                     if (freshConfig?.expirationRules && freshConfig.expirationRules.length > 0) {
                         const sortedRules = [...freshConfig.expirationRules].sort((a: any, b: any) => (a.minPoints || 0) - (b.minPoints || 0));
-                        const rule = sortedRules.find((r: any) => pts >= r.minPoints && (!r.maxPoints || pts <= r.maxPoints));
+                        const rule = sortedRules.find((r: any) => totalWelcomePts >= r.minPoints && (!r.maxPoints || totalWelcomePts <= r.maxPoints));
                         if (rule) {
                             days = rule.validityDays;
                         } else {
-                            // Regla superior si supera el máximo
                             const highestRule = sortedRules[sortedRules.length - 1];
-                            if (pts >= (highestRule.minPoints || 0)) {
+                            if (totalWelcomePts >= (highestRule.minPoints || 0)) {
                                 days = highestRule.validityDays;
                             }
                         }
@@ -462,22 +479,24 @@ export const ClientsPage = () => {
                     const expiresAt = TimeService.now();
                     expiresAt.setDate(expiresAt.getDate() + days);
 
+                    const conceptStr = `🎁 Bienvenida al sistema (${conceptParts.join(' + ')})`;
+
                     await addDoc(collection(db, `users/${newDocId}/points_history`), {
-                        amount: pts,
-                        concept: '🎁 Bienvenida al sistema',
+                        amount: totalWelcomePts,
+                        concept: conceptStr,
                         date: new Date(),
                         type: 'credit',
                         expiresAt: expiresAt
                     });
 
                     await updateDoc(doc(db, 'users', newDocId), {
-                        points: pts,
+                        points: totalWelcomePts,
                         historialPuntos: arrayUnion({
                             fechaObtencion: new Date(),
-                            puntosObtenidos: pts,
-                            puntosDisponibles: pts,
+                            puntosObtenidos: totalWelcomePts,
+                            puntosDisponibles: totalWelcomePts,
                             diasCaducidad: days,
-                            origen: '🎁 Bienvenida al sistema',
+                            origen: conceptStr,
                             estado: 'Activo'
                         })
                     });
@@ -487,14 +506,14 @@ export const ClientsPage = () => {
                 const welcomeMsg = welcomeTemplate
                     .replace(/{nombre}/g, formData.name.split(' ')[0])
                     .replace(/{nombre_completo}/g, formData.name)
-                    .replace(/{puntos}/g, pts.toString())
+                    .replace(/{puntos}/g, totalWelcomePts.toString())
                     .replace(/{dni}/g, formData.dni)
                     .replace(/{email}/g, formData.email)
                     .replace(/{socio}/g, finalSocioId)
                     .replace(/{numero_socio}/g, finalSocioId)
                     .replace(/{telefono}/g, formData.phone);
 
-                if (formData.phone && NotificationService.isChannelEnabled(freshConfig, 'welcome', 'whatsapp')) {
+                if (formData.phone && sendWelcomeWa) {
                     const cleanPhone = formData.phone.replace(/\D/g, '');
                     if (cleanPhone.length > 5) {
                         const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(welcomeMsg.trim())}`;
@@ -1271,6 +1290,62 @@ export const ClientsPage = () => {
                                                     onChange={e => setFormData({ ...formData, cp: e.target.value })}
                                                 />
                                             </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {!editingId && formStep === 2 && (
+                                    <div className="animate-fade-in p-5 bg-orange-50 rounded-2xl border border-orange-100 mt-6 space-y-4">
+                                        <h4 className="font-bold text-orange-800 flex items-center gap-2">
+                                            <Gift size={18} /> Premios de Bienvenida y Notificaciones
+                                        </h4>
+                                        <p className="text-xs text-orange-700">
+                                            Al crear un cliente manualmente, puedes decidir si otorgarle los premios iniciales como si se hubiera registrado en la App.
+                                        </p>
+
+                                        <div className="space-y-3">
+                                            {(config?.welcomePoints || 0) > 0 && (
+                                                <label className="flex items-center gap-3 cursor-pointer p-2 hover:bg-orange-100/50 rounded-lg transition">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={applyWelcomeBonus}
+                                                        onChange={e => setApplyWelcomeBonus(e.target.checked)}
+                                                        className="w-5 h-5 rounded border-orange-300 text-orange-600 focus:ring-orange-500"
+                                                    />
+                                                    <span className="text-sm font-bold text-gray-700">
+                                                        Sumar {config.welcomePoints} pts por Registro Inicial
+                                                    </span>
+                                                </label>
+                                            )}
+
+                                            {(config?.pointsForAddress || 0) > 0 && (
+                                                <label className="flex items-center gap-3 cursor-pointer p-2 hover:bg-orange-100/50 rounded-lg transition">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={applyAddressBonus}
+                                                        onChange={e => setApplyAddressBonus(e.target.checked)}
+                                                        className="w-5 h-5 rounded border-orange-300 text-orange-600 focus:ring-orange-500"
+                                                    />
+                                                    <span className="text-sm font-bold text-gray-700">
+                                                        Sumar {config.pointsForAddress} pts por Domicilio Completo
+                                                    </span>
+                                                </label>
+                                            )}
+
+                                            <label className="flex items-center gap-3 cursor-pointer p-2 hover:bg-green-50 rounded-lg transition border border-transparent hover:border-green-100">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={sendWelcomeWa}
+                                                    onChange={e => setSendWelcomeWa(e.target.checked)}
+                                                    className="w-5 h-5 rounded border-green-300 text-green-600 focus:ring-green-500"
+                                                />
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-bold text-green-800">
+                                                        Enviar WhatsApp de Bienvenida al guardar
+                                                    </span>
+                                                    <span className="text-[10px] text-green-600">Abre una pestaña de WhatsApp Web con el mensaje configurado.</span>
+                                                </div>
+                                            </label>
                                         </div>
                                     </div>
                                 )}

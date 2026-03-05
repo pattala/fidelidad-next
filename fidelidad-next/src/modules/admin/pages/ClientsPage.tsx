@@ -120,7 +120,7 @@ export const ClientsPage = () => {
     // Toggles Alta Cliente
     const [applyWelcomeBonus, setApplyWelcomeBonus] = useState(true);
     const [applyAddressBonus, setApplyAddressBonus] = useState(true);
-    const [sendWelcomeWa, setSendWelcomeWa] = useState(false);
+    const [sendWelcomeWa, setSendWelcomeWa] = useState(true);
 
     // Estado Modal Canje
     const [redemptionModalOpen, setRedemptionModalOpen] = useState(false);

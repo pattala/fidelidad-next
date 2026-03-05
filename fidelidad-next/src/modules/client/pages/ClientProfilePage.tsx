@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { db, auth } from '../../../lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { signOut, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
@@ -38,6 +38,14 @@ export const ClientProfilePage = () => {
     const [showCurrentPass, setShowCurrentPass] = useState(false);
     const [loadingPass, setLoadingPass] = useState(false);
     const [isTermsOpen, setIsTermsOpen] = useState(false);
+    const termsScrollRef = useRef<HTMLDivElement>(null);
+
+    // Reset scroll when T&C opens
+    useEffect(() => {
+        if (isTermsOpen && termsScrollRef.current) {
+            termsScrollRef.current.scrollTop = 0;
+        }
+    }, [isTermsOpen]);
 
     // Edit Profile State
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -428,7 +436,7 @@ export const ClientProfilePage = () => {
                             </button>
                         </div>
                         {/* Content */}
-                        <div className="flex-1 overflow-y-auto p-6 text-sm text-gray-600 scrollbar-hide">
+                        <div ref={termsScrollRef} className="flex-1 overflow-y-auto p-6 text-sm text-gray-600 scrollbar-hide">
                             {config?.contact?.termsContent ? (
                                 <div className="space-y-4 whitespace-pre-wrap leading-relaxed">
                                     {(config.contact.termsContent || '')

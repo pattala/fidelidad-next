@@ -456,7 +456,12 @@ export const ClientsPage = () => {
                     conceptParts.push('Registro');
                 }
 
-                const hasAddress = formData.calle.trim() !== '' || formData.localidad.trim() !== '';
+                const hasAddress =
+                    formData.calle.trim() !== '' &&
+                    formData.numero.trim() !== '' &&
+                    formData.provincia.trim() !== '' &&
+                    (formData.localidad.trim() !== '' || formData.partido.trim() !== '');
+
                 if (applyAddressBonus && Number(freshConfig?.pointsForAddress || 0) > 0 && hasAddress) {
                     totalWelcomePts += Number(freshConfig?.pointsForAddress);
                     conceptParts.push('Domicilio');

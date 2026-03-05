@@ -517,7 +517,15 @@ export const ClientsPage = () => {
                     const cleanPhone = formData.phone.replace(/\D/g, '');
                     if (cleanPhone.length > 5) {
                         const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(welcomeMsg.trim())}`;
-                        window.open(waUrl, '_blank');
+                        setTimeout(() => {
+                            const link = document.createElement('a');
+                            link.href = waUrl;
+                            link.target = '_blank';
+                            link.rel = 'noopener noreferrer';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                        }, 500);
                     }
                 }
 

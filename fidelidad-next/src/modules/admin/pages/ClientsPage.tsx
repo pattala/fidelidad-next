@@ -516,8 +516,7 @@ export const ClientsPage = () => {
                     .replace(/{socio}/g, finalSocioId)
                     .replace(/{numero_socio}/g, finalSocioId)
                     .replace(/{telefono}/g, formData.phone)
-                    .replace(/{siteName}/g, freshConfig?.siteName || 'nuestro Club')
-                    .replace(/al Club/gi, `a ${freshConfig?.siteName || 'nuestro Club'}`);
+                    .replace(/{siteName}/g, freshConfig?.siteName || 'nuestro Club');
 
                 if (formData.phone && sendWelcomeWa) {
                     const cleanPhone = formData.phone.replace(/\D/g, '');

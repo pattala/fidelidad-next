@@ -40,7 +40,11 @@ export const EmailPreviewModal = ({ isOpen, onClose, config, templateTitle, temp
     // Process variables for preview
     const processVariables = (text: string) => {
         let processed = text;
-        Object.entries(MOCK_DATA).forEach(([key, value]) => {
+        const dynamicVars = {
+            ...MOCK_DATA,
+            siteName: config.siteName || "Club Fidelidad"
+        };
+        Object.entries(dynamicVars).forEach(([key, value]) => {
             const regex = new RegExp(`\\{${key}\\}`, 'g');
             processed = processed.replace(regex, value);
         });

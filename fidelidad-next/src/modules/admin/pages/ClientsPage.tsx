@@ -388,7 +388,9 @@ export const ClientsPage = () => {
                         }
                     },
                     role: 'client',
-                    source: 'local'
+                    source: 'local',
+                    termsAccepted: true,
+                    termsAcceptedAt: new Date().toISOString()
                 };
 
                 let apiSuccess = false;

@@ -124,14 +124,14 @@ export const DEFAULT_TEMPLATES = {
     whatsappDefaultMessage: "Hola {nombre}, ¡gracias por tu visita! Tenés {puntos} puntos disponibles. 📲",
     pointsAdded: "¡Hola {nombre}! 🎉 Sumaste {puntos} puntos. Tu nuevo saldo es {saldo} 🚀",
     redemption: "¡Felicidades {nombre}! 🎁 Canjeaste {premio}. Código: {codigo}. ¡Que lo disfrutes! ✨",
-    welcome: "¡Bienvenido al Club, {nombre}! 👋 Ya tienes {puntos} puntos de regalo. 🎁",
+    welcome: "¡Bienvenido a {siteName}, {nombre}! 👋 Ya tienes {puntos} puntos de regalo. 🎁",
     campaign: "🚀 ¡Nueva Campaña!: {titulo}. {descripcion}. ¡No te la pierdas! 🔥",
     offer: "🔥 ¡Oferta Especial! {titulo}: {detalle}. Válido hasta el {vencimiento}. 📢",
     flashOffer: "⚡ ¡OFERTA FLASH! {titulo}: {detalle}. Solo disponible hoy hasta las {horario} hs. 🔥",
     birthday: "¡Feliz cumpleaños, {nombre}! 🎂🎉 Te regalamos {puntos} puntos para que los disfrutes. ¡Que pases un gran día! ✨",
     birthdaySimple: "¡Feliz cumpleaños, {nombre}! 🎂🎉 Esperamos que pases un día increíble. ¡Te enviamos un gran saludo! ✨",
-    referralReward: "¡Hola {nombre}! 🎁 Ganaste {puntos} puntos porque tu amigo {amigo} comenzó a usar el club. ¡Gracias por recomendarnos! ✨",
-    referralPoints: "🎁 ¡Buenas noticias! Ganaste {puntos} puntos porque {nombre_referido} se unió al club. ¡Gracias por recomendarnos! 🚀",
+    referralReward: "¡Hola {nombre}! 🎁 Ganaste {puntos} puntos porque tu amigo {amigo} comenzó a usar {siteName}. ¡Gracias por recomendarnos! ✨",
+    referralPoints: "🎁 ¡Buenas noticias! Ganaste {puntos} puntos porque {nombre_referido} se unió a {siteName}. ¡Gracias por recomendarnos! 🚀",
     expirationWarning: "¡Hola {nombre}! 🚀 Tenés {puntos} puntos para gastar antes del {fecha}. ¡Canjealos hoy por un premio antes de que se venzan! 🎁✨",
-    referralChallenge: "¡NUEVO DESAFÍO ACTIVO! 🚀 Traé amigos y ganá bonos extra de puntos por tiempo limitado. ¡Entrá ahora para participar! 🎁"
+    referralChallenge: "¡NUEVO DESAFÍO ACTIVO! 🚀 Traé amigos a {siteName} y ganá bonos extra de puntos por tiempo limitado. ¡Entrá ahora para participar! 🎁"
 };

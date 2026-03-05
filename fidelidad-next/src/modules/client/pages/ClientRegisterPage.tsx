@@ -7,7 +7,10 @@ import { doc, setDoc, getDoc, query, where, getDocs, collection, onSnapshot, lim
 import { Mail, Lock, User, Phone, ArrowLeft, ArrowRight, MapPin, Building, Home, Eye, EyeOff, Check, Heart, ShieldCheck, Cake, Gift } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { ARGENTINA_LOCATIONS } from '../../../data/locations';
+import { EmailService } from '../../../services/emailService';
+import { DEFAULT_TEMPLATES } from '../../../services/configService';
 import { NotificationService } from '../../../services/notificationService';
+import type { AppConfig } from '../../../types';
 
 export const ClientRegisterPage = () => {
     // Step 1: Personal Data
@@ -260,28 +263,29 @@ export const ClientRegisterPage = () => {
             // D. Enviar Notificación Inbox/Push y EMAIL UNIFICADO
             if (shouldSendWelcome) {
                 try {
-                    const nameOnly = name.split(' ')[0];
-                    let bodyMsg = `¡Hola ${nameOnly}! Bienvenido al Club. Nos alegra muchísimo tenerte.`;
+                    const welcomeTemplate = config?.messaging?.templates?.welcome || DEFAULT_TEMPLATES.welcome;
 
-                    if (totalBonusPoints > 0) {
-                        if (earnedWelcomeBonus && earnedAddressBonus) {
-                            bodyMsg = `¡Hola ${nameOnly}! Bienvenido al Club. Sumaste ${totalBonusPoints} puntos de regalo en total (por registrarte y por completar tu domicilio).`;
-                        } else if (earnedWelcomeBonus) {
-                            bodyMsg = `¡Hola ${nameOnly}! Bienvenido al Club. Sumaste ${totalBonusPoints} puntos de regalo por crear tu cuenta hoy.`;
-                        } else if (earnedAddressBonus) {
-                            bodyMsg = `¡Hola ${nameOnly}! Bienvenido al Club. Sumaste automáticamente ${totalBonusPoints} puntos extras por proveer tu domicilio.`;
-                        }
-                    }
+                    const welcomeMsg = welcomeTemplate
+                        .replace(/{nombre}/g, name.split(' ')[0])
+                        .replace(/{nombre_completo}/g, name)
+                        .replace(/{puntos}/g, totalBonusPoints.toString())
+                        .replace(/{dni}/g, dni)
+                        .replace(/{email}/g, email)
+                        .replace(/{socio}/g, '')
+                        .replace(/{numero_socio}/g, '')
+                        .replace(/{telefono}/g, phone);
 
                     // 1. Inbox / Push (Siempre ocurre)
                     await NotificationService.sendToClient(user.uid, {
                         title: '¡Bienvenido al Club! 🎉',
-                        body: bodyMsg,
+                        body: welcomeMsg,
                         type: 'welcome',
                         icon: config?.logoUrl || '/logo.png'
                     });
 
-                    // 2. Correo de Bienvenida (con formato lindo HTML)
+                    // 2. Correo de Bienvenida (con formato lindo HTML unificado)
+                    const htmlContent = EmailService.generateBrandedTemplate((config as AppConfig) || {}, '¡Bienvenido al Club!', welcomeMsg);
+
                     await fetch('/api/notifications?action=email', {
                         method: 'POST',
                         headers: {
@@ -291,10 +295,10 @@ export const ClientRegisterPage = () => {
                         },
                         body: JSON.stringify({
                             to: email,
-                            templateId: 'manual_override',
+                            templateId: 'manual_override', // Le dice a la API que confíe en htmlContent
                             templateData: {
                                 subject: '¡Bienvenido al Club Fidelidad! 🎉',
-                                htmlContent: `<h2 style="color:#4f46e5; text-align:center;">¡Hola ${nameOnly}!</h2><p style="font-size:16px; text-align:center; color:#4b5563;">${bodyMsg}</p><br/><div style="text-align:center;"><a href="https://${window.location.host}/login" style="background-color:#4f46e5;color:white;padding:12px 24px;border-radius:12px;text-decoration:none;font-weight:bold;display:inline-block;">Ingresar a la VIRTUAL WALLET</a></div>`
+                                htmlContent: htmlContent
                             }
                         })
                     }).catch(err => console.error("Error enviando email unificado de bienvenida:", err));

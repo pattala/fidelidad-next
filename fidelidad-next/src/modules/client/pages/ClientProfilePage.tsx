@@ -294,8 +294,8 @@ export const ClientProfilePage = () => {
                                 <MapPin size={20} />
                             </div>
                             <div>
-                                <span className="font-bold text-gray-700 text-sm block">Ubicación y Beneficios</span>
-                                <span className="text-[10px] text-gray-400 font-medium">Descubre comercios cercanos</span>
+                                <span className="font-bold text-gray-700 text-sm block">Beneficios Locales</span>
+                                <span className="text-[10px] text-gray-400 font-medium">Accede a promos y recompensas por zona</span>
                             </div>
                         </div>
                         <button

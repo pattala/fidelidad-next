@@ -212,7 +212,7 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
 
                     <p className="text-sm text-gray-500 font-medium leading-relaxed mb-8 px-2">
                         {isGeo
-                            ? 'Descubre al instante promociones secretas y descuentos exclusivos en comercios cerca de tu zona.'
+                            ? 'Descubre al instante promociones secretas y descuentos exclusivos cerca tuyo.'
                             : 'Entérate antes que nadie de tus puntos acumulados, regalos sorpresa y promociones pensadas para vos.'}
                     </p>
 

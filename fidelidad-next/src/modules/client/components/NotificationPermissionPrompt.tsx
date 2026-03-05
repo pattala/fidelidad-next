@@ -43,6 +43,10 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
     }, [user, userData]);
 
     const checkNextStep = () => {
+        // Leer siempre directo de sessionStorage para evitar stale state
+        const isDismissedNotif = sessionStorage.getItem('dismissed_notif_prompt') === 'true';
+        const isDismissedGeo = sessionStorage.getItem('dismissed_geo_prompt') === 'true';
+
         const permissions = userData.permissions || {};
         const hasToken = !!userData.fcmToken || (Array.isArray(userData.fcmTokens) && userData.fcmTokens.length > 0);
 
@@ -72,7 +76,7 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
         }
 
         // Si el navegador dice default, la realidad manda sobre la DB
-        if (showNotif && !sessionDismissedNotif && (!notifBlocked || Notification.permission === 'default')) {
+        if (showNotif && !isDismissedNotif && (!notifBlocked || Notification.permission === 'default')) {
             setStep('notifications');
             return;
         }
@@ -90,7 +94,7 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
             if (isRepetitionEnabled && Date.now() > geoNextPrompt) showGeo = true;
         }
 
-        if (showGeo && !sessionDismissedGeo && !geoBlocked) {
+        if (showGeo && !isDismissedGeo && !geoBlocked) {
             setStep('geolocation');
             return;
         }

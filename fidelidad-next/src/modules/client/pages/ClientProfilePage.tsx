@@ -416,43 +416,41 @@ export const ClientProfilePage = () => {
             {/* Terms Modal */}
             {
                 isTermsOpen && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-                        <div className="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-                            {/* Header */}
-                            <div className="flex items-center justify-between px-4 py-4 bg-white border-b border-gray-100 shadow-sm flex-none z-10">
-                                <h2 className="text-lg font-black text-gray-800">Términos y Condiciones</h2>
-                                <button
-                                    onClick={() => setIsTermsOpen(false)}
-                                    className="p-2 text-gray-400 hover:text-gray-800 hover:bg-gray-100 rounded-full transition"
-                                >
-                                    <X size={24} />
-                                </button>
-                            </div>
-                            {/* Content (Dynamic Render) */}
-                            <div className="flex-1 overflow-y-auto p-6 text-sm text-gray-600 scrollbar-hide">
-                                {config?.contact?.termsContent ? (
-                                    <div className="space-y-4 whitespace-pre-wrap leading-relaxed">
-                                        {(config.contact.termsContent || '')
-                                            .replace(/\{siteName\}/g, config?.siteName || 'Club')
-                                            .split('\n\n')
-                                            .map((block: string, idx: number) => {
-                                                if (block.startsWith('## ')) {
-                                                    return <h4 key={idx} className="font-extrabold text-gray-900 mt-6 mb-2 uppercase tracking-widest text-[10px]">{block.replace('## ', '')}</h4>;
-                                                }
-                                                if (block.startsWith('# ')) {
-                                                    return <h3 key={idx} className="text-lg font-black text-gray-800 mb-4">{block.replace('# ', '')}</h3>;
-                                                }
-                                                if (block.startsWith('***')) {
-                                                    return <hr key={idx} className="my-6 border-gray-100" />;
-                                                }
-                                                return <p key={idx} className="mb-2">{block}</p>;
-                                            })
-                                        }
-                                    </div>
-                                ) : (
-                                    <p className="text-center py-10 text-gray-400 italic">No se han definido términos y condiciones.</p>
-                                )}
-                            </div>
+                    <div className="absolute inset-0 z-50 flex flex-col bg-white animate-fade-in">
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-4 py-4 bg-white border-b border-gray-100 shadow-sm flex-none">
+                            <h2 className="text-lg font-black text-gray-800">Términos y Condiciones</h2>
+                            <button
+                                onClick={() => setIsTermsOpen(false)}
+                                className="p-2 text-gray-400 hover:text-gray-800 hover:bg-gray-100 rounded-full transition"
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+                        {/* Content */}
+                        <div className="flex-1 overflow-y-auto p-6 text-sm text-gray-600 scrollbar-hide">
+                            {config?.contact?.termsContent ? (
+                                <div className="space-y-4 whitespace-pre-wrap leading-relaxed">
+                                    {(config.contact.termsContent || '')
+                                        .replace(/\{siteName\}/g, config?.siteName || 'Club')
+                                        .split('\n\n')
+                                        .map((block: string, idx: number) => {
+                                            if (block.startsWith('## ')) {
+                                                return <h4 key={idx} className="font-extrabold text-gray-900 mt-6 mb-2 uppercase tracking-widest text-[10px]">{block.replace('## ', '')}</h4>;
+                                            }
+                                            if (block.startsWith('# ')) {
+                                                return <h3 key={idx} className="text-lg font-black text-gray-800 mb-4">{block.replace('# ', '')}</h3>;
+                                            }
+                                            if (block.startsWith('***')) {
+                                                return <hr key={idx} className="my-6 border-gray-100" />;
+                                            }
+                                            return <p key={idx} className="mb-2">{block}</p>;
+                                        })
+                                    }
+                                </div>
+                            ) : (
+                                <p className="text-center py-10 text-gray-400 italic">No se han definido términos y condiciones.</p>
+                            )}
                         </div>
                     </div>
                 )

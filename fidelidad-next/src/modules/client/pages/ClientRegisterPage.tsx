@@ -275,7 +275,7 @@ export const ClientRegisterPage = () => {
                         .replace(/{numero_socio}/g, '')
                         .replace(/{telefono}/g, phone)
                         .replace(/{siteName}/g, config?.siteName || 'nuestro Club')
-                        .replace(/¡Bienvenido al Club,/gi, `¡Bienvenido a ${config?.siteName || 'nuestro Club'},`);
+                        .replace(/Bienvenido al Club/gi, `Bienvenido a ${config?.siteName || 'nuestro Club'}`);
 
                     const welcomeSubject = `¡Bienvenido a ${config?.siteName || 'nuestro Club'}! 🎉`;
 

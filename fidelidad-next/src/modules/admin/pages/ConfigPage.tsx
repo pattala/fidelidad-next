@@ -1673,7 +1673,7 @@ export const ConfigPage = () => {
                                             <Eye size={18} />
                                         </button>
                                     </div>
-                                    <VariableChips vars={['nombre', 'nombre_completo', 'puntos', 'saldo']} onSelect={v => insertVar('pointsAdded', v)} />
+                                    <VariableChips vars={['siteName', 'nombre', 'nombre_completo', 'puntos', 'saldo']} onSelect={v => insertVar('pointsAdded', v)} />
                                     <ChannelSelector
                                         channels={config.messaging?.eventConfigs?.pointsAdded?.channels || []}
                                         onChange={(newChannels) => setConfig({
@@ -1713,7 +1713,7 @@ export const ConfigPage = () => {
                                             <Eye size={18} />
                                         </button>
                                     </div>
-                                    <VariableChips vars={['nombre', 'nombre_completo', 'premio', 'codigo']} onSelect={v => insertVar('redemption', v)} />
+                                    <VariableChips vars={['siteName', 'nombre', 'nombre_completo', 'premio', 'codigo']} onSelect={v => insertVar('redemption', v)} />
                                     <ChannelSelector
                                         channels={config.messaging?.eventConfigs?.redemption?.channels || []}
                                         onChange={(newChannels) => setConfig({
@@ -1753,7 +1753,7 @@ export const ConfigPage = () => {
                                             <Eye size={18} />
                                         </button>
                                     </div>
-                                    <VariableChips vars={['nombre', 'nombre_completo', 'puntos', 'socio', 'dni']} onSelect={v => insertVar('welcome', v)} />
+                                    <VariableChips vars={['siteName', 'nombre', 'nombre_completo', 'puntos', 'socio', 'dni']} onSelect={v => insertVar('welcome', v)} />
                                     <ChannelSelector
                                         channels={config.messaging?.eventConfigs?.welcome?.channels || []}
                                         onChange={(newChannels) => setConfig({
@@ -1793,7 +1793,7 @@ export const ConfigPage = () => {
                                             <Eye size={18} />
                                         </button>
                                     </div>
-                                    <VariableChips vars={['titulo', 'descripcion']} onSelect={v => insertVar('campaign', v)} />
+                                    <VariableChips vars={['siteName', 'titulo', 'descripcion']} onSelect={v => insertVar('campaign', v)} />
                                     <ChannelSelector
                                         channels={config.messaging?.eventConfigs?.campaign?.channels || []}
                                         onChange={(newChannels) => setConfig({
@@ -1833,7 +1833,7 @@ export const ConfigPage = () => {
                                             <Eye size={18} />
                                         </button>
                                     </div>
-                                    <VariableChips vars={['titulo', 'detalle', 'vencimiento']} onSelect={v => insertVar('offer', v)} />
+                                    <VariableChips vars={['siteName', 'titulo', 'detalle', 'vencimiento']} onSelect={v => insertVar('offer', v)} />
                                     <ChannelSelector
                                         channels={config.messaging?.eventConfigs?.offer?.channels || []}
                                         onChange={(newChannels) => setConfig({
@@ -1875,7 +1875,7 @@ export const ConfigPage = () => {
                                             <Eye size={18} />
                                         </button>
                                     </div>
-                                    <VariableChips vars={['titulo', 'detalle', 'horario']} onSelect={v => insertVar('flashOffer', v)} />
+                                    <VariableChips vars={['siteName', 'titulo', 'detalle', 'horario']} onSelect={v => insertVar('flashOffer', v)} />
                                     <p className="text-[10px] text-gray-400 mt-1 italic">
                                         * Se usa automáticamente para campañas marcadas como "Flash".
                                     </p>
@@ -1919,7 +1919,7 @@ export const ConfigPage = () => {
                                                         <Eye size={18} />
                                                     </button>
                                                 </div>
-                                                <VariableChips vars={['nombre', 'nombre_completo', 'puntos']} onSelect={v => insertVar('birthday', v)} />
+                                                <VariableChips vars={['siteName', 'nombre', 'nombre_completo', 'puntos']} onSelect={v => insertVar('birthday', v)} />
                                             </div>
 
                                             {/* Simple Greeting */}
@@ -1952,7 +1952,7 @@ export const ConfigPage = () => {
                                                         <Eye size={18} />
                                                     </button>
                                                 </div>
-                                                <VariableChips vars={['nombre', 'nombre_completo']} onSelect={v => insertVar('birthdaySimple', v)} />
+                                                <VariableChips vars={['siteName', 'nombre', 'nombre_completo']} onSelect={v => insertVar('birthdaySimple', v)} />
                                             </div>
                                         </div>
 
@@ -2003,7 +2003,7 @@ export const ConfigPage = () => {
                                             <Eye size={18} />
                                         </button>
                                     </div>
-                                    <VariableChips vars={['nombre', 'amigo', 'puntos']} onSelect={v => insertVar('referralReward', v)} />
+                                    <VariableChips vars={['siteName', 'nombre', 'amigo', 'puntos']} onSelect={v => insertVar('referralReward', v)} />
                                     <ChannelSelector
                                         channels={config.messaging?.eventConfigs?.referralReward?.channels || []}
                                         onChange={(newChannels) => setConfig({
@@ -2044,7 +2044,7 @@ export const ConfigPage = () => {
                                             <Eye size={18} />
                                         </button>
                                     </div>
-                                    <VariableChips vars={['nombre', 'nombre_referido', 'puntos']} onSelect={v => insertVar('referralPoints', v)} />
+                                    <VariableChips vars={['siteName', 'nombre', 'nombre_referido', 'puntos']} onSelect={v => insertVar('referralPoints', v)} />
                                 </div>
 
                                 {/* Referral Challenge Template */}
@@ -2080,7 +2080,7 @@ export const ConfigPage = () => {
                                             <Eye size={18} />
                                         </button>
                                     </div>
-                                    <VariableChips vars={['nombre', 'nombre_completo', 'fecha_limite', 'puntos', 'meta']} onSelect={v => insertVar('referralChallenge', v)} />
+                                    <VariableChips vars={['siteName', 'nombre', 'nombre_completo', 'fecha_limite', 'puntos', 'meta']} onSelect={v => insertVar('referralChallenge', v)} />
 
                                     <div className="mt-4 flex flex-col sm:flex-row items-center gap-4 justify-between bg-white p-3 rounded-lg border border-orange-100">
                                         <div className="w-full sm:w-auto">
@@ -2299,7 +2299,7 @@ export const ConfigPage = () => {
                                                     <Eye size={18} />
                                                 </button>
                                             </div>
-                                            <VariableChips vars={['nombre', 'puntos', 'fecha']} onSelect={v => insertVar('expirationWarning', v)} />
+                                            <VariableChips vars={['siteName', 'nombre', 'puntos', 'fecha']} onSelect={v => insertVar('expirationWarning', v)} />
 
                                             <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-100">
                                                 <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Canales de Envío</label>

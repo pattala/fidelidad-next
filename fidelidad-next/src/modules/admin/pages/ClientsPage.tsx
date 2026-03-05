@@ -451,7 +451,7 @@ export const ClientsPage = () => {
                 let totalWelcomePts = 0;
                 const conceptParts: string[] = [];
 
-                if (applyWelcomeBonus && Number(freshConfig?.welcomePoints || 0) > 0) {
+                if (applyWelcomeBonus && Number(freshConfig?.welcomePoints || 0) > 0 && freshConfig?.enableWelcomeBonus !== false) {
                     totalWelcomePts += Number(freshConfig?.welcomePoints);
                     conceptParts.push('Registro');
                 }
@@ -461,7 +461,7 @@ export const ClientsPage = () => {
                     formData.provincia.trim() !== '' &&
                     (formData.localidad.trim() !== '' || formData.partido.trim() !== '');
 
-                if (applyAddressBonus && Number(freshConfig?.pointsForAddress || 0) > 0 && hasAddress) {
+                if (applyAddressBonus && Number(freshConfig?.pointsForAddress || 0) > 0 && freshConfig?.enableAddressBonus !== false && hasAddress) {
                     totalWelcomePts += Number(freshConfig?.pointsForAddress);
                     conceptParts.push('Domicilio');
                 }
@@ -534,12 +534,13 @@ export const ClientsPage = () => {
                 }
 
                 if (formData.email && NotificationService.isChannelEnabled(freshConfig, 'welcome', 'email')) {
-                    const htmlContent = EmailService.generateBrandedTemplate(freshConfig || {}, '¡Bienvenido al Club!', welcomeMsg);
-                    EmailService.sendEmail(formData.email, '¡Bienvenido al Club!', htmlContent).catch(() => { });
+                    const welcomeSubject = `¡Bienvenido a ${freshConfig?.siteName || 'nuestro Club'}!`;
+                    const htmlContent = EmailService.generateBrandedTemplate(freshConfig || {}, welcomeSubject, welcomeMsg);
+                    EmailService.sendEmail(formData.email, welcomeSubject, htmlContent).catch(() => { });
                 }
 
                 NotificationService.sendToClient(newDocId, {
-                    title: '¡Bienvenido al Club!',
+                    title: `¡Bienvenido a ${freshConfig?.siteName || 'nuestro Club'}!`,
                     body: welcomeMsg,
                     type: 'welcome',
                     icon: freshConfig?.logoUrl
@@ -1316,7 +1317,7 @@ export const ClientsPage = () => {
                                         </p>
 
                                         <div className="space-y-3">
-                                            {(config?.welcomePoints || 0) > 0 && (
+                                            {(config?.welcomePoints || 0) > 0 && config?.enableWelcomeBonus !== false && (
                                                 <label className="flex items-center gap-3 cursor-pointer p-2 hover:bg-orange-100/50 rounded-lg transition">
                                                     <input
                                                         type="checkbox"
@@ -1330,7 +1331,7 @@ export const ClientsPage = () => {
                                                 </label>
                                             )}
 
-                                            {(config?.pointsForAddress || 0) > 0 && (
+                                            {(config?.pointsForAddress || 0) > 0 && config?.enableAddressBonus !== false && (
                                                 <label className="flex items-center gap-3 cursor-pointer p-2 hover:bg-orange-100/50 rounded-lg transition">
                                                     <input
                                                         type="checkbox"

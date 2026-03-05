@@ -275,16 +275,18 @@ export const ClientRegisterPage = () => {
                         .replace(/{numero_socio}/g, '')
                         .replace(/{telefono}/g, phone);
 
+                    const welcomeSubject = `¡Bienvenido a ${config?.siteName || 'nuestro Club'}! 🎉`;
+
                     // 1. Inbox / Push (Siempre ocurre)
                     await NotificationService.sendToClient(user.uid, {
-                        title: '¡Bienvenido al Club! 🎉',
+                        title: welcomeSubject,
                         body: welcomeMsg,
                         type: 'welcome',
                         icon: config?.logoUrl || '/logo.png'
                     });
 
                     // 2. Correo de Bienvenida (con formato lindo HTML unificado)
-                    const htmlContent = EmailService.generateBrandedTemplate((config as AppConfig) || {}, '¡Bienvenido al Club!', welcomeMsg);
+                    const htmlContent = EmailService.generateBrandedTemplate((config as AppConfig) || {}, welcomeSubject.replace(' 🎉', ''), welcomeMsg);
 
                     await fetch('/api/notifications?action=email', {
                         method: 'POST',
@@ -297,7 +299,7 @@ export const ClientRegisterPage = () => {
                             to: email,
                             templateId: 'manual_override', // Le dice a la API que confíe en htmlContent
                             templateData: {
-                                subject: '¡Bienvenido al Club Fidelidad! 🎉',
+                                subject: welcomeSubject,
                                 htmlContent: htmlContent
                             }
                         })

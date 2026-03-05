@@ -458,7 +458,6 @@ export const ClientsPage = () => {
 
                 const hasAddress =
                     formData.calle.trim() !== '' &&
-                    formData.numero.trim() !== '' &&
                     formData.provincia.trim() !== '' &&
                     (formData.localidad.trim() !== '' || formData.partido.trim() !== '');
 

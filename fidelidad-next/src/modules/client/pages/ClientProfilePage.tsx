@@ -276,8 +276,8 @@ export const ClientProfilePage = () => {
                                 <span className="text-xl">🔔</span>
                             </div>
                             <div>
-                                <span className="font-bold text-gray-700 text-sm block">Notificaciones</span>
-                                <span className="text-[10px] text-gray-400 font-medium">Alertas de puntos y premios</span>
+                                <span className="font-bold text-gray-700 text-sm block">Avisos y Premios</span>
+                                <span className="text-[10px] text-gray-400 font-medium">Entérate al instante de tus puntos</span>
                             </div>
                         </div>
                         <button
@@ -294,8 +294,8 @@ export const ClientProfilePage = () => {
                                 <MapPin size={20} />
                             </div>
                             <div>
-                                <span className="font-bold text-gray-700 text-sm block">Geolocalización</span>
-                                <span className="text-[10px] text-gray-400 font-medium">Búsqueda de sucursales cercanas</span>
+                                <span className="font-bold text-gray-700 text-sm block">Ubicación y Beneficios</span>
+                                <span className="text-[10px] text-gray-400 font-medium">Descubre comercios cercanos</span>
                             </div>
                         </div>
                         <button

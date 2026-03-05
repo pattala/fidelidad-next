@@ -14,6 +14,15 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
     const [step, setStep] = useState<'none' | 'notifications' | 'geolocation'>('none');
     const [config, setConfig] = useState<any>(null);
 
+    // Bandera de sesión para no ser insistentes en la misma visita si eligen "Quizás luego"
+    const [sessionDismissedNotif, setSessionDismissedNotif] = useState(false);
+    const [sessionDismissedGeo, setSessionDismissedGeo] = useState(false);
+
+    useEffect(() => {
+        setSessionDismissedNotif(sessionStorage.getItem('dismissed_notif_prompt') === 'true');
+        setSessionDismissedGeo(sessionStorage.getItem('dismissed_geo_prompt') === 'true');
+    }, []);
+
     useEffect(() => {
         const loadConfig = async () => {
             const { ConfigService } = await import('../../../services/configService');
@@ -59,7 +68,7 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
         }
 
         // Si el navegador dice default, la realidad manda sobre la DB
-        if (showNotif && (!notifBlocked || Notification.permission === 'default')) {
+        if (showNotif && !sessionDismissedNotif && (!notifBlocked || Notification.permission === 'default')) {
             setStep('notifications');
             return;
         }
@@ -75,7 +84,7 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
         else if (geoStatus === 'later') showGeo = true;
         else if ((geoStatus === 'denied' || geoStatus === 'dismissed') && Date.now() > geoNextPrompt) showGeo = true;
 
-        if (showGeo && !geoBlocked) {
+        if (showGeo && !sessionDismissedGeo && !geoBlocked) {
             setStep('geolocation');
             return;
         }
@@ -150,6 +159,15 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
         const type = step as 'notifications' | 'geolocation';
         setStep('none'); // Close immediately
 
+        // Bloqueo temporal por sesión al hacer clic en Quizás luego por primera vez (Para no frustrar al usuario)
+        if (type === 'notifications') {
+            sessionStorage.setItem('dismissed_notif_prompt', 'true');
+            setSessionDismissedNotif(true);
+        } else {
+            sessionStorage.setItem('dismissed_geo_prompt', 'true');
+            setSessionDismissedGeo(true);
+        }
+
         const days = config?.messaging?.notificationPromptIntervalDays || 30;
         const nextPrompt = Date.now() + (days * 24 * 60 * 60 * 1000);
 
@@ -189,13 +207,13 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
                     </div>
 
                     <h3 className="text-2xl font-black text-gray-800 leading-tight mb-3 px-2 italic-none uppercase tracking-tight">
-                        {isGeo ? 'Ubicación' : 'Notificaciones'}
+                        {isGeo ? 'Beneficios Locales' : 'Avisos y Premios'}
                     </h3>
 
                     <p className="text-sm text-gray-500 font-medium leading-relaxed mb-8 px-2">
                         {isGeo
-                            ? 'Permítenos conocer tu zona para mostrarte beneficios y comercios más cercanos.'
-                            : 'Activa los avisos para enterarte al instante cuando sumes puntos o ganes un premio.'}
+                            ? 'Descubre al instante promociones secretas y descuentos exclusivos en comercios cerca de tu zona.'
+                            : 'Entérate antes que nadie de tus puntos acumulados, regalos sorpresa y promociones pensadas para vos.'}
                     </p>
 
                     <div className="space-y-3">

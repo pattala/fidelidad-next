@@ -52,10 +52,14 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
         const notifBlocked = notifStatus === 'blocked';
         const notifDenied = notifStatus === 'denied';
 
+        const isRepetitionEnabled = config?.messaging?.enablePermissionPromptRepetition !== false;
+
         let showNotif = false;
         if (notifStatus === 'pending') showNotif = true;
-        else if (notifStatus === 'later') showNotif = true;
-        else if ((notifStatus === 'denied' || notifStatus === 'dismissed') && Date.now() > notifNextPrompt) showNotif = true;
+        else if (notifStatus === 'later') showNotif = isRepetitionEnabled;
+        else if ((notifStatus === 'denied' || notifStatus === 'dismissed')) {
+            if (isRepetitionEnabled && Date.now() > notifNextPrompt) showNotif = true;
+        }
 
         if (Notification.permission === 'granted' && notifStatus !== 'granted') {
             updatePermission('notifications', 'granted');
@@ -81,8 +85,10 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
 
         let showGeo = false;
         if (geoStatus === 'pending') showGeo = true;
-        else if (geoStatus === 'later') showGeo = true;
-        else if ((geoStatus === 'denied' || geoStatus === 'dismissed') && Date.now() > geoNextPrompt) showGeo = true;
+        else if (geoStatus === 'later') showGeo = isRepetitionEnabled;
+        else if ((geoStatus === 'denied' || geoStatus === 'dismissed')) {
+            if (isRepetitionEnabled && Date.now() > geoNextPrompt) showGeo = true;
+        }
 
         if (showGeo && !sessionDismissedGeo && !geoBlocked) {
             setStep('geolocation');

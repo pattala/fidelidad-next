@@ -794,14 +794,16 @@ export const ConfigPage = () => {
                                                         <div className="flex items-center gap-3">
                                                             <input
                                                                 type="number"
-                                                                value={config.messaging?.expirationWarningDays || 7}
+                                                                value={config.messaging?.expirationWarningDays || 5}
                                                                 onChange={e => setConfig({
                                                                     ...config,
                                                                     messaging: { ...config.messaging!, expirationWarningDays: parseInt(e.target.value) || 0 }
                                                                 })}
                                                                 className="w-20 p-2 rounded-lg border border-gray-200 outline-none focus:ring-2 focus:ring-orange-100 font-bold text-center"
                                                             />
-                                                            <span className="text-sm font-medium text-gray-600">días antes del vencimiento.</span>
+                                                            <div className="flex flex-col">
+                                                                <span className="text-sm font-medium text-gray-600">Días antes del vencimiento (Anticipo de primer aviso).</span>
+                                                            </div>
                                                         </div>
                                                     </div>
 
@@ -823,8 +825,9 @@ export const ConfigPage = () => {
                                                     </div>
                                                 </div>
 
+                                                {/* Intervalo de Repetición (Vencimientos) */}
                                                 {config.messaging?.repeatExpirationWarnings && (
-                                                    <div className="bg-white p-4 rounded-xl border-2 border-dashed border-blue-100 animate-fade-in">
+                                                    <div className="bg-white p-4 rounded-xl border-2 border-dashed border-blue-100 animate-fade-in mt-4">
                                                         <label className="block text-xs font-bold text-blue-600 uppercase mb-2 ml-1 flex items-center gap-2">
                                                             <Clock size={12} /> Intervalo de Repetición
                                                         </label>
@@ -839,17 +842,36 @@ export const ConfigPage = () => {
                                                                 className="w-20 p-2 rounded-lg border border-blue-200 outline-none focus:ring-2 focus:ring-blue-50 font-black text-center text-blue-700"
                                                             />
                                                             <div className="flex flex-col">
-                                                                <span className="text-sm font-bold text-gray-700">Días entre avisos.</span>
-                                                                <p className="text-[9px] text-gray-400 italic">El motor no enviará un nuevo aviso si pasaron menos de estos días desde el último.</p>
+                                                                <span className="text-sm font-bold text-gray-700">Días entre avisos recurrentes.</span>
+                                                                <p className="text-[9px] text-gray-400 italic">El motor no enviará un nuevo correo/push de vencimiento si pasaron menos de estos días desde el último envío al cliente.</p>
                                                             </div>
                                                         </div>
+                                                    </div>
+                                                )}
 
-                                                        {/* NUEVO: Intervalo para Permisos PWA */}
-                                                        <div className="mt-4 pt-4 border-t border-blue-50">
-                                                            <label className="block text-xs font-bold text-purple-600 uppercase mb-2 ml-1 flex items-center gap-2">
-                                                                <Bell size={12} /> Re-intento de Permisos PWA
-                                                            </label>
-                                                            <div className="flex items-center gap-3">
+                                                {/* Re-intento de Permisos PWA (Independiente) */}
+                                                <div className="mt-6 pt-6 border-t border-gray-100">
+                                                    <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-100/50">
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <div>
+                                                                <label className="block text-xs font-bold text-gray-600 uppercase mb-1 flex items-center gap-1"><Bell size={12} className="text-purple-500" /> Re-intento de Permisos PWA</label>
+                                                                <span className="text-[10px] text-gray-500 font-medium">Volver a mostrar carteles si el cliente eligió "Quizás Luego".</span>
+                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setConfig({
+                                                                    ...config,
+                                                                    messaging: { ...config.messaging!, enablePermissionPromptRepetition: config.messaging?.enablePermissionPromptRepetition === false ? true : false } // false is actual false, undefined->true
+                                                                })}
+                                                                className={`relative w-10 h-6 transition-colors rounded-full shadow-inner ${config.messaging?.enablePermissionPromptRepetition !== false ? 'bg-purple-500' : 'bg-gray-200'}`}
+                                                            >
+                                                                <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform ${config.messaging?.enablePermissionPromptRepetition !== false ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                            </button>
+                                                        </div>
+
+                                                        {/* Configurar días si está encendido */}
+                                                        {config.messaging?.enablePermissionPromptRepetition !== false && (
+                                                            <div className="mt-4 animate-fade-in bg-white p-3 rounded-lg border border-purple-100/50 flex items-center gap-3">
                                                                 <input
                                                                     type="number"
                                                                     value={config.messaging?.notificationPromptIntervalDays || 30}
@@ -861,12 +883,12 @@ export const ConfigPage = () => {
                                                                 />
                                                                 <div className="flex flex-col">
                                                                     <span className="text-sm font-bold text-gray-700">Días para volver a preguntar.</span>
-                                                                    <p className="text-[9px] text-gray-400 italic">Frecuencia con la que se pide permiso de Notificaciones/GPS si el usuario puso "Luego".</p>
+                                                                    <p className="text-[9px] text-gray-400 italic">Días de silencio antes de volver a molestar con el cartel de Notificaciones o Beneficios Locales.</p>
                                                                 </div>
                                                             </div>
-                                                        </div>
+                                                        )}
                                                     </div>
-                                                )}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

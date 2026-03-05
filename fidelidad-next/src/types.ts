@@ -174,6 +174,7 @@ export interface AppConfig {
         enableExtensionTrigger?: boolean;
         enableQStashTrigger?: boolean;
         notificationPromptIntervalDays?: number; // Días para repetir aviso de permisos
+        enablePermissionPromptRepetition?: boolean; // Nuevo: Toggle para encender/apagar re-preguntas PWA
     };
 
     // Sistema de Referidos

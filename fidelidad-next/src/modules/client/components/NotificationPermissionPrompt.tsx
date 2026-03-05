@@ -37,7 +37,7 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
         // Retraso de cortesía para un "logueo limpio"
         const timer = setTimeout(() => {
             checkNextStep();
-        }, 3000);
+        }, 1500);
 
         return () => clearTimeout(timer);
     }, [user, userData]);

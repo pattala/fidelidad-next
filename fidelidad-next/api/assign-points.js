@@ -679,7 +679,7 @@ export default async function handler(req, res) {
             if (applyWhatsApp && points > 0) {
                 if (isWhatsAppConfigured) {
                     let waMsg = templates[event] || "¡Sumaste {puntos} puntos! Tu saldo actual es {saldo}.";
-                    const fullName = result.guestData.name || 'Cliente';
+                    const fullName = result.guestData.name || result.guestData.nombre || 'Cliente';
                     const firstName = fullName.split(' ')[0];
 
                     waMsg = waMsg.replace(/{nombre}/g, firstName)
@@ -736,7 +736,7 @@ export default async function handler(req, res) {
             // --- 6.1 NOTIFICACIÓN AL CLIENTE (INVITADO) ---
             if (points > 0 && !skipNotifications) {
                 let unifiedMsg = templates[event] || "¡Sumaste {puntos} puntos! Tu saldo actual es {saldo}.";
-                const fullName = result.guestData.name || 'Cliente';
+                const fullName = result.guestData.name || result.guestData.nombre || 'Cliente';
                 const firstName = fullName.split(' ')[0];
 
                 unifiedMsg = unifiedMsg.replace(/{nombre}/g, firstName)

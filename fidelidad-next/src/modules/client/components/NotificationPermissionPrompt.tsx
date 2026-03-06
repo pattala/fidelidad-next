@@ -70,8 +70,8 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
             showNotif = false;
         } else if (Notification.permission === 'denied') {
             showNotif = false;
-        } else if (Notification.permission === 'default' && !isDismissedNotif) {
-            // Si el navegador dice default y el usuario no dijo 'Quizás luego', volvemos a preguntar
+        } else if (Notification.permission === 'default' && !isDismissedNotif && notifStatus !== 'dismissed') {
+            // Solo forzamos si no hay un standby activo (dismissed con nextPrompt futuro)
             showNotif = true;
         }
 

@@ -47,51 +47,50 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
         const isDismissedNotif = sessionStorage.getItem('dismissed_notif_prompt') === 'true';
         const isDismissedGeo = sessionStorage.getItem('dismissed_geo_prompt') === 'true';
 
-        const permissions = userData.permissions || {};
-        const hasToken = !!userData.fcmToken || (Array.isArray(userData.fcmTokens) && userData.fcmTokens.length > 0);
+        const permissions = userData?.permissions || {};
 
         // 1. Check Notifications
         const notifStatus = permissions.notifications?.status || 'pending';
         const notifNextPrompt = permissions.notifications?.nextPrompt || 0;
         const notifBlocked = notifStatus === 'blocked';
-        const notifDenied = notifStatus === 'denied';
 
-        const isRepetitionEnabled = config?.messaging?.enablePermissionPromptRepetition !== false;
-
-        let showNotif = false;
-        if (notifStatus === 'pending') showNotif = true;
-        else if (notifStatus === 'later') showNotif = isRepetitionEnabled;
-        else if ((notifStatus === 'denied' || notifStatus === 'dismissed')) {
-            if (isRepetitionEnabled && Date.now() > notifNextPrompt) showNotif = true;
-        }
-
+        // Auto-sincronizar si el navegador ya tiene el permiso concedido o denegado
         if (Notification.permission === 'granted' && notifStatus !== 'granted') {
             updatePermission('notifications', 'granted');
-            showNotif = false;
+            // No mostramos nada para notif, pasamos a geo
         } else if (Notification.permission === 'denied') {
-            showNotif = false;
-        } else if (Notification.permission === 'default' && !isDismissedNotif && notifStatus !== 'dismissed') {
-            // Solo forzamos si no hay un standby activo (dismissed con nextPrompt futuro)
-            showNotif = true;
-        }
+            // El navegador lo bloqueó, no preguntar
+        } else {
+            // Lógica simple: 
+            // 'pending' o 'later' → siempre mostrar (es la 1ra o 2da oportunidad)
+            // 'dismissed' → solo si pasaron los días configurados
+            let showNotif = false;
+            if (notifStatus === 'pending' || notifStatus === 'later') {
+                showNotif = true;
+            } else if (notifStatus === 'dismissed' && Date.now() > notifNextPrompt) {
+                showNotif = true;
+            } else if (notifStatus === 'denied' && Date.now() > notifNextPrompt) {
+                showNotif = true;
+            }
 
-        // Si el navegador dice default, la realidad manda sobre la DB
-        if (showNotif && !isDismissedNotif && (!notifBlocked || Notification.permission === 'default')) {
-            setStep('notifications');
-            return;
+            if (showNotif && !isDismissedNotif && !notifBlocked) {
+                setStep('notifications');
+                return;
+            }
         }
 
         // 2. Check Geolocation
         const geoStatus = permissions.geolocation?.status || 'pending';
         const geoNextPrompt = permissions.geolocation?.nextPrompt || 0;
         const geoBlocked = geoStatus === 'blocked';
-        const geoDenied = geoStatus === 'denied';
 
         let showGeo = false;
-        if (geoStatus === 'pending') showGeo = true;
-        else if (geoStatus === 'later') showGeo = isRepetitionEnabled;
-        else if ((geoStatus === 'denied' || geoStatus === 'dismissed')) {
-            if (isRepetitionEnabled && Date.now() > geoNextPrompt) showGeo = true;
+        if (geoStatus === 'pending' || geoStatus === 'later') {
+            showGeo = true;
+        } else if (geoStatus === 'dismissed' && Date.now() > geoNextPrompt) {
+            showGeo = true;
+        } else if (geoStatus === 'denied' && Date.now() > geoNextPrompt) {
+            showGeo = true;
         }
 
         if (showGeo && !isDismissedGeo && !geoBlocked) {
@@ -101,6 +100,7 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
 
         setStep('none');
     };
+
 
     const updatePermission = async (type: 'notifications' | 'geolocation', status: string, nextPrompt: number = 0) => {
         if (!user) return;
@@ -169,7 +169,7 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
         const type = step as 'notifications' | 'geolocation';
         setStep('none'); // Close immediately
 
-        // Bloqueo temporal por sesión al hacer clic en Quizás luego por primera vez (Para no frustrar al usuario)
+        // Bloqueo temporal por sesión para no molestar en la misma visita
         if (type === 'notifications') {
             sessionStorage.setItem('dismissed_notif_prompt', 'true');
             setSessionDismissedNotif(true);
@@ -178,16 +178,25 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
             setSessionDismissedGeo(true);
         }
 
-        const days = config?.messaging?.notificationPromptIntervalDays || 30;
-        const nextPrompt = Date.now() + (days * 24 * 60 * 60 * 1000);
-
-        await updatePermission(type, 'dismissed', nextPrompt);
+        // Sistema 2-strikes:
+        // - 1er "Quizás luego" → 'later' (vuelve a aparecer la próxima sesión)
+        // - 2do "Quizás luego" (ya estaba en 'later') → 'dismissed' + standby real
+        const currentStatus = userData?.permissions?.[type]?.status;
+        if (currentStatus === 'later') {
+            const days = config?.messaging?.notificationPromptIntervalDays || 30;
+            const nextPrompt = Date.now() + (days * 24 * 60 * 60 * 1000);
+            await updatePermission(type, 'dismissed', nextPrompt);
+        } else {
+            // Primer descarte → simplemente lo marcamos para reintentar la próxima sesión
+            await updatePermission(type, 'later', 0);
+        }
 
         // Si acaba de descartar notificaciones, ver si hay que mostrar geo
         if (type === 'notifications') {
             setTimeout(() => checkNextStep(), 800);
         }
     };
+
 
     const handleNo = async () => {
         if (step === 'none') return;

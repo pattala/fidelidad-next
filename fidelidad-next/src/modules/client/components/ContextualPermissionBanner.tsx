@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Bell, MapPin, X } from 'lucide-react';
+import { Bell, MapPin, X, BellOff } from 'lucide-react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import toast from 'react-hot-toast';
@@ -8,10 +8,11 @@ interface Props {
     user: any;
     userData: any;
     type: 'notifications' | 'geolocation';
-    triggerMessage?: string; // ej: "¡Ganaste 150 puntos!"
+    triggerMessage?: string;
     config?: any;
     onGranted?: () => void;
-    onDismiss?: () => void;
+    onDismiss?: () => void; // Solo esta sesión
+    onNeverAsk?: () => void; // Entra en standby real
 }
 
 const SESSION_KEYS = {
@@ -20,7 +21,7 @@ const SESSION_KEYS = {
 };
 
 export const ContextualPermissionBanner = ({
-    user, userData, type, triggerMessage, config, onGranted, onDismiss
+    user, userData, type, triggerMessage, config, onGranted, onDismiss, onNeverAsk
 }: Props) => {
     const [visible, setVisible] = useState(false);
 
@@ -88,10 +89,28 @@ export const ContextualPermissionBanner = ({
         }
     };
 
-    const handleDismiss = async () => {
+    // Solo bloquea esta sesión
+    const handleDismiss = () => {
         sessionStorage.setItem(SESSION_KEYS[type], 'true');
         setVisible(false);
         onDismiss?.();
+    };
+
+    // Entra en standby según días del panel
+    const handleNeverAsk = async () => {
+        sessionStorage.setItem(SESSION_KEYS[type], 'true');
+        setVisible(false);
+        const days = config?.messaging?.notificationPromptIntervalDays || 30;
+        const nextPrompt = Date.now() + (days * 24 * 60 * 60 * 1000);
+        await updateDoc(doc(db, 'users', user.uid), {
+            [`permissions.${type}`]: {
+                status: 'dismissed',
+                updatedAt: Date.now(),
+                deniedCount: userData?.permissions?.[type]?.deniedCount || 0,
+                nextPrompt
+            }
+        });
+        onNeverAsk?.();
     };
 
     if (!visible) return null;
@@ -99,15 +118,10 @@ export const ContextualPermissionBanner = ({
     const isGeo = type === 'geolocation';
 
     return (
-        <div className={`
-            fixed bottom-20 left-0 right-0 z-[150] flex justify-center px-4 
-            animate-slide-up
-        `}>
+        <div className="fixed bottom-20 left-0 right-0 z-[150] flex justify-center px-4 animate-slide-up">
             <div className={`
                 w-full max-w-md rounded-2xl shadow-2xl border overflow-hidden
-                ${isGeo
-                    ? 'bg-emerald-50 border-emerald-200'
-                    : 'bg-purple-50 border-purple-200'}
+                ${isGeo ? 'bg-emerald-50 border-emerald-200' : 'bg-purple-50 border-purple-200'}
             `}>
                 <div className="flex items-center gap-3 p-4">
                     <div className={`
@@ -128,17 +142,21 @@ export const ContextualPermissionBanner = ({
                                 : '¿Querés que te avisemos cuando ganás premios?'}
                         </p>
                     </div>
-                    <button
-                        onClick={handleDismiss}
-                        className="p-1 text-gray-400 hover:text-gray-600 flex-none"
-                    >
+                    <button onClick={handleDismiss} className="p-1 text-gray-400 hover:text-gray-600 flex-none">
                         <X size={18} />
                     </button>
                 </div>
                 <div className={`flex border-t ${isGeo ? 'border-emerald-200' : 'border-purple-200'}`}>
                     <button
+                        onClick={handleNeverAsk}
+                        className="flex-1 py-2.5 text-xs font-bold text-gray-300 hover:text-gray-500 transition flex items-center justify-center gap-1"
+                        title="No volver a preguntar por ahora"
+                    >
+                        <BellOff size={12} /> No molestar
+                    </button>
+                    <button
                         onClick={handleDismiss}
-                        className="flex-1 py-2.5 text-xs font-bold text-gray-400 hover:text-gray-600 transition"
+                        className="flex-1 py-2.5 text-xs font-bold text-gray-400 hover:text-gray-600 transition border-x border-gray-200"
                     >
                         Ahora no
                     </button>
@@ -147,7 +165,7 @@ export const ContextualPermissionBanner = ({
                         className={`flex-1 py-2.5 text-xs font-black transition
                             ${isGeo ? 'text-emerald-600 hover:text-emerald-700' : 'text-purple-600 hover:text-purple-700'}`}
                     >
-                        {isGeo ? '✅ Ver beneficios locales' : '🔔 Activar avisos'}
+                        {isGeo ? '✅ Ver beneficios' : '🔔 Activar avisos'}
                     </button>
                 </div>
             </div>

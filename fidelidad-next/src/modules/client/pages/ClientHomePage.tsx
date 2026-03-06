@@ -126,6 +126,7 @@ export const ClientHomePage = () => {
     const [selectedPromo, setSelectedPromo] = useState<BonusRule | null>(null);
     const [currentTimeStore, setCurrentTimeStore] = useState(new Date());
     const [showContextualNotif, setShowContextualNotif] = useState(false);
+    const [showContextualGeo, setShowContextualGeo] = useState(false);
     const [contextualPointsMsg, setContextualPointsMsg] = useState('');
     const prevPointsRef = useRef<number | null>(null);
 
@@ -346,11 +347,35 @@ export const ClientHomePage = () => {
                     type="notifications"
                     triggerMessage={contextualPointsMsg}
                     config={config}
-                    onGranted={() => { setShowContextualNotif(false); handlePermissionGranted(); }}
-                    onDismiss={() => setShowContextualNotif(false)}
+                    onGranted={() => {
+                        setShowContextualNotif(false);
+                        handlePermissionGranted();
+                        // Mostrar geo como siguiente paso
+                        setTimeout(() => setShowContextualGeo(true), 800);
+                    }}
+                    onDismiss={() => {
+                        setShowContextualNotif(false);
+                        setTimeout(() => setShowContextualGeo(true), 600);
+                    }}
+                    onNeverAsk={() => {
+                        setShowContextualNotif(false);
+                        setTimeout(() => setShowContextualGeo(true), 600);
+                    }}
                 />
             )}
 
+            {showContextualGeo && (
+                <ContextualPermissionBanner
+                    user={user}
+                    userData={userData}
+                    type="geolocation"
+                    triggerMessage={contextualPointsMsg}
+                    config={config}
+                    onGranted={() => setShowContextualGeo(false)}
+                    onDismiss={() => setShowContextualGeo(false)}
+                    onNeverAsk={() => setShowContextualGeo(false)}
+                />
+            )}
 
 
             {/* GREETING LINE */}

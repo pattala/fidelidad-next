@@ -70,8 +70,8 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
             showNotif = false;
         } else if (Notification.permission === 'denied') {
             showNotif = false;
-        } else if (Notification.permission === 'default') {
-            // Si el navegador dice default, ignoramos lo que diga la DB y volvemos a preguntar
+        } else if (Notification.permission === 'default' && !isDismissedNotif) {
+            // Si el navegador dice default y el usuario no dijo 'Quizás luego', volvemos a preguntar
             showNotif = true;
         }
 
@@ -182,6 +182,11 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
         const nextPrompt = Date.now() + (days * 24 * 60 * 60 * 1000);
 
         await updatePermission(type, 'dismissed', nextPrompt);
+
+        // Si acaba de descartar notificaciones, ver si hay que mostrar geo
+        if (type === 'notifications') {
+            setTimeout(() => checkNextStep(), 800);
+        }
     };
 
     const handleNo = async () => {

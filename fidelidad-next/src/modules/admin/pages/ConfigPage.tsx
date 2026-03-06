@@ -887,7 +887,44 @@ export const ConfigPage = () => {
                                                                 </div>
                                                             </div>
                                                         )}
+
+                                                        {/* Refuerzo Contextual de Notificaciones */}
+                                                        <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
+                                                            <div>
+                                                                <label className="block text-xs font-bold text-gray-600 uppercase mb-1 flex items-center gap-1"><Bell size={12} className="text-purple-500" /> Refuerzo al ganar puntos</label>
+                                                                <span className="text-[10px] text-gray-500 font-medium">Mostrar un banner de notificaciones cuando el cliente suma puntos (no bloqueante).</span>
+                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setConfig({
+                                                                    ...config,
+                                                                    messaging: { ...config.messaging!, enableContextualNotifPrompt: config.messaging?.enableContextualNotifPrompt === false ? true : false }
+                                                                })}
+                                                                className={`relative w-10 h-6 transition-colors rounded-full shadow-inner flex-none ml-4 ${config.messaging?.enableContextualNotifPrompt !== false ? 'bg-purple-500' : 'bg-gray-200'}`}
+                                                            >
+                                                                <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform ${config.messaging?.enableContextualNotifPrompt !== false ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                            </button>
+                                                        </div>
+
+                                                        {/* Refuerzo Contextual de Geo */}
+                                                        <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
+                                                            <div>
+                                                                <label className="block text-xs font-bold text-gray-600 uppercase mb-1 flex items-center gap-1"><MapPin size={12} className="text-emerald-500" /> Refuerzo al visitar Premios</label>
+                                                                <span className="text-[10px] text-gray-500 font-medium">Mostrar un banner de ubicación cuando el cliente abre la sección de Premios (no bloqueante).</span>
+                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setConfig({
+                                                                    ...config,
+                                                                    messaging: { ...config.messaging!, enableContextualGeoPrompt: config.messaging?.enableContextualGeoPrompt === false ? true : false }
+                                                                })}
+                                                                className={`relative w-10 h-6 transition-colors rounded-full shadow-inner flex-none ml-4 ${config.messaging?.enableContextualGeoPrompt !== false ? 'bg-emerald-500' : 'bg-gray-200'}`}
+                                                            >
+                                                                <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform ${config.messaging?.enableContextualGeoPrompt !== false ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                            </button>
+                                                        </div>
                                                     </div>
+
                                                 </div>
                                             </div>
                                         </div>

@@ -4,6 +4,7 @@ import { collection, query, where, getDocs, doc, onSnapshot } from 'firebase/fir
 import { Gift, Lock, CheckCircle, Search, Filter } from 'lucide-react';
 import { useOutletContext } from 'react-router-dom';
 import { useClientAuth } from '../contexts/ClientAuthContext';
+import { ContextualPermissionBanner } from '../components/ContextualPermissionBanner';
 import type { AppConfig } from '../../../types';
 
 
@@ -157,6 +158,13 @@ export const ClientRewardsPage = () => {
                     })
                 )}
             </div>
-        </div >
+            <ContextualPermissionBanner
+                user={user}
+                userData={userData}
+                type="geolocation"
+                triggerMessage="Hay beneficios cerca tuyo"
+                config={config}
+            />
+        </div>
     );
 };

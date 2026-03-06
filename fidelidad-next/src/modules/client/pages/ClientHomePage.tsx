@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { auth, db } from '../../../lib/firebase';
 import { collection, query, orderBy, onSnapshot, doc, limit, getDocs } from 'firebase/firestore';
 import { useNavigate, useOutletContext } from 'react-router-dom';
@@ -23,6 +23,7 @@ import { CampaignCarousel } from '../components/CampaignCarousel';
 import { PointsExpirationWarning } from '../components/PointsExpirationWarning';
 import { PointsExpirationModal } from '../components/PointsExpirationModal';
 import { NotificationPermissionPrompt } from '../components/NotificationPermissionPrompt';
+import { ContextualPermissionBanner } from '../components/ContextualPermissionBanner';
 import { useFcmToken } from '../../../hooks/useFcmToken';
 import { ModernConfirmModal } from '../components/ModernConfirmModal';
 import { CampaignActionModal } from '../components/CampaignActionModal';
@@ -124,6 +125,9 @@ export const ClientHomePage = () => {
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [selectedPromo, setSelectedPromo] = useState<BonusRule | null>(null);
     const [currentTimeStore, setCurrentTimeStore] = useState(new Date());
+    const [showContextualNotif, setShowContextualNotif] = useState(false);
+    const [contextualPointsMsg, setContextualPointsMsg] = useState('');
+    const prevPointsRef = useRef<number | null>(null);
 
     const { config } = useOutletContext<{ config: any }>();
 
@@ -309,6 +313,22 @@ export const ClientHomePage = () => {
         retrieveToken();
     };
 
+    // Detectar cuando suben los puntos para mostrar banner contextual de notif
+    useEffect(() => {
+        if (!userData || !user) return;
+        const currentPoints = userData.points || 0;
+        if (prevPointsRef.current !== null && currentPoints > prevPointsRef.current) {
+            const gained = currentPoints - prevPointsRef.current;
+            const notifStatus = userData.permissions?.notifications?.status;
+            const notifPerm = typeof Notification !== 'undefined' ? Notification.permission : 'denied';
+            if (notifStatus !== 'granted' && notifStatus !== 'blocked' && notifPerm !== 'granted' && notifPerm !== 'denied') {
+                setContextualPointsMsg(`¡Ganaste ${gained} puntos!`);
+                setShowContextualNotif(true);
+            }
+        }
+        prevPointsRef.current = currentPoints;
+    }, [userData?.points]);
+
     return (
         <div
             className="relative font-sans text-gray-800 px-4 pt-4 pb-12 space-y-8 animate-fade-in"
@@ -318,6 +338,19 @@ export const ClientHomePage = () => {
                 userData={userData}
                 onNotificationGranted={handlePermissionGranted}
             />
+
+            {showContextualNotif && (
+                <ContextualPermissionBanner
+                    user={user}
+                    userData={userData}
+                    type="notifications"
+                    triggerMessage={contextualPointsMsg}
+                    config={config}
+                    onGranted={() => { setShowContextualNotif(false); handlePermissionGranted(); }}
+                    onDismiss={() => setShowContextualNotif(false)}
+                />
+            )}
+
 
 
             {/* GREETING LINE */}

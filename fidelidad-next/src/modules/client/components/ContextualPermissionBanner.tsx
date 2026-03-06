@@ -11,8 +11,8 @@ interface Props {
     triggerMessage?: string;
     config?: any;
     onGranted?: () => void;
-    onDismiss?: () => void; // Solo esta sesión
-    onNeverAsk?: () => void; // Entra en standby real
+    onDismiss?: () => void;
+    onNeverAsk?: () => void;
 }
 
 const SESSION_KEYS = {
@@ -27,25 +27,17 @@ export const ContextualPermissionBanner = ({
 
     useEffect(() => {
         if (!user || !userData) return;
-
-        // No mostrar si ya fue mostrado en esta sesión
         if (sessionStorage.getItem(SESSION_KEYS[type]) === 'true') return;
 
-        // No mostrar si ya está concedido o bloqueado
         const status = userData.permissions?.[type]?.status;
-        if (status === 'granted' || status === 'blocked') return;
+        if (status === 'granted' || status === 'blocked' || status === 'dismissed') return;
 
-        // Respetar toggle de configuración del panel
-        const configKey = type === 'notifications'
-            ? 'enableContextualNotifPrompt'
-            : 'enableContextualGeoPrompt';
+        const configKey = type === 'notifications' ? 'enableContextualNotifPrompt' : 'enableContextualGeoPrompt';
         if (config?.messaging?.[configKey] === false) return;
 
-        // Verificar el navegador para notificaciones
         if (type === 'notifications' && Notification.permission === 'granted') return;
         if (type === 'notifications' && Notification.permission === 'denied') return;
 
-        // Mostrar con animación
         const t = setTimeout(() => setVisible(true), 400);
         return () => clearTimeout(t);
     }, [user, userData, type, config]);
@@ -59,10 +51,9 @@ export const ContextualPermissionBanner = ({
             if (permission === 'granted') {
                 await updateDoc(doc(db, 'users', user.uid), {
                     'permissions.notifications': {
-                        status: 'granted',
-                        updatedAt: Date.now(),
+                        status: 'granted', updatedAt: Date.now(),
                         deniedCount: userData?.permissions?.notifications?.deniedCount || 0,
-                        nextPrompt: 0
+                        contextualDismissCount: 0, nextPrompt: 0
                     }
                 });
                 toast.success('¡Listo! Te avisaremos de tus premios 🎉');
@@ -73,15 +64,20 @@ export const ContextualPermissionBanner = ({
                 navigator.geolocation.getCurrentPosition(
                     async (pos) => {
                         await updateDoc(doc(db, 'users', user.uid), {
-                            'permissions.geolocation': { status: 'granted', updatedAt: Date.now(), deniedCount: 0, nextPrompt: 0 },
+                            'permissions.geolocation': {
+                                status: 'granted', updatedAt: Date.now(),
+                                deniedCount: 0, contextualDismissCount: 0, nextPrompt: 0
+                            },
                             lastLocation: { lat: pos.coords.latitude, lng: pos.coords.longitude, timestamp: new Date() }
                         });
                         toast.success('¡Listo! Ahora podemos mostrarte beneficios cerca 📍');
                         onGranted?.();
                     },
                     async () => {
+                        // Usuario rechazó el popup nativo del browser
                         await updateDoc(doc(db, 'users', user.uid), {
-                            'permissions.geolocation': { status: 'dismissed', updatedAt: Date.now(), deniedCount: 0, nextPrompt: Date.now() + (30 * 24 * 3600 * 1000) }
+                            [`permissions.${type}.status`]: 'blocked',
+                            [`permissions.${type}.updatedAt`]: Date.now(),
                         });
                     }
                 );
@@ -89,14 +85,42 @@ export const ContextualPermissionBanner = ({
         }
     };
 
-    // Solo bloquea esta sesión
-    const handleDismiss = () => {
+    // "Ahora no" — bloquea solo la sesión, pero incrementa el contador
+    const handleDismiss = async () => {
         sessionStorage.setItem(SESSION_KEYS[type], 'true');
         setVisible(false);
-        onDismiss?.();
+
+        const maxDismissals = config?.messaging?.maxContextualDismissals ?? 2;
+        const currentCount = userData?.permissions?.[type]?.contextualDismissCount || 0;
+        const newCount = currentCount + 1;
+
+        if (newCount >= maxDismissals) {
+            // Entrar en standby real
+            const days = config?.messaging?.notificationPromptIntervalDays || 30;
+            const nextPrompt = Date.now() + (days * 24 * 60 * 60 * 1000);
+            await updateDoc(doc(db, 'users', user.uid), {
+                [`permissions.${type}`]: {
+                    status: 'dismissed',
+                    updatedAt: Date.now(),
+                    deniedCount: userData?.permissions?.[type]?.deniedCount || 0,
+                    contextualDismissCount: newCount,
+                    nextPrompt
+                }
+            });
+            const daysLabel = days === 1 ? '1 día' : `${days} días`;
+            toast(`Por ahora no te preguntamos más. Volvemos en ${daysLabel} 😊`, { icon: '⏳', duration: 4000 });
+            onNeverAsk?.();
+        } else {
+            // Solo incrementar contador, no entra en standby todavía
+            await updateDoc(doc(db, 'users', user.uid), {
+                [`permissions.${type}.contextualDismissCount`]: newCount,
+                [`permissions.${type}.updatedAt`]: Date.now(),
+            });
+            onDismiss?.();
+        }
     };
 
-    // Entra en standby según días del panel
+    // "No molestar" — standby inmediato sin esperar al contador
     const handleNeverAsk = async () => {
         sessionStorage.setItem(SESSION_KEYS[type], 'true');
         setVisible(false);
@@ -107,9 +131,12 @@ export const ContextualPermissionBanner = ({
                 status: 'dismissed',
                 updatedAt: Date.now(),
                 deniedCount: userData?.permissions?.[type]?.deniedCount || 0,
+                contextualDismissCount: userData?.permissions?.[type]?.contextualDismissCount || 0,
                 nextPrompt
             }
         });
+        const daysLabel = days === 1 ? '1 día' : `${days} días`;
+        toast(`Listo, no te preguntamos más por ${daysLabel} 😊`, { icon: '⏳', duration: 4000 });
         onNeverAsk?.();
     };
 
@@ -150,9 +177,8 @@ export const ContextualPermissionBanner = ({
                     <button
                         onClick={handleNeverAsk}
                         className="flex-1 py-2.5 text-xs font-bold text-gray-300 hover:text-gray-500 transition flex items-center justify-center gap-1"
-                        title="No volver a preguntar por ahora"
                     >
-                        <BellOff size={12} /> No molestar
+                        <BellOff size={11} /> No molestar
                     </button>
                     <button
                         onClick={handleDismiss}

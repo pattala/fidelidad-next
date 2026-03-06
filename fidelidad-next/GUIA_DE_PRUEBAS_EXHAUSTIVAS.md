@@ -55,18 +55,17 @@ Asegúrate de tener estos valores **exactamente así** antes de iniciar:
 - [ ] **Expectativa Email:** Recibes **UN SOLO EMAIL** de bienvenida celebrando los 150 puntos.
 
 #### Ruta B: Cliente ya creado en el Panel (Ideal PC/Usuario A)
-- [ ] Entra al Panel de Administración, ve a "Clientes" y haz clic en "Nuevo Cliente".
-- [ ] Completa sus datos básicos y dirección. En el Paso 2 verás la sección **🎁 Premios de Bienvenida y Notificaciones**.
-- [ ] **Verificación visual:** Si tienes configurados puntos por registro o vivienda, aparecerán los "checkbox" para otorgarlos. Actívalos.
-- [ ] Activa también **"Enviar WhatsApp de Bienvenida"**.
-- [ ] Guarda el cliente. 
-- [ ] **Expectativa WhatsApp:** Se abrirá una ventana/pestaña nueva para enviar un WP con el mensaje de bienvenida y los puntos correctos.
-- [ ] **Expectativa Email:** Recibirás **UN SOLO EMAIL** de bienvenida.
-- [ ] Entra a la PWA (`/login`).
-- [ ] En lugar de "Crear Cuenta", **ingresa directamente el teléfono o DNI** que le pusiste a ese usuario en el panel.
-- [ ] Ingresa el código PIN/OTP para acceder.
-- [ ] **Expectativa PWA:** Te lleva al Inicio ("Home"). Debe mostrar la suma de los puntos que decidiste otorgarle en el panel, y en el historial debe decir "🎁 Bienvenida al sistema (Registro + Domicilio)".
-
+- [ok] Entra al Panel de Administración, ve a "Clientes" y haz clic en "Nuevo Cliente".
+- [ok] Completa sus datos básicos y dirección. En el Paso 2 verás la sección **🎁 Premios de Bienvenida y Notificaciones**.
+- [ok] **Verificación visual:** Si tienes configurados puntos por registro o vivienda, aparecerán los "checkbox" para otorgarlos. Actívalos.
+- [ok] Activa también **"Enviar WhatsApp de Bienvenida"**.
+- [ok] Guarda el cliente. 
+- [ok] **Expectativa WhatsApp:** Se abrirá una ventana/pestaña nueva para enviar un WP con el mensaje de bienvenida y los puntos correctos.
+- [ok] **Expectativa Email:** Recibirás **UN SOLO EMAIL** de bienvenida.
+- [ok] Entra a la PWA (`/login`).
+- [ok] En lugar de "Crear Cuenta", **ingresa usuario mail clave DNI** que le pusiste a ese usuario en el panel.
+- [ok] **Expectativa PWA:** Te lleva al Inicio ("Home"). Debe mostrar la suma de los puntos que decidiste otorgarle en el panel, y en el historial debe decir "🎁 Bienvenida al sistema (Registro + Domicilio)".
+n
 ---
 ### 2.2 Validación de los Pop-ups Persuasivos (Permisos)
 **Objetivo:** Validar que los permisos no sean molestos, los copys sean los acordados y la lógica de "memoria" funcione.

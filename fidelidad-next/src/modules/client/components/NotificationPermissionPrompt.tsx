@@ -186,6 +186,11 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
             const days = config?.messaging?.notificationPromptIntervalDays || 30;
             const nextPrompt = Date.now() + (days * 24 * 60 * 60 * 1000);
             await updatePermission(type, 'dismissed', nextPrompt);
+
+            // Toast informativo dinámico
+            const daysLabel = days === 1 ? '1 día' : `${days} días`;
+            const icon = type === 'notifications' ? '🔔' : '📍';
+            toast(`Por ahora no te preguntamos más. Volvemos en ${daysLabel} 😊`, { icon, duration: 4000 });
         } else {
             // Primer descarte → simplemente lo marcamos para reintentar la próxima sesión
             await updatePermission(type, 'later', 0);

@@ -177,6 +177,7 @@ export interface AppConfig {
         enablePermissionPromptRepetition?: boolean; // Nuevo: Toggle para encender/apagar re-preguntas PWA
         enableContextualNotifPrompt?: boolean; // Banner contextual de notif al ganar puntos
         enableContextualGeoPrompt?: boolean; // Banner contextual de geo al visitar Premios
+        maxContextualDismissals?: number; // Cuántos "Ahora no" en el banner chico antes del standby (default: 2)
     };
 
     // Sistema de Referidos

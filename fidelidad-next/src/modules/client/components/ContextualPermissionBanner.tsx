@@ -75,7 +75,7 @@ export const ContextualPermissionBanner = ({
                             'permissions.geolocation': { status: 'granted', updatedAt: Date.now(), deniedCount: 0, nextPrompt: 0 },
                             lastLocation: { lat: pos.coords.latitude, lng: pos.coords.longitude, timestamp: new Date() }
                         });
-                        toast.success('¡Ubicación activada! Ahora podés ver beneficios cerca 📍');
+                        toast.success('¡Listo! Ahora podemos mostrarte beneficios cerca 📍');
                         onGranted?.();
                     },
                     async () => {
@@ -124,7 +124,7 @@ export const ContextualPermissionBanner = ({
                         )}
                         <p className="text-sm font-semibold text-gray-800 leading-tight">
                             {isGeo
-                                ? '¿Activás la ubicación para ver beneficios cerca tuyo?'
+                                ? '¿Querés ver beneficios exclusivos cerca tuyo?'
                                 : '¿Querés que te avisemos cuando ganás premios?'}
                         </p>
                     </div>
@@ -147,7 +147,7 @@ export const ContextualPermissionBanner = ({
                         className={`flex-1 py-2.5 text-xs font-black transition
                             ${isGeo ? 'text-emerald-600 hover:text-emerald-700' : 'text-purple-600 hover:text-purple-700'}`}
                     >
-                        {isGeo ? '✅ Activar ubicación' : '🔔 Activar avisos'}
+                        {isGeo ? '✅ Ver beneficios locales' : '🔔 Activar avisos'}
                     </button>
                 </div>
             </div>

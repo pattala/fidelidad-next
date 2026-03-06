@@ -175,6 +175,8 @@ export interface AppConfig {
         enableQStashTrigger?: boolean;
         notificationPromptIntervalDays?: number; // Días para repetir aviso de permisos
         enablePermissionPromptRepetition?: boolean; // Nuevo: Toggle para encender/apagar re-preguntas PWA
+        enableContextualNotifPrompt?: boolean; // Banner contextual de notif al ganar puntos
+        enableContextualGeoPrompt?: boolean; // Banner contextual de geo al visitar Premios
     };
 
     // Sistema de Referidos

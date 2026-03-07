@@ -923,1919 +923,1793 @@ export const ConfigPage = () => {
                                                                 <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform ${config.messaging?.enableContextualGeoPrompt !== false ? 'translate-x-4' : 'translate-x-0'}`} />
                                                             </button>
                                                         </div>
+                                                    </div>
 
-                                                        {/* Máximo de re-intentos contextuales */}
-                                                        <div className="mt-6 pt-4 border-t border-gray-100 animate-fade-in">
-                                                            <div className="flex items-center gap-4 bg-purple-50/30 p-4 rounded-xl border border-purple-100/50">
-                                                                <input
-                                                                    type="number"
-                                                                    min="1"
-                                                                    max="10"
-                                                                    value={config.messaging?.maxContextualDismissals || 2}
-                                                                    onChange={e => setConfig({
-                                                                        ...config,
-                                                                        messaging: { ...config.messaging!, maxContextualDismissals: parseInt(e.target.value) || 0 }
-                                                                    })}
-                                                                    className="w-16 p-2 rounded-lg border border-purple-200 outline-none focus:ring-2 focus:ring-purple-50 font-black text-center text-purple-700"
-                                                                />
-                                                                <div className="flex flex-col">
-                                                                    <span className="text-sm font-bold text-gray-700 italic">Max Re-intentos "Ahora no".</span>
-                                                                    <p className="text-[10px] text-gray-400 font-medium leading-tight">Cuántas veces puede el cliente tocar "Ahora no" en el banner chico antes de que entre en silencio por N días.</p>
-                                                                </div>
-                                                            </div>
-                                                        </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Tarjeta de Integraciones Externas */}
+                                <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 mt-6">
+                                    <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
+                                        <span className="bg-purple-100 text-purple-600 p-2 rounded-lg"><Monitor size={20} /></span>
+                                        Integraciones Externas
+                                    </h3>
+
+                                    <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-100">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex-1">
+                                                <span className="text-sm font-bold text-gray-800">Habilitar Extensión de Navegador</span>
+                                                <p className="text-xs text-gray-500">Permitir que la extensión de Chrome capture montos de tu sistema de facturación.</p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setConfig({ ...config, enableExternalIntegration: !config.enableExternalIntegration })}
+                                                className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.enableExternalIntegration !== false ? 'bg-purple-600' : 'bg-gray-200'}`}
+                                            >
+                                                <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enableExternalIntegration !== false ? 'translate-x-5' : 'translate-x-0'}`} />
+                                            </button>
+                                        </div>
+                                        <p className="text-[10px] text-purple-400 mt-3 italic">
+                                            * Esta opción controla si el servidor procesa puntos enviados desde herramientas externas como el facturador.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Tarjeta de Referidos */}
+                                <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 mt-6">
+                                    <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
+                                        <span className="bg-orange-100 text-orange-600 p-2 rounded-lg"><Gift size={20} /></span>
+                                        Programa de Referidos
+                                    </h3>
+
+                                    <div className="bg-orange-50/50 p-6 rounded-xl border border-orange-100 space-y-6">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex-1">
+                                                <span className="text-sm font-bold text-gray-800">Activar Sistema de Invitación</span>
+                                                <p className="text-xs text-gray-500">Permite que los socios inviten amigos y ganen puntos por ello.</p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setConfig({
+                                                    ...config,
+                                                    referrals: { ...config.referrals!, enabled: !config.referrals?.enabled }
+                                                })}
+                                                className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.referrals?.enabled ? 'bg-orange-600' : 'bg-gray-200'}`}
+                                            >
+                                                <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.referrals?.enabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                                            </button>
+                                        </div>
+
+                                        {config.referrals?.enabled && (
+                                            <div className="space-y-6 animate-fade-in pl-2 border-l-2 border-orange-200">
+                                                <div>
+                                                    <label className="block text-xs font-bold text-orange-700 uppercase mb-2">Puntos para el Referidor (Quien invita)</label>
+                                                    <div className="flex items-center gap-3">
+                                                        <input
+                                                            type="number"
+                                                            value={config.referrals.pointsForReferrer}
+                                                            onChange={e => setConfig({
+                                                                ...config,
+                                                                referrals: { ...config.referrals!, pointsForReferrer: parseInt(e.target.value) || 0 }
+                                                            })}
+                                                            className="w-24 p-2 rounded-lg border border-gray-200 outline-none focus:ring-2 focus:ring-orange-100 font-bold text-gray-700 text-center"
+                                                        />
+                                                        <span className="text-gray-500 text-sm font-medium">puntos por cada amigo que realice su primera compra.</span>
                                                     </div>
                                                 </div>
 
-                                                {/* Tarjeta de Integraciones Externas */}
-                                                <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 mt-6">
-                                                    <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
-                                                        <span className="bg-purple-100 text-purple-600 p-2 rounded-lg"><Monitor size={20} /></span>
-                                                        Integraciones Externas
-                                                    </h3>
-
-                                                    <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-100">
-                                                        <div className="flex items-center justify-between">
-                                                            <div className="flex-1">
-                                                                <span className="text-sm font-bold text-gray-800">Habilitar Extensión de Navegador</span>
-                                                                <p className="text-xs text-gray-500">Permitir que la extensión de Chrome capture montos de tu sistema de facturación.</p>
-                                                            </div>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setConfig({ ...config, enableExternalIntegration: !config.enableExternalIntegration })}
-                                                                className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.enableExternalIntegration !== false ? 'bg-purple-600' : 'bg-gray-200'}`}
-                                                            >
-                                                                <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enableExternalIntegration !== false ? 'translate-x-5' : 'translate-x-0'}`} />
-                                                            </button>
-                                                        </div>
-                                                        <p className="text-[10px] text-purple-400 mt-3 italic">
-                                                            * Esta opción controla si el servidor procesa puntos enviados desde herramientas externas como el facturador.
-                                                        </p>
-                                                    </div>
+                                                <div className="pt-2">
+                                                    <label className="block text-xs font-bold text-orange-700 uppercase mb-2">Criterio de Recompensa</label>
+                                                    <select
+                                                        value={config.referrals.rewardCriteria}
+                                                        onChange={e => setConfig({
+                                                            ...config,
+                                                            referrals: { ...config.referrals!, rewardCriteria: e.target.value as any }
+                                                        })}
+                                                        className="w-full p-2.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-orange-100"
+                                                    >
+                                                        <option value="first_transaction">Tras el primer consumo en el local</option>
+                                                        <option value="registration" disabled>Al registrarse (Deshabilitado por fraude)</option>
+                                                    </select>
+                                                    <p className="text-[10px] text-gray-400 mt-2 italic">
+                                                        * Recomendamos 'Primer Consumo' para evitar cuentas falsas. El bono se asigna automáticamente cuando el invitado suma sus primeros puntos desde el facturador.
+                                                    </p>
                                                 </div>
 
-                                                {/* Tarjeta de Referidos */}
-                                                <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 mt-6">
-                                                    <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
-                                                        <span className="bg-orange-100 text-orange-600 p-2 rounded-lg"><Gift size={20} /></span>
-                                                        Programa de Referidos
-                                                    </h3>
-
-                                                    <div className="bg-orange-50/50 p-6 rounded-xl border border-orange-100 space-y-6">
-                                                        <div className="flex items-center justify-between">
-                                                            <div className="flex-1">
-                                                                <span className="text-sm font-bold text-gray-800">Activar Sistema de Invitación</span>
-                                                                <p className="text-xs text-gray-500">Permite que los socios inviten amigos y ganen puntos por ello.</p>
+                                                {/* NUEVO: Configuración de Desafío */}
+                                                <div className="pt-6 border-t border-orange-100">
+                                                    <div className="flex items-center justify-between mb-4">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="bg-orange-600 text-white p-1 rounded">
+                                                                <Zap size={14} />
                                                             </div>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setConfig({
-                                                                    ...config,
-                                                                    referrals: { ...config.referrals!, enabled: !config.referrals?.enabled }
-                                                                })}
-                                                                className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.referrals?.enabled ? 'bg-orange-600' : 'bg-gray-200'}`}
-                                                            >
-                                                                <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.referrals?.enabled ? 'translate-x-5' : 'translate-x-0'}`} />
-                                                            </button>
+                                                            <span className="text-sm font-bold text-gray-800">Desafío con Fecha Límite</span>
                                                         </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setConfig({
+                                                                ...config,
+                                                                referrals: {
+                                                                    ...config.referrals!,
+                                                                    challenge: {
+                                                                        enabled: !config.referrals?.challenge?.enabled,
+                                                                        startDate: config.referrals?.challenge?.startDate || new Date().toISOString().split('T')[0],
+                                                                        endDate: config.referrals?.challenge?.endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                                                                        tiers: config.referrals?.challenge?.tiers || [{ count: 1, bonus: 100 }],
+                                                                        isInternal: config.referrals?.challenge?.isInternal || false
+                                                                    }
+                                                                }
+                                                            })}
+                                                            className={`relative w-10 h-6 transition-colors rounded-full shadow-inner ${config.referrals?.challenge?.enabled ? 'bg-orange-500' : 'bg-gray-200'}`}
+                                                        >
+                                                            <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform ${config.referrals?.challenge?.enabled ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                        </button>
+                                                    </div>
 
-                                                        {config.referrals?.enabled && (
-                                                            <div className="space-y-6 animate-fade-in pl-2 border-l-2 border-orange-200">
+                                                    {config.referrals?.challenge?.enabled && (
+                                                        <div className="space-y-4 animate-fade-in pl-2 border-l-2 border-orange-400">
+                                                            <div className="grid grid-cols-2 gap-4">
                                                                 <div>
-                                                                    <label className="block text-xs font-bold text-orange-700 uppercase mb-2">Puntos para el Referidor (Quien invita)</label>
-                                                                    <div className="flex items-center gap-3">
-                                                                        <input
-                                                                            type="number"
-                                                                            value={config.referrals.pointsForReferrer}
-                                                                            onChange={e => setConfig({
-                                                                                ...config,
-                                                                                referrals: { ...config.referrals!, pointsForReferrer: parseInt(e.target.value) || 0 }
-                                                                            })}
-                                                                            className="w-24 p-2 rounded-lg border border-gray-200 outline-none focus:ring-2 focus:ring-orange-100 font-bold text-gray-700 text-center"
-                                                                        />
-                                                                        <span className="text-gray-500 text-sm font-medium">puntos por cada amigo que realice su primera compra.</span>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div className="pt-2">
-                                                                    <label className="block text-xs font-bold text-orange-700 uppercase mb-2">Criterio de Recompensa</label>
-                                                                    <select
-                                                                        value={config.referrals.rewardCriteria}
+                                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Fecha Inicio</label>
+                                                                    <input
+                                                                        type="date"
+                                                                        value={config.referrals.challenge?.startDate}
                                                                         onChange={e => setConfig({
                                                                             ...config,
-                                                                            referrals: { ...config.referrals!, rewardCriteria: e.target.value as any }
+                                                                            referrals: {
+                                                                                ...config.referrals!,
+                                                                                challenge: { ...config.referrals!.challenge!, startDate: e.target.value }
+                                                                            }
                                                                         })}
-                                                                        className="w-full p-2.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-orange-100"
-                                                                    >
-                                                                        <option value="first_transaction">Tras el primer consumo en el local</option>
-                                                                        <option value="registration" disabled>Al registrarse (Deshabilitado por fraude)</option>
-                                                                    </select>
-                                                                    <p className="text-[10px] text-gray-400 mt-2 italic">
-                                                                        * Recomendamos 'Primer Consumo' para evitar cuentas falsas. El bono se asigna automáticamente cuando el invitado suma sus primeros puntos desde el facturador.
-                                                                    </p>
+                                                                        className="w-full p-2 border border-orange-100 rounded-lg text-xs font-bold text-gray-700 outline-none focus:ring-2 focus:ring-orange-50"
+                                                                    />
                                                                 </div>
+                                                                <div>
+                                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Fecha Final</label>
+                                                                    <input
+                                                                        type="date"
+                                                                        value={config.referrals.challenge?.endDate}
+                                                                        onChange={e => setConfig({
+                                                                            ...config,
+                                                                            referrals: {
+                                                                                ...config.referrals!,
+                                                                                challenge: { ...config.referrals!.challenge!, endDate: e.target.value }
+                                                                            }
+                                                                        })}
+                                                                        className="w-full p-2 border border-orange-100 rounded-lg text-xs font-bold text-gray-700 outline-none focus:ring-2 focus:ring-orange-50"
+                                                                    />
+                                                                </div>
+                                                            </div>
 
-                                                                {/* NUEVO: Configuración de Desafío */}
-                                                                <div className="pt-6 border-t border-orange-100">
-                                                                    <div className="flex items-center justify-between mb-4">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <div className="bg-orange-600 text-white p-1 rounded">
-                                                                                <Zap size={14} />
-                                                                            </div>
-                                                                            <span className="text-sm font-bold text-gray-800">Desafío con Fecha Límite</span>
-                                                                        </div>
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => setConfig({
+                                                            <div>
+                                                                <div className="flex justify-between items-center mb-2">
+                                                                    <label className="block text-[10px] font-bold text-orange-700 uppercase">Metas Progresivas (Tiers)</label>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            const tiers = [...(config.referrals!.challenge!.tiers || [])];
+                                                                            tiers.push({ count: (tiers[tiers.length - 1]?.count || 0) + 1, bonus: 0 });
+                                                                            setConfig({
                                                                                 ...config,
                                                                                 referrals: {
                                                                                     ...config.referrals!,
-                                                                                    challenge: {
-                                                                                        enabled: !config.referrals?.challenge?.enabled,
-                                                                                        startDate: config.referrals?.challenge?.startDate || new Date().toISOString().split('T')[0],
-                                                                                        endDate: config.referrals?.challenge?.endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                                                                                        tiers: config.referrals?.challenge?.tiers || [{ count: 1, bonus: 100 }],
-                                                                                        isInternal: config.referrals?.challenge?.isInternal || false
-                                                                                    }
+                                                                                    challenge: { ...config.referrals!.challenge!, tiers }
                                                                                 }
-                                                                            })}
-                                                                            className={`relative w-10 h-6 transition-colors rounded-full shadow-inner ${config.referrals?.challenge?.enabled ? 'bg-orange-500' : 'bg-gray-200'}`}
-                                                                        >
-                                                                            <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform ${config.referrals?.challenge?.enabled ? 'translate-x-4' : 'translate-x-0'}`} />
-                                                                        </button>
-                                                                    </div>
-
-                                                                    {config.referrals?.challenge?.enabled && (
-                                                                        <div className="space-y-4 animate-fade-in pl-2 border-l-2 border-orange-400">
-                                                                            <div className="grid grid-cols-2 gap-4">
-                                                                                <div>
-                                                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Fecha Inicio</label>
-                                                                                    <input
-                                                                                        type="date"
-                                                                                        value={config.referrals.challenge?.startDate}
-                                                                                        onChange={e => setConfig({
+                                                                            });
+                                                                        }}
+                                                                        className="text-[10px] bg-orange-100 text-orange-600 px-2 py-1 rounded font-bold hover:bg-orange-200 transition"
+                                                                    >
+                                                                        + Agregar Nivel
+                                                                    </button>
+                                                                </div>
+                                                                <div className="space-y-2">
+                                                                    {(config.referrals.challenge?.tiers || []).sort((a, b) => a.count - b.count).map((tier, idx) => (
+                                                                        <div key={idx} className="flex items-center gap-2 bg-white/50 p-2 rounded-lg border border-orange-100">
+                                                                            <span className="text-xs font-bold text-gray-400 w-4">{idx + 1}º</span>
+                                                                            <div className="flex flex-1 items-center gap-2">
+                                                                                <input
+                                                                                    type="number"
+                                                                                    placeholder="Cant"
+                                                                                    value={tier.count}
+                                                                                    onChange={e => {
+                                                                                        const tiers = [...(config.referrals!.challenge!.tiers || [])];
+                                                                                        tiers[idx].count = parseInt(e.target.value) || 0;
+                                                                                        setConfig({
                                                                                             ...config,
                                                                                             referrals: {
                                                                                                 ...config.referrals!,
-                                                                                                challenge: { ...config.referrals!.challenge!, startDate: e.target.value }
+                                                                                                challenge: { ...config.referrals!.challenge!, tiers }
                                                                                             }
-                                                                                        })}
-                                                                                        className="w-full p-2 border border-orange-100 rounded-lg text-xs font-bold text-gray-700 outline-none focus:ring-2 focus:ring-orange-50"
-                                                                                    />
-                                                                                </div>
-                                                                                <div>
-                                                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Fecha Final</label>
-                                                                                    <input
-                                                                                        type="date"
-                                                                                        value={config.referrals.challenge?.endDate}
-                                                                                        onChange={e => setConfig({
+                                                                                        });
+                                                                                    }}
+                                                                                    className="w-14 p-1.5 border border-gray-100 rounded text-xs font-black text-center text-gray-700"
+                                                                                />
+                                                                                <span className="text-[10px] font-bold text-gray-400">Amigos</span>
+                                                                                <div className="h-4 w-px bg-gray-100" />
+                                                                                <span className="text-[10px] font-bold text-orange-600">Bono +</span>
+                                                                                <input
+                                                                                    type="number"
+                                                                                    placeholder="Puntos"
+                                                                                    value={tier.bonus}
+                                                                                    onChange={e => {
+                                                                                        const tiers = [...(config.referrals!.challenge!.tiers || [])];
+                                                                                        tiers[idx].bonus = parseInt(e.target.value) || 0;
+                                                                                        setConfig({
                                                                                             ...config,
                                                                                             referrals: {
                                                                                                 ...config.referrals!,
-                                                                                                challenge: { ...config.referrals!.challenge!, endDate: e.target.value }
+                                                                                                challenge: { ...config.referrals!.challenge!, tiers }
                                                                                             }
-                                                                                        })}
-                                                                                        className="w-full p-2 border border-orange-100 rounded-lg text-xs font-bold text-gray-700 outline-none focus:ring-2 focus:ring-orange-50"
-                                                                                    />
-                                                                                </div>
+                                                                                        });
+                                                                                    }}
+                                                                                    className="w-16 p-1.5 border border-orange-200 rounded text-xs font-black text-center text-orange-700"
+                                                                                />
+                                                                                <span className="text-[10px] font-bold text-gray-400 italic">pts extra</span>
                                                                             </div>
-
-                                                                            <div>
-                                                                                <div className="flex justify-between items-center mb-2">
-                                                                                    <label className="block text-[10px] font-bold text-orange-700 uppercase">Metas Progresivas (Tiers)</label>
-                                                                                    <button
-                                                                                        type="button"
-                                                                                        onClick={() => {
-                                                                                            const tiers = [...(config.referrals!.challenge!.tiers || [])];
-                                                                                            tiers.push({ count: (tiers[tiers.length - 1]?.count || 0) + 1, bonus: 0 });
-                                                                                            setConfig({
-                                                                                                ...config,
-                                                                                                referrals: {
-                                                                                                    ...config.referrals!,
-                                                                                                    challenge: { ...config.referrals!.challenge!, tiers }
-                                                                                                }
-                                                                                            });
-                                                                                        }}
-                                                                                        className="text-[10px] bg-orange-100 text-orange-600 px-2 py-1 rounded font-bold hover:bg-orange-200 transition"
-                                                                                    >
-                                                                                        + Agregar Nivel
-                                                                                    </button>
-                                                                                </div>
-                                                                                <div className="space-y-2">
-                                                                                    {(config.referrals.challenge?.tiers || []).sort((a, b) => a.count - b.count).map((tier, idx) => (
-                                                                                        <div key={idx} className="flex items-center gap-2 bg-white/50 p-2 rounded-lg border border-orange-100">
-                                                                                            <span className="text-xs font-bold text-gray-400 w-4">{idx + 1}º</span>
-                                                                                            <div className="flex flex-1 items-center gap-2">
-                                                                                                <input
-                                                                                                    type="number"
-                                                                                                    placeholder="Cant"
-                                                                                                    value={tier.count}
-                                                                                                    onChange={e => {
-                                                                                                        const tiers = [...(config.referrals!.challenge!.tiers || [])];
-                                                                                                        tiers[idx].count = parseInt(e.target.value) || 0;
-                                                                                                        setConfig({
-                                                                                                            ...config,
-                                                                                                            referrals: {
-                                                                                                                ...config.referrals!,
-                                                                                                                challenge: { ...config.referrals!.challenge!, tiers }
-                                                                                                            }
-                                                                                                        });
-                                                                                                    }}
-                                                                                                    className="w-14 p-1.5 border border-gray-100 rounded text-xs font-black text-center text-gray-700"
-                                                                                                />
-                                                                                                <span className="text-[10px] font-bold text-gray-400">Amigos</span>
-                                                                                                <div className="h-4 w-px bg-gray-100" />
-                                                                                                <span className="text-[10px] font-bold text-orange-600">Bono +</span>
-                                                                                                <input
-                                                                                                    type="number"
-                                                                                                    placeholder="Puntos"
-                                                                                                    value={tier.bonus}
-                                                                                                    onChange={e => {
-                                                                                                        const tiers = [...(config.referrals!.challenge!.tiers || [])];
-                                                                                                        tiers[idx].bonus = parseInt(e.target.value) || 0;
-                                                                                                        setConfig({
-                                                                                                            ...config,
-                                                                                                            referrals: {
-                                                                                                                ...config.referrals!,
-                                                                                                                challenge: { ...config.referrals!.challenge!, tiers }
-                                                                                                            }
-                                                                                                        });
-                                                                                                    }}
-                                                                                                    className="w-16 p-1.5 border border-orange-200 rounded text-xs font-black text-center text-orange-700"
-                                                                                                />
-                                                                                                <span className="text-[10px] font-bold text-gray-400 italic">pts extra</span>
-                                                                                            </div>
-                                                                                            <button
-                                                                                                type="button"
-                                                                                                onClick={() => {
-                                                                                                    const tiers = [...(config.referrals!.challenge!.tiers || [])];
-                                                                                                    tiers.splice(idx, 1);
-                                                                                                    setConfig({
-                                                                                                        ...config,
-                                                                                                        referrals: {
-                                                                                                            ...config.referrals!,
-                                                                                                            challenge: { ...config.referrals!.challenge!, tiers }
-                                                                                                        }
-                                                                                                    });
-                                                                                                }}
-                                                                                                className="text-gray-300 hover:text-red-500 p-1"
-                                                                                            >
-                                                                                                <Trash2 size={12} />
-                                                                                            </button>
-                                                                                        </div>
-                                                                                    ))}
-                                                                                </div>
-                                                                            </div>
-
-                                                                            {/* NUEVO: Selección de Canales y Botón de Difusión */}
-                                                                            <section className="pt-4 border-t border-orange-100 flex items-center justify-between bg-blue-50/50 p-4 rounded-xl">
-                                                                                <div className="flex items-center gap-3">
-                                                                                    <div className="p-2 bg-blue-100 text-blue-600 rounded-xl">
-                                                                                        <Shield size={20} />
-                                                                                    </div>
-                                                                                    <div>
-                                                                                        <label className="text-[10px] font-black text-blue-900 uppercase block">Desafío Interno (Modo Test)</label>
-                                                                                        <p className="text-[8px] text-blue-600 font-bold uppercase mt-0.5 italic">Sólo visible para "Usuarios de Prueba"</p>
-                                                                                    </div>
-                                                                                </div>
-                                                                                <label className="relative inline-flex items-center cursor-pointer">
-                                                                                    <input
-                                                                                        type="checkbox"
-                                                                                        className="sr-only peer"
-                                                                                        checked={config.referrals?.challenge?.isInternal || false}
-                                                                                        onChange={e => setConfig({
-                                                                                            ...config,
-                                                                                            referrals: {
-                                                                                                ...config.referrals!,
-                                                                                                challenge: { ...config.referrals!.challenge!, isInternal: e.target.checked }
-                                                                                            }
-                                                                                        })}
-                                                                                    />
-                                                                                    <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
-                                                                                </label>
-                                                                            </section>
-
-
-                                                                            {/* Referral Challenge Channels & Broadcast has been moved to Mensajes Automáticos */}
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    const tiers = [...(config.referrals!.challenge!.tiers || [])];
+                                                                                    tiers.splice(idx, 1);
+                                                                                    setConfig({
+                                                                                        ...config,
+                                                                                        referrals: {
+                                                                                            ...config.referrals!,
+                                                                                            challenge: { ...config.referrals!.challenge!, tiers }
+                                                                                        }
+                                                                                    });
+                                                                                }}
+                                                                                className="text-gray-300 hover:text-red-500 p-1"
+                                                                            >
+                                                                                <Trash2 size={12} />
+                                                                            </button>
                                                                         </div>
-                                                                    )}
+                                                                    ))}
                                                                 </div>
                                                             </div>
-                                                        )}
+
+                                                            {/* NUEVO: Selección de Canales y Botón de Difusión */}
+                                                            <section className="pt-4 border-t border-orange-100 flex items-center justify-between bg-blue-50/50 p-4 rounded-xl">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="p-2 bg-blue-100 text-blue-600 rounded-xl">
+                                                                        <Shield size={20} />
+                                                                    </div>
+                                                                    <div>
+                                                                        <label className="text-[10px] font-black text-blue-900 uppercase block">Desafío Interno (Modo Test)</label>
+                                                                        <p className="text-[8px] text-blue-600 font-bold uppercase mt-0.5 italic">Sólo visible para "Usuarios de Prueba"</p>
+                                                                    </div>
+                                                                </div>
+                                                                <label className="relative inline-flex items-center cursor-pointer">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        className="sr-only peer"
+                                                                        checked={config.referrals?.challenge?.isInternal || false}
+                                                                        onChange={e => setConfig({
+                                                                            ...config,
+                                                                            referrals: {
+                                                                                ...config.referrals!,
+                                                                                challenge: { ...config.referrals!.challenge!, isInternal: e.target.checked }
+                                                                            }
+                                                                        })}
+                                                                    />
+                                                                    <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                                                                </label>
+                                                            </section>
+
+
+                                                            {/* Referral Challenge Channels & Broadcast has been moved to Mensajes Automáticos */}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'legales' && (
+                    <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 animate-in fade-in slide-in-from-bottom-4">
+                        <div className="max-w-4xl">
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="bg-blue-50 p-3 rounded-2xl text-blue-600">
+                                    <FileText size={24} />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-black text-gray-800 tracking-tight">Términos y Condiciones</h3>
+                                    <p className="text-gray-500 text-sm">Este texto aparecerá en el perfil de usuario de la PWA. Puedes usar formato simple.</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-6">
+                                <div className="flex flex-col gap-2">
+                                    <div className="flex justify-between items-end">
+                                        <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Contenido de los Términos</label>
+                                        <div className="text-[10px] text-gray-400 bg-gray-50 px-2 py-1 rounded">Soporta Markdown Básico</div>
+                                    </div>
+                                    <textarea
+                                        rows={20}
+                                        className="w-full p-4 rounded-2xl border-2 border-gray-100 focus:border-blue-500 focus:ring-4 focus:ring-blue-50 outline-none transition text-sm font-medium leading-relaxed bg-gray-50/30"
+                                        placeholder="Escribe aquí los términos..."
+                                        value={config.contact?.termsContent || ''}
+                                        onChange={e => setConfig({
+                                            ...config,
+                                            contact: { ...config.contact!, termsContent: e.target.value }
+                                        })}
+                                    />
+                                </div>
+
+                                <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100 flex gap-3">
+                                    <div className="text-xl">💡</div>
+                                    <div className="text-xs text-blue-700 leading-relaxed pt-1">
+                                        <strong>Tip:</strong> Puedes usar variables como <code className="bg-white px-1 rounded">{"{siteName}"}</code> que se reemplazarán automáticamente por <strong>{config.siteName}</strong> en la PWA.
+                                    </div>
+                                </div>
+
+                                <div className="pt-4 border-t border-gray-100">
+                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Link Externo (Opcional)</label>
+                                    <input
+                                        type="text"
+                                        placeholder="https://..."
+                                        value={config.contact?.termsAndConditions || ''}
+                                        onChange={e => setConfig({
+                                            ...config,
+                                            contact: { ...config.contact!, termsAndConditions: e.target.value }
+                                        })}
+                                        className="w-full rounded-xl border-gray-200 border p-3 text-sm focus:ring-2 focus:ring-blue-100 outline-none bg-gray-50/50"
+                                    />
+                                    <p className="text-[10px] text-gray-400 mt-2 px-1">
+                                        <strong>⚠️ Prioridad:</strong> Si este link está presente, el botón de Términos redirigirá aquí. Si queda vacío, se mostrará el contenido de arriba en un cuadro interno.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'branding' && (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fade-in">
+                        {/* ... (Existing Branding Content) ... */}
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            {/* ... (Existing Form) ... */}
+                            <h2 className="text-lg font-semibold mb-6 text-gray-800">Personalización de Marca</h2>
+                            <div className="space-y-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Nombre del Club</label>
+                                    <input
+                                        type="text"
+                                        value={config.siteName}
+                                        onChange={e => setConfig({ ...config, siteName: e.target.value })}
+                                        className="w-full rounded-lg border-gray-200 border p-3 focus:ring-2 focus:ring-blue-100 outline-none transition"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Color Primario</label>
+                                        <div className="flex items-center gap-3">
+                                            <input
+                                                type="color"
+                                                value={config.primaryColor}
+                                                onChange={e => setConfig({ ...config, primaryColor: e.target.value })}
+                                                className="h-12 w-full rounded-lg cursor-pointer border-0 bg-transparent p-0"
+                                            />
+                                            <span className="text-xs font-mono text-gray-500">{config.primaryColor}</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Color Secundario</label>
+                                        <div className="flex items-center gap-3">
+                                            <input
+                                                type="color"
+                                                value={config.secondaryColor}
+                                                onChange={e => setConfig({ ...config, secondaryColor: e.target.value })}
+                                                className="h-12 w-full rounded-lg cursor-pointer border-0 bg-transparent p-0"
+                                            />
+                                            <span className="text-xs font-mono text-gray-500">{config.secondaryColor}</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Color de Fondo</label>
+                                        <div className="flex items-center gap-3">
+                                            <input
+                                                type="color"
+                                                value={config.backgroundColor || '#f9fafb'}
+                                                onChange={e => setConfig({ ...config, backgroundColor: e.target.value })}
+                                                className="h-12 w-full rounded-lg cursor-pointer border-0 bg-transparent p-0"
+                                            />
+                                            <span className="text-xs font-mono text-gray-500">{config.backgroundColor || '#f9fafb'}</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Color de Títulos</label>
+                                        <div className="flex items-center gap-3">
+                                            <input
+                                                type="color"
+                                                value={config.sectionTitleColor || '#9ca3af'}
+                                                onChange={e => setConfig({ ...config, sectionTitleColor: e.target.value })}
+                                                className="h-12 w-full rounded-lg cursor-pointer border-0 bg-transparent p-0"
+                                            />
+                                            <span className="text-xs font-mono text-gray-500">{config.sectionTitleColor || '#9ca3af'}</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Color de Enlaces</label>
+                                        <div className="flex items-center gap-3">
+                                            <input
+                                                type="color"
+                                                value={config.linkColor || '#4a148c'}
+                                                onChange={e => setConfig({ ...config, linkColor: e.target.value })}
+                                                className="h-12 w-full rounded-lg cursor-pointer border-0 bg-transparent p-0"
+                                            />
+                                            <span className="text-xs font-mono text-gray-500">{config.linkColor || '#4a148c'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Logo URL</label>
+                                    <input
+                                        type="text"
+                                        placeholder="https://..."
+                                        value={config.logoUrl}
+                                        onChange={e => setConfig({ ...config, logoUrl: e.target.value })}
+                                        className="w-full rounded-lg border-gray-200 border p-3 focus:ring-2 focus:ring-blue-100 outline-none transition"
+                                    />
+                                    <p className="text-xs text-gray-400 mt-2">Recomendado: PNG transparente de 200x200px</p>
+                                </div>
+
+
+                                {/* SECTION: Contact & Social */}
+                                <div className="pt-6 border-t border-gray-100 space-y-4">
+                                    <h4 className="font-bold text-gray-800 flex items-center gap-2">
+                                        📱 Contacto y Redes
+                                    </h4>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="col-span-full">
+                                            <label className="block text-xs font-semibold text-gray-600 mb-1">Dirección del Local</label>
+                                            <input
+                                                type="text"
+                                                placeholder="Av. Principal 123..."
+                                                value={config.contact?.address || ''}
+                                                onChange={e => setConfig({
+                                                    ...config,
+                                                    contact: { ...config.contact!, address: e.target.value }
+                                                })}
+                                                className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
+                                            />
+                                        </div>
+                                        <div className="col-span-full">
+                                            <label className="block text-xs font-semibold text-gray-600 mb-1">Horarios de Atención</label>
+                                            <input
+                                                type="text"
+                                                placeholder="Lun a Vie 9 a 18 hs..."
+                                                value={config.contact?.openingHours || ''}
+                                                onChange={e => setConfig({
+                                                    ...config,
+                                                    contact: { ...config.contact!, openingHours: e.target.value }
+                                                })}
+                                                className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-gray-600 mb-1">WhatsApp (Soporte)</label>
+                                            <input
+                                                type="text"
+                                                placeholder="549..."
+                                                value={config.contact?.whatsapp || ''}
+                                                onChange={e => setConfig({
+                                                    ...config,
+                                                    contact: { ...config.contact!, whatsapp: e.target.value }
+                                                })}
+                                                className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-green-100 outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-gray-600 mb-1">Email Público</label>
+                                            <input
+                                                type="email"
+                                                placeholder="contacto@..."
+                                                value={config.contact?.email || ''}
+                                                onChange={e => setConfig({
+                                                    ...config,
+                                                    contact: { ...config.contact!, email: e.target.value }
+                                                })}
+                                                className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-gray-600 mb-1">Instagram</label>
+                                            <input
+                                                type="text"
+                                                placeholder="@usuario"
+                                                value={config.contact?.instagram || ''}
+                                                onChange={e => setConfig({
+                                                    ...config,
+                                                    contact: { ...config.contact!, instagram: e.target.value }
+                                                })}
+                                                className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-pink-100 outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-gray-600 mb-1">Facebook</label>
+                                            <input
+                                                type="text"
+                                                placeholder="/pagina"
+                                                value={config.contact?.facebook || ''}
+                                                onChange={e => setConfig({
+                                                    ...config,
+                                                    contact: { ...config.contact!, facebook: e.target.value }
+                                                })}
+                                                className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
+                                            />
+                                        </div>
+                                        <div className="col-span-full">
+                                            <label className="block text-xs font-semibold text-gray-600 mb-1">Sitio Web</label>
+                                            <input
+                                                type="text"
+                                                placeholder="https://..."
+                                                value={config.contact?.website || ''}
+                                                onChange={e => setConfig({
+                                                    ...config,
+                                                    contact: { ...config.contact!, website: e.target.value }
+                                                })}
+                                                className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-gray-100 outline-none"
+                                            />
+                                        </div>
+                                        <div className="col-span-full">
+                                            <label className="block text-xs font-semibold text-gray-600 mb-1">URL de la App (para Botón de Email)</label>
+                                            <input
+                                                type="url"
+                                                placeholder="https://fidelidad-next.vercel.app/login"
+                                                value={config.contact?.pwaUrl || ''}
+                                                onChange={e => setConfig({
+                                                    ...config,
+                                                    contact: { ...config.contact!, pwaUrl: e.target.value }
+                                                })}
+                                                className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-gray-100 outline-none"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Vista Previa Móvil */}
+                        <div className="flex flex-col items-center justify-start pt-8">
+                            <div
+                                className="border-[8px] border-gray-900 rounded-[3rem] overflow-hidden w-80 shadow-2xl relative h-[600px] transition-colors duration-500"
+                                style={{ backgroundColor: config.backgroundColor || '#f9fafb' }}
+                            >
+                                {/* Notch */}
+                                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-gray-900 rounded-b-xl z-20"></div>
+
+                                {/* Header Mock */}
+                                <div className="p-6 pt-12 text-white flex justify-between items-center transition-colors duration-500" style={{ backgroundColor: config.primaryColor }}>
+                                    <div className="flex items-center gap-2">
+                                        {config.logoUrl ? (
+                                            <img src={config.logoUrl} alt="Logo" className="w-8 h-8 rounded-full object-contain bg-white" />
+                                        ) : (
+                                            <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-[10px]">Logo</div>
+                                        )}
+                                        <span className="font-bold">{config.siteName}</span>
+                                    </div>
+                                </div>
+
+                                {/* Hero Mock */}
+                                <div
+                                    className="p-6 m-4 rounded-2xl text-white shadow-lg text-center transition-all duration-500"
+                                    style={{
+                                        backgroundColor: config.secondaryColor,
+                                        marginTop: '16px'
+                                    }}
+                                >
+                                    <p className="text-sm opacity-80 mb-1">Tu Saldo</p>
+                                    <p className="text-4xl font-black tracking-tight">1.250</p>
+                                    <span className="text-xs uppercase tracking-widest opacity-70">Puntos Disponibles</span>
+                                </div>
+
+                                {/* Saldo Mock */}
+                                <div className="mx-4 mb-4 p-4 rounded-2xl bg-white shadow-lg border border-gray-50 flex items-center justify-between animate-fade-in">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center text-sm shadow-inner">💵</div>
+                                        <div>
+                                            <h3 className="text-gray-900 font-black text-base">$ 1.250</h3>
+                                            <p className="text-[8px] text-gray-500 font-bold uppercase tracking-tighter leading-none">Saldo a favor</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="inline-block px-1.5 py-0.5 rounded bg-red-50 text-red-600 font-bold text-[8px]">
+                                            Faltan $ {Math.round((config.pointsMoneyBase || 100) * 0.7)}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Bottom Nav Mock */}
+                                <div className="absolute bottom-0 left-0 w-full bg-white border-t border-gray-100 flex justify-center items-center gap-6 py-3 pb-8 z-10 rounded-b-[2.8rem] shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+                                    <div className="flex flex-col items-center gap-0.5" style={{ color: config.primaryColor }}>
+                                        <div className="w-6 h-6 flex items-center justify-center"><Home size={18} strokeWidth={2.5} /></div>
+                                        <span className="text-[8px] font-black uppercase tracking-tighter bg-clip-text text-transparent" style={{ backgroundImage: `linear-gradient(to right, ${config.primaryColor}, ${config.secondaryColor})` }}>Inicio</span>
+                                    </div>
+                                    <div className="flex flex-col items-center gap-0.5 opacity-50 grayscale">
+                                        <div className="w-6 h-6 flex items-center justify-center text-gray-400"><Gift size={18} /></div>
+                                        <span className="text-[8px] font-bold uppercase tracking-tighter text-gray-600">Premios</span>
+                                    </div>
+                                    <div className="flex flex-col items-center gap-0.5 opacity-50 grayscale">
+                                        <div className="w-6 h-6 flex items-center justify-center text-gray-400"><MessageCircle size={18} /></div>
+                                        <span className="text-[8px] font-bold uppercase tracking-tighter text-gray-600">Contacto</span>
+                                    </div>
+                                </div>
+
+                                <div className="px-6 text-center">
+                                    <p className="text-xs text-gray-400">Vista previa en tiempo real de la App del Cliente</p>
+                                    <button
+                                        type="button"
+                                        onClick={() => setConfig({
+                                            ...config,
+                                            primaryColor: '#4a148c',
+                                            secondaryColor: '#880e4f',
+                                            backgroundColor: '#f5f3f7',
+                                            sectionTitleColor: '#9ca3af',
+                                            linkColor: '#4a148c'
+                                        })}
+                                        className="mt-4 text-xs font-bold text-gray-400 hover:text-gray-600 underline"
+                                    >
+                                        Restaurar Predeterminado (Original)
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                )
+                }
+
+                {
+                    activeTab === 'messaging' && (
+                        <div className="max-w-3xl mx-auto space-y-8 animate-fade-in">
+
+                            {/* 1. MASTER SWITCHES (Global Control) */}
+                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                                <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                    <Settings size={20} /> Control Maestro de Canales
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    {/* WhatsApp Switch */}
+                                    <div className={`p-4 rounded-xl border flex flex-col items-center gap-3 transition-colors ${config.messaging?.whatsappEnabled ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                                        <div className="flex items-center gap-2 font-bold text-gray-700">
+                                            <span className="text-green-500 text-xl">💬</span> WhatsApp
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setConfig({
+                                                ...config,
+                                                messaging: { ...config.messaging!, whatsappEnabled: !config.messaging?.whatsappEnabled }
+                                            })}
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.messaging?.whatsappEnabled ? 'bg-green-500' : 'bg-gray-300'}`}
+                                        >
+                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${config.messaging?.whatsappEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                                        </button>
+                                    </div>
+
+                                    {/* Email Switch */}
+                                    <div className={`p-4 rounded-xl border flex flex-col items-center gap-3 transition-colors ${config.messaging?.emailEnabled ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'}`}>
+                                        <div className="flex items-center gap-2 font-bold text-gray-700">
+                                            <span className="text-blue-500 text-xl">📧</span> Email
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setConfig({
+                                                ...config,
+                                                messaging: { ...config.messaging!, emailEnabled: !config.messaging?.emailEnabled }
+                                            })}
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.messaging?.emailEnabled ? 'bg-blue-500' : 'bg-gray-300'}`}
+                                        >
+                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${config.messaging?.emailEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                                        </button>
+                                    </div>
+
+                                    {/* Push Switch */}
+                                    <div className={`p-4 rounded-xl border flex flex-col items-center gap-3 transition-colors ${config.messaging?.pushEnabled ? 'bg-purple-50 border-purple-200' : 'bg-gray-50 border-gray-200'}`}>
+                                        <div className="flex items-center gap-2 font-bold text-gray-700">
+                                            <span className="text-purple-500 text-xl">🔔</span> Push
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setConfig({
+                                                ...config,
+                                                messaging: { ...config.messaging!, pushEnabled: !config.messaging?.pushEnabled }
+                                            })}
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.messaging?.pushEnabled ? 'bg-purple-500' : 'bg-gray-300'}`}
+                                        >
+                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${config.messaging?.pushEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                                        </button>
+                                    </div>
+                                </div>
+                                <p className="text-xs text-center text-gray-400 mt-4">
+                                    Estos interruptores son globales. Si apagas uno aquí, ningún mensaje saldrá por ese canal, sin importar las reglas de abajo.
+                                </p>
+                            </div>
+
+                            {/* 2. PWA PERMISSIONS & CONTEXTUAL REINFORCEMENT */}
+                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                                <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
+                                    <Bell size={20} className="text-purple-600" /> Permisos y Refuerzo Contextual (PWA)
+                                </h3>
+
+                                <div className="space-y-6">
+                                    {/* Notifications Logic */}
+                                    <div className="flex items-start gap-4 p-4 bg-purple-50/50 rounded-xl border border-purple-100">
+                                        <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 shrink-0">
+                                            <Bell size={20} />
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="flex items-center justify-between">
+                                                <span className="font-bold text-gray-800">Notificaciones Push</span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setConfig({
+                                                        ...config,
+                                                        messaging: {
+                                                            ...config.messaging!,
+                                                            enablePermissionPromptRepetition: !config.messaging?.enablePermissionPromptRepetition
+                                                        }
+                                                    })}
+                                                    className={`relative w-10 h-6 transition-colors rounded-full ${config.messaging?.enablePermissionPromptRepetition ? 'bg-purple-600' : 'bg-gray-200'}`}
+                                                >
+                                                    <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${config.messaging?.enablePermissionPromptRepetition ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                </button>
+                                            </div>
+                                            <p className="text-xs text-gray-500 mt-1">Si el cliente denegó o cerró el aviso, volver a preguntar cada X días (estándar Apple/Chrome).</p>
+
+                                            {/* Refuerzo Contextual Notif */}
+                                            <div className="mt-4 pt-4 border-t border-purple-100/50">
+                                                <label className="flex items-center gap-3 cursor-pointer group">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={config.messaging?.enableContextualNotifPrompt}
+                                                        onChange={e => setConfig({
+                                                            ...config,
+                                                            messaging: { ...config.messaging!, enableContextualNotifPrompt: e.target.checked }
+                                                        })}
+                                                        className="w-4 h-4 rounded border-gray-300 text-purple-600"
+                                                    />
+                                                    <span className="text-xs font-bold text-gray-700 group-hover:text-purple-700">Banner de Refuerzo Contextual</span>
+                                                </label>
+                                                <p className="text-[10px] text-gray-400 mt-1 ml-7">Muestra un cartel pequeño avisando por qué conviene activar notificaciones justo después de que el cliente suma puntos.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Geolocation Logic */}
+                                    <div className="flex items-start gap-4 p-4 bg-blue-50/50 rounded-xl border border-blue-100">
+                                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+                                            <MapPin size={20} />
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="flex items-center justify-between">
+                                                <span className="font-bold text-gray-800">Ubicación (Geolocalización)</span>
+                                                <span className="text-[10px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full font-bold uppercase">Recomendado</span>
+                                            </div>
+                                            <p className="text-xs text-gray-500 mt-1">Activar el refuerzo contextual para que el cliente entienda que la ubicación sirve para ver sucursales cercanas.</p>
+
+                                            {/* Refuerzo Contextual Geo */}
+                                            <div className="mt-4 pt-4 border-t border-blue-100/50">
+                                                <label className="flex items-center gap-3 cursor-pointer group">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={config.messaging?.enableContextualGeoPrompt}
+                                                        onChange={e => setConfig({
+                                                            ...config,
+                                                            messaging: { ...config.messaging!, enableContextualGeoPrompt: e.target.checked }
+                                                        })}
+                                                        className="w-4 h-4 rounded border-gray-300 text-blue-600"
+                                                    />
+                                                    <span className="text-xs font-bold text-gray-700 group-hover:text-blue-700">Solicitar al entrar en "Canjes"</span>
+                                                </label>
+                                                <p className="text-[10px] text-gray-400 mt-1 ml-7">El banner aparece discretamente cuando el usuario navega el catálogo de premios.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Control de Standby */}
+                                    <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-400">
+                                                <Zap size={16} />
+                                            </div>
+                                            <div>
+                                                <span className="text-sm font-bold text-gray-700 block">Límite de Persianas</span>
+                                                <span className="text-[10px] text-gray-400 uppercase tracking-tighter">Máximos "Ahora No" antes de standby</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="number" min="1" max="10"
+                                                value={config.messaging?.maxContextualDismissals ?? 2}
+                                                onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, maxContextualDismissals: parseInt(e.target.value) || 2 } })}
+                                                className="w-16 px-3 py-1 text-center font-bold bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-purple-500"
+                                            />
+                                            <span className="text-xs font-bold text-gray-400 uppercase">Veces</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 3. SPECIFIC SETTINGS (WhatsApp Number) */}
+                            <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+                                <h3 className="text-xl font-bold text-gray-800 mb-6">⚙️ Configuración de WhatsApp</h3>
+                                <div className="space-y-6">
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Tu Número (Business)</label>
+                                        <input
+                                            type="tel"
+                                            placeholder="54911..."
+                                            value={config.messaging?.whatsappPhoneNumber || ''}
+                                            onChange={e => setConfig({
+                                                ...config,
+                                                messaging: { ...config.messaging!, whatsappPhoneNumber: e.target.value }
+                                            })}
+                                            className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none"
+                                        />
+                                        <p className="text-[10px] text-gray-400 mt-1">Formato: 54911xxxxxxxx (Sin 0 ni 15)</p>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Mensaje Manual por Defecto</label>
+                                        <p className="text-xs text-gray-500 mb-2">
+                                            Este es el texto que aparecerá precargado cuando hagas clic en el botón de WhatsApp manualmente desde la lista de clientes.
+                                        </p>
+                                        <div className="flex gap-2">
+                                            <textarea
+                                                rows={2}
+                                                value={config.messaging?.whatsappDefaultMessage || ''}
+                                                onChange={e => setConfig({
+                                                    ...config,
+                                                    messaging: { ...config.messaging!, whatsappDefaultMessage: e.target.value }
+                                                })}
+                                                placeholder={DEFAULT_TEMPLATES.whatsappDefaultMessage}
+                                                className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none resize-none"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 3. AUTOMATIC EVENTS */}
+                            <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 space-y-8 animate-fade-in-up">
+                                <h3 className="text-xl font-bold text-gray-800 border-b pb-4">🤖 Mensajes Automáticos (Reglas)</h3>
+
+                                {/* Points Added */}
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Al Sumar Puntos (Compra)</label>
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">🎉</span>
+                                            <textarea
+                                                rows={2}
+                                                value={config.messaging?.templates?.pointsAdded || ''}
+                                                onChange={e => setConfig({
+                                                    ...config,
+                                                    messaging: {
+                                                        ...config.messaging!,
+                                                        templates: { ...config.messaging?.templates, pointsAdded: e.target.value }
+                                                    }
+                                                })}
+                                                placeholder={DEFAULT_TEMPLATES.pointsAdded}
+                                                className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none resize-none"
+                                            />
+                                        </div>
+                                        <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, pointsAdded: DEFAULT_TEMPLATES.pointsAdded } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition" title="Restaurar predeterminado">↺</button>
+                                        <button
+                                            type="button"
+                                            onClick={() => openPreview('pointsAdded')}
+                                            className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
+                                            title="Previsualizar Email"
+                                        >
+                                            <Eye size={18} />
+                                        </button>
+                                    </div>
+                                    <VariableChips vars={['siteName', 'nombre', 'nombre_completo', 'puntos', 'saldo']} onSelect={v => insertVar('pointsAdded', v)} />
+                                    <ChannelSelector
+                                        channels={config.messaging?.eventConfigs?.pointsAdded?.channels || []}
+                                        onChange={(newChannels) => setConfig({
+                                            ...config,
+                                            messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, pointsAdded: { channels: newChannels } } }
+                                        })}
+                                    />
+                                </div>
+
+                                {/* Redemption */}
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Al Canjear Premio</label>
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">🎁</span>
+                                            <textarea
+                                                rows={2}
+                                                value={config.messaging?.templates?.redemption || ''}
+                                                onChange={e => setConfig({
+                                                    ...config,
+                                                    messaging: {
+                                                        ...config.messaging!,
+                                                        templates: { ...config.messaging?.templates, redemption: e.target.value }
+                                                    }
+                                                })}
+                                                placeholder={DEFAULT_TEMPLATES.redemption}
+                                                className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none resize-none"
+                                            />
+                                        </div>
+                                        <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, redemption: DEFAULT_TEMPLATES.redemption } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition" title="Restaurar predeterminado">↺</button>
+                                        <button
+                                            type="button"
+                                            onClick={() => openPreview('redemption')}
+                                            className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
+                                            title="Previsualizar Email"
+                                        >
+                                            <Eye size={18} />
+                                        </button>
+                                    </div>
+                                    <VariableChips vars={['siteName', 'nombre', 'nombre_completo', 'premio', 'codigo']} onSelect={v => insertVar('redemption', v)} />
+                                    <ChannelSelector
+                                        channels={config.messaging?.eventConfigs?.redemption?.channels || []}
+                                        onChange={(newChannels) => setConfig({
+                                            ...config,
+                                            messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, redemption: { channels: newChannels } } }
+                                        })}
+                                    />
+                                </div>
+
+                                {/* Welcome */}
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Bienvenida (Nuevo Cliente)</label>
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">👋</span>
+                                            <textarea
+                                                rows={2}
+                                                value={config.messaging?.templates?.welcome || ''}
+                                                onChange={e => setConfig({
+                                                    ...config,
+                                                    messaging: {
+                                                        ...config.messaging!,
+                                                        templates: { ...config.messaging?.templates, welcome: e.target.value }
+                                                    }
+                                                })}
+                                                placeholder={DEFAULT_TEMPLATES.welcome}
+                                                className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none resize-none"
+                                            />
+                                        </div>
+                                        <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, welcome: DEFAULT_TEMPLATES.welcome } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition" title="Restaurar predeterminado">↺</button>
+                                        <button
+                                            type="button"
+                                            onClick={() => openPreview('welcome')}
+                                            className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
+                                            title="Previsualizar Email"
+                                        >
+                                            <Eye size={18} />
+                                        </button>
+                                    </div>
+                                    <VariableChips vars={['siteName', 'nombre', 'nombre_completo', 'puntos', 'socio', 'dni']} onSelect={v => insertVar('welcome', v)} />
+                                    <ChannelSelector
+                                        channels={config.messaging?.eventConfigs?.welcome?.channels || []}
+                                        onChange={(newChannels) => setConfig({
+                                            ...config,
+                                            messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, welcome: { channels: newChannels } } }
+                                        })}
+                                    />
+                                </div>
+
+                                {/* Campaign Template */}
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Promo Manual (Campaña)</label>
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">🚀</span>
+                                            <textarea
+                                                rows={2}
+                                                value={config.messaging?.templates?.campaign || ''}
+                                                onChange={e => setConfig({
+                                                    ...config,
+                                                    messaging: {
+                                                        ...config.messaging!,
+                                                        templates: { ...config.messaging?.templates, campaign: e.target.value }
+                                                    }
+                                                })}
+                                                placeholder={DEFAULT_TEMPLATES.campaign}
+                                                className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none resize-none"
+                                            />
+                                        </div>
+                                        <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, campaign: DEFAULT_TEMPLATES.campaign } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition" title="Restaurar predeterminado">↺</button>
+                                        <button
+                                            type="button"
+                                            onClick={() => openPreview('campaign')}
+                                            className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
+                                            title="Previsualizar Email"
+                                        >
+                                            <Eye size={18} />
+                                        </button>
+                                    </div>
+                                    <VariableChips vars={['siteName', 'titulo', 'descripcion']} onSelect={v => insertVar('campaign', v)} />
+                                    <ChannelSelector
+                                        channels={config.messaging?.eventConfigs?.campaign?.channels || []}
+                                        onChange={(newChannels) => setConfig({
+                                            ...config,
+                                            messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, campaign: { channels: newChannels } } }
+                                        })}
+                                    />
+                                </div>
+
+                                {/* Offer Template */}
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Oferta Especial</label>
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">🔥</span>
+                                            <textarea
+                                                rows={2}
+                                                value={config.messaging?.templates?.offer || ''}
+                                                onChange={e => setConfig({
+                                                    ...config,
+                                                    messaging: {
+                                                        ...config.messaging!,
+                                                        templates: { ...config.messaging?.templates, offer: e.target.value }
+                                                    }
+                                                })}
+                                                placeholder={DEFAULT_TEMPLATES.offer}
+                                                className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none resize-none"
+                                            />
+                                        </div>
+                                        <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, offer: DEFAULT_TEMPLATES.offer } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition" title="Restaurar predeterminado">↺</button>
+                                        <button
+                                            type="button"
+                                            onClick={() => openPreview('offer')}
+                                            className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
+                                            title="Previsualizar Email"
+                                        >
+                                            <Eye size={18} />
+                                        </button>
+                                    </div>
+                                    <VariableChips vars={['siteName', 'titulo', 'detalle', 'vencimiento']} onSelect={v => insertVar('offer', v)} />
+                                    <ChannelSelector
+                                        channels={config.messaging?.eventConfigs?.offer?.channels || []}
+                                        onChange={(newChannels) => setConfig({
+                                            ...config,
+                                            messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, offer: { channels: newChannels } } }
+                                        })}
+                                    />
+                                </div>
+
+                                {/* Flash Offer Template */}
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2 font-mono flex items-center gap-2">
+                                        ⚡ Oferta Flash <span className="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full uppercase">Crítico / Urgente</span>
+                                    </label>
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">⚡</span>
+                                            <textarea
+                                                rows={2}
+                                                value={config.messaging?.templates?.flashOffer || ''}
+                                                onChange={e => setConfig({
+                                                    ...config,
+                                                    messaging: {
+                                                        ...config.messaging!,
+                                                        templates: { ...config.messaging?.templates, flashOffer: e.target.value }
+                                                    }
+                                                })}
+                                                placeholder={DEFAULT_TEMPLATES.flashOffer}
+                                                className="w-full pl-10 pr-3 py-3 rounded-lg border border-yellow-200 focus:ring-2 focus:ring-yellow-100 outline-none resize-none"
+                                            />
+                                        </div>
+                                        <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, flashOffer: DEFAULT_TEMPLATES.flashOffer } } })} className="px-3 py-2 text-gray-400 hover:text-yellow-600 rounded-lg hover:bg-yellow-50 transition" title="Restaurar predeterminado">↺</button>
+                                        <button
+                                            type="button"
+                                            onClick={() => openPreview('flashOffer')}
+                                            className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
+                                            title="Previsualizar Email"
+                                        >
+                                            <Eye size={18} />
+                                        </button>
+                                    </div>
+                                    <VariableChips vars={['siteName', 'titulo', 'detalle', 'horario']} onSelect={v => insertVar('flashOffer', v)} />
+                                    <p className="text-[10px] text-gray-400 mt-1 italic">
+                                        * Se usa automáticamente para campañas marcadas como "Flash".
+                                    </p>
+                                </div>
+
+                                {/* Birthday Template */}
+                                <div className="space-y-6">
+                                    <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                        <h4 className="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
+                                            🎂 Cumpleaños
+                                        </h4>
+
+                                        <div className="space-y-4">
+                                            {/* Full Gift Greeting */}
+                                            <div>
+                                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Mensaje CON Regalo (Puntos)</label>
+                                                <div className="flex gap-2">
+                                                    <div className="relative flex-1">
+                                                        <span className="absolute top-3 left-3 text-xl">🎁</span>
+                                                        <textarea
+                                                            rows={2}
+                                                            value={config.messaging?.templates?.birthday || ''}
+                                                            onChange={e => setConfig({
+                                                                ...config,
+                                                                messaging: {
+                                                                    ...config.messaging!,
+                                                                    templates: { ...config.messaging?.templates, birthday: e.target.value }
+                                                                }
+                                                            })}
+                                                            placeholder={DEFAULT_TEMPLATES.birthday}
+                                                            className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-pink-100 outline-none resize-none text-sm"
+                                                        />
+                                                    </div>
+                                                    <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, birthday: DEFAULT_TEMPLATES.birthday } } })} className="px-3 py-2 text-gray-300 hover:text-pink-600 transition" title="Restaurar predeterminado">↺</button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openPreview('birthday')}
+                                                        className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
+                                                        title="Previsualizar Email"
+                                                    >
+                                                        <Eye size={18} />
+                                                    </button>
+                                                </div>
+                                                <VariableChips vars={['siteName', 'nombre', 'nombre_completo', 'puntos']} onSelect={v => insertVar('birthday', v)} />
+                                            </div>
+
+                                            {/* Simple Greeting */}
+                                            <div className="pt-4 border-t border-gray-100">
+                                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Mensaje SIN Regalo (Solo Saludo)</label>
+                                                <div className="flex gap-2">
+                                                    <div className="relative flex-1">
+                                                        <span className="absolute top-3 left-3 text-xl">👋</span>
+                                                        <textarea
+                                                            rows={2}
+                                                            value={config.messaging?.templates?.birthdaySimple || ''}
+                                                            onChange={e => setConfig({
+                                                                ...config,
+                                                                messaging: {
+                                                                    ...config.messaging!,
+                                                                    templates: { ...config.messaging?.templates, birthdaySimple: e.target.value }
+                                                                }
+                                                            })}
+                                                            placeholder={DEFAULT_TEMPLATES.birthdaySimple}
+                                                            className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none resize-none text-sm"
+                                                        />
+                                                    </div>
+                                                    <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, birthdaySimple: DEFAULT_TEMPLATES.birthdaySimple } } })} className="px-3 py-2 text-gray-300 hover:text-blue-600 transition" title="Restaurar predeterminado">↺</button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openPreview('birthdaySimple')}
+                                                        className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
+                                                        title="Previsualizar Email"
+                                                    >
+                                                        <Eye size={18} />
+                                                    </button>
+                                                </div>
+                                                <VariableChips vars={['siteName', 'nombre', 'nombre_completo']} onSelect={v => insertVar('birthdaySimple', v)} />
+                                            </div>
+                                        </div>
+
+                                        <div className="mt-4 pt-4 border-t border-gray-100">
+                                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Canales de Envío Automático</label>
+                                            <ChannelSelector
+                                                channels={config.messaging?.eventConfigs?.birthday?.channels || []}
+                                                onChange={(newChannels) => setConfig({
+                                                    ...config,
+                                                    messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, birthday: { channels: newChannels } } }
+                                                })}
+                                            />
+                                            <p className="text-[10px] text-gray-400 mt-2 italic">
+                                                * El sistema detecta automáticamente si enviar el mensaje con o sin puntos según la configuración de "Reglas de Juego".
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <hr className="border-gray-50" />
+
+                                {/* Referral Reward Template */}
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Recompensa por Referido</label>
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">💎</span>
+                                            <textarea
+                                                rows={2}
+                                                value={config.messaging?.templates?.referralReward || ''}
+                                                onChange={e => setConfig({
+                                                    ...config,
+                                                    messaging: {
+                                                        ...config.messaging!,
+                                                        templates: { ...config.messaging?.templates, referralReward: e.target.value }
+                                                    }
+                                                })}
+                                                placeholder={DEFAULT_TEMPLATES.referralReward}
+                                                className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none resize-none"
+                                            />
+                                        </div>
+                                        <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, referralReward: DEFAULT_TEMPLATES.referralReward } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition" title="Restaurar predeterminado">↺</button>
+                                        <button
+                                            type="button"
+                                            onClick={() => openPreview('referralReward')}
+                                            className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
+                                            title="Previsualizar Email"
+                                        >
+                                            <Eye size={18} />
+                                        </button>
+                                    </div>
+                                    <VariableChips vars={['siteName', 'nombre', 'amigo', 'puntos']} onSelect={v => insertVar('referralReward', v)} />
+                                    <ChannelSelector
+                                        channels={config.messaging?.eventConfigs?.referralReward?.channels || []}
+                                        onChange={(newChannels) => setConfig({
+                                            ...config,
+                                            messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, referralReward: { channels: newChannels } } }
+                                        })}
+                                    />
+                                </div>
+
+                                {/* Referral Points Template (Puntos por referir) */}
+                                <div className="p-4 bg-orange-50/30 rounded-xl border border-orange-100">
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">🎁 Puntos a Favor (Referidor)</label>
+                                    <p className="text-[10px] text-gray-500 mb-2 leading-tight">Mismo evento que el anterior, pero enfocado en avisar los puntos ganados.</p>
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">🚀</span>
+                                            <textarea
+                                                rows={2}
+                                                value={config.messaging?.templates?.referralPoints || ''}
+                                                onChange={e => setConfig({
+                                                    ...config,
+                                                    messaging: {
+                                                        ...config.messaging!,
+                                                        templates: { ...config.messaging?.templates, referralPoints: e.target.value }
+                                                    }
+                                                })}
+                                                placeholder={DEFAULT_TEMPLATES.referralPoints}
+                                                className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-orange-100 outline-none resize-none"
+                                            />
+                                        </div>
+                                        <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, referralPoints: DEFAULT_TEMPLATES.referralPoints } } })} className="px-3 py-2 text-gray-400 hover:text-orange-600 rounded-lg hover:bg-orange-50 transition" title="Restaurar predeterminado">↺</button>
+                                        <button
+                                            type="button"
+                                            onClick={() => openPreview('referralPoints')}
+                                            className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
+                                            title="Previsualizar Email"
+                                        >
+                                            <Eye size={18} />
+                                        </button>
+                                    </div>
+                                    <VariableChips vars={['siteName', 'nombre', 'nombre_referido', 'puntos']} onSelect={v => insertVar('referralPoints', v)} />
+                                </div>
+
+                                {/* Referral Challenge Template */}
+                                <div className="p-4 bg-orange-50/50 rounded-xl border border-orange-200">
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2 font-mono flex items-center gap-2">
+                                        ⚡ Desafío de Referidos <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full uppercase">Difusión Manual</span>
+                                    </label>
+                                    <p className="text-[10px] text-gray-500 mb-2 leading-tight">Envía este mensaje de forma manual para motivar a los usuarios durante un desafío activo.</p>
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">🚀</span>
+                                            <textarea
+                                                rows={2}
+                                                value={config.messaging?.templates?.referralChallenge || ''}
+                                                onChange={e => setConfig({
+                                                    ...config,
+                                                    messaging: {
+                                                        ...config.messaging!,
+                                                        templates: { ...config.messaging?.templates, referralChallenge: e.target.value }
+                                                    }
+                                                })}
+                                                placeholder={DEFAULT_TEMPLATES.referralChallenge || '¡Tenemos un nuevo desafío!'}
+                                                className="w-full pl-10 pr-3 py-3 rounded-lg border border-orange-200 focus:ring-2 focus:ring-orange-100 outline-none resize-none"
+                                            />
+                                        </div>
+                                        <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, referralChallenge: DEFAULT_TEMPLATES.referralChallenge } } })} className="px-3 py-2 text-gray-400 hover:text-orange-600 rounded-lg hover:bg-orange-50 transition" title="Restaurar predeterminado">↺</button>
+                                        <button
+                                            type="button"
+                                            onClick={() => openPreview('referralChallenge', '¡NUEVO DESAFÍO ACTIVO! 🚀')}
+                                            className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
+                                            title="Previsualizar Email"
+                                        >
+                                            <Eye size={18} />
+                                        </button>
+                                    </div>
+                                    <VariableChips vars={['siteName', 'nombre', 'nombre_completo', 'fecha_limite', 'puntos', 'meta']} onSelect={v => insertVar('referralChallenge', v)} />
+
+                                    <div className="mt-4 flex flex-col sm:flex-row items-center gap-4 justify-between bg-white p-3 rounded-lg border border-orange-100">
+                                        <div className="w-full sm:w-auto">
+                                            <ChannelSelector
+                                                channels={challengeChannels}
+                                                onChange={setChallengeChannels}
+                                            />
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={async () => {
+                                                const channelsStr = challengeChannels.join(', ') || 'Ninguno';
+                                                if (challengeChannels.length === 0) {
+                                                    toast.error("Selecciona al menos un canal");
+                                                    return;
+                                                }
+                                                if (!window.confirm(`¿Deseas difundir el desafío a todos los clientes a través de: ${channelsStr}?`)) return;
+
+                                                const toastId = toast.loading('Iniciando difusión...');
+                                                const title = '¡NUEVO DESAFÍO ACTIVO! 🚀';
+                                                const templateText = config.messaging?.templates?.referralChallenge || DEFAULT_TEMPLATES.referralChallenge || 'Desafío Activo';
+
+                                                try {
+                                                    // Get challenge end date from config for {fecha_limite} replacement
+                                                    const challengeEndDateRaw = config.referrals?.challenge?.endDate;
+                                                    let expirationDateFormatted = 'pronto';
+                                                    if (challengeEndDateRaw) {
+                                                        const [year, month, day] = challengeEndDateRaw.split('-');
+                                                        expirationDateFormatted = `${day}/${month}/${year}`;
+                                                    }
+
+                                                    const q = query(collection(db, 'users'));
+                                                    const snap = await getDocs(q);
+
+                                                    if (challengeChannels.includes('push')) {
+                                                        const pushPromises = snap.docs.map(doc => {
+                                                            const d = doc.data();
+                                                            const userName = d.name || '';
+                                                            let personalizedMsg = templateText
+                                                                .replace(/{nombre}/g, userName.split(' ')[0])
+                                                                .replace(/{nombre_completo}/g, userName)
+                                                                .replace(/{fecha_limite}/g, expirationDateFormatted)
+                                                                .replace(/{vencimiento}/g, expirationDateFormatted)
+                                                                .replace(/{puntos}/g, config.referrals?.challenge?.tiers?.[0]?.bonus?.toString() || '0')
+                                                                .replace(/{meta}/g, config.referrals?.challenge?.tiers?.[0]?.count?.toString() || '0');
+
+                                                            return NotificationService.sendToClient(doc.id, {
+                                                                title: title,
+                                                                body: personalizedMsg,
+                                                                type: 'campaign',
+                                                                icon: config.logoUrl || '/pwa-192x192.png'
+                                                            });
+                                                        });
+                                                        await Promise.allSettled(pushPromises);
+                                                    }
+
+                                                    if (challengeChannels.includes('email')) {
+                                                        const emailPromises = snap.docs.map(doc => {
+                                                            const d = doc.data();
+                                                            if (d.email) {
+                                                                const userName = d.name || '';
+                                                                let personalizedMsg = templateText
+                                                                    .replace(/{nombre}/g, userName.split(' ')[0])
+                                                                    .replace(/{nombre_completo}/g, userName)
+                                                                    .replace(/{fecha_limite}/g, expirationDateFormatted)
+                                                                    .replace(/{vencimiento}/g, expirationDateFormatted)
+                                                                    .replace(/{puntos}/g, config.referrals?.challenge?.tiers?.[0]?.bonus?.toString() || '0')
+                                                                    .replace(/{meta}/g, config.referrals?.challenge?.tiers?.[0]?.count?.toString() || '0');
+
+                                                                const htmlContent = EmailService.generateBrandedTemplate(config, title, personalizedMsg);
+                                                                return EmailService.sendEmail(d.email, title, htmlContent);
+                                                            }
+                                                            return null;
+                                                        }).filter(Boolean);
+                                                        await Promise.allSettled(emailPromises);
+                                                    }
+
+                                                    if (challengeChannels.includes('whatsapp')) {
+                                                        let waMsg = templateText
+                                                            .replace(/{fecha_limite}/g, expirationDateFormatted)
+                                                            .replace(/{vencimiento}/g, expirationDateFormatted)
+                                                            .replace(/{puntos}/g, config.referrals?.challenge?.tiers?.[0]?.bonus?.toString() || '0')
+                                                            .replace(/{meta}/g, config.referrals?.challenge?.tiers?.[0]?.count?.toString() || '0');
+                                                        navigate('/admin/whatsapp', { state: { message: waMsg } });
+                                                    }
+
+                                                    toast.success('¡Difusión completada!', { id: toastId });
+                                                } catch (e) {
+                                                    toast.error('Error en la difusión', { id: toastId });
+                                                }
+                                            }}
+                                            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-rose-600 text-white rounded-xl text-sm font-black shadow-lg shadow-orange-200 hover:scale-105 transition active:scale-95 whitespace-nowrap"
+                                        >
+                                            <Megaphone size={18} />
+                                            ¡Difundir Desafío a Todos!
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Points Expiration Warning Configuration */}
+                                <div className="pt-6 mt-6 border-t border-gray-100">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xl">📢</span>
+                                            <div>
+                                                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-tight">Aviso de Vencimiento de Puntos</h3>
+                                                <div className="flex items-center gap-1 text-[10px] text-gray-400">
+                                                    <span>Notifica a los socios</span>
+                                                    <input
+                                                        type="number"
+                                                        min="1" max="90"
+                                                        value={config.messaging?.expirationWarningDays || 7}
+                                                        onChange={e => setConfig({
+                                                            ...config,
+                                                            messaging: { ...config.messaging!, expirationWarningDays: parseInt(e.target.value) || 7 }
+                                                        })}
+                                                        className="w-10 bg-transparent border-b border-gray-300 text-center font-bold focus:border-orange-500 outline-none text-orange-600"
+                                                    />
+                                                    <span>días antes de que pierdan sus puntos.</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setConfig({
+                                                ...config,
+                                                messaging: { ...config.messaging!, enableExpirationWarnings: !config.messaging?.enableExpirationWarnings }
+                                            })}
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.messaging?.enableExpirationWarnings ? 'bg-orange-500' : 'bg-gray-300'}`}
+                                        >
+                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${config.messaging?.enableExpirationWarnings ? 'translate-x-6' : 'translate-x-1'}`} />
+                                        </button>
+                                    </div>
+
+                                    {/* Itinerancy / Repeat Notifications Toggle */}
+                                    <div className="mt-4 p-4 bg-orange-50/50 rounded-xl border border-orange-100 flex items-center justify-between mb-6">
+                                        <div className="flex items-start gap-3">
+                                            <div className="p-2 bg-white rounded-lg shadow-sm">
+                                                <div className="w-5 h-5 flex items-center justify-center text-orange-600">🔁</div>
+                                            </div>
+                                            <div>
+                                                <h4 className="text-sm font-bold text-orange-900">Itinerancia de Avisos</h4>
+                                                <p className="text-[11px] text-orange-800/70 leading-tight mt-1">
+                                                    Si está activo, el sistema volverá a enviar notificaciones aunque no haya cambios en los puntos.<br />
+                                                    Ideal para recordar periódicamente los vencimientos.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setConfig({
+                                                ...config,
+                                                messaging: { ...config.messaging!, repeatExpirationWarnings: !config.messaging?.repeatExpirationWarnings }
+                                            })}
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.messaging?.repeatExpirationWarnings ? 'bg-orange-500' : 'bg-gray-300'}`}
+                                        >
+                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${config.messaging?.repeatExpirationWarnings ? 'translate-x-6' : 'translate-x-1'}`} />
+                                        </button>
+                                    </div>
+                                    {/* Interval days input - visible when itinerancy is ON */}
+                                    {config.messaging?.repeatExpirationWarnings && (
+                                        <div className="mt-3 ml-10 p-3 bg-white rounded-lg border border-orange-100 animate-fade-in">
+                                            <label className="flex items-center gap-3">
+                                                <span className="text-xs font-bold text-orange-800 whitespace-nowrap">Recordar cada</span>
+                                                <input
+                                                    type="number"
+                                                    min={0}
+                                                    max={30}
+                                                    value={config.messaging?.expirationReminderIntervalDays ?? 5}
+                                                    onChange={e => setConfig({
+                                                        ...config,
+                                                        messaging: { ...config.messaging!, expirationReminderIntervalDays: parseInt(e.target.value) || 0 }
+                                                    })}
+                                                    className="w-16 px-2 py-1 text-center text-sm font-bold border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-300 focus:outline-none"
+                                                />
+                                                <span className="text-xs text-orange-700">días después del primer aviso</span>
+                                            </label>
+                                            <p className="text-[10px] text-orange-600/60 mt-1.5 ml-0">
+                                                0 = reenviar siempre. Ej: con ventana de 10 días y recordatorio cada 5, se envía al día 1 y al día 6.
+                                            </p>
+                                        </div>
+                                    )}
+                                    {config.messaging?.enableExpirationWarnings && (
+                                        <div className="space-y-4 animate-fade-in text-left border-l-2 border-orange-100 pl-4">
+                                            <div className="flex gap-2">
+                                                <div className="relative flex-1">
+                                                    <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">⏳</span>
+                                                    <textarea
+                                                        rows={2}
+                                                        value={config.messaging?.templates?.expirationWarning || ''}
+                                                        onChange={e => setConfig({
+                                                            ...config,
+                                                            messaging: {
+                                                                ...config.messaging!,
+                                                                templates: { ...config.messaging?.templates, expirationWarning: e.target.value }
+                                                            }
+                                                        })}
+                                                        placeholder={DEFAULT_TEMPLATES.expirationWarning}
+                                                        className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-orange-100 outline-none resize-none text-sm"
+                                                    />
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, expirationWarning: DEFAULT_TEMPLATES.expirationWarning } } })}
+                                                    className="px-3 py-2 text-gray-400 hover:text-orange-600 rounded-lg hover:bg-orange-50 transition"
+                                                    title="Restaurar predeterminado"
+                                                >
+                                                    ↺
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => openPreview('expirationWarning')}
+                                                    className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
+                                                    title="Previsualizar Email"
+                                                >
+                                                    <Eye size={18} />
+                                                </button>
+                                            </div>
+                                            <VariableChips vars={['siteName', 'nombre', 'puntos', 'fecha']} onSelect={v => insertVar('expirationWarning', v)} />
+
+                                            <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-100">
+                                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Canales de Envío</label>
+                                                <ChannelSelector
+                                                    channels={config.messaging?.eventConfigs?.expirationWarning?.channels || []}
+                                                    onChange={(newChannels) => setConfig({
+                                                        ...config,
+                                                        messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, expirationWarning: { channels: newChannels } } }
+                                                    })}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Email Preview Button */}
+                            {config.messaging?.emailEnabled && (
+                                <div className="flex justify-end pt-4">
+                                    <button
+                                        type="button"
+                                        onClick={handleTestEmail}
+                                        className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 font-medium transition flex items-center gap-2"
+                                    >
+                                        <Monitor size={16} /> Ver Previsualización de Email
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )
+                }
+
+                {
+                    activeTab === 'advanced' && (
+                        <div className="max-w-4xl mx-auto py-12 space-y-8">
+                            {/* SECCIÓN HERRAMIENTAS DE TRABAJO */}
+                            <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                                <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                                    <Clock size={22} className="text-purple-500" /> Herramientas de Trabajo
+                                </h3>
+                                <div className="space-y-6">
+                                    <div className="flex items-center justify-between p-6 bg-purple-50/50 rounded-2xl border border-purple-100">
+                                        <div className="flex-1">
+                                            <span className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                                                Simulador de Fecha y Hora
+                                                <span className="text-[10px] bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full uppercase tracking-tighter">Dev Tool</span>
+                                            </span>
+                                            <p className="text-xs text-gray-500 mt-1">Activa un administrador en el menú lateral para adelantar o retrasar el tiempo. Útil para probar vencimientos.</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setConfig({ ...config, enableDateSimulator: !config.enableDateSimulator })}
+                                            className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.enableDateSimulator ? 'bg-purple-600' : 'bg-gray-200'}`}
+                                        >
+                                            <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enableDateSimulator ? 'translate-x-5' : 'translate-x-0'}`} />
+                                        </button>
+                                    </div>
+
+                                    {/* SECCIÓN NUEVA: Control de Duplicados */}
+                                    <div className="flex items-center justify-between p-6 bg-red-50/50 rounded-2xl border border-red-100">
+                                        <div className="flex-1">
+                                            <span className="text-sm font-black text-red-900 uppercase flex items-center gap-2">
+                                                <Shield size={16} /> Control de Ejecución Diaria
+                                            </span>
+                                            <p className="text-[10px] text-red-600 font-bold mt-1">Evita que el motor automático envíe avisos duplicados si se ejecuta varias veces el mismo día.</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setConfig({ ...config, enableDuplicateControl: config.enableDuplicateControl === undefined ? true : !config.enableDuplicateControl })}
+                                            className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.enableDuplicateControl !== false ? 'bg-red-600' : 'bg-gray-200'}`}
+                                        >
+                                            <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enableDuplicateControl !== false ? 'translate-x-5' : 'translate-x-0'}`} />
+                                        </button>
+                                    </div>
+
+                                    {/* Motor Automático Diario */}
+                                    <div className="p-6 bg-blue-50/50 rounded-2xl border border-blue-100 space-y-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold shadow-md shadow-blue-200">
+                                                <Settings size={20} />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-md font-black text-gray-800 tracking-tight">Motor Automático Diario</h4>
+                                                <p className="text-xs text-gray-500 uppercase tracking-widest font-bold">Ventana de Ejecución</p>
+                                            </div>
+                                        </div>
+                                        <p className="text-sm text-gray-600 leading-relaxed">Define el rango horario en el que el sistema tiene permitido revisar vencimientos y enviar promociones.</p>
+
+                                        <div className="flex items-center gap-4 bg-white p-4 rounded-xl border border-blue-50">
+                                            <label className="flex flex-col flex-1">
+                                                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Empieza a las</span>
+                                                <div className="relative">
+                                                    <input
+                                                        type="number" min="0" max="23"
+                                                        value={config.messaging?.engineAllowedStartHour ?? 9}
+                                                        onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, engineAllowedStartHour: parseInt(e.target.value) || 0 } })}
+                                                        className="w-full pl-3 pr-8 py-2 text-xl font-black text-gray-800 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+                                                    />
+                                                    <span className="absolute right-3 top-2.5 font-bold text-gray-400">hs</span>
+                                                </div>
+                                            </label>
+                                            <span className="text-gray-300 font-black">—</span>
+                                            <label className="flex flex-col flex-1">
+                                                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Corta a las</span>
+                                                <div className="relative">
+                                                    <input
+                                                        type="number" min="0" max="23"
+                                                        value={config.messaging?.engineAllowedEndHour ?? 22}
+                                                        onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, engineAllowedEndHour: parseInt(e.target.value) || 0 } })}
+                                                        className="w-full pl-3 pr-8 py-2 text-xl font-black text-gray-800 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+                                                    />
+                                                    <span className="absolute right-3 top-2.5 font-bold text-gray-400">hs</span>
+                                                </div>
+                                            </label>
+                                        </div>
+
+                                        <div className="mt-4 pt-4 border-t border-blue-100 flex flex-col gap-3">
+                                            <p className="text-xs font-bold text-blue-800 uppercase tracking-widest mb-1">Gatillos (Triggers) de Ejecución</p>
+                                            <label className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-50 hover:bg-blue-50/50 transition-colors cursor-pointer">
+                                                <div>
+                                                    <span className="text-sm font-bold text-gray-700 block">Ejecución en Dashboard</span>
+                                                    <span className="text-[10px] text-gray-500">Arranca en segundo plano al abrir este panel.</span>
+                                                </div>
+                                                <input
+                                                    type="checkbox"
+                                                    className="w-5 h-5 text-blue-600 rounded"
+                                                    checked={config.messaging?.enableDashboardTrigger !== false}
+                                                    onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, enableDashboardTrigger: e.target.checked } })}
+                                                />
+                                            </label>
+                                            <label className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-50 hover:bg-blue-50/50 transition-colors cursor-pointer">
+                                                <div>
+                                                    <span className="text-sm font-bold text-gray-700 block">Ejecución en PWA</span>
+                                                    <span className="text-[10px] text-gray-500">Un cliente real puede despabilar el motor.</span>
+                                                </div>
+                                                <input
+                                                    type="checkbox"
+                                                    className="w-5 h-5 text-blue-600 rounded"
+                                                    checked={config.messaging?.enableClientTrigger !== false}
+                                                    onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, enableClientTrigger: e.target.checked } })}
+                                                />
+                                            </label>
+                                            <label className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-50 hover:bg-blue-50/50 transition-colors cursor-pointer">
+                                                <div>
+                                                    <span className="text-sm font-bold text-gray-700 block">Ejecución en Extensión</span>
+                                                    <span className="text-[10px] text-gray-500">El plugin de Chrome arranca el motor.</span>
+                                                </div>
+                                                <input
+                                                    type="checkbox"
+                                                    className="w-5 h-5 text-blue-600 rounded"
+                                                    checked={config.messaging?.enableExtensionTrigger !== false}
+                                                    onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, enableExtensionTrigger: e.target.checked } })}
+                                                />
+                                            </label>
+                                            <label className="flex items-center justify-between p-3 bg-purple-50 rounded-lg border border-purple-100 hover:bg-purple-100/50 transition-colors cursor-pointer">
+                                                <div>
+                                                    <span className="text-sm font-bold text-gray-700 block">Ejecución vía QStash</span>
+                                                    <span className="text-[10px] text-gray-500">Habilita llamadas externas Upstash.</span>
+                                                </div>
+                                                <input
+                                                    type="checkbox"
+                                                    className="w-5 h-5 text-purple-600 rounded"
+                                                    checked={config.messaging?.enableQStashTrigger !== false}
+                                                    onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, enableQStashTrigger: e.target.checked } })}
+                                                />
+                                            </label>
+
+                                            {/* Guía QStash */}
+                                            <div className="mt-4 p-5 bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl text-white">
+                                                <div className="flex items-center gap-2 mb-3 text-emerald-400">
+                                                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                                                    <span className="text-[10px] font-black uppercase tracking-widest">Configuración QStash</span>
+                                                </div>
+                                                <div className="space-y-3">
+                                                    <div className="space-y-1">
+                                                        <span className="text-[9px] text-gray-500 font-bold uppercase">Destination URL</span>
+                                                        <div className="flex gap-2">
+                                                            <code className="text-[10px] bg-white/10 p-2 rounded-lg flex-1 truncate">
+                                                                {`https://fidelidad-next.vercel.app/api/engine-daily?mode=daily&trigger=qstash`}
+                                                            </code>
+                                                            <button
+                                                                onClick={() => { navigator.clipboard.writeText(`https://fidelidad-next.vercel.app/api/engine-daily?mode=daily&trigger=qstash`); alert("URL Copiada"); }}
+                                                                className="p-2 bg-white/10 hover:bg-white/20 rounded-lg"
+                                                            >
+                                                                <Settings size={14} />
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    )}
-
-                                            {
-                                                activeTab === 'legales' && (
-                                                    <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 animate-in fade-in slide-in-from-bottom-4">
-                                                        <div className="max-w-4xl">
-                                                            <div className="flex items-center gap-3 mb-6">
-                                                                <div className="bg-blue-50 p-3 rounded-2xl text-blue-600">
-                                                                    <FileText size={24} />
-                                                                </div>
-                                                                <div>
-                                                                    <h3 className="text-xl font-black text-gray-800 tracking-tight">Términos y Condiciones</h3>
-                                                                    <p className="text-gray-500 text-sm">Este texto aparecerá en el perfil de usuario de la PWA. Puedes usar formato simple.</p>
-                                                                </div>
-                                                            </div>
-
-                                                            <div className="space-y-6">
-                                                                <div className="flex flex-col gap-2">
-                                                                    <div className="flex justify-between items-end">
-                                                                        <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Contenido de los Términos</label>
-                                                                        <div className="text-[10px] text-gray-400 bg-gray-50 px-2 py-1 rounded">Soporta Markdown Básico</div>
-                                                                    </div>
-                                                                    <textarea
-                                                                        rows={20}
-                                                                        className="w-full p-4 rounded-2xl border-2 border-gray-100 focus:border-blue-500 focus:ring-4 focus:ring-blue-50 outline-none transition text-sm font-medium leading-relaxed bg-gray-50/30"
-                                                                        placeholder="Escribe aquí los términos..."
-                                                                        value={config.contact?.termsContent || ''}
-                                                                        onChange={e => setConfig({
-                                                                            ...config,
-                                                                            contact: { ...config.contact!, termsContent: e.target.value }
-                                                                        })}
-                                                                    />
-                                                                </div>
-
-                                                                <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100 flex gap-3">
-                                                                    <div className="text-xl">💡</div>
-                                                                    <div className="text-xs text-blue-700 leading-relaxed pt-1">
-                                                                        <strong>Tip:</strong> Puedes usar variables como <code className="bg-white px-1 rounded">{"{siteName}"}</code> que se reemplazarán automáticamente por <strong>{config.siteName}</strong> en la PWA.
-                                                                    </div>
-                                                                </div>
-
-                                                                <div className="pt-4 border-t border-gray-100">
-                                                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Link Externo (Opcional)</label>
-                                                                    <input
-                                                                        type="text"
-                                                                        placeholder="https://..."
-                                                                        value={config.contact?.termsAndConditions || ''}
-                                                                        onChange={e => setConfig({
-                                                                            ...config,
-                                                                            contact: { ...config.contact!, termsAndConditions: e.target.value }
-                                                                        })}
-                                                                        className="w-full rounded-xl border-gray-200 border p-3 text-sm focus:ring-2 focus:ring-blue-100 outline-none bg-gray-50/50"
-                                                                    />
-                                                                    <p className="text-[10px] text-gray-400 mt-2 px-1">
-                                                                        <strong>⚠️ Prioridad:</strong> Si este link está presente, el botón de Términos redirigirá aquí. Si queda vacío, se mostrará el contenido de arriba en un cuadro interno.
-                                                                    </p>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                )
-                                            }
-
-                                            {
-                                                activeTab === 'branding' && (
-                                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fade-in">
-                                                        {/* ... (Existing Branding Content) ... */}
-                                                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                                                            {/* ... (Existing Form) ... */}
-                                                            <h2 className="text-lg font-semibold mb-6 text-gray-800">Personalización de Marca</h2>
-                                                            <div className="space-y-6">
-                                                                <div>
-                                                                    <label className="block text-sm font-medium text-gray-700 mb-2">Nombre del Club</label>
-                                                                    <input
-                                                                        type="text"
-                                                                        value={config.siteName}
-                                                                        onChange={e => setConfig({ ...config, siteName: e.target.value })}
-                                                                        className="w-full rounded-lg border-gray-200 border p-3 focus:ring-2 focus:ring-blue-100 outline-none transition"
-                                                                    />
-                                                                </div>
-
-                                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                                                    <div>
-                                                                        <label className="block text-sm font-medium text-gray-700 mb-2">Color Primario</label>
-                                                                        <div className="flex items-center gap-3">
-                                                                            <input
-                                                                                type="color"
-                                                                                value={config.primaryColor}
-                                                                                onChange={e => setConfig({ ...config, primaryColor: e.target.value })}
-                                                                                className="h-12 w-full rounded-lg cursor-pointer border-0 bg-transparent p-0"
-                                                                            />
-                                                                            <span className="text-xs font-mono text-gray-500">{config.primaryColor}</span>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div>
-                                                                        <label className="block text-sm font-medium text-gray-700 mb-2">Color Secundario</label>
-                                                                        <div className="flex items-center gap-3">
-                                                                            <input
-                                                                                type="color"
-                                                                                value={config.secondaryColor}
-                                                                                onChange={e => setConfig({ ...config, secondaryColor: e.target.value })}
-                                                                                className="h-12 w-full rounded-lg cursor-pointer border-0 bg-transparent p-0"
-                                                                            />
-                                                                            <span className="text-xs font-mono text-gray-500">{config.secondaryColor}</span>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div>
-                                                                        <label className="block text-sm font-medium text-gray-700 mb-2">Color de Fondo</label>
-                                                                        <div className="flex items-center gap-3">
-                                                                            <input
-                                                                                type="color"
-                                                                                value={config.backgroundColor || '#f9fafb'}
-                                                                                onChange={e => setConfig({ ...config, backgroundColor: e.target.value })}
-                                                                                className="h-12 w-full rounded-lg cursor-pointer border-0 bg-transparent p-0"
-                                                                            />
-                                                                            <span className="text-xs font-mono text-gray-500">{config.backgroundColor || '#f9fafb'}</span>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div>
-                                                                        <label className="block text-sm font-medium text-gray-700 mb-2">Color de Títulos</label>
-                                                                        <div className="flex items-center gap-3">
-                                                                            <input
-                                                                                type="color"
-                                                                                value={config.sectionTitleColor || '#9ca3af'}
-                                                                                onChange={e => setConfig({ ...config, sectionTitleColor: e.target.value })}
-                                                                                className="h-12 w-full rounded-lg cursor-pointer border-0 bg-transparent p-0"
-                                                                            />
-                                                                            <span className="text-xs font-mono text-gray-500">{config.sectionTitleColor || '#9ca3af'}</span>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div>
-                                                                        <label className="block text-sm font-medium text-gray-700 mb-2">Color de Enlaces</label>
-                                                                        <div className="flex items-center gap-3">
-                                                                            <input
-                                                                                type="color"
-                                                                                value={config.linkColor || '#4a148c'}
-                                                                                onChange={e => setConfig({ ...config, linkColor: e.target.value })}
-                                                                                className="h-12 w-full rounded-lg cursor-pointer border-0 bg-transparent p-0"
-                                                                            />
-                                                                            <span className="text-xs font-mono text-gray-500">{config.linkColor || '#4a148c'}</span>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div>
-                                                                    <label className="block text-sm font-medium text-gray-700 mb-2">Logo URL</label>
-                                                                    <input
-                                                                        type="text"
-                                                                        placeholder="https://..."
-                                                                        value={config.logoUrl}
-                                                                        onChange={e => setConfig({ ...config, logoUrl: e.target.value })}
-                                                                        className="w-full rounded-lg border-gray-200 border p-3 focus:ring-2 focus:ring-blue-100 outline-none transition"
-                                                                    />
-                                                                    <p className="text-xs text-gray-400 mt-2">Recomendado: PNG transparente de 200x200px</p>
-                                                                </div>
-
-
-                                                                {/* SECTION: Contact & Social */}
-                                                                <div className="pt-6 border-t border-gray-100 space-y-4">
-                                                                    <h4 className="font-bold text-gray-800 flex items-center gap-2">
-                                                                        📱 Contacto y Redes
-                                                                    </h4>
-
-                                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                                        <div className="col-span-full">
-                                                                            <label className="block text-xs font-semibold text-gray-600 mb-1">Dirección del Local</label>
-                                                                            <input
-                                                                                type="text"
-                                                                                placeholder="Av. Principal 123..."
-                                                                                value={config.contact?.address || ''}
-                                                                                onChange={e => setConfig({
-                                                                                    ...config,
-                                                                                    contact: { ...config.contact!, address: e.target.value }
-                                                                                })}
-                                                                                className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
-                                                                            />
-                                                                        </div>
-                                                                        <div className="col-span-full">
-                                                                            <label className="block text-xs font-semibold text-gray-600 mb-1">Horarios de Atención</label>
-                                                                            <input
-                                                                                type="text"
-                                                                                placeholder="Lun a Vie 9 a 18 hs..."
-                                                                                value={config.contact?.openingHours || ''}
-                                                                                onChange={e => setConfig({
-                                                                                    ...config,
-                                                                                    contact: { ...config.contact!, openingHours: e.target.value }
-                                                                                })}
-                                                                                className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
-                                                                            />
-                                                                        </div>
-                                                                        <div>
-                                                                            <label className="block text-xs font-semibold text-gray-600 mb-1">WhatsApp (Soporte)</label>
-                                                                            <input
-                                                                                type="text"
-                                                                                placeholder="549..."
-                                                                                value={config.contact?.whatsapp || ''}
-                                                                                onChange={e => setConfig({
-                                                                                    ...config,
-                                                                                    contact: { ...config.contact!, whatsapp: e.target.value }
-                                                                                })}
-                                                                                className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-green-100 outline-none"
-                                                                            />
-                                                                        </div>
-                                                                        <div>
-                                                                            <label className="block text-xs font-semibold text-gray-600 mb-1">Email Público</label>
-                                                                            <input
-                                                                                type="email"
-                                                                                placeholder="contacto@..."
-                                                                                value={config.contact?.email || ''}
-                                                                                onChange={e => setConfig({
-                                                                                    ...config,
-                                                                                    contact: { ...config.contact!, email: e.target.value }
-                                                                                })}
-                                                                                className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
-                                                                            />
-                                                                        </div>
-                                                                        <div>
-                                                                            <label className="block text-xs font-semibold text-gray-600 mb-1">Instagram</label>
-                                                                            <input
-                                                                                type="text"
-                                                                                placeholder="@usuario"
-                                                                                value={config.contact?.instagram || ''}
-                                                                                onChange={e => setConfig({
-                                                                                    ...config,
-                                                                                    contact: { ...config.contact!, instagram: e.target.value }
-                                                                                })}
-                                                                                className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-pink-100 outline-none"
-                                                                            />
-                                                                        </div>
-                                                                        <div>
-                                                                            <label className="block text-xs font-semibold text-gray-600 mb-1">Facebook</label>
-                                                                            <input
-                                                                                type="text"
-                                                                                placeholder="/pagina"
-                                                                                value={config.contact?.facebook || ''}
-                                                                                onChange={e => setConfig({
-                                                                                    ...config,
-                                                                                    contact: { ...config.contact!, facebook: e.target.value }
-                                                                                })}
-                                                                                className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
-                                                                            />
-                                                                        </div>
-                                                                        <div className="col-span-full">
-                                                                            <label className="block text-xs font-semibold text-gray-600 mb-1">Sitio Web</label>
-                                                                            <input
-                                                                                type="text"
-                                                                                placeholder="https://..."
-                                                                                value={config.contact?.website || ''}
-                                                                                onChange={e => setConfig({
-                                                                                    ...config,
-                                                                                    contact: { ...config.contact!, website: e.target.value }
-                                                                                })}
-                                                                                className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-gray-100 outline-none"
-                                                                            />
-                                                                        </div>
-                                                                        <div className="col-span-full">
-                                                                            <label className="block text-xs font-semibold text-gray-600 mb-1">URL de la App (para Botón de Email)</label>
-                                                                            <input
-                                                                                type="url"
-                                                                                placeholder="https://fidelidad-next.vercel.app/login"
-                                                                                value={config.contact?.pwaUrl || ''}
-                                                                                onChange={e => setConfig({
-                                                                                    ...config,
-                                                                                    contact: { ...config.contact!, pwaUrl: e.target.value }
-                                                                                })}
-                                                                                className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-gray-100 outline-none"
-                                                                            />
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-
-                                                            {/* Vista Previa Móvil */}
-                                                            <div className="flex flex-col items-center justify-start pt-8">
-                                                                <div
-                                                                    className="border-[8px] border-gray-900 rounded-[3rem] overflow-hidden w-80 shadow-2xl relative h-[600px] transition-colors duration-500"
-                                                                    style={{ backgroundColor: config.backgroundColor || '#f9fafb' }}
-                                                                >
-                                                                    {/* Notch */}
-                                                                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-gray-900 rounded-b-xl z-20"></div>
-
-                                                                    {/* Header Mock */}
-                                                                    <div className="p-6 pt-12 text-white flex justify-between items-center transition-colors duration-500" style={{ backgroundColor: config.primaryColor }}>
-                                                                        <div className="flex items-center gap-2">
-                                                                            {config.logoUrl ? (
-                                                                                <img src={config.logoUrl} alt="Logo" className="w-8 h-8 rounded-full object-contain bg-white" />
-                                                                            ) : (
-                                                                                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-[10px]">Logo</div>
-                                                                            )}
-                                                                            <span className="font-bold">{config.siteName}</span>
-                                                                        </div>
-                                                                    </div>
-
-                                                                    {/* Hero Mock */}
-                                                                    <div
-                                                                        className="p-6 m-4 rounded-2xl text-white shadow-lg text-center transition-all duration-500"
-                                                                        style={{
-                                                                            backgroundColor: config.secondaryColor,
-                                                                            marginTop: '16px'
-                                                                        }}
-                                                                    >
-                                                                        <p className="text-sm opacity-80 mb-1">Tu Saldo</p>
-                                                                        <p className="text-4xl font-black tracking-tight">1.250</p>
-                                                                        <span className="text-xs uppercase tracking-widest opacity-70">Puntos Disponibles</span>
-                                                                    </div>
-
-                                                                    {/* Saldo Mock */}
-                                                                    <div className="mx-4 mb-4 p-4 rounded-2xl bg-white shadow-lg border border-gray-50 flex items-center justify-between animate-fade-in">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center text-sm shadow-inner">💵</div>
-                                                                            <div>
-                                                                                <h3 className="text-gray-900 font-black text-base">$ 1.250</h3>
-                                                                                <p className="text-[8px] text-gray-500 font-bold uppercase tracking-tighter leading-none">Saldo a favor</p>
-                                                                            </div>
-                                                                        </div>
-                                                                        <div className="text-right">
-                                                                            <div className="inline-block px-1.5 py-0.5 rounded bg-red-50 text-red-600 font-bold text-[8px]">
-                                                                                Faltan $ {Math.round((config.pointsMoneyBase || 100) * 0.7)}
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-
-                                                                    {/* Bottom Nav Mock */}
-                                                                    <div className="absolute bottom-0 left-0 w-full bg-white border-t border-gray-100 flex justify-center items-center gap-6 py-3 pb-8 z-10 rounded-b-[2.8rem] shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
-                                                                        <div className="flex flex-col items-center gap-0.5" style={{ color: config.primaryColor }}>
-                                                                            <div className="w-6 h-6 flex items-center justify-center"><Home size={18} strokeWidth={2.5} /></div>
-                                                                            <span className="text-[8px] font-black uppercase tracking-tighter bg-clip-text text-transparent" style={{ backgroundImage: `linear-gradient(to right, ${config.primaryColor}, ${config.secondaryColor})` }}>Inicio</span>
-                                                                        </div>
-                                                                        <div className="flex flex-col items-center gap-0.5 opacity-50 grayscale">
-                                                                            <div className="w-6 h-6 flex items-center justify-center text-gray-400"><Gift size={18} /></div>
-                                                                            <span className="text-[8px] font-bold uppercase tracking-tighter text-gray-600">Premios</span>
-                                                                        </div>
-                                                                        <div className="flex flex-col items-center gap-0.5 opacity-50 grayscale">
-                                                                            <div className="w-6 h-6 flex items-center justify-center text-gray-400"><MessageCircle size={18} /></div>
-                                                                            <span className="text-[8px] font-bold uppercase tracking-tighter text-gray-600">Contacto</span>
-                                                                        </div>
-                                                                    </div>
-
-                                                                    <div className="px-6 text-center">
-                                                                        <p className="text-xs text-gray-400">Vista previa en tiempo real de la App del Cliente</p>
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => setConfig({
-                                                                                ...config,
-                                                                                primaryColor: '#4a148c',
-                                                                                secondaryColor: '#880e4f',
-                                                                                backgroundColor: '#f5f3f7',
-                                                                                sectionTitleColor: '#9ca3af',
-                                                                                linkColor: '#4a148c'
-                                                                            })}
-                                                                            className="mt-4 text-xs font-bold text-gray-400 hover:text-gray-600 underline"
-                                                                        >
-                                                                            Restaurar Predeterminado (Original)
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                )}
-
-                                            {activeTab === 'messaging' && (
-                                                <div className="max-w-3xl mx-auto space-y-8 animate-fade-in">
-
-                                                    {/* 1. MASTER SWITCHES (Global Control) */}
-                                                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-                                                        <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                                                            <Settings size={20} /> Control Maestro de Canales
-                                                        </h3>
-                                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                            {/* WhatsApp Switch */}
-                                                            <div className={`p-4 rounded-xl border flex flex-col items-center gap-3 transition-colors ${config.messaging?.whatsappEnabled ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
-                                                                <div className="flex items-center gap-2 font-bold text-gray-700">
-                                                                    <span className="text-green-500 text-xl">💬</span> WhatsApp
-                                                                </div>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setConfig({
-                                                                        ...config,
-                                                                        messaging: { ...config.messaging!, whatsappEnabled: !config.messaging?.whatsappEnabled }
-                                                                    })}
-                                                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.messaging?.whatsappEnabled ? 'bg-green-500' : 'bg-gray-300'}`}
-                                                                >
-                                                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${config.messaging?.whatsappEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
-                                                                </button>
-                                                            </div>
-
-                                                            {/* Email Switch */}
-                                                            <div className={`p-4 rounded-xl border flex flex-col items-center gap-3 transition-colors ${config.messaging?.emailEnabled ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'}`}>
-                                                                <div className="flex items-center gap-2 font-bold text-gray-700">
-                                                                    <span className="text-blue-500 text-xl">📧</span> Email
-                                                                </div>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setConfig({
-                                                                        ...config,
-                                                                        messaging: { ...config.messaging!, emailEnabled: !config.messaging?.emailEnabled }
-                                                                    })}
-                                                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.messaging?.emailEnabled ? 'bg-blue-500' : 'bg-gray-300'}`}
-                                                                >
-                                                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${config.messaging?.emailEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
-                                                                </button>
-                                                            </div>
-
-                                                            {/* Push Switch */}
-                                                            <div className={`p-4 rounded-xl border flex flex-col items-center gap-3 transition-colors ${config.messaging?.pushEnabled ? 'bg-purple-50 border-purple-200' : 'bg-gray-50 border-gray-200'}`}>
-                                                                <div className="flex items-center gap-2 font-bold text-gray-700">
-                                                                    <span className="text-purple-500 text-xl">🔔</span> Push
-                                                                </div>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setConfig({
-                                                                        ...config,
-                                                                        messaging: { ...config.messaging!, pushEnabled: !config.messaging?.pushEnabled }
-                                                                    })}
-                                                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.messaging?.pushEnabled ? 'bg-purple-500' : 'bg-gray-300'}`}
-                                                                >
-                                                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${config.messaging?.pushEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                        <p className="text-xs text-center text-gray-400 mt-4">
-                                                            Estos interruptores son globales. Si apagas uno aquí, ningún mensaje saldrá por ese canal, sin importar las reglas de abajo.
-                                                        </p>
-                                                    </div>
-
-                                                    {/* 2. REFUERZO CONTEXTUAL Y PERMISOS */}
-                                                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-                                                        <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                                                            <Bell size={20} className="text-blue-500" /> Permisos y Refuerzo Contextual
-                                                        </h3>
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                            {/* Notifications Prompt */}
-                                                            <div className="space-y-4">
-                                                                <div className="flex items-center justify-between">
-                                                                    <div>
-                                                                        <h4 className="text-sm font-bold text-gray-700">Notificaciones Push</h4>
-                                                                        <p className="text-[10px] text-gray-500">Banner grande al inicio si está pendiente.</p>
-                                                                    </div>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => setConfig({
-                                                                            ...config,
-                                                                            messaging: { ...config.messaging!, enablePermissionPromptRepetition: !config.messaging?.enablePermissionPromptRepetition }
-                                                                        })}
-                                                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.messaging?.enablePermissionPromptRepetition ? 'bg-blue-500' : 'bg-gray-300'}`}
-                                                                    >
-                                                                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${config.messaging?.enablePermissionPromptRepetition ? 'translate-x-6' : 'translate-x-1'}`} />
-                                                                    </button>
-                                                                </div>
-                                                                <div className="flex items-center justify-between pt-2 border-t border-gray-50">
-                                                                    <div>
-                                                                        <h4 className="text-sm font-bold text-gray-700">Refuerzo Contextual (Banner Chico)</h4>
-                                                                        <p className="text-[10px] text-gray-500">Aparece cuando el usuario gana puntos.</p>
-                                                                    </div>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => setConfig({
-                                                                            ...config,
-                                                                            messaging: { ...config.messaging!, enableContextualNotifPrompt: !config.messaging?.enableContextualNotifPrompt }
-                                                                        })}
-                                                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.messaging?.enableContextualNotifPrompt ? 'bg-green-500' : 'bg-gray-300'}`}
-                                                                    >
-                                                                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${config.messaging?.enableContextualNotifPrompt ? 'translate-x-6' : 'translate-x-1'}`} />
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-
-                                                            {/* Geolocation Prompt */}
-                                                            <div className="space-y-4">
-                                                                <div className="flex items-center justify-between">
-                                                                    <div>
-                                                                        <h4 className="text-sm font-bold text-gray-700">Geolocalización (GPS)</h4>
-                                                                        <p className="text-[10px] text-gray-500">Banner grande al inicio si está pendiente.</p>
-                                                                    </div>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => setConfig({
-                                                                            ...config,
-                                                                            messaging: { ...config.messaging!, enableGeoPromptRepetition: !config.messaging?.enableGeoPromptRepetition }
-                                                                        })}
-                                                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.messaging?.enableGeoPromptRepetition ? 'bg-purple-500' : 'bg-gray-300'}`}
-                                                                    >
-                                                                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${config.messaging?.enableGeoPromptRepetition ? 'translate-x-6' : 'translate-x-1'}`} />
-                                                                    </button>
-                                                                </div>
-                                                                <div className="flex items-center justify-between pt-2 border-t border-gray-50">
-                                                                    <div>
-                                                                        <h4 className="text-sm font-bold text-gray-700">Refuerzo Contextual (Banner Chico)</h4>
-                                                                        <p className="text-[10px] text-gray-500">Aparece después del de notificaciones.</p>
-                                                                    </div>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => setConfig({
-                                                                            ...config,
-                                                                            messaging: { ...config.messaging!, enableContextualGeoPrompt: !config.messaging?.enableContextualGeoPrompt }
-                                                                        })}
-                                                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.messaging?.enableContextualGeoPrompt ? 'bg-green-500' : 'bg-gray-300'}`}
-                                                                    >
-                                                                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${config.messaging?.enableContextualGeoPrompt ? 'translate-x-6' : 'translate-x-1'}`} />
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="mt-6 pt-6 border-t border-gray-100 flex items-center justify-between">
-                                                            <div className="flex-1 pr-8">
-                                                                <h4 className="text-sm font-bold text-gray-800">Límite de Descarte "Ahora no"</h4>
-                                                                <p className="text-[10px] text-gray-400">
-                                                                    Cuántas veces seguidas puede el usuario poner "Ahora no" en el banner chico antes de que el banner entre en standby por {config.permissionStandbyDays || 30} días.
-                                                                </p>
-                                                            </div>
-                                                            <div className="flex items-center gap-3 bg-gray-50 p-2 rounded-xl border border-gray-100">
-                                                                <span className="text-xs font-bold text-gray-400 uppercase">Máximo</span>
-                                                                <input
-                                                                    type="number"
-                                                                    min="1"
-                                                                    max="10"
-                                                                    value={config.messaging?.maxContextualDismissals || 3}
-                                                                    onChange={e => setConfig({
-                                                                        ...config,
-                                                                        messaging: { ...config.messaging!, maxContextualDismissals: parseInt(e.target.value) || 3 }
-                                                                    })}
-                                                                    className="w-12 p-2 text-center font-black text-gray-700 bg-white rounded-lg border border-gray-200 outline-none focus:ring-2 focus:ring-blue-100"
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* 3. SPECIFIC SETTINGS (WhatsApp Number) */}
-                                                    <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-                                                        <h3 className="text-xl font-bold text-gray-800 mb-6">⚙️ Configuración de WhatsApp</h3>
-                                                        <div className="space-y-6">
-                                                            <div>
-                                                                <label className="block text-sm font-semibold text-gray-700 mb-2">Tu Número (Business)</label>
-                                                                <input
-                                                                    type="tel"
-                                                                    placeholder="54911..."
-                                                                    value={config.messaging?.whatsappPhoneNumber || ''}
-                                                                    onChange={e => setConfig({
-                                                                        ...config,
-                                                                        messaging: { ...config.messaging!, whatsappPhoneNumber: e.target.value }
-                                                                    })}
-                                                                    className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none"
-                                                                />
-                                                                <p className="text-[10px] text-gray-400 mt-1">Formato: 54911xxxxxxxx (Sin 0 ni 15)</p>
-                                                            </div>
-                                                            <div>
-                                                                <label className="block text-sm font-semibold text-gray-700 mb-2">Mensaje Manual por Defecto</label>
-                                                                <p className="text-xs text-gray-500 mb-2">
-                                                                    Este es el texto que aparecerá precargado cuando hagas clic en el botón de WhatsApp manualmente desde la lista de clientes.
-                                                                </p>
-                                                                <div className="flex gap-2">
-                                                                    <textarea
-                                                                        rows={2}
-                                                                        value={config.messaging?.whatsappDefaultMessage || ''}
-                                                                        onChange={e => setConfig({
-                                                                            ...config,
-                                                                            messaging: { ...config.messaging!, whatsappDefaultMessage: e.target.value }
-                                                                        })}
-                                                                        placeholder={DEFAULT_TEMPLATES.whatsappDefaultMessage}
-                                                                        className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none resize-none"
-                                                                    />
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* 3. AUTOMATIC EVENTS */}
-                                                    <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 space-y-8 animate-fade-in-up">
-                                                        <h3 className="text-xl font-bold text-gray-800 border-b pb-4">🤖 Mensajes Automáticos (Reglas)</h3>
-
-                                                        {/* Points Added */}
-                                                        <div>
-                                                            <label className="block text-sm font-semibold text-gray-700 mb-2">Al Sumar Puntos (Compra)</label>
-                                                            <div className="flex gap-2">
-                                                                <div className="relative flex-1">
-                                                                    <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">🎉</span>
-                                                                    <textarea
-                                                                        rows={2}
-                                                                        value={config.messaging?.templates?.pointsAdded || ''}
-                                                                        onChange={e => setConfig({
-                                                                            ...config,
-                                                                            messaging: {
-                                                                                ...config.messaging!,
-                                                                                templates: { ...config.messaging?.templates, pointsAdded: e.target.value }
-                                                                            }
-                                                                        })}
-                                                                        placeholder={DEFAULT_TEMPLATES.pointsAdded}
-                                                                        className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none resize-none"
-                                                                    />
-                                                                </div>
-                                                                <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, pointsAdded: DEFAULT_TEMPLATES.pointsAdded } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition" title="Restaurar predeterminado">↺</button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => openPreview('pointsAdded')}
-                                                                    className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
-                                                                    title="Previsualizar Email"
-                                                                >
-                                                                    <Eye size={18} />
-                                                                </button>
-                                                            </div>
-                                                            <VariableChips vars={['siteName', 'nombre', 'nombre_completo', 'puntos', 'saldo']} onSelect={v => insertVar('pointsAdded', v)} />
-                                                            <ChannelSelector
-                                                                channels={config.messaging?.eventConfigs?.pointsAdded?.channels || []}
-                                                                onChange={(newChannels) => setConfig({
-                                                                    ...config,
-                                                                    messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, pointsAdded: { channels: newChannels } } }
-                                                                })}
-                                                            />
-                                                        </div>
-
-                                                        {/* Redemption */}
-                                                        <div>
-                                                            <label className="block text-sm font-semibold text-gray-700 mb-2">Al Canjear Premio</label>
-                                                            <div className="flex gap-2">
-                                                                <div className="relative flex-1">
-                                                                    <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">🎁</span>
-                                                                    <textarea
-                                                                        rows={2}
-                                                                        value={config.messaging?.templates?.redemption || ''}
-                                                                        onChange={e => setConfig({
-                                                                            ...config,
-                                                                            messaging: {
-                                                                                ...config.messaging!,
-                                                                                templates: { ...config.messaging?.templates, redemption: e.target.value }
-                                                                            }
-                                                                        })}
-                                                                        placeholder={DEFAULT_TEMPLATES.redemption}
-                                                                        className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none resize-none"
-                                                                    />
-                                                                </div>
-                                                                <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, redemption: DEFAULT_TEMPLATES.redemption } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition" title="Restaurar predeterminado">↺</button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => openPreview('redemption')}
-                                                                    className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
-                                                                    title="Previsualizar Email"
-                                                                >
-                                                                    <Eye size={18} />
-                                                                </button>
-                                                            </div>
-                                                            <VariableChips vars={['siteName', 'nombre', 'nombre_completo', 'premio', 'codigo']} onSelect={v => insertVar('redemption', v)} />
-                                                            <ChannelSelector
-                                                                channels={config.messaging?.eventConfigs?.redemption?.channels || []}
-                                                                onChange={(newChannels) => setConfig({
-                                                                    ...config,
-                                                                    messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, redemption: { channels: newChannels } } }
-                                                                })}
-                                                            />
-                                                        </div>
-
-                                                        {/* Welcome */}
-                                                        <div>
-                                                            <label className="block text-sm font-semibold text-gray-700 mb-2">Bienvenida (Nuevo Cliente)</label>
-                                                            <div className="flex gap-2">
-                                                                <div className="relative flex-1">
-                                                                    <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">👋</span>
-                                                                    <textarea
-                                                                        rows={2}
-                                                                        value={config.messaging?.templates?.welcome || ''}
-                                                                        onChange={e => setConfig({
-                                                                            ...config,
-                                                                            messaging: {
-                                                                                ...config.messaging!,
-                                                                                templates: { ...config.messaging?.templates, welcome: e.target.value }
-                                                                            }
-                                                                        })}
-                                                                        placeholder={DEFAULT_TEMPLATES.welcome}
-                                                                        className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none resize-none"
-                                                                    />
-                                                                </div>
-                                                                <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, welcome: DEFAULT_TEMPLATES.welcome } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition" title="Restaurar predeterminado">↺</button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => openPreview('welcome')}
-                                                                    className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
-                                                                    title="Previsualizar Email"
-                                                                >
-                                                                    <Eye size={18} />
-                                                                </button>
-                                                            </div>
-                                                            <VariableChips vars={['siteName', 'nombre', 'nombre_completo', 'puntos', 'socio', 'dni']} onSelect={v => insertVar('welcome', v)} />
-                                                            <ChannelSelector
-                                                                channels={config.messaging?.eventConfigs?.welcome?.channels || []}
-                                                                onChange={(newChannels) => setConfig({
-                                                                    ...config,
-                                                                    messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, welcome: { channels: newChannels } } }
-                                                                })}
-                                                            />
-                                                        </div>
-
-                                                        {/* Campaign Template */}
-                                                        <div>
-                                                            <label className="block text-sm font-semibold text-gray-700 mb-2">Promo Manual (Campaña)</label>
-                                                            <div className="flex gap-2">
-                                                                <div className="relative flex-1">
-                                                                    <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">🚀</span>
-                                                                    <textarea
-                                                                        rows={2}
-                                                                        value={config.messaging?.templates?.campaign || ''}
-                                                                        onChange={e => setConfig({
-                                                                            ...config,
-                                                                            messaging: {
-                                                                                ...config.messaging!,
-                                                                                templates: { ...config.messaging?.templates, campaign: e.target.value }
-                                                                            }
-                                                                        })}
-                                                                        placeholder={DEFAULT_TEMPLATES.campaign}
-                                                                        className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none resize-none"
-                                                                    />
-                                                                </div>
-                                                                <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, campaign: DEFAULT_TEMPLATES.campaign } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition" title="Restaurar predeterminado">↺</button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => openPreview('campaign')}
-                                                                    className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
-                                                                    title="Previsualizar Email"
-                                                                >
-                                                                    <Eye size={18} />
-                                                                </button>
-                                                            </div>
-                                                            <VariableChips vars={['siteName', 'titulo', 'descripcion']} onSelect={v => insertVar('campaign', v)} />
-                                                            <ChannelSelector
-                                                                channels={config.messaging?.eventConfigs?.campaign?.channels || []}
-                                                                onChange={(newChannels) => setConfig({
-                                                                    ...config,
-                                                                    messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, campaign: { channels: newChannels } } }
-                                                                })}
-                                                            />
-                                                        </div>
-
-                                                        {/* Offer Template */}
-                                                        <div>
-                                                            <label className="block text-sm font-semibold text-gray-700 mb-2">Oferta Especial</label>
-                                                            <div className="flex gap-2">
-                                                                <div className="relative flex-1">
-                                                                    <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">🔥</span>
-                                                                    <textarea
-                                                                        rows={2}
-                                                                        value={config.messaging?.templates?.offer || ''}
-                                                                        onChange={e => setConfig({
-                                                                            ...config,
-                                                                            messaging: {
-                                                                                ...config.messaging!,
-                                                                                templates: { ...config.messaging?.templates, offer: e.target.value }
-                                                                            }
-                                                                        })}
-                                                                        placeholder={DEFAULT_TEMPLATES.offer}
-                                                                        className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none resize-none"
-                                                                    />
-                                                                </div>
-                                                                <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, offer: DEFAULT_TEMPLATES.offer } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition" title="Restaurar predeterminado">↺</button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => openPreview('offer')}
-                                                                    className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
-                                                                    title="Previsualizar Email"
-                                                                >
-                                                                    <Eye size={18} />
-                                                                </button>
-                                                            </div>
-                                                            <VariableChips vars={['siteName', 'titulo', 'detalle', 'vencimiento']} onSelect={v => insertVar('offer', v)} />
-                                                            <ChannelSelector
-                                                                channels={config.messaging?.eventConfigs?.offer?.channels || []}
-                                                                onChange={(newChannels) => setConfig({
-                                                                    ...config,
-                                                                    messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, offer: { channels: newChannels } } }
-                                                                })}
-                                                            />
-                                                        </div>
-
-                                                        {/* Flash Offer Template */}
-                                                        <div>
-                                                            <label className="block text-sm font-semibold text-gray-700 mb-2 font-mono flex items-center gap-2">
-                                                                ⚡ Oferta Flash <span className="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full uppercase">Crítico / Urgente</span>
-                                                            </label>
-                                                            <div className="flex gap-2">
-                                                                <div className="relative flex-1">
-                                                                    <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">⚡</span>
-                                                                    <textarea
-                                                                        rows={2}
-                                                                        value={config.messaging?.templates?.flashOffer || ''}
-                                                                        onChange={e => setConfig({
-                                                                            ...config,
-                                                                            messaging: {
-                                                                                ...config.messaging!,
-                                                                                templates: { ...config.messaging?.templates, flashOffer: e.target.value }
-                                                                            }
-                                                                        })}
-                                                                        placeholder={DEFAULT_TEMPLATES.flashOffer}
-                                                                        className="w-full pl-10 pr-3 py-3 rounded-lg border border-yellow-200 focus:ring-2 focus:ring-yellow-100 outline-none resize-none"
-                                                                    />
-                                                                </div>
-                                                                <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, flashOffer: DEFAULT_TEMPLATES.flashOffer } } })} className="px-3 py-2 text-gray-400 hover:text-yellow-600 rounded-lg hover:bg-yellow-50 transition" title="Restaurar predeterminado">↺</button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => openPreview('flashOffer')}
-                                                                    className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
-                                                                    title="Previsualizar Email"
-                                                                >
-                                                                    <Eye size={18} />
-                                                                </button>
-                                                            </div>
-                                                            <VariableChips vars={['siteName', 'titulo', 'detalle', 'horario']} onSelect={v => insertVar('flashOffer', v)} />
-                                                            <p className="text-[10px] text-gray-400 mt-1 italic">
-                                                                * Se usa automáticamente para campañas marcadas como "Flash".
-                                                            </p>
-                                                        </div>
-
-                                                        {/* Birthday Template */}
-                                                        <div className="space-y-6">
-                                                            <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-                                                                <h4 className="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
-                                                                    🎂 Cumpleaños
-                                                                </h4>
-
-                                                                <div className="space-y-4">
-                                                                    {/* Full Gift Greeting */}
-                                                                    <div>
-                                                                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Mensaje CON Regalo (Puntos)</label>
-                                                                        <div className="flex gap-2">
-                                                                            <div className="relative flex-1">
-                                                                                <span className="absolute top-3 left-3 text-xl">🎁</span>
-                                                                                <textarea
-                                                                                    rows={2}
-                                                                                    value={config.messaging?.templates?.birthday || ''}
-                                                                                    onChange={e => setConfig({
-                                                                                        ...config,
-                                                                                        messaging: {
-                                                                                            ...config.messaging!,
-                                                                                            templates: { ...config.messaging?.templates, birthday: e.target.value }
-                                                                                        }
-                                                                                    })}
-                                                                                    placeholder={DEFAULT_TEMPLATES.birthday}
-                                                                                    className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-pink-100 outline-none resize-none text-sm"
-                                                                                />
-                                                                            </div>
-                                                                            <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, birthday: DEFAULT_TEMPLATES.birthday } } })} className="px-3 py-2 text-gray-300 hover:text-pink-600 transition" title="Restaurar predeterminado">↺</button>
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => openPreview('birthday')}
-                                                                                className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
-                                                                                title="Previsualizar Email"
-                                                                            >
-                                                                                <Eye size={18} />
-                                                                            </button>
-                                                                        </div>
-                                                                        <VariableChips vars={['siteName', 'nombre', 'nombre_completo', 'puntos']} onSelect={v => insertVar('birthday', v)} />
-                                                                    </div>
-
-                                                                    {/* Simple Greeting */}
-                                                                    <div className="pt-4 border-t border-gray-100">
-                                                                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Mensaje SIN Regalo (Solo Saludo)</label>
-                                                                        <div className="flex gap-2">
-                                                                            <div className="relative flex-1">
-                                                                                <span className="absolute top-3 left-3 text-xl">👋</span>
-                                                                                <textarea
-                                                                                    rows={2}
-                                                                                    value={config.messaging?.templates?.birthdaySimple || ''}
-                                                                                    onChange={e => setConfig({
-                                                                                        ...config,
-                                                                                        messaging: {
-                                                                                            ...config.messaging!,
-                                                                                            templates: { ...config.messaging?.templates, birthdaySimple: e.target.value }
-                                                                                        }
-                                                                                    })}
-                                                                                    placeholder={DEFAULT_TEMPLATES.birthdaySimple}
-                                                                                    className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none resize-none text-sm"
-                                                                                />
-                                                                            </div>
-                                                                            <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, birthdaySimple: DEFAULT_TEMPLATES.birthdaySimple } } })} className="px-3 py-2 text-gray-300 hover:text-blue-600 transition" title="Restaurar predeterminado">↺</button>
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => openPreview('birthdaySimple')}
-                                                                                className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
-                                                                                title="Previsualizar Email"
-                                                                            >
-                                                                                <Eye size={18} />
-                                                                            </button>
-                                                                        </div>
-                                                                        <VariableChips vars={['siteName', 'nombre', 'nombre_completo']} onSelect={v => insertVar('birthdaySimple', v)} />
-                                                                    </div>
-                                                                </div>
-
-                                                                <div className="mt-4 pt-4 border-t border-gray-100">
-                                                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Canales de Envío Automático</label>
-                                                                    <ChannelSelector
-                                                                        channels={config.messaging?.eventConfigs?.birthday?.channels || []}
-                                                                        onChange={(newChannels) => setConfig({
-                                                                            ...config,
-                                                                            messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, birthday: { channels: newChannels } } }
-                                                                        })}
-                                                                    />
-                                                                    <p className="text-[10px] text-gray-400 mt-2 italic">
-                                                                        * El sistema detecta automáticamente si enviar el mensaje con o sin puntos según la configuración de "Reglas de Juego".
-                                                                    </p>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <hr className="border-gray-50" />
-
-                                                        {/* Referral Reward Template */}
-                                                        <div>
-                                                            <label className="block text-sm font-semibold text-gray-700 mb-2">Recompensa por Referido</label>
-                                                            <div className="flex gap-2">
-                                                                <div className="relative flex-1">
-                                                                    <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">💎</span>
-                                                                    <textarea
-                                                                        rows={2}
-                                                                        value={config.messaging?.templates?.referralReward || ''}
-                                                                        onChange={e => setConfig({
-                                                                            ...config,
-                                                                            messaging: {
-                                                                                ...config.messaging!,
-                                                                                templates: { ...config.messaging?.templates, referralReward: e.target.value }
-                                                                            }
-                                                                        })}
-                                                                        placeholder={DEFAULT_TEMPLATES.referralReward}
-                                                                        className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none resize-none"
-                                                                    />
-                                                                </div>
-                                                                <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, referralReward: DEFAULT_TEMPLATES.referralReward } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition" title="Restaurar predeterminado">↺</button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => openPreview('referralReward')}
-                                                                    className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
-                                                                    title="Previsualizar Email"
-                                                                >
-                                                                    <Eye size={18} />
-                                                                </button>
-                                                            </div>
-                                                            <VariableChips vars={['siteName', 'nombre', 'amigo', 'puntos']} onSelect={v => insertVar('referralReward', v)} />
-                                                            <ChannelSelector
-                                                                channels={config.messaging?.eventConfigs?.referralReward?.channels || []}
-                                                                onChange={(newChannels) => setConfig({
-                                                                    ...config,
-                                                                    messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, referralReward: { channels: newChannels } } }
-                                                                })}
-                                                            />
-                                                        </div>
-
-                                                        {/* Referral Points Template (Puntos por referir) */}
-                                                        <div className="p-4 bg-orange-50/30 rounded-xl border border-orange-100">
-                                                            <label className="block text-sm font-semibold text-gray-700 mb-2">🎁 Puntos a Favor (Referidor)</label>
-                                                            <p className="text-[10px] text-gray-500 mb-2 leading-tight">Mismo evento que el anterior, pero enfocado en avisar los puntos ganados.</p>
-                                                            <div className="flex gap-2">
-                                                                <div className="relative flex-1">
-                                                                    <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">🚀</span>
-                                                                    <textarea
-                                                                        rows={2}
-                                                                        value={config.messaging?.templates?.referralPoints || ''}
-                                                                        onChange={e => setConfig({
-                                                                            ...config,
-                                                                            messaging: {
-                                                                                ...config.messaging!,
-                                                                                templates: { ...config.messaging?.templates, referralPoints: e.target.value }
-                                                                            }
-                                                                        })}
-                                                                        placeholder={DEFAULT_TEMPLATES.referralPoints}
-                                                                        className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-orange-100 outline-none resize-none"
-                                                                    />
-                                                                </div>
-                                                                <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, referralPoints: DEFAULT_TEMPLATES.referralPoints } } })} className="px-3 py-2 text-gray-400 hover:text-orange-600 rounded-lg hover:bg-orange-50 transition" title="Restaurar predeterminado">↺</button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => openPreview('referralPoints')}
-                                                                    className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
-                                                                    title="Previsualizar Email"
-                                                                >
-                                                                    <Eye size={18} />
-                                                                </button>
-                                                            </div>
-                                                            <VariableChips vars={['siteName', 'nombre', 'nombre_referido', 'puntos']} onSelect={v => insertVar('referralPoints', v)} />
-                                                        </div>
-
-                                                        {/* Referral Challenge Template */}
-                                                        <div className="p-4 bg-orange-50/50 rounded-xl border border-orange-200">
-                                                            <label className="block text-sm font-semibold text-gray-700 mb-2 font-mono flex items-center gap-2">
-                                                                ⚡ Desafío de Referidos <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full uppercase">Difusión Manual</span>
-                                                            </label>
-                                                            <p className="text-[10px] text-gray-500 mb-2 leading-tight">Envía este mensaje de forma manual para motivar a los usuarios durante un desafío activo.</p>
-                                                            <div className="flex gap-2">
-                                                                <div className="relative flex-1">
-                                                                    <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">🚀</span>
-                                                                    <textarea
-                                                                        rows={2}
-                                                                        value={config.messaging?.templates?.referralChallenge || ''}
-                                                                        onChange={e => setConfig({
-                                                                            ...config,
-                                                                            messaging: {
-                                                                                ...config.messaging!,
-                                                                                templates: { ...config.messaging?.templates, referralChallenge: e.target.value }
-                                                                            }
-                                                                        })}
-                                                                        placeholder={DEFAULT_TEMPLATES.referralChallenge || '¡Tenemos un nuevo desafío!'}
-                                                                        className="w-full pl-10 pr-3 py-3 rounded-lg border border-orange-200 focus:ring-2 focus:ring-orange-100 outline-none resize-none"
-                                                                    />
-                                                                </div>
-                                                                <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, referralChallenge: DEFAULT_TEMPLATES.referralChallenge } } })} className="px-3 py-2 text-gray-400 hover:text-orange-600 rounded-lg hover:bg-orange-50 transition" title="Restaurar predeterminado">↺</button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => openPreview('referralChallenge', '¡NUEVO DESAFÍO ACTIVO! 🚀')}
-                                                                    className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
-                                                                    title="Previsualizar Email"
-                                                                >
-                                                                    <Eye size={18} />
-                                                                </button>
-                                                            </div>
-                                                            <VariableChips vars={['siteName', 'nombre', 'nombre_completo', 'fecha_limite', 'puntos', 'meta']} onSelect={v => insertVar('referralChallenge', v)} />
-
-                                                            <div className="mt-4 flex flex-col sm:flex-row items-center gap-4 justify-between bg-white p-3 rounded-lg border border-orange-100">
-                                                                <div className="w-full sm:w-auto">
-                                                                    <ChannelSelector
-                                                                        channels={challengeChannels}
-                                                                        onChange={setChallengeChannels}
-                                                                    />
-                                                                </div>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={async () => {
-                                                                        const channelsStr = challengeChannels.join(', ') || 'Ninguno';
-                                                                        if (challengeChannels.length === 0) {
-                                                                            toast.error("Selecciona al menos un canal");
-                                                                            return;
-                                                                        }
-                                                                        if (!window.confirm(`¿Deseas difundir el desafío a todos los clientes a través de: ${channelsStr}?`)) return;
-
-                                                                        const toastId = toast.loading('Iniciando difusión...');
-                                                                        const title = '¡NUEVO DESAFÍO ACTIVO! 🚀';
-                                                                        const templateText = config.messaging?.templates?.referralChallenge || DEFAULT_TEMPLATES.referralChallenge || 'Desafío Activo';
-
-                                                                        try {
-                                                                            // Get challenge end date from config for {fecha_limite} replacement
-                                                                            const challengeEndDateRaw = config.referrals?.challenge?.endDate;
-                                                                            let expirationDateFormatted = 'pronto';
-                                                                            if (challengeEndDateRaw) {
-                                                                                const [year, month, day] = challengeEndDateRaw.split('-');
-                                                                                expirationDateFormatted = `${day}/${month}/${year}`;
-                                                                            }
-
-                                                                            const q = query(collection(db, 'users'));
-                                                                            const snap = await getDocs(q);
-
-                                                                            if (challengeChannels.includes('push')) {
-                                                                                const pushPromises = snap.docs.map(doc => {
-                                                                                    const d = doc.data();
-                                                                                    const userName = d.name || '';
-                                                                                    let personalizedMsg = templateText
-                                                                                        .replace(/{nombre}/g, userName.split(' ')[0])
-                                                                                        .replace(/{nombre_completo}/g, userName)
-                                                                                        .replace(/{fecha_limite}/g, expirationDateFormatted)
-                                                                                        .replace(/{vencimiento}/g, expirationDateFormatted)
-                                                                                        .replace(/{puntos}/g, config.referrals?.challenge?.tiers?.[0]?.bonus?.toString() || '0')
-                                                                                        .replace(/{meta}/g, config.referrals?.challenge?.tiers?.[0]?.count?.toString() || '0');
-
-                                                                                    return NotificationService.sendToClient(doc.id, {
-                                                                                        title: title,
-                                                                                        body: personalizedMsg,
-                                                                                        type: 'campaign',
-                                                                                        icon: config.logoUrl || '/pwa-192x192.png'
-                                                                                    });
-                                                                                });
-                                                                                await Promise.allSettled(pushPromises);
-                                                                            }
-
-                                                                            if (challengeChannels.includes('email')) {
-                                                                                const emailPromises = snap.docs.map(doc => {
-                                                                                    const d = doc.data();
-                                                                                    if (d.email) {
-                                                                                        const userName = d.name || '';
-                                                                                        let personalizedMsg = templateText
-                                                                                            .replace(/{nombre}/g, userName.split(' ')[0])
-                                                                                            .replace(/{nombre_completo}/g, userName)
-                                                                                            .replace(/{fecha_limite}/g, expirationDateFormatted)
-                                                                                            .replace(/{vencimiento}/g, expirationDateFormatted)
-                                                                                            .replace(/{puntos}/g, config.referrals?.challenge?.tiers?.[0]?.bonus?.toString() || '0')
-                                                                                            .replace(/{meta}/g, config.referrals?.challenge?.tiers?.[0]?.count?.toString() || '0');
-
-                                                                                        const htmlContent = EmailService.generateBrandedTemplate(config, title, personalizedMsg);
-                                                                                        return EmailService.sendEmail(d.email, title, htmlContent);
-                                                                                    }
-                                                                                    return null;
-                                                                                }).filter(Boolean);
-                                                                                await Promise.allSettled(emailPromises);
-                                                                            }
-
-                                                                            if (challengeChannels.includes('whatsapp')) {
-                                                                                let waMsg = templateText
-                                                                                    .replace(/{fecha_limite}/g, expirationDateFormatted)
-                                                                                    .replace(/{vencimiento}/g, expirationDateFormatted)
-                                                                                    .replace(/{puntos}/g, config.referrals?.challenge?.tiers?.[0]?.bonus?.toString() || '0')
-                                                                                    .replace(/{meta}/g, config.referrals?.challenge?.tiers?.[0]?.count?.toString() || '0');
-                                                                                navigate('/admin/whatsapp', { state: { message: waMsg } });
-                                                                            }
-
-                                                                            toast.success('¡Difusión completada!', { id: toastId });
-                                                                        } catch (e) {
-                                                                            toast.error('Error en la difusión', { id: toastId });
-                                                                        }
-                                                                    }}
-                                                                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-rose-600 text-white rounded-xl text-sm font-black shadow-lg shadow-orange-200 hover:scale-105 transition active:scale-95 whitespace-nowrap"
-                                                                >
-                                                                    <Megaphone size={18} />
-                                                                    ¡Difundir Desafío a Todos!
-                                                                </button>
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Points Expiration Warning Configuration */}
-                                                        <div className="pt-6 mt-6 border-t border-gray-100">
-                                                            <div className="flex items-center justify-between mb-4">
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="text-xl">📢</span>
-                                                                    <div>
-                                                                        <h3 className="text-sm font-bold text-gray-800 uppercase tracking-tight">Aviso de Vencimiento de Puntos</h3>
-                                                                        <div className="flex items-center gap-1 text-[10px] text-gray-400">
-                                                                            <span>Notifica a los socios</span>
-                                                                            <input
-                                                                                type="number"
-                                                                                min="1" max="90"
-                                                                                value={config.messaging?.expirationWarningDays || 7}
-                                                                                onChange={e => setConfig({
-                                                                                    ...config,
-                                                                                    messaging: { ...config.messaging!, expirationWarningDays: parseInt(e.target.value) || 7 }
-                                                                                })}
-                                                                                className="w-10 bg-transparent border-b border-gray-300 text-center font-bold focus:border-orange-500 outline-none text-orange-600"
-                                                                            />
-                                                                            <span>días antes de que pierdan sus puntos.</span>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setConfig({
-                                                                        ...config,
-                                                                        messaging: { ...config.messaging!, enableExpirationWarnings: !config.messaging?.enableExpirationWarnings }
-                                                                    })}
-                                                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.messaging?.enableExpirationWarnings ? 'bg-orange-500' : 'bg-gray-300'}`}
-                                                                >
-                                                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${config.messaging?.enableExpirationWarnings ? 'translate-x-6' : 'translate-x-1'}`} />
-                                                                </button>
-                                                            </div>
-
-                                                            {/* Itinerancy / Repeat Notifications Toggle */}
-                                                            <div className="mt-4 p-4 bg-orange-50/50 rounded-xl border border-orange-100 flex items-center justify-between mb-6">
-                                                                <div className="flex items-start gap-3">
-                                                                    <div className="p-2 bg-white rounded-lg shadow-sm">
-                                                                        <div className="w-5 h-5 flex items-center justify-center text-orange-600">🔁</div>
-                                                                    </div>
-                                                                    <div>
-                                                                        <h4 className="text-sm font-bold text-gray-800">Reenviar Avisos</h4>
-                                                                        <p className="text-[10px] text-gray-500 mt-1">
-                                                                            Si el cliente no abrió el aviso, ¿quieres que se le reenvíe cada X días hasta que lo vea o hasta que venzan los puntos?
-                                                                        </p>
-                                                                    </div>
-                                                                </div>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setConfig({
-                                                                        ...config,
-                                                                        messaging: { ...config.messaging!, repeatExpirationWarnings: !config.messaging?.repeatExpirationWarnings }
-                                                                    })}
-                                                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.messaging?.repeatExpirationWarnings ? 'bg-orange-500' : 'bg-gray-300'}`}
-                                                                >
-                                                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${config.messaging?.repeatExpirationWarnings ? 'translate-x-6' : 'translate-x-1'}`} />
-                                                                </button>
-                                                            </div>
-                                                            {/* Interval days input - visible when itinerancy is ON */}
-                                                            {config.messaging?.repeatExpirationWarnings && (
-                                                                <div className="mt-3 ml-10 p-3 bg-white rounded-lg border border-orange-100 animate-fade-in">
-                                                                    <label className="flex items-center gap-3">
-                                                                        <span className="text-xs font-bold text-orange-800 whitespace-nowrap">Recordar cada</span>
-                                                                        <input
-                                                                            type="number"
-                                                                            min={0}
-                                                                            max={30}
-                                                                            value={config.messaging?.expirationReminderIntervalDays ?? 5}
-                                                                            onChange={e => setConfig({
-                                                                                ...config,
-                                                                                messaging: { ...config.messaging!, expirationReminderIntervalDays: parseInt(e.target.value) || 0 }
-                                                                            })}
-                                                                            className="w-16 px-2 py-1 text-center text-sm font-bold border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-300 focus:outline-none"
-                                                                        />
-                                                                        <span className="text-xs text-orange-700">días después del primer aviso</span>
-                                                                    </label>
-                                                                    <p className="text-[10px] text-orange-600/60 mt-1.5 ml-0">
-                                                                        0 = reenviar siempre. Ej: con ventana de 10 días y recordatorio cada 5, se envía al día 1 y al día 6.
-                                                                    </p>
-                                                                </div>
-                                                            )}
-                                                            {config.messaging?.enableExpirationWarnings && (
-                                                                <div className="space-y-4 animate-fade-in text-left border-l-2 border-orange-100 pl-4">
-                                                                    <div className="flex gap-2">
-                                                                        <div className="relative flex-1">
-                                                                            <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">⏳</span>
-                                                                            <textarea
-                                                                                rows={2}
-                                                                                value={config.messaging?.templates?.expirationWarning || ''}
-                                                                                onChange={e => setConfig({
-                                                                                    ...config,
-                                                                                    messaging: {
-                                                                                        ...config.messaging!,
-                                                                                        templates: { ...config.messaging?.templates, expirationWarning: e.target.value }
-                                                                                    }
-                                                                                })}
-                                                                                placeholder={DEFAULT_TEMPLATES.expirationWarning}
-                                                                                className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-orange-100 outline-none resize-none text-sm"
-                                                                            />
-                                                                        </div>
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, expirationWarning: DEFAULT_TEMPLATES.expirationWarning } } })}
-                                                                            className="px-3 py-2 text-gray-400 hover:text-orange-600 rounded-lg hover:bg-orange-50 transition"
-                                                                            title="Restaurar predeterminado"
-                                                                        >
-                                                                            ↺
-                                                                        </button>
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => openPreview('expirationWarning')}
-                                                                            className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
-                                                                            title="Previsualizar Email"
-                                                                        >
-                                                                            <Eye size={18} />
-                                                                        </button>
-                                                                    </div>
-                                                                    <VariableChips vars={['siteName', 'nombre', 'puntos', 'fecha']} onSelect={v => insertVar('expirationWarning', v)} />
-
-                                                                    <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-100">
-                                                                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Canales de Envío</label>
-                                                                        <ChannelSelector
-                                                                            channels={config.messaging?.eventConfigs?.expirationWarning?.channels || []}
-                                                                            onChange={(newChannels) => setConfig({
-                                                                                ...config,
-                                                                                messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, expirationWarning: { channels: newChannels } } }
-                                                                            })}
-                                                                        />
-                                                                    </div>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Email Preview Button */}
-                                                    {config.messaging?.emailEnabled && (
-                                                        <div className="flex justify-end pt-4">
-                                                            <button
-                                                                type="button"
-                                                                onClick={handleTestEmail}
-                                                                className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 font-medium transition flex items-center gap-2"
-                                                            >
-                                                                <Monitor size={16} /> Ver Previsualización de Email
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
-
-                                            {activeTab === 'advanced' && (
-                                                <div className="max-w-4xl mx-auto py-12 space-y-8">
-                                                    {/* SECCIÓN HERRAMIENTAS DE TRABAJO */}
-                                                    <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
-                                                        <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                                                            <Clock size={22} className="text-purple-500" /> Herramientas de Trabajo
-                                                        </h3>
-                                                        <div className="space-y-6">
-                                                            <div className="flex items-center justify-between p-6 bg-purple-50/50 rounded-2xl border border-purple-100">
-                                                                <div className="flex-1">
-                                                                    <span className="text-sm font-bold text-gray-800 flex items-center gap-2">
-                                                                        Simulador de Fecha y Hora
-                                                                        <span className="text-[10px] bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full uppercase tracking-tighter">Dev Tool</span>
-                                                                    </span>
-                                                                    <p className="text-xs text-gray-500 mt-1">Activa un controlador en el menú lateral para adelantar o retrasar el tiempo del sistema. Útil para probar vencimientos de puntos y campañas.</p>
-                                                                </div>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setConfig({ ...config, enableDateSimulator: !config.enableDateSimulator })}
-                                                                    className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.enableDateSimulator ? 'bg-purple-600' : 'bg-gray-200'}`}
-                                                                >
-                                                                    <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enableDateSimulator ? 'translate-x-5' : 'translate-x-0'}`} />
-                                                                </button>
-                                                            </div>
-
-                                                            {/* SECCIÓN NUEVA: Control de Duplicados */}
-                                                            <div className="flex items-center justify-between p-6 bg-red-50/50 rounded-2xl border border-red-100">
-                                                                <div className="flex-1">
-                                                                    <span className="text-sm font-black text-red-900 uppercase flex items-center gap-2">
-                                                                        <Shield size={16} /> Control de Ejecución Diaria
-                                                                    </span>
-                                                                    <p className="text-[10px] text-red-600 font-bold mt-1">
-                                                                        Evita que el motor automático envíe avisos duplicados si se ejecuta varias veces el mismo día.
-                                                                    </p>
-                                                                </div>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setConfig({ ...config, enableDuplicateControl: config.enableDuplicateControl === undefined ? true : !config.enableDuplicateControl })}
-                                                                    className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.enableDuplicateControl !== false ? 'bg-red-600' : 'bg-gray-200'}`}
-                                                                >
-                                                                    <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enableDuplicateControl !== false ? 'translate-x-5' : 'translate-x-0'}`} />
-                                                                </button>
-                                                            </div>
-
-                                                            {/* Motor Automático Diario */}
-                                                            <div className="p-6 bg-blue-50/50 rounded-2xl border border-blue-100 space-y-4">
-                                                                <div className="flex items-center gap-3">
-                                                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold shadow-md shadow-blue-200">
-                                                                        <Settings size={20} />
-                                                                    </div>
-                                                                    <div>
-                                                                        <h4 className="text-md font-black text-gray-800 tracking-tight">Motor Automático Diario</h4>
-                                                                        <p className="text-xs text-gray-500 uppercase tracking-widest font-bold">Ventana de Ejecución</p>
-                                                                    </div>
-                                                                </div>
-                                                                <p className="text-sm text-gray-600 leading-relaxed">
-                                                                    Define el rango horario en el que el sistema tiene permitido revisar vencimientos y enviar felicitaciones de cumpleaños u ofertas automáticas (Ej: de 9 a 22 hs). Esto evita molestar a tus clientes con notificaciones de madrugada.
-                                                                </p>
-
-                                                                <div className="flex items-center gap-4 bg-white p-4 rounded-xl border border-blue-50">
-                                                                    <label className="flex flex-col flex-1">
-                                                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Empieza a las</span>
-                                                                        <div className="relative">
-                                                                            <input
-                                                                                type="number" min="0" max="23"
-                                                                                value={config.messaging?.engineAllowedStartHour ?? 9}
-                                                                                onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, engineAllowedStartHour: parseInt(e.target.value) || 0 } })}
-                                                                                className="w-full pl-3 pr-8 py-2 text-xl font-black text-gray-800 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
-                                                                            />
-                                                                            <span className="absolute right-3 top-2.5 font-bold text-gray-400">hs</span>
-                                                                        </div>
-                                                                    </label>
-                                                                    <span className="text-gray-300 font-black">—</span>
-                                                                    <label className="flex flex-col flex-1">
-                                                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Corta a las</span>
-                                                                        <div className="relative">
-                                                                            <input
-                                                                                type="number" min="0" max="23"
-                                                                                value={config.messaging?.engineAllowedEndHour ?? 22}
-                                                                                onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, engineAllowedEndHour: parseInt(e.target.value) || 0 } })}
-                                                                                className="w-full pl-3 pr-8 py-2 text-xl font-black text-gray-800 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
-                                                                            />
-                                                                            <span className="absolute right-3 top-2.5 font-bold text-gray-400">hs</span>
-                                                                        </div>
-                                                                    </label>
-                                                                </div>
-
-                                                                <div className="mt-4 pt-4 border-t border-blue-100 flex flex-col gap-3">
-                                                                    <p className="text-xs font-bold text-blue-800 uppercase tracking-widest mb-1">Gatillos (Triggers) de Ejecución</p>
-                                                                    <label className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-50 hover:bg-blue-50/50 transition-colors cursor-pointer">
-                                                                        <div>
-                                                                            <span className="text-sm font-bold text-gray-700 block">Ejecución en Dashboard</span>
-                                                                            <span className="text-[10px] text-gray-500">Intenta arrancar en segundo plano al abrir este panel de Admin.</span>
-                                                                        </div>
-                                                                        <input
-                                                                            type="checkbox"
-                                                                            className="w-5 h-5 text-blue-600 rounded"
-                                                                            checked={config.messaging?.enableDashboardTrigger !== false}
-                                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, enableDashboardTrigger: e.target.checked } })}
-                                                                        />
-                                                                    </label>
-                                                                    <label className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-50 hover:bg-blue-50/50 transition-colors cursor-pointer">
-                                                                        <div>
-                                                                            <span className="text-sm font-bold text-gray-700 block">Ejecución en PWA (Clientes)</span>
-                                                                            <span className="text-[10px] text-gray-500">Un cliente real puede despabilar el motor de forma silenciosa.</span>
-                                                                        </div>
-                                                                        <input
-                                                                            type="checkbox"
-                                                                            className="w-5 h-5 text-blue-600 rounded"
-                                                                            checked={config.messaging?.enableClientTrigger !== false}
-                                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, enableClientTrigger: e.target.checked } })}
-                                                                        />
-                                                                    </label>
-                                                                    <label className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-50 hover:bg-blue-50/50 transition-colors cursor-pointer">
-                                                                        <div>
-                                                                            <span className="text-sm font-bold text-gray-700 block">Ejecución en Extensión</span>
-                                                                            <span className="text-[10px] text-gray-500">El plugin de Chrome del mostrador arranca el motor si no se usó hoy.</span>
-                                                                        </div>
-                                                                        <input
-                                                                            type="checkbox"
-                                                                            className="w-5 h-5 text-blue-600 rounded"
-                                                                            checked={config.messaging?.enableExtensionTrigger !== false}
-                                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, enableExtensionTrigger: e.target.checked } })}
-                                                                        />
-                                                                    </label>
-
-                                                                    <label className="flex items-center justify-between p-3 bg-purple-50 rounded-lg border border-purple-100 hover:bg-purple-100/50 transition-colors cursor-pointer">
-                                                                        <div>
-                                                                            <span className="text-sm font-bold text-gray-700 block">Ejecución vía QStash (Cron Externo)</span>
-                                                                            <span className="text-[10px] text-gray-500">Habilita las llamadas que vienen desde el servicio Upstash.</span>
-                                                                        </div>
-                                                                        <input
-                                                                            type="checkbox"
-                                                                            className="w-5 h-5 text-purple-600 rounded"
-                                                                            checked={config.messaging?.enableQStashTrigger !== false}
-                                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, enableQStashTrigger: e.target.checked } })}
-                                                                        />
-                                                                    </label>
-
-                                                                    {/* Guía de QStash */}
-                                                                    <div className="mt-4 p-5 bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl text-white shadow-xl">
-                                                                        <div className="flex items-center gap-2 mb-3 text-emerald-400">
-                                                                            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                                                                            <span className="text-[10px] font-black uppercase tracking-[0.2em]">Configuración QStash</span>
-                                                                        </div>
-                                                                        <p className="text-xs text-gray-400 mb-4 leading-relaxed">
-                                                                            Para automatizar el motor, configurá un <b>Schedule</b> en Upstash con estos datos:
-                                                                        </p>
-                                                                        <div className="space-y-3">
-                                                                            <div className="space-y-1">
-                                                                                <span className="text-[9px] text-gray-500 font-bold uppercase">Destination URL</span>
-                                                                                <div className="flex gap-2">
-                                                                                    <code className="text-[10px] bg-white/10 p-2 rounded-lg flex-1 break-all flex items-center">
-                                                                                        {`https://fidelidad-next.vercel.app/api/engine-daily?mode=daily&trigger=qstash`}
-                                                                                    </code>
-                                                                                    <button
-                                                                                        onClick={() => {
-                                                                                            navigator.clipboard.writeText(`https://fidelidad-next.vercel.app/api/engine-daily?mode=daily&trigger=qstash`);
-                                                                                            alert("URL Copiada");
-                                                                                        }}
-                                                                                        className="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
-                                                                                    >
-                                                                                        <Settings size={14} />
-                                                                                    </button>
-                                                                                </div>
-                                                                            </div>
-                                                                            <div className="space-y-1">
-                                                                                <span className="text-[9px] text-gray-500 font-bold uppercase">Headers</span>
-                                                                                <code className="text-[10px] bg-white/10 p-2 rounded-lg block border border-white/5">
-                                                                                    Upstash-Forward-x-api-key: [Tu API_SECRET_KEY]
-                                                                                </code>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* SECCIÓN RESPALDOS */}
-                                                    <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
-                                                        <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                                                            <ShieldAlert size={22} className="text-blue-500" /> Puntos de Restauración (Backups)
-                                                        </h3>
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                            <div className="space-y-4">
-                                                                <p className="text-sm text-gray-500">Guarda una copia de seguridad de tu marca, reglas y catálogo para estar seguro antes de un reset.</p>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handleResetAction('backup')}
-                                                                    className="w-full flex items-center justify-center gap-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white py-3 rounded-xl font-bold transition-all"
-                                                                >
-                                                                    <Save size={18} /> Crear Punto de Respaldo
-                                                                </button>
-                                                            </div>
-                                                            <div className="space-y-4 border-l border-gray-100 pl-6">
-                                                                <p className="text-sm text-gray-500">¿Algo salió mal? Vuelve a la configuración estructural guardada anteriormente.</p>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handleResetAction('restore')}
-                                                                    className="w-full flex items-center justify-center gap-2 bg-gray-50 text-gray-600 hover:bg-black hover:text-white py-3 rounded-xl font-bold transition-all"
-                                                                >
-                                                                    <RefreshCw size={18} /> Restaurar Configuración Anterior
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* SECCIÓN RESET MAESTRO */}
-                                                    <div className="bg-red-50/30 border-2 border-red-100 rounded-3xl p-10 space-y-8">
-                                                        <div className="text-center space-y-2">
-                                                            <h3 className="text-2xl font-black text-gray-800">Reset Maestro Granular</h3>
-                                                            <p className="text-gray-500">Selecciona los elementos que deseas limpiar. Las acciones en rojo son irreversibles.</p>
-                                                        </div>
-
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                            {/* Grupo 1: Socios */}
-                                                            <div className="bg-white p-6 rounded-2xl border border-red-50 space-y-4">
-                                                                <h4 className="font-bold text-gray-800 flex items-center gap-2 border-b pb-2 mb-4">
-                                                                    <Users size={18} className="text-red-500" /> Socios y Actividad
-                                                                </h4>
-                                                                <div className="space-y-3">
-                                                                    <label className="flex items-center gap-3 cursor-pointer group">
-                                                                        <input type="checkbox" checked={resetOptions.socios_total} onChange={e => setResetOptions({ ...resetOptions, socios_total: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-red-600" />
-                                                                        <div>
-                                                                            <span className="block text-sm font-bold text-gray-700 group-hover:text-red-600">Borrar Socios por Completo</span>
-                                                                            <span className="text-[10px] text-gray-400 uppercase">Elimina cuentas y acceso PWA</span>
-                                                                        </div>
-                                                                    </label>
-                                                                    <label className="flex items-center gap-3 cursor-pointer group">
-                                                                        <input type="checkbox" checked={resetOptions.socios_historial} onChange={e => setResetOptions({ ...resetOptions, socios_historial: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-red-600" />
-                                                                        <div>
-                                                                            <span className="block text-sm font-bold text-gray-700 group-hover:text-red-600">Vaciar Historial y Puntos</span>
-                                                                            <span className="text-[10px] text-gray-400 uppercase">Resetea saldos a 0 manteniendo socios</span>
-                                                                        </div>
-                                                                    </label>
-                                                                    <label className="flex items-center gap-3 cursor-pointer group">
-                                                                        <input type="checkbox" checked={resetOptions.socios_mensajes} onChange={e => setResetOptions({ ...resetOptions, socios_mensajes: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-red-600" />
-                                                                        <div>
-                                                                            <span className="block text-sm font-bold text-gray-700 group-hover:text-red-600">Limpiar Mensajes Enviados</span>
-                                                                            <span className="text-[10px] text-gray-400 uppercase">Borra el buzón de entrada de los clientes</span>
-                                                                        </div>
-                                                                    </label>
-                                                                    <label className="flex items-center gap-3 cursor-pointer group">
-                                                                        <input type="checkbox" checked={resetOptions.geo_total} onChange={e => setResetOptions({ ...resetOptions, geo_total: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-red-600" />
-                                                                        <div>
-                                                                            <span className="block text-sm font-bold text-gray-700 group-hover:text-red-600">Borrar Datos Geográficos</span>
-                                                                            <span className="text-[10px] text-gray-400 uppercase">Historial de GPS (Geo_Raw)</span>
-                                                                        </div>
-                                                                    </label>
-                                                                    <label className="flex items-center gap-3 cursor-pointer group">
-                                                                        <input type="checkbox" checked={resetOptions.transacciones_total} onChange={e => setResetOptions({ ...resetOptions, transacciones_total: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-red-600" />
-                                                                        <div>
-                                                                            <span className="block text-sm font-bold text-gray-700 group-hover:text-red-600">Limpiar Transacciones Globales</span>
-                                                                            <span className="text-[10px] text-gray-400 uppercase">Reset de Métricas (Transactions)</span>
-                                                                        </div>
-                                                                    </label>
-                                                                </div>
-                                                            </div>
-
-                                                            {/* Grupo 2: Estructura */}
-                                                            <div className="bg-white p-6 rounded-2xl border border-red-50 space-y-4">
-                                                                <h4 className="font-bold text-gray-800 flex items-center gap-2 border-b pb-2 mb-4">
-                                                                    <Settings size={18} className="text-gray-600" /> Estructura y Configuración
-                                                                </h4>
-                                                                <div className="space-y-3">
-                                                                    <label className="flex items-center gap-3 cursor-pointer group">
-                                                                        <input type="checkbox" checked={resetOptions.marca_total} onChange={e => setResetOptions({ ...resetOptions, marca_total: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-blue-600" />
-                                                                        <div>
-                                                                            <span className="block text-sm font-bold text-gray-700 group-hover:text-blue-600">Reset de Identidad Visual</span>
-                                                                            <span className="text-[10px] text-gray-400 uppercase">Vuelve a colores y logo de fábrica</span>
-                                                                        </div>
-                                                                    </label>
-                                                                    <label className="flex items-center gap-3 cursor-pointer group">
-                                                                        <input type="checkbox" checked={resetOptions.gamification_total} onChange={e => setResetOptions({ ...resetOptions, gamification_total: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-blue-600" />
-                                                                        <div>
-                                                                            <span className="block text-sm font-bold text-gray-700 group-hover:text-blue-600">Reset de Reglas de Juego</span>
-                                                                            <span className="text-[10px] text-gray-400 uppercase">Valor de punto y bonos default</span>
-                                                                        </div>
-                                                                    </label>
-                                                                    <label className="flex items-center gap-3 cursor-pointer group">
-                                                                        <input type="checkbox" checked={resetOptions.prizes_total} onChange={e => setResetOptions({ ...resetOptions, prizes_total: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-red-600" />
-                                                                        <div>
-                                                                            <span className="block text-sm font-bold text-gray-700 group-hover:text-red-600">Borrar Catálogo de Premios</span>
-                                                                            <span className="text-[10px] text-gray-400 uppercase">Elimina todos los beneficios creados</span>
-                                                                        </div>
-                                                                    </label>
-                                                                    <label className="flex items-center gap-3 cursor-pointer group">
-                                                                        <input type="checkbox" checked={resetOptions.campaigns_total} onChange={e => setResetOptions({ ...resetOptions, campaigns_total: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-red-600" />
-                                                                        <div>
-                                                                            <span className="block text-sm font-bold text-gray-700 group-hover:text-red-600">Borrar Campañas y Promos</span>
-                                                                            <span className="text-[10px] text-gray-400 uppercase">Elimina multiplicadores y bonos</span>
-                                                                        </div>
-                                                                    </label>
-                                                                    <label className="flex items-center gap-3 cursor-pointer group">
-                                                                        <input type="checkbox" checked={resetOptions.team_total} onChange={e => setResetOptions({ ...resetOptions, team_total: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-red-600" />
-                                                                        <div>
-                                                                            <span className="block text-sm font-bold text-gray-700 group-hover:text-red-600">Borrar Equipo (Admins)</span>
-                                                                            <span className="text-[10px] text-gray-400 uppercase">Mantiene solo tu acceso actual</span>
-                                                                        </div>
-                                                                    </label>
-                                                                    <label className="flex items-center gap-3 cursor-pointer group">
-                                                                        <input type="checkbox" checked={resetOptions.legales_total} onChange={e => setResetOptions({ ...resetOptions, legales_total: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-gray-600" />
-                                                                        <div>
-                                                                            <span className="block text-sm font-bold text-gray-700 group-hover:text-gray-950">Reset de Términos Legales</span>
-                                                                            <span className="text-[10px] text-gray-400 uppercase">Vuelve al texto legal estándar</span>
-                                                                        </div>
-                                                                    </label>
-                                                                    <label className="flex items-center gap-3 cursor-pointer group">
-                                                                        <input type="checkbox" checked={resetOptions.audit_total} onChange={e => setResetOptions({ ...resetOptions, audit_total: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-red-600" />
-                                                                        <div>
-                                                                            <span className="block text-sm font-bold text-gray-700 group-hover:text-red-600">Limpiar Logs de Auditoría</span>
-                                                                            <span className="text-[10px] text-gray-400 uppercase">Borra TODO el historial de acciones y errores</span>
-                                                                        </div>
-                                                                    </label>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="flex flex-col items-center gap-4 pt-6 border-t border-red-100">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => handleResetAction('reset')}
-                                                                disabled={isReadOnly}
-                                                                className="w-full md:w-2/3 bg-red-600 hover:bg-black text-white py-4 rounded-2xl font-black text-xl transition-all shadow-xl shadow-red-200 flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"
-                                                            >
-                                                                <Trash2 size={24} /> Ejecutar Reset de Selección
-                                                            </button>
-                                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">⚠️ Esta acción puede ser permanente según tu selección</p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            <div className="fixed bottom-6 right-6 z-40">
-                                                <button
-                                                    disabled={loading}
-                                                    type="submit"
-                                                    className="bg-gray-900 hover:bg-black text-white px-8 py-4 rounded-full font-bold shadow-2xl flex items-center gap-3 transition-transform hover:-translate-y-1 active:scale-95"
-                                                >
-                                                    {loading ? 'Guardando...' : <><Save size={20} /> Guardar Todo</>}
-                                                </button>
-                                            </div>
-                                        </form>
-                                        <EmailPreviewModal
-                                            isOpen={previewModal.isOpen}
-                                            onClose={() => setPreviewModal({ ...previewModal, isOpen: false })}
-                                            config={config}
-                                            templateId={previewModal.templateId}
-                                            templateTitle={previewModal.title}
-                                            templateContent={previewModal.content}
-                                        />
                                     </div>
-                                );
-                            };
+                                </div>
+                            </div>
+
+                            {/* SECCIÓN RESPALDOS */}
+                            <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                                <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                                    <ShieldAlert size={22} className="text-blue-500" /> Backups
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <button type="button" onClick={() => handleResetAction('backup')} className="flex items-center justify-center gap-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white py-3 rounded-xl font-bold transition-all">
+                                        <Save size={18} /> Crear Respaldo
+                                    </button>
+                                    <button type="button" onClick={() => handleResetAction('restore')} className="flex items-center justify-center gap-2 bg-gray-50 text-gray-600 hover:bg-black hover:text-white py-3 rounded-xl font-bold transition-all">
+                                        <RefreshCw size={18} /> Restaurar Anterior
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* SECCIÓN RESET MAESTRO */}
+                            <div className="bg-red-50/30 border-2 border-red-100 rounded-3xl p-10 space-y-8">
+                                <div className="text-center space-y-2">
+                                    <h3 className="text-2xl font-black text-gray-800">Reset Maestro Granular</h3>
+                                    <p className="text-gray-500">Selecciona los elementos que deseas limpiar.</p>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="bg-white p-6 rounded-2xl border border-red-50 space-y-4">
+                                        <h4 className="font-bold text-gray-800 border-b pb-2 mb-4 flex items-center gap-2"><Users size={18} className="text-red-500" /> Socios</h4>
+                                        <div className="space-y-3">
+                                            {['socios_total', 'socios_historial', 'socios_mensajes', 'geo_total', 'transacciones_total'].map(opt => (
+                                                <label key={opt} className="flex items-center gap-3 cursor-pointer group">
+                                                    <input type="checkbox" checked={resetOptions[opt]} onChange={e => setResetOptions({ ...resetOptions, [opt]: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-red-600" />
+                                                    <span className="text-sm font-bold text-gray-700 group-hover:text-red-600 uppercase">{opt.replace('_', ' ')}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="bg-white p-6 rounded-2xl border border-red-50 space-y-4">
+                                        <h4 className="font-bold text-gray-800 border-b pb-2 mb-4 flex items-center gap-2"><Settings size={18} className="text-gray-600" /> Estructura</h4>
+                                        <div className="space-y-3">
+                                            {['marca_total', 'gamification_total', 'prizes_total', 'campaigns_total', 'team_total', 'legales_total', 'audit_total'].map(opt => (
+                                                <label key={opt} className="flex items-center gap-3 cursor-pointer group">
+                                                    <input type="checkbox" checked={resetOptions[opt]} onChange={e => setResetOptions({ ...resetOptions, [opt]: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-blue-600" />
+                                                    <span className="text-sm font-bold text-gray-700 group-hover:text-blue-600 uppercase">{opt.replace('_', ' ')}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col items-center gap-4 pt-6 border-t border-red-100">
+                                    <button onClick={() => handleResetAction('reset')} disabled={isReadOnly} className="w-full md:w-2/3 bg-red-600 hover:bg-black text-white py-4 rounded-2xl font-black text-xl transition-all shadow-xl flex items-center justify-center gap-3 disabled:opacity-50">
+                                        <Trash2 size={24} /> Ejecutar Reset
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                }
+
+                <div className="fixed bottom-6 right-6 z-40">
+                    <button
+                        disabled={loading}
+                        className="bg-gray-900 hover:bg-black text-white px-8 py-4 rounded-full font-bold shadow-2xl flex items-center gap-3 transition-transform hover:-translate-y-1 active:scale-95"
+                    >
+                        {loading ? 'Guardando...' : <><Save size={20} /> Guardar Todo</>}
+                    </button>
+                </div>
+            </form >
+
+            <EmailPreviewModal
+                isOpen={previewModal.isOpen}
+                onClose={() => setPreviewModal({ ...previewModal, isOpen: false })}
+                config={config}
+                templateId={previewModal.templateId}
+                templateTitle={previewModal.title}
+                templateContent={previewModal.content}
+            />
+        </div >
+    );
+};

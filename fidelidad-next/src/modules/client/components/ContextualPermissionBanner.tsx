@@ -30,7 +30,12 @@ export const ContextualPermissionBanner = ({
         if (sessionStorage.getItem(SESSION_KEYS[type]) === 'true') return;
 
         const status = userData.permissions?.[type]?.status;
-        if (status === 'granted' || status === 'blocked' || status === 'dismissed') return;
+        const nextPrompt = userData.permissions?.[type]?.nextPrompt || 0;
+
+        if (status === 'granted' || status === 'blocked') return;
+
+        // Si está en 'dismissed' o 'denied', solo mostrar si ya pasó el tiempo de espera
+        if ((status === 'dismissed' || status === 'denied') && Date.now() < nextPrompt) return;
 
         const configKey = type === 'notifications' ? 'enableContextualNotifPrompt' : 'enableContextualGeoPrompt';
         if (config?.messaging?.[configKey] === false) return;

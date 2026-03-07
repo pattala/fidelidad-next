@@ -106,7 +106,11 @@ async function handleSendEmail(req, res, db) {
         // Audit
         let userId = 'unknown', userName = 'Socio';
         const userQuery = await db.collection('users').where('email', '==', to).limit(1).get();
-        if (!userQuery.empty) { userId = userQuery.docs[0].id; userName = userQuery.docs[0].data()?.name || 'Socio'; }
+        if (!userQuery.empty) {
+            const userSnap = userQuery.docs[0];
+            userId = userSnap.id;
+            userName = userSnap.data()?.name || userSnap.data()?.nombre || 'Socio';
+        }
         await db.collection('audit_logs').add({ timestamp: admin.firestore.FieldValue.serverTimestamp(), type: 'email_notification', status: 'success', summary: `Email enviado a ${userName} (${to}): "${subject}"`, details: [{ userId, userName, to, subject, messageId: sendInfo.messageId }], executor: executor || 'system' });
         return res.status(200).json({ ok: true, messageId: sendInfo.messageId });
     } catch (e) { return res.status(500).json({ ok: false, error: e.message }); }

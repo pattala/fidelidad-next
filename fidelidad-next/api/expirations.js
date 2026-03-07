@@ -158,7 +158,7 @@ async function handleCheck(req, res, db) {
                 if (totalExpired > 0) {
                     logResults.expiredPoints += totalExpired;
                     logResults.expiredUsersCount++;
-                    logResults.details.push({ userId, userName: userData?.name || 'Socio', action: 'points_subtracted', status: 'success', info: `${totalExpired} pts vencidos` });
+                    logResults.details.push({ userId, userName: userData?.name || userData?.nombre || 'Socio', action: 'points_subtracted', status: 'success', info: `${totalExpired} pts vencidos` });
                     batch.set(historyRef.doc(), { amount: -totalExpired, concept: 'Vencimiento de puntos acumulados (Auto)', date: now, type: 'debit', isExpirationAdjustment: true });
                     batch.update(userDoc.ref, { points: admin.firestore.FieldValue.increment(-totalExpired) });
                     await batch.commit();
@@ -240,7 +240,7 @@ async function handleCheck(req, res, db) {
                     logResults.notified++;
                     logResults.details.push({
                         userId: userDoc.id,
-                        userName: userData?.name || 'Socio',
+                        userName: userData?.name || userData?.nombre || 'Socio',
                         action: 'expiration_warning',
                         status: 'success',
                         info: `${totalImpendingAmount} pts vencen ${displayDate}`,

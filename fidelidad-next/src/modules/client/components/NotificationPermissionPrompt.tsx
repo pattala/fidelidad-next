@@ -42,66 +42,6 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
         return () => clearTimeout(timer);
     }, [user, userData]);
 
-    const checkNextStep = () => {
-        // Leer siempre directo de sessionStorage para evitar stale state
-        const isDismissedNotif = sessionStorage.getItem('dismissed_notif_prompt') === 'true';
-        const isDismissedGeo = sessionStorage.getItem('dismissed_geo_prompt') === 'true';
-
-        const permissions = userData?.permissions || {};
-
-        // 1. Check Notifications
-        const notifStatus = permissions.notifications?.status || 'pending';
-        const notifNextPrompt = permissions.notifications?.nextPrompt || 0;
-        const notifBlocked = notifStatus === 'blocked';
-
-        // Auto-sincronizar si el navegador ya tiene el permiso concedido o denegado
-        if (Notification.permission === 'granted' && notifStatus !== 'granted') {
-            updatePermission('notifications', 'granted');
-            // No mostramos nada para notif, pasamos a geo
-        } else if (Notification.permission === 'denied') {
-            // El navegador lo bloqueó, no preguntar
-        } else {
-            // Lógica simple: 
-            // 'pending' o 'later' → siempre mostrar (es la 1ra o 2da oportunidad)
-            // 'dismissed' → solo si pasaron los días configurados
-            let showNotif = false;
-            if (notifStatus === 'pending' || notifStatus === 'later') {
-                showNotif = true;
-            } else if (notifStatus === 'dismissed' && Date.now() > notifNextPrompt) {
-                showNotif = true;
-            } else if (notifStatus === 'denied' && Date.now() > notifNextPrompt) {
-                showNotif = true;
-            }
-
-            if (showNotif && !isDismissedNotif && !notifBlocked) {
-                setStep('notifications');
-                return;
-            }
-        }
-
-        // 2. Check Geolocation
-        const geoStatus = permissions.geolocation?.status || 'pending';
-        const geoNextPrompt = permissions.geolocation?.nextPrompt || 0;
-        const geoBlocked = geoStatus === 'blocked';
-
-        let showGeo = false;
-        if (geoStatus === 'pending' || geoStatus === 'later') {
-            showGeo = true;
-        } else if (geoStatus === 'dismissed' && Date.now() > geoNextPrompt) {
-            showGeo = true;
-        } else if (geoStatus === 'denied' && Date.now() > geoNextPrompt) {
-            showGeo = true;
-        }
-
-        if (showGeo && !isDismissedGeo && !geoBlocked) {
-            setStep('geolocation');
-            return;
-        }
-
-        setStep('none');
-    };
-
-
     const updatePermission = async (type: 'notifications' | 'geolocation', status: string, nextPrompt: number = 0) => {
         if (!user) return;
         const ref = doc(db, 'users', user.uid);
@@ -127,6 +67,63 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
             console.error("Error updating permission:", e);
         }
     };
+
+    const checkNextStep = () => {
+        // Leer siempre directo de sessionStorage para evitar stale state
+        const isDismissedNotif = sessionStorage.getItem('dismissed_notif_prompt') === 'true';
+        const isDismissedGeo = sessionStorage.getItem('dismissed_geo_prompt') === 'true';
+
+        const permissions = userData?.permissions || {};
+
+        // 1. Check Notifications
+        const notifStatus = permissions.notifications?.status || 'pending';
+        const notifNextPrompt = permissions.notifications?.nextPrompt || 0;
+        const notifBlocked = notifStatus === 'blocked';
+
+        // Auto-sincronizar si el navegador ya tiene el permiso concedido o denegado
+        if (Notification.permission === 'granted' && notifStatus !== 'granted') {
+            updatePermission('notifications', 'granted');
+            // No mostramos nada para notif, pasamos a geo
+        } else if (Notification.permission === 'denied') {
+            // El navegador lo bloqueó, no preguntar
+        }
+
+        // Lógica: 
+        // - 'pending' o 'later' → mostrar (1ra o 2da oportunidad)
+        // - 'dismissed' → volver a mostrar solo si ya pasó el periodo de standby (RE-INTENTO)
+        const isNotifStandbyOver = notifStatus === 'dismissed' && Date.now() >= notifNextPrompt;
+        let showNotif = false;
+        const isNotifAvailable = typeof Notification !== 'undefined' && Notification.permission === 'default';
+
+        if (isNotifAvailable && (notifStatus === 'pending' || notifStatus === 'later' || isNotifStandbyOver)) {
+            showNotif = true;
+        }
+
+        if (showNotif && !isDismissedNotif && !notifBlocked) {
+            setStep('notifications');
+            return;
+        }
+
+        // 2. Check Geolocation
+        const geoStatus = permissions.geolocation?.status || 'pending';
+        const geoNextPrompt = permissions.geolocation?.nextPrompt || 0;
+        const geoBlocked = geoStatus === 'blocked';
+
+        const isGeoStandbyOver = geoStatus === 'dismissed' && Date.now() >= geoNextPrompt;
+        let showGeo = false;
+
+        if (geoStatus === 'pending' || geoStatus === 'later' || isGeoStandbyOver) {
+            showGeo = true;
+        }
+
+        if (showGeo && !isDismissedGeo && !geoBlocked) {
+            setStep('geolocation');
+            return;
+        }
+
+        setStep('none');
+    };
+
 
     const handleYes = async () => {
         if (step === 'notifications') {

@@ -1645,89 +1645,84 @@ export const ConfigPage = () => {
                                 </h3>
 
                                 <div className="space-y-6">
-                                    {/* Notifications Logic */}
-                                    <div className="flex items-start gap-4 p-4 bg-purple-50/50 rounded-xl border border-purple-100">
-                                        <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 shrink-0">
-                                            <Bell size={20} />
+                                    {/* 1. RE-INTENTO (Standby) */}
+                                    <div className="bg-purple-50/30 p-6 rounded-2xl border border-purple-100/50">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
+                                                    <Bell size={20} />
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-black text-gray-800 uppercase tracking-tighter">RE-INTENTO DE PERMISOS PWA</h4>
+                                                    <p className="text-xs text-gray-500">Volver a mostrar carteles si el cliente eligió "Quizás Luego".</p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setConfig({
+                                                    ...config,
+                                                    messaging: {
+                                                        ...config.messaging!,
+                                                        enablePermissionPromptRepetition: !config.messaging?.enablePermissionPromptRepetition
+                                                    }
+                                                })}
+                                                className={`relative w-12 h-7 transition-colors rounded-full ${config.messaging?.enablePermissionPromptRepetition ? 'bg-purple-600' : 'bg-gray-200'}`}
+                                            >
+                                                <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.messaging?.enablePermissionPromptRepetition ? 'translate-x-5' : 'translate-x-0'}`} />
+                                            </button>
                                         </div>
-                                        <div className="flex-1">
-                                            <div className="flex items-center justify-between">
-                                                <span className="font-bold text-gray-800">Notificaciones Push</span>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setConfig({
+
+                                        <div className="bg-white p-4 rounded-xl border border-purple-100 flex items-center gap-6">
+                                            <div className="w-24 h-16 bg-purple-50/50 rounded-lg border border-purple-100 flex items-center justify-center">
+                                                <input
+                                                    type="number"
+                                                    min="1" max="365"
+                                                    value={config.messaging?.notificationPromptIntervalDays || 30}
+                                                    onChange={e => setConfig({
                                                         ...config,
-                                                        messaging: {
-                                                            ...config.messaging!,
-                                                            enablePermissionPromptRepetition: !config.messaging?.enablePermissionPromptRepetition
-                                                        }
+                                                        messaging: { ...config.messaging!, notificationPromptIntervalDays: parseInt(e.target.value) || 30 }
                                                     })}
-                                                    className={`relative w-10 h-6 transition-colors rounded-full ${config.messaging?.enablePermissionPromptRepetition ? 'bg-purple-600' : 'bg-gray-200'}`}
-                                                >
-                                                    <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${config.messaging?.enablePermissionPromptRepetition ? 'translate-x-4' : 'translate-x-0'}`} />
-                                                </button>
-                                            </div>
-                                            <p className="text-xs text-gray-500 mt-1">Si el cliente denegó o cerró el aviso, volver a preguntar cada X días (estándar Apple/Chrome).</p>
-
-                                            {/* Refuerzo Contextual Notif */}
-                                            <div className="mt-4 pt-4 border-t border-purple-100/50">
-                                                <label className="flex items-center gap-3 cursor-pointer group">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={config.messaging?.enableContextualNotifPrompt}
-                                                        onChange={e => setConfig({
-                                                            ...config,
-                                                            messaging: { ...config.messaging!, enableContextualNotifPrompt: e.target.checked }
-                                                        })}
-                                                        className="w-4 h-4 rounded border-gray-300 text-purple-600"
-                                                    />
-                                                    <span className="text-xs font-bold text-gray-700 group-hover:text-purple-700">Banner de Refuerzo Contextual</span>
-                                                </label>
-                                                <p className="text-[10px] text-gray-400 mt-1 ml-7">Muestra un cartel pequeño avisando por qué conviene activar notificaciones justo después de que el cliente suma puntos.</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Geolocation Logic */}
-                                    <div className="flex items-start gap-4 p-4 bg-blue-50/50 rounded-xl border border-blue-100">
-                                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
-                                            <MapPin size={20} />
-                                        </div>
-                                        <div className="flex-1">
-                                            <div className="flex items-center justify-between">
-                                                <span className="font-bold text-gray-800">Ubicación (Geolocalización)</span>
-                                                <span className="text-[10px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full font-bold uppercase">Recomendado</span>
-                                            </div>
-                                            <p className="text-xs text-gray-500 mt-1">Activar el refuerzo contextual para que el cliente entienda que la ubicación sirve para ver sucursales cercanas.</p>
-
-                                            {/* Refuerzo Contextual Geo */}
-                                            <div className="mt-4 pt-4 border-t border-blue-100/50">
-                                                <label className="flex items-center gap-3 cursor-pointer group">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={config.messaging?.enableContextualGeoPrompt}
-                                                        onChange={e => setConfig({
-                                                            ...config,
-                                                            messaging: { ...config.messaging!, enableContextualGeoPrompt: e.target.checked }
-                                                        })}
-                                                        className="w-4 h-4 rounded border-gray-300 text-blue-600"
-                                                    />
-                                                    <span className="text-xs font-bold text-gray-700 group-hover:text-blue-700">Solicitar al entrar en "Canjes"</span>
-                                                </label>
-                                                <p className="text-[10px] text-gray-400 mt-1 ml-7">El banner aparece discretamente cuando el usuario navega el catálogo de premios.</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Control de Standby */}
-                                    <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-400">
-                                                <Zap size={16} />
+                                                    className="w-full bg-transparent text-center font-black text-2xl text-purple-600 outline-none"
+                                                />
                                             </div>
                                             <div>
-                                                <span className="text-sm font-bold text-gray-700 block">Límite de Persianas</span>
-                                                <span className="text-[10px] text-gray-400 uppercase tracking-tighter">Máximos "Ahora No" antes de standby</span>
+                                                <span className="font-bold text-gray-800 block">Días para volver a preguntar.</span>
+                                                <p className="text-[10px] text-gray-400 leading-tight">Días de silencio antes de volver a molestar con el cartel de Notificaciones o Beneficios Locales.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* 2. REFUERZO AL GANAR PUNTOS (Contextual flow) */}
+                                    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-500">
+                                                    <Bell size={20} />
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-black text-gray-800 uppercase tracking-tighter">REFUERZO AL GANAR PUNTOS</h4>
+                                                    <p className="text-xs text-gray-500">Mostrar un banner de notificaciones cuando el cliente suma puntos (no bloqueante).</p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setConfig({
+                                                    ...config,
+                                                    messaging: { ...config.messaging!, enableContextualNotifPrompt: !config.messaging?.enableContextualNotifPrompt }
+                                                })}
+                                                className={`relative w-12 h-7 transition-colors rounded-full ${config.messaging?.enableContextualNotifPrompt ? 'bg-purple-600' : 'bg-gray-200'}`}
+                                            >
+                                                <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.messaging?.enableContextualNotifPrompt ? 'translate-x-5' : 'translate-x-0'}`} />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-4 bg-gray-50/50 rounded-xl border border-dashed border-gray-200 flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <Zap size={16} className="text-gray-400" />
+                                            <div>
+                                                <span className="text-xs font-bold text-gray-600 block leading-tight">Límite de Persianas</span>
+                                                <span className="text-[9px] text-gray-400 uppercase tracking-tighter">Máximos "Ahora No" antes de standby</span>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
@@ -1735,11 +1730,11 @@ export const ConfigPage = () => {
                                                 type="number" min="1" max="10"
                                                 value={config.messaging?.maxContextualDismissals ?? 2}
                                                 onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, maxContextualDismissals: parseInt(e.target.value) || 2 } })}
-                                                className="w-16 px-3 py-1 text-center font-bold bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-purple-500"
+                                                className="w-14 px-2 py-1 text-center font-bold bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-purple-500 text-sm"
                                             />
-                                            <span className="text-xs font-bold text-gray-400 uppercase">Veces</span>
                                         </div>
                                     </div>
+
                                 </div>
                             </div>
 

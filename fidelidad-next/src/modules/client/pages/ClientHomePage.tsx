@@ -320,11 +320,26 @@ export const ClientHomePage = () => {
         const currentPoints = userData.points || 0;
         if (prevPointsRef.current !== null && currentPoints > prevPointsRef.current) {
             const gained = currentPoints - prevPointsRef.current;
-            const notifStatus = userData.permissions?.notifications?.status;
+            const notifStatus = userData.permissions?.notifications?.status || 'pending';
             const notifPerm = typeof Notification !== 'undefined' ? Notification.permission : 'denied';
-            if (notifStatus !== 'granted' && notifStatus !== 'blocked' && notifPerm !== 'granted' && notifPerm !== 'denied') {
+
+            // Fase 2 Gatekeeper: Solo si ya pasó la Fase 1 (está en dismissed/denied) y NO está en standby
+            const nextPrompt = userData.permissions?.notifications?.nextPrompt || 0;
+            const isPhase2Ready = (notifStatus === 'dismissed' || notifStatus === 'denied') && Date.now() >= nextPrompt;
+
+            if (isPhase2Ready && notifStatus !== 'granted' && notifStatus !== 'blocked' && notifPerm !== 'granted' && notifPerm !== 'denied') {
                 setContextualPointsMsg(`¡Ganaste ${gained} puntos!`);
                 setShowContextualNotif(true);
+            } else {
+                // Si notificaciones no aplica, probamos Geografía directamente
+                const geoStatus = userData.permissions?.geolocation?.status || 'pending';
+                const geoNextPrompt = userData.permissions?.geolocation?.nextPrompt || 0;
+                const isGeoPhase2Ready = (geoStatus === 'dismissed' || geoStatus === 'denied') && Date.now() >= geoNextPrompt;
+
+                if (isGeoPhase2Ready && geoStatus !== 'granted' && geoStatus !== 'blocked') {
+                    setContextualPointsMsg(`¡Ganaste ${gained} puntos!`);
+                    setShowContextualGeo(true);
+                }
             }
         }
         prevPointsRef.current = currentPoints;
@@ -350,15 +365,17 @@ export const ClientHomePage = () => {
                     onGranted={() => {
                         setShowContextualNotif(false);
                         handlePermissionGranted();
-                        // Mostrar geo como siguiente paso
+                        // Mostrar geo como siguiente paso (encadenamiento)
                         setTimeout(() => setShowContextualGeo(true), 800);
                     }}
                     onDismiss={() => {
                         setShowContextualNotif(false);
+                        // Encadenamiento: incluso si descarta Notif, probamos Geo
                         setTimeout(() => setShowContextualGeo(true), 600);
                     }}
                     onNeverAsk={() => {
                         setShowContextualNotif(false);
+                        // Encadenamiento
                         setTimeout(() => setShowContextualGeo(true), 600);
                     }}
                 />

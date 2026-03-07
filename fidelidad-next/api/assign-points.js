@@ -474,7 +474,7 @@ export default async function handler(req, res) {
                 });
 
                 tx.set(db.collection('transactions').doc(), {
-                    uid: targetUid, clientName: cData.name || 'Socio', points, amount: moneySpent, type: 'credit',
+                    uid: targetUid, clientName: cData.name || cData.nombre || 'Socio', points, amount: moneySpent, type: 'credit',
                     reason: reason || 'manual', concept: finalConcept, date: admin.firestore.Timestamp.fromDate(recordDate)
                 });
 
@@ -609,7 +609,7 @@ export default async function handler(req, res) {
 
             // Hacer disponibles los datos básicos para las notificaciones fuera de la tx
             result.guestData = {
-                name: cData.name || 'Socio',
+                name: cData.name || cData.nombre || 'Socio',
                 phone: cData.phone || cData.telefono || '',
                 email: cData.email || cData.correo,
                 dni: cData.dni || '',

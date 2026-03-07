@@ -208,16 +208,25 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
     const handleNo = async () => {
         if (step === 'none') return;
         const type = step as 'notifications' | 'geolocation';
+        setStep('none'); // Cerrar inmediatamente
+
         const currentCount = userData?.permissions?.[type]?.deniedCount || 0;
         const nextCount = currentCount + 1;
+        const standbyDays = config?.messaging?.notificationPromptIntervalDays || 30;
 
         if (nextCount >= 2) {
             await updatePermission(type, 'blocked');
-            toast('Entendido. No te volveremos a molestar con esto.', { icon: 'silence' });
+            toast('Entendido. No te volveremos a molestar con esto.', {
+                icon: '🔇',
+                style: { borderRadius: '10px', background: '#333', color: '#fff' }
+            });
         } else {
-            const DAYS_TO_WAIT = 7;
-            const nextDate = Date.now() + (DAYS_TO_WAIT * 24 * 60 * 60 * 1000);
+            const nextDate = Date.now() + (standbyDays * 24 * 60 * 60 * 1000);
             await updatePermission(type, 'denied', nextDate);
+            toast(`Entendido. Te volveremos a consultar en ${standbyDays} días.`, {
+                icon: '⏳',
+                style: { borderRadius: '10px', background: '#333', color: '#fff' }
+            });
         }
     };
 

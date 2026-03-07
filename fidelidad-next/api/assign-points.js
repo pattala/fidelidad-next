@@ -440,6 +440,7 @@ export default async function handler(req, res) {
                     points: newPoints,
                     puntos: newPoints,
                     accumulated_balance: newAccumulatedBalance,
+                    accumulated_balance_updated_at: admin.firestore.FieldValue.serverTimestamp(),
                     [`rewards_awarded.${reason}`]: true,
                     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
                     historialPuntos: admin.firestore.FieldValue.arrayUnion({

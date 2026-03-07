@@ -376,8 +376,13 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
                                 <TrendingUp size={14} className="text-emerald-500" />
                                 <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wide">Saldo a Favor</p>
                             </div>
-                            <div className="flex gap-1 items-baseline">
+                            <div className="flex flex-col">
                                 <p className="text-2xl font-black text-gray-800">${(currentClient.accumulated_balance || 0).toLocaleString('es-AR')}</p>
+                                {currentClient.accumulated_balance_updated_at && (
+                                    <p className="text-[9px] text-emerald-600 font-bold opacity-70 leading-none mt-1">
+                                        Modificado: {new Date(currentClient.accumulated_balance_updated_at.toDate ? currentClient.accumulated_balance_updated_at.toDate() : currentClient.accumulated_balance_updated_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}hs ({new Date(currentClient.accumulated_balance_updated_at.toDate ? currentClient.accumulated_balance_updated_at.toDate() : currentClient.accumulated_balance_updated_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })})
+                                    </p>
+                                )}
                             </div>
                         </div>
                         {/* Puntos Históricos */}

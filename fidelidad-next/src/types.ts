@@ -7,6 +7,7 @@ export interface Client {
     socioNumber?: string;
     points: number;
     accumulated_balance?: number;
+    accumulated_balance_updated_at?: any;
     tags?: string[];
     fcmToken?: string;
     createdAt?: any;

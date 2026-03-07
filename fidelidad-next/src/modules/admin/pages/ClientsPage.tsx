@@ -1013,7 +1013,10 @@ export const ClientsPage = () => {
                                             {client.points || 0}
                                         </div>
                                         {(client.accumulated_balance || 0) > 0 && (
-                                            <div className="text-[10px] font-bold text-emerald-600 mt-1" title="Monto remanente para el próximo punto">
+                                            <div
+                                                className="text-[10px] font-bold text-emerald-600 mt-1"
+                                                title={`Monto remanente para el próximo punto${client.accumulated_balance_updated_at ? ` (Act: ${new Date(client.accumulated_balance_updated_at.toDate ? client.accumulated_balance_updated_at.toDate() : client.accumulated_balance_updated_at).toLocaleString()})` : ''}`}
+                                            >
                                                 +${(client.accumulated_balance || 0).toLocaleString()} a favor
                                             </div>
                                         )}

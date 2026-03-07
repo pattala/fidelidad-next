@@ -95,7 +95,7 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
         let showNotif = false;
         const isNotifAvailable = typeof Notification !== 'undefined' && Notification.permission === 'default';
 
-        if (isNotifAvailable && (notifStatus === 'pending' || isNotifStandbyOver)) {
+        if (isNotifAvailable && (notifStatus === 'pending' || notifStatus === 'later' || isNotifStandbyOver)) {
             showNotif = true;
         }
 
@@ -112,7 +112,7 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
         const isGeoStandbyOver = geoStatus === 'dismissed' && Date.now() >= geoNextPrompt;
         let showGeo = false;
 
-        if (geoStatus === 'pending' || isGeoStandbyOver) {
+        if (geoStatus === 'pending' || geoStatus === 'later' || isGeoStandbyOver) {
             showGeo = true;
         }
 

@@ -40,6 +40,7 @@ export const MetricsPage = () => {
         averageTicket: 0,
         frequency: 0,
         activeCustomers: 0,
+        totalCustomers: 0,
         potentialRevenue: 0,
         creditCount: 0,
         referralCount: 0
@@ -48,6 +49,7 @@ export const MetricsPage = () => {
         averageTicket: 0,
         frequency: 0,
         activeCustomers: 0,
+        totalCustomers: 0,
         potentialRevenue: 0,
         creditCount: 0,
         referralCount: 0
@@ -183,6 +185,19 @@ export const MetricsPage = () => {
                     return { grouped, spenders, tEmitted, tRedeemed, tExpired, tMoneyRedeemed, totalMoneySpent, creditCount, activeUids, heatmap, referralCount };
                 };
 
+                // Get Census of existing UIDs to filter out deleted users from activity stats
+                const userCensusSnap = await getDocs(collection(db, 'users'));
+                const existingClientUids = new Set<string>();
+                let totalClientsInSystem = 0;
+                userCensusSnap.forEach(d => {
+                    const ud = d.data();
+                    const isGhost = !ud.name && !ud.nombre && !ud.dni;
+                    if (ud.role !== 'admin' && !isGhost) {
+                        existingClientUids.add(d.id);
+                        totalClientsInSystem++;
+                    }
+                });
+
                 const currentResults = processStats(currentMovements);
                 const prevResults = processStats(prevMovements);
 
@@ -198,19 +213,26 @@ export const MetricsPage = () => {
                 setChartData(Array.from(currentResults.grouped.entries()).map(([name, data]) => ({ name, ...data })));
                 setHeatmapData(currentResults.heatmap);
 
+                // Filter activeUids by census
+                const filteredActiveUids = new Set([...currentResults.activeUids].filter(uid => existingClientUids.has(uid)));
+
                 setAdvancedStats({
                     averageTicket: currentResults.creditCount > 0 ? currentResults.totalMoneySpent / currentResults.creditCount : 0,
-                    frequency: currentResults.activeUids.size > 0 ? currentResults.creditCount / currentResults.activeUids.size : 0,
-                    activeCustomers: currentResults.activeUids.size,
+                    frequency: filteredActiveUids.size > 0 ? currentResults.creditCount / filteredActiveUids.size : 0,
+                    activeCustomers: filteredActiveUids.size,
+                    totalCustomers: totalClientsInSystem,
                     potentialRevenue: currentResults.tEmitted * realPV,
                     creditCount: currentResults.creditCount,
                     referralCount: currentResults.referralCount
                 });
 
+                const filteredPrevActiveUids = new Set([...prevResults.activeUids].filter(uid => existingClientUids.has(uid)));
+
                 setPrevAdvancedStats({
                     averageTicket: prevResults.creditCount > 0 ? prevResults.totalMoneySpent / prevResults.creditCount : 0,
-                    frequency: prevResults.activeUids.size > 0 ? prevResults.creditCount / prevResults.activeUids.size : 0,
-                    activeCustomers: prevResults.activeUids.size,
+                    frequency: filteredPrevActiveUids.size > 0 ? prevResults.creditCount / filteredPrevActiveUids.size : 0,
+                    activeCustomers: filteredPrevActiveUids.size,
+                    totalCustomers: totalClientsInSystem,
                     potentialRevenue: prevResults.tEmitted * realPV,
                     creditCount: prevResults.creditCount,
                     referralCount: prevResults.referralCount
@@ -548,8 +570,9 @@ export const MetricsPage = () => {
                                         </div>
                                         <div className="flex items-baseline gap-2">
                                             <span className="text-2xl font-black text-gray-800">{advancedStats.activeCustomers}</span>
-                                            <span className="text-xs text-emerald-500 font-bold">totales</span>
+                                            <span className="text-xs text-emerald-500 font-bold">de {advancedStats.totalCustomers}</span>
                                         </div>
+                                        <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-tighter font-bold">Socios con actividad hoy</p>
                                     </div>
                                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 transition hover:shadow-md">
                                         <div className="flex justify-between items-start mb-1">

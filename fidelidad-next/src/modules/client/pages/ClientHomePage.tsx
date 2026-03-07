@@ -333,9 +333,9 @@ export const ClientHomePage = () => {
             const notifStatus = userData.permissions?.notifications?.status || 'pending';
             const notifPerm = typeof Notification !== 'undefined' ? Notification.permission : 'denied';
 
-            // Fase 2 Gatekeeper: Solo si ya pasó la Fase 1 (está en dismissed/denied/later) y NO está en standby
+            // Fase 2 Gatekeeper: Solo si ya pasó la Fase 1 (está en dismissed o denied por standby anterior) y NO está en standby de fase 2
             const nextPrompt = userData.permissions?.notifications?.nextPrompt || 0;
-            const isPhase2Ready = (notifStatus === 'dismissed' || notifStatus === 'denied' || notifStatus === 'later') && Date.now() >= nextPrompt;
+            const isPhase2Ready = (notifStatus === 'dismissed' || notifStatus === 'denied') && Date.now() >= nextPrompt;
 
             if (isPhase2Ready && notifStatus !== 'granted' && notifStatus !== 'blocked' && notifPerm !== 'granted' && notifPerm !== 'denied') {
                 setContextualPointsMsg(`¡Ganaste ${gained} puntos!`);
@@ -344,7 +344,7 @@ export const ClientHomePage = () => {
                 // Si notificaciones no aplica, probamos Geografía directamente
                 const geoStatus = userData.permissions?.geolocation?.status || 'pending';
                 const geoNextPrompt = userData.permissions?.geolocation?.nextPrompt || 0;
-                const isGeoPhase2Ready = (geoStatus === 'dismissed' || geoStatus === 'denied' || geoStatus === 'later') && Date.now() >= geoNextPrompt;
+                const isGeoPhase2Ready = (geoStatus === 'dismissed' || geoStatus === 'denied') && Date.now() >= geoNextPrompt;
 
                 if (isGeoPhase2Ready && geoStatus !== 'granted' && geoStatus !== 'blocked') {
                     setContextualPointsMsg(`¡Ganaste ${gained} puntos!`);

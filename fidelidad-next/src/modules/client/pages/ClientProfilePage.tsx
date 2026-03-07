@@ -55,6 +55,9 @@ export const ClientProfilePage = () => {
     // No longer need manual auth/db effect, ClientAuthContext handles it
 
     const handleLogout = async () => {
+        // Clear session dismissals so next login counts as a fresh attempt
+        sessionStorage.removeItem('dismissed_notif_prompt');
+        sessionStorage.removeItem('dismissed_geo_prompt');
         await signOut(auth);
         navigate('/login');
     };

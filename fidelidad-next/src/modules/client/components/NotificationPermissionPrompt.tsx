@@ -52,12 +52,19 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
         }
 
         let largeDismissCount = userData?.permissions?.[type]?.largeDismissCount || 0;
+        let finalStatus = status;
+
         if (status === 'later') {
             largeDismissCount++;
+            // Transition to 'dismissed' (Phase 2 ready) once large attempts are exhausted
+            const maxAttempts = config?.messaging?.maxLargePromptDismissals ?? 2;
+            if (largeDismissCount >= maxAttempts) {
+                finalStatus = 'dismissed';
+            }
         }
 
         const updateData = {
-            [`permissions.${type}.status`]: status,
+            [`permissions.${type}.status`]: finalStatus,
             [`permissions.${type}.updatedAt`]: Date.now(),
             [`permissions.${type}.deniedCount`]: deniedCount,
             [`permissions.${type}.largeDismissCount`]: largeDismissCount,

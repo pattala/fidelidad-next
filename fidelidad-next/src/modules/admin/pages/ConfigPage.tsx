@@ -850,83 +850,6 @@ export const ConfigPage = () => {
                                                     </div>
                                                 )}
 
-                                                {/* Re-intento de Permisos PWA (Independiente) */}
-                                                <div className="mt-6 pt-6 border-t border-gray-100">
-                                                    <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-100/50">
-                                                        <div className="flex items-center justify-between mb-2">
-                                                            <div>
-                                                                <label className="block text-xs font-bold text-gray-600 uppercase mb-1 flex items-center gap-1"><Bell size={12} className="text-purple-500" /> Re-intento de Permisos PWA</label>
-                                                                <span className="text-[10px] text-gray-500 font-medium">Volver a mostrar carteles si el cliente eligió "Quizás Luego".</span>
-                                                            </div>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setConfig({
-                                                                    ...config,
-                                                                    messaging: { ...config.messaging!, enablePermissionPromptRepetition: config.messaging?.enablePermissionPromptRepetition === false ? true : false } // false is actual false, undefined->true
-                                                                })}
-                                                                className={`relative w-10 h-6 transition-colors rounded-full shadow-inner ${config.messaging?.enablePermissionPromptRepetition !== false ? 'bg-purple-500' : 'bg-gray-200'}`}
-                                                            >
-                                                                <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform ${config.messaging?.enablePermissionPromptRepetition !== false ? 'translate-x-4' : 'translate-x-0'}`} />
-                                                            </button>
-                                                        </div>
-
-                                                        {/* Configurar días si está encendido */}
-                                                        {config.messaging?.enablePermissionPromptRepetition !== false && (
-                                                            <div className="mt-4 animate-fade-in bg-white p-3 rounded-lg border border-purple-100/50 flex items-center gap-3">
-                                                                <input
-                                                                    type="number"
-                                                                    value={config.messaging?.notificationPromptIntervalDays || 30}
-                                                                    onChange={e => setConfig({
-                                                                        ...config,
-                                                                        messaging: { ...config.messaging!, notificationPromptIntervalDays: parseInt(e.target.value) || 0 }
-                                                                    })}
-                                                                    className="w-20 p-2 rounded-lg border border-purple-200 outline-none focus:ring-2 focus:ring-purple-50 font-black text-center text-purple-700"
-                                                                />
-                                                                <div className="flex flex-col">
-                                                                    <span className="text-sm font-bold text-gray-700">Días para volver a preguntar.</span>
-                                                                    <p className="text-[9px] text-gray-400 italic">Días de silencio antes de volver a molestar con el cartel de Notificaciones o Beneficios Locales.</p>
-                                                                </div>
-                                                            </div>
-                                                        )}
-
-                                                        {/* Refuerzo Contextual de Notificaciones */}
-                                                        <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
-                                                            <div>
-                                                                <label className="block text-xs font-bold text-gray-600 uppercase mb-1 flex items-center gap-1"><Bell size={12} className="text-purple-500" /> Refuerzo al ganar puntos</label>
-                                                                <span className="text-[10px] text-gray-500 font-medium">Mostrar un banner de notificaciones cuando el cliente suma puntos (no bloqueante).</span>
-                                                            </div>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setConfig({
-                                                                    ...config,
-                                                                    messaging: { ...config.messaging!, enableContextualNotifPrompt: config.messaging?.enableContextualNotifPrompt === false ? true : false }
-                                                                })}
-                                                                className={`relative w-10 h-6 transition-colors rounded-full shadow-inner flex-none ml-4 ${config.messaging?.enableContextualNotifPrompt !== false ? 'bg-purple-500' : 'bg-gray-200'}`}
-                                                            >
-                                                                <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform ${config.messaging?.enableContextualNotifPrompt !== false ? 'translate-x-4' : 'translate-x-0'}`} />
-                                                            </button>
-                                                        </div>
-
-                                                        {/* Refuerzo Contextual de Geo */}
-                                                        <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
-                                                            <div>
-                                                                <label className="block text-xs font-bold text-gray-600 uppercase mb-1 flex items-center gap-1"><MapPin size={12} className="text-emerald-500" /> Refuerzo al visitar Premios</label>
-                                                                <span className="text-[10px] text-gray-500 font-medium">Mostrar un banner de ubicación cuando el cliente abre la sección de Premios (no bloqueante).</span>
-                                                            </div>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setConfig({
-                                                                    ...config,
-                                                                    messaging: { ...config.messaging!, enableContextualGeoPrompt: config.messaging?.enableContextualGeoPrompt === false ? true : false }
-                                                                })}
-                                                                className={`relative w-10 h-6 transition-colors rounded-full shadow-inner flex-none ml-4 ${config.messaging?.enableContextualGeoPrompt !== false ? 'bg-emerald-500' : 'bg-gray-200'}`}
-                                                            >
-                                                                <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform ${config.messaging?.enableContextualGeoPrompt !== false ? 'translate-x-4' : 'translate-x-0'}`} />
-                                                            </button>
-                                                        </div>
-                                                    </div>
-
-                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -1693,7 +1616,7 @@ export const ConfigPage = () => {
                                     </div>
 
                                     {/* 2. REFUERZO AL GANAR PUNTOS (Contextual flow) */}
-                                    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                                    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-500">
@@ -1701,7 +1624,7 @@ export const ConfigPage = () => {
                                                 </div>
                                                 <div>
                                                     <h4 className="font-black text-gray-800 uppercase tracking-tighter">REFUERZO AL GANAR PUNTOS</h4>
-                                                    <p className="text-xs text-gray-500">Mostrar un banner de notificaciones cuando el cliente suma puntos (no bloqueante).</p>
+                                                    <p className="text-xs text-gray-500">Mostrar banners al sumar puntos (Notificaciones + Ubicación).</p>
                                                 </div>
                                             </div>
                                             <button
@@ -1715,23 +1638,24 @@ export const ConfigPage = () => {
                                                 <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.messaging?.enableContextualNotifPrompt ? 'translate-x-5' : 'translate-x-0'}`} />
                                             </button>
                                         </div>
-                                    </div>
 
-                                    <div className="p-4 bg-gray-50/50 rounded-xl border border-dashed border-gray-200 flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <Zap size={16} className="text-gray-400" />
-                                            <div>
-                                                <span className="text-xs font-bold text-gray-600 block leading-tight">Límite de Persianas</span>
-                                                <span className="text-[9px] text-gray-400 uppercase tracking-tighter">Máximos "Ahora No" antes de standby</span>
+                                        <div className="p-4 bg-gray-50/50 rounded-xl border border-dashed border-gray-200 flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <Zap size={16} className="text-gray-400" />
+                                                <div>
+                                                    <span className="text-xs font-bold text-gray-600 block leading-tight">Límite de Persianas</span>
+                                                    <span className="text-[9px] text-gray-400 uppercase tracking-tighter">Cuántas veces mostrar antes del standby</span>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <input
-                                                type="number" min="1" max="10"
-                                                value={config.messaging?.maxContextualDismissals ?? 2}
-                                                onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, maxContextualDismissals: parseInt(e.target.value) || 2 } })}
-                                                className="w-14 px-2 py-1 text-center font-bold bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-purple-500 text-sm"
-                                            />
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="number" min="1" max="10"
+                                                    value={config.messaging?.maxContextualDismissals ?? 2}
+                                                    onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, maxContextualDismissals: parseInt(e.target.value) || 2 } })}
+                                                    className="w-14 px-2 py-1 text-center font-bold bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                                                />
+                                                <span className="text-[10px] font-bold text-gray-400 uppercase">Veces</span>
+                                            </div>
                                         </div>
                                     </div>
 

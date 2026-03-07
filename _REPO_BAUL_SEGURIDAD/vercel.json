@@ -1,0 +1,13 @@
+{
+    "version": 2,
+    "rewrites": [
+        {
+            "source": "/api/(.*)",
+            "destination": "/fidelidad-next/api/$1.js"
+        },
+        {
+            "source": "/(.*)",
+            "destination": "/fidelidad-next/dist/index.html"
+        }
+    ]
+}

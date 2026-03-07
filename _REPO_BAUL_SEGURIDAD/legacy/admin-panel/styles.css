@@ -1,0 +1,521 @@
+/* ==================================================================== */
+/* == Archivo de Estilos Globales para el Panel de Administrador     == */
+/* ==================================================================== */
+
+/* --- Importación de Fuentes y Variables Globales --- */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+:root {
+    --primary-color: #007bff;
+    --primary-hover: #0056b3;
+    --secondary-color: #6c757d;
+    --success-color: #28a745;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --light-color: #f8f9fa;
+    --dark-color: #343a40;
+    --background-color: #e9ecef;
+    --card-background: #ffffff;
+    --text-color: #212529;
+    --border-color: #dee2e6;
+    --box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* --- Estilos Generales del Body y Contenedor Principal --- */
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    margin: 0;
+    padding: 20px;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    background: transparent;
+    padding: 0;
+}
+
+/* --- Estilos para Títulos --- */
+h1, h2, h3 {
+    color: var(--dark-color);
+    margin-top: 0;
+}
+
+h1 {
+    display: flex;
+    align-items: center;
+    font-size: 2.5em;
+    margin-bottom: 20px;
+    color: #495057;
+}
+
+#logo-empresa {
+    height: 70px;
+    margin-right: 15px;
+}
+
+/* --- Sistema de Navegación por Pestañas (CORRECCIÓN DEFINITIVA) --- */
+.tab {
+    display: flex;
+    align-items: center;
+    overflow-x: auto;
+    background-color: var(--card-background);
+    border-radius: 8px;
+    box-shadow: var(--box-shadow);
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+    padding: 0 10px;
+    flex-wrap: nowrap;
+}
+
+/* Estilo de la barra de scroll para que sea más discreta */
+.tab::-webkit-scrollbar {
+    height: 4px;
+}
+.tab::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 2px;
+}
+
+.tablinks {
+    background-color: inherit;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    /* AJUSTE CLAVE: Reducción de padding y font-size */
+    padding: 14px 12px;
+    font-size: 14px;
+    /* --- Fin del ajuste --- */
+    transition: background-color 0.3s, color 0.3s, border-bottom 0.3s;
+    font-weight: 600;
+    color: var(--secondary-color);
+    border-bottom: 3px solid transparent;
+    white-space: nowrap;
+}
+
+.tablinks:hover {
+    background-color: #f0f2f5;
+    color: var(--primary-color);
+}
+
+.tablinks.active {
+    color: var(--primary-color);
+    border-bottom: 3px solid var(--primary-color);
+}
+
+#ver-cumpleanos-btn {
+    margin-left: auto;
+    background-color: var(--secondary-color);
+    color: white;
+    /* AJUSTE CLAVE: Hacerlo consistente con los otros botones */
+    padding: 10px 15px;
+    font-size: 14px;
+    /* --- Fin del ajuste --- */
+}
+#ver-cumpleanos-btn.active {
+    background-color: var(--warning-color);
+    color: var(--dark-color);
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* Contenido de cada pestaña */
+.tabcontent {
+    display: none;
+    animation: fadeIn 0.5s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Estilo de Tarjeta para Secciones de Contenido --- */
+.section {
+    background: var(--card-background);
+    padding: 25px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-shadow: var(--box-shadow);
+    border: 1px solid var(--border-color);
+}
+
+/* --- Estilos para Formularios y sus Elementos --- */
+.header-con-boton {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+.header-con-boton h3 { margin: 0; }
+
+.acciones-ficha, .acciones-edicion {
+    display: flex;
+    gap: 10px;
+}
+.acciones-edicion { margin-top: 20px; }
+
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="number"],
+input[type="date"],
+input[type="datetime-local"],
+input[type="file"],
+select,
+textarea {
+    width: 100%;
+    padding: 10px 15px;
+    margin: 5px 0 10px 0;
+    display: inline-block;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+    font-size: 15px;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    background-color: #fff;
+}
+textarea { resize: vertical; }
+
+input:focus, select:focus, textarea:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+    outline: none;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    align-items: end;
+}
+
+.checkbox-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 100%;
+    user-select: none;
+}
+.checkbox-container label { cursor: pointer; }
+
+.form-grid label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+/* --- Estilos para Botones --- */
+button {
+    padding: 10px 20px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 15px;
+    transition: background-color 0.2s, transform 0.1s;
+}
+button:hover { transform: translateY(-1px); }
+button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+button.primary-btn { background-color: var(--primary-color); color: white; }
+button.primary-btn:hover { background-color: var(--primary-hover); }
+button.secondary-btn { background-color: var(--secondary-color); color: white; }
+button.secondary-btn:hover { background-color: #5a6268; }
+button.save-btn { background-color: var(--success-color); color: white; }
+button.danger-btn { background-color: var(--danger-color); color: white; }
+button.danger-btn:hover { background-color: #c82333; }
+
+/* --- Estilos para Tablas --- */
+.table-container {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: middle;
+}
+
+thead th {
+    background-color: var(--light-color);
+    font-weight: 700;
+    color: var(--dark-color);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+tbody tr:hover { background-color: #f5f5f5; }
+
+td.acciones { display: flex; gap: 5px; }
+
+/* --- SECCIÓN DE NOTIFICACIONES TOAST --- */
+#toast-container {
+    position: fixed !important;
+    top: 20px;
+    right: 20px;
+    z-index: 9999 !important;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 350px;
+}
+
+.toast {
+    padding: 15px 20px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 600;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    opacity: 0;
+    transform: translateX(100%);
+    animation: slideIn 0.5s forwards, fadeOut 0.5s 4.5s forwards;
+    min-width: 300px;
+}
+
+@keyframes slideIn {
+    to { opacity: 1; transform: translateX(0); }
+}
+@keyframes fadeOut {
+    from { opacity: 1; transform: translateX(0); }
+    to { opacity: 0; transform: translateX(100%); }
+}
+
+.toast.success { background-color: var(--success-color); }
+.toast.error { background-color: var(--danger-color); }
+.toast.info { background-color: var(--primary-color); }
+.toast.warning { background-color: var(--warning-color); color: var(--dark-color); }
+
+/* --- ESTILOS ESPECÍFICOS DE LA SECCIÓN DE CAMPAÑAS --- */
+.status-badge {
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-weight: 600;
+    color: white;
+    font-size: 12px;
+    text-align: center;
+    display: inline-block;
+    min-width: 80px;
+}
+.status-activa { background-color: var(--success-color); }
+.status-programada { background-color: var(--primary-color); }
+.status-finalizada { background-color: var(--secondary-color); }
+
+.form-section-box {
+    border: 1px solid var(--border-color);
+    padding: 20px;
+    margin-top: 25px;
+    border-radius: 8px;
+    background-color: #fdfdfd;
+}
+.form-section-box legend {
+    font-weight: 600;
+    font-size: 1.1em;
+    padding: 0 10px;
+    color: var(--primary-color);
+}
+.radio-group label {
+    font-weight: normal;
+    margin-left: 5px;
+}
+.radio-group small {
+    display: block;
+    margin-left: 22px;
+    color: var(--secondary-color);
+}
+
+#tabla-campanas td:nth-child(2) {
+    line-height: 1.4;
+}
+#tabla-campanas td:nth-child(2) small {
+    color: var(--secondary-color);
+    font-size: 0.85em;
+}
+
+#tabla-campanas th:nth-child(1), #tabla-campanas td:nth-child(1) { width: 10%; text-align: center; }
+#tabla-campanas th:nth-child(2), #tabla-campanas td:nth-child(2) { width: 35%; }
+#tabla-campanas th:nth-child(3), #tabla-campanas td:nth-child(3) { width: 25%; }
+#tabla-campanas th:nth-child(4), #tabla-campanas td:nth-child(4) { width: 15%; }
+#tabla-campanas th:nth-child(5), #tabla-campanas td:nth-child(5) { width: 15%; }
+
+#tabla-campanas-body tr.fila-seleccionada {
+    background-color: var(--primary-color) !important;
+    color: white;
+}
+#tabla-campanas-body tr.fila-seleccionada small,
+#tabla-campanas-body tr.fila-seleccionada .status-badge {
+    color: white !important;
+}
+
+/* --- ESTILOS PARA EL MODAL DE CUMPLEAÑOS --- */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.6);
+    animation: fadeIn 0.3s;
+}
+
+.modal-content {
+    background-color: var(--card-background);
+    margin: 15% auto;
+    padding: 30px;
+    border: 1px solid var(--border-color);
+    width: 90%;
+    max-width: 500px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    position: relative;
+}
+
+.modal-close-btn {
+    color: #aaa;
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.modal-close-btn:hover {
+    color: var(--dark-color);
+}
+
+#lista-cumpleaneros {
+    list-style-type: '🎂';
+    padding-left: 30px;
+}
+
+#lista-cumpleaneros li {
+    padding-left: 10px;
+    font-size: 1.1em;
+    margin-bottom: 10px;
+}
+/* --- Estilos para la Pantalla de Login --- */
+#login-screen {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 80vh; /* Centrado vertical */
+}
+
+.login-box {
+    width: 100%;
+    max-width: 400px;
+    padding: 40px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.login-logo {
+    height: 80px;
+    margin-bottom: 20px;
+}
+
+.login-box h2 {
+    margin-bottom: 20px;
+    color: var(--primary-color);
+}
+
+.login-box .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* --- Estilos para la cabecera del Admin Panel --- */
+.header-admin {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.header-admin h1 {
+    margin: 0;
+}
+/* --- Mejoras al Formulario de Login --- */
+
+/* Agrandar los campos de texto del login */
+.login-box .form-group input[type="email"],
+.login-box .form-group input[type="password"] {
+    font-size: 16px; /* Texto más grande */
+    padding: 15px;   /* Mayor altura */
+}
+
+/* Estilizar el enlace de "Olvidé mi contraseña" */
+.login-box .forgot-password {
+    margin-top: 20px;
+    font-size: 14px;
+}
+
+.login-box .forgot-password a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.login-box .forgot-password a:hover {
+    text-decoration: underline;
+}
+/* --- Estilos para Notificación de Nuevos Registros --- */
+.tablinks.parpadeo .badge {
+    animation: parpadeo-animacion 1.5s infinite;
+}
+
+@keyframes parpadeo-animacion {
+    0% { background-color: var(--danger-color); transform: scale(1.1); }
+    50% { background-color: var(--primary-color); transform: scale(1); }
+    100% { background-color: var(--danger-color); transform: scale(1.1); }
+}
+/* --- Estilos para la Etiqueta de Tester en Campañas --- */
+.tester-badge {
+    background-color: var(--danger-color); /* Rojo */
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    font-weight: bold;
+    margin-left: 5px;
+    vertical-align: middle;
+}
+.autocomplete-list{
+  position:absolute; z-index:9999; background:#fff; border:1px solid #e5e7eb;
+  border-radius:8px; box-shadow:0 8px 20px rgba(0,0,0,.08);
+  max-height:260px; overflow:auto; padding:6px; display:none;
+}
+.autocomplete-item{
+  padding:8px 10px; border-radius:6px; cursor:pointer; line-height:1.25;
+}
+.autocomplete-item small{ color:#6b7280; display:block; margin-top:2px; }
+.autocomplete-item:hover, .autocomplete-item.active{ background:#f3f4f6; }

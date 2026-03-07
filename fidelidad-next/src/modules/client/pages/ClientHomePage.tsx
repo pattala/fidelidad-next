@@ -138,6 +138,14 @@ export const ClientHomePage = () => {
 
     const handleLogout = async () => {
         try {
+            // Limpiar flags de sesión para que el próximo login se tome como visita nueva
+            // y se vuelvan a mostrar banners PWA si estaban en 'later'
+            if (user) {
+                sessionStorage.removeItem(`ping_${user.uid}`);
+            }
+            sessionStorage.removeItem('dismissed_notif_prompt');
+            sessionStorage.removeItem('dismissed_geo_prompt');
+
             await signOut(auth);
             navigate('/login');
         } catch (error) {

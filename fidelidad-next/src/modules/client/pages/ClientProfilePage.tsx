@@ -56,8 +56,7 @@ export const ClientProfilePage = () => {
 
     const handleLogout = async () => {
         // Clear session dismissals so next login counts as a fresh attempt
-        sessionStorage.removeItem('dismissed_notif_prompt');
-        sessionStorage.removeItem('dismissed_geo_prompt');
+        sessionStorage.clear();
         await signOut(auth);
         navigate('/login');
     };

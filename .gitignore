@@ -24,3 +24,8 @@ Thumbs.db
 
 # Generated Configuration
 
+# Security & Backups
+_REPO_BAUL_SEGURIDAD/
+backups/
+*.zip
+_ANTIGUO_NO_BORRAR/

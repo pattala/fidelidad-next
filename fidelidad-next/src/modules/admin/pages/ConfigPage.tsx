@@ -316,6 +316,7 @@ export const ConfigPage = () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    // @ts-ignore
                     'x-api-key': import.meta.env.VITE_API_KEY || '',
                     'Authorization': `Bearer ${token}`
                 },
@@ -2662,9 +2663,9 @@ export const ConfigPage = () => {
                                     <div className="bg-white p-6 rounded-2xl border border-red-50 space-y-4">
                                         <h4 className="font-bold text-gray-800 border-b pb-2 mb-4 flex items-center gap-2"><Users size={18} className="text-red-500" /> Socios</h4>
                                         <div className="space-y-3">
-                                            {['socios_total', 'socios_historial', 'socios_mensajes', 'geo_total', 'transacciones_total'].map(opt => (
+                                            {(['socios_total', 'socios_historial', 'socios_mensajes', 'geo_total', 'transacciones_total'] as const).map(opt => (
                                                 <label key={opt} className="flex items-center gap-3 cursor-pointer group">
-                                                    <input type="checkbox" checked={resetOptions[opt]} onChange={e => setResetOptions({ ...resetOptions, [opt]: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-red-600" />
+                                                    <input type="checkbox" checked={(resetOptions as any)[opt]} onChange={e => setResetOptions({ ...resetOptions, [opt]: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-red-600" />
                                                     <span className="text-sm font-bold text-gray-700 group-hover:text-red-600 uppercase">{opt.replace('_', ' ')}</span>
                                                 </label>
                                             ))}
@@ -2673,9 +2674,9 @@ export const ConfigPage = () => {
                                     <div className="bg-white p-6 rounded-2xl border border-red-50 space-y-4">
                                         <h4 className="font-bold text-gray-800 border-b pb-2 mb-4 flex items-center gap-2"><Settings size={18} className="text-gray-600" /> Estructura</h4>
                                         <div className="space-y-3">
-                                            {['marca_total', 'gamification_total', 'prizes_total', 'campaigns_total', 'team_total', 'legales_total', 'audit_total'].map(opt => (
+                                            {(['marca_total', 'gamification_total', 'prizes_total', 'campaigns_total', 'team_total', 'legales_total', 'audit_total'] as const).map(opt => (
                                                 <label key={opt} className="flex items-center gap-3 cursor-pointer group">
-                                                    <input type="checkbox" checked={resetOptions[opt]} onChange={e => setResetOptions({ ...resetOptions, [opt]: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-blue-600" />
+                                                    <input type="checkbox" checked={(resetOptions as any)[opt]} onChange={e => setResetOptions({ ...resetOptions, [opt]: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-blue-600" />
                                                     <span className="text-sm font-bold text-gray-700 group-hover:text-blue-600 uppercase">{opt.replace('_', ' ')}</span>
                                                 </label>
                                             ))}

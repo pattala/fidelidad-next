@@ -36,6 +36,7 @@ export const NotificationService = {
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${idToken}`,
+                    // @ts-ignore
                     'x-api-key': import.meta.env.VITE_API_KEY || ''
                 },
                 body: JSON.stringify({

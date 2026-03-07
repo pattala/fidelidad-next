@@ -19,6 +19,7 @@ export const AuditService = {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    // @ts-ignore
                     'x-api-key': import.meta.env.VITE_API_KEY || '',
                     'Authorization': `Bearer ${token}`
                 },

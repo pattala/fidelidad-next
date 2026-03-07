@@ -136,66 +136,29 @@ export const ClientsPage = () => {
     const fetchData = async () => {
         try {
             // Clientes
-            const q = query(collection(db, 'users'), orderBy('createdAt', 'desc')); // Reverted to 'users'
-            const querySnapshot = await getDocs(q);
+            const q = query(collection(db, 'users'));
+            const snapshot = await getDocs(q);
 
             // 1. Fetch Config first to use it in calculations
             const freshConfig = await ConfigService.get();
             setConfig(freshConfig);
 
-            // 2. Fetch all history for aggregation (one single fetch to avoid multiple query index issues)
-            const allHistoryQuery = collectionGroup(db, 'points_history');
-            const historySnap = await getDocs(allHistoryQuery);
-
-            let metricsMap: {
-                [key: string]: {
-                    expiring: number,
-                    totalspent: number,
-                    redeemedPoints: number,
-                    redeemedValue: number,
-                    expDates: { [key: string]: number }
-                }
-            } = {};
-            const now = TimeService.now();
-
-            historySnap.docs.forEach(d => {
-                const parentId = d.ref.parent.parent?.id;
-                if (parentId) {
-                    if (!metricsMap[parentId]) metricsMap[parentId] = { expiring: 0, totalspent: 0, redeemedPoints: 0, redeemedValue: 0, expDates: {} };
-                    const hData = d.data();
-                    const amount = hData.amount || 0;
-
-                    if (hData.type === 'credit') {
-                        // Expiring?
-                        const expiresAt = hData.expiresAt?.toDate ? hData.expiresAt.toDate() : new Date(hData.expiresAt);
-                        if (expiresAt > now) {
-                            const remaining = hData.remainingPoints !== undefined ? hData.remainingPoints : amount;
-                            metricsMap[parentId].expiring += remaining;
-
-                            // Group by date (ignoring time)
-                            const dateKey = expiresAt.toISOString().split('T')[0];
-                            metricsMap[parentId].expDates[dateKey] = (metricsMap[parentId].expDates[dateKey] || 0) + remaining;
-                        }
-                        // Money Spent (approx if not stored)
-                        const ratio = freshConfig?.pointsPerPeso || 1;
-                        const pesos = hData.moneySpent !== undefined ? hData.moneySpent : (amount * 100) / ratio;
-                        metricsMap[parentId].totalspent += pesos;
-                    } else if (hData.type === 'debit') {
-                        metricsMap[parentId].redeemedPoints += Math.abs(amount);
-                        metricsMap[parentId].redeemedValue += hData.redeemedValue || 0;
-                    }
-                }
-            });
-
-            const loadedClients = querySnapshot.docs.map(doc => {
+            const loadedClientsPromises = snapshot.docs.map(async (doc) => {
                 const data = doc.data();
-                const metrics = metricsMap[doc.id] || { expiring: 0, totalspent: 0, redeemedPoints: 0, redeemedValue: 0, expDates: {} };
+                // Calcular métricas complejas (vencimientos, etc.)
+                const metrics = await ExpirationService.getClientMetrics(doc.id);
 
-                // Sort and get top 2 expirations
-                const sortedExpirations = Object.entries(metrics.expDates)
-                    .map(([date, points]) => ({ date: new Date(date + 'T12:00:00'), points }))
-                    .sort((a, b) => a.date.getTime() - b.date.getTime())
-                    .slice(0, 2);
+                // Address Normalization (Flattening)
+                const provincia = data.domicilio?.components?.provincia || data.provincia || '';
+                const partido = data.domicilio?.components?.partido || data.partido || '';
+                const localidad = data.domicilio?.components?.localidad || data.localidad || '';
+                const calle = data.domicilio?.components?.calle || data.calle || '';
+                const piso = data.domicilio?.components?.piso || data.piso || '';
+                const depto = data.domicilio?.components?.depto || data.depto || '';
+                const cp = data.domicilio?.components?.zipCode || data.cp || '';
+
+                const expirations = metrics.expirations || [];
+                const sortedExpirations = [...expirations].sort((a: any, b: any) => a.date.getTime() - b.date.getTime());
 
                 return {
                     id: doc.id,
@@ -212,19 +175,23 @@ export const ClientsPage = () => {
                     redeemedPoints: metrics.redeemedPoints,
                     redeemedValue: metrics.redeemedValue,
                     registrationDate: data.createdAt || data.fechaInscripcion || null,
-
-                    // Address Normalization (Flattening)
-                    provincia: data.domicilio?.components?.provincia || data.provincia || '',
-                    partido: data.domicilio?.components?.partido || data.partido || '',
-                    localidad: data.domicilio?.components?.localidad || data.localidad || '',
-                    calle: data.domicilio?.components?.calle || data.calle || '',
-                    piso: data.domicilio?.components?.piso || data.piso || '',
-                    depto: data.domicilio?.components?.depto || data.depto || '',
-                    cp: data.domicilio?.components?.zipCode || data.cp || ''
+                    provincia, partido, localidad, calle, piso, depto, cp,
+                    createdAt: data.createdAt // Preservar para sort
                 } as Client;
             });
 
-            setClients(loadedClients.filter(c => c.name || c.dni));
+            const loadedClients = await Promise.all(loadedClientsPromises);
+
+            // Ordenar en memoria por createdAt desc (clientes más nuevos primero)
+            const sortedAndFiltered = loadedClients
+                .filter((c: Client) => c.name || c.dni)
+                .sort((a: Client, b: Client) => {
+                    const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+                    const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+                    return dateB - dateA;
+                });
+
+            setClients(sortedAndFiltered);
         } catch (error) {
             console.error("Error cargando datos:", error);
             toast.error("Error de conexión");
@@ -240,8 +207,8 @@ export const ClientsPage = () => {
             if (snap.exists()) setConfig(snap.data());
         });
 
-        // Clients listener (Real-time)
-        const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
+        // Clients listener (Real-time). Quitamos orderBy para no excluir docs que no tengan el campo 'createdAt'
+        const q = query(collection(db, 'users'));
         const unsubscribe = onSnapshot(q, async (snapshot) => {
             // We still need the complex calculations, so we call fetchData but optimized
             // To avoid flickering, we'll do the fetch and then set. 

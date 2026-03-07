@@ -333,9 +333,9 @@ export const ClientHomePage = () => {
             const notifStatus = userData.permissions?.notifications?.status || 'pending';
             const notifPerm = typeof Notification !== 'undefined' ? Notification.permission : 'denied';
 
-            // Fase 2 Gatekeeper: Solo si ya pasó la Fase 1 (está en dismissed/denied) y NO está en standby
+            // Fase 2 Gatekeeper: Solo si ya pasó la Fase 1 (está en dismissed/denied/later) y NO está en standby
             const nextPrompt = userData.permissions?.notifications?.nextPrompt || 0;
-            const isPhase2Ready = (notifStatus === 'dismissed' || notifStatus === 'denied') && Date.now() >= nextPrompt;
+            const isPhase2Ready = (notifStatus === 'dismissed' || notifStatus === 'denied' || notifStatus === 'later') && Date.now() >= nextPrompt;
 
             if (isPhase2Ready && notifStatus !== 'granted' && notifStatus !== 'blocked' && notifPerm !== 'granted' && notifPerm !== 'denied') {
                 setContextualPointsMsg(`¡Ganaste ${gained} puntos!`);
@@ -344,7 +344,7 @@ export const ClientHomePage = () => {
                 // Si notificaciones no aplica, probamos Geografía directamente
                 const geoStatus = userData.permissions?.geolocation?.status || 'pending';
                 const geoNextPrompt = userData.permissions?.geolocation?.nextPrompt || 0;
-                const isGeoPhase2Ready = (geoStatus === 'dismissed' || geoStatus === 'denied') && Date.now() >= geoNextPrompt;
+                const isGeoPhase2Ready = (geoStatus === 'dismissed' || geoStatus === 'denied' || geoStatus === 'later') && Date.now() >= geoNextPrompt;
 
                 if (isGeoPhase2Ready && geoStatus !== 'granted' && geoStatus !== 'blocked') {
                     setContextualPointsMsg(`¡Ganaste ${gained} puntos!`);
@@ -540,29 +540,40 @@ export const ClientHomePage = () => {
                         </div>
                     </div>
 
-                    <div className="text-center bg-purple-50 py-2 rounded-xl">
-                        <p className="text-xs font-bold text-gray-600 uppercase tracking-tight">
+                    <div className="text-center bg-purple-50/50 py-3 rounded-2xl border border-purple-100/50">
+                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Próximo Punto</p>
+                        <p className="text-xs font-black text-gray-700">
                             Te faltan <span className="text-pink-600 font-black">${missing}</span> para sumar <span className="text-pink-600 font-black">1 punto</span>
                         </p>
                     </div>
 
                     {user && (
-                        <div className="space-y-4 py-2 border-t border-gray-50">
+                        <div className="space-y-3 py-2 border-t border-gray-50">
                             <PointsExpirationWarning userId={user.uid as string} compact={true} />
 
-                            <div className="flex items-center justify-between bg-emerald-50/50 p-3 rounded-2xl border border-emerald-100/50">
-                                <div className="flex items-center gap-2">
-                                    <div className="bg-emerald-100 p-1.5 rounded-lg text-emerald-600">
-                                        <TrendingUp size={14} />
+                            <div className="flex items-center justify-between bg-emerald-50/80 p-4 rounded-[1.5rem] border border-emerald-100 shadow-sm shadow-emerald-50">
+                                <div className="flex flex-col">
+                                    <div className="flex items-center gap-2 mb-0.5">
+                                        <div className="bg-emerald-600 p-1 rounded-lg text-white">
+                                            <TrendingUp size={12} />
+                                        </div>
+                                        <span className="text-[10px] font-black text-emerald-800 uppercase tracking-widest">Saldo a favor</span>
                                     </div>
-                                    <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Saldo a favor</span>
+                                    {displayData.accumulated_balance_updated_at && (
+                                        <p className="text-[8px] text-emerald-600 font-bold opacity-70">
+                                            Act: {new Date(displayData.accumulated_balance_updated_at.toDate ? displayData.accumulated_balance_updated_at.toDate() : displayData.accumulated_balance_updated_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })}
+                                        </p>
+                                    )}
                                 </div>
-                                <span className="text-lg font-black text-emerald-600 tracking-tight">${Math.floor(balanceForCalc).toLocaleString()}</span>
+                                <div className="text-right">
+                                    <span className="text-2xl font-black text-emerald-600 tracking-tight leading-none">${Math.floor(balanceForCalc).toLocaleString()}</span>
+                                    <p className="text-[8px] font-bold text-emerald-800/50 uppercase tracking-tighter">pesos a cuenta</p>
+                                </div>
                             </div>
 
                             <button
                                 onClick={() => setShowExpirationModal(true)}
-                                className="w-full text-center text-[10px] font-black text-purple-600 uppercase tracking-widest hover:text-purple-800 transition-colors flex items-center justify-center gap-1.5 py-1 bg-purple-50/50 rounded-lg border border-purple-100/50"
+                                className="w-full text-center text-[10px] font-black text-purple-600 uppercase tracking-widest hover:text-purple-800 transition-colors flex items-center justify-center gap-1.5 py-2 bg-purple-50/50 rounded-xl border border-purple-100/50"
                             >
                                 <Clock size={12} strokeWidth={3} />
                                 Ver detalle de vencimientos

@@ -135,7 +135,6 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
         setStep('none');
     };
 
-
     const handleYes = async () => {
         if (step === 'notifications') {
             const permission = await Notification.requestPermission();
@@ -145,6 +144,7 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
                 toast.success('¡Genial! Te avisaremos de ofertas.');
                 onNotificationGranted();
             } else {
+                // Si rechaza el nativo, lo tratamos como 'later' para que no bloquee pero ya no sea 'pending'
                 await updatePermission('notifications', 'later');
             }
         } else if (step === 'geolocation') {
@@ -164,7 +164,8 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
                     },
                     async (error) => {
                         console.error("Geo error:", error);
-                        await updatePermission('geolocation', 'dismissed');
+                        // Si falla o rechaza nativo, lo mandamos a 'later' para intentar contextual luego
+                        await updatePermission('geolocation', 'later');
                     }
                 );
             } else {
@@ -250,9 +251,16 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
 
                         <button
                             onClick={handleLater}
-                            className="w-full py-4 text-xs font-black text-gray-400 uppercase tracking-widest hover:text-gray-600 transition"
+                            className="w-full py-4 text-xs font-black text-gray-400 border border-gray-100 rounded-2xl uppercase tracking-widest hover:text-gray-600 transition bg-gray-50/30"
                         >
                             Quizás luego
+                        </button>
+
+                        <button
+                            onClick={handleNo}
+                            className="w-full py-2 text-[10px] font-bold text-gray-300 uppercase tracking-[0.2em] hover:text-red-400 transition"
+                        >
+                            No me interesa, gracias
                         </button>
                     </div>
                 </div>

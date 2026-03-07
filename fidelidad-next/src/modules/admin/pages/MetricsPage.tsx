@@ -191,8 +191,13 @@ export const MetricsPage = () => {
                 let totalClientsInSystem = 0;
                 userCensusSnap.forEach(d => {
                     const ud = d.data();
-                    const isGhost = !ud.name && !ud.nombre && !ud.dni;
-                    if (ud.role !== 'admin' && !isGhost) {
+                    // Filtro consistente con ClientsPage: deben tener nombre o DNI.
+                    const name = ud.name || ud.nombre || '';
+                    const dni = ud.dni || '';
+                    const hasBasicInfo = name.trim() !== '' || dni.trim() !== '';
+                    const isAdmin = ud.role === 'admin' || ud.isAdmin === true;
+
+                    if (!isAdmin && hasBasicInfo) {
                         existingClientUids.add(d.id);
                         totalClientsInSystem++;
                     }

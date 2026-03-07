@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import {
     Users, Plus, Search, Filter, Mail, Phone, MapPin, Check, Bell, Coins, History,
     Shield, ArrowRight, Download, Edit2, Trash2, X, ChevronRight, Gift, Sparkles, Cake,
-    FileDown, MessageCircle, Edit
+    FileDown, MessageCircle, Edit, TrendingUp
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { collection, addDoc, getDocs, query, orderBy, doc, deleteDoc, updateDoc, increment, runTransaction, arrayUnion, where, setDoc, collectionGroup, onSnapshot, serverTimestamp } from 'firebase/firestore';
@@ -885,6 +885,7 @@ export const ClientsPage = () => {
                                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">Permisos</th>
                                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">Actividad / Visitas</th>
                                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">Puntos</th>
+                                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">Saldo a Favor</th>
                                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Acciones</th>
                             </tr>
                         </thead>
@@ -1012,14 +1013,6 @@ export const ClientsPage = () => {
                                             <Coins size={14} />
                                             {client.points || 0}
                                         </div>
-                                        {(client.accumulated_balance || 0) > 0 && (
-                                            <div
-                                                className="text-[10px] font-bold text-emerald-600 mt-1"
-                                                title={`Monto remanente para el próximo punto${client.accumulated_balance_updated_at ? ` (Act: ${new Date(client.accumulated_balance_updated_at.toDate ? client.accumulated_balance_updated_at.toDate() : client.accumulated_balance_updated_at).toLocaleString()})` : ''}`}
-                                            >
-                                                +${(client.accumulated_balance || 0).toLocaleString()} a favor
-                                            </div>
-                                        )}
                                         {client.expirationDetails && client.expirationDetails.filter(e => e.points > 0).length > 0 ? (
                                             <div className="space-y-1 mt-1">
                                                 {client.expirationDetails.filter(e => e.points > 0).map((exp, idx) => (
@@ -1035,6 +1028,17 @@ export const ClientsPage = () => {
                                             </div>
                                         ) : (
                                             <div className="text-[9px] text-gray-300 font-bold mt-1">Sin vencimientos</div>
+                                        )}
+                                    </td>
+                                    <td className="px-6 py-4 text-center">
+                                        <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-black ${(client.accumulated_balance || 0) > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-50 text-gray-400 opacity-50'}`}>
+                                            <TrendingUp size={14} />
+                                            ${(client.accumulated_balance || 0).toLocaleString()}
+                                        </div>
+                                        {client.accumulated_balance_updated_at && (
+                                            <div className="text-[8px] text-gray-400 mt-1 font-bold">
+                                                Act: {new Date(client.accumulated_balance_updated_at.toDate ? client.accumulated_balance_updated_at.toDate() : client.accumulated_balance_updated_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })}
+                                            </div>
                                         )}
                                     </td>
                                     <td className="px-6 py-4 text-right">

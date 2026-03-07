@@ -43,7 +43,7 @@ export const ClientActivityPage = () => {
             setHeaderTitle(null);
             setHeaderActions(null);
         };
-    }, [userBalance, setHeaderTitle, setHeaderActions]);
+    }, [userBalance, accumulatedBalance, setHeaderTitle, setHeaderActions]);
 
     useEffect(() => {
         const fetchHistory = async () => {

@@ -13,7 +13,9 @@ import {
     Sparkles,
     Cake,
     X,
-    Shield
+    Shield,
+    TrendingUp,
+    Coins
 } from 'lucide-react';
 import { TimeService } from '../../../services/timeService';
 import { signOut } from 'firebase/auth';
@@ -536,10 +538,6 @@ export const ClientHomePage = () => {
                                 <span className="text-sm font-bold text-gray-400 uppercase ml-1">pts</span>
                             </div>
                         </div>
-                        <div className="text-right">
-                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">A cuenta</p>
-                            <p className="text-2xl font-black text-emerald-600 tracking-tight">${Math.floor(balanceForCalc)}</p>
-                        </div>
                     </div>
 
                     <div className="text-center bg-purple-50 py-2 rounded-xl">
@@ -551,6 +549,17 @@ export const ClientHomePage = () => {
                     {user && (
                         <div className="space-y-4 py-2 border-t border-gray-50">
                             <PointsExpirationWarning userId={user.uid as string} compact={true} />
+
+                            <div className="flex items-center justify-between bg-emerald-50/50 p-3 rounded-2xl border border-emerald-100/50">
+                                <div className="flex items-center gap-2">
+                                    <div className="bg-emerald-100 p-1.5 rounded-lg text-emerald-600">
+                                        <TrendingUp size={14} />
+                                    </div>
+                                    <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Saldo a favor</span>
+                                </div>
+                                <span className="text-lg font-black text-emerald-600 tracking-tight">${Math.floor(balanceForCalc).toLocaleString()}</span>
+                            </div>
+
                             <button
                                 onClick={() => setShowExpirationModal(true)}
                                 className="w-full text-center text-[10px] font-black text-purple-600 uppercase tracking-widest hover:text-purple-800 transition-colors flex items-center justify-center gap-1.5 py-1 bg-purple-50/50 rounded-lg border border-purple-100/50"

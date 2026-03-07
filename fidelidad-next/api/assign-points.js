@@ -264,10 +264,11 @@ export default async function handler(req, res) {
                 // APLICAR CONVERSIÓN OFICIAL CON SALDO ACUMULADO
                 const base = Number(config.pointsMoneyBase) || 100;
                 const ratio = Number(config.pointsPerPeso) || 1;
+                const costPerPoint = base / ratio;
 
                 const totalVal = Number(finalAmount) + currentAccumulated;
-                basePoints = Math.floor((totalVal / base) * ratio);
-                newAccumulatedBalance = totalVal % base;
+                basePoints = Math.floor(totalVal / costPerPoint);
+                newAccumulatedBalance = totalVal % costPerPoint;
             } else {
                 // Modo Manual (ya viene en puntos)
                 basePoints = Number(finalAmount);

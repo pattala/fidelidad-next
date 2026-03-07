@@ -1657,6 +1657,25 @@ export const ConfigPage = () => {
                                                 <span className="text-[10px] font-bold text-gray-400 uppercase">Veces</span>
                                             </div>
                                         </div>
+
+                                        <div className="p-4 bg-gray-50/50 rounded-xl border border-dashed border-gray-200 flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <Bell size={16} className="text-gray-400" />
+                                                <div>
+                                                    <span className="text-xs font-bold text-gray-600 block leading-tight">Límite de Cartel Grande</span>
+                                                    <span className="text-[9px] text-gray-400 uppercase tracking-tighter">Cuántos "Quizás Luego" antes de pasar a modo refuerzo</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="number" min="1" max="10"
+                                                    value={config.messaging?.maxLargePromptDismissals ?? 2}
+                                                    onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, maxLargePromptDismissals: parseInt(e.target.value) || 2 } })}
+                                                    className="w-14 px-2 py-1 text-center font-bold bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                                                />
+                                                <span className="text-[10px] font-bold text-gray-400 uppercase">Veces</span>
+                                            </div>
+                                        </div>
                                     </div>
 
                                 </div>

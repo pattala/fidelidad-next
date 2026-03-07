@@ -55,11 +55,10 @@ export const ContextualPermissionBanner = ({
             const permission = await Notification.requestPermission();
             if (permission === 'granted') {
                 await updateDoc(doc(db, 'users', user.uid), {
-                    'permissions.notifications': {
-                        status: 'granted', updatedAt: Date.now(),
-                        deniedCount: userData?.permissions?.notifications?.deniedCount || 0,
-                        contextualDismissCount: 0, nextPrompt: 0
-                    }
+                    [`permissions.notifications.status`]: 'granted',
+                    [`permissions.notifications.updatedAt`]: Date.now(),
+                    [`permissions.notifications.contextualDismissCount`]: 0,
+                    [`permissions.notifications.nextPrompt`]: 0
                 });
                 toast.success('¡Listo! Te avisaremos de tus premios 🎉');
                 onGranted?.();
@@ -69,10 +68,10 @@ export const ContextualPermissionBanner = ({
                 navigator.geolocation.getCurrentPosition(
                     async (pos) => {
                         await updateDoc(doc(db, 'users', user.uid), {
-                            'permissions.geolocation': {
-                                status: 'granted', updatedAt: Date.now(),
-                                deniedCount: 0, contextualDismissCount: 0, nextPrompt: 0
-                            },
+                            [`permissions.geolocation.status`]: 'granted',
+                            [`permissions.geolocation.updatedAt`]: Date.now(),
+                            [`permissions.geolocation.contextualDismissCount`]: 0,
+                            [`permissions.geolocation.nextPrompt`]: 0,
                             lastLocation: { lat: pos.coords.latitude, lng: pos.coords.longitude, timestamp: new Date() }
                         });
                         toast.success('¡Listo! Ahora podemos mostrarte beneficios cerca 📍');
@@ -104,13 +103,10 @@ export const ContextualPermissionBanner = ({
             const days = config?.messaging?.notificationPromptIntervalDays || 30;
             const nextPrompt = Date.now() + (days * 24 * 60 * 60 * 1000);
             await updateDoc(doc(db, 'users', user.uid), {
-                [`permissions.${type}`]: {
-                    status: 'dismissed',
-                    updatedAt: Date.now(),
-                    deniedCount: userData?.permissions?.[type]?.deniedCount || 0,
-                    contextualDismissCount: newCount,
-                    nextPrompt
-                }
+                [`permissions.${type}.status`]: 'dismissed',
+                [`permissions.${type}.updatedAt`]: Date.now(),
+                [`permissions.${type}.contextualDismissCount`]: newCount,
+                [`permissions.${type}.nextPrompt`]: nextPrompt
             });
             const daysLabel = days === 1 ? '1 día' : `${days} días`;
             toast(`Por ahora no te preguntamos más. Volvemos en ${daysLabel} 😊`, { icon: '⏳', duration: 4000 });
@@ -132,13 +128,9 @@ export const ContextualPermissionBanner = ({
         const days = config?.messaging?.notificationPromptIntervalDays || 30;
         const nextPrompt = Date.now() + (days * 24 * 60 * 60 * 1000);
         await updateDoc(doc(db, 'users', user.uid), {
-            [`permissions.${type}`]: {
-                status: 'dismissed',
-                updatedAt: Date.now(),
-                deniedCount: userData?.permissions?.[type]?.deniedCount || 0,
-                contextualDismissCount: userData?.permissions?.[type]?.contextualDismissCount || 0,
-                nextPrompt
-            }
+            [`permissions.${type}.status`]: 'dismissed',
+            [`permissions.${type}.updatedAt`]: Date.now(),
+            [`permissions.${type}.nextPrompt`]: nextPrompt
         });
         const daysLabel = days === 1 ? '1 día' : `${days} días`;
         toast(`Listo, no te preguntamos más por ${daysLabel} 😊`, { icon: '⏳', duration: 4000 });

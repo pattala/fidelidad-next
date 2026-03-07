@@ -179,6 +179,7 @@ export interface AppConfig {
         enableContextualNotifPrompt?: boolean; // Banner contextual de notif al ganar puntos
         enableContextualGeoPrompt?: boolean; // Banner contextual de geo al visitar Premios
         maxContextualDismissals?: number; // Cuántos "Ahora no" en el banner chico antes del standby (default: 2)
+        maxLargePromptDismissals?: number; // Cuántos "Quizás luego" en el cartel grande antes de pasar a modo refuerzo (default: 2)
     };
 
     // Sistema de Referidos

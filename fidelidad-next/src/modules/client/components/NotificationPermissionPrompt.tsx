@@ -46,19 +46,22 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
         if (!user) return;
         const ref = doc(db, 'users', user.uid);
 
-        let deniedCount = 0;
+        let deniedCount = userData?.permissions?.[type]?.deniedCount || 0;
         if (status === 'denied' || status === 'blocked') {
-            const currentCount = userData?.permissions?.[type]?.deniedCount || 0;
-            deniedCount = currentCount + 1;
+            deniedCount++;
+        }
+
+        let largeDismissCount = userData?.permissions?.[type]?.largeDismissCount || 0;
+        if (status === 'later') {
+            largeDismissCount++;
         }
 
         const updateData = {
-            [`permissions.${type}`]: {
-                status,
-                updatedAt: Date.now(),
-                deniedCount: status === 'denied' || status === 'blocked' ? deniedCount : (userData?.permissions?.[type]?.deniedCount || 0),
-                nextPrompt
-            }
+            [`permissions.${type}.status`]: status,
+            [`permissions.${type}.updatedAt`]: Date.now(),
+            [`permissions.${type}.deniedCount`]: deniedCount,
+            [`permissions.${type}.largeDismissCount`]: largeDismissCount,
+            [`permissions.${type}.nextPrompt`]: nextPrompt
         };
 
         try {
@@ -89,13 +92,17 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
         }
 
         // Lógica: 
-        // - 'pending' o 'later' → mostrar (1ra o 2da oportunidad)
+        // - 'pending' o 'later' → mostrar (1ra o 2da oportunidad, según límite configurado)
         // - 'dismissed' → volver a mostrar solo si ya pasó el periodo de standby (RE-INTENTO)
         const isNotifStandbyOver = notifStatus === 'dismissed' && Date.now() >= notifNextPrompt;
         let showNotif = false;
         const isNotifAvailable = typeof Notification !== 'undefined' && Notification.permission === 'default';
 
-        if (isNotifAvailable && (notifStatus === 'pending' || notifStatus === 'later' || isNotifStandbyOver)) {
+        const largeNotifDismissCount = permissions.notifications?.largeDismissCount || 0;
+        const maxLargeAttempts = config?.messaging?.maxLargePromptDismissals ?? 2;
+        const canShowLargeNotif = (notifStatus === 'pending') || (notifStatus === 'later' && largeNotifDismissCount < maxLargeAttempts) || isNotifStandbyOver;
+
+        if (isNotifAvailable && canShowLargeNotif) {
             showNotif = true;
         }
 
@@ -112,7 +119,11 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
         const isGeoStandbyOver = geoStatus === 'dismissed' && Date.now() >= geoNextPrompt;
         let showGeo = false;
 
-        if (geoStatus === 'pending' || geoStatus === 'later' || isGeoStandbyOver) {
+        const largeGeoDismissCount = permissions.geolocation?.largeDismissCount || 0;
+        const maxLargeGeoAttempts = config?.messaging?.maxLargePromptDismissals ?? 2;
+        const canShowLargeGeo = (geoStatus === 'pending') || (geoStatus === 'later' && largeGeoDismissCount < maxLargeGeoAttempts) || isGeoStandbyOver;
+
+        if (canShowLargeGeo) {
             showGeo = true;
         }
 

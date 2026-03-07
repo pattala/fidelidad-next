@@ -311,10 +311,10 @@ export const ClientHomePage = () => {
 
     const pointsRatio = Number(config?.pointsPerPeso || 1);
     const moneyBase = Number(config?.pointsMoneyBase || 100);
-    const costPerPoint = moneyBase / pointsRatio;
+    const costPerPoint = pointsRatio > 0 ? (moneyBase / pointsRatio) : moneyBase;
     const rawBalance = Number(displayData.accumulated_balance || 0);
     const balanceForCalc = rawBalance % costPerPoint;
-    const missing = Math.ceil(costPerPoint - balanceForCalc);
+    const missing = Math.max(0, Math.ceil(costPerPoint - (rawBalance % costPerPoint)));
 
     // Prompt Logic
     const { retrieveToken } = useFcmToken(); // Modificar hook para devolver esto
@@ -537,8 +537,8 @@ export const ClientHomePage = () => {
                             </div>
                         </div>
                         <div className="text-right">
-                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Saldo a favor</p>
-                            <p className="text-2xl font-black text-gray-600 tracking-tight">${Math.floor(balanceForCalc)}</p>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">A cuenta</p>
+                            <p className="text-2xl font-black text-emerald-600 tracking-tight">${Math.floor(balanceForCalc)}</p>
                         </div>
                     </div>
 

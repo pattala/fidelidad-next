@@ -95,7 +95,7 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
         let showNotif = false;
         const isNotifAvailable = typeof Notification !== 'undefined' && Notification.permission === 'default';
 
-        if (isNotifAvailable && (notifStatus === 'pending' || notifStatus === 'later' || isNotifStandbyOver)) {
+        if (isNotifAvailable && (notifStatus === 'pending' || isNotifStandbyOver)) {
             showNotif = true;
         }
 
@@ -112,7 +112,7 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
         const isGeoStandbyOver = geoStatus === 'dismissed' && Date.now() >= geoNextPrompt;
         let showGeo = false;
 
-        if (geoStatus === 'pending' || geoStatus === 'later' || isGeoStandbyOver) {
+        if (geoStatus === 'pending' || isGeoStandbyOver) {
             showGeo = true;
         }
 
@@ -175,23 +175,9 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
             setSessionDismissedGeo(true);
         }
 
-        // Sistema 2-strikes:
-        // - 1er "Quizás luego" → 'later' (vuelve a aparecer la próxima sesión)
-        // - 2do "Quizás luego" (ya estaba en 'later') → 'dismissed' + standby real
-        const currentStatus = userData?.permissions?.[type]?.status;
-        if (currentStatus === 'later') {
-            const days = config?.messaging?.notificationPromptIntervalDays || 30;
-            const nextPrompt = Date.now() + (days * 24 * 60 * 60 * 1000);
-            await updatePermission(type, 'dismissed', nextPrompt);
-
-            // Toast informativo dinámico
-            const daysLabel = days === 1 ? '1 día' : `${days} días`;
-            const icon = type === 'notifications' ? '🔔' : '📍';
-            toast(`Por ahora no te preguntamos más. Volvemos en ${daysLabel} 😊`, { icon, duration: 4000 });
-        } else {
-            // Primer descarte → simplemente lo marcamos para reintentar la próxima sesión
-            await updatePermission(type, 'later', 0);
-        }
+        // Marcamos como 'later' para que el cartel grande ya no salga esta vuelta
+        // y le de paso a los carteles chicos (contextuales).
+        await updatePermission(type, 'later', 0);
 
         // Si acaba de descartar notificaciones, ver si hay que mostrar geo
         if (type === 'notifications') {

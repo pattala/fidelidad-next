@@ -24,7 +24,8 @@ export const DashboardPage = () => {
         calculationMethod: 'manual',
         pointValueConfigured: 0,
         pointValueReal: 0,
-        referralCount: 0
+        referralCount: 0,
+        totalAccumulatedBalance: 0
     });
     const [forecastSummary, setForecastSummary] = useState<any>(null);
     const [recentActivity, setRecentActivity] = useState<any[]>([]);
@@ -108,14 +109,15 @@ export const DashboardPage = () => {
             const itinerancyDays = config?.messaging?.expirationReminderIntervalDays ?? config?.expirationItinerancyDays ?? 0;
             const currentYear = today.getFullYear().toString();
 
+            let totalAccumulatedBalance = 0;
             snap.forEach(d => {
                 const data = d.data();
-                // Filter: skip admins AND skip 'ghost' users (no name or no DNI)
                 const isGhost = !data.name && !data.nombre && !data.dni;
                 if (data.role !== 'admin' && !isGhost) {
                     clientCount++;
                     const userPoints = data.points ?? data.puntos ?? 0;
                     points += userPoints;
+                    totalAccumulatedBalance += Number(data.accumulated_balance || 0);
 
                     // 1. Birthdays (Only if not already greeted this year)
                     if (data.birthDate?.endsWith(todayMD)) {
@@ -148,7 +150,7 @@ export const DashboardPage = () => {
 
             setBirthdaysOfToday(todaysSelectedBirthdays);
             setExpiringUsers(usersExpiring);
-            setStats(prev => ({ ...prev, usersCount: clientCount, totalPoints: points }));
+            setStats(prev => ({ ...prev, usersCount: clientCount, totalPoints: points, totalAccumulatedBalance }));
             setLoading(false);
         });
 
@@ -528,6 +530,20 @@ export const DashboardPage = () => {
                         </div>
                     </div>
                     <div className="bg-green-50 p-3 rounded-xl text-green-600">
+                        <TrendingUp size={24} />
+                    </div>
+                </div>
+
+                {/* KPI 7: Saldo a Favor Total */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between transition hover:shadow-md">
+                    <div>
+                        <h3 className="text-gray-500 text-sm font-medium mb-1">Saldo a Favor Total</h3>
+                        <p className="text-3xl font-bold text-emerald-600">
+                            {loading ? '...' : `$${stats.totalAccumulatedBalance.toLocaleString()}`}
+                        </p>
+                        <p className="text-[10px] text-gray-400 font-bold mt-1 uppercase tracking-tight">Monto remanente</p>
+                    </div>
+                    <div className="bg-emerald-50 p-3 rounded-xl text-emerald-600">
                         <TrendingUp size={24} />
                     </div>
                 </div>

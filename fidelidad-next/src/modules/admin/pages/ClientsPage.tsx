@@ -1013,7 +1013,7 @@ export const ClientsPage = () => {
                                             {client.points || 0}
                                         </div>
                                         {(client.accumulated_balance || 0) > 0 && (
-                                            <div className="text-[10px] font-bold text-gray-400 mt-1" title="Monto remanente para el próximo punto">
+                                            <div className="text-[10px] font-bold text-emerald-600 mt-1" title="Monto remanente para el próximo punto">
                                                 +${(client.accumulated_balance || 0).toLocaleString()} a favor
                                             </div>
                                         )}

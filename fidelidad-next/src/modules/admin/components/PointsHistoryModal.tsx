@@ -359,7 +359,7 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
                 {/* Stats Dashboard */}
                 <div className="px-6 pb-6 flex flex-col gap-4">
                     {/* Fila 1: Histórico y Financiero */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-3 gap-4">
                         {/* Dinero Gastado Total */}
                         <div className="bg-green-50/50 rounded-xl p-3 border border-green-100 flex flex-col justify-center">
                             <div className="flex items-center gap-2 mb-1">
@@ -370,15 +370,24 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
                                 ${totalSpent.toLocaleString('es-AR')}
                             </p>
                         </div>
+                        {/* Saldo a Favor (Acumulado) */}
+                        <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100 flex flex-col justify-center">
+                            <div className="flex items-center gap-2 mb-1">
+                                <TrendingUp size={14} className="text-emerald-500" />
+                                <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wide">Saldo a Favor</p>
+                            </div>
+                            <div className="flex gap-1 items-baseline">
+                                <p className="text-2xl font-black text-gray-800">${(currentClient.accumulated_balance || 0).toLocaleString('es-AR')}</p>
+                            </div>
+                        </div>
                         {/* Puntos Históricos */}
                         <div className="bg-blue-50/50 rounded-xl p-3 border border-blue-100 flex flex-col justify-center">
                             <div className="flex items-center gap-2 mb-1">
                                 <History size={14} className="text-blue-500" />
-                                <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wide">Puntos Emitidos Totales</p>
+                                <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wide">Puntos Emitidos</p>
                             </div>
                             <div className="flex gap-2 items-baseline">
                                 <p className="text-2xl font-black text-gray-800">{stats.totalEarned.toLocaleString('es-AR')}</p>
-                                <span className="text-[10px] text-gray-400 font-bold">{stats.totalTransactions} visitas</span>
                             </div>
                         </div>
                     </div>

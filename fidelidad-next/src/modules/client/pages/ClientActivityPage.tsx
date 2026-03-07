@@ -15,6 +15,7 @@ export const ClientActivityPage = () => {
     const [history, setHistory] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [userBalance, setUserBalance] = useState(0);
+    const [accumulatedBalance, setAccumulatedBalance] = useState(0);
     const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
     // Set Header State
@@ -22,9 +23,17 @@ export const ClientActivityPage = () => {
         setHeaderTitle('Actividad');
 
         const actions = (
-            <div className="bg-purple-50 px-3 py-2 rounded-2xl flex items-center gap-1.5 border border-purple-100 shadow-sm">
-                <span className="text-[10px] font-black text-purple-400 uppercase tracking-tighter">Puntos:</span>
-                <span className="text-sm font-black text-purple-700">{userBalance}</span>
+            <div className="flex flex-col items-end gap-1">
+                <div className="bg-purple-50 px-3 py-1.5 rounded-xl flex items-center gap-1.5 border border-purple-100 shadow-sm">
+                    <span className="text-[10px] font-black text-purple-400 uppercase tracking-tighter">Puntos:</span>
+                    <span className="text-sm font-black text-purple-700">{userBalance}</span>
+                </div>
+                {accumulatedBalance > 0 && (
+                    <div className="bg-emerald-50 px-2 py-1 rounded-lg flex items-center gap-1 border border-emerald-100 shadow-sm">
+                        <span className="text-[9px] font-black text-emerald-400 uppercase tracking-tighter">Saldo a favor:</span>
+                        <span className="text-[11px] font-black text-emerald-700">${accumulatedBalance.toLocaleString()}</span>
+                    </div>
+                )}
             </div>
         );
 
@@ -45,7 +54,9 @@ export const ClientActivityPage = () => {
                 // 1. Get Current Balance
                 const userDoc = await getDoc(doc(db, 'users', user.uid));
                 if (userDoc.exists()) {
-                    setUserBalance(userDoc.data().points || 0);
+                    const data = userDoc.data();
+                    setUserBalance(data.points || 0);
+                    setAccumulatedBalance(data.accumulated_balance || 0);
                 }
 
                 // 2. Get History

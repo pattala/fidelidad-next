@@ -164,15 +164,20 @@ export const ClientHomePage = () => {
         }
 
         if (user) {
-            // Registro de Actividad (Ping)
-            const userRef = doc(db, 'users', user.uid);
-            const lastPing = sessionStorage.getItem(`ping_${user.uid}`);
-            const nowMs = Date.now();
+            // Registro de Actividad (Ping / Visita)
+            (async () => {
+                try {
+                    const sessionKey = `vcount_${user.uid}_${new Date().toISOString().split('T')[0]}`;
+                    const sessionVisitId = sessionStorage.getItem('current_visit_id');
+                    const hasCountedToday = sessionStorage.getItem(sessionKey);
 
-            if (!lastPing || (nowMs - Number(lastPing) > 30 * 60 * 1000)) {
-                (async () => {
-                    try {
+                    // Si no tenemos ID de visita en esta sesión, es una visita nueva (por Login o por abrir pestaña)
+                    if (!sessionVisitId) {
+                        const newVisitId = Math.random().toString(36).substring(7);
+                        sessionStorage.setItem('current_visit_id', newVisitId);
+
                         const { updateDoc, increment, serverTimestamp, collection, addDoc } = await import('firebase/firestore');
+                        const userRef = doc(db, 'users', user.uid);
                         const currentName = userData?.name || userData?.nombre || user.displayName || (isAdmin ? 'Admin' : 'Socio');
 
                         if (!isAdmin) {
@@ -190,14 +195,16 @@ export const ClientHomePage = () => {
                             platform: 'pwa',
                             location: userData?.lastLocation || null
                         });
-                        sessionStorage.setItem(`ping_${user.uid}`, nowMs.toString());
-                    } catch (e) {
-                        console.error("Error updating activity:", e);
+
+                        // También marcamos ping de 30 mins para actividad secundaria
+                        sessionStorage.setItem(`ping_${user.uid}`, Date.now().toString());
                     }
-                })();
-            }
+                } catch (e) {
+                    console.error("Error updating activity:", e);
+                }
+            })();
         }
-    }, [user, !!userData, authLoading, isAdmin]);
+    }, [user?.uid, !!userData, authLoading, isAdmin]);
 
     // CHEQUEO DE CUMPLEAÑOS (UNA SOLA VEZ AL CARGAR)
     const [birthdayChecked, setBirthdayChecked] = useState(false);
@@ -442,9 +449,7 @@ export const ClientHomePage = () => {
                 isOpen={showLogoutConfirm}
                 title="Cerrar Sesión"
                 message="¿Estás seguro que deseas salir de tu cuenta?"
-                onConfirm={() => {
-                    signOut(auth).then(() => navigate('/login'));
-                }}
+                onConfirm={handleLogout}
                 onCancel={() => setShowLogoutConfirm(false)}
                 confirmText="Sí, salir"
                 type="danger"
@@ -521,16 +526,38 @@ export const ClientHomePage = () => {
                 return null;
             })()}
 
-            {/* POINTS CARD */}
+            {/* POINTS AND BALANCE CARD */}
             <div className="relative z-10 px-0">
-                <div className="bg-white rounded-[2rem] p-6 shadow-[0_10px_30px_rgba(0,0,0,0.05)] border border-gray-100 relative overflow-hidden flex flex-col gap-4">
-                    <div className="flex justify-between items-end border-b border-gray-50 pb-4 mb-2">
-                        <div>
-                            <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Tus puntos:</p>
+                <div className="bg-white rounded-[2rem] p-6 shadow-[0_10px_30px_rgba(0,0,0,0.05)] border border-gray-100 relative overflow-hidden flex flex-col gap-5">
+
+                    {/* Integrated Quadrant */}
+                    <div className="grid grid-cols-2 gap-4">
+                        {/* Points Section */}
+                        <div className="flex flex-col justify-center border-r border-gray-50 pr-4">
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 leading-none">Tus puntos:</p>
                             <div className="flex items-baseline gap-1">
-                                <span className="text-5xl font-black text-[#4a148c] tracking-tighter leading-none">{displayData.points}</span>
-                                <span className="text-sm font-bold text-gray-400 uppercase ml-1">pts</span>
+                                <span className="text-4xl sm:text-5xl font-black text-[#4a148c] tracking-tighter leading-none">{displayData.points}</span>
+                                <span className="text-xs font-bold text-gray-400 uppercase">pts</span>
                             </div>
+                        </div>
+
+                        {/* Balance Section */}
+                        <div className="flex flex-col justify-center pl-2">
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                                <div className="bg-emerald-600 p-1 rounded-lg text-white">
+                                    <TrendingUp size={10} strokeWidth={3} />
+                                </div>
+                                <p className="text-[10px] font-black text-emerald-800 uppercase tracking-widest leading-none">Saldo a favor</p>
+                            </div>
+                            <div className="flex items-baseline gap-1">
+                                <span className="text-3xl font-black text-emerald-600 tracking-tighter leading-none">${Math.floor(balanceForCalc).toLocaleString()}</span>
+                                <span className="text-[10px] font-bold text-emerald-800/50 uppercase tracking-tighter">pesos</span>
+                            </div>
+                            {displayData.accumulated_balance_updated_at && (
+                                <p className="text-[8px] text-emerald-600/60 font-bold mt-1">
+                                    Act: {new Date(displayData.accumulated_balance_updated_at.toDate ? displayData.accumulated_balance_updated_at.toDate() : displayData.accumulated_balance_updated_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })}
+                                </p>
+                            )}
                         </div>
                     </div>
 
@@ -542,45 +569,27 @@ export const ClientHomePage = () => {
                     </div>
 
                     {user && (
-                        <div className="space-y-3 py-2 border-t border-gray-50">
+                        <div className="space-y-4 pt-2 border-t border-gray-50">
                             <PointsExpirationWarning userId={user.uid as string} compact={true} />
 
-                            <div className="flex items-center justify-between bg-emerald-50/80 p-4 rounded-[1.5rem] border border-emerald-100 shadow-sm shadow-emerald-50">
-                                <div className="flex flex-col">
-                                    <div className="flex items-center gap-2 mb-0.5">
-                                        <div className="bg-emerald-600 p-1 rounded-lg text-white">
-                                            <TrendingUp size={12} />
-                                        </div>
-                                        <span className="text-[10px] font-black text-emerald-800 uppercase tracking-widest">Saldo a favor</span>
-                                    </div>
-                                    {displayData.accumulated_balance_updated_at && (
-                                        <p className="text-[8px] text-emerald-600 font-bold opacity-70">
-                                            Act: {new Date(displayData.accumulated_balance_updated_at.toDate ? displayData.accumulated_balance_updated_at.toDate() : displayData.accumulated_balance_updated_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })}
-                                        </p>
-                                    )}
-                                </div>
-                                <div className="text-right">
-                                    <span className="text-2xl font-black text-emerald-600 tracking-tight leading-none">${Math.floor(balanceForCalc).toLocaleString()}</span>
-                                    <p className="text-[8px] font-bold text-emerald-800/50 uppercase tracking-tighter">pesos a cuenta</p>
-                                </div>
-                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <button
+                                    onClick={() => setShowExpirationModal(true)}
+                                    className="text-center text-[10px] font-black text-purple-600 uppercase tracking-widest hover:text-purple-800 transition-colors flex items-center justify-center gap-1.5 py-3 bg-purple-50/50 rounded-2xl border border-purple-100/50"
+                                >
+                                    <Clock size={12} strokeWidth={3} />
+                                    Vencimientos
+                                </button>
 
-                            <button
-                                onClick={() => setShowExpirationModal(true)}
-                                className="w-full text-center text-[10px] font-black text-purple-600 uppercase tracking-widest hover:text-purple-800 transition-colors flex items-center justify-center gap-1.5 py-2 bg-purple-50/50 rounded-xl border border-purple-100/50"
-                            >
-                                <Clock size={12} strokeWidth={3} />
-                                Ver detalle de vencimientos
-                            </button>
+                                <button
+                                    onClick={() => navigate('/rewards')}
+                                    className="bg-[#ffca28] text-[#5d4037] py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-[0_4px_15px_rgba(255,202,40,0.2)] active:scale-[0.98] transition"
+                                >
+                                    Ver premios <ChevronRight size={14} strokeWidth={3} />
+                                </button>
+                            </div>
                         </div>
                     )}
-
-                    <button
-                        onClick={() => navigate('/rewards')}
-                        className="w-full bg-[#ffca28] text-[#5d4037] py-2.5 rounded-3xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-[0_4px_20px_rgba(255,202,40,0.3)] active:scale-[0.98] transition"
-                    >
-                        Ver premios <span className="text-xl leading-none">›</span>
-                    </button>
                 </div>
             </div>
 

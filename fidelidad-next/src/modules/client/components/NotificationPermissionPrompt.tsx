@@ -78,7 +78,7 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
         }
     };
 
-    const checkNextStep = () => {
+    const checkNextStep = async () => {
         // Leer siempre directo de sessionStorage para evitar stale state
         const isDismissedNotif = sessionStorage.getItem('dismissed_notif_prompt') === 'true';
         const isDismissedGeo = sessionStorage.getItem('dismissed_geo_prompt') === 'true';
@@ -92,29 +92,24 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
 
         // Auto-sincronizar si el navegador ya tiene el permiso concedido o denegado
         if (Notification.permission === 'granted' && notifStatus !== 'granted') {
-            updatePermission('notifications', 'granted');
-            // No mostramos nada para notif, pasamos a geo
-        } else if (Notification.permission === 'denied') {
-            // El navegador lo bloqueó, no preguntar
+            await updatePermission('notifications', 'granted');
         }
 
-        // Lógica: 
-        // - 'pending' o 'later' → mostrar (1ra o 2da oportunidad, según límite configurado)
-        // - 'dismissed' → volver a mostrar solo si ya pasó el periodo de standby (RE-INTENTO)
         const isNotifStandbyOver = notifStatus === 'dismissed' && Date.now() >= notifNextPrompt;
-        let showNotif = false;
         const isNotifAvailable = typeof Notification !== 'undefined' && Notification.permission === 'default';
-
         const largeNotifDismissCount = permissions.notifications?.largeDismissCount || 0;
         const maxLargeAttempts = config?.messaging?.maxLargePromptDismissals ?? 2;
+
         const canShowLargeNotif = (notifStatus === 'pending') || (notifStatus === 'later' && largeNotifDismissCount < maxLargeAttempts) || isNotifStandbyOver;
 
-        if (isNotifAvailable && canShowLargeNotif) {
-            showNotif = true;
-        }
-
-        if (showNotif && !isDismissedNotif && !notifBlocked) {
+        if (isNotifAvailable && canShowLargeNotif && !isDismissedNotif && !notifBlocked) {
             setStep('notifications');
+            // CONSUMIR INTENTO: Si se va a mostrar el cartel grande, lo marcamos como 'visto' ('later') para que cuente
+            const sessionKey = `attempt_large_notif_${user?.uid}`;
+            if (!sessionStorage.getItem(sessionKey)) {
+                sessionStorage.setItem(sessionKey, 'true');
+                await updatePermission('notifications', 'later');
+            }
             return;
         }
 
@@ -124,18 +119,18 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
         const geoBlocked = geoStatus === 'blocked';
 
         const isGeoStandbyOver = geoStatus === 'dismissed' && Date.now() >= geoNextPrompt;
-        let showGeo = false;
-
         const largeGeoDismissCount = permissions.geolocation?.largeDismissCount || 0;
         const maxLargeGeoAttempts = config?.messaging?.maxLargePromptDismissals ?? 2;
         const canShowLargeGeo = (geoStatus === 'pending') || (geoStatus === 'later' && largeGeoDismissCount < maxLargeGeoAttempts) || isGeoStandbyOver;
 
-        if (canShowLargeGeo) {
-            showGeo = true;
-        }
-
-        if (showGeo && !isDismissedGeo && !geoBlocked) {
+        if (canShowLargeGeo && !isDismissedGeo && !geoBlocked) {
             setStep('geolocation');
+            // CONSUMIR INTENTO: Si se va a mostrar el cartel grande, lo marcamos como 'visto' ('later')
+            const sessionKeyGeo = `attempt_large_geo_${user?.uid}`;
+            if (!sessionStorage.getItem(sessionKeyGeo)) {
+                sessionStorage.setItem(sessionKeyGeo, 'true');
+                await updatePermission('geolocation', 'later');
+            }
             return;
         }
 

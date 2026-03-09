@@ -155,10 +155,10 @@ export default async function handler(req, res) {
     }
 
     const sourceLabelMap = {
-        'dashboard': 'Panel Admin',
-        'pwa': 'PWA Cliente',
-        'extension': 'Extensión',
-        'qstash': 'QStash (Cron)',
+        'dashboard': 'Ejecución en Dashboard',
+        'pwa': 'Ejecución en PWA',
+        'extension': 'Ejecución en Extensión',
+        'qstash': 'Ejecución vía QStash',
         'unknown': 'Auto'
     };
     const logSourceLabel = sourceLabelMap[triggerSource] || 'Auto';
@@ -216,7 +216,7 @@ export default async function handler(req, res) {
                     status: 'success',
                     summary: skipSummary,
                     details: [{ action: 'idle_check', info: 'Deduplicación activa (Todo al día).', trigger: triggerSource }],
-                    executor: executorEmail
+                    executor: logSourceLabel
                 });
             }
 
@@ -356,7 +356,7 @@ export default async function handler(req, res) {
                 ...logResults.details.map(d => ({ ...d, category: 'cumpleaños' })),
                 ...(expirationsResult.summary?.details || []).map(d => ({ ...d, category: 'vencimientos' }))
             ].slice(0, 500),
-            executor: executorEmail
+            executor: logSourceLabel
         });
 
         // Marcar como ejecutado
@@ -365,7 +365,7 @@ export default async function handler(req, res) {
             await db.collection('config').doc('dailyCheck').set({
                 lastRunDate: arFormatter.format(new Date()),
                 lastRunTimestamp: admin.firestore.FieldValue.serverTimestamp(),
-                executor: executorEmail
+                executor: logSourceLabel
             }, { merge: true });
         }
 

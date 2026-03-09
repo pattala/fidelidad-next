@@ -3,7 +3,7 @@
 // Procesa el canje de un premio de forma segura y centralizada.
 
 import admin from "firebase-admin";
-import { sendNotificationInternal } from "./send-notification.js";
+import { sendNotificationInternal } from "./notifications.js";
 import { updateNextExpirationDate } from "../utils/_expiration-utils.js";
 
 // ---------- Firebase Admin ----------
@@ -305,6 +305,7 @@ export default async function handler(req, res) {
                 const isEmailConfigured = (messagingCfg.emailEnabled !== false) && channels.includes('email');
 
                 // Executor for Audit Logs
+                const executorRole = req.headers["x-executor-role"] || 'admin';
                 let executor = 'admin';
                 if (authHeader && authHeader.startsWith("Bearer ")) {
                     const token = authHeader.split("Bearer ")[1];

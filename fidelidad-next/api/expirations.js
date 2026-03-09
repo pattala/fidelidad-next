@@ -87,10 +87,10 @@ async function handleCheck(req, res, db) {
         if (simulatedDateBody) referenceDate = new Date(simulatedDateBody);
         const triggerSource = req.query?.trigger || req.body?.trigger || "unknown";
         const sourceLabelMap = {
-            'dashboard': 'Panel Admin',
-            'pwa': 'PWA Cliente',
-            'extension': 'Extensión',
-            'qstash': 'QStash (Cron)',
+            'dashboard': 'Ejecución en Dashboard',
+            'pwa': 'Ejecución en PWA',
+            'extension': 'Ejecución en Extensión',
+            'qstash': 'Ejecución vía QStash',
             'unknown': 'Auto'
         };
         const logSourceLabel = sourceLabelMap[triggerSource] || 'Auto';
@@ -116,7 +116,7 @@ async function handleCheck(req, res, db) {
                 status: 'running',
                 summary: `Iniciando ${logSummaryPrefix}... Gatillo: ${logSourceLabel}.`,
                 details: [],
-                executor: executorEmail,
+                executor: logSourceLabel,
                 role: executorRole === 'system' && executorEmail !== 'system' ? 'admin' : executorRole
             });
         }

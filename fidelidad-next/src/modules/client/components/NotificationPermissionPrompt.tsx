@@ -108,8 +108,9 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
         // Fase 1 (Grande): Solo sale si es 'pending' o 'later' (dentro de los re-intentos).
         // Una vez que pasa a 'dismissed', ya es el turno de los contextuales (Fase 2) en ClientHomePage.
         const canShowLargeNotif = (notifStatus === 'pending') || (notifStatus === 'later' && largeNotifDismissCount < maxLargeAttempts);
+        const isPhase1Enabled = config?.messaging?.enableLargePrompt !== false;
 
-        if (isNotifAvailable && canShowLargeNotif && !isDismissedNotif && !notifBlocked) {
+        if (isPhase1Enabled && isNotifAvailable && canShowLargeNotif && !isDismissedNotif && !notifBlocked) {
             setStep('notifications');
             return;
         }
@@ -129,7 +130,7 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
         const maxLargeGeoAttempts = config?.messaging?.maxLargePromptDismissals ?? 2;
         const canShowLargeGeo = (geoStatus === 'pending') || (geoStatus === 'later' && largeGeoDismissCount < maxLargeGeoAttempts);
 
-        if (canShowLargeGeo && !isDismissedGeo && !geoBlocked) {
+        if (isPhase1Enabled && canShowLargeGeo && !isDismissedGeo && !geoBlocked) {
             setStep('geolocation');
             return;
         }

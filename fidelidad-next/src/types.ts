@@ -176,6 +176,7 @@ export interface AppConfig {
         enableQStashTrigger?: boolean;
         notificationPromptIntervalDays?: number; // Días para repetir aviso de permisos
         enablePermissionPromptRepetition?: boolean; // Nuevo: Toggle para encender/apagar re-preguntas PWA
+        enableLargePrompt?: boolean; // Nuevo: Toggle para encender/apagar carteles grandes (Fase 1)
         enableContextualNotifPrompt?: boolean; // Banner contextual de notif al ganar puntos
         enableContextualGeoPrompt?: boolean; // Banner contextual de geo al visitar Premios
         maxContextualDismissals?: number; // Cuántos "Ahora no" en el banner chico antes del standby (default: 2)

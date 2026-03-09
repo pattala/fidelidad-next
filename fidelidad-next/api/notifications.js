@@ -127,7 +127,7 @@ async function handleSendNotification(req, res, db) {
 }
 
 // Re-using the robust logic from send-notification.js
-async function sendNotificationInternal({ db, title, body: msgBody, tokens: tokensIn = [], click_action = "/activity", icon, badge, extraData = {}, audience, clienteId, executor, points }) {
+export async function sendNotificationInternal({ db, title, body: msgBody, tokens: tokensIn = [], click_action = "/activity", icon, badge, extraData = {}, audience, clienteId, executor, points }) {
     let tokens = unique(tokensIn);
     if (!tokens.length && clienteId) {
         const snap = await db.collection("users").doc(String(clienteId)).get();

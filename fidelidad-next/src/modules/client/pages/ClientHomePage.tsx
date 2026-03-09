@@ -339,11 +339,13 @@ export const ClientHomePage = () => {
             const largeGeoDismissCount = userData.permissions?.geolocation?.largeDismissCount || 0;
             const maxLargeAttempts = config?.messaging?.maxLargePromptDismissals ?? 2;
 
-            const isNotifPhase1Over = notifStatus === 'dismissed' || notifStatus === 'denied' || notifStatus === 'granted' || notifStatus === 'blocked';
+            const isPhase1Enabled = config?.messaging?.enableLargePrompt !== false;
+            const isNotifPhase1Over = notifStatus === 'dismissed' || notifStatus === 'denied' || notifStatus === 'granted' || notifStatus === 'blocked' || !isPhase1Enabled;
             const geoStatus = userData.permissions?.geolocation?.status || 'pending';
-            const isGeoPhase1Over = geoStatus === 'dismissed' || geoStatus === 'denied' || geoStatus === 'granted' || geoStatus === 'blocked';
+            const isGeoPhase1Over = geoStatus === 'dismissed' || geoStatus === 'denied' || geoStatus === 'granted' || geoStatus === 'blocked' || !isPhase1Enabled;
 
             // Solo pasamos a Fase 2 (carteles chicos) si AMBOS carteles grandes ya terminaron sus intentos
+            // (o si la Fase 1 está desactivada por configuración)
             // y NO se ha descartado el cartel en esta misma sesión (respetar la decisión de "ahora no")
             const isNotifSessionDismissed = sessionStorage.getItem('dismissed_notif_prompt') === 'true';
             const isGeoSessionDismissed = sessionStorage.getItem('dismissed_geo_prompt') === 'true';

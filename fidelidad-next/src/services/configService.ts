@@ -58,6 +58,8 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
         enableExtensionTrigger: true,
         enableQStashTrigger: true,
         notificationPromptIntervalDays: 30,
+        enableLargePrompt: true,
+        enableContextualNotifPrompt: true,
     },
     referrals: {
         enabled: true,

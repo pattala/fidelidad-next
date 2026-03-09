@@ -207,7 +207,7 @@ async function refreshAlertCounts() {
     if (!config.apiUrl || !config.apiKey) return;
     try {
         // Dispara el check en modo SILENCIOSO y "Diario" a la API oficial
-        const r = await fetch(`${config.apiUrl}/api/engine-daily?mode=daily`, {
+        const r = await fetch(`${config.apiUrl}/api/engine-daily?mode=daily&trigger=extension`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey }
         });

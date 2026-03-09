@@ -1617,63 +1617,77 @@ export const ConfigPage = () => {
 
                                     {/* 2. REFUERZO AL GANAR PUNTOS (Contextual flow) */}
                                     <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-500">
-                                                    <Bell size={20} />
-                                                </div>
-                                                <div>
-                                                    <h4 className="font-black text-gray-800 uppercase tracking-tighter">REFUERZO AL GANAR PUNTOS</h4>
-                                                    <p className="text-xs text-gray-500">Mostrar banners al sumar puntos (Notificaciones + Ubicación).</p>
-                                                </div>
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-500">
+                                                <Bell size={20} />
                                             </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => setConfig({
-                                                    ...config,
-                                                    messaging: { ...config.messaging!, enableContextualNotifPrompt: !config.messaging?.enableContextualNotifPrompt }
-                                                })}
-                                                className={`relative w-12 h-7 transition-colors rounded-full ${config.messaging?.enableContextualNotifPrompt ? 'bg-purple-600' : 'bg-gray-200'}`}
-                                            >
-                                                <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.messaging?.enableContextualNotifPrompt ? 'translate-x-5' : 'translate-x-0'}`} />
-                                            </button>
+                                            <div>
+                                                <h4 className="font-black text-gray-800 uppercase tracking-tighter">REFUERZO AL GANAR PUNTOS</h4>
+                                                <p className="text-xs text-gray-500">Mostrar carteles al sumar puntos o visitar secciones estratégicas.</p>
+                                            </div>
                                         </div>
 
+                                        {/* Card 1: Contextual Banners (Small) */}
                                         <div className="p-4 bg-gray-50/50 rounded-xl border border-dashed border-gray-200 flex items-center justify-between">
                                             <div className="flex items-center gap-3">
                                                 <Zap size={16} className="text-gray-400" />
                                                 <div>
                                                     <span className="text-xs font-bold text-gray-600 block leading-tight">Límite de Persianas</span>
-                                                    <span className="text-[9px] text-gray-400 uppercase tracking-tighter">Cuántas veces mostrar antes del standby</span>
+                                                    <span className="text-[9px] text-gray-400 uppercase tracking-tighter text-balance">Banners pequeños arriba al sumar puntos</span>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-2">
-                                                <input
-                                                    type="number" min="1" max="10"
-                                                    value={config.messaging?.maxContextualDismissals ?? 2}
-                                                    onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, maxContextualDismissals: parseInt(e.target.value) || 2 } })}
-                                                    className="w-14 px-2 py-1 text-center font-bold bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-purple-500 text-sm"
-                                                />
-                                                <span className="text-[10px] font-bold text-gray-400 uppercase">Veces</span>
+                                            <div className="flex items-center gap-4">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setConfig({
+                                                        ...config,
+                                                        messaging: { ...config.messaging!, enableContextualNotifPrompt: !config.messaging?.enableContextualNotifPrompt }
+                                                    })}
+                                                    className={`relative w-10 h-6 transition-colors rounded-full ${config.messaging?.enableContextualNotifPrompt ? 'bg-purple-600' : 'bg-gray-200'}`}
+                                                >
+                                                    <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform ${config.messaging?.enableContextualNotifPrompt ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                </button>
+                                                <div className="flex items-center gap-2">
+                                                    <input
+                                                        type="number" min="1" max="10"
+                                                        value={config.messaging?.maxContextualDismissals ?? 2}
+                                                        onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, maxContextualDismissals: parseInt(e.target.value) || 2 } })}
+                                                        className="w-14 px-2 py-1 text-center font-bold bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                                                    />
+                                                    <span className="text-[10px] font-bold text-gray-400 uppercase">Veces</span>
+                                                </div>
                                             </div>
                                         </div>
 
+                                        {/* Card 2: Large Prompt (Phase 1) */}
                                         <div className="p-4 bg-gray-50/50 rounded-xl border border-dashed border-gray-200 flex items-center justify-between">
                                             <div className="flex items-center gap-3">
                                                 <Bell size={16} className="text-gray-400" />
                                                 <div>
                                                     <span className="text-xs font-bold text-gray-600 block leading-tight">Límite de Cartel Grande</span>
-                                                    <span className="text-[9px] text-gray-400 uppercase tracking-tighter">Cuántos "Quizás Luego" antes de pasar a modo refuerzo</span>
+                                                    <span className="text-[9px] text-gray-400 uppercase tracking-tighter text-balance">Pantalla completa con Quizás Luego</span>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-2">
-                                                <input
-                                                    type="number" min="1" max="10"
-                                                    value={config.messaging?.maxLargePromptDismissals ?? 2}
-                                                    onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, maxLargePromptDismissals: parseInt(e.target.value) || 2 } })}
-                                                    className="w-14 px-2 py-1 text-center font-bold bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-purple-500 text-sm"
-                                                />
-                                                <span className="text-[10px] font-bold text-gray-400 uppercase">Veces</span>
+                                            <div className="flex items-center gap-4">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setConfig({
+                                                        ...config,
+                                                        messaging: { ...config.messaging!, enableLargePrompt: !config.messaging?.enableLargePrompt }
+                                                    })}
+                                                    className={`relative w-10 h-6 transition-colors rounded-full ${config.messaging?.enableLargePrompt ? 'bg-purple-600' : 'bg-gray-200'}`}
+                                                >
+                                                    <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform ${config.messaging?.enableLargePrompt ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                </button>
+                                                <div className="flex items-center gap-2">
+                                                    <input
+                                                        type="number" min="1" max="10"
+                                                        value={config.messaging?.maxLargePromptDismissals ?? 2}
+                                                        onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, maxLargePromptDismissals: parseInt(e.target.value) || 2 } })}
+                                                        className="w-14 px-2 py-1 text-center font-bold bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                                                    />
+                                                    <span className="text-[10px] font-bold text-gray-400 uppercase">Veces</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

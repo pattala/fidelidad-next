@@ -354,16 +354,18 @@ export const ClientHomePage = () => {
                 // Fase 2 Gatekeeper Notif
                 const notifNextPrompt = userData.permissions?.notifications?.nextPrompt || 0;
                 const isNotifPhase2Ready = (notifStatus === 'dismissed' || notifStatus === 'denied') && Date.now() >= notifNextPrompt;
+                const isNotifPhase2Enabled = config?.messaging?.enableContextualNotifPrompt !== false;
 
-                if (isNotifPhase2Ready && notifStatus !== 'granted' && notifStatus !== 'blocked' && notifPerm !== 'granted' && notifPerm !== 'denied' && !isNotifSessionDismissed) {
+                if (isNotifPhase2Enabled && isNotifPhase2Ready && notifStatus !== 'granted' && notifStatus !== 'blocked' && notifPerm !== 'granted' && notifPerm !== 'denied' && !isNotifSessionDismissed) {
                     setContextualPointsMsg(`¡Ganaste ${gained} puntos!`);
                     setShowContextualNotif(true);
                 } else {
                     // Fase 2 Gatekeeper Geo
                     const geoNextPrompt = userData.permissions?.geolocation?.nextPrompt || 0;
                     const isGeoPhase2Ready = (geoStatus === 'dismissed' || geoStatus === 'denied') && Date.now() >= geoNextPrompt;
+                    const isGeoPhase2Enabled = config?.messaging?.enableContextualGeoPrompt !== false;
 
-                    if (isGeoPhase2Ready && geoStatus !== 'granted' && geoStatus !== 'blocked' && !isGeoSessionDismissed) {
+                    if (isGeoPhase2Enabled && isGeoPhase2Ready && geoStatus !== 'granted' && geoStatus !== 'blocked' && !isGeoSessionDismissed) {
                         setContextualPointsMsg(`¡Ganaste ${gained} puntos!`);
                         setShowContextualGeo(true);
                     }

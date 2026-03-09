@@ -854,7 +854,7 @@ export const ClientsPage = () => {
                                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">Permisos</th>
                                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">Actividad / Visitas</th>
                                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">Puntos</th>
-                                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">Saldo a Favor</th>
+                                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">Puntos a Favor</th>
                                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Acciones</th>
                             </tr>
                         </thead>
@@ -1406,6 +1406,11 @@ export const ClientsPage = () => {
                                     </div>
                                     {/* PV PREVIEW */}
                                     <div className="mt-2 ml-2">
+                                        {pointsData.isPesos && (selectedClientForPoints.accumulated_balance || 0) > 0 && (
+                                            <p className="text-[10px] text-emerald-600 font-black uppercase tracking-tighter mb-1 animate-pulse">
+                                                ★ Incluye ${(selectedClientForPoints.accumulated_balance || 0).toLocaleString()} de Puntos a Favor previos
+                                            </p>
+                                        )}
                                         {(() => {
                                             const val = parseFloat(pointsData.amount);
                                             if (isNaN(val) || val <= 0) return <span className="text-[11px] text-gray-400 font-medium italic">Ingresa un monto para ver los puntos</span>;

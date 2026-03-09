@@ -29,8 +29,8 @@ export const ClientActivityPage = () => {
                     <span className="text-sm font-black text-purple-700">{userBalance}</span>
                 </div>
                 {accumulatedBalance > 0 && (
-                    <div className="bg-emerald-50 px-2 py-1 rounded-lg flex items-center gap-1 border border-emerald-100 shadow-sm">
-                        <span className="text-[9px] font-black text-emerald-400 uppercase tracking-tighter">Saldo a favor:</span>
+                    <div className="bg-emerald-50 px-3 py-1 rounded-xl flex items-center gap-1.5 border border-emerald-100 shadow-sm">
+                        <span className="text-[9px] font-black text-emerald-400 uppercase tracking-tighter">Puntos a Favor:</span>
                         <span className="text-[11px] font-black text-emerald-700">${accumulatedBalance.toLocaleString()}</span>
                     </div>
                 )}

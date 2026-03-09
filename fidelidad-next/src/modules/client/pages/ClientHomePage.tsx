@@ -344,12 +344,16 @@ export const ClientHomePage = () => {
             const isGeoPhase1Over = geoStatus === 'dismissed' || geoStatus === 'denied' || geoStatus === 'granted' || geoStatus === 'blocked';
 
             // Solo pasamos a Fase 2 (carteles chicos) si AMBOS carteles grandes ya terminaron sus intentos
+            // y NO se ha descartado el cartel en esta misma sesión (respetar la decisión de "ahora no")
+            const isNotifSessionDismissed = sessionStorage.getItem('dismissed_notif_prompt') === 'true';
+            const isGeoSessionDismissed = sessionStorage.getItem('dismissed_geo_prompt') === 'true';
+
             if (isNotifPhase1Over && isGeoPhase1Over) {
                 // Fase 2 Gatekeeper Notif
                 const notifNextPrompt = userData.permissions?.notifications?.nextPrompt || 0;
                 const isNotifPhase2Ready = (notifStatus === 'dismissed' || notifStatus === 'denied') && Date.now() >= notifNextPrompt;
 
-                if (isNotifPhase2Ready && notifStatus !== 'granted' && notifStatus !== 'blocked' && notifPerm !== 'granted' && notifPerm !== 'denied') {
+                if (isNotifPhase2Ready && notifStatus !== 'granted' && notifStatus !== 'blocked' && notifPerm !== 'granted' && notifPerm !== 'denied' && !isNotifSessionDismissed) {
                     setContextualPointsMsg(`¡Ganaste ${gained} puntos!`);
                     setShowContextualNotif(true);
                 } else {
@@ -357,7 +361,7 @@ export const ClientHomePage = () => {
                     const geoNextPrompt = userData.permissions?.geolocation?.nextPrompt || 0;
                     const isGeoPhase2Ready = (geoStatus === 'dismissed' || geoStatus === 'denied') && Date.now() >= geoNextPrompt;
 
-                    if (isGeoPhase2Ready && geoStatus !== 'granted' && geoStatus !== 'blocked') {
+                    if (isGeoPhase2Ready && geoStatus !== 'granted' && geoStatus !== 'blocked' && !isGeoSessionDismissed) {
                         setContextualPointsMsg(`¡Ganaste ${gained} puntos!`);
                         setShowContextualGeo(true);
                     }

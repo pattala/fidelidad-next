@@ -348,9 +348,8 @@ export default async function handler(req, res) {
         } else {
             // Modo Reglas de Negocio (Bienvenida, Dirección, etc)
             if (reason === 'profile_address') {
-                const cfgSnap = await db.collection('config').doc('gamification').get();
-                const cfg = cfgSnap.exists ? cfgSnap.data() : {};
-                points = Number(cfg.pointsForAddress) || 50;
+                // El panel guarda casi todo en 'config/general' ahora
+                points = Number(config.pointsForAddress) || 50;
             } else if (reason === 'welcome_signup') {
                 points = Number(config.welcomePoints) || 0;
             } else {

@@ -242,6 +242,7 @@ export const ClientRegisterPage = () => {
                         body: JSON.stringify({
                             uid: user.uid,
                             reason: 'welcome_signup',
+                            amount: welcomePts,
                             skipNotifications: true
                         })
                     }).then(res => {
@@ -261,6 +262,7 @@ export const ClientRegisterPage = () => {
                         body: JSON.stringify({
                             uid: user.uid,
                             reason: 'profile_address',
+                            amount: addressPts,
                             skipNotifications: true
                         })
                     }).then(res => {

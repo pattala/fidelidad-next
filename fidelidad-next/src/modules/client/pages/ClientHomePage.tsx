@@ -334,22 +334,33 @@ export const ClientHomePage = () => {
             const notifStatus = userData.permissions?.notifications?.status || 'pending';
             const notifPerm = typeof Notification !== 'undefined' ? Notification.permission : 'denied';
 
-            // Fase 2 Gatekeeper: Solo si ya pasó la Fase 1 (está en dismissed o denied por standby anterior) y NO está en standby de fase 2
-            const nextPrompt = userData.permissions?.notifications?.nextPrompt || 0;
-            const isPhase2Ready = (notifStatus === 'dismissed' || notifStatus === 'denied') && Date.now() >= nextPrompt;
+            // Fase 1 Check: ¿Queda algún cartel grande pendiente o en ciclo de "quizás luego"?
+            const largeNotifDismissCount = userData.permissions?.notifications?.largeDismissCount || 0;
+            const largeGeoDismissCount = userData.permissions?.geolocation?.largeDismissCount || 0;
+            const maxLargeAttempts = config?.messaging?.maxLargePromptDismissals ?? 2;
 
-            if (isPhase2Ready && notifStatus !== 'granted' && notifStatus !== 'blocked' && notifPerm !== 'granted' && notifPerm !== 'denied') {
-                setContextualPointsMsg(`¡Ganaste ${gained} puntos!`);
-                setShowContextualNotif(true);
-            } else {
-                // Si notificaciones no aplica, probamos Geografía directamente
-                const geoStatus = userData.permissions?.geolocation?.status || 'pending';
-                const geoNextPrompt = userData.permissions?.geolocation?.nextPrompt || 0;
-                const isGeoPhase2Ready = (geoStatus === 'dismissed' || geoStatus === 'denied') && Date.now() >= geoNextPrompt;
+            const isNotifPhase1Over = notifStatus === 'dismissed' || notifStatus === 'denied' || notifStatus === 'granted' || notifStatus === 'blocked';
+            const geoStatus = userData.permissions?.geolocation?.status || 'pending';
+            const isGeoPhase1Over = geoStatus === 'dismissed' || geoStatus === 'denied' || geoStatus === 'granted' || geoStatus === 'blocked';
 
-                if (isGeoPhase2Ready && geoStatus !== 'granted' && geoStatus !== 'blocked') {
+            // Solo pasamos a Fase 2 (carteles chicos) si AMBOS carteles grandes ya terminaron sus intentos
+            if (isNotifPhase1Over && isGeoPhase1Over) {
+                // Fase 2 Gatekeeper Notif
+                const notifNextPrompt = userData.permissions?.notifications?.nextPrompt || 0;
+                const isNotifPhase2Ready = (notifStatus === 'dismissed' || notifStatus === 'denied') && Date.now() >= notifNextPrompt;
+
+                if (isNotifPhase2Ready && notifStatus !== 'granted' && notifStatus !== 'blocked' && notifPerm !== 'granted' && notifPerm !== 'denied') {
                     setContextualPointsMsg(`¡Ganaste ${gained} puntos!`);
-                    setShowContextualGeo(true);
+                    setShowContextualNotif(true);
+                } else {
+                    // Fase 2 Gatekeeper Geo
+                    const geoNextPrompt = userData.permissions?.geolocation?.nextPrompt || 0;
+                    const isGeoPhase2Ready = (geoStatus === 'dismissed' || geoStatus === 'denied') && Date.now() >= geoNextPrompt;
+
+                    if (isGeoPhase2Ready && geoStatus !== 'granted' && geoStatus !== 'blocked') {
+                        setContextualPointsMsg(`¡Ganaste ${gained} puntos!`);
+                        setShowContextualGeo(true);
+                    }
                 }
             }
         }
@@ -542,9 +553,9 @@ export const ClientHomePage = () => {
                         </div>
 
                         {/* Balance Section */}
-                        <div className="flex flex-col justify-center pl-2 opacity-80">
-                            <div className="flex items-center gap-1 mb-1">
-                                <p className="text-[8px] font-black text-emerald-800 uppercase tracking-widest leading-none">Saldo a favor</p>
+                        <div className="flex flex-col justify-center items-end pl-2 opacity-80 text-right">
+                            <div className="mb-1">
+                                <p className="text-[7px] font-black text-emerald-800 uppercase tracking-widest leading-none">A favor para sumar puntos</p>
                             </div>
                             <div className="flex items-baseline gap-0.5">
                                 <span className="text-xl font-black text-emerald-600 tracking-tighter leading-none">${Math.floor(balanceForCalc).toLocaleString()}</span>

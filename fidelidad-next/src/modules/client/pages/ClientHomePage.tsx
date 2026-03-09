@@ -452,10 +452,11 @@ export const ClientHomePage = () => {
                 {/* LogOut Button - Moved here from Header */}
                 <button
                     onClick={() => setShowLogoutConfirm(true)}
-                    className="w-11 h-11 bg-white/80 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-sm border border-gray-100 text-gray-400 hover:text-rose-500 hover:border-rose-100 transition-all active:scale-90"
+                    className="h-11 px-4 bg-white/80 backdrop-blur-md rounded-2xl flex items-center gap-2 shadow-sm border border-gray-100 text-gray-400 hover:text-rose-500 hover:border-rose-100 transition-all active:scale-90"
                     title="Cerrar Sesión"
                 >
-                    <LogOut size={22} />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Salir</span>
+                    <LogOut size={18} />
                 </button>
             </div>
 

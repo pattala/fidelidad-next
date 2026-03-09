@@ -109,7 +109,7 @@ export const ContextualPermissionBanner = ({
                 [`permissions.${type}.nextPrompt`]: nextPrompt
             });
             const daysLabel = days === 1 ? '1 día' : `${days} días`;
-            toast(`Por ahora no te preguntamos más. Volvemos en ${daysLabel} 😊`, { icon: '⏳', duration: 4000 });
+            toast(`No te preguntamos más por ${daysLabel} 😊 (Podés cambiarlo en tu Perfil)`, { icon: '⏳', duration: 4000 });
             onNeverAsk?.();
         } else {
             // Solo incrementar contador, no entra en standby todavía
@@ -133,7 +133,7 @@ export const ContextualPermissionBanner = ({
             [`permissions.${type}.nextPrompt`]: nextPrompt
         });
         const daysLabel = days === 1 ? '1 día' : `${days} días`;
-        toast(`Listo, no te preguntamos más por ${daysLabel} 😊`, { icon: '⏳', duration: 4000 });
+        toast(`Listo, avisamos de nuevo en ${daysLabel} 😊 (O configurá tu Perfil)`, { icon: '⏳', duration: 4000 });
         onNeverAsk?.();
     };
 

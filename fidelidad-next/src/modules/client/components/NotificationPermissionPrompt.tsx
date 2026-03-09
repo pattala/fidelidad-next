@@ -211,14 +211,14 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
 
         if (nextCount >= 2) {
             await updatePermission(type, 'blocked');
-            toast('Entendido. No te volveremos a molestar con esto.', {
+            toast('Entendido. No te volveremos a molestar. Podrás cambiar esto luego desde tu Perfil.', {
                 icon: '🔇',
                 style: { borderRadius: '10px', background: '#333', color: '#fff' }
             });
         } else {
             const nextDate = Date.now() + (standbyDays * 24 * 60 * 60 * 1000);
             await updatePermission(type, 'denied', nextDate);
-            toast(`Entendido. Te volveremos a consultar en ${standbyDays} días.`, {
+            toast(`Entendido. Te volveremos a consultar en ${standbyDays} días. (O cámbialo en tu Perfil en cualquier momento)`, {
                 icon: '⏳',
                 style: { borderRadius: '10px', background: '#333', color: '#fff' }
             });

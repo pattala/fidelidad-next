@@ -336,7 +336,11 @@ export default async function handler(req, res) {
                 const eRes = await fetch(`${baseUrl}/api/expirations?action=check&trigger=${triggerSource}&silent=true`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET, 'x-api-secret': SECRET, 'x-executor-role': 'system' },
-                    body: JSON.stringify({ simulatedDate: referenceDate.toISOString(), ignoreDeduplication: finalIgnoreDeduplication })
+                    body: JSON.stringify({
+                        simulatedDate: referenceDate.toISOString(),
+                        ignoreDeduplication: finalIgnoreDeduplication,
+                        isManual: isManual
+                    })
                 });
                 expirationsResult = await eRes.json();
             } catch (e) { console.error("Error expirations:", e.message); }

@@ -470,10 +470,12 @@ export default async function handler(req, res) {
                     expiresAt: admin.firestore.Timestamp.fromDate(expirationDate), remainingPoints: points, balanceAfter: newPoints
                 });
 
-                tx.set(clientRef.collection('inbox').doc(), {
-                    title: '¡Puntos Sumados! 💰', body: `¡Has sumado ${points} puntos! (${finalConcept})`,
-                    url: '/activity', type: 'pointsAdded', read: false, date: admin.firestore.FieldValue.serverTimestamp()
-                });
+                if (!skipNotifications) {
+                    tx.set(clientRef.collection('inbox').doc(), {
+                        title: '¡Puntos Sumados! 💰', body: `¡Has sumado ${points} puntos! (${finalConcept})`,
+                        url: '/activity', type: 'pointsAdded', read: false, date: admin.firestore.FieldValue.serverTimestamp()
+                    });
+                }
 
                 tx.set(db.collection('transactions').doc(), {
                     uid: targetUid, clientName: cData.name || cData.nombre || 'Socio', points, amount: moneySpent, type: 'credit',

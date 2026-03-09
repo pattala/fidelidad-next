@@ -213,11 +213,20 @@ export const ClientRegisterPage = () => {
             // A. Asignar N° Socio (Secuencial seguro) - SILENCIADO
             const shouldSendWelcome = config?.enableWelcomeMessage !== false;
 
-            await fetch('/api/users?action=assign-socio', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'x-api-key': apiKey },
-                body: JSON.stringify({ docId: user.uid, sendWelcome: false }) // Email unificado se hace al final
-            }).catch(e => console.warn('Error asignando socio:', e));
+            let assignedSocioNumber = '';
+            try {
+                const socioRes = await fetch('/api/users?action=assign-socio', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'x-api-key': apiKey },
+                    body: JSON.stringify({ docId: user.uid, sendWelcome: false }) // Email unificado se hace al final
+                });
+                if (socioRes.ok) {
+                    const socioData = await socioRes.json();
+                    assignedSocioNumber = socioData.numeroSocio || '';
+                }
+            } catch (e) {
+                console.warn('Error asignando socio:', e);
+            }
 
             let totalBonusPoints = 0;
             let earnedWelcomeBonus = false;
@@ -271,8 +280,8 @@ export const ClientRegisterPage = () => {
                         .replace(/{puntos}/g, totalBonusPoints.toString())
                         .replace(/{dni}/g, dni)
                         .replace(/{email}/g, email)
-                        .replace(/{socio}/g, '')
-                        .replace(/{numero_socio}/g, '')
+                        .replace(/{socio}/g, assignedSocioNumber.toString())
+                        .replace(/{numero_socio}/g, assignedSocioNumber.toString())
                         .replace(/{telefono}/g, phone)
                         .replace(/{siteName}/g, config?.siteName || 'nuestro Club');
 

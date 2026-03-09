@@ -216,19 +216,22 @@ async function handleCheck(req, res, db) {
                     let isItinerancy = false;
                     if (sameTargetDate) {
                         // Si la itinerancia está apagada, saltamos directamente si es la misma fecha de destino
-                        if (!isItinerancyEnabled && !finalIgnoreDeduplication) continue;
+                        if (!isItinerancyEnabled && !finalIgnoreDeduplication) {
+                            if (!silent) logResults.details.push({ userId, userName: userData.name || 'Socio', action: 'push_skipped', status: 'skipped', info: 'Deduplicado: Misma fecha de destino y repetición desactivada.' });
+                            continue;
+                        }
 
                         // Si está prendida, chequeamos el intervalo de días
                         const lastNoticeDate = userData.lastExpirationNotice;
-                        if (lastNoticeDate && reminderIntervalDays > 0 && !finalIgnoreDeduplication) {
-                            // Cálculo robusto de diferencia en días (YYYY-MM-DD a medianoche UTC)
+                        if (lastNoticeDate && !finalIgnoreDeduplication) {
                             const d1 = new Date(referenceDateStr);
                             const d2 = new Date(lastNoticeDate);
                             const diff = Math.round((d1.getTime() - d2.getTime()) / 86400000);
 
-                            if (diff < reminderIntervalDays) {
-                                // Agregamos al contador de "vistos en ventana" para la extensión, pero no notificamos
+                            // Bloqueamos si es el mismo día (diff 0) O si no se cumplió el intervalo configurado
+                            if (diff <= 0 || (reminderIntervalDays > 0 && diff < reminderIntervalDays)) {
                                 if (userData.nextExpirationDate <= proactivePinStr) logResults.totalInWindow++;
+                                if (!silent) logResults.details.push({ userId, userName: userData.name || 'Socio', action: 'push_skipped', status: 'skipped', info: diff <= 0 ? 'Deduplicado: Ya se notificó hoy (Switch Duplicidad activo).' : `Itinerancia: Faltan ${reminderIntervalDays - diff} días para repetir aviso.` });
                                 continue;
                             }
                         }

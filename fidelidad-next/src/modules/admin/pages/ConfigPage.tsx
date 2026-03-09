@@ -795,7 +795,7 @@ export const ConfigPage = () => {
                                                         <div className="flex items-center gap-3">
                                                             <input
                                                                 type="number"
-                                                                value={config.messaging?.expirationWarningDays || 5}
+                                                                value={config.messaging?.expirationWarningDays ?? 5}
                                                                 onChange={e => setConfig({
                                                                     ...config,
                                                                     messaging: { ...config.messaging!, expirationWarningDays: parseInt(e.target.value) || 0 }
@@ -835,7 +835,7 @@ export const ConfigPage = () => {
                                                         <div className="flex items-center gap-3">
                                                             <input
                                                                 type="number"
-                                                                value={config.messaging?.expirationReminderIntervalDays || 5}
+                                                                value={config.messaging?.expirationReminderIntervalDays ?? 5}
                                                                 onChange={e => setConfig({
                                                                     ...config,
                                                                     messaging: { ...config.messaging!, expirationReminderIntervalDays: parseInt(e.target.value) || 0 }
@@ -843,8 +843,12 @@ export const ConfigPage = () => {
                                                                 className="w-20 p-2 rounded-lg border border-blue-200 outline-none focus:ring-2 focus:ring-blue-50 font-black text-center text-blue-700"
                                                             />
                                                             <div className="flex flex-col">
-                                                                <span className="text-sm font-bold text-gray-700">Días entre avisos recurrentes.</span>
-                                                                <p className="text-[9px] text-gray-400 italic">El motor no enviará un nuevo correo/push de vencimiento si pasaron menos de estos días desde el último envío al cliente.</p>
+                                                                <span className="text-sm font-bold text-gray-700">Días de silencio (espera) entre avisos.</span>
+                                                                <p className="text-[9px] text-gray-400 italic leading-tight mt-1">
+                                                                    0 = Enviar siempre. <br />
+                                                                    1 = Día por medio (Lunes sí, Martes no, Miércoles sí). <br />
+                                                                    2 = Dos días de espera (Lunes sí, Mar y Mié no, Jueves sí).
+                                                                </p>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -2353,8 +2357,11 @@ export const ConfigPage = () => {
                                                 />
                                                 <span className="text-xs text-orange-700">días después del primer aviso</span>
                                             </label>
-                                            <p className="text-[10px] text-orange-600/60 mt-1.5 ml-0">
-                                                0 = reenviar siempre. Ej: con ventana de 10 días y recordatorio cada 5, se envía al día 1 y al día 6.
+                                            <p className="text-[10px] text-orange-600/60 mt-1.5 leading-tight">
+                                                Define cuántos días de silencio esperar antes de repetir. <br />
+                                                0 = Siempre. <br />
+                                                1 = Día por medio (ej: lunes sí, martes no). <br />
+                                                2 = Dos días de espera (lunes sí, jueves sí).
                                             </p>
                                         </div>
                                     )}

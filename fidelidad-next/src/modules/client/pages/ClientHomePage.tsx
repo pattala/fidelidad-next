@@ -340,28 +340,35 @@ export const ClientHomePage = () => {
             const maxLargeAttempts = config?.messaging?.maxLargePromptDismissals ?? 2;
 
             const isPhase1Enabled = config?.messaging?.enableLargePrompt !== false;
-            const isNotifPhase1Over = notifStatus === 'dismissed' || notifStatus === 'denied' || notifStatus === 'granted' || notifStatus === 'blocked' || notifStatus === 'later' || !isPhase1Enabled;
+            const isNotifPhase1Over = notifStatus === 'dismissed' || notifStatus === 'denied' || notifStatus === 'granted' || notifStatus === 'blocked' || !isPhase1Enabled;
             const geoStatus = userData.permissions?.geolocation?.status || 'pending';
-            const isGeoPhase1Over = geoStatus === 'dismissed' || geoStatus === 'denied' || geoStatus === 'granted' || geoStatus === 'blocked' || geoStatus === 'later' || !isPhase1Enabled;
+            const isGeoPhase1Over = geoStatus === 'dismissed' || geoStatus === 'denied' || geoStatus === 'granted' || geoStatus === 'blocked' || !isPhase1Enabled;
 
-            // Fase 2 Gatekeeper Notif
-            const notifNextPrompt = userData.permissions?.notifications?.nextPrompt || 0;
-            // Fase 2 ready if Phase 1 is over for this session, it's not granted/blocked, and it's not the first visit
-            const isNotifPhase2Ready = isNotifPhase1Over && Date.now() >= notifNextPrompt;
-            const isNotifPhase2Enabled = config?.messaging?.enableContextualNotifPrompt !== false;
+            // Solo pasamos a Fase 2 (carteles chicos) si AMBOS carteles grandes ya terminaron sus intentos
+            // (o si la Fase 1 está desactivada por configuración)
+            // y NO se ha descartado el cartel en esta misma sesión (respetar la decisión de "ahora no")
+            const isNotifSessionDismissed = sessionStorage.getItem('dismissed_notif_prompt') === 'true';
+            const isGeoSessionDismissed = sessionStorage.getItem('dismissed_geo_prompt') === 'true';
 
-            if (isNotifPhase2Enabled && isNotifPhase2Ready && notifStatus !== 'granted' && notifStatus !== 'blocked' && notifPerm !== 'granted' && notifPerm !== 'denied') {
-                setContextualPointsMsg(`¡Ganaste ${gained} puntos!`);
-                setShowContextualNotif(true);
-            } else {
-                // Fase 2 Gatekeeper Geo
-                const geoNextPrompt = userData.permissions?.geolocation?.nextPrompt || 0;
-                const isGeoPhase2Ready = isGeoPhase1Over && Date.now() >= geoNextPrompt;
-                const isGeoPhase2Enabled = config?.messaging?.enableContextualGeoPrompt !== false;
+            if (isNotifPhase1Over && isGeoPhase1Over) {
+                // Fase 2 Gatekeeper Notif
+                const notifNextPrompt = userData.permissions?.notifications?.nextPrompt || 0;
+                const isNotifPhase2Ready = (notifStatus === 'dismissed' || notifStatus === 'denied') && Date.now() >= notifNextPrompt;
+                const isNotifPhase2Enabled = config?.messaging?.enableContextualNotifPrompt !== false;
 
-                if (isGeoPhase2Enabled && isGeoPhase2Ready && geoStatus !== 'granted' && geoStatus !== 'blocked') {
+                if (isNotifPhase2Enabled && isNotifPhase2Ready && notifStatus !== 'granted' && notifStatus !== 'blocked' && notifPerm !== 'granted' && notifPerm !== 'denied' && !isNotifSessionDismissed) {
                     setContextualPointsMsg(`¡Ganaste ${gained} puntos!`);
-                    setShowContextualGeo(true);
+                    setShowContextualNotif(true);
+                } else {
+                    // Fase 2 Gatekeeper Geo
+                    const geoNextPrompt = userData.permissions?.geolocation?.nextPrompt || 0;
+                    const isGeoPhase2Ready = (geoStatus === 'dismissed' || geoStatus === 'denied') && Date.now() >= geoNextPrompt;
+                    const isGeoPhase2Enabled = config?.messaging?.enableContextualGeoPrompt !== false;
+
+                    if (isGeoPhase2Enabled && isGeoPhase2Ready && geoStatus !== 'granted' && geoStatus !== 'blocked' && !isGeoSessionDismissed) {
+                        setContextualPointsMsg(`¡Ganaste ${gained} puntos!`);
+                        setShowContextualGeo(true);
+                    }
                 }
             }
         }

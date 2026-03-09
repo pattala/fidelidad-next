@@ -34,10 +34,13 @@ export const PointsExpirationModal = ({ isOpen, onClose, userId }: Props) => {
                 const currentRemaining = data.remainingPoints !== undefined ? data.remainingPoints : data.amount;
 
                 if (currentRemaining > 0 && data.expiresAt && data.status !== 'expired') {
-                    const date = data.expiresAt.toDate ? data.expiresAt.toDate() : new Date(data.expiresAt);
+                    const expiresAt = data.expiresAt.toDate ? data.expiresAt.toDate() : new Date(data.expiresAt);
+                    const addedAt = data.date?.toDate ? data.date.toDate() : (data.date ? new Date(data.date) : new Date());
+
                     rawExpirations.push({
                         amount: currentRemaining,
-                        date,
+                        date: expiresAt,
+                        addedAt,
                         concept: data.concept || 'Carga de puntos'
                     });
                 }
@@ -117,19 +120,33 @@ export const PointsExpirationModal = ({ isOpen, onClose, userId }: Props) => {
                                         </div>
 
                                         <div className="space-y-2">
-                                            {group.items.map((item: any, i: number) => (
-                                                <div key={i} className="bg-gray-50/50 rounded-2xl p-4 flex items-center justify-between border border-transparent hover:border-gray-100 transition-colors">
-                                                    <div className="flex flex-col gap-0.5">
-                                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{item.concept}</span>
-                                                        <span className="text-[11px] font-bold text-gray-600">
-                                                            Cargados hace {Math.floor((todayStart.getTime() - item.date.getTime()) / (1000 * 60 * 60 * 24 * -1))} días
+                                            {group.items.map((item: any, i: number) => {
+                                                const itemAddedDate = item.addedAt instanceof Date ? item.addedAt : new Date(item.addedAt);
+                                                const itemAddedStart = new Date(itemAddedDate);
+                                                itemAddedStart.setHours(0, 0, 0, 0);
+
+                                                const diffMs = todayStart.getTime() - itemAddedStart.getTime();
+                                                const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+                                                let relativeText = '';
+                                                if (diffDays === 0) relativeText = 'hoy';
+                                                else if (diffDays === 1) relativeText = 'ayer';
+                                                else relativeText = `hace ${diffDays} días`;
+
+                                                return (
+                                                    <div key={i} className="bg-gray-50/50 rounded-2xl p-4 flex items-center justify-between border border-transparent hover:border-gray-100 transition-colors">
+                                                        <div className="flex flex-col gap-0.5">
+                                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{item.concept}</span>
+                                                            <span className="text-[11px] font-bold text-gray-600">
+                                                                Cargados {relativeText}
+                                                            </span>
+                                                        </div>
+                                                        <span className={`font-black text-sm ${isOverdue ? 'text-red-400' : 'text-gray-400'}`}>
+                                                            {item.amount}
                                                         </span>
                                                     </div>
-                                                    <span className={`font-black text-sm ${isOverdue ? 'text-red-400' : 'text-gray-400'}`}>
-                                                        {item.amount}
-                                                    </span>
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 );

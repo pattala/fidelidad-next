@@ -304,7 +304,9 @@ export const ClientsPage = () => {
                             provincia: formData.provincia,
                             zipCode: formData.cp
                         }
-                    }
+                    },
+                    termsAccepted: true,
+                    termsAcceptedAt: new Date().toISOString()
                 };
                 await updateDoc(doc(db, 'users', editingId), clientPayload);
 

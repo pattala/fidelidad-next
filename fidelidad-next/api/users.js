@@ -46,7 +46,7 @@ function applyCors(req, res) {
 async function handleCreate(req, res, db) {
     let payload = req.body;
     try {
-        let { email, dni, nombre, telefono, numeroSocio, fechaNacimiento, fechaInscripcion, domicilio, docId } = payload || {};
+        let { email, dni, nombre, telefono, numeroSocio, fechaNacimiento, fechaInscripcion, domicilio, docId, termsAccepted, termsAcceptedAt } = payload || {};
         if (!email || !dni) return res.status(400).json({ ok: false, error: "Faltan email y dni" });
 
         email = String(email).toLowerCase().trim();
@@ -81,6 +81,9 @@ async function handleCreate(req, res, db) {
             authUID, role: "client", estado: "activo",
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
         };
+
+        if (termsAccepted !== undefined) fsPayload.termsAccepted = termsAccepted;
+        if (termsAcceptedAt) fsPayload.termsAcceptedAt = termsAcceptedAt;
         if (fechaNacimiento) fsPayload.fechaNacimiento = fechaNacimiento;
         if (fechaInscripcion) fsPayload.fechaInscripcion = fechaInscripcion;
         if (domicilio) fsPayload.domicilio = { ...domicilio, updatedAt: new Date() };

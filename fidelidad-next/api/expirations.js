@@ -207,15 +207,30 @@ async function handleCheck(req, res, db) {
                     const isItinerancyEnabled = config.messaging?.repeatExpirationWarnings === true;
                     const rawInterval = config.messaging?.expirationReminderIntervalDays ?? config.messaging?.expirationItinerancyDays;
                     const reminderIntervalDays = rawInterval !== undefined ? Number(rawInterval) : 5;
-                    const sameTargetAndAmount = userData.lastExpirationNoticeTargetDate === userData.nextExpirationDate && userData.lastExpirationNoticeAmount === totalImpendingAmount;
+
+                    // Solo consideramos "misma notificación" si la fecha del próximo vencimiento es la misma.
+                    // Ignoramos ligeros cambios en 'totalImpendingAmount' para el control de duplicidad,
+                    // ya que el 'window' de 7 días se mueve y puede capturar nuevos puntos sin ser un cambio "real" de vencimiento.
+                    const sameTargetDate = userData.lastExpirationNoticeTargetDate === userData.nextExpirationDate;
 
                     let isItinerancy = false;
-                    if (sameTargetAndAmount) {
+                    if (sameTargetDate) {
+                        // Si la itinerancia está apagada, saltamos directamente si es la misma fecha de destino
                         if (!isItinerancyEnabled && !finalIgnoreDeduplication) continue;
+
+                        // Si está prendida, chequeamos el intervalo de días
                         const lastNoticeDate = userData.lastExpirationNotice;
                         if (lastNoticeDate && reminderIntervalDays > 0 && !finalIgnoreDeduplication) {
-                            const diff = Math.floor((new Date(referenceDateStr).getTime() - new Date(lastNoticeDate).getTime()) / 86400000);
-                            if (diff < reminderIntervalDays) continue;
+                            // Cálculo robusto de diferencia en días (YYYY-MM-DD a medianoche UTC)
+                            const d1 = new Date(referenceDateStr);
+                            const d2 = new Date(lastNoticeDate);
+                            const diff = Math.round((d1.getTime() - d2.getTime()) / 86400000);
+
+                            if (diff < reminderIntervalDays) {
+                                // Agregamos al contador de "vistos en ventana" para la extensión, pero no notificamos
+                                if (userData.nextExpirationDate <= proactivePinStr) logResults.totalInWindow++;
+                                continue;
+                            }
                         }
                         isItinerancy = true;
                     }

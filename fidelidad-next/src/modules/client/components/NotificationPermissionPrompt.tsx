@@ -95,21 +95,22 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
             await updatePermission('notifications', 'granted');
         }
 
-        const isNotifStandbyOver = notifStatus === 'dismissed' && Date.now() >= notifNextPrompt;
+        // Si ya pasó el standby global (30 días), reiniciamos el ciclo para volver a preguntar el grande
+        if ((notifStatus === 'dismissed' || notifStatus === 'denied') && notifNextPrompt > 0 && Date.now() >= notifNextPrompt) {
+            await updatePermission('notifications', 'pending', 0);
+            return;
+        }
+
         const isNotifAvailable = typeof Notification !== 'undefined' && Notification.permission === 'default';
         const largeNotifDismissCount = permissions.notifications?.largeDismissCount || 0;
         const maxLargeAttempts = config?.messaging?.maxLargePromptDismissals ?? 2;
 
-        const canShowLargeNotif = (notifStatus === 'pending') || (notifStatus === 'later' && largeNotifDismissCount < maxLargeAttempts) || isNotifStandbyOver;
+        // Fase 1 (Grande): Solo sale si es 'pending' o 'later' (dentro de los re-intentos).
+        // Una vez que pasa a 'dismissed', ya es el turno de los contextuales (Fase 2) en ClientHomePage.
+        const canShowLargeNotif = (notifStatus === 'pending') || (notifStatus === 'later' && largeNotifDismissCount < maxLargeAttempts);
 
         if (isNotifAvailable && canShowLargeNotif && !isDismissedNotif && !notifBlocked) {
             setStep('notifications');
-            // CONSUMIR INTENTO: Si se va a mostrar el cartel grande, lo marcamos como 'visto' ('later') para que cuente
-            const sessionKey = `attempt_large_notif_${user?.uid}`;
-            if (!sessionStorage.getItem(sessionKey)) {
-                sessionStorage.setItem(sessionKey, 'true');
-                await updatePermission('notifications', 'later');
-            }
             return;
         }
 
@@ -118,19 +119,18 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
         const geoNextPrompt = permissions.geolocation?.nextPrompt || 0;
         const geoBlocked = geoStatus === 'blocked';
 
-        const isGeoStandbyOver = geoStatus === 'dismissed' && Date.now() >= geoNextPrompt;
+        // Reinicio de ciclo standby geo
+        if ((geoStatus === 'dismissed' || geoStatus === 'denied') && geoNextPrompt > 0 && Date.now() >= geoNextPrompt) {
+            await updatePermission('geolocation', 'pending', 0);
+            return;
+        }
+
         const largeGeoDismissCount = permissions.geolocation?.largeDismissCount || 0;
         const maxLargeGeoAttempts = config?.messaging?.maxLargePromptDismissals ?? 2;
-        const canShowLargeGeo = (geoStatus === 'pending') || (geoStatus === 'later' && largeGeoDismissCount < maxLargeGeoAttempts) || isGeoStandbyOver;
+        const canShowLargeGeo = (geoStatus === 'pending') || (geoStatus === 'later' && largeGeoDismissCount < maxLargeGeoAttempts);
 
         if (canShowLargeGeo && !isDismissedGeo && !geoBlocked) {
             setStep('geolocation');
-            // CONSUMIR INTENTO: Si se va a mostrar el cartel grande, lo marcamos como 'visto' ('later')
-            const sessionKeyGeo = `attempt_large_geo_${user?.uid}`;
-            if (!sessionStorage.getItem(sessionKeyGeo)) {
-                sessionStorage.setItem(sessionKeyGeo, 'true');
-                await updatePermission('geolocation', 'later');
-            }
             return;
         }
 

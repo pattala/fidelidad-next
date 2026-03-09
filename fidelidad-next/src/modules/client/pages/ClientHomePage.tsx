@@ -542,19 +542,16 @@ export const ClientHomePage = () => {
                         </div>
 
                         {/* Balance Section */}
-                        <div className="flex flex-col justify-center pl-2">
-                            <div className="flex items-center gap-1.5 mb-1.5">
-                                <div className="bg-emerald-600 p-1 rounded-lg text-white">
-                                    <TrendingUp size={10} strokeWidth={3} />
-                                </div>
-                                <p className="text-[10px] font-black text-emerald-800 uppercase tracking-widest leading-none">Saldo a favor</p>
+                        <div className="flex flex-col justify-center pl-2 opacity-80">
+                            <div className="flex items-center gap-1 mb-1">
+                                <p className="text-[8px] font-black text-emerald-800 uppercase tracking-widest leading-none">Saldo a favor</p>
                             </div>
-                            <div className="flex items-baseline gap-1">
-                                <span className="text-3xl font-black text-emerald-600 tracking-tighter leading-none">${Math.floor(balanceForCalc).toLocaleString()}</span>
-                                <span className="text-[10px] font-bold text-emerald-800/50 uppercase tracking-tighter">pesos</span>
+                            <div className="flex items-baseline gap-0.5">
+                                <span className="text-xl font-black text-emerald-600 tracking-tighter leading-none">${Math.floor(balanceForCalc).toLocaleString()}</span>
+                                <span className="text-[8px] font-bold text-emerald-800/40 uppercase tracking-tighter">pesos</span>
                             </div>
                             {displayData.accumulated_balance_updated_at && (
-                                <p className="text-[8px] text-emerald-600/60 font-bold mt-1">
+                                <p className="text-[7px] text-emerald-600/50 font-bold mt-0.5">
                                     Act: {new Date(displayData.accumulated_balance_updated_at.toDate ? displayData.accumulated_balance_updated_at.toDate() : displayData.accumulated_balance_updated_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })}
                                 </p>
                             )}

@@ -33,6 +33,9 @@ export const ContextualPermissionBanner = ({
         // 1. Check session/storage-based dismissal
         if (sessionStorage.getItem(SESSION_KEYS[type]) === 'true') return;
 
+        // 2. Geolocation is ONLY for mobile
+        if (type === 'geolocation' && !isMobile) return;
+
         if (isMobile) {
             const lastDismissal = localStorage.getItem(`contextual_${type}_mobile_dismissal`);
             if (lastDismissal) {
@@ -50,11 +53,18 @@ export const ContextualPermissionBanner = ({
         // Si está en 'dismissed' o 'denied', solo mostrar si ya pasó el tiempo de espera
         if ((status === 'dismissed' || status === 'denied') && Date.now() < nextPrompt) return;
 
+        const counterKey = isMobile ? 'mobile_contextualDismissCount' : 'pc_contextualDismissCount';
+        const currentCount = userData?.permissions?.[type]?.[counterKey] || 0;
+        const maxPC = config?.messaging?.maxContextualDismissalsPC ?? config?.messaging?.maxContextualDismissals ?? 2;
+        const maxMobile = config?.messaging?.maxContextualDismissalsMobile ?? config?.messaging?.maxContextualDismissals ?? 2;
+        const maxDismissals = isMobile ? maxMobile : maxPC;
+
+        if (currentCount >= maxDismissals) return;
+
         const configKey = 'enableContextualNotifPrompt';
         if (config?.messaging?.[configKey] === false) return;
 
-        if (type === 'notifications' && Notification.permission === 'granted') return;
-        if (type === 'notifications' && Notification.permission === 'denied') return;
+        if (type === 'notifications' && (Notification.permission === 'granted' || Notification.permission === 'denied')) return;
 
         const t = setTimeout(() => setVisible(true), 400);
         return () => clearTimeout(t);
@@ -67,10 +77,11 @@ export const ContextualPermissionBanner = ({
         if (type === 'notifications') {
             const permission = await Notification.requestPermission();
             if (permission === 'granted') {
+                const counterKey = isMobile ? 'mobile_contextualDismissCount' : 'pc_contextualDismissCount';
                 await updateDoc(doc(db, 'users', user.uid), {
                     [`permissions.notifications.status`]: 'granted',
                     [`permissions.notifications.updatedAt`]: Date.now(),
-                    [`permissions.notifications.contextualDismissCount`]: 0,
+                    [`permissions.notifications.${counterKey}`]: 0,
                     [`permissions.notifications.nextPrompt`]: 0
                 });
                 toast.success('¡Listo! Te avisaremos de tus premios 🎉');
@@ -83,7 +94,7 @@ export const ContextualPermissionBanner = ({
                         await updateDoc(doc(db, 'users', user.uid), {
                             [`permissions.geolocation.status`]: 'granted',
                             [`permissions.geolocation.updatedAt`]: Date.now(),
-                            [`permissions.geolocation.contextualDismissCount`]: 0,
+                            [`permissions.geolocation.mobile_contextualDismissCount`]: 0,
                             [`permissions.geolocation.nextPrompt`]: 0,
                             lastLocation: { lat: pos.coords.latitude, lng: pos.coords.longitude, timestamp: new Date() }
                         });
@@ -110,9 +121,13 @@ export const ContextualPermissionBanner = ({
         }
         setVisible(false);
 
-        const maxDismissals = config?.messaging?.maxContextualDismissals ?? 2;
-        const currentCount = userData?.permissions?.[type]?.contextualDismissCount || 0;
+        const counterKey = isMobile ? 'mobile_contextualDismissCount' : 'pc_contextualDismissCount';
+        const currentCount = userData?.permissions?.[type]?.[counterKey] || 0;
         const newCount = currentCount + 1;
+
+        const maxPC = config?.messaging?.maxContextualDismissalsPC ?? config?.messaging?.maxContextualDismissals ?? 2;
+        const maxMobile = config?.messaging?.maxContextualDismissalsMobile ?? config?.messaging?.maxContextualDismissals ?? 2;
+        const maxDismissals = isMobile ? maxMobile : maxPC;
 
         if (newCount >= maxDismissals) {
             // Entrar en standby real
@@ -121,11 +136,11 @@ export const ContextualPermissionBanner = ({
             await updateDoc(doc(db, 'users', user.uid), {
                 [`permissions.${type}.status`]: 'dismissed',
                 [`permissions.${type}.updatedAt`]: Date.now(),
-                [`permissions.${type}.contextualDismissCount`]: newCount,
+                [`permissions.${type}.${counterKey}`]: newCount,
                 [`permissions.${type}.nextPrompt`]: nextPrompt
             });
             const daysLabel = days === 1 ? '1 día' : `${days} días`;
-            toast(`Entendido. Te volveremos a consultar en ${daysLabel}. (O cámbialo en tu Perfil en cualquier momento)`, {
+            toast(`Entendido. Te volveremos a consultar en ${daysLabel} o podés activarlo desde tu perfil.`, {
                 icon: '⏳',
                 style: { borderRadius: '10px', background: '#333', color: '#fff' }
             });
@@ -133,7 +148,7 @@ export const ContextualPermissionBanner = ({
         } else {
             // Solo incrementar contador, no entra en standby todavía
             await updateDoc(doc(db, 'users', user.uid), {
-                [`permissions.${type}.contextualDismissCount`]: newCount,
+                [`permissions.${type}.${counterKey}`]: newCount,
                 [`permissions.${type}.updatedAt`]: Date.now(),
             });
             onDismiss?.();

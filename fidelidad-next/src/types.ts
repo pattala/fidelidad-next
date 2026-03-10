@@ -35,12 +35,15 @@ export interface Client {
             updatedAt: number;
             deniedCount: number;
             nextPrompt: number;
+            pc_dismissedCount?: number;
+            mobile_dismissedCount?: number;
         };
         geolocation?: {
             status: string;
             updatedAt: number;
             deniedCount: number;
             nextPrompt: number;
+            mobile_dismissedCount?: number;
         };
     };
     expiringPoints?: number;
@@ -179,8 +182,12 @@ export interface AppConfig {
         enableLargePrompt?: boolean; // Nuevo: Toggle para encender/apagar carteles grandes (Fase 1)
         enableContextualNotifPrompt?: boolean; // Banner contextual de notif al ganar puntos
         enableContextualGeoPrompt?: boolean; // Banner contextual de geo al visitar Premios
-        maxContextualDismissals?: number; // Cuántos "Ahora no" en el banner chico antes del standby (default: 2)
-        maxLargePromptDismissals?: number; // Cuántos "Quizás luego" en el cartel grande antes de pasar a modo refuerzo (default: 2)
+        maxContextualDismissals?: number; // @deprecated
+        maxLargePromptDismissals?: number; // @deprecated
+        maxLargePromptDismissalsPC?: number;
+        maxLargePromptDismissalsMobile?: number;
+        maxContextualDismissalsPC?: number;
+        maxContextualDismissalsMobile?: number;
         mobileCooldownHours?: number; // Cooldown para móviles en horas (0 = inmediato)
     };
 

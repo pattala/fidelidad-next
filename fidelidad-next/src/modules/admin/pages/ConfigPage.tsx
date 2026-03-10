@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Plus, Trash2, Palette, Calculator, Monitor, Settings, Home, Gift, MessageCircle, FileText, AlertTriangle, RefreshCw, ShieldAlert, Shield, Users, Clock, Eye, Sparkles, Cake, Zap, UserPlus, Megaphone, Bell, MapPin } from 'lucide-react';
+import { Save, Plus, Trash2, Palette, Calculator, Monitor, Smartphone, Settings, Home, Gift, MessageCircle, FileText, AlertTriangle, RefreshCw, ShieldAlert, Shield, Users, Clock, Eye, Sparkles, Cake, Zap, UserPlus, Megaphone, Bell, MapPin } from 'lucide-react';
 import { ConfigService, DEFAULT_TEMPLATES } from '../../../services/configService';
 import { EmailPreviewModal } from '../components/EmailPreviewModal';
 import { EmailService } from '../../../services/emailService';
@@ -1635,15 +1635,15 @@ export const ConfigPage = () => {
                                         </div>
 
                                         {/* Card 1: Contextual Banners (Small) */}
-                                        <div className="p-4 bg-gray-50/50 rounded-xl border border-dashed border-gray-200 flex items-center justify-between">
-                                            <div className="flex items-center gap-3">
-                                                <Zap size={16} className="text-gray-400" />
-                                                <div>
-                                                    <span className="text-xs font-bold text-gray-600 block leading-tight">Límite de Persianas</span>
-                                                    <span className="text-[9px] text-gray-400 uppercase tracking-tighter text-balance">Banners pequeños arriba al sumar puntos</span>
+                                        <div className="p-4 bg-gray-50/50 rounded-xl border border-dashed border-gray-200">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <div className="flex items-center gap-3">
+                                                    <Zap size={16} className="text-gray-400" />
+                                                    <div>
+                                                        <span className="text-xs font-bold text-gray-600 block leading-tight">Límite de Persianas</span>
+                                                        <span className="text-[9px] text-gray-400 uppercase tracking-tighter text-balance">Banners pequeños arriba al sumar puntos</span>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div className="flex items-center gap-4">
                                                 <button
                                                     type="button"
                                                     onClick={() => setConfig({
@@ -1654,28 +1654,50 @@ export const ConfigPage = () => {
                                                 >
                                                     <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform ${config.messaging?.enableContextualNotifPrompt ? 'translate-x-4' : 'translate-x-0'}`} />
                                                 </button>
-                                                <div className="flex items-center gap-2">
-                                                    <input
-                                                        type="number" min="1" max="10"
-                                                        value={config.messaging?.maxContextualDismissals ?? 2}
-                                                        onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, maxContextualDismissals: parseInt(e.target.value) || 2 } })}
-                                                        className="w-14 px-2 py-1 text-center font-bold bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-purple-500 text-sm"
-                                                    />
-                                                    <span className="text-[10px] font-bold text-gray-400 uppercase">Veces</span>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-3 mt-1">
+                                                <div className="flex flex-col gap-1.5 p-2 bg-white rounded-lg border border-gray-100">
+                                                    <div className="flex items-center gap-1.5 text-[9px] font-bold text-gray-400 uppercase">
+                                                        <Monitor size={10} /> Computadora (PC)
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <input
+                                                            type="number" min="1" max="10"
+                                                            value={config.messaging?.maxContextualDismissalsPC ?? config.messaging?.maxContextualDismissals ?? 2}
+                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, maxContextualDismissalsPC: parseInt(e.target.value) || 2 } })}
+                                                            className="w-full px-2 py-1 text-center font-bold bg-gray-50 border border-gray-200 rounded outline-none focus:ring-1 focus:ring-purple-500 text-sm"
+                                                        />
+                                                        <span className="text-[9px] font-bold text-gray-400">VECES</span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-col gap-1.5 p-2 bg-white rounded-lg border border-gray-100">
+                                                    <div className="flex items-center gap-1.5 text-[9px] font-bold text-gray-400 uppercase">
+                                                        <Smartphone size={10} /> Celular / PWA
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <input
+                                                            type="number" min="1" max="10"
+                                                            value={config.messaging?.maxContextualDismissalsMobile ?? config.messaging?.maxContextualDismissals ?? 2}
+                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, maxContextualDismissalsMobile: parseInt(e.target.value) || 2 } })}
+                                                            className="w-full px-2 py-1 text-center font-bold bg-gray-50 border border-gray-200 rounded outline-none focus:ring-1 focus:ring-purple-500 text-sm"
+                                                        />
+                                                        <span className="text-[9px] font-bold text-gray-400">VECES</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
 
                                         {/* Card 2: Large Prompt (Phase 1) */}
-                                        <div className="p-4 bg-gray-50/50 rounded-xl border border-dashed border-gray-200 flex items-center justify-between">
-                                            <div className="flex items-center gap-3">
-                                                <Bell size={16} className="text-gray-400" />
-                                                <div>
-                                                    <span className="text-xs font-bold text-gray-600 block leading-tight">Límite de Cartel Grande</span>
-                                                    <span className="text-[9px] text-gray-400 uppercase tracking-tighter text-balance">Pantalla completa con Quizás Luego</span>
+                                        <div className="p-4 bg-gray-50/50 rounded-xl border border-dashed border-gray-200">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <div className="flex items-center gap-3">
+                                                    <Bell size={16} className="text-gray-400" />
+                                                    <div>
+                                                        <span className="text-xs font-bold text-gray-600 block leading-tight">Límite de Cartel Grande</span>
+                                                        <span className="text-[9px] text-gray-400 uppercase tracking-tighter text-balance">Pantalla completa con Quizás Luego</span>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div className="flex items-center gap-4">
                                                 <button
                                                     type="button"
                                                     onClick={() => setConfig({
@@ -1686,14 +1708,36 @@ export const ConfigPage = () => {
                                                 >
                                                     <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform ${config.messaging?.enableLargePrompt ? 'translate-x-4' : 'translate-x-0'}`} />
                                                 </button>
-                                                <div className="flex items-center gap-2">
-                                                    <input
-                                                        type="number" min="1" max="10"
-                                                        value={config.messaging?.maxLargePromptDismissals ?? 2}
-                                                        onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, maxLargePromptDismissals: parseInt(e.target.value) || 2 } })}
-                                                        className="w-14 px-2 py-1 text-center font-bold bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-purple-500 text-sm"
-                                                    />
-                                                    <span className="text-[10px] font-bold text-gray-400 uppercase">Veces</span>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-3 mt-1">
+                                                <div className="flex flex-col gap-1.5 p-2 bg-white rounded-lg border border-gray-100">
+                                                    <div className="flex items-center gap-1.5 text-[9px] font-bold text-gray-400 uppercase">
+                                                        <Monitor size={10} /> Computadora (PC)
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <input
+                                                            type="number" min="1" max="10"
+                                                            value={config.messaging?.maxLargePromptDismissalsPC ?? config.messaging?.maxLargePromptDismissals ?? 2}
+                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, maxLargePromptDismissalsPC: parseInt(e.target.value) || 2 } })}
+                                                            className="w-full px-2 py-1 text-center font-bold bg-gray-50 border border-gray-200 rounded outline-none focus:ring-1 focus:ring-purple-500 text-sm"
+                                                        />
+                                                        <span className="text-[9px] font-bold text-gray-400">VECES</span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-col gap-1.5 p-2 bg-white rounded-lg border border-gray-100">
+                                                    <div className="flex items-center gap-1.5 text-[9px] font-bold text-gray-400 uppercase">
+                                                        <Smartphone size={10} /> Celular / PWA
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <input
+                                                            type="number" min="1" max="10"
+                                                            value={config.messaging?.maxLargePromptDismissalsMobile ?? config.messaging?.maxLargePromptDismissals ?? 2}
+                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, maxLargePromptDismissalsMobile: parseInt(e.target.value) || 2 } })}
+                                                            className="w-full px-2 py-1 text-center font-bold bg-gray-50 border border-gray-200 rounded outline-none focus:ring-1 focus:ring-purple-500 text-sm"
+                                                        />
+                                                        <span className="text-[9px] font-bold text-gray-400">VECES</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>

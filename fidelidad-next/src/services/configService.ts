@@ -60,6 +60,10 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
         notificationPromptIntervalDays: 30,
         enableLargePrompt: true,
         enableContextualNotifPrompt: true,
+        maxLargePromptDismissalsPC: 2,
+        maxLargePromptDismissalsMobile: 2,
+        maxContextualDismissalsPC: 2,
+        maxContextualDismissalsMobile: 2,
     },
     referrals: {
         enabled: true,

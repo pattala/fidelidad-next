@@ -327,107 +327,80 @@ export const ClientHomePage = () => {
 
     // Detectar cuando suben los puntos para mostrar banner contextual de notif
     useEffect(() => {
-        if (!userData || !user) return;
+        if (!userData || !user || !config) return;
         const currentPoints = userData.points || 0;
+
         if (prevPointsRef.current !== null && currentPoints > prevPointsRef.current) {
             const gained = currentPoints - prevPointsRef.current;
             const notifStatus = userData.permissions?.notifications?.status || 'pending';
+            const geoStatus = userData.permissions?.geolocation?.status || 'pending';
             const notifPerm = typeof Notification !== 'undefined' ? Notification.permission : 'denied';
 
-            // Fase 1 Check: ¿Queda algún cartel grande pendiente o en ciclo de "quizás luego"?
-            const largeNotifDismissCount = userData.permissions?.notifications?.largeDismissCount || 0;
-            const largeGeoDismissCount = userData.permissions?.geolocation?.largeDismissCount || 0;
-            const maxLargeAttempts = config?.messaging?.maxLargePromptDismissals ?? 2;
+            const isMobile = typeof window !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            const counterKey = isMobile ? 'mobile_dismissedCount' : 'pc_dismissedCount';
+
+            const maxPC = config?.messaging?.maxLargePromptDismissalsPC ?? config?.messaging?.maxLargePromptDismissals ?? 2;
+            const maxMobile = config?.messaging?.maxLargePromptDismissalsMobile ?? config?.messaging?.maxLargePromptDismissals ?? 2;
+            const maxAttempts = isMobile ? maxMobile : maxPC;
+
+            const notifDismissedCount = userData.permissions?.notifications?.[counterKey] || 0;
+            const geoDismissedCount = userData.permissions?.geolocation?.mobile_dismissedCount || 0;
 
             const isPhase1Enabled = config?.messaging?.enableLargePrompt !== false;
-            const geoStatus = userData.permissions?.geolocation?.status || 'pending';
 
-            // Solo pasamos a Fase 2 (carteles chicos) si AMBOS carteles grandes ya terminaron sus intentos
-            // (o si la Fase 1 está desactivada por configuración)
-            // y NO se ha descartado el cartel en esta misma sesión (respetar la decisión de "ahora no")
-            const isMobile = typeof window !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            // Fase 1 está "terminada" para este dispositivo si:
+            // 1. Está desactivada
+            // 2. El estado es positivo/negativo final (granted, blocked)
+            // 3. Se agotaron los intentos del cartel grande para este dispositivo
+            // 4. (Solo móvil) El estado es 'later' (el cartel grande salió pero eligió "quizás luego", 
+            //    dando paso a los banners contextuales hasta el próximo ciclo)
 
-            let isNotifSessionDismissed = sessionStorage.getItem('dismissed_notif_prompt') === 'true';
-            let isGeoSessionDismissed = sessionStorage.getItem('dismissed_geo_prompt') === 'true';
+            const isNotifPhase1Over = !isPhase1Enabled ||
+                ['granted', 'blocked', 'dismissed', 'denied'].includes(notifStatus) ||
+                (notifDismissedCount >= maxAttempts) ||
+                (notifStatus === 'later');
 
-            if (isMobile) {
-                const cooldown = config?.messaging?.mobileCooldownHours ?? 24;
-
-                // Check large prompt cooldown
-                const lastLargeDismissal = localStorage.getItem('last_mobile_permission_dismissal');
-                if (lastLargeDismissal && cooldown > 0) {
-                    const hoursPassed = (Date.now() - parseInt(lastLargeDismissal)) / (1000 * 60 * 60);
-                    if (hoursPassed < cooldown) {
-                        isNotifSessionDismissed = true;
-                        isGeoSessionDismissed = true;
-                    } else {
-                        // Cooldown is OVER! Override session storage to allow Phase 2
-                        isNotifSessionDismissed = false;
-                        isGeoSessionDismissed = false;
-                    }
-                } else if (lastLargeDismissal && cooldown === 0) {
-                    // Immediate mode: Always override session storage if previously dismissed
-                    isNotifSessionDismissed = false;
-                    isGeoSessionDismissed = false;
-                }
-
-                // Check contextual cooldowns specifically if session isn't already dismissed
-                if (!isNotifSessionDismissed) {
-                    const lastNotifDismissal = localStorage.getItem('contextual_notifications_mobile_dismissal');
-                    if (lastNotifDismissal && cooldown > 0) {
-                        const hoursPassed = (Date.now() - parseInt(lastNotifDismissal)) / (1000 * 60 * 60);
-                        if (hoursPassed < cooldown) {
-                            isNotifSessionDismissed = true;
-                        } else {
-                            isNotifSessionDismissed = false;
-                        }
-                    } else if (lastNotifDismissal && cooldown === 0) {
-                        isNotifSessionDismissed = false;
-                    }
-                }
-                if (!isGeoSessionDismissed) {
-                    const lastGeoDismissal = localStorage.getItem('contextual_geolocation_mobile_dismissal');
-                    if (lastGeoDismissal && cooldown > 0) {
-                        const hoursPassed = (Date.now() - parseInt(lastGeoDismissal)) / (1000 * 60 * 60);
-                        if (hoursPassed < cooldown) {
-                            isGeoSessionDismissed = true;
-                        } else {
-                            isGeoSessionDismissed = false;
-                        }
-                    } else if (lastGeoDismissal && cooldown === 0) {
-                        isGeoSessionDismissed = false;
-                    }
-                }
-            }
-
-            // On mobile, Phase 1 is "over" if status is 'later' but cooldown is over (or 0)
-            const isNotifPhase1Over = notifStatus === 'dismissed' || notifStatus === 'denied' || notifStatus === 'granted' || notifStatus === 'blocked' || !isPhase1Enabled || (isMobile && notifStatus === 'later');
-            const isGeoPhase1Over = geoStatus === 'dismissed' || geoStatus === 'denied' || geoStatus === 'granted' || geoStatus === 'blocked' || !isPhase1Enabled || (isMobile && geoStatus === 'later');
+            const isGeoPhase1Over = !isPhase1Enabled ||
+                ['granted', 'blocked', 'dismissed', 'denied'].includes(geoStatus) ||
+                (!isMobile) ||
+                (geoDismissedCount >= maxMobile) ||
+                (geoStatus === 'later');
 
             if (isNotifPhase1Over && isGeoPhase1Over) {
-                // Fase 2 Gatekeeper Notif
-                const notifNextPrompt = userData.permissions?.notifications?.nextPrompt || 0;
-                const isNotifPhase2Ready = (notifStatus === 'dismissed' || notifStatus === 'denied' || notifStatus === 'later') && Date.now() >= notifNextPrompt;
-                const isNotifPhase2Enabled = config?.messaging?.enableContextualNotifPrompt !== false;
+                // SESSION / COOLDOWN CHECK
+                let isNotifLocked = sessionStorage.getItem('contextual_notif_shown') === 'true';
+                let isGeoLocked = sessionStorage.getItem('contextual_geo_shown') === 'true';
 
-                if (isNotifPhase2Enabled && isNotifPhase2Ready && notifStatus !== 'granted' && notifStatus !== 'blocked' && notifPerm !== 'granted' && notifPerm !== 'denied' && !isNotifSessionDismissed) {
+                if (isMobile) {
+                    const cooldown = config?.messaging?.mobileCooldownHours ?? 24;
+                    const lastDismissal = localStorage.getItem('last_mobile_permission_dismissal');
+                    const lastNotifDismissal = localStorage.getItem('contextual_notifications_mobile_dismissal');
+                    const lastGeoDismissal = localStorage.getItem('contextual_geolocation_mobile_dismissal');
+
+                    const checkCooldown = (ts: string | null) => {
+                        if (!ts || cooldown === 0) return false;
+                        return (Date.now() - parseInt(ts)) / (1000 * 60 * 60) < cooldown;
+                    };
+
+                    if (checkCooldown(lastDismissal) || checkCooldown(lastNotifDismissal)) isNotifLocked = true;
+                    if (checkCooldown(lastDismissal) || checkCooldown(lastGeoDismissal)) isGeoLocked = true;
+                }
+
+                // Fase 2 Gatekeeper
+                const isNotifPhase2Enabled = config?.messaging?.enableContextualNotifPrompt !== false;
+                const isGeoPhase2Enabled = config?.messaging?.enableContextualGeoPrompt !== false;
+
+                if (isNotifPhase2Enabled && !isNotifLocked && notifStatus !== 'granted' && notifStatus !== 'blocked' && notifPerm === 'default') {
                     setContextualPointsMsg(`¡Ganaste ${gained} puntos!`);
                     setShowContextualNotif(true);
-                } else {
-                    // Fase 2 Gatekeeper Geo
-                    const geoNextPrompt = userData.permissions?.geolocation?.nextPrompt || 0;
-                    const isGeoPhase2Ready = (geoStatus === 'dismissed' || geoStatus === 'denied' || geoStatus === 'later') && Date.now() >= geoNextPrompt;
-                    const isGeoPhase2Enabled = config?.messaging?.enableContextualGeoPrompt !== false;
-
-                    if (isGeoPhase2Enabled && isGeoPhase2Ready && geoStatus !== 'granted' && geoStatus !== 'blocked' && !isGeoSessionDismissed) {
-                        setContextualPointsMsg(`¡Ganaste ${gained} puntos!`);
-                        setShowContextualGeo(true);
-                    }
+                } else if (isMobile && isGeoPhase2Enabled && !isGeoLocked && geoStatus !== 'granted' && geoStatus !== 'blocked') {
+                    setContextualPointsMsg(`¡Ganaste ${gained} puntos!`);
+                    setShowContextualGeo(true);
                 }
             }
         }
         prevPointsRef.current = currentPoints;
-    }, [userData?.points]);
+    }, [userData?.points, !!config]);
 
     return (
         <div

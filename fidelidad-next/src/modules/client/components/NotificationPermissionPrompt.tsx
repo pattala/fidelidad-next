@@ -65,15 +65,27 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
             deniedCount++;
         }
 
-        let largeDismissCount = userData?.permissions?.[type]?.largeDismissCount || 0;
+        const counterKey = isMobile ? 'mobile_dismissedCount' : 'pc_dismissedCount';
+        let dismissedCount = userData?.permissions?.[type]?.[counterKey] || 0;
         let finalStatus = status;
 
         if (status === 'later') {
-            largeDismissCount++;
-            // Transition to 'dismissed' (Phase 2 ready) once large attempts are exhausted
-            const maxAttempts = config?.messaging?.maxLargePromptDismissals ?? 2;
-            if (largeDismissCount >= maxAttempts) {
+            dismissedCount++;
+            // Transition to 'dismissed' once attempts are exhausted for this device
+            const maxPC = config?.messaging?.maxLargePromptDismissalsPC ?? config?.messaging?.maxLargePromptDismissals ?? 2;
+            const maxMobile = config?.messaging?.maxLargePromptDismissalsMobile ?? config?.messaging?.maxLargePromptDismissals ?? 2;
+            const maxAttempts = isMobile ? maxMobile : maxPC;
+
+            if (dismissedCount >= maxAttempts) {
                 finalStatus = 'dismissed';
+
+                // Final Toast when attempts are exhausted
+                const standbyDays = config?.messaging?.notificationPromptIntervalDays || 30;
+                toast(`Entendido. Te volveremos a preguntar en ${standbyDays} días o podés activarlo desde tu perfil.`, {
+                    icon: '⏳',
+                    duration: 5000,
+                    style: { borderRadius: '10px', background: '#333', color: '#fff' }
+                });
             }
         }
 
@@ -81,7 +93,7 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
             [`permissions.${type}.status`]: finalStatus,
             [`permissions.${type}.updatedAt`]: Date.now(),
             [`permissions.${type}.deniedCount`]: deniedCount,
-            [`permissions.${type}.largeDismissCount`]: largeDismissCount,
+            [`permissions.${type}.${counterKey}`]: dismissedCount,
             [`permissions.${type}.nextPrompt`]: nextPrompt
         };
 
@@ -93,6 +105,8 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
     };
 
     const checkNextStep = async () => {
+        if (typeof window === 'undefined') return;
+
         // Leer siempre directo de sessionStorage para evitar stale state
         const isDismissedNotif = sessionStorage.getItem('dismissed_notif_prompt') === 'true';
         const isDismissedGeo = sessionStorage.getItem('dismissed_geo_prompt') === 'true';
@@ -104,32 +118,45 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
         const notifNextPrompt = permissions.notifications?.nextPrompt || 0;
         const notifBlocked = notifStatus === 'blocked';
 
-        // Auto-sincronizar si el navegador ya tiene el permiso concedido o denegado
+        // Auto-sincronizar si el navegador ya tiene el permiso concedido
+        // Si ya está OK legalmente pero Firestore no lo sabe, actualizamos sin preguntar.
         if (Notification.permission === 'granted' && notifStatus !== 'granted') {
             await updatePermission('notifications', 'granted');
         }
 
-        // Si ya pasó el standby global (30 días), reiniciamos el ciclo para volver a preguntar el grande
+        // Reinicio de ciclo standby global (30 días)
         if ((notifStatus === 'dismissed' || notifStatus === 'denied') && notifNextPrompt > 0 && Date.now() >= notifNextPrompt) {
             await updatePermission('notifications', 'pending', 0);
             return;
         }
 
-        const isNotifAvailable = typeof Notification !== 'undefined' && Notification.permission === 'default';
-        const largeNotifDismissCount = permissions.notifications?.largeDismissCount || 0;
-        const maxLargeAttempts = config?.messaging?.maxLargePromptDismissals ?? 2;
+        const browserNotifPermission = Notification.permission;
+        const counterKey = isMobile ? 'mobile_dismissedCount' : 'pc_dismissedCount';
+        const currentDismissedCount = permissions.notifications?.[counterKey] || 0;
 
-        // Fase 1 (Grande): Solo sale si es 'pending' o 'later' (dentro de los re-intentos).
-        // Una vez que pasa a 'dismissed', ya es el turno de los contextuales (Fase 2) en ClientHomePage.
-        const canShowLargeNotif = (notifStatus === 'pending') || (notifStatus === 'later' && largeNotifDismissCount < maxLargeAttempts);
+        const maxPC = config?.messaging?.maxLargePromptDismissalsPC ?? config?.messaging?.maxLargePromptDismissals ?? 2;
+        const maxMobile = config?.messaging?.maxLargePromptDismissalsMobile ?? config?.messaging?.maxLargePromptDismissals ?? 2;
+        const maxAttempts = isMobile ? maxMobile : maxPC;
+
+        // VISIBILIDAD NOTIFICACIONES:
+        // Mostramos si: 
+        // - El navegador NO tiene permiso aún ('default')
+        // - No hemos llegado al límite de este dispositivo
+        // - No está bloqueado globalmente
+        const canShowNotif = (browserNotifPermission === 'default') && (currentDismissedCount < maxAttempts);
         const isPhase1Enabled = config?.messaging?.enableLargePrompt !== false;
 
-        if (isPhase1Enabled && isNotifAvailable && canShowLargeNotif && !isDismissedNotif && !notifBlocked) {
+        if (isPhase1Enabled && canShowNotif && !isDismissedNotif && !notifBlocked) {
             setStep('notifications');
             return;
         }
 
-        // 2. Check Geolocation
+        // 2. Check Geolocation (ONLY MOBILE)
+        if (!isMobile) {
+            setStep('none');
+            return;
+        }
+
         const geoStatus = permissions.geolocation?.status || 'pending';
         const geoNextPrompt = permissions.geolocation?.nextPrompt || 0;
         const geoBlocked = geoStatus === 'blocked';
@@ -140,11 +167,20 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
             return;
         }
 
-        const largeGeoDismissCount = permissions.geolocation?.largeDismissCount || 0;
-        const maxLargeGeoAttempts = config?.messaging?.maxLargePromptDismissals ?? 2;
-        const canShowLargeGeo = (geoStatus === 'pending') || (geoStatus === 'later' && largeGeoDismissCount < maxLargeGeoAttempts);
+        const currentGeoDismissed = permissions.geolocation?.mobile_dismissedCount || 0;
+        const maxGeoAttempts = config?.messaging?.maxLargePromptDismissalsMobile ?? config?.messaging?.maxLargePromptDismissals ?? 2;
+        const canShowLargeGeo = currentGeoDismissed < maxGeoAttempts;
 
-        if (isPhase1Enabled && canShowLargeGeo && !isDismissedGeo && !geoBlocked) {
+        // Comprobamos si el navegador ya tiene permiso (opcional pero bueno para redundancia)
+        let browserGeoBlocked = false;
+        if ('permissions' in navigator) {
+            try {
+                const res = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
+                if (res.state === 'denied') browserGeoBlocked = true;
+            } catch (e) { }
+        }
+
+        if (isPhase1Enabled && canShowLargeGeo && !isDismissedGeo && !geoBlocked && !browserGeoBlocked) {
             setStep('geolocation');
             return;
         }

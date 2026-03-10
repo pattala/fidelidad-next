@@ -18,10 +18,24 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
     const [sessionDismissedNotif, setSessionDismissedNotif] = useState(false);
     const [sessionDismissedGeo, setSessionDismissedGeo] = useState(false);
 
+    const isMobile = typeof window !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
     useEffect(() => {
         setSessionDismissedNotif(sessionStorage.getItem('dismissed_notif_prompt') === 'true');
         setSessionDismissedGeo(sessionStorage.getItem('dismissed_geo_prompt') === 'true');
-    }, []);
+
+        if (isMobile) {
+            const lastDismissal = localStorage.getItem('last_mobile_permission_dismissal');
+            if (lastDismissal) {
+                const hoursPassed = (Date.now() - parseInt(lastDismissal)) / (1000 * 60 * 60);
+                const cooldown = config?.messaging?.mobileCooldownHours ?? 24;
+                if (cooldown > 0 && hoursPassed < cooldown) {
+                    setSessionDismissedNotif(true);
+                    setSessionDismissedGeo(true);
+                }
+            }
+        }
+    }, [isMobile, config?.messaging?.mobileCooldownHours]);
 
     useEffect(() => {
         const loadConfig = async () => {
@@ -193,6 +207,10 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
         // Marcamos como 'later' para que el cartel grande ya no salga esta vuelta
         // y le de paso a los carteles chicos (contextuales).
         await updatePermission(type, 'later', 0);
+
+        if (isMobile) {
+            localStorage.setItem('last_mobile_permission_dismissal', Date.now().toString());
+        }
 
         // Si acaba de descartar notificaciones, ver si hay que mostrar geo
         if (type === 'notifications') {

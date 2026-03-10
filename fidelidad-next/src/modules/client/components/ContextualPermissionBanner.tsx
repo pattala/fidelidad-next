@@ -25,9 +25,22 @@ export const ContextualPermissionBanner = ({
 }: Props) => {
     const [visible, setVisible] = useState(false);
 
+    const isMobile = typeof window !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
     useEffect(() => {
         if (!user || !userData) return;
+
+        // 1. Check session/storage-based dismissal
         if (sessionStorage.getItem(SESSION_KEYS[type]) === 'true') return;
+
+        if (isMobile) {
+            const lastDismissal = localStorage.getItem(`contextual_${type}_mobile_dismissal`);
+            if (lastDismissal) {
+                const hoursPassed = (Date.now() - parseInt(lastDismissal)) / (1000 * 60 * 60);
+                const cooldown = config?.messaging?.mobileCooldownHours ?? 24;
+                if (cooldown > 0 && hoursPassed < cooldown) return;
+            }
+        }
 
         const status = userData.permissions?.[type]?.status;
         const nextPrompt = userData.permissions?.[type]?.nextPrompt || 0;
@@ -45,7 +58,7 @@ export const ContextualPermissionBanner = ({
 
         const t = setTimeout(() => setVisible(true), 400);
         return () => clearTimeout(t);
-    }, [user, userData, type, config]);
+    }, [user, userData, type, config, isMobile]);
 
     const handleAccept = async () => {
         sessionStorage.setItem(SESSION_KEYS[type], 'true');
@@ -92,6 +105,9 @@ export const ContextualPermissionBanner = ({
     // "Ahora no" — bloquea solo la sesión, pero incrementa el contador
     const handleDismiss = async () => {
         sessionStorage.setItem(SESSION_KEYS[type], 'true');
+        if (isMobile) {
+            localStorage.setItem(`contextual_${type}_mobile_dismissal`, Date.now().toString());
+        }
         setVisible(false);
 
         const maxDismissals = config?.messaging?.maxContextualDismissals ?? 2;
@@ -109,7 +125,10 @@ export const ContextualPermissionBanner = ({
                 [`permissions.${type}.nextPrompt`]: nextPrompt
             });
             const daysLabel = days === 1 ? '1 día' : `${days} días`;
-            toast(`No te preguntamos más por ${daysLabel} 😊 (Podés cambiarlo en tu Perfil)`, { icon: '⏳', duration: 4000 });
+            toast(`Entendido. Te volveremos a consultar en ${daysLabel}. (O cámbialo en tu Perfil en cualquier momento)`, {
+                icon: '⏳',
+                style: { borderRadius: '10px', background: '#333', color: '#fff' }
+            });
             onNeverAsk?.();
         } else {
             // Solo incrementar contador, no entra en standby todavía
@@ -124,6 +143,9 @@ export const ContextualPermissionBanner = ({
     // "No molestar" — standby inmediato sin esperar al contador
     const handleNeverAsk = async () => {
         sessionStorage.setItem(SESSION_KEYS[type], 'true');
+        if (isMobile) {
+            localStorage.setItem(`contextual_${type}_mobile_dismissal`, Date.now().toString());
+        }
         setVisible(false);
         const days = config?.messaging?.notificationPromptIntervalDays || 30;
         const nextPrompt = Date.now() + (days * 24 * 60 * 60 * 1000);
@@ -133,7 +155,10 @@ export const ContextualPermissionBanner = ({
             [`permissions.${type}.nextPrompt`]: nextPrompt
         });
         const daysLabel = days === 1 ? '1 día' : `${days} días`;
-        toast(`Listo, avisamos de nuevo en ${daysLabel} 😊 (O configurá tu Perfil)`, { icon: '⏳', duration: 4000 });
+        toast(`Entendido. Te volveremos a consultar en ${daysLabel}. (O cámbialo en tu Perfil en cualquier momento)`, {
+            icon: '⏳',
+            style: { borderRadius: '10px', background: '#333', color: '#fff' }
+        });
         onNeverAsk?.();
     };
 

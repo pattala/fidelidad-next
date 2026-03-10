@@ -106,7 +106,10 @@ export const ConfigPage = () => {
                 redemption: { channels: ['whatsapp', 'push', 'email'] },
                 campaign: { channels: ['push', 'email'] },
                 offer: { channels: ['push', 'email'] }
-            }
+            },
+            mobileCooldownHours: 24,
+            maxContextualDismissals: 2,
+            maxLargePromptDismissals: 2
         },
         enableExternalIntegration: true,
         referrals: {
@@ -1692,6 +1695,25 @@ export const ConfigPage = () => {
                                                     />
                                                     <span className="text-[10px] font-bold text-gray-400 uppercase">Veces</span>
                                                 </div>
+                                            </div>
+                                        </div>
+                                        {/* Card 3: Mobile Cooldown */}
+                                        <div className="p-4 bg-blue-50/50 rounded-xl border border-dashed border-blue-200 flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <Clock size={16} className="text-blue-400" />
+                                                <div>
+                                                    <span className="text-xs font-bold text-gray-600 block leading-tight">Cooldown para Celulares</span>
+                                                    <span className="text-[9px] text-gray-400 uppercase tracking-tighter text-balance leading-none">Tiempo de espera tras elegir "Quizás luego" (0 = Inmediato)</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="number" min="0" max="720"
+                                                    value={config.messaging?.mobileCooldownHours ?? 24}
+                                                    onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, mobileCooldownHours: parseInt(e.target.value) || 0 } })}
+                                                    className="w-14 px-2 py-1 text-center font-bold bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                                />
+                                                <span className="text-[10px] font-bold text-gray-400 uppercase">Horas</span>
                                             </div>
                                         </div>
                                     </div>

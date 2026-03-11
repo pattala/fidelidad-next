@@ -7,16 +7,17 @@ import { db } from '../../../lib/firebase';
 interface Props {
     user: any;
     userData: any;
+    config: any;
     onNotificationGranted: () => void;
 }
 
-export const NotificationPermissionPrompt = ({ user, userData, onNotificationGranted }: Props) => {
+export const NotificationPermissionPrompt = ({ user, userData, config, onNotificationGranted }: Props) => {
     const [step, setStep] = useState<'none' | 'notifications' | 'geolocation'>('none');
-    const [config, setConfig] = useState<any>(null);
 
     // Sesión
     const [sessionDismissedNotif, setSessionDismissedNotif] = useState(false);
     const [sessionDismissedGeo, setSessionDismissedGeo] = useState(false);
+    const [hasAttemptedCheck, setHasAttemptedCheck] = useState(false);
 
     const getIsMobile = () => {
         if (typeof window === 'undefined') return false;
@@ -49,13 +50,6 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
         }
     }, [isMobile, !!config]);
 
-    useEffect(() => {
-        const loadConfig = async () => {
-            const { ConfigService } = await import('../../../services/configService');
-            ConfigService.get().then(setConfig);
-        };
-        loadConfig();
-    }, []);
 
     const updatePermission = async (type: 'notifications' | 'geolocation', status: string, nextPrompt: number = 0) => {
         if (!user) return;
@@ -174,15 +168,19 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
     };
 
     useEffect(() => {
-        if (!user || !userData || !config) return;
+        if (!user || !userData || !config || Object.keys(config).length === 0 || hasAttemptedCheck) return;
         if (step !== 'none') return;
+
+        // Marcamos que ya intentamos el chequeo inicial para que no se reinicie el timer
+        // por cada actualización pequeña de userData (puntos, etc)
+        setHasAttemptedCheck(true);
 
         const timer = setTimeout(() => {
             checkNextStep();
-        }, 1500);
+        }, 1200);
 
         return () => clearTimeout(timer);
-    }, [user, userData?.permissions?.notifications?.status, userData?.permissions?.geolocation?.status, !!config, step]);
+    }, [user, !!userData, !!config, step, hasAttemptedCheck]);
 
     const handleYes = async () => {
         const currentStep = step;
@@ -245,7 +243,7 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
     const isGeo = step === 'geolocation';
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in font-sans">
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in font-sans">
             <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl animate-in-up relative overflow-hidden border border-gray-100">
                 <div className={`absolute -top-12 -right-12 w-32 h-32 rounded-full blur-3xl opacity-20 ${isGeo ? 'bg-emerald-500' : 'bg-purple-500'}`}></div>
                 <div className="text-center relative z-10">

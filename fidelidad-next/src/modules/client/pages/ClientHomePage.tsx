@@ -409,6 +409,7 @@ export const ClientHomePage = () => {
             <NotificationPermissionPrompt
                 user={user}
                 userData={userData}
+                config={config}
                 onNotificationGranted={handlePermissionGranted}
             />
 

@@ -3,6 +3,7 @@ import { Bell, MapPin, X, BellOff } from 'lucide-react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import toast from 'react-hot-toast';
+import { TimeService } from '../../../services/timeService';
 
 interface Props {
     user: any;
@@ -38,11 +39,16 @@ export const ContextualPermissionBanner = ({
 
         if (isMobile) {
             const lastDismissal = localStorage.getItem(`contextual_${type}_mobile_dismissal`);
-            if (lastDismissal) {
-                const hoursPassed = (Date.now() - parseInt(lastDismissal)) / (1000 * 60 * 60);
+            const globalDismissal = localStorage.getItem('last_mobile_permission_dismissal');
+
+            const checkCooldown = (ts: string | null) => {
+                if (!ts) return false;
+                const hoursPassed = (TimeService.now().getTime() - parseInt(ts)) / (1000 * 60 * 60);
                 const cooldown = config?.messaging?.mobileCooldownHours ?? 24;
-                if (cooldown > 0 && hoursPassed < cooldown) return;
-            }
+                return hoursPassed < cooldown;
+            };
+
+            if (checkCooldown(lastDismissal) || checkCooldown(globalDismissal)) return;
         }
 
         const status = userData.permissions?.[type]?.status;
@@ -51,7 +57,8 @@ export const ContextualPermissionBanner = ({
         if (status === 'granted' || status === 'blocked') return;
 
         // Si está en 'dismissed' o 'denied', solo mostrar si ya pasó el tiempo de espera
-        if ((status === 'dismissed' || status === 'denied') && Date.now() < nextPrompt) return;
+        const nowSim = TimeService.now().getTime();
+        if ((status === 'dismissed' || status === 'denied') && nowSim < nextPrompt) return;
 
         const counterKey = isMobile ? 'mobile_contextualDismissCount' : 'pc_contextualDismissCount';
         const currentCount = userData?.permissions?.[type]?.[counterKey] || 0;
@@ -132,10 +139,10 @@ export const ContextualPermissionBanner = ({
         if (newCount >= maxDismissals) {
             // Entrar en standby real
             const days = config?.messaging?.notificationPromptIntervalDays || 30;
-            const nextPrompt = Date.now() + (days * 24 * 60 * 60 * 1000);
+            const nextPrompt = TimeService.now().getTime() + (days * 24 * 60 * 60 * 1000);
             await updateDoc(doc(db, 'users', user.uid), {
                 [`permissions.${type}.status`]: 'dismissed',
-                [`permissions.${type}.updatedAt`]: Date.now(),
+                [`permissions.${type}.updatedAt`]: TimeService.now().getTime(),
                 [`permissions.${type}.${counterKey}`]: newCount,
                 [`permissions.${type}.nextPrompt`]: nextPrompt
             });

@@ -3,6 +3,7 @@ import { Bell, Check, MapPin, Bug } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
+import { TimeService } from '../../../services/timeService';
 
 interface Props {
     user: any;
@@ -93,7 +94,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const isSessGeo = sessionStorage.getItem('dismissed_geo_prompt') === 'true';
 
         const userCreatedAt = userData.createdAt?.toDate ? userData.createdAt.toDate().getTime() : (userData.createdAt || 0);
-        const isNewRegistration = userCreatedAt > (Date.now() - 15 * 60 * 1000);
+        const isNewRegistration = userCreatedAt > (TimeService.now().getTime() - 15 * 60 * 1000);
 
         const canShowGeo = (geoStatus === 'pending' || geoStatus === 'later') &&
             geoAttempts < maxGeo &&
@@ -116,7 +117,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
             if (!isTestUser && !isNewRegistration) {
                 const lastDismissal = localStorage.getItem('last_mobile_permission_dismissal');
                 if (lastDismissal) {
-                    const hoursPassed = (Date.now() - parseInt(lastDismissal)) / (1000 * 60 * 60);
+                    const hoursPassed = (TimeService.now().getTime() - parseInt(lastDismissal)) / (1000 * 60 * 60);
                     const cooldown = config?.messaging?.mobileCooldownHours ?? 24;
                     if (cooldown > 0 && hoursPassed < cooldown) {
                         setStep('none');

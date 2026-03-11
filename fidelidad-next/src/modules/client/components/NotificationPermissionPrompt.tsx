@@ -14,7 +14,6 @@ interface Props {
 export const NotificationPermissionPrompt = ({ user, userData, config, onNotificationGranted }: Props) => {
     const [step, setStep] = useState<'none' | 'notifications' | 'geolocation'>('none');
     const [debugInfo, setDebugInfo] = useState<any>(null);
-    const [showDebug, setShowDebug] = useState(false);
 
     const isMobile = useMemo(() => {
         if (typeof window === 'undefined') return false;
@@ -64,22 +63,12 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const isTestUser = userData.isTestUser === true;
 
         // Native State
-        const browserNotif = typeof Notification !== 'undefined' ? Notification.permission : 'denied';
+        const browserNotitState = typeof Notification !== 'undefined' ? Notification.permission : 'denied';
         const dbNotifStatus = permissions.notifications?.status || 'pending';
 
-        const diagnostic = {
-            isMobile,
-            browserNotif,
-            dbNotifStatus,
-            geoStatus: permissions.geolocation?.status || 'pending',
-            isTestUser
-        };
-        setDebugInfo(diagnostic);
-
         // 1. Notifications Step
-        if (browserNotif === 'granted') {
+        if (browserNotitState === 'granted') {
             onNotificationGranted();
-            // Evaluar Geo
             checkGeoStep(permissions, safeMessaging, isTestUser);
             return;
         }
@@ -89,7 +78,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const notifAttempts = permissions.notifications?.[counterKey] || 0;
         const maxNotif = isMobile ? (safeMessaging.maxLargePromptDismissalsMobile ?? 2) : (safeMessaging.maxLargePromptDismissalsPC ?? 2);
 
-        if (browserNotif === 'default' && (dbNotifStatus === 'pending' || dbNotifStatus === 'later') && notifAttempts < maxNotif && !isSessNotif && safeMessaging.enableLargePrompt !== false) {
+        if (browserNotitState === 'default' && (dbNotifStatus === 'pending' || dbNotifStatus === 'later') && notifAttempts < maxNotif && !isSessNotif && safeMessaging.enableLargePrompt !== false) {
             setStep('notifications');
             return;
         }
@@ -109,6 +98,10 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const maxGeo = safeMessaging.maxLargePromptDismissalsMobile ?? 2;
         const isSessGeo = sessionStorage.getItem('dismissed_geo_prompt') === 'true';
 
+        // Lógica de "Usuario Recién Creado": Si la cuenta tiene menos de 15 minutos, ignoramos el localStorage del celular.
+        const userCreatedAt = userData.createdAt?.toDate ? userData.createdAt.toDate().getTime() : (userData.createdAt || 0);
+        const isNewRegistration = userCreatedAt > (Date.now() - 15 * 60 * 1000);
+
         const canShowGeo = (geoStatus === 'pending' || geoStatus === 'later') &&
             geoAttempts < maxGeo &&
             !isSessGeo &&
@@ -116,9 +109,18 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
             geoStatus !== 'granted' &&
             geoStatus !== 'blocked';
 
+        setDebugInfo({
+            isMobile,
+            geoStatus,
+            geoAttempts,
+            isNewRegistration,
+            canShowGeo,
+            isTestUser
+        });
+
         if (canShowGeo) {
-            // Bypass cooldown for testers
-            if (!isTestUser) {
+            // Bypass cooldown for testers OR new registrations
+            if (!isTestUser && !isNewRegistration) {
                 const lastDismissal = localStorage.getItem('last_mobile_permission_dismissal');
                 if (lastDismissal) {
                     const hoursPassed = (Date.now() - parseInt(lastDismissal)) / (1000 * 60 * 60);
@@ -203,12 +205,11 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
     };
 
     if (step === 'none') {
-        // Render Debug Info for Testers even when modal is closed
-        if (userData?.isTestUser && showDebug) {
+        // En etapa de debug, mostramos info si el usuario es tester
+        if (userData?.isTestUser) {
             return (
                 <div className="fixed top-2 left-2 z-[1000] bg-black/80 text-[8px] text-white p-2 rounded-lg font-mono pointer-events-none">
-                    <p>DEBUG: {JSON.stringify(debugInfo)}</p>
-                    <p>Step: none</p>
+                    DEBUG: {JSON.stringify(debugInfo)}
                 </div>
             );
         }
@@ -219,9 +220,9 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
 
     return (
         <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in font-sans">
-            {userData?.isTestUser && (
-                <div className="absolute top-4 left-4 z-[1001] bg-yellow-400 text-black text-[10px] p-1 px-2 rounded font-black flex items-center gap-1 shadow-lg">
-                    <Bug size={12} /> TESTER MODE: {JSON.stringify(debugInfo)}
+            {(userData?.isTestUser || debugInfo?.isNewRegistration) && (
+                <div className="absolute top-4 left-4 z-[1001] bg-yellow-400 text-black text-[10px] p-1 px-2 rounded font-black flex items-center gap-1 shadow-lg max-w-[80%] break-all">
+                    <Bug size={12} /> INFO: {JSON.stringify(debugInfo)}
                 </div>
             )}
 

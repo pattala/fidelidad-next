@@ -39,7 +39,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         try {
             await updateDoc(ref, {
                 [`permissions.${type}.status`]: status,
-                [`permissions.${type}.updatedAt`]: Date.now(),
+                [`permissions.${type}.updatedAt`]: TimeService.now().getTime(),
                 [`permissions.${type}.${counterKey}`]: dismissedCount,
                 [`permissions.${type}.nextPrompt`]: nextPrompt
             });
@@ -181,11 +181,13 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         // Marcamos que en esta sesión ya se mostró el cartel grande
         sessionStorage.setItem(type === 'notifications' ? 'dismissed_notif_prompt' : 'dismissed_geo_prompt', 'true');
 
-        // Guardamos 'later' en la DB para dar paso a la Persiana (Fase 2)
+        // Guardamos 'later' en la DB para dar paso a la Persiana (Fase 2) despues del cooldown
         await updatePermission(type as any, 'later');
 
-        // IMPORTANTE: NO seteamos last_mobile_permission_dismissal acá.
-        // Eso dejaría el campo libre para que la Persiana pueda aparecer si suman puntos.
+        // RESTAURADO: Seteamos el bloqueo en el celular (localStorage) para que NO aparezca nada por X horas.
+        if (isMobile) {
+            localStorage.setItem('last_mobile_permission_dismissal', TimeService.now().getTime().toString());
+        }
 
         if (type === 'notifications') {
             setTimeout(() => checkNextStep(), 800);

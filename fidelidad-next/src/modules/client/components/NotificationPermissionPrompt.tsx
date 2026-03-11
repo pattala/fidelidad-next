@@ -46,7 +46,7 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
     }, []);
 
     useEffect(() => {
-        if (!user || !userData) return;
+        if (!user || !userData || !config) return;
 
         // Retraso de cortesía para un "logueo limpio"
         const timer = setTimeout(() => {
@@ -54,7 +54,7 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
         }, 1500);
 
         return () => clearTimeout(timer);
-    }, [user, userData]);
+    }, [user, userData, !!config]);
 
     const updatePermission = async (type: 'notifications' | 'geolocation', status: string, nextPrompt: number = 0) => {
         if (!user) return;
@@ -118,19 +118,7 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
         const notifNextPrompt = permissions.notifications?.nextPrompt || 0;
         const notifBlocked = notifStatus === 'blocked';
 
-        // Auto-sincronizar si el navegador ya tiene el permiso concedido
-        // Si ya está OK legalmente pero Firestore no lo sabe, actualizamos sin preguntar.
-        if (Notification.permission === 'granted' && notifStatus !== 'granted') {
-            await updatePermission('notifications', 'granted');
-        }
-
-        // Reinicio de ciclo standby global (30 días)
-        if ((notifStatus === 'dismissed' || notifStatus === 'denied') && notifNextPrompt > 0 && Date.now() >= notifNextPrompt) {
-            await updatePermission('notifications', 'pending', 0);
-            return;
-        }
-
-        const browserNotifPermission = Notification.permission;
+        const browserNotifPermission = typeof Notification !== 'undefined' ? Notification.permission : 'denied';
         const counterKey = isMobile ? 'mobile_dismissedCount' : 'pc_dismissedCount';
         const currentDismissedCount = permissions.notifications?.[counterKey] || 0;
 
@@ -138,13 +126,17 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
         const maxMobile = config?.messaging?.maxLargePromptDismissalsMobile ?? config?.messaging?.maxLargePromptDismissals ?? 2;
         const maxAttempts = isMobile ? maxMobile : maxPC;
 
+        // Reinicio de ciclo standby global (30 días)
+        if ((notifStatus === 'dismissed' || notifStatus === 'denied') && notifNextPrompt > 0 && Date.now() >= notifNextPrompt) {
+            await updatePermission('notifications', 'pending', 0);
+            return;
+        }
+
         // VISIBILIDAD NOTIFICACIONES:
-        // Mostramos si: 
-        // - El navegador NO tiene permiso aún ('default')
-        // - No hemos llegado al límite de este dispositivo
-        // - No está bloqueado globalmente
         const canShowNotif = (browserNotifPermission === 'default') && (currentDismissedCount < maxAttempts);
         const isPhase1Enabled = config?.messaging?.enableLargePrompt !== false;
+
+        console.log('[PermissionCheck] Notif:', { canShowNotif, browserNotifPermission, currentDismissedCount, maxAttempts, notifStatus, isMobile });
 
         if (isPhase1Enabled && canShowNotif && !isDismissedNotif && !notifBlocked) {
             setStep('notifications');
@@ -169,18 +161,26 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
 
         const currentGeoDismissed = permissions.geolocation?.mobile_dismissedCount || 0;
         const maxGeoAttempts = config?.messaging?.maxLargePromptDismissalsMobile ?? config?.messaging?.maxLargePromptDismissals ?? 2;
-        const canShowLargeGeo = currentGeoDismissed < maxGeoAttempts;
+        const canShowLargeGeo = (geoStatus === 'pending' || geoStatus === 'later') && (currentGeoDismissed < maxGeoAttempts);
 
-        // Comprobamos si el navegador ya tiene permiso (opcional pero bueno para redundancia)
-        let browserGeoBlocked = false;
-        if ('permissions' in navigator) {
+        // Comprobamos si el navegador ya tiene permiso
+        let browserGeoStatus = 'prompt';
+        if (typeof navigator !== 'undefined' && 'permissions' in navigator) {
             try {
                 const res = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
-                if (res.state === 'denied') browserGeoBlocked = true;
+                browserGeoStatus = res.state;
+
+                // Auto-sync if browser already granted but Firestore doesn't know
+                if (res.state === 'granted' && geoStatus !== 'granted') {
+                    await updatePermission('geolocation', 'granted');
+                    return;
+                }
             } catch (e) { }
         }
 
-        if (isPhase1Enabled && canShowLargeGeo && !isDismissedGeo && !geoBlocked && !browserGeoBlocked) {
+        console.log('[PermissionCheck] Geo:', { canShowLargeGeo, geoStatus, currentGeoDismissed, maxGeoAttempts, isMobile, browserGeoStatus });
+
+        if (isPhase1Enabled && canShowLargeGeo && !isDismissedGeo && !geoBlocked && browserGeoStatus !== 'denied' && geoStatus !== 'granted') {
             setStep('geolocation');
             return;
         }
@@ -190,6 +190,11 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
 
     const handleYes = async () => {
         if (step === 'notifications') {
+            if (typeof Notification === 'undefined') {
+                toast.error('Las notificaciones no están disponibles en este navegador.');
+                setStep('none');
+                return;
+            }
             const permission = await Notification.requestPermission();
             setStep('none'); // Close immediately for better UX
             if (permission === 'granted') {
@@ -200,6 +205,8 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
                 // Si rechaza el nativo, lo tratamos como 'later' para que no bloquee pero ya no sea 'pending'
                 await updatePermission('notifications', 'later');
             }
+            // Chain to next step (Geolocation)
+            setTimeout(() => checkNextStep(), 800);
         } else if (step === 'geolocation') {
             if ('geolocation' in navigator) {
                 setStep('none'); // Close immediately for better UX
@@ -277,6 +284,11 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
                 icon: '⏳',
                 style: { borderRadius: '10px', background: '#333', color: '#fff' }
             });
+        }
+
+        // Chain to next step if we were in notifications
+        if (type === 'notifications') {
+            setTimeout(() => checkNextStep(), 800);
         }
     };
 

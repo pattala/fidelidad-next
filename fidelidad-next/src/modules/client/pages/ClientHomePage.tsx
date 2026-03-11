@@ -379,7 +379,7 @@ export const ClientHomePage = () => {
 
                     const checkCooldown = (ts: string | null) => {
                         if (!ts || cooldown === 0) return false;
-                        return (TimeService.now().getTime() - parseInt(ts)) / (1000 * 60 * 60) < cooldown;
+                        return (Date.now() - parseInt(ts)) / (1000 * 60 * 60) < cooldown;
                     };
 
                     if (checkCooldown(lastDismissal) || checkCooldown(lastNotifDismissal)) isNotifLocked = true;

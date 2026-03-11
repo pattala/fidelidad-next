@@ -377,8 +377,14 @@ export const ClientHomePage = () => {
                     const lastNotifDismissal = localStorage.getItem('contextual_notifications_mobile_dismissal');
                     const lastGeoDismissal = localStorage.getItem('contextual_geolocation_mobile_dismissal');
 
+                    // Lógica de Inmunidad (Bypass Cooldown para testers y nuevos usuarios)
+                    const userCreatedAt = userData.createdAt?.toDate ? userData.createdAt.toDate().getTime() : (userData.createdAt || 0);
+                    const isTestUser = userData.isTestUser === true;
+                    const immunityWindow = isTestUser ? (24 * 60 * 60 * 1000) : (10 * 60 * 1000);
+                    const isImmune = userCreatedAt > (TimeService.now().getTime() - immunityWindow);
+
                     const checkCooldown = (ts: string | null) => {
-                        if (!ts || cooldown === 0) return false;
+                        if (!ts || cooldown === 0 || isImmune) return false;
                         return (TimeService.now().getTime() - parseInt(ts)) / (1000 * 60 * 60) < cooldown;
                     };
 

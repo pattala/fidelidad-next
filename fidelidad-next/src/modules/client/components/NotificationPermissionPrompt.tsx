@@ -95,7 +95,12 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const isSessGeo = sessionStorage.getItem('dismissed_geo_prompt') === 'true';
 
         const userCreatedAt = userData.createdAt?.toDate ? userData.createdAt.toDate().getTime() : (userData.createdAt || 0);
-        const isNewRegistration = userCreatedAt > (TimeService.now().getTime() - 24 * 60 * 60 * 1000);
+
+        // Ventana de "Inmunidad" (Bypass)
+        // Testers: 24 horas (para facilitar pruebas cruzadas)
+        // Usuarios Reales: 10 minutos (para asegurar onboarding pero no ser repetitivos)
+        const immunityWindow = isTestUser ? (24 * 60 * 60 * 1000) : (10 * 60 * 1000);
+        const isNewRegistration = userCreatedAt > (TimeService.now().getTime() - immunityWindow);
 
         const canShowGeo = (geoStatus === 'pending' || geoStatus === 'later') &&
             geoAttempts < maxGeo &&
@@ -208,7 +213,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
                         <Bug size={14} /> <span>MODO TEST: {diagnostics.isNew ? 'NUEVO' : 'TESTER'}</span>
                     </div>
                     <p className="opacity-80 break-all leading-tight text-[8px]">
-                        UA: {navigator.userAgent.slice(0, 30)}... | Step: none | {JSON.stringify(diagnostics)}
+                        UA: {navigator.userAgent.slice(0, 30)}... | Window: {diagnostics.isNew ? 'ACTIVE' : 'EXPIRED'} | {JSON.stringify(diagnostics)}
                     </p>
                 </div>
             );
@@ -226,7 +231,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
                         <Bug size={14} /> <span>DIAGNÓSTICO ACTIVADO</span>
                     </div>
                     <p className="opacity-80 break-all leading-tight">
-                        Reg: {diagnostics.isNew ? 'NUEVA (<24h)' : 'ANTIGUA'} |
+                        Inmunidad: {diagnostics.isNew ? 'ACTIVA' : 'EXPIRADA'} |
                         Device: {isMobile ? 'MÓVIL' : 'PC'} |
                         State: {diagnostics.geoStatus}
                     </p>

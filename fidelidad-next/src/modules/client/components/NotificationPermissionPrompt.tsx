@@ -50,7 +50,6 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         }
     }, [isMobile, !!config]);
 
-
     const updatePermission = async (type: 'notifications' | 'geolocation', status: string, nextPrompt: number = 0) => {
         if (!user) return;
         const ref = doc(db, 'users', user.uid);
@@ -97,50 +96,69 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
     };
 
     const checkNextStep = async () => {
-        if (typeof window === 'undefined' || !userData || !config) return;
+        if (typeof window === 'undefined' || !userData) return;
 
+        // Fail-safe config defaults
+        const safeMessaging = config?.messaging || {};
         const isSessNotif = sessionStorage.getItem('dismissed_notif_prompt') === 'true';
         const isSessGeo = sessionStorage.getItem('dismissed_geo_prompt') === 'true';
         const permissions = userData?.permissions || {};
 
-        // 1. Notificaciones
-        const notifStatus = permissions.notifications?.status || 'pending';
-        const notifNextPrompt = permissions.notifications?.nextPrompt || 0;
-        const notifBlocked = notifStatus === 'blocked';
+        // Native Permissions
         const browserNotif = typeof Notification !== 'undefined' ? Notification.permission : 'denied';
 
+        // 1. Notifications Logic
+        const notifStatus = permissions.notifications?.status || 'pending';
+        const notifBlocked = notifStatus === 'blocked';
+
+        // TOKEN SYNC: Primary goal from user feedback
+        if (browserNotif === 'granted') {
+            if (notifStatus !== 'granted') {
+                await updatePermission('notifications', 'granted');
+            }
+            // Ensure token is captured anyway
+            onNotificationGranted();
+
+            // If notifications are handled, move to Geo (if mobile)
+            if (isMobile) {
+                await checkGeoStep(permissions, isSessGeo, safeMessaging);
+            } else {
+                setStep('none');
+            }
+            return;
+        }
+
+        // If not granted, can we show Large Prompt?
         const counterKey = isMobile ? 'mobile_dismissedCount' : 'pc_dismissedCount';
         const currentNotifCount = permissions.notifications?.[counterKey] || 0;
         const maxNotif = isMobile
-            ? (config?.messaging?.maxLargePromptDismissalsMobile ?? config?.messaging?.maxLargePromptDismissals ?? 2)
-            : (config?.messaging?.maxLargePromptDismissalsPC ?? config?.messaging?.maxLargePromptDismissals ?? 2);
+            ? (safeMessaging.maxLargePromptDismissalsMobile ?? safeMessaging.maxLargePromptDismissals ?? 2)
+            : (safeMessaging.maxLargePromptDismissalsPC ?? safeMessaging.maxLargePromptDismissals ?? 2);
 
-        console.log('[PermissionPrompt] Check Notif:', { isMobile, status: notifStatus, browser: browserNotif, count: currentNotifCount, max: maxNotif, session: isSessNotif });
-
-        if (browserNotif === 'granted' && notifStatus !== 'granted') {
-            await updatePermission('notifications', 'granted');
-        }
-
-        const isPhase1Enabled = config?.messaging?.enableLargePrompt !== false;
-        const canShowNotif = (browserNotif === 'default') && (notifStatus === 'pending' || notifStatus === 'later') && (currentNotifCount < maxNotif);
+        const isPhase1Enabled = safeMessaging.enableLargePrompt !== false;
+        const canShowNotif = (browserNotif === 'default') &&
+            (notifStatus === 'pending' || notifStatus === 'later') &&
+            (currentNotifCount < maxNotif);
 
         if (isPhase1Enabled && canShowNotif && !isSessNotif && !notifBlocked) {
-            console.log('[PermissionPrompt] Showing: notifications');
+            console.log('[PermissionPrompt] Showing Notif Modal');
             setStep('notifications');
             return;
         }
 
-        // 2. Geolocation
-        if (!isMobile) {
+        // 2. Geolocation Logic (if not showing notif)
+        if (isMobile) {
+            await checkGeoStep(permissions, isSessGeo, safeMessaging);
+        } else {
             setStep('none');
-            return;
         }
+    };
 
+    const checkGeoStep = async (permissions: any, isSessGeo: boolean, safeMessaging: any) => {
         const geoStatus = permissions.geolocation?.status || 'pending';
-        const geoNextPrompt = permissions.geolocation?.nextPrompt || 0;
         const geoBlocked = geoStatus === 'blocked';
         const currentGeoCount = permissions.geolocation?.mobile_dismissedCount || 0;
-        const maxGeo = config?.messaging?.maxLargePromptDismissalsMobile ?? config?.messaging?.maxLargePromptDismissals ?? 2;
+        const maxGeo = safeMessaging.maxLargePromptDismissalsMobile ?? safeMessaging.maxLargePromptDismissals ?? 2;
 
         let browserGeo = 'prompt';
         if (typeof navigator !== 'undefined' && 'permissions' in navigator) {
@@ -149,45 +167,43 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
                 browserGeo = res.state;
                 if (res.state === 'granted' && geoStatus !== 'granted') {
                     await updatePermission('geolocation', 'granted');
+                    setStep('none');
                     return;
                 }
             } catch (e) { }
         }
 
-        console.log('[PermissionPrompt] Check Geo:', { status: geoStatus, browser: browserGeo, count: currentGeoCount, max: maxGeo, session: isSessGeo });
-
         const canShowGeo = (geoStatus === 'pending' || geoStatus === 'later') && (currentGeoCount < maxGeo);
+        const isPhase1Enabled = safeMessaging.enableLargePrompt !== false;
 
         if (isPhase1Enabled && canShowGeo && !isSessGeo && !geoBlocked && browserGeo !== 'denied' && geoStatus !== 'granted') {
-            console.log('[PermissionPrompt] Showing: geolocation');
+            console.log('[PermissionPrompt] Showing Geo Modal');
             setStep('geolocation');
-            return;
+        } else {
+            setStep('none');
         }
-
-        setStep('none');
     };
 
     useEffect(() => {
-        if (!user || !userData || !config || Object.keys(config).length === 0 || hasAttemptedCheck) return;
+        if (!user || !userData || hasAttemptedCheck) return;
         if (step !== 'none') return;
 
-        // Marcamos que ya intentamos el chequeo inicial para que no se reinicie el timer
-        // por cada actualización pequeña de userData (puntos, etc)
+        // Wait 1.5s as requested for registration cleanup
         setHasAttemptedCheck(true);
-
         const timer = setTimeout(() => {
             checkNextStep();
-        }, 1200);
+        }, 1500);
 
         return () => clearTimeout(timer);
-    }, [user, !!userData, !!config, step, hasAttemptedCheck]);
+    }, [user, !!userData, step, hasAttemptedCheck]);
 
     const handleYes = async () => {
         const currentStep = step;
         setStep('none');
+
         if (currentStep === 'notifications') {
             if (typeof Notification === 'undefined') {
-                toast.error('Gesto no soportado');
+                toast.error('Notificaciones no soportadas');
                 return;
             }
             const permission = await Notification.requestPermission();
@@ -198,6 +214,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
             } else {
                 await updatePermission('notifications', 'later');
             }
+            // Sequential chain
             setTimeout(() => checkNextStep(), 800);
         } else if (currentStep === 'geolocation') {
             if ('geolocation' in navigator) {
@@ -209,7 +226,9 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
                         });
                         toast.success('Ubicación activada');
                     },
-                    async () => await updatePermission('geolocation', 'later')
+                    async () => {
+                        await updatePermission('geolocation', 'later');
+                    }
                 );
             }
         }
@@ -221,7 +240,10 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         sessionStorage.setItem(type === 'notifications' ? 'dismissed_notif_prompt' : 'dismissed_geo_prompt', 'true');
         await updatePermission(type, 'later');
         if (isMobile) localStorage.setItem('last_mobile_permission_dismissal', Date.now().toString());
-        if (type === 'notifications') setTimeout(() => checkNextStep(), 800);
+
+        if (type === 'notifications') {
+            setTimeout(() => checkNextStep(), 800);
+        }
     };
 
     const handleNo = async () => {
@@ -235,7 +257,10 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
             const nextDate = Date.now() + (standbyDays * 24 * 60 * 60 * 1000);
             await updatePermission(type, 'denied', nextDate);
         }
-        if (type === 'notifications') setTimeout(() => checkNextStep(), 800);
+
+        if (type === 'notifications') {
+            setTimeout(() => checkNextStep(), 800);
+        }
     };
 
     if (step === 'none') return null;

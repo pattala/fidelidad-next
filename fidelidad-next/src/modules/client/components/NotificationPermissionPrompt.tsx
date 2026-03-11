@@ -18,11 +18,16 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
     const [sessionDismissedNotif, setSessionDismissedNotif] = useState(false);
     const [sessionDismissedGeo, setSessionDismissedGeo] = useState(false);
 
-    const isMobile = typeof window !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const isMobile = typeof window !== 'undefined' && (
+        /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
+        (navigator.maxTouchPoints > 0 && /Macintosh/.test(navigator.userAgent))
+    );
 
     useEffect(() => {
-        setSessionDismissedNotif(sessionStorage.getItem('dismissed_notif_prompt') === 'true');
-        setSessionDismissedGeo(sessionStorage.getItem('dismissed_geo_prompt') === 'true');
+        const isSessNotif = sessionStorage.getItem('dismissed_notif_prompt') === 'true';
+        const isSessGeo = sessionStorage.getItem('dismissed_geo_prompt') === 'true';
+        setSessionDismissedNotif(isSessNotif);
+        setSessionDismissedGeo(isSessGeo);
 
         if (isMobile) {
             const lastDismissal = localStorage.getItem('last_mobile_permission_dismissal');
@@ -30,12 +35,15 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
                 const hoursPassed = (Date.now() - parseInt(lastDismissal)) / (1000 * 60 * 60);
                 const cooldown = config?.messaging?.mobileCooldownHours ?? 24;
                 if (cooldown > 0 && hoursPassed < cooldown) {
+                    // Sync into session to be extra sure
+                    sessionStorage.setItem('dismissed_notif_prompt', 'true');
+                    sessionStorage.setItem('dismissed_geo_prompt', 'true');
                     setSessionDismissedNotif(true);
                     setSessionDismissedGeo(true);
                 }
             }
         }
-    }, [isMobile, config?.messaging?.mobileCooldownHours]);
+    }, [isMobile, !!config]);
 
     useEffect(() => {
         const loadConfig = async () => {
@@ -126,17 +134,23 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
         const maxMobile = config?.messaging?.maxLargePromptDismissalsMobile ?? config?.messaging?.maxLargePromptDismissals ?? 2;
         const maxAttempts = isMobile ? maxMobile : maxPC;
 
+        // Auto-sincronizar si ya está OK
+        if (browserNotifPermission === 'granted' && notifStatus !== 'granted') {
+            await updatePermission('notifications', 'granted');
+        }
+
         // Reinicio de ciclo standby global (30 días)
         if ((notifStatus === 'dismissed' || notifStatus === 'denied') && notifNextPrompt > 0 && Date.now() >= notifNextPrompt) {
             await updatePermission('notifications', 'pending', 0);
             return;
         }
 
-        // VISIBILIDAD NOTIFICACIONES:
-        const canShowNotif = (browserNotifPermission === 'default') && (currentDismissedCount < maxAttempts);
         const isPhase1Enabled = config?.messaging?.enableLargePrompt !== false;
+        const canShowNotif = (browserNotifPermission === 'default') &&
+            (notifStatus === 'pending' || notifStatus === 'later') &&
+            (currentDismissedCount < maxAttempts);
 
-        console.log('[PermissionCheck] Notif:', { canShowNotif, browserNotifPermission, currentDismissedCount, maxAttempts, notifStatus, isMobile });
+        console.log('[PermissionCheck] Step 1 (Notif):', { canShowNotif, browserNotifPermission, currentDismissedCount, maxAttempts, notifStatus, isMobile, isDismissedNotif });
 
         if (isPhase1Enabled && canShowNotif && !isDismissedNotif && !notifBlocked) {
             setStep('notifications');
@@ -145,6 +159,7 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
 
         // 2. Check Geolocation (ONLY MOBILE)
         if (!isMobile) {
+            console.log('[PermissionCheck] Skipping Geo: Not mobile');
             setStep('none');
             return;
         }
@@ -178,7 +193,7 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
             } catch (e) { }
         }
 
-        console.log('[PermissionCheck] Geo:', { canShowLargeGeo, geoStatus, currentGeoDismissed, maxGeoAttempts, isMobile, browserGeoStatus });
+        console.log('[PermissionCheck] Step 2 (Geo):', { canShowLargeGeo, geoStatus, currentGeoDismissed, maxGeoAttempts, isMobile, browserGeoStatus, isDismissedGeo, geoBlocked });
 
         if (isPhase1Enabled && canShowLargeGeo && !isDismissedGeo && !geoBlocked && browserGeoStatus !== 'denied' && geoStatus !== 'granted') {
             setStep('geolocation');

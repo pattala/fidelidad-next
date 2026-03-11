@@ -13,6 +13,7 @@ interface Props {
 export const NotificationPermissionPrompt = ({ user, userData, onNotificationGranted }: Props) => {
     const [step, setStep] = useState<'none' | 'notifications' | 'geolocation'>('none');
     const [config, setConfig] = useState<any>(null);
+    const [hasChecked, setHasChecked] = useState(false);
 
     // Bandera de sesión para no ser insistentes en la misma visita si eligen "Quizás luego"
     const [sessionDismissedNotif, setSessionDismissedNotif] = useState(false);
@@ -54,15 +55,16 @@ export const NotificationPermissionPrompt = ({ user, userData, onNotificationGra
     }, []);
 
     useEffect(() => {
-        if (!user || !userData || !config) return;
+        if (!user || !userData || !config || hasChecked) return;
 
+        setHasChecked(true);
         // Retraso de cortesía para un "logueo limpio"
         const timer = setTimeout(() => {
             checkNextStep();
         }, 1500);
 
         return () => clearTimeout(timer);
-    }, [user, userData, !!config]);
+    }, [user, !!userData, !!config, hasChecked]);
 
     const updatePermission = async (type: 'notifications' | 'geolocation', status: string, nextPrompt: number = 0) => {
         if (!user) return;

@@ -29,23 +29,15 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const ref = doc(db, 'users', user.uid);
         const counterKey = isMobile ? 'mobile_dismissedCount' : 'pc_dismissedCount';
         let dismissedCount = userData?.permissions?.[type]?.[counterKey] || 0;
-        let finalStatus = status;
 
+        // Solo incrementamos si realmente estamos guardando un 'later'
         if (status === 'later') {
             dismissedCount++;
-            const safeMessaging = config?.messaging || {};
-            const maxAttempts = isMobile ? (safeMessaging.maxLargePromptDismissalsMobile ?? 2) : (safeMessaging.maxLargePromptDismissalsPC ?? 2);
-
-            if (dismissedCount >= maxAttempts) {
-                finalStatus = 'dismissed';
-                const standbyDays = safeMessaging.notificationPromptIntervalDays || 30;
-                toast(`Entendido. Volveremos a preguntar en ${standbyDays} días.`, { icon: '⏳' });
-            }
         }
 
         try {
             await updateDoc(ref, {
-                [`permissions.${type}.status`]: finalStatus,
+                [`permissions.${type}.status`]: status,
                 [`permissions.${type}.updatedAt`]: Date.now(),
                 [`permissions.${type}.${counterKey}`]: dismissedCount,
                 [`permissions.${type}.nextPrompt`]: nextPrompt
@@ -76,7 +68,9 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const isSessNotif = sessionStorage.getItem('dismissed_notif_prompt') === 'true';
         const counterKey = isMobile ? 'mobile_dismissedCount' : 'pc_dismissedCount';
         const notifAttempts = permissions.notifications?.[counterKey] || 0;
-        const maxNotif = isMobile ? (safeMessaging.maxLargePromptDismissalsMobile ?? 2) : (safeMessaging.maxLargePromptDismissalsPC ?? 2);
+
+        // Relajamos totalmente el límite del cartel grande para que siempre dé paso a la Persiana vía status 'later'
+        const maxNotif = 5;
 
         if (browserNotitState === 'default' && (dbNotifStatus === 'pending' || dbNotifStatus === 'later') && notifAttempts < maxNotif && !isSessNotif && safeMessaging.enableLargePrompt !== false) {
             setStep('notifications');
@@ -95,10 +89,9 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
 
         const geoStatus = permissions.geolocation?.status || 'pending';
         const geoAttempts = permissions.geolocation?.mobile_dismissedCount || 0;
-        const maxGeo = safeMessaging.maxLargePromptDismissalsMobile ?? 2;
+        const maxGeo = 5;
         const isSessGeo = sessionStorage.getItem('dismissed_geo_prompt') === 'true';
 
-        // Lógica de "Usuario Recién Creado": Si la cuenta tiene menos de 15 minutos, ignoramos el localStorage del celular.
         const userCreatedAt = userData.createdAt?.toDate ? userData.createdAt.toDate().getTime() : (userData.createdAt || 0);
         const isNewRegistration = userCreatedAt > (Date.now() - 15 * 60 * 1000);
 
@@ -184,11 +177,15 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
     const handleLater = async () => {
         const type = step;
         setStep('none');
+        // Marcamos que en esta sesión ya se mostró el cartel grande
         sessionStorage.setItem(type === 'notifications' ? 'dismissed_notif_prompt' : 'dismissed_geo_prompt', 'true');
+
+        // Guardamos 'later' en la DB para dar paso a la Persiana (Fase 2)
         await updatePermission(type as any, 'later');
-        if (isMobile) {
-            localStorage.setItem('last_mobile_permission_dismissal', Date.now().toString());
-        }
+
+        // IMPORTANTE: NO seteamos last_mobile_permission_dismissal acá.
+        // Eso dejaría el campo libre para que la Persiana pueda aparecer si suman puntos.
+
         if (type === 'notifications') {
             setTimeout(() => checkNextStep(), 800);
         }
@@ -197,6 +194,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
     const handleNo = async () => {
         const type = step;
         setStep('none');
+        // El 'No' definitivo sí bloquea todo
         await updatePermission(type as any, 'blocked');
         toast('Entendido.', { icon: '🤝' });
         if (type === 'notifications') {
@@ -205,7 +203,6 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
     };
 
     if (step === 'none') {
-        // En etapa de debug, mostramos info si el usuario es tester
         if (userData?.isTestUser) {
             return (
                 <div className="fixed top-2 left-2 z-[1000] bg-black/80 text-[8px] text-white p-2 rounded-lg font-mono pointer-events-none">

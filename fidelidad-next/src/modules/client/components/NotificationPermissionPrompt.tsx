@@ -3,6 +3,7 @@ import { Bell, Check, MapPin, Bug } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
+import { TimeService } from '../../../services/timeService';
 
 interface Props {
     user: any;
@@ -38,7 +39,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         try {
             await updateDoc(ref, {
                 [`permissions.${type}.status`]: status,
-                [`permissions.${type}.updatedAt`]: Date.now(),
+                [`permissions.${type}.updatedAt`]: TimeService.now().getTime(),
                 [`permissions.${type}.${counterKey}`]: dismissedCount,
                 [`permissions.${type}.nextPrompt`]: nextPrompt
             });
@@ -93,7 +94,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const isSessGeo = sessionStorage.getItem('dismissed_geo_prompt') === 'true';
 
         const userCreatedAt = userData.createdAt?.toDate ? userData.createdAt.toDate().getTime() : (userData.createdAt || 0);
-        const isNewRegistration = userCreatedAt > (Date.now() - 15 * 60 * 1000);
+        const isNewRegistration = userCreatedAt > (TimeService.now().getTime() - 15 * 60 * 1000);
 
         const canShowGeo = (geoStatus === 'pending' || geoStatus === 'later') &&
             geoAttempts < maxGeo &&
@@ -116,7 +117,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
             if (!isTestUser && !isNewRegistration) {
                 const lastDismissal = localStorage.getItem('last_mobile_permission_dismissal');
                 if (lastDismissal) {
-                    const hoursPassed = (Date.now() - parseInt(lastDismissal)) / (1000 * 60 * 60);
+                    const hoursPassed = (TimeService.now().getTime() - parseInt(lastDismissal)) / (1000 * 60 * 60);
                     const cooldown = config?.messaging?.mobileCooldownHours ?? 24;
                     if (cooldown > 0 && hoursPassed < cooldown) {
                         setStep('none');
@@ -184,6 +185,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         await updatePermission(type as any, 'later');
 
         // IMPORTANTE: NO seteamos last_mobile_permission_dismissal acá.
+        // Esto permite que si el usuario suma puntos en la misma sesión/día, la Persiana (Fase 2) pueda aparecer.
         // Eso dejaría el campo libre para que la Persiana pueda aparecer si suman puntos.
 
         if (type === 'notifications') {

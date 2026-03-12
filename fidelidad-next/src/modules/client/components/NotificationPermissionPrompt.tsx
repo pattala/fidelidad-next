@@ -160,10 +160,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         if (newCount >= maxAttempts) {
             await updatePermission(type as any, 'later_phase1_complete');
             if (isMobile) {
-                toast(`Entendido. No te molestaremos más con este aviso. Te volveremos a consultar en 30 días o lo podés modificar desde tu perfil.`, {
-                    icon: '🤝',
-                    duration: 5000,
-                });
+                toast('Entendido. Te avisaremos pronto.', { icon: '🤝' });
             }
         } else {
             await updatePermission(type as any, 'later');

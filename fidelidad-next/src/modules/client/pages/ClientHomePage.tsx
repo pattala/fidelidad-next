@@ -348,8 +348,6 @@ export const ClientHomePage = () => {
             const browserState = typeof Notification !== 'undefined' ? Notification.permission : 'default';
             const dbStatus = userData.permissions?.notifications?.status;
 
-            // If browser is granted but DB doesn't know, Sync Up.
-            // But if browser is 'default' or 'denied' and DB says 'granted', Sync Down.
             if (browserState === 'granted' && dbStatus !== 'granted') {
                 await updateDoc(doc(db, 'users', user.uid), {
                     'permissions.notifications.status': 'granted',
@@ -363,6 +361,10 @@ export const ClientHomePage = () => {
             }
         };
         syncReality();
+
+        // Also sync on window focus (if they came back from settings)
+        window.addEventListener('focus', syncReality);
+        return () => window.removeEventListener('focus', syncReality);
     }, [userData?.permissions?.notifications?.status, user?.uid]);
 
     // Prompt Logic

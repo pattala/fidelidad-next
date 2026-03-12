@@ -44,9 +44,10 @@ export const ContextualPermissionBanner = ({
             const checkCooldown = (ts: any) => {
                 if (!ts) return false;
                 const timestamp = typeof ts === 'string' ? parseInt(ts) : ts;
-                const hoursPassed = (TimeService.now().getTime() - timestamp) / (1000 * 60 * 60);
-                const cooldown = config?.messaging?.mobileCooldownHours ?? 24;
-                return hoursPassed < cooldown;
+                const now = TimeService.now().getTime();
+                const diffMs = now - timestamp;
+                const cooldownMinutes = config?.messaging?.mobileCooldownHours ? config.messaging.mobileCooldownHours * 60 : 24 * 60;
+                return diffMs < (cooldownMinutes * 60 * 1000);
             };
 
             if (checkCooldown(lastContextualDismissal) || checkCooldown(globalDismissal)) return;

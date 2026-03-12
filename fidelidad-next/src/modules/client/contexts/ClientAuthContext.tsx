@@ -107,7 +107,7 @@ export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) 
                         setIsProfileMissing(false);
                         setLoading(false);
                     }
-                }, 1000); // Reduced to 1s
+                }, 2000); // Increased to 2s to allow push-click sessions to restore
             }
         });
 

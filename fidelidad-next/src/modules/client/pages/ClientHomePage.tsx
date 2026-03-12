@@ -371,15 +371,17 @@ export const ClientHomePage = () => {
                 let isGeoLocked = sessionStorage.getItem('contextual_geo_shown') === 'true';
 
                 if (isMobile) {
-                    const cooldown = config?.messaging?.mobileCooldownHours ?? 24;
                     const lastDismissal = userData.permissions?.global_lastMobileDismissal;
                     const lastNotifDismissal = userData.permissions?.notifications?.lastContextualDismissal;
                     const lastGeoDismissal = userData.permissions?.geolocation?.lastContextualDismissal;
 
                     const checkCooldown = (ts: any) => {
-                        if (!ts || cooldown === 0) return false;
+                        if (!ts) return false;
                         const timestamp = typeof ts === 'string' ? parseInt(ts) : ts;
-                        return (TimeService.now().getTime() - timestamp) / (1000 * 60 * 60) < cooldown;
+                        const now = TimeService.now().getTime();
+                        const diffMs = now - timestamp;
+                        const cooldownMinutes = config?.messaging?.mobileCooldownHours ? config.messaging.mobileCooldownHours * 60 : 24 * 60;
+                        return diffMs < (cooldownMinutes * 60 * 1000);
                     };
 
                     if (checkCooldown(lastDismissal) || checkCooldown(lastNotifDismissal)) isNotifLocked = true;

@@ -14,6 +14,7 @@ interface Props {
 
 export const NotificationPermissionPrompt = ({ user, userData, config, onNotificationGranted }: Props) => {
     const [step, setStep] = useState<'none' | 'notifications' | 'geolocation'>('none');
+    const syncInProgress = useRef(false);
 
     const isMobile = useMemo(() => {
         if (typeof window === 'undefined') return false;
@@ -46,6 +47,27 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         }
     };
 
+    // 0. Auto-sync Permission Reality
+    useEffect(() => {
+        const syncReality = async () => {
+            if (!userData || !user || syncInProgress.current) return;
+            const browserState = typeof Notification !== 'undefined' ? Notification.permission : 'default';
+            const dbStatus = userData.permissions?.notifications?.status;
+
+            // Reality Check: If browser is granted but DB is not, or vice-versa
+            if (browserState === 'granted' && dbStatus !== 'granted') {
+                syncInProgress.current = true;
+                await updatePermission('notifications', 'granted');
+                syncInProgress.current = false;
+            } else if (browserState === 'denied' && dbStatus === 'granted') {
+                syncInProgress.current = true;
+                await updatePermission('notifications', 'denied');
+                syncInProgress.current = false;
+            }
+        };
+        syncReality();
+    }, [userData?.permissions?.notifications?.status, user]);
+
     const checkNextStep = async () => {
         if (!userData || !user || !config) return;
 
@@ -56,9 +78,11 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         if (isMobile) {
             const lastDismissal = permissions.global_lastMobileDismissal;
             if (lastDismissal) {
-                const hoursPassed = (TimeService.now().getTime() - lastDismissal) / (1000 * 60 * 60);
-                const cooldown = safeMessaging.mobileCooldownHours ?? 24;
-                if (cooldown > 0 && hoursPassed < cooldown) {
+                const now = TimeService.now().getTime();
+                const diffMs = now - lastDismissal;
+                const cooldownMinutes = safeMessaging.mobileCooldownHours ? safeMessaging.mobileCooldownHours * 60 : 24 * 60;
+
+                if (diffMs < (cooldownMinutes * 60 * 1000)) {
                     setStep('none');
                     return;
                 }

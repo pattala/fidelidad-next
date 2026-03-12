@@ -469,12 +469,12 @@ export const ClientHomePage = () => {
                         setTimeout(() => setShowContextualGeo(true), 800);
                     }}
                     onDismiss={() => {
-                        handleInteraction(true);
+                        handleInteraction(false); // Local only, don't trigger global yet
                         setShowContextualNotif(false);
                         setTimeout(() => setShowContextualGeo(true), 600);
                     }}
                     onNeverAsk={() => {
-                        handleInteraction(true);
+                        handleInteraction(false); // Local only
                         setShowContextualNotif(false);
                         setTimeout(() => setShowContextualGeo(true), 600);
                     }}

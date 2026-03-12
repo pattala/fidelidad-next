@@ -167,14 +167,25 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
             }
         }
     };
-
     const handleLater = async () => {
         const type = step;
         setStep('none');
         sessionStorage.setItem(type === 'notifications' ? 'dismissed_notif_prompt' : 'dismissed_geo_prompt', 'true');
 
-        // Guardamos 'later' en la DB
-        await updatePermission(type as any, 'later');
+        const maxPC = config?.messaging?.maxLargePromptDismissalsPC ?? config?.messaging?.maxLargePromptDismissals ?? 2;
+        const maxMobile = config?.messaging?.maxLargePromptDismissalsMobile ?? config?.messaging?.maxLargePromptDismissals ?? 2;
+        const maxAttempts = isMobile ? maxMobile : maxPC;
+
+        const counterKey = isMobile ? 'mobile_dismissedCount' : 'pc_dismissedCount';
+        const currentCount = userData?.permissions?.[type]?.[counterKey] || 0;
+        const newCount = currentCount + 1;
+
+        if (newCount >= maxAttempts) {
+            toast('Entendido. Te volveremos a consultar en 30 días.', { icon: '⏳' });
+            await updatePermission(type as any, 'later_max_reached');
+        } else {
+            await updatePermission(type as any, 'later');
+        }
 
         // El Programa manda: Seteamos el cooldown directamente en la DB
         if (isMobile) {

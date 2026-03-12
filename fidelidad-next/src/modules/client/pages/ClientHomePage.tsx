@@ -357,12 +357,12 @@ export const ClientHomePage = () => {
             //    dando paso a los banners contextuales hasta el próximo ciclo)
 
             const isNotifPhase1Over = !isPhase1Enabled ||
-                ['granted', 'blocked', 'dismissed', 'denied'].includes(notifStatus) ||
+                ['granted', 'blocked', 'dismissed', 'denied', 'later_max_reached'].includes(notifStatus) ||
                 (notifDismissedCount >= maxAttempts) ||
                 (notifStatus === 'later');
 
             const isGeoPhase1Over = !isPhase1Enabled ||
-                ['granted', 'blocked', 'dismissed', 'denied'].includes(geoStatus) ||
+                ['granted', 'blocked', 'dismissed', 'denied', 'later_max_reached'].includes(geoStatus) ||
                 (!isMobile) ||
                 (geoDismissedCount >= maxMobile) ||
                 (geoStatus === 'later');

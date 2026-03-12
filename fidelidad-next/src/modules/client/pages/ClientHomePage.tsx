@@ -131,6 +131,11 @@ export const ClientHomePage = () => {
     const [showContextualGeo, setShowContextualGeo] = useState(false);
     const [contextualPointsMsg, setContextualPointsMsg] = useState('');
     const prevPointsRef = useRef<number | null>(null);
+    const lastInteractionTime = useRef<number>(0);
+
+    const handleInteraction = () => {
+        lastInteractionTime.current = TimeService.now().getTime();
+    };
 
     const { config } = useOutletContext<{ config: any }>();
 
@@ -366,11 +371,15 @@ export const ClientHomePage = () => {
                 (geoDismissedCount >= maxMobile);
 
             if (isNotifPhase1Over && isGeoPhase1Over) {
-                // SESSION / COOLDOWN CHECK
-                let isNotifLocked = isMobile ? false : (sessionStorage.getItem('contextual_notif_shown') === 'true');
-                let isGeoLocked = isMobile ? false : (sessionStorage.getItem('contextual_geo_shown') === 'true');
+                const now = TimeService.now().getTime();
+                // 5-second local safeguard + DB Cooldown
+                const isLocalInteractionLock = (now - lastInteractionTime.current) < 5000;
 
-                if (isMobile) {
+                // SESSION / COOLDOWN CHECK
+                let isNotifLocked = isMobile ? isLocalInteractionLock : (sessionStorage.getItem('contextual_notif_shown') === 'true');
+                let isGeoLocked = isMobile ? isLocalInteractionLock : (sessionStorage.getItem('contextual_geo_shown') === 'true');
+
+                if (isMobile && !isLocalInteractionLock) {
                     const lastDismissal = userData.permissions?.global_lastMobileDismissal;
                     const lastNotifDismissal = userData.permissions?.notifications?.lastContextualDismissal;
                     const lastGeoDismissal = userData.permissions?.geolocation?.lastContextualDismissal;
@@ -413,6 +422,7 @@ export const ClientHomePage = () => {
                 userData={userData}
                 config={config}
                 onNotificationGranted={handlePermissionGranted}
+                onInteraction={handleInteraction}
             />
 
             {showContextualNotif && (
@@ -423,17 +433,20 @@ export const ClientHomePage = () => {
                     triggerMessage={contextualPointsMsg}
                     config={config}
                     onGranted={() => {
+                        handleInteraction();
                         setShowContextualNotif(false);
                         handlePermissionGranted();
                         // Mostrar geo como siguiente paso (encadenamiento)
                         setTimeout(() => setShowContextualGeo(true), 800);
                     }}
                     onDismiss={() => {
+                        handleInteraction();
                         setShowContextualNotif(false);
                         // Encadenamiento: incluso si descarta Notif, probamos Geo
                         setTimeout(() => setShowContextualGeo(true), 600);
                     }}
                     onNeverAsk={() => {
+                        handleInteraction();
                         setShowContextualNotif(false);
                         // Encadenamiento
                         setTimeout(() => setShowContextualGeo(true), 600);

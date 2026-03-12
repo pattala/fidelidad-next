@@ -10,9 +10,10 @@ interface Props {
     userData: any;
     config: any;
     onNotificationGranted: () => void;
+    onInteraction?: () => void;
 }
 
-export const NotificationPermissionPrompt = ({ user, userData, config, onNotificationGranted }: Props) => {
+export const NotificationPermissionPrompt = ({ user, userData, config, onNotificationGranted, onInteraction }: Props) => {
     const [step, setStep] = useState<'none' | 'notifications' | 'geolocation'>('none');
     const syncInProgress = useRef(false);
     const lastInteractionTime = useRef<number>(0);
@@ -177,6 +178,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
     }, [user?.uid, !!userData, step, !!config]);
 
     const handleYes = async () => {
+        onInteraction?.();
         const currentStep = step;
         setStep('none');
 
@@ -221,6 +223,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         }
     };
     const handleLater = async () => {
+        onInteraction?.();
         const type = step;
         lastInteractionTime.current = TimeService.now().getTime();
         setStep('none');
@@ -262,6 +265,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
     };
 
     const handleNo = async () => {
+        onInteraction?.();
         const type = step;
         lastInteractionTime.current = TimeService.now().getTime();
         setStep('none');

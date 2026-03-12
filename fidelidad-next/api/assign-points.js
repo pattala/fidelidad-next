@@ -472,7 +472,7 @@ export default async function handler(req, res) {
                 if (!skipNotifications) {
                     tx.set(clientRef.collection('inbox').doc(), {
                         title: '¡Puntos Sumados! 💰', body: `¡Has sumado ${points} puntos! (${finalConcept})`,
-                        url: '/activity', type: 'pointsAdded', read: false, date: admin.firestore.FieldValue.serverTimestamp()
+                        url: '/', type: 'pointsAdded', read: false, date: admin.firestore.FieldValue.serverTimestamp()
                     });
                 }
 
@@ -761,6 +761,7 @@ export default async function handler(req, res) {
                             body: JSON.stringify({
                                 clienteId: targetUid, title: '¡Puntos Sumados! 💰', body: unifiedMsg,
                                 icon: config.logoUrl || '/pwa-192x192.png',
+                                click_action: '/',
                                 points, executor,
                                 extraData: { skipInbox: true, source: 'extension_or_panel' }
                             })

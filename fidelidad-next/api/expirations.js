@@ -247,13 +247,13 @@ async function handleCheck(req, res, db) {
                     const title = "⚠️ Tus puntos están por vencer";
 
                     if (channels.includes('push') && userData.fcmTokens?.length) {
-                        await admin.messaging().sendEachForMulticast({ tokens: userData.fcmTokens, notification: { title, body: msg }, data: { url: "/activity", icon: config.logoUrl || "" } }).catch(console.error);
+                        await admin.messaging().sendEachForMulticast({ tokens: userData.fcmTokens, notification: { title, body: msg }, data: { url: "/", icon: config.logoUrl || "" } }).catch(console.error);
                     }
                     if (channels.includes('email') && userData.email && process.env.SMTP_USER) {
                         const htmlInner = `<div style="color: #333;"><h2>${title}</h2><p>${msg}</p><div style="background:#fdf2f2;padding:20px;border-radius:12px;"><h4>Detalle:</h4><p>${breakdownStr}</p></div></div>`;
                         await transporter.sendMail({ from: `"${config.siteName || 'Club Fidelidad'}" <${process.env.SMTP_USER}>`, to: userData.email, subject: title, html: buildHtmlLayout(htmlInner, config) }).catch(console.error);
                     }
-                    await userDoc.ref.collection('inbox').add({ title, body: `${msg}\n\nDetalle: ${breakdownStr}`, url: "/activity", type: "system", read: false, date: admin.firestore.FieldValue.serverTimestamp(), expireAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 2592000000)) });
+                    await userDoc.ref.collection('inbox').add({ title, body: `${msg}\n\nDetalle: ${breakdownStr}`, url: "/", type: "system", read: false, date: admin.firestore.FieldValue.serverTimestamp(), expireAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 2592000000)) });
                     await userDoc.ref.update({ lastExpirationNotice: referenceDateStr, lastExpirationNoticeTargetDate: userData.nextExpirationDate, lastExpirationNoticeAmount: totalImpendingAmount, lastWhatsAppManualDate: null });
                     logResults.notified++;
                     logResults.details.push({

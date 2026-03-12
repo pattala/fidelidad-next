@@ -118,7 +118,7 @@ async function handleSendEmail(req, res, db) {
 
 // --- SUB-HANDLER: SEND PUSH/INBOX ---
 async function handleSendNotification(req, res, db) {
-    const { title, body: msgBody, tokens: tokensIn = [], click_action = "/activity", icon, badge, extraData = {}, audience, clienteId, executor, points } = req.body;
+    const { title, body: msgBody, tokens: tokensIn = [], click_action = "/", icon, badge, extraData = {}, audience, clienteId, executor, points } = req.body;
     if (!title || !msgBody) return res.status(400).json({ ok: false, error: "Falta title/body." });
     try {
         const result = await sendNotificationInternal({ db, ...req.body });
@@ -127,7 +127,7 @@ async function handleSendNotification(req, res, db) {
 }
 
 // Re-using the robust logic from send-notification.js
-export async function sendNotificationInternal({ db, title, body: msgBody, tokens: tokensIn = [], click_action = "/activity", icon, badge, extraData = {}, audience, clienteId, executor, points }) {
+export async function sendNotificationInternal({ db, title, body: msgBody, tokens: tokensIn = [], click_action = "/", icon, badge, extraData = {}, audience, clienteId, executor, points }) {
     let tokens = unique(tokensIn);
     if (!tokens.length && clienteId) {
         const snap = await db.collection("users").doc(String(clienteId)).get();

@@ -56,12 +56,20 @@ export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) 
                             if (configSnap.exists()) {
                                 const cfg = configSnap.data();
                                 if (cfg.messaging?.enableClientTrigger !== false) {
-                                    fetch('/api/engine-daily?mode=daily&trigger=pwa', { method: 'POST' }).catch(() => { });
-                                    fetch('/api/engine-campaigns?trigger=pwa', { method: 'POST' }).catch(() => { });
+                                    const headers = {
+                                        'Content-Type': 'application/json',
+                                        'x-api-key': import.meta.env.VITE_API_KEY || ''
+                                    };
+                                    fetch('/api/engine-daily?mode=daily&trigger=pwa', { method: 'POST', headers }).catch(() => { });
+                                    fetch('/api/engine-campaigns?trigger=pwa', { method: 'POST', headers }).catch(() => { });
                                 }
                             } else {
-                                fetch('/api/engine-daily?mode=daily&trigger=pwa', { method: 'POST' }).catch(() => { });
-                                fetch('/api/engine-campaigns?trigger=pwa', { method: 'POST' }).catch(() => { });
+                                const headers = {
+                                    'Content-Type': 'application/json',
+                                    'x-api-key': import.meta.env.VITE_API_KEY || ''
+                                };
+                                fetch('/api/engine-daily?mode=daily&trigger=pwa', { method: 'POST', headers }).catch(() => { });
+                                fetch('/api/engine-campaigns?trigger=pwa', { method: 'POST', headers }).catch(() => { });
                             }
                         } catch (e) { }
                     } else {

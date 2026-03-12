@@ -75,7 +75,9 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const safeMessaging = config?.messaging || {};
 
         // 0. Global Cooldown Check (from DB)
-        if (isMobile) {
+        const dbNotifStatus = permissions.notifications?.status || 'pending';
+
+        if (isMobile && dbNotifStatus !== 'pending') {
             const lastDismissal = permissions.global_lastMobileDismissal;
             if (lastDismissal) {
                 const now = TimeService.now().getTime();
@@ -91,7 +93,6 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
 
         // 1. Notifications Step
         const browserNotitState = typeof Notification !== 'undefined' ? Notification.permission : 'denied';
-        const dbNotifStatus = permissions.notifications?.status || 'pending';
 
         if (browserNotitState === 'granted') {
             onNotificationGranted();
@@ -143,19 +144,23 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         }
     };
 
-    const hasAttemptedCheck = useRef(false);
-
     useEffect(() => {
-        if (!user || !userData || step !== 'none' || hasAttemptedCheck.current) return;
+        if (!user || !userData || step !== 'none' || !config) return;
         if (!userData.email && !userData.nombre && !userData.numeroSocio) return;
-        if (!config) return;
 
-        hasAttemptedCheck.current = true;
         const timer = setTimeout(() => {
             checkNextStep();
         }, 1500);
 
-        return () => clearTimeout(timer);
+        // Polling loop to re-check when cooldowns expire without page refresh
+        const interval = setInterval(() => {
+            if (step === 'none') checkNextStep();
+        }, 30000); // Check every 30s
+
+        return () => {
+            clearTimeout(timer);
+            clearInterval(interval);
+        };
     }, [user?.uid, !!userData, step, !!config]);
 
     const handleYes = async () => {
@@ -212,6 +217,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         if (newCount >= maxAttempts) {
             await updatePermission(type as any, 'later_phase1_complete');
         } else {
+            // Ensure dismissedCount is updated in DB even if not complete
             await updatePermission(type as any, 'later');
         }
 

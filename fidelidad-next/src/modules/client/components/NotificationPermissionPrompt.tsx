@@ -80,7 +80,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const notifAttempts = permissions.notifications?.[counterKey] || 0;
         const maxNotif = 5;
 
-        if (browserNotitState === 'default' && (dbNotifStatus === 'pending' || dbNotifStatus === 'later') && notifAttempts < maxNotif && !isSessNotif && safeMessaging.enableLargePrompt !== false) {
+        if ((dbNotifStatus === 'pending' || dbNotifStatus === 'later') && notifAttempts < maxNotif && !isSessNotif && safeMessaging.enableLargePrompt !== false) {
             setStep('notifications');
             return;
         }
@@ -134,8 +134,14 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         setStep('none');
 
         if (currentStep === 'notifications') {
-            const permission = await Notification.requestPermission();
-            if (permission === 'granted') {
+            const currentBrowserPerm = typeof Notification !== 'undefined' ? Notification.permission : 'default';
+            let finalPermission = currentBrowserPerm;
+
+            if (currentBrowserPerm !== 'granted') {
+                finalPermission = await Notification.requestPermission();
+            }
+
+            if (finalPermission === 'granted') {
                 await updatePermission('notifications', 'granted');
                 toast.success('¡Activado!');
                 onNotificationGranted();

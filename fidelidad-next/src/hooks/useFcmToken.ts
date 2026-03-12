@@ -54,8 +54,7 @@ export const useFcmToken = () => {
                         await updateDoc(userRef, {
                             fcmToken: currentToken,
                             fcmTokens: arrayUnion(currentToken),
-                            lastFcmUpdate: serverTimestamp(),
-                            'permissions.notifications.status': 'granted'
+                            lastFcmUpdate: serverTimestamp()
                         }).catch(() => { });
                     }
                 }
@@ -65,7 +64,6 @@ export const useFcmToken = () => {
                 try {
                     await updateDoc(userRef, {
                         fcmToken: null,
-                        'permissions.notifications.status': 'denied',
                         lastFcmUpdate: new Date()
                     });
                 } catch (e) {

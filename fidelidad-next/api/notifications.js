@@ -74,9 +74,9 @@ async function handleRegisterToken(req, res, db) {
         if (userDoc.exists) {
             const currentTokens = userDoc.data().fcmTokens || [];
             if (!currentTokens.includes(cleanToken)) currentTokens.push(cleanToken);
-            batch.update(userRef, { fcmTokens: currentTokens, fcmToken: cleanToken, lastFcmUpdate: admin.firestore.FieldValue.serverTimestamp(), 'permissions.notifications.status': 'granted' });
+            batch.update(userRef, { fcmTokens: currentTokens, fcmToken: cleanToken, lastFcmUpdate: admin.firestore.FieldValue.serverTimestamp() });
         } else {
-            batch.set(userRef, { fcmTokens: [cleanToken], fcmToken: cleanToken, lastFcmUpdate: admin.firestore.FieldValue.serverTimestamp(), permissions: { notifications: { status: 'granted', updatedAt: new Date() } } }, { merge: true });
+            batch.set(userRef, { fcmTokens: [cleanToken], fcmToken: cleanToken, lastFcmUpdate: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
         }
         await batch.commit();
         return res.status(200).json({ ok: true, cleanedCount });

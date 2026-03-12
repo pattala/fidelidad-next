@@ -140,8 +140,9 @@ export const ClientHomePage = () => {
 
     const handleLogout = async () => {
         try {
-            // Limpiar TODO el estado de sesión para que el próximo login sea 100% fresco
+            // Limpiar TODO el estado local para que el próximo login sea 100% fresco
             sessionStorage.clear();
+            localStorage.clear();
             await signOut(auth);
             navigate('/login');
         } catch (error) {

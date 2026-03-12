@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { auth, db } from '../../../lib/firebase';
-import { collection, query, orderBy, onSnapshot, doc, limit, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, limit, getDocs, updateDoc } from 'firebase/firestore';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import {
     User as UserIcon,
@@ -130,11 +130,27 @@ export const ClientHomePage = () => {
     const [showContextualNotif, setShowContextualNotif] = useState(false);
     const [showContextualGeo, setShowContextualGeo] = useState(false);
     const [contextualPointsMsg, setContextualPointsMsg] = useState('');
-    const prevPointsRef = useRef<number | null>(null);
-    const lastInteractionTime = useRef<number>(0);
+    const [activeBannerPhase, setActiveBannerPhase] = useState<'none' | 'large' | 'contextual'>('none');
 
-    const handleInteraction = () => {
-        lastInteractionTime.current = TimeService.now().getTime();
+    const prevPointsRef = useRef<number | null>(null);
+    const lastActionTs = useRef<number>(0);
+    const isMobile = useMemo(() => {
+        if (typeof window === 'undefined') return false;
+        return (
+            /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
+            (navigator.maxTouchPoints > 0 && /Macintosh/.test(navigator.userAgent)) ||
+            window.innerWidth < 768
+        );
+    }, []);
+
+    const handleInteraction = (triggerCooldown: boolean = true) => {
+        const now = TimeService.now().getTime();
+        lastActionTs.current = now;
+        if (triggerCooldown && isMobile && user) {
+            updateDoc(doc(db, 'users', user.uid), {
+                'permissions.global_lastMobileDismissal': now
+            }).catch(console.error);
+        }
     };
 
     const { config } = useOutletContext<{ config: any }>();
@@ -331,99 +347,112 @@ export const ClientHomePage = () => {
         retrieveToken();
     };
 
-    // Detectar cuando suben los puntos para mostrar banner contextual de notif
+    // --- CENTRAL BANNER ORCHESTRATOR ---
     useEffect(() => {
-        if (!userData || !user || !config) return;
-        const currentPoints = userData.points || 0;
+        if (!userData || !user || !config || authLoading) return;
 
+        const now = TimeService.now().getTime();
+        const permissions = userData.permissions || {};
+        const messaging = config.messaging || {};
+
+        // 1. COOLDOWN CHECK (MOBILE ONLY)
+        if (isMobile) {
+            const lastGlobalDismissal = permissions.global_lastMobileDismissal || 0;
+            const cooldownMs = (messaging.mobileCooldownHours || 0.0167) * 3600 * 1000;
+
+            // Bypass logic: IF visitCount === 1 and NO dismissal yet, ignore cooldown for Registration flow.
+            const isRegistration = (userData.visitCount === 1) && !lastGlobalDismissal;
+
+            if (!isRegistration) {
+                // Check Global DB Cooldown OR Local interaction "Lock" (prevent instant pop after click)
+                if ((now - lastGlobalDismissal < cooldownMs) || (now - lastActionTs.current < 5000)) {
+                    if (activeBannerPhase !== 'none') setActiveBannerPhase('none');
+                    return;
+                }
+            }
+        }
+
+        // 2. PHASE 1: LARGE BANNERS (PRIORITY)
+        const checkPhase1 = () => {
+            if (messaging.enableLargePrompt === false) return false;
+
+            const notifStatus = permissions.notifications?.status || 'pending';
+            const geoStatus = permissions.geolocation?.status || 'pending';
+
+            const counterKey = isMobile ? 'mobile_dismissedCount' : 'pc_dismissedCount';
+            const notifCount = permissions.notifications?.[counterKey] || 0;
+            const geoCount = permissions.geolocation?.[counterKey] || 0;
+            const maxAttempts = isMobile ? (messaging.maxLargePromptDismissalsMobile || 2) : (messaging.maxLargePromptDismissalsPC || 2);
+
+            // PC-Specific Session Logic
+            const isSessNotif = sessionStorage.getItem('dismissed_notif_prompt') === 'true';
+            const isSessGeo = sessionStorage.getItem('dismissed_geo_prompt') === 'true';
+
+            const canShowNotif = (notifStatus === 'pending' || notifStatus === 'later') &&
+                notifCount < maxAttempts &&
+                (!isSessNotif || isMobile);
+
+            const canShowGeo = isMobile &&
+                (geoStatus === 'pending' || geoStatus === 'later') &&
+                geoCount < maxAttempts &&
+                (!isSessGeo || isMobile);
+
+            return canShowNotif || canShowGeo;
+        };
+
+        if (checkPhase1()) {
+            if (activeBannerPhase !== 'large') setActiveBannerPhase('large');
+            return;
+        }
+
+        // 3. PHASE 2: PERSIANAS (CONTEXTUAL)
+        // Triggered by point increase
+        const currentPoints = userData.points || 0;
         if (prevPointsRef.current !== null && currentPoints > prevPointsRef.current) {
             const gained = currentPoints - prevPointsRef.current;
-            const notifStatus = userData.permissions?.notifications?.status || 'pending';
-            const geoStatus = userData.permissions?.geolocation?.status || 'pending';
-            const notifPerm = typeof Notification !== 'undefined' ? Notification.permission : 'denied';
+            const notifStatus = permissions.notifications?.status || 'pending';
+            const geoStatus = permissions.geolocation?.status || 'pending';
 
-            const isMobile = typeof window !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-            const counterKey = isMobile ? 'mobile_dismissedCount' : 'pc_dismissedCount';
-
-            const maxPC = config?.messaging?.maxLargePromptDismissalsPC ?? config?.messaging?.maxLargePromptDismissals ?? 2;
-            const maxMobile = config?.messaging?.maxLargePromptDismissalsMobile ?? config?.messaging?.maxLargePromptDismissals ?? 2;
-            const maxAttempts = isMobile ? maxMobile : maxPC;
-
-            const notifDismissedCount = userData.permissions?.notifications?.[counterKey] || 0;
-            const geoDismissedCount = userData.permissions?.geolocation?.mobile_dismissedCount || 0;
-
-            const isPhase1Enabled = config?.messaging?.enableLargePrompt !== false;
-
-            // Fase 1 está "terminada" para este dispositivo si:
-            // 1. Está desactivada
-            // 2. El estado es positivo/negativo final (granted, blocked)
-            // 3. Se agotaron los intentos del cartel grande para este dispositivo
-            // 4. (Solo móvil) El estado es 'later' (el cartel grande salió pero eligió "quizás luego", 
-            //    dando paso a los banners contextuales hasta el próximo ciclo)
-
-            const isNotifPhase1Over = !isPhase1Enabled ||
-                ['granted', 'blocked', 'later_phase1_complete', 'later_max_reached'].includes(notifStatus) ||
-                (notifDismissedCount >= maxAttempts);
-
-            const isGeoPhase1Over = !isPhase1Enabled ||
-                ['granted', 'blocked', 'later_phase1_complete', 'later_max_reached'].includes(geoStatus) ||
-                (!isMobile) ||
-                (geoDismissedCount >= maxMobile);
+            const isNotifPhase1Over = ['granted', 'blocked', 'later_phase1_complete'].includes(notifStatus);
+            const isGeoPhase1Over = !isMobile || ['granted', 'blocked', 'later_phase1_complete'].includes(geoStatus);
 
             if (isNotifPhase1Over && isGeoPhase1Over) {
-                const now = TimeService.now().getTime();
-                // 5-second local safeguard + DB Cooldown
-                const isLocalInteractionLock = (now - lastInteractionTime.current) < 5000;
+                const isNotifPhase2Enabled = messaging.enableContextualNotifPrompt !== false;
+                const isGeoPhase2Enabled = messaging.enableContextualGeoPrompt !== false;
 
-                // SESSION / COOLDOWN CHECK
-                let isNotifLocked = isMobile ? isLocalInteractionLock : (sessionStorage.getItem('contextual_notif_shown') === 'true');
-                let isGeoLocked = isMobile ? isLocalInteractionLock : (sessionStorage.getItem('contextual_geo_shown') === 'true');
+                const notifPerm = typeof Notification !== 'undefined' ? Notification.permission : 'denied';
 
-                if (isMobile && !isLocalInteractionLock) {
-                    const lastDismissal = userData.permissions?.global_lastMobileDismissal;
-                    const lastNotifDismissal = userData.permissions?.notifications?.lastContextualDismissal;
-                    const lastGeoDismissal = userData.permissions?.geolocation?.lastContextualDismissal;
-
-                    const checkCooldown = (ts: any) => {
-                        if (!ts) return false;
-                        const timestamp = typeof ts === 'string' ? parseInt(ts) : ts;
-                        const now = TimeService.now().getTime();
-                        const diffMs = now - timestamp;
-                        const cooldownMinutes = config?.messaging?.mobileCooldownHours ? config.messaging.mobileCooldownHours * 60 : 24 * 60;
-                        return diffMs < (cooldownMinutes * 60 * 1000);
-                    };
-
-                    if (checkCooldown(lastDismissal) || checkCooldown(lastNotifDismissal)) isNotifLocked = true;
-                    if (checkCooldown(lastDismissal) || checkCooldown(lastGeoDismissal)) isGeoLocked = true;
-                }
-
-                // Fase 2 Gatekeeper
-                const isNotifPhase2Enabled = config?.messaging?.enableContextualNotifPrompt !== false;
-                const isGeoPhase2Enabled = config?.messaging?.enableContextualGeoPrompt !== false;
-
-                if (isNotifPhase2Enabled && !isNotifLocked && notifStatus === 'later_phase1_complete' && notifPerm === 'default') {
+                if (isNotifPhase2Enabled && notifStatus === 'later_phase1_complete' && notifPerm === 'default') {
                     setContextualPointsMsg(`¡Ganaste ${gained} puntos!`);
+                    setActiveBannerPhase('contextual');
                     setShowContextualNotif(true);
-                } else if (isMobile && isGeoPhase2Enabled && !isGeoLocked && geoStatus === 'later_phase1_complete') {
+                } else if (isMobile && isGeoPhase2Enabled && geoStatus === 'later_phase1_complete') {
                     setContextualPointsMsg(`¡Ganaste ${gained} puntos!`);
+                    setActiveBannerPhase('contextual');
                     setShowContextualGeo(true);
                 }
             }
         }
         prevPointsRef.current = currentPoints;
-    }, [userData?.points, !!config]);
+
+    }, [userData?.points, userData?.permissions?.global_lastMobileDismissal, !!config, activeBannerPhase]);
 
     return (
         <div
             className="relative font-sans text-gray-800 px-4 pt-4 pb-12 space-y-8 animate-fade-in"
         >
-            <NotificationPermissionPrompt
-                user={user}
-                userData={userData}
-                config={config}
-                onNotificationGranted={handlePermissionGranted}
-                onInteraction={handleInteraction}
-            />
+            {activeBannerPhase === 'large' && (
+                <NotificationPermissionPrompt
+                    user={user}
+                    userData={userData}
+                    config={config}
+                    onNotificationGranted={handlePermissionGranted}
+                    onPhaseEnd={(triggerCooldown) => {
+                        handleInteraction(triggerCooldown);
+                        setActiveBannerPhase('none');
+                    }}
+                />
+            )}
 
             {showContextualNotif && (
                 <ContextualPermissionBanner
@@ -433,22 +462,20 @@ export const ClientHomePage = () => {
                     triggerMessage={contextualPointsMsg}
                     config={config}
                     onGranted={() => {
-                        handleInteraction();
+                        handleInteraction(true);
                         setShowContextualNotif(false);
                         handlePermissionGranted();
-                        // Mostrar geo como siguiente paso (encadenamiento)
+                        // Chain contextually
                         setTimeout(() => setShowContextualGeo(true), 800);
                     }}
                     onDismiss={() => {
-                        handleInteraction();
+                        handleInteraction(true);
                         setShowContextualNotif(false);
-                        // Encadenamiento: incluso si descarta Notif, probamos Geo
                         setTimeout(() => setShowContextualGeo(true), 600);
                     }}
                     onNeverAsk={() => {
-                        handleInteraction();
+                        handleInteraction(true);
                         setShowContextualNotif(false);
-                        // Encadenamiento
                         setTimeout(() => setShowContextualGeo(true), 600);
                     }}
                 />
@@ -461,9 +488,21 @@ export const ClientHomePage = () => {
                     type="geolocation"
                     triggerMessage={contextualPointsMsg}
                     config={config}
-                    onGranted={() => setShowContextualGeo(false)}
-                    onDismiss={() => setShowContextualGeo(false)}
-                    onNeverAsk={() => setShowContextualGeo(false)}
+                    onGranted={() => {
+                        handleInteraction(true);
+                        setShowContextualGeo(false);
+                        setActiveBannerPhase('none');
+                    }}
+                    onDismiss={() => {
+                        handleInteraction(true);
+                        setShowContextualGeo(false);
+                        setActiveBannerPhase('none');
+                    }}
+                    onNeverAsk={() => {
+                        handleInteraction(true);
+                        setShowContextualGeo(false);
+                        setActiveBannerPhase('none');
+                    }}
                 />
             )}
 

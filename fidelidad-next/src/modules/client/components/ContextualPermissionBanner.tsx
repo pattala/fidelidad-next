@@ -29,48 +29,26 @@ export const ContextualPermissionBanner = ({
     const isMobile = typeof window !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
     useEffect(() => {
-        if (!user || !userData) return;
+        if (!user || !userData || !config) return;
 
-        // 1. Check session/storage-based dismissal (ONLY for PC)
-        if (!isMobile && sessionStorage.getItem(SESSION_KEYS[type]) === 'true') return;
-
-        // 2. Geolocation is ONLY for mobile
+        // Geolocation is ONLY for mobile
         if (type === 'geolocation' && !isMobile) return;
-
-        if (isMobile) {
-            const globalDismissal = userData.permissions?.global_lastMobileDismissal;
-            const lastContextualDismissal = userData.permissions?.[type]?.lastContextualDismissal;
-
-            const checkCooldown = (ts: any) => {
-                if (!ts) return false;
-                const timestamp = typeof ts === 'string' ? parseInt(ts) : ts;
-                const now = TimeService.now().getTime();
-                const diffMs = now - timestamp;
-                const cooldownMinutes = config?.messaging?.mobileCooldownHours ? config.messaging.mobileCooldownHours * 60 : 24 * 60;
-                return diffMs < (cooldownMinutes * 60 * 1000);
-            };
-
-            if (checkCooldown(lastContextualDismissal) || checkCooldown(globalDismissal)) return;
-        }
 
         const status = userData.permissions?.[type]?.status;
         const nextPrompt = userData.permissions?.[type]?.nextPrompt || 0;
+
+        // Phase 2 logic: must be in later_phase1_complete state
         if (status !== 'later_phase1_complete') return;
 
-        // Si está en 'dismissed' o 'denied', solo mostrar si ya pasó el tiempo de espera
+        // Standing check
         const nowSim = TimeService.now().getTime();
-        if ((status === 'dismissed' || status === 'denied') && nowSim < nextPrompt) return;
+        if ((status === 'dismissed' || status === 'denied' || status === 'later_max_reached') && nowSim < nextPrompt) return;
 
         const counterKey = isMobile ? 'mobile_contextualDismissCount' : 'pc_contextualDismissCount';
         const currentCount = userData?.permissions?.[type]?.[counterKey] || 0;
-        const maxPC = config?.messaging?.maxContextualDismissalsPC ?? config?.messaging?.maxContextualDismissals ?? 2;
-        const maxMobile = config?.messaging?.maxContextualDismissalsMobile ?? config?.messaging?.maxContextualDismissals ?? 2;
-        const maxDismissals = isMobile ? maxMobile : maxPC;
+        const maxAttempts = isMobile ? (config?.messaging?.maxContextualDismissalsMobile || 2) : (config?.messaging?.maxContextualDismissalsPC || 2);
 
-        if (currentCount >= maxDismissals) return;
-
-        const configKey = 'enableContextualNotifPrompt';
-        if (config?.messaging?.[configKey] === false) return;
+        if (currentCount >= maxAttempts) return;
 
         if (type === 'notifications' && (Notification.permission === 'granted' || Notification.permission === 'denied')) return;
 
@@ -164,8 +142,7 @@ export const ContextualPermissionBanner = ({
 
             await updateDoc(doc(db, 'users', user.uid), updateFinal);
 
-            const daysLabel = days === 1 ? '1 día' : `${days} días`;
-            toast(`Entendido. No te molestaremos más. Te volveremos a consultar en ${daysLabel} o podés activarlo desde tu perfil.`, {
+            toast(`Entendido. No te molestaremos más con este aviso. Te volveremos a consultar en 30 días o lo podés modificar desde tu perfil.`, {
                 icon: '🤝',
                 duration: 5000,
                 style: { borderRadius: '10px', background: '#333', color: '#fff' }

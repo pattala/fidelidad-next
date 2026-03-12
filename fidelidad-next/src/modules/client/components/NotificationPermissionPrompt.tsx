@@ -201,9 +201,24 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
                     <h3 className="text-2xl font-black text-gray-800 leading-tight mb-3 uppercase tracking-tight">
                         {isGeo ? 'Ubicación' : 'Avisos de Premios'}
                     </h3>
-                    <p className="text-sm text-gray-500 font-medium leading-relaxed mb-8 px-2">
+                    <p className="text-sm text-gray-500 font-medium leading-relaxed mb-6 px-2">
                         {isGeo ? 'Descubre beneficios exclusivos cerca tuyo.' : 'Entérate al instante cuando ganes puntos o premios exclusivos.'}
                     </p>
+
+                    <div className="mb-6">
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100">
+                            {(() => {
+                                const permissions = userData?.permissions || {};
+                                const safeMessaging = config?.messaging || {};
+                                const counterKey = isMobile ? 'mobile_dismissedCount' : 'pc_dismissedCount';
+                                const type = step === 'geolocation' ? 'geolocation' : 'notifications';
+                                const current = (permissions[type]?.[counterKey] || 0) + 1;
+                                const max = isMobile ? (safeMessaging.maxLargePromptDismissalsMobile || 2) : (safeMessaging.maxLargePromptDismissalsPC || 2);
+                                return `Oportunidad ${current} de ${max}`;
+                            })()}
+                        </span>
+                    </div>
+
                     <div className="space-y-3">
                         <button onClick={handleYes} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2 ${isGeo ? 'bg-emerald-600 text-white shadow-emerald-200' : 'bg-purple-600 text-white shadow-purple-200'}`}>
                             {isGeo ? 'Activar ahora' : 'Sí, activar avisos'}

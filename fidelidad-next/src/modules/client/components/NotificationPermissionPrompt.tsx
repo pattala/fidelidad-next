@@ -78,9 +78,11 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const isSessNotif = sessionStorage.getItem('dismissed_notif_prompt') === 'true';
         const counterKey = isMobile ? 'mobile_dismissedCount' : 'pc_dismissedCount';
         const notifAttempts = permissions.notifications?.[counterKey] || 0;
-        const maxNotif = 5;
+        const maxPC = safeMessaging.maxLargePromptDismissalsPC ?? safeMessaging.maxLargePromptDismissals ?? 2;
+        const maxMobile = safeMessaging.maxLargePromptDismissalsMobile ?? safeMessaging.maxLargePromptDismissals ?? 2;
+        const maxAttempts = isMobile ? maxMobile : maxPC;
 
-        if ((dbNotifStatus === 'pending' || dbNotifStatus === 'later') && notifAttempts < maxNotif && !isSessNotif && safeMessaging.enableLargePrompt !== false) {
+        if ((dbNotifStatus === 'pending' || dbNotifStatus === 'later') && notifAttempts < maxAttempts && !isSessNotif && safeMessaging.enableLargePrompt !== false) {
             setStep('notifications');
             return;
         }
@@ -97,11 +99,14 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
 
         const geoStatus = permissions.geolocation?.status || 'pending';
         const geoAttempts = permissions.geolocation?.mobile_dismissedCount || 0;
-        const maxGeo = 5;
+        const maxPC = safeMessaging.maxLargePromptDismissalsPC ?? safeMessaging.maxLargePromptDismissals ?? 2;
+        const maxMobile = safeMessaging.maxLargePromptDismissalsMobile ?? safeMessaging.maxLargePromptDismissals ?? 2;
+        const maxAttempts = isMobile ? maxMobile : maxPC;
+
         const isSessGeo = sessionStorage.getItem('dismissed_geo_prompt') === 'true';
 
         const canShowGeo = (geoStatus === 'pending' || geoStatus === 'later') &&
-            geoAttempts < maxGeo &&
+            geoAttempts < maxAttempts &&
             !isSessGeo &&
             safeMessaging.enableLargePrompt !== false &&
             geoStatus !== 'granted' &&
@@ -181,7 +186,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const newCount = currentCount + 1;
 
         if (newCount >= maxAttempts) {
-            await updatePermission(type as any, 'later');
+            await updatePermission(type as any, 'later_phase1_complete');
         } else {
             await updatePermission(type as any, 'later');
         }

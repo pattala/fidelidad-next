@@ -357,15 +357,13 @@ export const ClientHomePage = () => {
             //    dando paso a los banners contextuales hasta el próximo ciclo)
 
             const isNotifPhase1Over = !isPhase1Enabled ||
-                ['granted', 'blocked', 'dismissed', 'denied', 'later_max_reached'].includes(notifStatus) ||
-                (notifDismissedCount >= maxAttempts) ||
-                (notifStatus === 'later');
+                ['granted', 'blocked', 'later_phase1_complete', 'later_max_reached'].includes(notifStatus) ||
+                (notifDismissedCount >= maxAttempts);
 
             const isGeoPhase1Over = !isPhase1Enabled ||
-                ['granted', 'blocked', 'dismissed', 'denied', 'later_max_reached'].includes(geoStatus) ||
+                ['granted', 'blocked', 'later_phase1_complete', 'later_max_reached'].includes(geoStatus) ||
                 (!isMobile) ||
-                (geoDismissedCount >= maxMobile) ||
-                (geoStatus === 'later');
+                (geoDismissedCount >= maxMobile);
 
             if (isNotifPhase1Over && isGeoPhase1Over) {
                 // SESSION / COOLDOWN CHECK
@@ -392,10 +390,10 @@ export const ClientHomePage = () => {
                 const isNotifPhase2Enabled = config?.messaging?.enableContextualNotifPrompt !== false;
                 const isGeoPhase2Enabled = config?.messaging?.enableContextualGeoPrompt !== false;
 
-                if (isNotifPhase2Enabled && !isNotifLocked && !['granted', 'blocked', 'later_max_reached'].includes(notifStatus) && notifPerm === 'default') {
+                if (isNotifPhase2Enabled && !isNotifLocked && notifStatus === 'later_phase1_complete' && notifPerm === 'default') {
                     setContextualPointsMsg(`¡Ganaste ${gained} puntos!`);
                     setShowContextualNotif(true);
-                } else if (isMobile && isGeoPhase2Enabled && !isGeoLocked && !['granted', 'blocked', 'later_max_reached'].includes(geoStatus)) {
+                } else if (isMobile && isGeoPhase2Enabled && !isGeoLocked && geoStatus === 'later_phase1_complete') {
                     setContextualPointsMsg(`¡Ganaste ${gained} puntos!`);
                     setShowContextualGeo(true);
                 }

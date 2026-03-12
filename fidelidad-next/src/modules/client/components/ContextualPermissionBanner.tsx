@@ -54,8 +54,7 @@ export const ContextualPermissionBanner = ({
 
         const status = userData.permissions?.[type]?.status;
         const nextPrompt = userData.permissions?.[type]?.nextPrompt || 0;
-
-        if (status === 'granted' || status === 'blocked') return;
+        if (status !== 'later_phase1_complete') return;
 
         // Si está en 'dismissed' o 'denied', solo mostrar si ya pasó el tiempo de espera
         const nowSim = TimeService.now().getTime();

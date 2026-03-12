@@ -181,8 +181,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const newCount = currentCount + 1;
 
         if (newCount >= maxAttempts) {
-            toast('Entendido. Te volveremos a consultar en 30 días.', { icon: '⏳' });
-            await updatePermission(type as any, 'later_max_reached');
+            await updatePermission(type as any, 'later');
         } else {
             await updatePermission(type as any, 'later');
         }

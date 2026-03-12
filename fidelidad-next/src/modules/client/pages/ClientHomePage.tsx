@@ -392,10 +392,10 @@ export const ClientHomePage = () => {
                 const isNotifPhase2Enabled = config?.messaging?.enableContextualNotifPrompt !== false;
                 const isGeoPhase2Enabled = config?.messaging?.enableContextualGeoPrompt !== false;
 
-                if (isNotifPhase2Enabled && !isNotifLocked && notifStatus !== 'granted' && notifStatus !== 'blocked' && notifPerm === 'default') {
+                if (isNotifPhase2Enabled && !isNotifLocked && !['granted', 'blocked', 'later_max_reached'].includes(notifStatus) && notifPerm === 'default') {
                     setContextualPointsMsg(`¡Ganaste ${gained} puntos!`);
                     setShowContextualNotif(true);
-                } else if (isMobile && isGeoPhase2Enabled && !isGeoLocked && geoStatus !== 'granted' && geoStatus !== 'blocked') {
+                } else if (isMobile && isGeoPhase2Enabled && !isGeoLocked && !['granted', 'blocked', 'later_max_reached'].includes(geoStatus)) {
                     setContextualPointsMsg(`¡Ganaste ${gained} puntos!`);
                     setShowContextualGeo(true);
                 }

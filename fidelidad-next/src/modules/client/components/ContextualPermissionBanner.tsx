@@ -88,7 +88,7 @@ export const ContextualPermissionBanner = ({
                 const counterKey = isMobile ? 'mobile_contextualDismissCount' : 'pc_contextualDismissCount';
                 await updateDoc(doc(db, 'users', user.uid), {
                     [`permissions.notifications.status`]: 'granted',
-                    [`permissions.notifications.updatedAt`]: Date.now(),
+                    [`permissions.notifications.updatedAt`]: TimeService.now().getTime(),
                     [`permissions.notifications.${counterKey}`]: 0,
                     [`permissions.notifications.nextPrompt`]: 0
                 });
@@ -113,7 +113,7 @@ export const ContextualPermissionBanner = ({
                         // Usuario rechazó el popup nativo del browser
                         await updateDoc(doc(db, 'users', user.uid), {
                             [`permissions.${type}.status`]: 'blocked',
-                            [`permissions.${type}.updatedAt`]: Date.now(),
+                            [`permissions.${type}.updatedAt`]: TimeService.now().getTime(),
                         });
                     }
                 );
@@ -136,7 +136,7 @@ export const ContextualPermissionBanner = ({
         };
 
         if (isMobile) {
-            updateData[`permissions.${type}.lastContextualDismissal`] = Date.now();
+            updateData[`permissions.${type}.lastContextualDismissal`] = TimeService.now().getTime();
         }
 
         await updateDoc(doc(db, 'users', user.uid), updateData);
@@ -149,15 +149,20 @@ export const ContextualPermissionBanner = ({
             // Entrar en standby real
             const days = config?.messaging?.notificationPromptIntervalDays || 30;
             const nextPrompt = TimeService.now().getTime() + (days * 24 * 60 * 60 * 1000);
-            await updateDoc(doc(db, 'users', user.uid), {
-                [`permissions.${type}.status`]: 'dismissed',
+
+            const updateFinal: any = {
+                [`permissions.${type}.status`]: 'later_max_reached',
                 [`permissions.${type}.updatedAt`]: TimeService.now().getTime(),
                 [`permissions.${type}.${counterKey}`]: newCount,
                 [`permissions.${type}.nextPrompt`]: nextPrompt
-            });
+            };
+
+            await updateDoc(doc(db, 'users', user.uid), updateFinal);
+
             const daysLabel = days === 1 ? '1 día' : `${days} días`;
-            toast(`Entendido. Te volveremos a consultar en ${daysLabel} o podés activarlo desde tu perfil.`, {
-                icon: '⏳',
+            toast(`Entendido. No te molestaremos más. Te volveremos a consultar en ${daysLabel} o podés activarlo desde tu perfil.`, {
+                icon: '🤝',
+                duration: 5000,
                 style: { borderRadius: '10px', background: '#333', color: '#fff' }
             });
             onNeverAsk?.();
@@ -211,11 +216,30 @@ export const ContextualPermissionBanner = ({
                         {isGeo ? <MapPin size={20} /> : <Bell size={20} />}
                     </div>
                     <div className="flex-1 min-w-0">
-                        {triggerMessage && (
-                            <p className={`text-xs font-black uppercase tracking-widest mb-0.5 ${isGeo ? 'text-emerald-600' : 'text-purple-600'}`}>
-                                {triggerMessage}
-                            </p>
-                        )}
+                        {(() => {
+                            const counterKey = isMobile ? 'mobile_contextualDismissCount' : 'pc_contextualDismissCount';
+                            const currentCount = userData?.permissions?.[type]?.[counterKey] || 0;
+                            const maxPC = config?.messaging?.maxContextualDismissalsPC ?? config?.messaging?.maxContextualDismissals ?? 2;
+                            const maxMobile = config?.messaging?.maxContextualDismissalsMobile ?? config?.messaging?.maxContextualDismissals ?? 2;
+                            const maxDismissals = isMobile ? maxMobile : maxPC;
+
+                            let label = triggerMessage;
+                            if (maxDismissals > 0) {
+                                if (currentCount === maxDismissals - 1) {
+                                    label = "Última oportunidad para activar premios";
+                                } else if (currentCount === maxDismissals - 2) {
+                                    label = "Esta es la anteúltima vez que te preguntamos";
+                                }
+                            }
+
+                            if (!label) return null;
+
+                            return (
+                                <p className={`text-xs font-black uppercase tracking-widest mb-0.5 ${isGeo ? 'text-emerald-600' : 'text-purple-600'}`}>
+                                    {label}
+                                </p>
+                            );
+                        })()}
                         <p className="text-sm font-semibold text-gray-800 leading-tight">
                             {isGeo
                                 ? '¿Querés ver beneficios exclusivos cerca tuyo?'

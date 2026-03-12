@@ -374,12 +374,13 @@ export const ClientHomePage = () => {
                 if (isMobile) {
                     const cooldown = config?.messaging?.mobileCooldownHours ?? 24;
                     const lastDismissal = userData.permissions?.global_lastMobileDismissal;
-                    const lastNotifDismissal = localStorage.getItem('contextual_notifications_mobile_dismissal');
-                    const lastGeoDismissal = localStorage.getItem('contextual_geolocation_mobile_dismissal');
+                    const lastNotifDismissal = userData.permissions?.notifications?.lastContextualDismissal;
+                    const lastGeoDismissal = userData.permissions?.geolocation?.lastContextualDismissal;
 
-                    const checkCooldown = (ts: string | null) => {
+                    const checkCooldown = (ts: any) => {
                         if (!ts || cooldown === 0) return false;
-                        return (TimeService.now().getTime() - parseInt(ts)) / (1000 * 60 * 60) < cooldown;
+                        const timestamp = typeof ts === 'string' ? parseInt(ts) : ts;
+                        return (TimeService.now().getTime() - timestamp) / (1000 * 60 * 60) < cooldown;
                     };
 
                     if (checkCooldown(lastDismissal) || checkCooldown(lastNotifDismissal)) isNotifLocked = true;

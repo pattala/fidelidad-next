@@ -38,10 +38,10 @@ export const ContextualPermissionBanner = ({
         if (type === 'geolocation' && !isMobile) return;
 
         if (isMobile) {
-            const lastDismissal = localStorage.getItem(`contextual_${type}_mobile_dismissal`);
             const globalDismissal = userData.permissions?.global_lastMobileDismissal;
+            const lastContextualDismissal = userData.permissions?.[type]?.lastContextualDismissal;
 
-            const checkCooldown = (ts: string | number | null) => {
+            const checkCooldown = (ts: any) => {
                 if (!ts) return false;
                 const timestamp = typeof ts === 'string' ? parseInt(ts) : ts;
                 const hoursPassed = (TimeService.now().getTime() - timestamp) / (1000 * 60 * 60);
@@ -49,7 +49,7 @@ export const ContextualPermissionBanner = ({
                 return hoursPassed < cooldown;
             };
 
-            if (checkCooldown(lastDismissal) || checkCooldown(globalDismissal)) return;
+            if (checkCooldown(lastContextualDismissal) || checkCooldown(globalDismissal)) return;
         }
 
         const status = userData.permissions?.[type]?.status;
@@ -124,14 +124,22 @@ export const ContextualPermissionBanner = ({
     // "Ahora no" — bloquea solo la sesión, pero incrementa el contador
     const handleDismiss = async () => {
         sessionStorage.setItem(SESSION_KEYS[type], 'true');
-        if (isMobile) {
-            localStorage.setItem(`contextual_${type}_mobile_dismissal`, Date.now().toString());
-        }
         setVisible(false);
 
         const counterKey = isMobile ? 'mobile_contextualDismissCount' : 'pc_contextualDismissCount';
         const currentCount = userData?.permissions?.[type]?.[counterKey] || 0;
         const newCount = currentCount + 1;
+
+        const updateData: any = {
+            [`permissions.${type}.${counterKey}`]: newCount,
+            [`permissions.${type}.updatedAt`]: Date.now(),
+        };
+
+        if (isMobile) {
+            updateData[`permissions.${type}.lastContextualDismissal`] = Date.now();
+        }
+
+        await updateDoc(doc(db, 'users', user.uid), updateData);
 
         const maxPC = config?.messaging?.maxContextualDismissalsPC ?? config?.messaging?.maxContextualDismissals ?? 2;
         const maxMobile = config?.messaging?.maxContextualDismissalsMobile ?? config?.messaging?.maxContextualDismissals ?? 2;

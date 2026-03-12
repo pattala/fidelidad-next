@@ -340,19 +340,18 @@ export const ConfigPage = () => {
         }
     };
 
-    // Cargar config al montar
+    // Cargar config al montar (Suscripción en Tiempo Real)
     useEffect(() => {
-        const load = async () => {
-            const saved = await ConfigService.get();
+        const unsubscribe = ConfigService.subscribe((saved) => {
             if (saved) {
-                setConfig({
-                    ...config, // defaults
-                    ...saved  // overwrite with saved
-                });
+                setConfig(prev => ({
+                    ...prev,
+                    ...saved
+                }));
                 applyColors(saved);
             }
-        };
-        load();
+        });
+        return () => unsubscribe();
     }, []);
 
     useEffect(() => {
@@ -1742,23 +1741,65 @@ export const ConfigPage = () => {
                                             </div>
                                         </div>
                                         {/* Card 3: Mobile Cooldown */}
-                                        <div className="p-4 bg-blue-50/50 rounded-xl border border-dashed border-blue-200 flex items-center justify-between">
-                                            <div className="flex items-center gap-3">
-                                                <Clock size={16} className="text-blue-400" />
-                                                <div>
-                                                    <span className="text-xs font-bold text-gray-600 block leading-tight">Cooldown para Celulares</span>
-                                                    <span className="text-[9px] text-gray-400 uppercase tracking-tighter text-balance leading-none">Tiempo de espera tras elegir "Quizás luego" (0 = Inmediato)</span>
+                                        <div className="p-4 bg-blue-50/50 rounded-xl border border-dashed border-blue-200">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div className="flex items-center gap-3">
+                                                    <Clock size={16} className="text-blue-400" />
+                                                    <div>
+                                                        <span className="text-xs font-bold text-gray-600 block leading-tight">Cooldown para Celulares (Programado)</span>
+                                                        <span className="text-[9px] text-gray-400 uppercase tracking-tighter text-balance leading-none">Tiempo de espera tras elegir "Quizás luego" (Autoridad 100%)</span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-2">
-                                                <input
-                                                    type="number" min="0" max="720"
-                                                    value={config.messaging?.mobileCooldownHours ?? 24}
-                                                    onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, mobileCooldownHours: parseInt(e.target.value) || 0 } })}
-                                                    className="w-14 px-2 py-1 text-center font-bold bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                                                />
-                                                <span className="text-[10px] font-bold text-gray-400 uppercase">Horas</span>
+
+                                            <div className="flex items-center gap-4 bg-white p-3 rounded-lg border border-blue-100 shadow-sm">
+                                                <div className="flex-1">
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Horas</label>
+                                                    <input
+                                                        type="number" min="0" max="720"
+                                                        value={Math.floor(config.messaging?.mobileCooldownHours || 0)}
+                                                        onChange={e => {
+                                                            const h = parseInt(e.target.value) || 0;
+                                                            const current = config.messaging?.mobileCooldownHours || 0;
+                                                            const m = (current - Math.floor(current)) * 60;
+                                                            setConfig({ ...config, messaging: { ...config.messaging!, mobileCooldownHours: h + (m / 60) } });
+                                                        }}
+                                                        className="w-full px-2 py-1 text-center font-bold bg-gray-50 border border-gray-100 rounded outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                                                    />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Minutos</label>
+                                                    <input
+                                                        type="number" min="0" max="59"
+                                                        value={Math.floor(((config.messaging?.mobileCooldownHours || 0) - Math.floor(config.messaging?.mobileCooldownHours || 0)) * 60)}
+                                                        onChange={e => {
+                                                            const m = parseInt(e.target.value) || 0;
+                                                            const h = Math.floor(config.messaging?.mobileCooldownHours || 0);
+                                                            setConfig({ ...config, messaging: { ...config.messaging!, mobileCooldownHours: h + (m / 60) } });
+                                                        }}
+                                                        className="w-full px-2 py-1 text-center font-bold bg-gray-50 border border-gray-100 rounded outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                                                    />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Segundos</label>
+                                                    <input
+                                                        type="number" min="0" max="59"
+                                                        value={Math.round(((((config.messaging?.mobileCooldownHours || 0) - Math.floor(config.messaging?.mobileCooldownHours || 0)) * 60) - Math.floor(((config.messaging?.mobileCooldownHours || 0) - Math.floor(config.messaging?.mobileCooldownHours || 0)) * 60)) * 60)}
+                                                        onChange={e => {
+                                                            const s = parseInt(e.target.value) || 0;
+                                                            const current = config.messaging?.mobileCooldownHours || 0;
+                                                            const h = Math.floor(current);
+                                                            const m = Math.floor((current - h) * 60);
+                                                            setConfig({ ...config, messaging: { ...config.messaging!, mobileCooldownHours: h + (m / 60) + (s / 3600) } });
+                                                        }}
+                                                        className="w-full px-2 py-1 text-center font-bold bg-gray-50 border border-gray-100 rounded outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                                                    />
+                                                </div>
                                             </div>
+                                            <p className="text-[10px] text-blue-600 mt-2 font-medium italic">
+                                                Total decimal: {(config.messaging?.mobileCooldownHours || 0).toFixed(4)} hs.
+                                                {config.messaging?.mobileCooldownHours === 0 && <span className="ml-1 text-red-500">(Sin tiempo de espera)</span>}
+                                            </p>
                                         </div>
                                     </div>
 

@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import type { AppConfig } from '../types';
 import { AuditService } from './auditService';
@@ -123,6 +123,36 @@ export const ConfigService = {
             console.error('Error saving config:', error);
             throw error;
         }
+    },
+
+    subscribe(callback: (config: AppConfig) => void) {
+        const ref = doc(db, CONFIG_DOC_PATH);
+        return onSnapshot(ref, (snap) => {
+            if (snap.exists()) {
+                const data = snap.data() as Partial<AppConfig>;
+                const fullConfig = {
+                    ...DEFAULT_APP_CONFIG,
+                    ...data,
+                    contact: {
+                        ...DEFAULT_APP_CONFIG.contact,
+                        ...(data.contact || {})
+                    },
+                    messaging: {
+                        ...DEFAULT_APP_CONFIG.messaging,
+                        ...(data.messaging || {}),
+                        eventConfigs: {
+                            ...DEFAULT_APP_CONFIG.messaging?.eventConfigs,
+                            ...(data.messaging?.eventConfigs || {})
+                        }
+                    },
+                    referrals: {
+                        ...DEFAULT_APP_CONFIG.referrals,
+                        ...(data.referrals || {})
+                    }
+                } as AppConfig;
+                callback(fullConfig);
+            }
+        });
     }
 };
 

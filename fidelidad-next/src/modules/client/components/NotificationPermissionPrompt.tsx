@@ -15,6 +15,7 @@ interface Props {
 export const NotificationPermissionPrompt = ({ user, userData, config, onNotificationGranted }: Props) => {
     const [step, setStep] = useState<'none' | 'notifications' | 'geolocation'>('none');
     const syncInProgress = useRef(false);
+    const lastInteractionTime = useRef<number>(0);
 
     const isMobile = useMemo(() => {
         if (typeof window === 'undefined') return false;
@@ -79,8 +80,15 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
 
         if (isMobile && dbNotifStatus !== 'pending') {
             const lastDismissal = permissions.global_lastMobileDismissal;
+            const now = TimeService.now().getTime();
+
+            // Check local interaction first (prevent instant pop)
+            if (now - lastInteractionTime.current < 5000) {
+                setStep('none');
+                return;
+            }
+
             if (lastDismissal) {
-                const now = TimeService.now().getTime();
                 const diffMs = now - lastDismissal;
                 const cooldownMinutes = safeMessaging.mobileCooldownHours ? safeMessaging.mobileCooldownHours * 60 : 24 * 60;
 
@@ -187,7 +195,13 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
             } else {
                 await updatePermission('notifications', 'later');
             }
-            setTimeout(() => checkNextStep(), 800);
+
+            // CHAIN: Try next step immediately
+            setTimeout(() => {
+                const perms = userData?.permissions || {};
+                const msg = config?.messaging || {};
+                checkGeoStep(perms, msg);
+            }, 800);
         } else if (currentStep === 'geolocation') {
             if ('geolocation' in navigator) {
                 navigator.geolocation.getCurrentPosition(
@@ -208,6 +222,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
     };
     const handleLater = async () => {
         const type = step;
+        lastInteractionTime.current = TimeService.now().getTime();
         setStep('none');
 
         // PC maintains session block, Mobile does NOT (DB cooldown only)
@@ -226,29 +241,47 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         if (newCount >= maxAttempts) {
             await updatePermission(type as any, 'later_phase1_complete');
         } else {
-            // Ensure dismissedCount is updated in DB even if not complete
             await updatePermission(type as any, 'later');
         }
 
-        // El Programa manda: Seteamos el cooldown directamente en la DB
-        if (isMobile) {
-            await updateDoc(doc(db, 'users', user.uid), {
-                'permissions.global_lastMobileDismissal': TimeService.now().getTime()
-            });
-        }
-
         if (type === 'notifications') {
-            setTimeout(() => checkNextStep(), 800);
+            // Sequential Chain: Show Geo immediately after Notif dismissal
+            setTimeout(() => {
+                const perms = userData?.permissions || {};
+                const msg = config?.messaging || {};
+                checkGeoStep(perms, msg);
+            }, 800);
+        } else {
+            // End of Sequence: Trigger global cooldown only after Geo (last in chain)
+            if (isMobile) {
+                await updateDoc(doc(db, 'users', user.uid), {
+                    'permissions.global_lastMobileDismissal': TimeService.now().getTime()
+                });
+            }
         }
     };
 
     const handleNo = async () => {
         const type = step;
+        lastInteractionTime.current = TimeService.now().getTime();
         setStep('none');
         await updatePermission(type as any, 'blocked');
         toast('Entendido.', { icon: '🤝' });
+
         if (type === 'notifications') {
-            setTimeout(() => checkNextStep(), 800);
+            // Sequential Chain
+            setTimeout(() => {
+                const perms = userData?.permissions || {};
+                const msg = config?.messaging || {};
+                checkGeoStep(perms, msg);
+            }, 800);
+        } else {
+            // End of Sequence: Trigger global cooldown
+            if (isMobile) {
+                await updateDoc(doc(db, 'users', user.uid), {
+                    'permissions.global_lastMobileDismissal': TimeService.now().getTime()
+                });
+            }
         }
     };
 

@@ -140,6 +140,7 @@ export const ContextualPermissionBanner = ({
         };
 
         if (isMobile) {
+            updateData[`permissions.global_lastMobileDismissal`] = TimeService.now().getTime();
             updateData[`permissions.${type}.lastContextualDismissal`] = TimeService.now().getTime();
         }
 
@@ -191,11 +192,15 @@ export const ContextualPermissionBanner = ({
         setVisible(false);
         const days = config?.messaging?.notificationPromptIntervalDays || 30;
         const nextPrompt = Date.now() + (days * 24 * 60 * 60 * 1000);
-        await updateDoc(doc(db, 'users', user.uid), {
+        const updateData: any = {
             [`permissions.${type}.status`]: 'dismissed',
-            [`permissions.${type}.updatedAt`]: Date.now(),
+            [`permissions.${type}.updatedAt`]: TimeService.now().getTime(),
             [`permissions.${type}.nextPrompt`]: nextPrompt
-        });
+        };
+        if (isMobile) {
+            updateData['permissions.global_lastMobileDismissal'] = TimeService.now().getTime();
+        }
+        await updateDoc(doc(db, 'users', user.uid), updateData);
         const daysLabel = days === 1 ? '1 día' : `${days} días`;
         toast(`Entendido. Te volveremos a consultar en ${daysLabel}. (O cámbialo en tu Perfil en cualquier momento)`, {
             icon: '⏳',

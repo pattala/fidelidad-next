@@ -39,11 +39,12 @@ export const ContextualPermissionBanner = ({
 
         if (isMobile) {
             const lastDismissal = localStorage.getItem(`contextual_${type}_mobile_dismissal`);
-            const globalDismissal = localStorage.getItem('last_mobile_permission_dismissal');
+            const globalDismissal = userData.permissions?.global_lastMobileDismissal;
 
-            const checkCooldown = (ts: string | null) => {
+            const checkCooldown = (ts: string | number | null) => {
                 if (!ts) return false;
-                const hoursPassed = (TimeService.now().getTime() - parseInt(ts)) / (1000 * 60 * 60);
+                const timestamp = typeof ts === 'string' ? parseInt(ts) : ts;
+                const hoursPassed = (TimeService.now().getTime() - timestamp) / (1000 * 60 * 60);
                 const cooldown = config?.messaging?.mobileCooldownHours ?? 24;
                 return hoursPassed < cooldown;
             };

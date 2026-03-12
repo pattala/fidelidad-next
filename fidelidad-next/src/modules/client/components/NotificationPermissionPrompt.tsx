@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
-import { Bell, Check, MapPin, Bug } from 'lucide-react';
+import { Bell, MapPin } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
@@ -14,14 +14,6 @@ interface Props {
 
 export const NotificationPermissionPrompt = ({ user, userData, config, onNotificationGranted }: Props) => {
     const [step, setStep] = useState<'none' | 'notifications' | 'geolocation'>('none');
-
-    // Diagnostic state for the yellow banner
-    const [diagnostics, setDiagnostics] = useState({
-        isNew: false,
-        geoStatus: 'pending',
-        canShow: false,
-        attempts: 0
-    });
 
     const isMobile = useMemo(() => {
         if (typeof window === 'undefined') return false;
@@ -59,14 +51,27 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
 
         const permissions = userData.permissions || {};
         const safeMessaging = config?.messaging || {};
-        const isTestUser = userData.isTestUser === true;
 
+        // 0. Global Cooldown Check (from DB)
+        if (isMobile) {
+            const lastDismissal = permissions.global_lastMobileDismissal;
+            if (lastDismissal) {
+                const hoursPassed = (TimeService.now().getTime() - lastDismissal) / (1000 * 60 * 60);
+                const cooldown = safeMessaging.mobileCooldownHours ?? 24;
+                if (cooldown > 0 && hoursPassed < cooldown) {
+                    setStep('none');
+                    return;
+                }
+            }
+        }
+
+        // 1. Notifications Step
         const browserNotitState = typeof Notification !== 'undefined' ? Notification.permission : 'denied';
         const dbNotifStatus = permissions.notifications?.status || 'pending';
 
         if (browserNotitState === 'granted') {
             onNotificationGranted();
-            checkGeoStep(permissions, safeMessaging, isTestUser);
+            checkGeoStep(permissions, safeMessaging);
             return;
         }
 
@@ -80,10 +85,11 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
             return;
         }
 
-        checkGeoStep(permissions, safeMessaging, isTestUser);
+        // 2. Geolocation Step
+        checkGeoStep(permissions, safeMessaging);
     };
 
-    const checkGeoStep = (permissions: any, safeMessaging: any, isTestUser: boolean) => {
+    const checkGeoStep = (permissions: any, safeMessaging: any) => {
         if (!isMobile) {
             setStep('none');
             return;
@@ -94,9 +100,6 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const maxGeo = 5;
         const isSessGeo = sessionStorage.getItem('dismissed_geo_prompt') === 'true';
 
-        const userCreatedAt = userData.createdAt?.toDate ? userData.createdAt.toDate().getTime() : (userData.createdAt || 0);
-        const isNewRegistration = userCreatedAt > (TimeService.now().getTime() - 24 * 60 * 60 * 1000);
-
         const canShowGeo = (geoStatus === 'pending' || geoStatus === 'later') &&
             geoAttempts < maxGeo &&
             !isSessGeo &&
@@ -104,25 +107,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
             geoStatus !== 'granted' &&
             geoStatus !== 'blocked';
 
-        setDiagnostics({
-            isNew: isNewRegistration,
-            geoStatus,
-            canShow: canShowGeo,
-            attempts: geoAttempts
-        });
-
         if (canShowGeo) {
-            if (!isTestUser && !isNewRegistration) {
-                const lastDismissal = localStorage.getItem('last_mobile_permission_dismissal');
-                if (lastDismissal) {
-                    const hoursPassed = (TimeService.now().getTime() - parseInt(lastDismissal)) / (1000 * 60 * 60);
-                    const cooldown = config?.messaging?.mobileCooldownHours ?? 24;
-                    if (cooldown > 0 && hoursPassed < cooldown) {
-                        setStep('none');
-                        return;
-                    }
-                }
-            }
             setStep('geolocation');
         } else {
             setStep('none');
@@ -181,10 +166,17 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const type = step;
         setStep('none');
         sessionStorage.setItem(type === 'notifications' ? 'dismissed_notif_prompt' : 'dismissed_geo_prompt', 'true');
+
+        // Guardamos 'later' en la DB
         await updatePermission(type as any, 'later');
+
+        // El Programa manda: Seteamos el cooldown directamente en la DB
         if (isMobile) {
-            localStorage.setItem('last_mobile_permission_dismissal', TimeService.now().getTime().toString());
+            await updateDoc(doc(db, 'users', user.uid), {
+                'permissions.global_lastMobileDismissal': TimeService.now().getTime()
+            });
         }
+
         if (type === 'notifications') {
             setTimeout(() => checkNextStep(), 800);
         }
@@ -201,18 +193,6 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
     };
 
     if (step === 'none') {
-        if ((userData?.isTestUser || diagnostics.isNew) && diagnostics.canShow) {
-            return (
-                <div className="fixed top-4 left-4 z-[1001] bg-yellow-400 text-black text-[10px] p-2 rounded-lg font-black flex flex-col gap-1 shadow-lg max-w-[80%] border-2 border-black pointer-events-none">
-                    <div className="flex items-center gap-1 border-b border-black/20 pb-1 mb-1">
-                        <Bug size={14} /> <span>MODO TEST: {diagnostics.isNew ? 'NUEVO' : 'TESTER'}</span>
-                    </div>
-                    <p className="opacity-80 break-all leading-tight text-[8px]">
-                        UA: {navigator.userAgent.slice(0, 30)}... | Step: none | {JSON.stringify(diagnostics)}
-                    </p>
-                </div>
-            );
-        }
         return null;
     }
 
@@ -220,19 +200,6 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
 
     return (
         <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in font-sans">
-            {(userData?.isTestUser || diagnostics.isNew) && (
-                <div className="absolute top-4 left-4 z-[1001] bg-yellow-400 text-black text-[10px] p-2 rounded-lg font-black flex flex-col gap-1 shadow-lg max-w-[80%] border-2 border-black">
-                    <div className="flex items-center gap-1 border-b border-black/20 pb-1 mb-1">
-                        <Bug size={14} /> <span>DIAGNÓSTICO ACTIVADO</span>
-                    </div>
-                    <p className="opacity-80 break-all leading-tight">
-                        Reg: {diagnostics.isNew ? 'NUEVA (<24h)' : 'ANTIGUA'} |
-                        Device: {isMobile ? 'MÓVIL' : 'PC'} |
-                        State: {diagnostics.geoStatus}
-                    </p>
-                </div>
-            )}
-
             <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl animate-in-up relative overflow-hidden border border-gray-100">
                 <div className={`absolute -top-12 -right-12 w-32 h-32 rounded-full blur-3xl opacity-20 ${isGeo ? 'bg-emerald-500' : 'bg-purple-500'}`}></div>
                 <div className="text-center relative z-10">

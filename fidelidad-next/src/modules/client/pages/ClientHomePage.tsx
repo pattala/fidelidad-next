@@ -373,7 +373,7 @@ export const ClientHomePage = () => {
 
                 if (isMobile) {
                     const cooldown = config?.messaging?.mobileCooldownHours ?? 24;
-                    const lastDismissal = localStorage.getItem('last_mobile_permission_dismissal');
+                    const lastDismissal = userData.permissions?.global_lastMobileDismissal;
                     const lastNotifDismissal = localStorage.getItem('contextual_notifications_mobile_dismissal');
                     const lastGeoDismissal = localStorage.getItem('contextual_geolocation_mobile_dismissal');
 

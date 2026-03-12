@@ -128,10 +128,10 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         checkGeoStep(permissions, safeMessaging);
     };
 
-    const checkGeoStep = (permissions: any, safeMessaging: any) => {
+    const checkGeoStep = (permissions: any, safeMessaging: any): boolean => {
         if (!isMobile) {
             setStep('none');
-            return;
+            return false;
         }
 
         const geoStatus = permissions.geolocation?.status || 'pending';
@@ -141,7 +141,6 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const maxAttempts = isMobile ? maxMobile : maxPC;
 
         const isSessGeo = sessionStorage.getItem('dismissed_geo_prompt') === 'true';
-        // PC is session-based, Mobile is 100% DB-driven
         const isLocalLocked = isMobile ? false : isSessGeo;
 
         const canShowGeo = (geoStatus === 'pending' || geoStatus === 'later') &&
@@ -153,8 +152,10 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
 
         if (canShowGeo) {
             setStep('geolocation');
+            return true;
         } else {
             setStep('none');
+            return false;
         }
     };
 
@@ -194,23 +195,33 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
                 await updatePermission('notifications', 'granted');
                 toast.success('¡Activado!');
                 onNotificationGranted();
+                // If it's mobile, we handle the chain to geo.
+                // Note: global_lastMobileDismissal is NOT set yet because the "unit" (sequence) is not over.
             } else {
                 await updatePermission('notifications', 'later');
             }
 
             // CHAIN: Try next step immediately
-            setTimeout(() => {
+            setTimeout(async () => {
                 const perms = userData?.permissions || {};
                 const msg = config?.messaging || {};
-                checkGeoStep(perms, msg);
+                const willShowGeo = checkGeoStep(perms, msg);
+
+                if (!willShowGeo && isMobile) {
+                    await updateDoc(doc(db, 'users', user.uid), {
+                        'permissions.global_lastMobileDismissal': TimeService.now().getTime()
+                    });
+                }
             }, 800);
         } else if (currentStep === 'geolocation') {
             if ('geolocation' in navigator) {
                 navigator.geolocation.getCurrentPosition(
                     async (pos) => {
                         await updatePermission('geolocation', 'granted');
+                        const ts = TimeService.now().getTime();
                         await updateDoc(doc(db, 'users', user.uid), {
-                            lastLocation: { lat: pos.coords.latitude, lng: pos.coords.longitude, timestamp: new Date() }
+                            'permissions.global_lastMobileDismissal': ts,
+                            lastLocation: { lat: pos.coords.latitude, lng: pos.coords.longitude, timestamp: new Date(ts) }
                         });
                         toast.success('Ubicación activada');
                     },
@@ -249,10 +260,16 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
 
         if (type === 'notifications') {
             // Sequential Chain: Show Geo immediately after Notif dismissal
-            setTimeout(() => {
+            setTimeout(async () => {
                 const perms = userData?.permissions || {};
                 const msg = config?.messaging || {};
-                checkGeoStep(perms, msg);
+                const willShowGeo = checkGeoStep(perms, msg);
+
+                if (!willShowGeo && isMobile) {
+                    await updateDoc(doc(db, 'users', user.uid), {
+                        'permissions.global_lastMobileDismissal': TimeService.now().getTime()
+                    });
+                }
             }, 800);
         } else {
             // End of Sequence: Trigger global cooldown only after Geo (last in chain)
@@ -274,10 +291,16 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
 
         if (type === 'notifications') {
             // Sequential Chain
-            setTimeout(() => {
+            setTimeout(async () => {
                 const perms = userData?.permissions || {};
                 const msg = config?.messaging || {};
-                checkGeoStep(perms, msg);
+                const willShowGeo = checkGeoStep(perms, msg);
+
+                if (!willShowGeo && isMobile) {
+                    await updateDoc(doc(db, 'users', user.uid), {
+                        'permissions.global_lastMobileDismissal': TimeService.now().getTime()
+                    });
+                }
             }, 800);
         } else {
             // End of Sequence: Trigger global cooldown

@@ -341,8 +341,32 @@ export const ClientHomePage = () => {
     const balanceForCalc = rawBalance % costPerPoint;
     const missing = Math.max(0, Math.ceil(costPerPoint - (rawBalance % costPerPoint)));
 
+    // --- NOTIFICATION REALITY SYNC ---
+    useEffect(() => {
+        const syncReality = async () => {
+            if (!userData || !user || !config) return;
+            const browserState = typeof Notification !== 'undefined' ? Notification.permission : 'default';
+            const dbStatus = userData.permissions?.notifications?.status;
+
+            // If browser is granted but DB doesn't know, Sync Up.
+            // But if browser is 'default' or 'denied' and DB says 'granted', Sync Down.
+            if (browserState === 'granted' && dbStatus !== 'granted') {
+                await updateDoc(doc(db, 'users', user.uid), {
+                    'permissions.notifications.status': 'granted',
+                    'permissions.notifications.updatedAt': TimeService.now().getTime()
+                });
+            } else if (browserState !== 'granted' && dbStatus === 'granted') {
+                await updateDoc(doc(db, 'users', user.uid), {
+                    'permissions.notifications.status': browserState === 'denied' ? 'denied' : 'pending',
+                    'permissions.notifications.updatedAt': TimeService.now().getTime()
+                });
+            }
+        };
+        syncReality();
+    }, [userData?.permissions?.notifications?.status, user?.uid]);
+
     // Prompt Logic
-    const { retrieveToken } = useFcmToken(); // Modificar hook para devolver esto
+    const { retrieveToken } = useFcmToken();
     const handlePermissionGranted = () => {
         retrieveToken();
     };
@@ -356,18 +380,17 @@ export const ClientHomePage = () => {
         const messaging = config.messaging || {};
 
         // 1. COOLDOWN CHECK (MOBILE ONLY)
+        let isLargeBannerBlockedByCooldown = false;
         if (isMobile) {
             const lastGlobalDismissal = permissions.global_lastMobileDismissal || 0;
             const cooldownMs = (messaging.mobileCooldownHours || 0.0167) * 3600 * 1000;
 
-            // Bypass logic: IF visitCount === 1 and NO dismissal yet, ignore cooldown for Registration flow.
             const isRegistration = (userData.visitCount === 1) && !lastGlobalDismissal;
 
             if (!isRegistration) {
-                // Check Global DB Cooldown OR Local interaction "Lock" (prevent instant pop after click)
                 if ((now - lastGlobalDismissal < cooldownMs) || (now - lastActionTs.current < 5000)) {
-                    if (activeBannerPhase !== 'none') setActiveBannerPhase('none');
-                    return;
+                    isLargeBannerBlockedByCooldown = true;
+                    // Note: We DON'T return here anymore, because Phase 2 evaluation happens below.
                 }
             }
         }
@@ -400,7 +423,7 @@ export const ClientHomePage = () => {
             return canShowNotif || canShowGeo;
         };
 
-        if (checkPhase1()) {
+        if (checkPhase1() && !isLargeBannerBlockedByCooldown) {
             if (activeBannerPhase !== 'large') setActiveBannerPhase('large');
             return;
         }

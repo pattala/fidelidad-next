@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { db, auth } from '../../../lib/firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { signOut, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { LogOut, Key, ChevronRight, QrCode, FileText, X, ExternalLink, Eye, EyeOff, MapPin, Phone, User as UserIcon, Building } from 'lucide-react';
 import QRCode from "react-qr-code";
@@ -29,6 +29,29 @@ export const ClientProfilePage = () => {
             setHeaderTitle(null);
         };
     }, [setHeaderTitle]);
+
+    // --- NOTIFICATION REALITY SYNC ---
+    useEffect(() => {
+        const syncReality = async () => {
+            if (!userData || !userAuth || !config) return;
+            const browserState = typeof Notification !== 'undefined' ? Notification.permission : 'default';
+            const dbStatus = userData.permissions?.notifications?.status;
+
+            if (browserState === 'granted' && dbStatus !== 'granted') {
+                await updateDoc(doc(db, 'users', userAuth.uid), {
+                    'permissions.notifications.status': 'granted',
+                    'permissions.notifications.updatedAt': Date.now()
+                });
+            } else if (browserState !== 'granted' && dbStatus === 'granted') {
+                const newState = browserState === 'denied' ? 'denied' : 'pending';
+                await updateDoc(doc(db, 'users', userAuth.uid), {
+                    'permissions.notifications.status': newState,
+                    'permissions.notifications.updatedAt': Date.now()
+                });
+            }
+        };
+        syncReality();
+    }, [userData?.permissions?.notifications?.status, userAuth?.uid]);
 
     // Change Password State
     const [isChangePassOpen, setIsChangePassOpen] = useState(false);
@@ -66,7 +89,6 @@ export const ClientProfilePage = () => {
         if (!userAuth || !userData) return;
         setLoadingEdit(true);
         try {
-            const { updateDoc } = await import('firebase/firestore');
             const userRef = doc(db, 'users', userAuth.uid);
 
             const fullCalle = `${editData.street || ''} ${editData.number || ''}`.trim();
@@ -166,7 +188,6 @@ export const ClientProfilePage = () => {
         }
 
         try {
-            const { updateDoc } = await import('firebase/firestore');
             await updateDoc(doc(db, 'users', userAuth.uid), {
                 [`permissions.${type}.status`]: newStatus
             });

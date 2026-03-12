@@ -107,7 +107,10 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const maxMobile = safeMessaging.maxLargePromptDismissalsMobile ?? safeMessaging.maxLargePromptDismissals ?? 2;
         const maxAttempts = isMobile ? maxMobile : maxPC;
 
-        if ((dbNotifStatus === 'pending' || dbNotifStatus === 'later') && notifAttempts < maxAttempts && !isSessNotif && safeMessaging.enableLargePrompt !== false) {
+        // PC is session-based, Mobile is 100% DB-driven (ignores isSessNotif)
+        const isLocalLocked = isMobile ? false : isSessNotif;
+
+        if ((dbNotifStatus === 'pending' || dbNotifStatus === 'later') && notifAttempts < maxAttempts && !isLocalLocked && safeMessaging.enableLargePrompt !== false) {
             setStep('notifications');
             return;
         }
@@ -129,10 +132,12 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const maxAttempts = isMobile ? maxMobile : maxPC;
 
         const isSessGeo = sessionStorage.getItem('dismissed_geo_prompt') === 'true';
+        // PC is session-based, Mobile is 100% DB-driven
+        const isLocalLocked = isMobile ? false : isSessGeo;
 
         const canShowGeo = (geoStatus === 'pending' || geoStatus === 'later') &&
             geoAttempts < maxAttempts &&
-            !isSessGeo &&
+            !isLocalLocked &&
             safeMessaging.enableLargePrompt !== false &&
             geoStatus !== 'granted' &&
             geoStatus !== 'blocked';
@@ -204,7 +209,11 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
     const handleLater = async () => {
         const type = step;
         setStep('none');
-        sessionStorage.setItem(type === 'notifications' ? 'dismissed_notif_prompt' : 'dismissed_geo_prompt', 'true');
+
+        // PC maintains session block, Mobile does NOT (DB cooldown only)
+        if (!isMobile) {
+            sessionStorage.setItem(type === 'notifications' ? 'dismissed_notif_prompt' : 'dismissed_geo_prompt', 'true');
+        }
 
         const maxPC = config?.messaging?.maxLargePromptDismissalsPC ?? config?.messaging?.maxLargePromptDismissals ?? 2;
         const maxMobile = config?.messaging?.maxLargePromptDismissalsMobile ?? config?.messaging?.maxLargePromptDismissals ?? 2;

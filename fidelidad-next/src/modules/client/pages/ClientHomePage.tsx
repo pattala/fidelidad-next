@@ -367,8 +367,8 @@ export const ClientHomePage = () => {
 
             if (isNotifPhase1Over && isGeoPhase1Over) {
                 // SESSION / COOLDOWN CHECK
-                let isNotifLocked = sessionStorage.getItem('contextual_notif_shown') === 'true';
-                let isGeoLocked = sessionStorage.getItem('contextual_geo_shown') === 'true';
+                let isNotifLocked = isMobile ? false : (sessionStorage.getItem('contextual_notif_shown') === 'true');
+                let isGeoLocked = isMobile ? false : (sessionStorage.getItem('contextual_geo_shown') === 'true');
 
                 if (isMobile) {
                     const lastDismissal = userData.permissions?.global_lastMobileDismissal;

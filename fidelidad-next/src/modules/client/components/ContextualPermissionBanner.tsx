@@ -31,8 +31,8 @@ export const ContextualPermissionBanner = ({
     useEffect(() => {
         if (!user || !userData) return;
 
-        // 1. Check session/storage-based dismissal
-        if (sessionStorage.getItem(SESSION_KEYS[type]) === 'true') return;
+        // 1. Check session/storage-based dismissal (ONLY for PC)
+        if (!isMobile && sessionStorage.getItem(SESSION_KEYS[type]) === 'true') return;
 
         // 2. Geolocation is ONLY for mobile
         if (type === 'geolocation' && !isMobile) return;
@@ -79,7 +79,9 @@ export const ContextualPermissionBanner = ({
     }, [user, userData, type, config, isMobile]);
 
     const handleAccept = async () => {
-        sessionStorage.setItem(SESSION_KEYS[type], 'true');
+        if (!isMobile) {
+            sessionStorage.setItem(SESSION_KEYS[type], 'true');
+        }
         setVisible(false);
 
         if (type === 'notifications') {
@@ -121,9 +123,11 @@ export const ContextualPermissionBanner = ({
         }
     };
 
-    // "Ahora no" — bloquea solo la sesión, pero incrementa el contador
+    // "Ahora no" — bloquea solo la sesión (PC), en Mobile lo maneja la DB
     const handleDismiss = async () => {
-        sessionStorage.setItem(SESSION_KEYS[type], 'true');
+        if (!isMobile) {
+            sessionStorage.setItem(SESSION_KEYS[type], 'true');
+        }
         setVisible(false);
 
         const counterKey = isMobile ? 'mobile_contextualDismissCount' : 'pc_contextualDismissCount';
@@ -178,7 +182,9 @@ export const ContextualPermissionBanner = ({
 
     // "No molestar" — standby inmediato sin esperar al contador
     const handleNeverAsk = async () => {
-        sessionStorage.setItem(SESSION_KEYS[type], 'true');
+        if (!isMobile) {
+            sessionStorage.setItem(SESSION_KEYS[type], 'true');
+        }
         if (isMobile) {
             localStorage.setItem(`contextual_${type}_mobile_dismissal`, Date.now().toString());
         }

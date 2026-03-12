@@ -27,7 +27,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         );
     }, []);
 
-    const updatePermission = async (type: 'notifications' | 'geolocation', status: string, nextPrompt: number = 0) => {
+    const updatePermission = async (type: 'notifications' | 'geolocation', status: string, options?: { nextPrompt?: number, triggerGlobalCooldown?: boolean }) => {
         if (!user) return;
         const ref = doc(db, 'users', user.uid);
         const counterKey = isMobile ? 'mobile_dismissedCount' : 'pc_dismissedCount';
@@ -37,13 +37,19 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
             dismissedCount++;
         }
 
+        const updateData: any = {
+            [`permissions.${type}.status`]: status,
+            [`permissions.${type}.updatedAt`]: TimeService.now().getTime(),
+            [`permissions.${type}.${counterKey}`]: dismissedCount,
+            [`permissions.${type}.nextPrompt`]: options?.nextPrompt || 0
+        };
+
+        if (options?.triggerGlobalCooldown && isMobile) {
+            updateData['permissions.global_lastMobileDismissal'] = TimeService.now().getTime();
+        }
+
         try {
-            await updateDoc(ref, {
-                [`permissions.${type}.status`]: status,
-                [`permissions.${type}.updatedAt`]: TimeService.now().getTime(),
-                [`permissions.${type}.${counterKey}`]: dismissedCount,
-                [`permissions.${type}.nextPrompt`]: nextPrompt
-            });
+            await updateDoc(ref, updateData);
         } catch (e) {
             console.error("Error updating permission:", e);
         }
@@ -119,7 +125,17 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         // PC is session-based, Mobile is 100% DB-driven (ignores isSessNotif)
         const isLocalLocked = isMobile ? false : isSessNotif;
 
-        if ((dbNotifStatus === 'pending' || dbNotifStatus === 'later') && notifAttempts < maxAttempts && !isLocalLocked && safeMessaging.enableLargePrompt !== false) {
+        const globalDismissalTime = permissions.global_lastMobileDismissal || 0;
+        const notifUpdatedAt = permissions.notifications?.updatedAt || 0;
+
+        // Rule: If already updated in THIS cycle (updatedAt > globalDismissal), don't show again.
+        const alreadyHandledInCycle = isMobile && notifUpdatedAt > globalDismissalTime && dbNotifStatus !== 'pending';
+
+        if ((dbNotifStatus === 'pending' || dbNotifStatus === 'later') &&
+            notifAttempts < maxAttempts &&
+            !isLocalLocked &&
+            !alreadyHandledInCycle &&
+            safeMessaging.enableLargePrompt !== false) {
             setStep('notifications');
             return;
         }
@@ -143,9 +159,16 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const isSessGeo = sessionStorage.getItem('dismissed_geo_prompt') === 'true';
         const isLocalLocked = isMobile ? false : isSessGeo;
 
+        const globalDismissalTime = permissions.global_lastMobileDismissal || 0;
+        const geoUpdatedAt = permissions.geolocation?.updatedAt || 0;
+
+        // Rule: If already updated in THIS cycle (updatedAt > globalDismissal), don't show again.
+        const alreadyHandledInCycle = isMobile && geoUpdatedAt > globalDismissalTime && geoStatus !== 'pending';
+
         const canShowGeo = (geoStatus === 'pending' || geoStatus === 'later') &&
             geoAttempts < maxAttempts &&
             !isLocalLocked &&
+            !alreadyHandledInCycle &&
             safeMessaging.enableLargePrompt !== false &&
             geoStatus !== 'granted' &&
             geoStatus !== 'blocked';
@@ -217,16 +240,23 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
             if ('geolocation' in navigator) {
                 navigator.geolocation.getCurrentPosition(
                     async (pos) => {
-                        await updatePermission('geolocation', 'granted');
                         const ts = TimeService.now().getTime();
-                        await updateDoc(doc(db, 'users', user.uid), {
-                            'permissions.global_lastMobileDismissal': ts,
+                        const updateData: any = {
+                            [`permissions.geolocation.status`]: 'granted',
+                            [`permissions.geolocation.updatedAt`]: ts,
                             lastLocation: { lat: pos.coords.latitude, lng: pos.coords.longitude, timestamp: new Date(ts) }
-                        });
+                        };
+
+                        if (isMobile) {
+                            updateData['permissions.global_lastMobileDismissal'] = ts;
+                        }
+
+                        await updateDoc(doc(db, 'users', user.uid), updateData);
                         toast.success('Ubicación activada');
+                        onNotificationGranted();
                     },
                     async () => {
-                        await updatePermission('geolocation', 'later');
+                        await updatePermission('geolocation', 'later', { triggerGlobalCooldown: true });
                     },
                     { enableHighAccuracy: false, timeout: 6000, maximumAge: 60000 }
                 );
@@ -253,9 +283,15 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const newCount = currentCount + 1;
 
         if (newCount >= maxAttempts) {
-            await updatePermission(type as any, 'later_phase1_complete');
+            await updatePermission(type as any, 'later_phase1_complete', { triggerGlobalCooldown: isMobile && type !== 'notifications' });
+            if (isMobile) {
+                toast(`Entendido. No te molestaremos más con este aviso. Te volveremos a consultar en 30 días o podés activarlo desde tu perfil.`, {
+                    icon: '🤝',
+                    duration: 5000,
+                });
+            }
         } else {
-            await updatePermission(type as any, 'later');
+            await updatePermission(type as any, 'later', { triggerGlobalCooldown: isMobile && type !== 'notifications' });
         }
 
         if (type === 'notifications') {
@@ -271,13 +307,6 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
                     });
                 }
             }, 800);
-        } else {
-            // End of Sequence: Trigger global cooldown only after Geo (last in chain)
-            if (isMobile) {
-                await updateDoc(doc(db, 'users', user.uid), {
-                    'permissions.global_lastMobileDismissal': TimeService.now().getTime()
-                });
-            }
         }
     };
 
@@ -286,7 +315,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const type = step;
         lastInteractionTime.current = TimeService.now().getTime();
         setStep('none');
-        await updatePermission(type as any, 'blocked');
+        await updatePermission(type as any, 'blocked', { triggerGlobalCooldown: isMobile && type !== 'notifications' });
         toast('Entendido.', { icon: '🤝' });
 
         if (type === 'notifications') {
@@ -302,13 +331,6 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
                     });
                 }
             }, 800);
-        } else {
-            // End of Sequence: Trigger global cooldown
-            if (isMobile) {
-                await updateDoc(doc(db, 'users', user.uid), {
-                    'permissions.global_lastMobileDismissal': TimeService.now().getTime()
-                });
-            }
         }
     };
 

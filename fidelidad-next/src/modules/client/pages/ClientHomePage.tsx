@@ -127,13 +127,11 @@ export const ClientHomePage = () => {
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [selectedPromo, setSelectedPromo] = useState<BonusRule | null>(null);
     const [currentTimeStore, setCurrentTimeStore] = useState(new Date());
-    const [showContextualNotif, setShowContextualNotif] = useState(false);
-    const [showContextualGeo, setShowContextualGeo] = useState(false);
-    const [contextualPointsMsg, setContextualPointsMsg] = useState('');
-    const [activeBannerPhase, setActiveBannerPhase] = useState<'none' | 'large' | 'contextual'>('none');
+    const [activeBannerPhase, setActiveBannerPhase] = useState<'none' | 'large'>('none');
 
     const prevPointsRef = useRef<number | null>(null);
     const lastActionTs = useRef<number>(0);
+    const initialLoadTs = useRef<number>(Date.now());
     const isMobile = useMemo(() => {
         if (typeof window === 'undefined') return false;
         return (
@@ -381,8 +379,10 @@ export const ClientHomePage = () => {
         const permissions = userData.permissions || {};
         const messaging = config.messaging || {};
 
+        // 0. INITIAL DELAY (1.5s)
+        if (now - initialLoadTs.current < 1500) return;
+
         // 1. COOLDOWN CHECK (MOBILE ONLY)
-        let isLargeBannerBlockedByCooldown = false;
         if (isMobile) {
             const lastGlobalDismissal = permissions.global_lastMobileDismissal || 0;
             const cooldownMs = (messaging.mobileCooldownHours || 0.0167) * 3600 * 1000;
@@ -391,8 +391,8 @@ export const ClientHomePage = () => {
 
             if (!isRegistration) {
                 if ((now - lastGlobalDismissal < cooldownMs) || (now - lastActionTs.current < 5000)) {
-                    isLargeBannerBlockedByCooldown = true;
-                    // Note: We DON'T return here anymore, because Phase 2 evaluation happens below.
+                    if (activeBannerPhase !== 'none') setActiveBannerPhase('none');
+                    return;
                 }
             }
         }
@@ -425,42 +425,14 @@ export const ClientHomePage = () => {
             return canShowNotif || canShowGeo;
         };
 
-        if (checkPhase1() && !isLargeBannerBlockedByCooldown) {
+        if (checkPhase1()) {
             if (activeBannerPhase !== 'large') setActiveBannerPhase('large');
             return;
         }
 
-        // 3. PHASE 2: PERSIANAS (CONTEXTUAL)
-        // Triggered by point increase
-        const currentPoints = userData.points || 0;
-        if (prevPointsRef.current !== null && currentPoints > prevPointsRef.current) {
-            const gained = currentPoints - prevPointsRef.current;
-            const notifStatus = permissions.notifications?.status || 'pending';
-            const geoStatus = permissions.geolocation?.status || 'pending';
+        if (activeBannerPhase !== 'none') setActiveBannerPhase('none');
 
-            const isNotifPhase1Over = ['granted', 'blocked', 'later_phase1_complete'].includes(notifStatus);
-            const isGeoPhase1Over = !isMobile || ['granted', 'blocked', 'later_phase1_complete'].includes(geoStatus);
-
-            if (isNotifPhase1Over && isGeoPhase1Over) {
-                const isNotifPhase2Enabled = messaging.enableContextualNotifPrompt !== false;
-                const isGeoPhase2Enabled = messaging.enableContextualGeoPrompt !== false;
-
-                const notifPerm = typeof Notification !== 'undefined' ? Notification.permission : 'denied';
-
-                if (isNotifPhase2Enabled && notifStatus === 'later_phase1_complete' && notifPerm === 'default') {
-                    setContextualPointsMsg(`¡Ganaste ${gained} puntos!`);
-                    setActiveBannerPhase('contextual');
-                    setShowContextualNotif(true);
-                } else if (isMobile && isGeoPhase2Enabled && geoStatus === 'later_phase1_complete') {
-                    setContextualPointsMsg(`¡Ganaste ${gained} puntos!`);
-                    setActiveBannerPhase('contextual');
-                    setShowContextualGeo(true);
-                }
-            }
-        }
-        prevPointsRef.current = currentPoints;
-
-    }, [userData?.points, userData?.permissions?.global_lastMobileDismissal, !!config, activeBannerPhase]);
+    }, [userData?.permissions, userData?.visitCount, !!config, activeBannerPhase]);
 
     return (
         <div
@@ -474,58 +446,6 @@ export const ClientHomePage = () => {
                     onNotificationGranted={handlePermissionGranted}
                     onPhaseEnd={(triggerCooldown) => {
                         handleInteraction(triggerCooldown);
-                        setActiveBannerPhase('none');
-                    }}
-                />
-            )}
-
-            {showContextualNotif && (
-                <ContextualPermissionBanner
-                    user={user}
-                    userData={userData}
-                    type="notifications"
-                    triggerMessage={contextualPointsMsg}
-                    config={config}
-                    onGranted={() => {
-                        handleInteraction(true);
-                        setShowContextualNotif(false);
-                        handlePermissionGranted();
-                        // Chain contextually
-                        setTimeout(() => setShowContextualGeo(true), 800);
-                    }}
-                    onDismiss={() => {
-                        handleInteraction(false); // Local only, don't trigger global yet
-                        setShowContextualNotif(false);
-                        setTimeout(() => setShowContextualGeo(true), 600);
-                    }}
-                    onNeverAsk={() => {
-                        handleInteraction(false); // Local only
-                        setShowContextualNotif(false);
-                        setTimeout(() => setShowContextualGeo(true), 600);
-                    }}
-                />
-            )}
-
-            {showContextualGeo && (
-                <ContextualPermissionBanner
-                    user={user}
-                    userData={userData}
-                    type="geolocation"
-                    triggerMessage={contextualPointsMsg}
-                    config={config}
-                    onGranted={() => {
-                        handleInteraction(true);
-                        setShowContextualGeo(false);
-                        setActiveBannerPhase('none');
-                    }}
-                    onDismiss={() => {
-                        handleInteraction(true);
-                        setShowContextualGeo(false);
-                        setActiveBannerPhase('none');
-                    }}
-                    onNeverAsk={() => {
-                        handleInteraction(true);
-                        setShowContextualGeo(false);
                         setActiveBannerPhase('none');
                     }}
                 />

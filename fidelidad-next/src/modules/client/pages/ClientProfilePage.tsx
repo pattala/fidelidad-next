@@ -51,6 +51,10 @@ export const ClientProfilePage = () => {
             }
         };
         syncReality();
+
+        // Also sync on window focus (if they came back from settings)
+        window.addEventListener('focus', syncReality);
+        return () => window.removeEventListener('focus', syncReality);
     }, [userData?.permissions?.notifications?.status, userAuth?.uid]);
 
     // Change Password State

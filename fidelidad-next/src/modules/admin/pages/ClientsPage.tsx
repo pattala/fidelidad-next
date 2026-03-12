@@ -940,26 +940,57 @@ export const ClientsPage = () => {
                                         )}
                                     </td>
                                     <td className="px-6 py-4">
-                                        <div className="flex justify-center gap-1.5">
-                                            <div title={client.termsAccepted ? "Términos Aceptados" : "Términos Pendientes"} className={`p-1.5 rounded-md ${client.termsAccepted ? 'text-blue-600 bg-blue-50' : 'text-gray-300 bg-gray-50'}`}>
-                                                <Check size={14} strokeWidth={3} />
+                                        <div className="flex justify-center gap-2">
+                                            <div className="flex flex-col items-center gap-1" title={client.termsAccepted ? "Términos Aceptados" : "Términos Pendientes"}>
+                                                <div className={`p-1.5 rounded-md ${client.termsAccepted ? 'text-blue-600 bg-blue-50' : 'text-gray-300 bg-gray-50'}`}>
+                                                    <Check size={14} strokeWidth={3} />
+                                                </div>
+                                                <span className={`text-[7px] font-black uppercase ${client.termsAccepted ? 'text-blue-500' : 'text-gray-300'}`}>
+                                                    {client.termsAccepted ? 'OK' : 'PEND'}
+                                                </span>
                                             </div>
-                                            <div title={`Notificaciones: ${client.permissions?.notifications?.status === 'granted' ? (client.fcmToken ? 'Activas (Con Token)' : 'Permiso concedido pero falta registrar Token') : 'Pendiente/Denegado'}`} className={`p-1.5 rounded-md ${(client.permissions?.notifications?.status === 'granted' && client.fcmToken) ? 'text-purple-600 bg-purple-50 border border-purple-100 shadow-sm' : 'text-gray-300 bg-gray-50'}`}>
-                                                <Bell size={14} />
+
+                                            <div className="flex flex-col items-center gap-1" title={`Notificaciones: ${client.permissions?.notifications?.status === 'granted' ? (client.fcmToken ? 'Activas (Con Token)' : 'Permiso concedido pero falta registrar Token') : 'Pendiente/Denegado'}`}>
+                                                <div className={`p-1.5 rounded-md ${(client.permissions?.notifications?.status === 'granted' && client.fcmToken) ? 'text-purple-600 bg-purple-50 border border-purple-100 shadow-sm' : 'text-gray-300 bg-gray-50'}`}>
+                                                    <Bell size={14} />
+                                                </div>
+                                                <span className={`text-[7px] font-black uppercase ${client.permissions?.notifications?.status === 'granted' ? 'text-purple-600' : (client.permissions?.notifications?.status === 'blocked' ? 'text-red-400' : 'text-gray-300')}`}>
+                                                    {(() => {
+                                                        const s = client.permissions?.notifications?.status;
+                                                        const visits = client.visitCount || 0;
+                                                        if (s === 'granted') return 'ACTIVO';
+                                                        if (s === 'blocked') return 'BLOCK';
+                                                        if (s === 'later' || s === 'later_phase1_complete') return 'ESPERA';
+                                                        return visits > 0 ? 'PEND' : 'NUNCA';
+                                                    })()}
+                                                </span>
                                             </div>
-                                            <button
-                                                onClick={() => {
-                                                    if (client.lastLocation) {
-                                                        const coords = `${client.lastLocation.lat}, ${client.lastLocation.lng}`;
-                                                        navigator.clipboard.writeText(coords);
-                                                        toast.success(`Coordenadas copiadas: ${coords}`);
-                                                    }
-                                                }}
-                                                title={`Ubicación: ${client.permissions?.geolocation?.status === 'granted' ? (client.lastLocation ? 'Activa (Con Coordenadas - Clic para copiar)' : 'Permiso concedido pero sin datos aún') : 'Pendiente/Denegado'}`}
-                                                className={`p-1.5 rounded-md transition-all ${(client.permissions?.geolocation?.status === 'granted' && client.lastLocation) ? 'text-green-600 bg-green-50 border border-green-100 shadow-sm hover:scale-110 active:scale-95' : 'text-gray-300 bg-gray-50'}`}
-                                            >
-                                                <MapPin size={14} />
-                                            </button>
+
+                                            <div className="flex flex-col items-center gap-1">
+                                                <button
+                                                    onClick={() => {
+                                                        if (client.lastLocation) {
+                                                            const coords = `${client.lastLocation.lat}, ${client.lastLocation.lng}`;
+                                                            navigator.clipboard.writeText(coords);
+                                                            toast.success(`Coordenadas copiadas: ${coords}`);
+                                                        }
+                                                    }}
+                                                    title={`Ubicación: ${client.permissions?.geolocation?.status === 'granted' ? (client.lastLocation ? 'Activa (Con Coordenadas - Clic para copiar)' : 'Permiso concedido pero sin datos aún') : 'Pendiente/Denegado'}`}
+                                                    className={`p-1.5 rounded-md transition-all ${(client.permissions?.geolocation?.status === 'granted' && client.lastLocation) ? 'text-green-600 bg-green-50 border border-green-100 shadow-sm hover:scale-110 active:scale-95' : 'text-gray-300 bg-gray-50'}`}
+                                                >
+                                                    <MapPin size={14} />
+                                                </button>
+                                                <span className={`text-[7px] font-black uppercase ${client.permissions?.geolocation?.status === 'granted' ? 'text-green-600' : (client.permissions?.geolocation?.status === 'blocked' ? 'text-red-400' : 'text-gray-300')}`}>
+                                                    {(() => {
+                                                        const s = client.permissions?.geolocation?.status;
+                                                        const visits = client.visitCount || 0;
+                                                        if (s === 'granted') return 'ACTIVO';
+                                                        if (s === 'blocked') return 'BLOCK';
+                                                        if (s === 'later' || s === 'later_phase1_complete') return 'ESPERA';
+                                                        return visits > 0 ? 'PEND' : 'NUNCA';
+                                                    })()}
+                                                </span>
+                                            </div>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 text-center">

@@ -1621,125 +1621,18 @@ export const ConfigPage = () => {
                                         </div>
                                     </div>
 
-                                    {/* 2. REFUERZO AL GANAR PUNTOS (Contextual flow) */}
+                                    {/* 2. LARGE PROMPT (Phase 1) */}
                                     <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
                                         <div className="flex items-center gap-3 mb-2">
                                             <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-500">
                                                 <Bell size={20} />
                                             </div>
                                             <div>
-                                                <h4 className="font-black text-gray-800 uppercase tracking-tighter">REFUERZO AL GANAR PUNTOS</h4>
-                                                <p className="text-xs text-gray-500">Mostrar carteles al sumar puntos o visitar secciones estratégicas.</p>
+                                                <h4 className="font-black text-gray-800 uppercase tracking-tighter">CONFIGURACIÓN DE CARTELES PWA</h4>
+                                                <p className="text-xs text-gray-500">Límites y tiempos para mostrar los avisos a los clientes.</p>
                                             </div>
                                         </div>
 
-                                        {/* Card 1: Contextual Banners (Small) */}
-                                        <div className="p-4 bg-gray-50/50 rounded-xl border border-dashed border-gray-200">
-                                            <div className="flex items-center justify-between mb-3">
-                                                <div className="flex items-center gap-3">
-                                                    <Zap size={16} className="text-gray-400" />
-                                                    <div>
-                                                        <span className="text-xs font-bold text-gray-600 block leading-tight">Límite de Persianas</span>
-                                                        <span className="text-[9px] text-gray-400 uppercase tracking-tighter text-balance">Banners pequeños arriba al sumar puntos</span>
-                                                    </div>
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setConfig({
-                                                        ...config,
-                                                        messaging: { ...config.messaging!, enableContextualNotifPrompt: !config.messaging?.enableContextualNotifPrompt }
-                                                    })}
-                                                    className={`relative w-10 h-6 transition-colors rounded-full ${config.messaging?.enableContextualNotifPrompt ? 'bg-purple-600' : 'bg-gray-200'}`}
-                                                >
-                                                    <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform ${config.messaging?.enableContextualNotifPrompt ? 'translate-x-4' : 'translate-x-0'}`} />
-                                                </button>
-                                            </div>
-
-                                            <div className="grid grid-cols-2 gap-3 mt-1">
-                                                <div className="flex flex-col gap-1.5 p-2 bg-white rounded-lg border border-gray-100">
-                                                    <div className="flex items-center gap-1.5 text-[9px] font-bold text-gray-400 uppercase">
-                                                        <Monitor size={10} /> Computadora (PC)
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <input
-                                                            type="number" min="1" max="10"
-                                                            value={config.messaging?.maxContextualDismissalsPC ?? config.messaging?.maxContextualDismissals ?? 2}
-                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, maxContextualDismissalsPC: parseInt(e.target.value) || 2 } })}
-                                                            className="w-full px-2 py-1 text-center font-bold bg-gray-50 border border-gray-200 rounded outline-none focus:ring-1 focus:ring-purple-500 text-sm"
-                                                        />
-                                                        <span className="text-[9px] font-bold text-gray-400">VECES</span>
-                                                    </div>
-                                                </div>
-                                                <div className="flex flex-col gap-1.5 p-2 bg-white rounded-lg border border-gray-100">
-                                                    <div className="flex items-center gap-1.5 text-[9px] font-bold text-gray-400 uppercase">
-                                                        <Smartphone size={10} /> Celular / PWA
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <input
-                                                            type="number" min="1" max="10"
-                                                            value={config.messaging?.maxContextualDismissalsMobile ?? config.messaging?.maxContextualDismissals ?? 2}
-                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, maxContextualDismissalsMobile: parseInt(e.target.value) || 2 } })}
-                                                            className="w-full px-2 py-1 text-center font-bold bg-gray-50 border border-gray-200 rounded outline-none focus:ring-1 focus:ring-purple-500 text-sm"
-                                                        />
-                                                        <span className="text-[9px] font-bold text-gray-400">VECES</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Card 2: Large Prompt (Phase 1) */}
-                                        <div className="p-4 bg-gray-50/50 rounded-xl border border-dashed border-gray-200">
-                                            <div className="flex items-center justify-between mb-3">
-                                                <div className="flex items-center gap-3">
-                                                    <Bell size={16} className="text-gray-400" />
-                                                    <div>
-                                                        <span className="text-xs font-bold text-gray-600 block leading-tight">Límite de Cartel Grande</span>
-                                                        <span className="text-[9px] text-gray-400 uppercase tracking-tighter text-balance">Pantalla completa con Quizás Luego</span>
-                                                    </div>
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setConfig({
-                                                        ...config,
-                                                        messaging: { ...config.messaging!, enableLargePrompt: !config.messaging?.enableLargePrompt }
-                                                    })}
-                                                    className={`relative w-10 h-6 transition-colors rounded-full ${config.messaging?.enableLargePrompt ? 'bg-purple-600' : 'bg-gray-200'}`}
-                                                >
-                                                    <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform ${config.messaging?.enableLargePrompt ? 'translate-x-4' : 'translate-x-0'}`} />
-                                                </button>
-                                            </div>
-
-                                            <div className="grid grid-cols-2 gap-3 mt-1">
-                                                <div className="flex flex-col gap-1.5 p-2 bg-white rounded-lg border border-gray-100">
-                                                    <div className="flex items-center gap-1.5 text-[9px] font-bold text-gray-400 uppercase">
-                                                        <Monitor size={10} /> Computadora (PC)
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <input
-                                                            type="number" min="1" max="10"
-                                                            value={config.messaging?.maxLargePromptDismissalsPC ?? config.messaging?.maxLargePromptDismissals ?? 2}
-                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, maxLargePromptDismissalsPC: parseInt(e.target.value) || 2 } })}
-                                                            className="w-full px-2 py-1 text-center font-bold bg-gray-50 border border-gray-200 rounded outline-none focus:ring-1 focus:ring-purple-500 text-sm"
-                                                        />
-                                                        <span className="text-[9px] font-bold text-gray-400">VECES</span>
-                                                    </div>
-                                                </div>
-                                                <div className="flex flex-col gap-1.5 p-2 bg-white rounded-lg border border-gray-100">
-                                                    <div className="flex items-center gap-1.5 text-[9px] font-bold text-gray-400 uppercase">
-                                                        <Smartphone size={10} /> Celular / PWA
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <input
-                                                            type="number" min="1" max="10"
-                                                            value={config.messaging?.maxLargePromptDismissalsMobile ?? config.messaging?.maxLargePromptDismissals ?? 2}
-                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, maxLargePromptDismissalsMobile: parseInt(e.target.value) || 2 } })}
-                                                            className="w-full px-2 py-1 text-center font-bold bg-gray-50 border border-gray-200 rounded outline-none focus:ring-1 focus:ring-purple-500 text-sm"
-                                                        />
-                                                        <span className="text-[9px] font-bold text-gray-400">VECES</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
                                         {/* Card 3: Mobile Cooldown */}
                                         <div className="p-4 bg-blue-50/50 rounded-xl border border-dashed border-blue-200">
                                             <div className="flex items-center justify-between mb-4">

@@ -43,6 +43,12 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
             [`permissions.${type}.nextPrompt`]: options?.nextPrompt || 0
         };
 
+        // If it's a "phase 1 complete" (reached max attempts), we can also set a long-term nextPrompt or just leave it
+        if (status === 'later_phase1_complete') {
+            const intervalDays = config?.messaging?.notificationPromptIntervalDays || 30;
+            updateData[`permissions.${type}.nextPrompt`] = TimeService.now().getTime() + (intervalDays * 24 * 60 * 60 * 1000);
+        }
+
         try {
             await updateDoc(ref, updateData);
         } catch (e) {
@@ -62,14 +68,13 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const counterKey = isMobile ? 'mobile_dismissedCount' : 'pc_dismissedCount';
         const notifAttempts = permissions.notifications?.[counterKey] || 0;
         const maxAttempts = isMobile ? (safeMessaging.maxLargePromptDismissalsMobile || 2) : (safeMessaging.maxLargePromptDismissalsPC || 2);
+        const notifNextPrompt = permissions.notifications?.nextPrompt || 0;
 
-        // PC is session-based
-        const isSessNotif = sessionStorage.getItem('dismissed_notif_prompt') === 'true';
-        const isLocalLocked = !isMobile && isSessNotif;
+        const isCooldownActive = notifNextPrompt > TimeService.now().getTime();
 
         const canShowNotif = (notifStatus === 'pending' || notifStatus === 'later') &&
             notifAttempts < maxAttempts &&
-            !isLocalLocked &&
+            !isCooldownActive &&
             browserNotifState === 'default';
 
         if (canShowNotif) {
@@ -77,10 +82,14 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         } else {
             // Check Geo
             const geoStatus = permissions.geolocation?.status || 'pending';
-            const geoAttempts = permissions.geolocation?.mobile_dismissedCount || 0;
+            const geoAttempts = permissions.geolocation?.[counterKey] || 0;
+            const geoNextPrompt = permissions.geolocation?.nextPrompt || 0;
+            const isGeoCooldown = geoNextPrompt > TimeService.now().getTime();
+            
             const canShowGeo = isMobile &&
                 (geoStatus === 'pending' || geoStatus === 'later') &&
-                geoAttempts < (safeMessaging.maxLargePromptDismissalsMobile || 2);
+                geoAttempts < (safeMessaging.maxLargePromptDismissalsMobile || 2) &&
+                !isGeoCooldown;
 
             if (canShowGeo) {
                 setStep('geolocation');
@@ -145,10 +154,6 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const type = step;
         setStep('none');
 
-        if (!isMobile) {
-            sessionStorage.setItem(type === 'notifications' ? 'dismissed_notif_prompt' : 'dismissed_geo_prompt', 'true');
-        }
-
         const maxAttempts = isMobile
             ? (config?.messaging?.maxLargePromptDismissalsMobile || 2)
             : (config?.messaging?.maxLargePromptDismissalsPC || 2);
@@ -158,12 +163,16 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const newCount = currentCount + 1;
 
         if (newCount >= maxAttempts) {
+            const intervalDays = config?.messaging?.notificationPromptIntervalDays || 30;
             await updatePermission(type as any, 'later_phase1_complete');
-            if (isMobile) {
-                toast('Entendido. Te avisaremos pronto.', { icon: '🤝' });
-            }
+            toast(`Entendido. Te consultaremos en ${intervalDays} días o puedes activarlo desde tu perfil.`, { icon: '🤝', duration: 5000 });
         } else {
-            await updatePermission(type as any, 'later');
+            const cooldownHours = isMobile ? (config?.messaging?.mobileCooldownHours || 24) : 0;
+            const nextPrompt = TimeService.now().getTime() + (cooldownHours * 60 * 60 * 1000);
+            await updatePermission(type as any, 'later', { nextPrompt });
+            if (isMobile && cooldownHours > 0) {
+                toast(`Entendido. Te consultaremos en ${cooldownHours}hs.`, { icon: '🤝' });
+            }
         }
 
         if (type === 'notifications') {

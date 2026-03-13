@@ -109,6 +109,8 @@ export const ConfigPage = () => {
                 offer: { channels: ['push', 'email'] }
             },
             mobileCooldownHours: 24,
+            notificationPromptIntervalDays: 30,
+            enableLargePrompt: true,
             maxLargePromptDismissalsPC: 2,
             maxLargePromptDismissalsMobile: 2
         },
@@ -118,7 +120,9 @@ export const ConfigPage = () => {
             pointsForReferrer: 200,
             pointsForReferee: 0,
             rewardCriteria: 'first_transaction'
-        }
+        },
+        enableDateSimulator: false,
+        enableDuplicateControl: true
     });
 
     const { isReadOnly, user } = useAdminAuth();
@@ -1284,6 +1288,33 @@ export const ConfigPage = () => {
                                                 <span className="text-xs font-mono text-gray-500">{config.linkColor || '#4a148c'}</span>
                                             </div>
                                         </div>
+                                    </div>
+
+                                    <div className="mt-4 flex flex-wrap gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setConfig({
+                                                ...config,
+                                                primaryColor: '#2563eb',
+                                                secondaryColor: '#1e3a8a',
+                                                backgroundColor: '#f9fafb',
+                                                sectionTitleColor: '#9ca3af',
+                                                linkColor: '#4a148c'
+                                            })}
+                                            className="text-[10px] font-black uppercase tracking-widest bg-gray-100 text-gray-600 px-4 py-2 rounded-xl hover:bg-gray-200 transition"
+                                        >
+                                            🎨 Reiniciar Colores por Defecto
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setConfig({
+                                                ...config,
+                                                carouselSpeedSeconds: 6
+                                            })}
+                                            className="text-[10px] font-black uppercase tracking-widest bg-gray-100 text-gray-600 px-4 py-2 rounded-xl hover:bg-gray-200 transition"
+                                        >
+                                            ⏱️ Resetear Velocidad Carrusel (6s)
+                                        </button>
                                     </div>
 
                                     <div>

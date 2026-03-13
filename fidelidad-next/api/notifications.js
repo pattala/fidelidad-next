@@ -146,7 +146,20 @@ export async function sendNotificationInternal({ db, title, body: msgBody, token
     if (sendTokens.length > 0 && !(extraData?.skipPush)) {
         const PWA_URL = process.env.PWA_URL || "";
         const iconUrl = getAbsoluteUrl(data.icon, PWA_URL);
-        const message = { data: { ...data, icon: iconUrl, badge: iconUrl, image: extraData?.image ? getAbsoluteUrl(extraData.image, PWA_URL) : "" }, android: { priority: "high" }, webpush: { headers: { Urgent: "high" }, fcmOptions: { link: data.url || "/inbox" } } };
+        const message = { 
+            notification: {
+                title: data.title,
+                body: data.body
+            },
+            data: { 
+                ...data, 
+                icon: iconUrl, 
+                badge: iconUrl, 
+                image: extraData?.image ? getAbsoluteUrl(extraData.image, PWA_URL) : "" 
+            }, 
+            android: { priority: "high" }, 
+            webpush: { headers: { Urgent: "high" }, fcmOptions: { link: data.url || "/inbox" } } 
+        };
         const batches = chunkArray(sendTokens, 500);
         for (const batchTokens of batches) {
             const resp = await admin.messaging().sendEachForMulticast({ ...message, tokens: batchTokens });

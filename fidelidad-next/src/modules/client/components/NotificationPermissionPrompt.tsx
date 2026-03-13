@@ -20,10 +20,10 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
 
     const isMobileDevice = useMemo(() => {
         if (typeof window === 'undefined') return false;
-        return (
-            /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
-            (navigator.maxTouchPoints > 0 && /Macintosh/.test(navigator.userAgent))
-        );
+        const ua = navigator.userAgent;
+        const isMobileUA = /iPhone|iPad|iPod|Android/i.test(ua);
+        const isIPadOS = (navigator.maxTouchPoints > 0 && /Macintosh/.test(ua));
+        return isMobileUA || isIPadOS;
     }, []);
     const isMobile = isMobileDevice; // For this component, we care about the device type for permissions
 
@@ -127,8 +127,9 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
                 navigator.geolocation.getCurrentPosition(
                     async (pos) => {
                         const ts = TimeService.now().getTime();
+                        const prefix = isMobile ? 'mobile_' : 'pc_';
                         await updateDoc(doc(db, 'users', user.uid), {
-                            [`permissions.geolocation.status`]: 'granted',
+                            [`permissions.geolocation.${prefix}status`]: 'granted',
                             [`permissions.geolocation.updatedAt`]: ts,
                             lastLocation: { lat: pos.coords.latitude, lng: pos.coords.longitude, timestamp: new Date(ts) }
                         });
@@ -145,21 +146,6 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         }
     };
 
-    const checkGeoInternal = () => {
-        const permissions = userData?.permissions || {};
-        const safeMessaging = config?.messaging || {};
-        const geoStatus = permissions.geolocation?.status || 'pending';
-        const geoAttempts = permissions.geolocation?.mobile_dismissedCount || 0;
-        const maxMobile = safeMessaging.maxLargePromptDismissalsMobile;
-
-        if (isMobileDevice && (geoStatus === 'pending' || geoStatus === 'later' || geoStatus === 'later_phase1_complete') && 
-           (geoStatus === 'later_phase1_complete' ? true : geoAttempts < (maxMobile || 0)) &&
-           !handledSteps.includes('geolocation')) {
-            setStep('geolocation');
-        } else {
-            onPhaseEnd(true);
-        }
-    };
 
     const handleLater = async () => {
         const type = step;

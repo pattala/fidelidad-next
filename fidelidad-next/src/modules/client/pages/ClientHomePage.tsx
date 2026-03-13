@@ -139,10 +139,10 @@ export const ClientHomePage = () => {
     }, []);
     const isMobileDevice = useMemo(() => {
         if (typeof window === 'undefined') return false;
-        return (
-            /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
-            (navigator.maxTouchPoints > 0 && /Macintosh/.test(navigator.userAgent))
-        );
+        const ua = navigator.userAgent;
+        const isMobileUA = /iPhone|iPad|iPod|Android/i.test(ua);
+        const isIPadOS = (navigator.maxTouchPoints > 0 && /Macintosh/.test(ua));
+        return isMobileUA || isIPadOS;
     }, []);
     const isCondensed = useMemo(() => {
         if (typeof window === 'undefined') return false;

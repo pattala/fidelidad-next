@@ -159,10 +159,10 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const rawMax = isMobile
             ? (config?.messaging?.maxLargePromptDismissalsMobile)
             : (config?.messaging?.maxLargePromptDismissalsPC);
-        const maxAttempts = typeof rawMax === 'number' ? rawMax : parseInt(rawMax) || 2;
+        const maxAttempts = Number(rawMax) || 2;
 
         const counterKey = isMobile ? 'mobile_dismissedCount' : 'pc_dismissedCount';
-        const currentCount = userData?.permissions?.[type]?.[counterKey] || 0;
+        const currentCount = Number(userData?.permissions?.[type]?.[counterKey]) || 0;
         const newCount = currentCount + 1;
 
         console.log(`[Banner Logic] ${type} action - Current: ${currentCount}, New: ${newCount}, Max: ${maxAttempts}`);

@@ -24,9 +24,15 @@ export const useFcmToken = () => {
                 console.log('[FCM] Permission granted. Registering Service Worker...');
 
                 // Usar el Service Worker ya registrado por el plugin de PWA
-                const registration = await navigator.serviceWorker.ready;
+                console.log('[FCM] Waiting for navigator.serviceWorker.ready...');
+                const registration = await Promise.race([
+                    navigator.serviceWorker.ready,
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('SW Ready Timeout')), 10000))
+                ]) as ServiceWorkerRegistration;
+                
+                console.log('[FCM] SW Registration found:', registration.scope);
 
-                console.log('[FCM] Requesting token...');
+                console.log('[FCM] Requesting token with VAPID key...');
                 const currentToken = await getToken(messaging, {
                     vapidKey: VAPID_KEY,
                     serviceWorkerRegistration: registration

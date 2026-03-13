@@ -409,20 +409,26 @@ export const ClientHomePage = () => {
             const counterKey = isMobile ? 'mobile_dismissedCount' : 'pc_dismissedCount';
             const notifCount = permissions.notifications?.[counterKey] || 0;
             const geoCount = permissions.geolocation?.[counterKey] || 0;
-            const maxAttempts = isMobile ? (messaging.maxLargePromptDismissalsMobile || 2) : (messaging.maxLargePromptDismissalsPC || 2);
+            const maxAttempts = isMobile 
+                ? (messaging.maxLargePromptDismissalsMobile) 
+                : (messaging.maxLargePromptDismissalsPC);
 
-            // PC-Specific Session Logic
-            const isSessNotif = sessionStorage.getItem('dismissed_notif_prompt') === 'true';
-            const isSessGeo = sessionStorage.getItem('dismissed_geo_prompt') === 'true';
+            // Cooldown check
+            const notifNextPrompt = permissions.notifications?.nextPrompt || 0;
+            const isNotifCooldown = notifNextPrompt > TimeService.now().getTime();
+            
+            const geoNextPrompt = permissions.geolocation?.nextPrompt || 0;
+            const isGeoCooldown = geoNextPrompt > TimeService.now().getTime();
 
-            const canShowNotif = (notifStatus === 'pending' || notifStatus === 'later') &&
-                notifCount < maxAttempts &&
-                (!isSessNotif || isMobile);
+            const canShowNotif = (notifStatus === 'pending' || notifStatus === 'later' || notifStatus === 'later_phase1_complete') &&
+                (notifStatus === 'later_phase1_complete' ? true : notifCount < (maxAttempts || 0)) &&
+                !isNotifCooldown &&
+                (typeof Notification !== 'undefined' ? Notification.permission === 'default' : true);
 
             const canShowGeo = isMobile &&
-                (geoStatus === 'pending' || geoStatus === 'later') &&
-                geoCount < maxAttempts &&
-                (!isSessGeo || isMobile);
+                (geoStatus === 'pending' || geoStatus === 'later' || geoStatus === 'later_phase1_complete') &&
+                (geoStatus === 'later_phase1_complete' ? true : geoCount < (maxAttempts || 0)) &&
+                !isGeoCooldown;
 
             return canShowNotif || canShowGeo;
         };

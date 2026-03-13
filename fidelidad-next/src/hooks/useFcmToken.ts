@@ -23,14 +23,28 @@ export const useFcmToken = () => {
             if (Notification.permission === 'granted') {
                 console.log('[FCM] Permission granted. Registering Service Worker...');
 
-                // Usar el Service Worker ya registrado por el plugin de PWA
-                console.log('[FCM] Waiting for navigator.serviceWorker.ready...');
-                const registration = await Promise.race([
-                    navigator.serviceWorker.ready,
-                    new Promise((_, reject) => setTimeout(() => reject(new Error('SW Ready Timeout')), 10000))
-                ]) as ServiceWorkerRegistration;
+                // Registro explícito del SW unificado para asegurar que esté activo
+                console.log('[FCM] Registering Unified Service Worker (/sw.js)...');
+                const registration = await navigator.serviceWorker.register('/sw.js', {
+                    scope: '/'
+                });
+
+                // Esperar a que el SW esté activo (importante para el primer registro)
+                if (registration.installing) {
+                    console.log('[FCM] SW Installing...');
+                    await new Promise<void>((resolve) => {
+                        registration.installing?.addEventListener('statechange', (e: any) => {
+                            if (e.target.state === 'activated') resolve();
+                        });
+                        // Fallback por si ya se activó
+                        setTimeout(resolve, 5000);
+                    });
+                } else if (!registration.active) {
+                    console.log('[FCM] Waiting for SW to become active...');
+                    await navigator.serviceWorker.ready;
+                }
                 
-                console.log('[FCM] SW Registration found:', registration.scope);
+                console.log('[FCM] SW Registration Active:', registration.scope);
 
                 console.log('[FCM] Requesting token with VAPID key...');
                 const currentToken = await getToken(messaging, {

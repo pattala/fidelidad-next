@@ -23,19 +23,8 @@ export const useFcmToken = () => {
             if (Notification.permission === 'granted') {
                 console.log('[FCM] Permission granted. Registering Service Worker...');
 
-                // Registro explícito (basado en versión v2.6.0 estable)
-                const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
-                    scope: '/'
-                });
-
-                // Esperar a que el SW esté activo si está instalando
-                if (registration.installing) {
-                    await new Promise<void>((resolve) => {
-                        registration.installing?.addEventListener('statechange', (e: any) => {
-                            if (e.target.state === 'activated') resolve();
-                        });
-                    });
-                }
+                // Usar el Service Worker ya registrado por el plugin de PWA
+                const registration = await navigator.serviceWorker.ready;
 
                 console.log('[FCM] Requesting token...');
                 const currentToken = await getToken(messaging, {

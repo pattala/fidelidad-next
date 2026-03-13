@@ -17,9 +17,74 @@ clientsClaim();
 //    e impide que el handler custom (abajo) muestre la notificación.
 //    El token FCM se gestiona desde la app principal, no desde el SW.
 
-// 3. Custom Push Handler removed in favor of public/firebase-messaging-sw.js
-// This ensures that the official Firebase Messaging SDK handles background messages
-// without conflicts with the PWA caching service worker.
+// 3. Custom Push Handler (Parity with stable backup behavior)
+self.addEventListener('push', (event) => {
+    console.log('[SW Unified] Push event received');
+    const BASE_URL = self.location.origin;
+
+    let title = 'Club de Fidelidad';
+    let options: any = {
+        body: 'Tienes una novedad en tu cuenta',
+        icon: `${BASE_URL}/pwa-192x192.png`,
+        badge: `${BASE_URL}/pwa-192x192.png`,
+        vibrate: [200, 100, 200],
+        silent: false,
+        data: { url: '/inbox' }
+    };
+
+    if (event.data) {
+        try {
+            const rawData = event.data.text();
+            console.log('[SW] Raw Push Data:', rawData);
+
+            const payload = event.data.json();
+            const notification = payload.notification || {};
+            const data = payload.data || payload || {};
+
+            title = notification.title || data.title || title;
+            options.body = notification.body || data.body || options.body;
+            options.data.url = data.url || data.click_action || options.data.url;
+
+            if (data.icon && (data.icon.startsWith('http') || data.icon.startsWith('/'))) {
+                options.icon = data.icon;
+                options.badge = data.icon;
+            }
+
+            options.requireInteraction = true;
+            options.tag = data.tag || data.id || 'fidelidad-notif';
+            options.renotify = true;
+
+        } catch (e) {
+            console.error('[SW] Error parsing push data:', e);
+            options.body = event.data.text() || options.body;
+        }
+    }
+
+    event.waitUntil(
+        self.registration.showNotification(title, options)
+            .then(() => console.log('[SW] showNotification SUCCESS'))
+            .catch((err: any) => console.error('[SW] showNotification FAIL:', err))
+    );
+});
+
+// 4. Notification Click Handler
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+    const urlToOpen = new URL(event.notification.data?.url || '/inbox', self.location.origin).href;
+
+    event.waitUntil(
+        self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+            for (const client of windowClients) {
+                if (client.url === urlToOpen && 'focus' in client) {
+                    return client.focus();
+                }
+            }
+            if (self.clients.openWindow) {
+                return self.clients.openWindow(urlToOpen);
+            }
+        })
+    );
+});
 
 // 5. Caching Strategies for API/Assets
 registerRoute(

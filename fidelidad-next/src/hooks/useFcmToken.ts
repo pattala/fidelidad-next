@@ -3,69 +3,94 @@ import { getToken } from 'firebase/messaging';
 import { messaging, db, auth } from '../lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 
-const VAPID_KEY = 'BHmqZhSCc-QcEmLflzdu228dg_dkTRmUm3jRb7mQjlw05sMTioOuc_MdZg0D_u1bHtAHegsNrkRziYNQIAuwirk';
+const VAPID_KEY = 'BHmqZhSCc-QcEmLflzdu228dg_dkTRmUm3jRb7mQjIw05sMTioOuc_MdZgOD_u1bHtAHegsNrkRziYNQIAuwirk';
 
 export const useFcmToken = () => {
     const [token, setToken] = useState<string | null>(null);
-
     const isRetrieving = useRef(false);
 
     const retrieveToken = async (retryCount = 0) => {
         if (!messaging || typeof window === 'undefined' || isRetrieving.current) return;
 
         const user = auth.currentUser;
-        if (!user) return;
+        if (!user) {
+            console.log('[FCM] No user, skipping.');
+            return;
+        }
 
         isRetrieving.current = true;
         try {
             if (Notification.permission === 'granted') {
-                console.log('[FCM] Requesting token (Simple Mode)...');
-                
-                // Intentamos el método más directo posible
-                const currentToken = await getToken(messaging, { vapidKey: VAPID_KEY });
+                console.log('[FCM] Permission granted. Registering Service Worker...');
+
+                // Registro explícito (basado en versión v2.6.0 estable)
+                const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+                    scope: '/'
+                });
+
+                // Esperar a que el SW esté activo si está instalando
+                if (registration.installing) {
+                    await new Promise<void>((resolve) => {
+                        registration.installing?.addEventListener('statechange', (e: any) => {
+                            if (e.target.state === 'activated') resolve();
+                        });
+                    });
+                }
+
+                console.log('[FCM] Requesting token...');
+                const currentToken = await getToken(messaging, {
+                    vapidKey: VAPID_KEY,
+                    serviceWorkerRegistration: registration
+                });
 
                 if (currentToken) {
                     console.log('[FCM] Token Retrieved Successfully:', currentToken);
                     setToken(currentToken);
 
-                    // REGISTRO DIRECTO EN FIRESTORE (Como el Backup)
+                    // Registro directo en Firestore
                     const { updateDoc, serverTimestamp, arrayUnion } = await import('firebase/firestore');
                     const userRef = doc(db, 'users', user.uid);
-                    
+
                     await updateDoc(userRef, {
                         fcmToken: currentToken,
                         fcmTokens: arrayUnion(currentToken),
                         lastFcmUpdate: serverTimestamp(),
                         fcmState: 'registered',
+                        'permissions.notifications.status': 'granted',
                         lastActive: serverTimestamp()
-                    });
-                    
-                    console.log('[FCM] Token saved directly to Firestore.');
+                    }).catch(err => console.warn('[FCM] Firestore save error:', err));
 
+                    console.log('[FCM] Token saved directly.');
                 } else {
-                    console.log('[FCM] No token available.');
+                    console.log('[FCM] No token returned.');
                     const { updateDoc } = await import('firebase/firestore');
-                    await updateDoc(doc(db, 'users', user.uid), { fcmState: 'token_null' }).catch(() => {});
+                    await updateDoc(doc(db, 'users', user.uid), { fcmState: 'token_null' }).catch(() => { });
                 }
-            } else {
-                const { updateDoc } = await import('firebase/firestore');
-                await updateDoc(doc(db, 'users', user.uid), { fcmState: `permission_${Notification.permission}` }).catch(() => {});
+            } else if (Notification.permission === 'denied') {
+                console.log('[FCM] Permission denied.');
+                const { updateDoc, serverTimestamp } = await import('firebase/firestore');
+                await updateDoc(doc(db, 'users', user.uid), {
+                    fcmState: 'denied',
+                    'permissions.notifications.status': 'denied',
+                    lastFcmUpdate: serverTimestamp()
+                }).catch(() => { });
             }
         } catch (e: any) {
             console.error(`[FCM] Error (Attempt ${retryCount}):`, e);
-            
+
             const { updateDoc } = await import('firebase/firestore');
             await updateDoc(doc(db, 'users', user.uid), {
                 fcmState: 'client_error',
                 lastFcmError: e.message
             }).catch(() => { });
 
+            // Reintentar errores temporales o de falta de credenciales (para dar tiempo a que cargue)
             if (retryCount < 2) {
+                console.log('[FCM] Retrying in 3s...');
                 setTimeout(() => {
                     isRetrieving.current = false;
                     retrieveToken(retryCount + 1);
-                }, 2000);
-                return;
+                }, 3000);
             }
         } finally {
             isRetrieving.current = false;
@@ -79,7 +104,7 @@ export const useFcmToken = () => {
 
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible' && auth.currentUser) {
-                console.log('[FCM] App visible, re-checking token...');
+                console.log('[FCM] Visibility change: checking token');
                 retrieveToken();
             }
         };

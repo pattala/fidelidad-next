@@ -32,17 +32,17 @@ async function debugTokens() {
             console.log(`- fcmToken (primary): ${data.fcmToken ? (data.fcmToken.substring(0, 15) + '...') : 'NULL'}`);
             console.log(`- fcmTokens (array): ${data.fcmTokens ? data.fcmTokens.length : 0} tokens`);
             if (data.fcmTokens) {
-                data.fcmTokens.forEach((t, i) => console.log(`  [${i}] ${t.substring(0, 15)}...`));
+                data.fcmTokens.forEach((t, i) => console.log(`  [${i}] ${t.substring(0, 15)}... len: ${t.length}`));
             }
-            console.log(`- Notifications Config:`, JSON.stringify(data.permissions?.notifications || {}, null, 2));
             console.log(`- Mobile Status: ${data.permissions?.notifications?.mobile_status || 'N/A'}`);
             console.log(`- PC Status: ${data.permissions?.notifications?.pc_status || 'N/A'}`);
             console.log(`- Active Platforms: ${JSON.stringify(data.permissions?.notifications?.platforms || [])}`);
+            console.log(`- User Agent: ${data.permissions?.notifications?.userAgent || 'N/A'}`);
             console.log('-----------------------------------');
         });
     }
 
-    console.log('\n--- AUDITING RECENT AUDIT LOGS (Push Failures) ---');
+    console.log('\n--- AUDITING RECENT AUDIT LOGS ---');
     const logsSnap = await db.collection('audit_logs')
         .orderBy('timestamp', 'desc')
         .limit(10)
@@ -50,16 +50,14 @@ async function debugTokens() {
 
     logsSnap.forEach(doc => {
         const data = doc.data();
-        if (data.type === 'push_notification' || data.type === 'campaign_broadcast') {
+        if (data.type === 'push_notification' || data.type === 'campaign_broadcast' || data.type === 'token_registration') {
             console.log(`[${data.timestamp?.toDate?.().toLocaleTimeString()}] ${data.summary}`);
             console.log(`- Type: ${data.type} | Status: ${data.status}`);
             if (data.details && Array.isArray(data.details)) {
                 const failures = data.details.filter(d => d.success === false);
                 if (failures.length > 0) {
-                    failures.slice(0, 2).forEach(f => console.log(`  * FAIL: ${f.token.substring(0, 8)}... Code: ${f.errorCode}`));
+                    failures.slice(0, 2).forEach(f => console.log(`  * FAIL: ${f.token?.substring(0, 8)}... Code: ${f.errorCode}`));
                 }
-            } else if (data.details) {
-                 console.log(`- Details:`, JSON.stringify(data.details).substring(0, 100));
             }
             console.log('---');
         }

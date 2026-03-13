@@ -51,6 +51,7 @@ export const ClientProfilePage = () => {
                 if (dbStatus === 'pending' || dbStatus === 'later' || !dbStatus || dbStatus === 'later_phase1_complete') {
                     await updateDoc(doc(db, 'users', userAuth.uid), {
                         [`permissions.notifications.${prefix}status`]: 'granted',
+                        'permissions.notifications.status': 'granted', // Ensure global sync
                         'permissions.notifications.updatedAt': Date.now()
                     });
                 }
@@ -58,6 +59,7 @@ export const ClientProfilePage = () => {
                 const newState = browserState === 'denied' ? 'denied' : 'pending';
                 await updateDoc(doc(db, 'users', userAuth.uid), {
                     [`permissions.notifications.${prefix}status`]: newState,
+                    'permissions.notifications.status': newState, // Ensure global sync
                     'permissions.notifications.updatedAt': Date.now()
                 });
             }

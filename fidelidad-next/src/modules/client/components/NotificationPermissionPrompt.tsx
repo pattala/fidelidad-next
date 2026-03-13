@@ -119,12 +119,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
             } else {
                 await updatePermission('notifications', 'later');
             }
-            // Sequential Chain: Geo only for mobile devices
-            if (isMobileDevice) {
-                setTimeout(() => checkGeoInternal(), 600);
-            } else {
-                onPhaseEnd(true);
-            }
+            onPhaseEnd(true);
         } else if (currentStep === 'geolocation') {
             if ('geolocation' in navigator) {
                 navigator.geolocation.getCurrentPosition(
@@ -194,11 +189,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
             }
         }
 
-        if (type === 'notifications' && isMobileDevice) {
-            setTimeout(() => checkGeoInternal(), 600);
-        } else {
-            onPhaseEnd(true);
-        }
+        onPhaseEnd(true);
     };
 
     const handleNo = async () => {
@@ -208,11 +199,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         await updatePermission(type as any, 'blocked');
         toast('Entendido.', { icon: '🤝' });
 
-        if (type === 'notifications' && isMobileDevice) {
-            setTimeout(() => checkGeoInternal(), 600);
-        } else {
-            onPhaseEnd(true);
-        }
+        onPhaseEnd(true);
     };
 
     if (step === 'none') return null;

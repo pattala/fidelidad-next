@@ -419,10 +419,10 @@ export const ClientHomePage = () => {
             const notifStatus = permissions.notifications?.status || 'pending';
             const geoStatus = permissions.geolocation?.status || 'pending';
 
-            const counterKey = isMobile ? 'mobile_dismissedCount' : 'pc_dismissedCount';
+            const counterKey = isMobileDevice ? 'mobile_dismissedCount' : 'pc_dismissedCount';
             const notifCount = permissions.notifications?.[counterKey] || 0;
             const geoCount = permissions.geolocation?.[counterKey] || 0;
-            const maxAttempts = isMobile 
+            const maxAttempts = isMobileDevice 
                 ? (messaging.maxLargePromptDismissalsMobile) 
                 : (messaging.maxLargePromptDismissalsPC);
 

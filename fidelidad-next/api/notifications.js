@@ -79,8 +79,31 @@ async function handleRegisterToken(req, res, db) {
             batch.set(userRef, { fcmTokens: [cleanToken], fcmToken: cleanToken, lastFcmUpdate: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
         }
         await batch.commit();
+        // Audit registration
+        try {
+            await db.collection('audit_logs').add({
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                type: 'token_registration',
+                status: 'success',
+                summary: `Token FCM registrado para usuario: ${userId}`,
+                details: { userId, token: token.substring(0, 10) + "..." },
+                executor: 'client'
+            });
+        } catch (auditErr) { console.error("Error logging token registration:", auditErr); }
         return res.status(200).json({ ok: true, cleanedCount });
-    } catch (e) { return res.status(500).json({ ok: false, error: e.message }); }
+    } catch (e) {
+        try {
+            await db.collection('audit_logs').add({
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                type: 'token_registration',
+                status: 'error',
+                summary: `Falla registrando token para: ${userId}`,
+                details: { userId, error: e.message },
+                executor: 'client'
+            });
+        } catch (auditErr) {}
+        return res.status(500).json({ ok: false, error: e.message }); 
+    }
 }
 
 // --- SUB-HANDLER: SEND EMAIL ---

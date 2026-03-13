@@ -54,17 +54,20 @@ export const useFcmToken = () => {
                         await updateDoc(userRef, {
                             fcmToken: currentToken,
                             fcmTokens: arrayUnion(currentToken),
-                            lastFcmUpdate: serverTimestamp()
+                            lastFcmUpdate: serverTimestamp(),
+                            lastFcmError: `API registration failed: ${err.message}`
                         }).catch(() => { });
                     }
                 }
             } else if (Notification.permission === 'denied') {
+                console.warn('[FCM] Notification permission denied.');
                 const userRef = doc(db, 'users', user.uid);
                 const { updateDoc } = await import('firebase/firestore');
                 try {
                     await updateDoc(userRef, {
                         fcmToken: null,
-                        lastFcmUpdate: new Date()
+                        lastFcmUpdate: new Date(),
+                        lastFcmError: 'Notification permission denied'
                     });
                 } catch (e) {
                     // Silently fail if doc doesn't exist
@@ -72,6 +75,14 @@ export const useFcmToken = () => {
             }
         } catch (e: any) {
             console.error(`[FCM] Error (Attempt ${retryCount}):`, e);
+            if (user && retryCount === 0) {
+                const userRef = doc(db, 'users', user.uid);
+                const { updateDoc } = await import('firebase/firestore');
+                await updateDoc(userRef, {
+                    lastFcmError: `FCM client error: ${e.message}`,
+                    lastFcmErrorTs: new Date()
+                }).catch(() => { });
+            }
 
             const isIdbError = e?.message?.includes('database connection is closing') ||
                 e?.code?.includes('indexeddb') ||
@@ -111,6 +122,17 @@ export const useFcmToken = () => {
         return () => {
             unsubscribe();
             document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, []);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            (window as any).retrieveToken = retrieveToken;
+        }
+        return () => {
+            if (typeof window !== 'undefined') {
+                delete (window as any).retrieveToken;
+            }
         };
     }, []);
 

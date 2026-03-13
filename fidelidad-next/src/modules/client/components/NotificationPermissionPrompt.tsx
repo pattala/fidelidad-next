@@ -140,6 +140,10 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
                 await updatePermission('notifications', 'granted');
                 toast.success('¡Activado!');
                 onNotificationGranted();
+                // Direct call to retrieveToken for faster registration in standalone/standalone
+                if (typeof (window as any).retrieveToken === 'function') {
+                    (window as any).retrieveToken();
+                }
                 moveToNextOrEnd('notifications');
             } else {
                 await updatePermission('notifications', 'later');

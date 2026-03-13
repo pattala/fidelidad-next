@@ -34,12 +34,15 @@ self.addEventListener('push', (event) => {
 
     if (event.data) {
         try {
+            const rawData = event.data.text();
+            console.log('[SW] Raw Push Data:', rawData);
+
             const payload = event.data.json();
             console.log('[SW] Payload JSON:', payload);
 
             // FCM manda la info en 'data' si es modo data-only, 
             // o en 'notification' si es modo tradicional.
-            const data = payload.notification || payload.data || payload || {};
+            const data = payload.data || payload || {};
             const notification = payload.notification || {};
 
             title = data.title || notification.title || title;

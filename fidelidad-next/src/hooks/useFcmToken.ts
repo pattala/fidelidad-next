@@ -3,7 +3,7 @@ import { getToken } from 'firebase/messaging';
 import { messaging, db, auth } from '../lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 
-const VAPID_KEY = 'BHmqZhSCc-QcEmLflzdu228dg_dkTRmUm3jRb7mQjlw05sMTioOuc_MdZg0D_u1bHtAHegsNrkRziYNQIAuwirk';
+const VAPID_KEY = 'BHmqZhSCc-QcEmLflzdu228dg_dkTRmUm3jRb7mQjIw05sMTioOuc_MdZgOD_u1bHtAHegsNrkRziYNQIAuwirk';
 
 export const useFcmToken = () => {
     const [token, setToken] = useState<string | null>(null);
@@ -33,18 +33,25 @@ export const useFcmToken = () => {
                 if (registration.installing) {
                     console.log('[FCM] SW Installing...');
                     await new Promise<void>((resolve) => {
-                        registration.installing?.addEventListener('statechange', (e: any) => {
-                            if (e.target.state === 'activated') resolve();
-                        });
-                        // Fallback por si ya se activó
+                        const sw = registration.installing;
+                        if (!sw) return resolve();
+                        const stateChangeListener = () => {
+                            if (sw.state === 'activated') {
+                                sw.removeEventListener('statechange', stateChangeListener);
+                                resolve();
+                            }
+                        };
+                        sw.addEventListener('statechange', stateChangeListener);
+                        // Fallback por si ya se activó o tarda demasiado
                         setTimeout(resolve, 5000);
                     });
-                } else if (!registration.active) {
-                    console.log('[FCM] Waiting for SW to become active...');
-                    await navigator.serviceWorker.ready;
+                } else if (registration.waiting) {
+                    console.log('[FCM] SW waiting. skipWaiting() should handle this.');
                 }
                 
-                console.log('[FCM] SW Registration Active:', registration.scope);
+                // Asegurar readiness final
+                await navigator.serviceWorker.ready;
+                console.log('[FCM] SW Registration Active & Ready.');
 
                 console.log('[FCM] Requesting token with VAPID key...');
                 const currentToken = await getToken(messaging, {

@@ -45,8 +45,12 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
 
         // If it's a "phase 1 complete" (reached max attempts), we can also set a long-term nextPrompt or just leave it
         if (status === 'later_phase1_complete') {
-            const intervalDays = config?.messaging?.notificationPromptIntervalDays || 30;
-            updateData[`permissions.${type}.nextPrompt`] = TimeService.now().getTime() + (intervalDays * 24 * 60 * 60 * 1000);
+            const intervalDays = config?.messaging?.notificationPromptIntervalDays;
+            if (intervalDays) {
+                updateData[`permissions.${type}.nextPrompt`] = TimeService.now().getTime() + (intervalDays * 24 * 60 * 60 * 1000);
+            }
+            // Reset counter for the next cycle
+            updateData[`permissions.${type}.${counterKey}`] = 0;
         }
 
         try {
@@ -67,13 +71,13 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const notifStatus = permissions.notifications?.status || 'pending';
         const counterKey = isMobile ? 'mobile_dismissedCount' : 'pc_dismissedCount';
         const notifAttempts = permissions.notifications?.[counterKey] || 0;
-        const maxAttempts = isMobile ? (safeMessaging.maxLargePromptDismissalsMobile || 2) : (safeMessaging.maxLargePromptDismissalsPC || 2);
+        const maxAttempts = isMobile ? (safeMessaging.maxLargePromptDismissalsMobile) : (safeMessaging.maxLargePromptDismissalsPC);
         const notifNextPrompt = permissions.notifications?.nextPrompt || 0;
 
         const isCooldownActive = notifNextPrompt > TimeService.now().getTime();
 
-        const canShowNotif = (notifStatus === 'pending' || notifStatus === 'later') &&
-            notifAttempts < maxAttempts &&
+        const canShowNotif = (notifStatus === 'pending' || notifStatus === 'later' || notifStatus === 'later_phase1_complete') &&
+            (notifStatus === 'later_phase1_complete' ? true : notifAttempts < (maxAttempts || 0)) &&
             !isCooldownActive &&
             browserNotifState === 'default';
 
@@ -87,8 +91,8 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
             const isGeoCooldown = geoNextPrompt > TimeService.now().getTime();
             
             const canShowGeo = isMobile &&
-                (geoStatus === 'pending' || geoStatus === 'later') &&
-                geoAttempts < (safeMessaging.maxLargePromptDismissalsMobile || 2) &&
+                (geoStatus === 'pending' || geoStatus === 'later' || geoStatus === 'later_phase1_complete') &&
+                (geoStatus === 'later_phase1_complete' ? true : geoAttempts < (safeMessaging.maxLargePromptDismissalsMobile || 0)) &&
                 !isGeoCooldown;
 
             if (canShowGeo) {
@@ -141,9 +145,10 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const safeMessaging = config?.messaging || {};
         const geoStatus = permissions.geolocation?.status || 'pending';
         const geoAttempts = permissions.geolocation?.mobile_dismissedCount || 0;
-        const maxMobile = safeMessaging.maxLargePromptDismissalsMobile || 2;
+        const maxMobile = safeMessaging.maxLargePromptDismissalsMobile;
 
-        if (isMobile && (geoStatus === 'pending' || geoStatus === 'later') && geoAttempts < maxMobile) {
+        if (isMobile && (geoStatus === 'pending' || geoStatus === 'later' || geoStatus === 'later_phase1_complete') && 
+           (geoStatus === 'later_phase1_complete' ? true : geoAttempts < (maxMobile || 0))) {
             setStep('geolocation');
         } else {
             onPhaseEnd(true);
@@ -155,23 +160,27 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         setStep('none');
 
         const maxAttempts = isMobile
-            ? (config?.messaging?.maxLargePromptDismissalsMobile || 2)
-            : (config?.messaging?.maxLargePromptDismissalsPC || 2);
+            ? (config?.messaging?.maxLargePromptDismissalsMobile)
+            : (config?.messaging?.maxLargePromptDismissalsPC);
 
         const counterKey = isMobile ? 'mobile_dismissedCount' : 'pc_dismissedCount';
         const currentCount = userData?.permissions?.[type]?.[counterKey] || 0;
         const newCount = currentCount + 1;
 
-        if (newCount >= maxAttempts) {
-            const intervalDays = config?.messaging?.notificationPromptIntervalDays || 30;
+        if (maxAttempts && newCount >= maxAttempts) {
+            const intervalDays = config?.messaging?.notificationPromptIntervalDays;
             await updatePermission(type as any, 'later_phase1_complete');
-            toast(`Entendido. Te consultaremos en ${intervalDays} días o puedes activarlo desde tu perfil.`, { icon: '🤝', duration: 5000 });
+            if (intervalDays) {
+                toast(`Entendido. Te consultaremos en ${intervalDays} días o puedes activarlo desde tu perfil.`, { icon: '🤝', duration: 5000 });
+            } else {
+                toast(`Entendido. Puedes activarlo desde tu perfil.`, { icon: '🤝', duration: 5000 });
+            }
         } else {
-            const cooldownHours = isMobile ? (config?.messaging?.mobileCooldownHours || 24) : 0;
-            const nextPrompt = TimeService.now().getTime() + (cooldownHours * 60 * 60 * 1000);
+            const cooldownHours = isMobile ? (config?.messaging?.mobileCooldownHours) : 0;
+            const nextPrompt = TimeService.now().getTime() + ((cooldownHours || 0) * 60 * 60 * 1000);
             await updatePermission(type as any, 'later', { nextPrompt });
-            if (isMobile && cooldownHours > 0) {
-                toast(`Entendido. Te consultaremos en ${cooldownHours}hs.`, { icon: '🤝' });
+            if (isMobile && cooldownHours && cooldownHours > 0) {
+                toast(`Entendido. Te consultaremos en ${Math.floor(cooldownHours)}hs.`, { icon: '🤝' });
             }
         }
 
@@ -222,8 +231,8 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
                                 const counterKey = isMobile ? 'mobile_dismissedCount' : 'pc_dismissedCount';
                                 const type = step === 'geolocation' ? 'geolocation' : 'notifications';
                                 const current = (permissions[type]?.[counterKey] || 0) + 1;
-                                const max = isMobile ? (safeMessaging.maxLargePromptDismissalsMobile || 2) : (safeMessaging.maxLargePromptDismissalsPC || 2);
-                                return `Oportunidad ${current} de ${max}`;
+                                const max = isMobile ? (safeMessaging.maxLargePromptDismissalsMobile) : (safeMessaging.maxLargePromptDismissalsPC);
+                                return `Oportunidad ${current} de ${max || '-'}`;
                             })()}
                         </span>
                     </div>

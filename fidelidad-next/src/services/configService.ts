@@ -58,6 +58,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
         enableClientTrigger: true,
         enableExtensionTrigger: true,
         enableQStashTrigger: true,
+        mobileCooldownHours: 24,
         notificationPromptIntervalDays: 30,
         enableLargePrompt: true,
         maxLargePromptDismissalsPC: 2,

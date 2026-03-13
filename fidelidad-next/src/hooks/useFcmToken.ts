@@ -18,10 +18,15 @@ export const useFcmToken = () => {
             return;
         }
 
+        // Platform Detection
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || 
+                         (navigator.maxTouchPoints > 0 && /Macintosh/.test(navigator.userAgent));
+        const platform = isMobile ? 'mobile' : 'pc';
+
         isRetrieving.current = true;
         try {
             if (Notification.permission === 'granted') {
-                console.log('[FCM] Permission granted. Registering Service Worker...');
+                console.log(`[FCM] Permission granted (${platform}). Registering Service Worker...`);
 
                 // Registro explícito del SW unificado para asegurar que esté activo
                 console.log('[FCM] Registering Unified Service Worker (/sw.js)...');
@@ -67,16 +72,22 @@ export const useFcmToken = () => {
                     const { updateDoc, serverTimestamp, arrayUnion } = await import('firebase/firestore');
                     const userRef = doc(db, 'users', user.uid);
 
+                    // Update platform-specific status and unified status
+                    const prefix = isMobile ? 'mobile_' : 'pc_';
+                    
                     await updateDoc(userRef, {
                         fcmToken: currentToken,
                         fcmTokens: arrayUnion(currentToken),
                         lastFcmUpdate: serverTimestamp(),
                         fcmState: 'registered',
+                        [`permissions.notifications.${prefix}status`]: 'granted',
                         'permissions.notifications.status': 'granted',
+                        // Maintain a list of active platforms for the dashboard
+                        [`permissions.notifications.platforms`]: arrayUnion(platform),
                         lastActive: serverTimestamp()
                     }).catch(err => console.warn('[FCM] Firestore save error:', err));
 
-                    console.log('[FCM] Token saved directly.');
+                    console.log(`[FCM] Token saved for platform: ${platform}`);
                 } else {
                     console.log('[FCM] No token returned.');
                     const { updateDoc } = await import('firebase/firestore');
@@ -85,8 +96,10 @@ export const useFcmToken = () => {
             } else if (Notification.permission === 'denied') {
                 console.log('[FCM] Permission denied.');
                 const { updateDoc, serverTimestamp } = await import('firebase/firestore');
+                const prefix = isMobile ? 'mobile_' : 'pc_';
                 await updateDoc(doc(db, 'users', user.uid), {
                     fcmState: 'denied',
+                    [`permissions.notifications.${prefix}status`]: 'denied',
                     'permissions.notifications.status': 'denied',
                     lastFcmUpdate: serverTimestamp()
                 }).catch(() => { });

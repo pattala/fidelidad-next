@@ -174,44 +174,58 @@ export const ClientProfilePage = () => {
 
     const { retrieveToken } = useFcmToken();
 
+    // Optimistic state for toggles
+    const [localPermissions, setLocalPermissions] = useState<{ [key: string]: string }>({});
+
     const handleTogglePermission = async (type: 'notifications' | 'geolocation') => {
         if (!userAuth || !userData) return;
 
         const prefix = isMobileDevice ? 'mobile_' : 'pc_';
-        const currentStatus = userData.permissions?.[type]?.[`${prefix}status`];
+        const currentStatus = localPermissions[type] || userData.permissions?.[type]?.[`${prefix}status`] || 'pending';
         const newStatus = currentStatus === 'granted' ? 'denied' : 'granted';
 
-        // If trying to grant, we should probably ask browser again
-        if (newStatus === 'granted') {
-            if (type === 'notifications') {
-                const p = await Notification.requestPermission();
-                if (p !== 'granted') {
-                    toast.error("Permiso bloqueado en el navegador");
-                    return;
-                }
-                // Register token immediately
-                await retrieveToken();
-            } else {
-                // simple check for geo
-                const p = await new Promise((resolve) => {
-                    navigator.geolocation.getCurrentPosition(() => resolve('granted'), () => resolve('denied'));
-                });
-                if (p !== 'granted') {
-                    toast.error("Permiso de ubicación denegado");
-                    return;
+        // 1. Update LOCAL UI immediately (Optimistic)
+        setLocalPermissions(prev => ({ ...prev, [type]: newStatus }));
+
+        // 2. Perform background actions
+        const performAsync = async () => {
+            if (newStatus === 'granted') {
+                if (type === 'notifications') {
+                    const p = await Notification.requestPermission();
+                    if (p !== 'granted') {
+                        toast.error("Permiso bloqueado en el navegador");
+                        setLocalPermissions(prev => ({ ...prev, [type]: 'denied' }));
+                        return;
+                    }
+                    // Register token immediately in background
+                    retrieveToken(); 
+                } else {
+                    const p = await new Promise((resolve) => {
+                        navigator.geolocation.getCurrentPosition(() => resolve('granted'), () => resolve('denied'));
+                    });
+                    if (p !== 'granted') {
+                        toast.error("Permiso de ubicación denegado");
+                        setLocalPermissions(prev => ({ ...prev, [type]: 'denied' }));
+                        return;
+                    }
                 }
             }
-        }
 
-        try {
-            await updateDoc(doc(db, 'users', userAuth.uid), {
-                [`permissions.${type}.${prefix}status`]: newStatus,
-                [`permissions.${type}.status`]: newStatus // Unified for Dashboard
-            });
-            toast.success(`${type === 'notifications' ? 'Notificaciones' : 'Ubicación'} ${newStatus === 'granted' ? 'activadas' : 'desactivadas'}`);
-        } catch (e) {
-            console.error(e);
-        }
+            try {
+                await updateDoc(doc(db, 'users', userAuth.uid), {
+                    [`permissions.${type}.${prefix}status`]: newStatus,
+                    [`permissions.${type}.status`]: newStatus,
+                    [`permissions.${type}.updatedAt`]: Date.now()
+                });
+                toast.success(`${type === 'notifications' ? 'Notificaciones' : 'Ubicación'} ${newStatus === 'granted' ? 'activadas' : 'desactivadas'}`);
+            } catch (e) {
+                console.error(e);
+                setLocalPermissions(prev => ({ ...prev, [type]: currentStatus })); // Rollback on error
+                toast.error("Error al actualizar permisos");
+            }
+        };
+
+        performAsync();
     };
 
     if (!userData) return <div className="p-10 text-center animate-pulse">Cargando perfil...</div>;
@@ -330,9 +344,9 @@ export const ClientProfilePage = () => {
                         </div>
                         <button
                             onClick={() => handleTogglePermission('notifications')}
-                            className={`w-12 h-6 rounded-full p-1 transition-colors ${userData.permissions?.notifications?.[`${isMobileDevice ? 'mobile_' : 'pc_'}status`] === 'granted' ? 'bg-green-500' : 'bg-gray-300'}`}
+                            className={`w-12 h-6 rounded-full p-1 transition-colors ${(localPermissions.notifications || userData.permissions?.notifications?.[`${isMobileDevice ? 'mobile_' : 'pc_'}status`]) === 'granted' ? 'bg-green-500' : 'bg-gray-300'}`}
                         >
-                            <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${userData.permissions?.notifications?.[`${isMobileDevice ? 'mobile_' : 'pc_'}status`] === 'granted' ? 'translate-x-6' : ''}`}></div>
+                            <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${(localPermissions.notifications || userData.permissions?.notifications?.[`${isMobileDevice ? 'mobile_' : 'pc_'}status`]) === 'granted' ? 'translate-x-6' : ''}`}></div>
                         </button>
                     </div>
 
@@ -348,9 +362,9 @@ export const ClientProfilePage = () => {
                         </div>
                         <button
                             onClick={() => handleTogglePermission('geolocation')}
-                            className={`w-12 h-6 rounded-full p-1 transition-colors ${userData.permissions?.geolocation?.[`${isMobileDevice ? 'mobile_' : 'pc_'}status`] === 'granted' ? 'bg-green-500' : 'bg-gray-300'}`}
+                            className={`w-12 h-6 rounded-full p-1 transition-colors ${(localPermissions.geolocation || userData.permissions?.geolocation?.[`${isMobileDevice ? 'mobile_' : 'pc_'}status`]) === 'granted' ? 'bg-green-500' : 'bg-gray-300'}`}
                         >
-                            <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${userData.permissions?.geolocation?.[`${isMobileDevice ? 'mobile_' : 'pc_'}status`] === 'granted' ? 'translate-x-6' : ''}`}></div>
+                            <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${(localPermissions.geolocation || userData.permissions?.geolocation?.[`${isMobileDevice ? 'mobile_' : 'pc_'}status`]) === 'granted' ? 'translate-x-6' : ''}`}></div>
                         </button>
                     </div>
                 </div>

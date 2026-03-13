@@ -37,6 +37,7 @@ export interface Client {
             nextPrompt: number;
             pc_dismissedCount?: number;
             mobile_dismissedCount?: number;
+            platforms?: string[];
         };
         geolocation?: {
             status: string;

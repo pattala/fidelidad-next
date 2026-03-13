@@ -4,6 +4,7 @@ import { TimeService } from './timeService';
 import { NotificationService } from './notificationService';
 import { DEFAULT_TEMPLATES } from './configService';
 import toast from 'react-hot-toast';
+import { PhoneUtils } from '../utils/phoneUtils';
 
 export const BirthdayService = {
     async checkAndProcessBirthday(uid: string, userData: any, config: any) {
@@ -185,7 +186,7 @@ export const BirthdayService = {
             // WhatsApp link (Siempre se genera si hay teléfono)
             const phone = userData.phone || userData.telefono;
             if (phone) {
-                const cleanPhone = phone.replace(/\D/g, '');
+                const cleanPhone = PhoneUtils.formatForWhatsApp(phone);
                 if (cleanPhone) whatsappLink = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msg)}`;
             }
 

@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import {
     Users, Plus, Search, Filter, Mail, Phone, MapPin, Check, Bell, Coins, History,
     Shield, ArrowRight, Download, Edit2, Trash2, X, ChevronRight, Gift, Sparkles, Cake,
-    FileDown, MessageCircle, Edit, TrendingUp
+    FileDown, MessageCircle, Edit, TrendingUp, Monitor, Smartphone
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { collection, addDoc, getDocs, query, orderBy, doc, deleteDoc, updateDoc, increment, runTransaction, arrayUnion, where, setDoc, collectionGroup, onSnapshot, serverTimestamp } from 'firebase/firestore';
@@ -23,6 +23,7 @@ import { AuditService } from '../../../services/auditService';
 
 import { ARGENTINA_LOCATIONS } from '../../../data/locations'; // Import added
 import { useAdminAuth } from '../contexts/AdminAuthContext';
+import { PhoneUtils } from '../../../utils/phoneUtils';
 
 const INITIAL_CLIENT_STATE = {
     name: '',
@@ -490,8 +491,8 @@ export const ClientsPage = () => {
                     .replace(/{siteName}/g, freshConfig?.siteName || 'nuestro Club');
 
                 if (formData.phone && sendWelcomeWa) {
-                    const cleanPhone = formData.phone.replace(/\D/g, '');
-                    if (cleanPhone.length > 5) {
+                    const cleanPhone = PhoneUtils.formatForWhatsApp(formData.phone);
+                    if (cleanPhone) {
                         const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(welcomeMsg.trim())}`;
                         setTimeout(() => {
                             const link = document.createElement('a');
@@ -953,6 +954,18 @@ export const ClientsPage = () => {
                                             <div className="flex flex-col items-center gap-1" title={`Notificaciones: ${client.permissions?.notifications?.status === 'granted' ? (client.fcmToken ? 'Activas (Con Token)' : 'Permiso concedido pero falta registrar Token') : 'Pendiente/Denegado'}`}>
                                                 <div className={`p-1.5 rounded-md ${(client.permissions?.notifications?.status === 'granted' && client.fcmToken) ? 'text-purple-600 bg-purple-50 border border-purple-100 shadow-sm' : 'text-gray-300 bg-gray-50'}`}>
                                                     <Bell size={14} />
+                                                </div>
+                                                <div className="flex gap-1 h-2">
+                                                    {client.permissions?.notifications?.platforms?.includes('pc') && (
+                                                        <div title="Activo en PC">
+                                                            <Monitor size={8} className="text-indigo-400" />
+                                                        </div>
+                                                    )}
+                                                    {client.permissions?.notifications?.platforms?.includes('mobile') && (
+                                                        <div title="Activo en Celular">
+                                                            <Smartphone size={8} className="text-purple-400" />
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <span className={`text-[7px] font-black uppercase ${client.permissions?.notifications?.status === 'granted' ? 'text-purple-600' : (client.permissions?.notifications?.status === 'blocked' ? 'text-red-400' : 'text-gray-300')}`}>
                                                     {(() => {

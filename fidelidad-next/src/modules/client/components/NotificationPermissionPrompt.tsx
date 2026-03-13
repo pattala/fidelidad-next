@@ -169,23 +169,33 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
 
         if (newCount >= maxAttempts) {
             const rawInterval = config?.messaging?.notificationPromptIntervalDays;
-            const intervalDays = typeof rawInterval === 'number' ? rawInterval : parseInt(rawInterval) || 30;
+            const intervalDays = Number(rawInterval) || 30;
             
             await updatePermission(type as any, 'later_phase1_complete');
             
+            // Text change to verify it's the new version
             if (intervalDays > 0) {
-                toast(`Entendido. Te consultaremos en ${intervalDays} días o puedes activarlo desde tu perfil.`, { icon: '🤝', duration: 5000 });
+                toast(`Entendido. Agendamos una nueva consulta para dentro de ${intervalDays} días.`, { icon: '🤝', duration: 5000 });
             } else {
-                toast(`Entendido. Te consultaremos próximamente o puedes activarlo desde tu perfil.`, { icon: '🤝', duration: 5000 });
+                toast(`Entendido. Te consultaremos nuevamente en el futuro.`, { icon: '🤝', duration: 5000 });
             }
         } else {
             const rawCooldown = isMobile ? (config?.messaging?.mobileCooldownHours) : 0;
-            const cooldownHours = typeof rawCooldown === 'number' ? rawCooldown : parseFloat(rawCooldown) || 24;
+            const cooldownHours = Number(rawCooldown) || 24;
             
-            const nextPrompt = TimeService.now().getTime() + ((cooldownHours || 0) * 60 * 60 * 1000);
+            const nextPrompt = TimeService.now().getTime() + (cooldownHours * 60 * 60 * 1000);
             await updatePermission(type as any, 'later', { nextPrompt });
-            if (isMobileDevice && cooldownHours && cooldownHours > 0) {
-                toast(`Entendido. Te consultaremos en ${Math.floor(cooldownHours)}hs.`, { icon: '🤝' });
+
+            if (isMobileDevice && cooldownHours > 0) {
+                let timeText = "";
+                if (cooldownHours < 1/60) {
+                    timeText = `${Math.ceil(cooldownHours * 3600)} segundos`;
+                } else if (cooldownHours < 1) {
+                    timeText = `${Math.ceil(cooldownHours * 60)} minutos`;
+                } else {
+                    timeText = `${Math.floor(cooldownHours)}hs`;
+                }
+                toast(`Entendido. Volveremos a preguntar en ${timeText}.`, { icon: '🤝' });
             }
         }
 

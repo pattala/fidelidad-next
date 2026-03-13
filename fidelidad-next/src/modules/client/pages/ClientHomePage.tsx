@@ -391,11 +391,7 @@ export const ClientHomePage = () => {
         const permissions = userData.permissions || {};
         const messaging = config.messaging || {};
 
-        // 0. SESSION GUARD (Prevent re-shows in the SAME visit after dismissal)
-        if (sessionStorage.getItem(`pwa_banner_dismissed_${user.uid}`)) {
-            if (activeBannerPhase !== 'none') setActiveBannerPhase('none');
-            return;
-        }
+        // (pwa_banner_dismissed guard removed to allow multiple attempts per visit if cooldown permits)
 
         // 1. COOLDOWN CHECK (Smarter Cooldown for Handhelds)
         if (isMobileDevice) {
@@ -483,10 +479,6 @@ export const ClientHomePage = () => {
                     onNotificationGranted={handlePermissionGranted}
                     onPhaseEnd={(triggerCooldown) => {
                         handleInteraction(triggerCooldown);
-                        // Mark dismissal in session to prevent loops/re-shows in this VISIT
-                        if (user) {
-                            sessionStorage.setItem(`pwa_banner_dismissed_${user.uid}`, 'true');
-                        }
                         setActiveBannerPhase('none');
                     }}
                 />

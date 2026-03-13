@@ -21,6 +21,14 @@ export const ClientProfilePage = () => {
         setHeaderTitle: (title: string | null) => void
     }>();
 
+    const isMobileDevice = React.useMemo(() => {
+        if (typeof window === 'undefined') return false;
+        return (
+            /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
+            (navigator.maxTouchPoints > 0 && /Macintosh/.test(navigator.userAgent))
+        );
+    }, []);
+
     // Set Header State
     useEffect(() => {
         setHeaderTitle('Perfil');
@@ -34,21 +42,22 @@ export const ClientProfilePage = () => {
     useEffect(() => {
         const syncReality = async () => {
             if (!userData || !userAuth || !config) return;
+            const prefix = isMobileDevice ? 'mobile_' : 'pc_';
             const browserState = typeof Notification !== 'undefined' ? Notification.permission : 'default';
-            const dbStatus = userData.permissions?.notifications?.status;
+            const dbStatus = userData.permissions?.notifications?.[`${prefix}status`];
 
             if (browserState === 'granted' && dbStatus !== 'granted') {
                 // SOLO sincronizar a 'granted' si NO está en 'denied' o 'blocked' (manual del usuario)
                 if (dbStatus === 'pending' || dbStatus === 'later' || !dbStatus || dbStatus === 'later_phase1_complete') {
                     await updateDoc(doc(db, 'users', userAuth.uid), {
-                        'permissions.notifications.status': 'granted',
+                        [`permissions.notifications.${prefix}status`]: 'granted',
                         'permissions.notifications.updatedAt': Date.now()
                     });
                 }
             } else if (browserState !== 'granted' && dbStatus === 'granted') {
                 const newState = browserState === 'denied' ? 'denied' : 'pending';
                 await updateDoc(doc(db, 'users', userAuth.uid), {
-                    'permissions.notifications.status': newState,
+                    [`permissions.notifications.${prefix}status`]: newState,
                     'permissions.notifications.updatedAt': Date.now()
                 });
             }
@@ -168,7 +177,8 @@ export const ClientProfilePage = () => {
     const handleTogglePermission = async (type: 'notifications' | 'geolocation') => {
         if (!userAuth || !userData) return;
 
-        const currentStatus = userData.permissions?.[type]?.status;
+        const prefix = isMobileDevice ? 'mobile_' : 'pc_';
+        const currentStatus = userData.permissions?.[type]?.[`${prefix}status`];
         const newStatus = currentStatus === 'granted' ? 'denied' : 'granted';
 
         // If trying to grant, we should probably ask browser again
@@ -195,7 +205,7 @@ export const ClientProfilePage = () => {
 
         try {
             await updateDoc(doc(db, 'users', userAuth.uid), {
-                [`permissions.${type}.status`]: newStatus
+                [`permissions.${type}.${prefix}status`]: newStatus
             });
             toast.success(`${type === 'notifications' ? 'Notificaciones' : 'Ubicación'} ${newStatus === 'granted' ? 'activadas' : 'desactivadas'}`);
         } catch (e) {
@@ -319,9 +329,9 @@ export const ClientProfilePage = () => {
                         </div>
                         <button
                             onClick={() => handleTogglePermission('notifications')}
-                            className={`w-12 h-6 rounded-full p-1 transition-colors ${userData.permissions?.notifications?.status === 'granted' ? 'bg-green-500' : 'bg-gray-300'}`}
+                            className={`w-12 h-6 rounded-full p-1 transition-colors ${userData.permissions?.notifications?.[`${isMobileDevice ? 'mobile_' : 'pc_'}status`] === 'granted' ? 'bg-green-500' : 'bg-gray-300'}`}
                         >
-                            <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${userData.permissions?.notifications?.status === 'granted' ? 'translate-x-6' : ''}`}></div>
+                            <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${userData.permissions?.notifications?.[`${isMobileDevice ? 'mobile_' : 'pc_'}status`] === 'granted' ? 'translate-x-6' : ''}`}></div>
                         </button>
                     </div>
 
@@ -337,9 +347,9 @@ export const ClientProfilePage = () => {
                         </div>
                         <button
                             onClick={() => handleTogglePermission('geolocation')}
-                            className={`w-12 h-6 rounded-full p-1 transition-colors ${userData.permissions?.geolocation?.status === 'granted' ? 'bg-green-500' : 'bg-gray-300'}`}
+                            className={`w-12 h-6 rounded-full p-1 transition-colors ${userData.permissions?.geolocation?.[`${isMobileDevice ? 'mobile_' : 'pc_'}status`] === 'granted' ? 'bg-green-500' : 'bg-gray-300'}`}
                         >
-                            <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${userData.permissions?.geolocation?.status === 'granted' ? 'translate-x-6' : ''}`}></div>
+                            <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${userData.permissions?.geolocation?.[`${isMobileDevice ? 'mobile_' : 'pc_'}status`] === 'granted' ? 'translate-x-6' : ''}`}></div>
                         </button>
                     </div>
                 </div>

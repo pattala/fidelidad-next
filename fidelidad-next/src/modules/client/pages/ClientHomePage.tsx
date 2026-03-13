@@ -416,8 +416,9 @@ export const ClientHomePage = () => {
         const checkPhase1 = () => {
             if (messaging.enableLargePrompt === false) return false;
 
-            const notifStatus = permissions.notifications?.status || 'pending';
-            const geoStatus = permissions.geolocation?.status || 'pending';
+            const prefix = isMobileDevice ? 'mobile_' : 'pc_';
+            const notifStatus = permissions.notifications?.[`${prefix}status`] || 'pending';
+            const geoStatus = permissions.geolocation?.[`${prefix}status`] || 'pending';
 
             const counterKey = isMobileDevice ? 'mobile_dismissedCount' : 'pc_dismissedCount';
             const notifCount = permissions.notifications?.[counterKey] || 0;
@@ -427,10 +428,10 @@ export const ClientHomePage = () => {
                 : (messaging.maxLargePromptDismissalsPC);
 
             // Cooldown check
-            const notifNextPrompt = permissions.notifications?.nextPrompt || 0;
+            const notifNextPrompt = permissions.notifications?.[`${prefix}nextPrompt`] || 0;
             const isNotifCooldown = notifNextPrompt > TimeService.now().getTime();
             
-            const geoNextPrompt = permissions.geolocation?.nextPrompt || 0;
+            const geoNextPrompt = permissions.geolocation?.[`${prefix}nextPrompt`] || 0;
             const isGeoCooldown = geoNextPrompt > TimeService.now().getTime();
 
             const browserState = typeof Notification !== 'undefined' ? Notification.permission : 'denied';

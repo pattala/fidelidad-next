@@ -66,66 +66,84 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         }
     };
 
-    // 0. Initial Logic: Decide whether to start with Notif or Geo
-    useEffect(() => {
-        if (!userData || !user || !config) return;
-
+    // --- HELPERS FOR FLOW ---
+    const checkNextStep = (currentHandled: string[]) => {
+        if (!userData || !config) return 'none';
         const permissions = userData.permissions || {};
         const safeMessaging = config?.messaging || {};
         const prefix = isMobile ? 'mobile_' : 'pc_';
+        const counterKey = isMobile ? 'mobile_dismissedCount' : 'pc_dismissedCount';
 
+        // 1. Notif Check
         const browserNotifState = typeof Notification !== 'undefined' ? Notification.permission : 'denied';
         const notifStatus = permissions.notifications?.[`${prefix}status`] || 'pending';
-        const counterKey = isMobile ? 'mobile_dismissedCount' : 'pc_dismissedCount';
         const notifAttempts = permissions.notifications?.[counterKey] || 0;
-        const maxAttempts = isMobile ? (safeMessaging.maxLargePromptDismissalsMobile) : (safeMessaging.maxLargePromptDismissalsPC);
+        const maxNotif = isMobile ? (safeMessaging.maxLargePromptDismissalsMobile) : (safeMessaging.maxLargePromptDismissalsPC);
         const notifNextPrompt = permissions.notifications?.[`${prefix}nextPrompt`] || 0;
-
-        const isCooldownActive = notifNextPrompt > TimeService.now().getTime();
+        const isNotifCooldown = notifNextPrompt > TimeService.now().getTime();
 
         const canShowNotif = (notifStatus === 'pending' || notifStatus === 'later' || notifStatus === 'later_phase1_complete') &&
-            (notifStatus === 'later_phase1_complete' ? true : notifAttempts < (maxAttempts ?? 2)) &&
-            !isCooldownActive &&
+            (notifStatus === 'later_phase1_complete' ? true : notifAttempts < (Number(maxNotif) || 2)) &&
+            !isNotifCooldown &&
             browserNotifState === 'default' &&
-            !handledSteps.includes('notifications');
+            !currentHandled.includes('notifications');
 
-        if (canShowNotif) {
-            setStep('notifications');
+        if (canShowNotif) return 'notifications';
+
+        // 2. Geo Check
+        const geoStatus = permissions.geolocation?.[`${prefix}status`] || 'pending';
+        const geoAttempts = permissions.geolocation?.[counterKey] || 0;
+        const geoNextPrompt = permissions.geolocation?.[`${prefix}nextPrompt`] || 0;
+        const isGeoCooldown = geoNextPrompt > TimeService.now().getTime();
+        const maxGeo = safeMessaging.maxLargePromptDismissalsMobile;
+        
+        const canShowGeo = isMobile &&
+            (geoStatus === 'pending' || geoStatus === 'later' || geoStatus === 'later_phase1_complete') &&
+            (geoStatus === 'later_phase1_complete' ? true : geoAttempts < (Number(maxGeo) || 2)) &&
+            !isGeoCooldown &&
+            !currentHandled.includes('geolocation');
+
+        if (canShowGeo) return 'geolocation';
+
+        return 'none';
+    };
+
+    // Initial Trigger
+    useEffect(() => {
+        if (!userData || !user || !config || step !== 'none') return;
+        const next = checkNextStep(handledSteps);
+        if (next !== 'none') {
+            setStep(next as any);
         } else {
-            // Check Geo
-            const geoStatus = permissions.geolocation?.[`${prefix}status`] || 'pending';
-            const geoAttempts = permissions.geolocation?.[counterKey] || 0;
-            const geoNextPrompt = permissions.geolocation?.[`${prefix}nextPrompt`] || 0;
-            const isGeoCooldown = geoNextPrompt > TimeService.now().getTime();
-            
-            const canShowGeo = isMobile &&
-                (geoStatus === 'pending' || geoStatus === 'later' || geoStatus === 'later_phase1_complete') &&
-                (geoStatus === 'later_phase1_complete' ? true : geoAttempts < (safeMessaging.maxLargePromptDismissalsMobile || 0)) &&
-                !isGeoCooldown &&
-                !handledSteps.includes('geolocation');
-
-            if (canShowGeo) {
-                setStep('geolocation');
-            } else {
-                setStep('none');
-                onPhaseEnd(false);
-            }
+            onPhaseEnd(false); // Nothing for us to do
         }
-    }, [userData?.permissions, handledSteps]);
+    }, [userData?.permissions, config]);
+
+    const moveToNextOrEnd = (justHandled: string) => {
+        const newHandled = [...handledSteps, justHandled];
+        setHandledSteps(newHandled);
+        const next = checkNextStep(newHandled);
+        if (next !== 'none') {
+            setStep(next as any);
+        } else {
+            setStep('none');
+            onPhaseEnd(true); // End of round, trigger global cooldown
+        }
+    };
 
     const handleYes = async () => {
         const currentStep = step;
-
         if (currentStep === 'notifications') {
             const permission = await Notification.requestPermission();
             if (permission === 'granted') {
                 await updatePermission('notifications', 'granted');
                 toast.success('¡Activado!');
                 onNotificationGranted();
+                moveToNextOrEnd('notifications');
             } else {
                 await updatePermission('notifications', 'later');
+                moveToNextOrEnd('notifications');
             }
-            onPhaseEnd(true);
         } else if (currentStep === 'geolocation') {
             if ('geolocation' in navigator) {
                 navigator.geolocation.getCurrentPosition(
@@ -138,77 +156,54 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
                             lastLocation: { lat: pos.coords.latitude, lng: pos.coords.longitude, timestamp: new Date(ts) }
                         });
                         toast.success('Ubicación activada');
-                        onPhaseEnd(true);
+                        moveToNextOrEnd('geolocation');
                     },
                     async () => {
                         await updatePermission('geolocation', 'later');
-                        onPhaseEnd(true);
+                        moveToNextOrEnd('geolocation');
                     },
                     { enableHighAccuracy: false, timeout: 6000, maximumAge: 60000 }
                 );
+            } else {
+                moveToNextOrEnd('geolocation');
             }
         }
     };
 
-
     const handleLater = async () => {
         const type = step;
-        setHandledSteps(prev => [...prev, type]);
-        setStep('none');
-
         const rawMax = isMobile
             ? (config?.messaging?.maxLargePromptDismissalsMobile)
             : (config?.messaging?.maxLargePromptDismissalsPC);
         const maxAttempts = Number(rawMax) || 2;
-
         const counterKey = isMobile ? 'mobile_dismissedCount' : 'pc_dismissedCount';
         const currentCount = Number(userData?.permissions?.[type]?.[counterKey]) || 0;
         const newCount = currentCount + 1;
 
-        console.log(`[Banner Logic] ${type} action - Current: ${currentCount}, New: ${newCount}, Max: ${maxAttempts}`);
+        console.log(`[Sequential Banner] ${type} - Count: ${newCount}/${maxAttempts}`);
 
         if (newCount >= maxAttempts) {
             const rawInterval = config?.messaging?.notificationPromptIntervalDays;
             const intervalDays = Number(rawInterval) || 30;
-            
             await updatePermission(type as any, 'later_phase1_complete');
-            
             if (intervalDays > 0) {
                 toast(`Entendido. Volveremos a consultarte en ${intervalDays} días.`, { icon: '🤝', duration: 5000 });
-            } else {
-                toast(`Entendido. Te consultaremos nuevamente en el futuro.`, { icon: '🤝', duration: 5000 });
             }
         } else {
             const rawCooldown = isMobile ? (config?.messaging?.mobileCooldownHours) : 0;
             const cooldownHours = Number(rawCooldown) || 24;
-            
             const nextPrompt = TimeService.now().getTime() + (cooldownHours * 60 * 60 * 1000);
             await updatePermission(type as any, 'later', { nextPrompt });
-
-            if (isMobileDevice && cooldownHours > 0) {
-                let timeText = "";
-                if (cooldownHours < 1/60) {
-                    timeText = `${Math.ceil(cooldownHours * 3600)} segundos`;
-                } else if (cooldownHours < 1) {
-                    timeText = `${Math.ceil(cooldownHours * 60)} minutos`;
-                } else {
-                    timeText = `${Math.floor(cooldownHours)}hs`;
-                }
-                toast(`Entendido. Te consultaremos en ${timeText}.`, { icon: '🤝' });
-            }
+            // SILENCE: No toast for intermediate "later" actions
         }
-
-        onPhaseEnd(true);
+        moveToNextOrEnd(type as any);
     };
 
     const handleNo = async () => {
         const type = step;
-        setHandledSteps(prev => [...prev, type]);
-        setStep('none');
         await updatePermission(type as any, 'blocked');
         toast('Entendido.', { icon: '🤝' });
-
-        onPhaseEnd(true);
+        moveToNextOrEnd(type as any);
     };
 
     if (step === 'none') return null;

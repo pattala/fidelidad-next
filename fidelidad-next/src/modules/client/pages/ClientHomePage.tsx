@@ -137,19 +137,23 @@ export const ClientHomePage = () => {
         const timer = setTimeout(() => setReadyForBanner(true), 1600);
         return () => clearTimeout(timer);
     }, []);
-    const isMobile = useMemo(() => {
+    const isMobileDevice = useMemo(() => {
         if (typeof window === 'undefined') return false;
         return (
             /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
-            (navigator.maxTouchPoints > 0 && /Macintosh/.test(navigator.userAgent)) ||
-            window.innerWidth < 768
+            (navigator.maxTouchPoints > 0 && /Macintosh/.test(navigator.userAgent))
         );
     }, []);
+    const isCondensed = useMemo(() => {
+        if (typeof window === 'undefined') return false;
+        return window.innerWidth < 768;
+    }, []);
+    const isMobile = isMobileDevice || isCondensed;
 
     const handleInteraction = (triggerCooldown: boolean = true) => {
         const now = TimeService.now().getTime();
         lastActionTs.current = now;
-        if (triggerCooldown && isMobile && user) {
+        if (triggerCooldown && isMobileDevice && user) {
             updateDoc(doc(db, 'users', user.uid), {
                 'permissions.global_lastMobileDismissal': now
             }).catch(console.error);
@@ -387,16 +391,14 @@ export const ClientHomePage = () => {
         const permissions = userData.permissions || {};
         const messaging = config.messaging || {};
 
-        // 0. SESSION GUARD (Only for PC, Mobile uses Firestore Cooldown)
-        if (!isMobile) {
-            if (sessionStorage.getItem('pc_banner_dismissed')) {
-                if (activeBannerPhase !== 'none') setActiveBannerPhase('none');
-                return;
-            }
+        // 0. SESSION GUARD (Prevent re-shows in the SAME visit after dismissal)
+        if (sessionStorage.getItem(`pwa_banner_dismissed_${user.uid}`)) {
+            if (activeBannerPhase !== 'none') setActiveBannerPhase('none');
+            return;
         }
 
-        // 1. COOLDOWN CHECK (MOBILE ONLY)
-        if (isMobile) {
+        // 1. COOLDOWN CHECK (Smarter Cooldown for Handhelds)
+        if (isMobileDevice) {
             const lastGlobalDismissal = permissions.global_lastMobileDismissal || 0;
             const cooldownMs = (messaging.mobileCooldownHours || 0.0167) * 3600 * 1000;
 
@@ -438,16 +440,16 @@ export const ClientHomePage = () => {
                 !isNotifCooldown &&
                 browserState === 'default';
 
-            const canShowGeo = isMobile &&
+            const canShowGeo = isMobileDevice &&
                 (geoStatus === 'pending' || geoStatus === 'later' || geoStatus === 'later_phase1_complete') &&
                 (geoStatus === 'later_phase1_complete' ? true : geoCount < (maxAttempts ?? 2)) &&
                 !isGeoCooldown;
 
             // Debug log
-            if (!canShowNotif && !canShowGeo && userData.visitCount < 3) {
+            if (!canShowNotif && !canShowGeo && (userData.visitCount || 0) < 3) {
                 console.log('[Banner Debug]', {
                     notifStatus, notifCount, maxAttempts, isNotifCooldown, browserState,
-                    canShowNotif, canShowGeo, isMobile
+                    canShowNotif, canShowGeo, isMobileDevice
                 });
             }
 
@@ -475,8 +477,9 @@ export const ClientHomePage = () => {
                     onNotificationGranted={handlePermissionGranted}
                     onPhaseEnd={(triggerCooldown) => {
                         handleInteraction(triggerCooldown);
-                        if (!isMobile) {
-                            sessionStorage.setItem('pc_banner_dismissed', 'true');
+                        // Mark dismissal in session to prevent loops/re-shows in this VISIT
+                        if (user) {
+                            sessionStorage.setItem(`pwa_banner_dismissed_${user.uid}`, 'true');
                         }
                         setActiveBannerPhase('none');
                     }}

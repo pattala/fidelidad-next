@@ -18,14 +18,14 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
     const [handledSteps, setHandledSteps] = useState<string[]>([]);
     const syncInProgress = useRef(false);
 
-    const isMobile = useMemo(() => {
+    const isMobileDevice = useMemo(() => {
         if (typeof window === 'undefined') return false;
         return (
             /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
-            (navigator.maxTouchPoints > 0 && /Macintosh/.test(navigator.userAgent)) ||
-            window.innerWidth < 768
+            (navigator.maxTouchPoints > 0 && /Macintosh/.test(navigator.userAgent))
         );
     }, []);
+    const isMobile = isMobileDevice; // For this component, we care about the device type for permissions
 
     const updatePermission = async (type: 'notifications' | 'geolocation', status: string, options?: { nextPrompt?: number }) => {
         if (!user) return;
@@ -119,8 +119,8 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
             } else {
                 await updatePermission('notifications', 'later');
             }
-            // Sequential Chain: Geo always next if not handled (Mobile only)
-            if (isMobile) {
+            // Sequential Chain: Geo only for mobile devices
+            if (isMobileDevice) {
                 setTimeout(() => checkGeoInternal(), 600);
             } else {
                 onPhaseEnd(true);
@@ -155,7 +155,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const geoAttempts = permissions.geolocation?.mobile_dismissedCount || 0;
         const maxMobile = safeMessaging.maxLargePromptDismissalsMobile;
 
-        if (isMobile && (geoStatus === 'pending' || geoStatus === 'later' || geoStatus === 'later_phase1_complete') && 
+        if (isMobileDevice && (geoStatus === 'pending' || geoStatus === 'later' || geoStatus === 'later_phase1_complete') && 
            (geoStatus === 'later_phase1_complete' ? true : geoAttempts < (maxMobile || 0)) &&
            !handledSteps.includes('geolocation')) {
             setStep('geolocation');
@@ -189,12 +189,12 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
             const cooldownHours = isMobile ? (config?.messaging?.mobileCooldownHours) : 0;
             const nextPrompt = TimeService.now().getTime() + ((cooldownHours || 0) * 60 * 60 * 1000);
             await updatePermission(type as any, 'later', { nextPrompt });
-            if (isMobile && cooldownHours && cooldownHours > 0) {
+            if (isMobileDevice && cooldownHours && cooldownHours > 0) {
                 toast(`Entendido. Te consultaremos en ${Math.floor(cooldownHours)}hs.`, { icon: '🤝' });
             }
         }
 
-        if (type === 'notifications' && isMobile) {
+        if (type === 'notifications' && isMobileDevice) {
             setTimeout(() => checkGeoInternal(), 600);
         } else {
             onPhaseEnd(true);
@@ -208,7 +208,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         await updatePermission(type as any, 'blocked');
         toast('Entendido.', { icon: '🤝' });
 
-        if (type === 'notifications') {
+        if (type === 'notifications' && isMobileDevice) {
             setTimeout(() => checkGeoInternal(), 600);
         } else {
             onPhaseEnd(true);

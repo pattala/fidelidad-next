@@ -40,6 +40,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
 
         const updateData: any = {
             [`permissions.${type}.${prefix}status`]: status,
+            [`permissions.${type}.status`]: status, // Unified status for Dashboard compatibility
             [`permissions.${type}.updatedAt`]: TimeService.now().getTime(),
             [`permissions.${type}.${counterKey}`]: dismissedCount,
             [`permissions.${type}.${prefix}nextPrompt`]: options?.nextPrompt || 0
@@ -187,7 +188,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
             const intervalDays = Number(rawInterval) || 30;
             await updatePermission(type as any, 'later_phase1_complete');
             if (intervalDays > 0) {
-                toast(`Entendido. Volveremos a consultarte en ${intervalDays} días.`, { icon: '🤝', duration: 5000 });
+                toast(`Entendido. Volveremos a consultarte en ${intervalDays} días. También podés activarlo desde tu Perfil en cualquier momento.`, { icon: '🤝', duration: 6000 });
             }
         } else {
             const rawCooldown = isMobile ? (config?.messaging?.mobileCooldownHours) : 0;
@@ -223,6 +224,8 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
                     </h3>
                     <p className="text-sm text-gray-500 font-medium leading-relaxed mb-6 px-2">
                         {isGeo ? 'Descubre beneficios exclusivos cerca tuyo.' : 'Entérate al instante cuando ganes puntos o premios exclusivos.'}
+                        <br />
+                        <span className="text-[10px] opacity-70 mt-1 block italic font-bold">También podés activarlo desde tu Perfil.</span>
                     </p>
 
                     <div className="space-y-3">

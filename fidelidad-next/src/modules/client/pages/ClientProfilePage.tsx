@@ -205,7 +205,8 @@ export const ClientProfilePage = () => {
 
         try {
             await updateDoc(doc(db, 'users', userAuth.uid), {
-                [`permissions.${type}.${prefix}status`]: newStatus
+                [`permissions.${type}.${prefix}status`]: newStatus,
+                [`permissions.${type}.status`]: newStatus // Unified for Dashboard
             });
             toast.success(`${type === 'notifications' ? 'Notificaciones' : 'Ubicación'} ${newStatus === 'granted' ? 'activadas' : 'desactivadas'}`);
         } catch (e) {

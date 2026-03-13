@@ -956,7 +956,7 @@ export const ClientsPage = () => {
                                                 </div>
                                                 <span className={`text-[7px] font-black uppercase ${client.permissions?.notifications?.status === 'granted' ? 'text-purple-600' : (client.permissions?.notifications?.status === 'blocked' ? 'text-red-400' : 'text-gray-300')}`}>
                                                     {(() => {
-                                                        const s = client.permissions?.notifications?.status;
+                                                        const s = client.permissions?.notifications?.status || (client.permissions?.notifications as any)?.mobile_status || (client.permissions?.notifications as any)?.pc_status;
                                                         const visits = client.visitCount || 0;
                                                         if (s === 'granted') return 'ACTIVO';
                                                         if (s === 'blocked') return 'BLOCK';
@@ -982,7 +982,7 @@ export const ClientsPage = () => {
                                                 </button>
                                                 <span className={`text-[7px] font-black uppercase ${client.permissions?.geolocation?.status === 'granted' ? 'text-green-600' : (client.permissions?.geolocation?.status === 'blocked' ? 'text-red-400' : 'text-gray-300')}`}>
                                                     {(() => {
-                                                        const s = client.permissions?.geolocation?.status;
+                                                        const s = client.permissions?.geolocation?.status || (client.permissions?.geolocation as any)?.mobile_status || (client.permissions?.geolocation as any)?.pc_status;
                                                         const visits = client.visitCount || 0;
                                                         if (s === 'granted') return 'ACTIVO';
                                                         if (s === 'blocked') return 'BLOCK';

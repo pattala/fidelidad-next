@@ -7,6 +7,7 @@ import { db, auth } from '../../../lib/firebase';
 import { useFcmToken } from '../../../hooks/useFcmToken'; // Import Hook
 import { signOut } from 'firebase/auth'; // Added for Logout
 import { useClientAuth } from '../contexts/ClientAuthContext';
+import { ConfigService } from '../../../services/configService';
 
 export const ClientLayout = () => {
     const { user, userData, loading: authLoading, isAdmin } = useClientAuth();
@@ -97,21 +98,18 @@ export const ClientLayout = () => {
 
     // Listen for global config
     useEffect(() => {
-        const unsubConfig = onSnapshot(doc(db, 'config', 'general'), (snap) => {
-            if (snap.exists()) {
-                const data = snap.data();
-                setConfig(data);
+        const unsubConfig = ConfigService.subscribe((fullConfig) => {
+            setConfig(fullConfig);
 
-                // Update Favicon
-                if (data.logoUrl) {
-                    let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
-                    if (!link) {
-                        link = document.createElement('link');
-                        link.rel = 'icon';
-                        document.getElementsByTagName('head')[0].appendChild(link);
-                    }
-                    link.href = data.logoUrl;
+            // Update Favicon
+            if (fullConfig.logoUrl) {
+                let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+                if (!link) {
+                    link = document.createElement('link');
+                    link.rel = 'icon';
+                    document.getElementsByTagName('head')[0].appendChild(link);
                 }
+                link.href = fullConfig.logoUrl;
             }
         });
         return () => unsubConfig();

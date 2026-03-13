@@ -955,15 +955,15 @@ export const ClientsPage = () => {
                                                 <div className={`p-1.5 rounded-md ${(client.permissions?.notifications?.status === 'granted' && client.fcmToken) ? 'text-purple-600 bg-purple-50 border border-purple-100 shadow-sm' : 'text-gray-300 bg-gray-50'}`}>
                                                     <Bell size={14} />
                                                 </div>
-                                                <div className="flex gap-1 h-2">
+                                                <div className="flex gap-1 h-3 mt-1">
                                                     {client.permissions?.notifications?.platforms?.includes('pc') && (
-                                                        <div title="Activo en PC">
-                                                            <Monitor size={8} className="text-indigo-400" />
+                                                        <div title={`PC (Token ok)`} className="bg-indigo-100 p-0.5 rounded shadow-sm">
+                                                            <Monitor size={10} className="text-indigo-600" />
                                                         </div>
                                                     )}
                                                     {client.permissions?.notifications?.platforms?.includes('mobile') && (
-                                                        <div title="Activo en Celular">
-                                                            <Smartphone size={8} className="text-purple-400" />
+                                                        <div title={`Celular (Token ok)`} className="bg-purple-100 p-0.5 rounded shadow-sm">
+                                                            <Smartphone size={10} className="text-purple-600" />
                                                         </div>
                                                     )}
                                                 </div>

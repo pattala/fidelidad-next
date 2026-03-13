@@ -423,9 +423,8 @@ export const ClientHomePage = () => {
             const counterKey = isMobileDevice ? 'mobile_dismissedCount' : 'pc_dismissedCount';
             const notifCount = permissions.notifications?.[counterKey] || 0;
             const geoCount = permissions.geolocation?.[counterKey] || 0;
-            const maxAttempts = isMobileDevice 
-                ? (messaging.maxLargePromptDismissalsMobile) 
-                : (messaging.maxLargePromptDismissalsPC);
+            const rawMax = isMobileDevice 
+            const maxAttempts = typeof rawMax === 'number' ? rawMax : parseInt(rawMax) || 2;
 
             // Cooldown check
             const notifNextPrompt = permissions.notifications?.[`${prefix}nextPrompt`] || 0;
@@ -437,22 +436,21 @@ export const ClientHomePage = () => {
             const browserState = typeof Notification !== 'undefined' ? Notification.permission : 'denied';
 
             const canShowNotif = (notifStatus === 'pending' || notifStatus === 'later' || notifStatus === 'later_phase1_complete') &&
-                (notifStatus === 'later_phase1_complete' ? true : notifCount < (maxAttempts ?? 2)) &&
+                (notifStatus === 'later_phase1_complete' ? true : notifCount < maxAttempts) &&
                 !isNotifCooldown &&
                 browserState === 'default';
 
             const canShowGeo = isMobileDevice &&
                 (geoStatus === 'pending' || geoStatus === 'later' || geoStatus === 'later_phase1_complete') &&
-                (geoStatus === 'later_phase1_complete' ? true : geoCount < (maxAttempts ?? 2)) &&
+                (geoStatus === 'later_phase1_complete' ? true : geoCount < maxAttempts) &&
                 !isGeoCooldown;
 
             // Debug log
-            if (readyForBanner && (userData.visitCount || 0) < 5) {
-                console.log('[Banner Debug]', {
-                    phase: 'checking large banners',
+            if (readyForBanner && (userData.visitCount || 0) < 10) {
+                console.log('[Banner Orchestrator Debug]', {
                     device: isMobileDevice ? 'MOBILE' : 'PC',
-                    notif: { status: notifStatus, count: notifCount, max: maxAttempts, cooling: isNotifCooldown },
-                    geo: { status: geoStatus, count: geoCount, max: maxAttempts, cooling: isGeoCooldown },
+                    notif: { status: notifStatus, count: notifCount, max: maxAttempts, next: notifNextPrompt, cooling: isNotifCooldown },
+                    geo: { status: geoStatus, count: geoCount, max: maxAttempts, next: geoNextPrompt, cooling: isGeoCooldown },
                     canShowNotif,
                     canShowGeo,
                     browserState

@@ -47,12 +47,16 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
 
         // If it's a "phase 1 complete" (reached max attempts), we can also set a long-term nextPrompt or just leave it
         if (status === 'later_phase1_complete') {
-            const intervalDays = config?.messaging?.notificationPromptIntervalDays;
-            if (intervalDays) {
-                updateData[`permissions.${type}.${prefix}nextPrompt`] = TimeService.now().getTime() + (intervalDays * 24 * 60 * 60 * 1000);
-            }
+            const rawInterval = config?.messaging?.notificationPromptIntervalDays;
+            const intervalDays = typeof rawInterval === 'number' ? rawInterval : parseInt(rawInterval) || 30;
+            
+            // Even if it's 0, we set at least 1 day to avoid infinite loop on refresh
+            const safeInterval = Math.max(1, intervalDays);
+            updateData[`permissions.${type}.${prefix}nextPrompt`] = TimeService.now().getTime() + (safeInterval * 24 * 60 * 60 * 1000);
+            
             // Reset counter for the next cycle
             updateData[`permissions.${type}.${counterKey}`] = 0;
+            console.log(`[Permission Sync] ${type} exhausted. Next prompt in ${safeInterval} days.`);
         }
 
         try {
@@ -152,26 +156,32 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         setHandledSteps(prev => [...prev, type]);
         setStep('none');
 
-        const maxAttempts = isMobile
+        const rawMax = isMobile
             ? (config?.messaging?.maxLargePromptDismissalsMobile)
             : (config?.messaging?.maxLargePromptDismissalsPC);
+        const maxAttempts = typeof rawMax === 'number' ? rawMax : parseInt(rawMax) || 2;
 
         const counterKey = isMobile ? 'mobile_dismissedCount' : 'pc_dismissedCount';
         const currentCount = userData?.permissions?.[type]?.[counterKey] || 0;
         const newCount = currentCount + 1;
 
-        if (maxAttempts && newCount >= maxAttempts) {
-            const intervalDays = config?.messaging?.notificationPromptIntervalDays || 30;
+        console.log(`[Banner Logic] ${type} action - Current: ${currentCount}, New: ${newCount}, Max: ${maxAttempts}`);
+
+        if (newCount >= maxAttempts) {
+            const rawInterval = config?.messaging?.notificationPromptIntervalDays;
+            const intervalDays = typeof rawInterval === 'number' ? rawInterval : parseInt(rawInterval) || 30;
+            
             await updatePermission(type as any, 'later_phase1_complete');
             
-            // Fix: avoid showing "0 días" (which looks like "o días")
             if (intervalDays > 0) {
                 toast(`Entendido. Te consultaremos en ${intervalDays} días o puedes activarlo desde tu perfil.`, { icon: '🤝', duration: 5000 });
             } else {
                 toast(`Entendido. Te consultaremos próximamente o puedes activarlo desde tu perfil.`, { icon: '🤝', duration: 5000 });
             }
         } else {
-            const cooldownHours = isMobile ? (config?.messaging?.mobileCooldownHours || 24) : 0;
+            const rawCooldown = isMobile ? (config?.messaging?.mobileCooldownHours) : 0;
+            const cooldownHours = typeof rawCooldown === 'number' ? rawCooldown : parseFloat(rawCooldown) || 24;
+            
             const nextPrompt = TimeService.now().getTime() + ((cooldownHours || 0) * 60 * 60 * 1000);
             await updatePermission(type as any, 'later', { nextPrompt });
             if (isMobileDevice && cooldownHours && cooldownHours > 0) {
@@ -219,9 +229,11 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
                                 const counterKey = isMobile ? 'mobile_dismissedCount' : 'pc_dismissedCount';
                                 const type = step === 'geolocation' ? 'geolocation' : 'notifications';
                                 const current = (permissions[type]?.[counterKey] || 0) + 1;
-                                const max = isMobile ? (safeMessaging.maxLargePromptDismissalsMobile || 2) : (safeMessaging.maxLargePromptDismissalsPC || 2);
                                 
-                                console.log(`[Prompt Debug] ${type} attempt: ${current} of ${max}`);
+                                const rawMax = isMobile ? (safeMessaging.maxLargePromptDismissalsMobile) : (safeMessaging.maxLargePromptDismissalsPC);
+                                const max = typeof rawMax === 'number' ? rawMax : parseInt(rawMax) || 2;
+                                
+                                console.log(`[Prompt Debug] ${type} Opportunity: ${current} of ${max}`);
                                 
                                 return `Oportunidad ${current} de ${max}`;
                             })()}

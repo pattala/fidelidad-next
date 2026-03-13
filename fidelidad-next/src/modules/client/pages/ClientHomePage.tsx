@@ -135,20 +135,8 @@ export const ClientHomePage = () => {
 
     useEffect(() => {
         const timer = setTimeout(() => setReadyForBanner(true), 1600);
-        
-        // --- MOBILE DEBUG CONSOLE (ERUDA) ---
-        const initEruda = () => {
-            if (typeof window !== 'undefined' && (window.location.search.includes('debug=true') || userData?.isTestUser)) {
-                const script = document.createElement('script');
-                script.src = "//cdn.jsdelivr.net/npm/eruda";
-                script.onload = () => { (window as any).eruda.init(); };
-                document.body.appendChild(script);
-            }
-        };
-        initEruda();
-
         return () => clearTimeout(timer);
-    }, [userData?.isTestUser]);
+    }, []);
     const isMobileDevice = useMemo(() => {
         if (typeof window === 'undefined') return false;
         const ua = navigator.userAgent;
@@ -502,40 +490,6 @@ export const ClientHomePage = () => {
                         setActiveBannerPhase('none');
                     }}
                 />
-            )}
-
-            {/* DEBUG UI (ONLY IF URL HAS ?debug=true) */}
-            {typeof window !== 'undefined' && window.location.search.includes('debug=true') && (
-                <div className="fixed bottom-16 right-4 z-[1000] bg-black/80 text-white p-3 rounded-2xl text-[10px] space-y-2 border border-white/20 backdrop-blur-md shadow-2xl">
-                    <div className="font-bold flex items-center justify-between gap-2 border-b border-white/10 pb-1 mb-1">
-                        <span>DEBUG V2.1</span>
-                        <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]"></div>
-                    </div>
-                    <div className="space-y-1">
-                        <p>Visitas: {userData?.visitCount || 0}</p>
-                        <p>Notif: {userData?.permissions?.notifications?.mobile_dismissedCount || 0} / {config?.messaging?.maxLargePromptDismissalsMobile || 2}</p>
-                        <p>Caché: {typeof window !== 'undefined' ? (window as any).caches ? 'Soportado' : 'No' : '-'}</p>
-                    </div>
-                    <button 
-                        onClick={async () => {
-                            if (confirm('¿Limpiar cache y recargar?')) {
-                                sessionStorage.clear();
-                                localStorage.clear();
-                                const keys = await caches.keys();
-                                await Promise.all(keys.map(k => caches.delete(k)));
-                                if ('serviceWorker' in navigator) {
-                                    const regs = await navigator.serviceWorker.getRegistrations();
-                                    for (let reg of regs) await reg.unregister();
-                                }
-                                window.location.reload();
-                            }
-                        }}
-                        className="w-full bg-red-600 active:bg-red-700 py-1.5 rounded-lg font-bold uppercase tracking-tighter"
-                    >
-                        HARD REFRESH
-                    </button>
-                    <p className="text-[8px] text-gray-400 italic">Code: v2-robust-logic-1105</p>
-                </div>
             )}
 
 

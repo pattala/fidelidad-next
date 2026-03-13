@@ -131,6 +131,12 @@ export const ClientHomePage = () => {
     const prevPointsRef = useRef<number | null>(null);
     const lastActionTs = useRef<number>(0);
     const initialLoadTs = useRef<number>(Date.now());
+    const [readyForBanner, setReadyForBanner] = useState(false);
+
+    useEffect(() => {
+        const timer = setTimeout(() => setReadyForBanner(true), 1600);
+        return () => clearTimeout(timer);
+    }, []);
     const isMobile = useMemo(() => {
         if (typeof window === 'undefined') return false;
         return (
@@ -375,14 +381,11 @@ export const ClientHomePage = () => {
 
     // --- CENTRAL BANNER ORCHESTRATOR ---
     useEffect(() => {
-        if (!userData || !user || !config || authLoading) return;
+        if (!userData || !user || !config || authLoading || !readyForBanner) return;
 
         const now = TimeService.now().getTime();
         const permissions = userData.permissions || {};
         const messaging = config.messaging || {};
-
-        // 0. INITIAL DELAY (1.5s)
-        if (now - initialLoadTs.current < 1500) return;
 
         // 1. COOLDOWN CHECK (MOBILE ONLY)
         if (isMobile) {
@@ -420,15 +423,25 @@ export const ClientHomePage = () => {
             const geoNextPrompt = permissions.geolocation?.nextPrompt || 0;
             const isGeoCooldown = geoNextPrompt > TimeService.now().getTime();
 
+            const browserState = typeof Notification !== 'undefined' ? Notification.permission : 'denied';
+
             const canShowNotif = (notifStatus === 'pending' || notifStatus === 'later' || notifStatus === 'later_phase1_complete') &&
-                (notifStatus === 'later_phase1_complete' ? true : notifCount < (maxAttempts || 0)) &&
+                (notifStatus === 'later_phase1_complete' ? true : notifCount < (maxAttempts ?? 2)) &&
                 !isNotifCooldown &&
-                (typeof Notification !== 'undefined' ? Notification.permission === 'default' : true);
+                browserState === 'default';
 
             const canShowGeo = isMobile &&
                 (geoStatus === 'pending' || geoStatus === 'later' || geoStatus === 'later_phase1_complete') &&
-                (geoStatus === 'later_phase1_complete' ? true : geoCount < (maxAttempts || 0)) &&
+                (geoStatus === 'later_phase1_complete' ? true : geoCount < (maxAttempts ?? 2)) &&
                 !isGeoCooldown;
+
+            // Debug log
+            if (!canShowNotif && !canShowGeo && userData.visitCount < 3) {
+                console.log('[Banner Debug]', {
+                    notifStatus, notifCount, maxAttempts, isNotifCooldown, browserState,
+                    canShowNotif, canShowGeo, isMobile
+                });
+            }
 
             return canShowNotif || canShowGeo;
         };
@@ -440,7 +453,7 @@ export const ClientHomePage = () => {
 
         if (activeBannerPhase !== 'none') setActiveBannerPhase('none');
 
-    }, [userData?.permissions, userData?.visitCount, !!config, activeBannerPhase]);
+    }, [userData?.permissions, userData?.visitCount, !!config, activeBannerPhase, readyForBanner]);
 
     return (
         <div

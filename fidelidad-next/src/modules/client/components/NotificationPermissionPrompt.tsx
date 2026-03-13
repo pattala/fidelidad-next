@@ -77,7 +77,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const isCooldownActive = notifNextPrompt > TimeService.now().getTime();
 
         const canShowNotif = (notifStatus === 'pending' || notifStatus === 'later' || notifStatus === 'later_phase1_complete') &&
-            (notifStatus === 'later_phase1_complete' ? true : notifAttempts < (maxAttempts || 0)) &&
+            (notifStatus === 'later_phase1_complete' ? true : notifAttempts < (maxAttempts ?? 2)) &&
             !isCooldownActive &&
             browserNotifState === 'default';
 

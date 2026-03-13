@@ -173,9 +173,8 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
             
             await updatePermission(type as any, 'later_phase1_complete');
             
-            // Text change to verify it's the new version
             if (intervalDays > 0) {
-                toast(`Entendido. Agendamos una nueva consulta para dentro de ${intervalDays} días.`, { icon: '🤝', duration: 5000 });
+                toast(`Entendido. Volveremos a consultarte en ${intervalDays} días.`, { icon: '🤝', duration: 5000 });
             } else {
                 toast(`Entendido. Te consultaremos nuevamente en el futuro.`, { icon: '🤝', duration: 5000 });
             }
@@ -195,7 +194,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
                 } else {
                     timeText = `${Math.floor(cooldownHours)}hs`;
                 }
-                toast(`Entendido. Volveremos a preguntar en ${timeText}.`, { icon: '🤝' });
+                toast(`Entendido. Te consultaremos en ${timeText}.`, { icon: '🤝' });
             }
         }
 
@@ -230,25 +229,6 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
                     <p className="text-sm text-gray-500 font-medium leading-relaxed mb-6 px-2">
                         {isGeo ? 'Descubre beneficios exclusivos cerca tuyo.' : 'Entérate al instante cuando ganes puntos o premios exclusivos.'}
                     </p>
-
-                    <div className="mb-6">
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100">
-                            {(() => {
-                                const permissions = userData?.permissions || {};
-                                const safeMessaging = config?.messaging || {};
-                                const counterKey = isMobile ? 'mobile_dismissedCount' : 'pc_dismissedCount';
-                                const type = step === 'geolocation' ? 'geolocation' : 'notifications';
-                                const current = (permissions[type]?.[counterKey] || 0) + 1;
-                                
-                                const rawMax = isMobile ? (safeMessaging.maxLargePromptDismissalsMobile) : (safeMessaging.maxLargePromptDismissalsPC);
-                                const max = typeof rawMax === 'number' ? rawMax : parseInt(rawMax) || 2;
-                                
-                                console.log(`[Prompt Debug] ${type} Opportunity: ${current} of ${max}`);
-                                
-                                return `Oportunidad ${current} de ${max}`;
-                            })()}
-                        </span>
-                    </div>
 
                     <div className="space-y-3">
                         <button onClick={handleYes} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2 ${isGeo ? 'bg-emerald-600 text-white shadow-emerald-200' : 'bg-purple-600 text-white shadow-purple-200'}`}>

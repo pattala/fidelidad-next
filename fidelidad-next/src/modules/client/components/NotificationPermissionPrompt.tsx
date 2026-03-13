@@ -15,6 +15,7 @@ interface Props {
 
 export const NotificationPermissionPrompt = ({ user, userData, config, onNotificationGranted, onPhaseEnd }: Props) => {
     const [step, setStep] = useState<'none' | 'notifications' | 'geolocation'>('none');
+    const [handledSteps, setHandledSteps] = useState<string[]>([]);
     const syncInProgress = useRef(false);
 
     const isMobile = useMemo(() => {
@@ -79,7 +80,8 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const canShowNotif = (notifStatus === 'pending' || notifStatus === 'later' || notifStatus === 'later_phase1_complete') &&
             (notifStatus === 'later_phase1_complete' ? true : notifAttempts < (maxAttempts ?? 2)) &&
             !isCooldownActive &&
-            browserNotifState === 'default';
+            browserNotifState === 'default' &&
+            !handledSteps.includes('notifications');
 
         if (canShowNotif) {
             setStep('notifications');
@@ -93,15 +95,17 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
             const canShowGeo = isMobile &&
                 (geoStatus === 'pending' || geoStatus === 'later' || geoStatus === 'later_phase1_complete') &&
                 (geoStatus === 'later_phase1_complete' ? true : geoAttempts < (safeMessaging.maxLargePromptDismissalsMobile || 0)) &&
-                !isGeoCooldown;
+                !isGeoCooldown &&
+                !handledSteps.includes('geolocation');
 
             if (canShowGeo) {
                 setStep('geolocation');
             } else {
+                setStep('none');
                 onPhaseEnd(false);
             }
         }
-    }, []);
+    }, [userData?.permissions, handledSteps]);
 
     const handleYes = async () => {
         const currentStep = step;
@@ -115,8 +119,12 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
             } else {
                 await updatePermission('notifications', 'later');
             }
-            // Sequential Chain: Geo always next if not handled
-            setTimeout(() => checkGeoInternal(), 600);
+            // Sequential Chain: Geo always next if not handled (Mobile only)
+            if (isMobile) {
+                setTimeout(() => checkGeoInternal(), 600);
+            } else {
+                onPhaseEnd(true);
+            }
         } else if (currentStep === 'geolocation') {
             if ('geolocation' in navigator) {
                 navigator.geolocation.getCurrentPosition(
@@ -148,7 +156,8 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const maxMobile = safeMessaging.maxLargePromptDismissalsMobile;
 
         if (isMobile && (geoStatus === 'pending' || geoStatus === 'later' || geoStatus === 'later_phase1_complete') && 
-           (geoStatus === 'later_phase1_complete' ? true : geoAttempts < (maxMobile || 0))) {
+           (geoStatus === 'later_phase1_complete' ? true : geoAttempts < (maxMobile || 0)) &&
+           !handledSteps.includes('geolocation')) {
             setStep('geolocation');
         } else {
             onPhaseEnd(true);
@@ -157,6 +166,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
 
     const handleLater = async () => {
         const type = step;
+        setHandledSteps(prev => [...prev, type]);
         setStep('none');
 
         const maxAttempts = isMobile
@@ -184,7 +194,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
             }
         }
 
-        if (type === 'notifications') {
+        if (type === 'notifications' && isMobile) {
             setTimeout(() => checkGeoInternal(), 600);
         } else {
             onPhaseEnd(true);
@@ -193,6 +203,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
 
     const handleNo = async () => {
         const type = step;
+        setHandledSteps(prev => [...prev, type]);
         setStep('none');
         await updatePermission(type as any, 'blocked');
         toast('Entendido.', { icon: '🤝' });

@@ -387,6 +387,14 @@ export const ClientHomePage = () => {
         const permissions = userData.permissions || {};
         const messaging = config.messaging || {};
 
+        // 0. SESSION GUARD (Only for PC, Mobile uses Firestore Cooldown)
+        if (!isMobile) {
+            if (sessionStorage.getItem('pc_banner_dismissed')) {
+                if (activeBannerPhase !== 'none') setActiveBannerPhase('none');
+                return;
+            }
+        }
+
         // 1. COOLDOWN CHECK (MOBILE ONLY)
         if (isMobile) {
             const lastGlobalDismissal = permissions.global_lastMobileDismissal || 0;
@@ -467,6 +475,9 @@ export const ClientHomePage = () => {
                     onNotificationGranted={handlePermissionGranted}
                     onPhaseEnd={(triggerCooldown) => {
                         handleInteraction(triggerCooldown);
+                        if (!isMobile) {
+                            sessionStorage.setItem('pc_banner_dismissed', 'true');
+                        }
                         setActiveBannerPhase('none');
                     }}
                 />

@@ -90,6 +90,7 @@ export const ConfigPage = () => {
         sectionTitleColor: '#9ca3af', // Default gray-400
         linkColor: '#4a148c', // Default purple-900 like
         logoUrl: '',
+        carouselSpeedSeconds: 6,
         pointsPerPeso: 1,
         pointsMoneyBase: 100, // Default 100
         welcomePoints: 100,
@@ -108,8 +109,8 @@ export const ConfigPage = () => {
                 offer: { channels: ['push', 'email'] }
             },
             mobileCooldownHours: 24,
-            maxContextualDismissals: 2,
-            maxLargePromptDismissals: 2
+            maxLargePromptDismissalsPC: 2,
+            maxLargePromptDismissalsMobile: 2
         },
         enableExternalIntegration: true,
         referrals: {
@@ -1143,362 +1144,417 @@ export const ConfigPage = () => {
                     </div>
                 )}
 
-                {activeTab === 'legales' && (
-                    <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 animate-in fade-in slide-in-from-bottom-4">
-                        <div className="max-w-4xl">
-                            <div className="flex items-center gap-3 mb-6">
-                                <div className="bg-blue-50 p-3 rounded-2xl text-blue-600">
-                                    <FileText size={24} />
-                                </div>
-                                <div>
-                                    <h3 className="text-xl font-black text-gray-800 tracking-tight">Términos y Condiciones</h3>
-                                    <p className="text-gray-500 text-sm">Este texto aparecerá en el perfil de usuario de la PWA. Puedes usar formato simple.</p>
-                                </div>
-                            </div>
-
-                            <div className="space-y-6">
-                                <div className="flex flex-col gap-2">
-                                    <div className="flex justify-between items-end">
-                                        <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Contenido de los Términos</label>
-                                        <div className="text-[10px] text-gray-400 bg-gray-50 px-2 py-1 rounded">Soporta Markdown Básico</div>
-                                    </div>
-                                    <textarea
-                                        rows={20}
-                                        className="w-full p-4 rounded-2xl border-2 border-gray-100 focus:border-blue-500 focus:ring-4 focus:ring-blue-50 outline-none transition text-sm font-medium leading-relaxed bg-gray-50/30"
-                                        placeholder="Escribe aquí los términos..."
-                                        value={config.contact?.termsContent || ''}
-                                        onChange={e => setConfig({
-                                            ...config,
-                                            contact: { ...config.contact!, termsContent: e.target.value }
-                                        })}
-                                    />
-                                </div>
-
-                                <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100 flex gap-3">
-                                    <div className="text-xl">💡</div>
-                                    <div className="text-xs text-blue-700 leading-relaxed pt-1">
-                                        <strong>Tip:</strong> Puedes usar variables como <code className="bg-white px-1 rounded">{"{siteName}"}</code> que se reemplazarán automáticamente por <strong>{config.siteName}</strong> en la PWA.
-                                    </div>
-                                </div>
-
-                                <div className="pt-4 border-t border-gray-100">
-                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Link Externo (Opcional)</label>
-                                    <input
-                                        type="text"
-                                        placeholder="https://..."
-                                        value={config.contact?.termsAndConditions || ''}
-                                        onChange={e => setConfig({
-                                            ...config,
-                                            contact: { ...config.contact!, termsAndConditions: e.target.value }
-                                        })}
-                                        className="w-full rounded-xl border-gray-200 border p-3 text-sm focus:ring-2 focus:ring-blue-100 outline-none bg-gray-50/50"
-                                    />
-                                    <p className="text-[10px] text-gray-400 mt-2 px-1">
-                                        <strong>⚠️ Prioridad:</strong> Si este link está presente, el botón de Términos redirigirá aquí. Si queda vacío, se mostrará el contenido de arriba en un cuadro interno.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {activeTab === 'branding' && (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fade-in">
-                        {/* ... (Existing Branding Content) ... */}
-                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                            {/* ... (Existing Form) ... */}
-                            <h2 className="text-lg font-semibold mb-6 text-gray-800">Personalización de Marca</h2>
-                            <div className="space-y-6">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Nombre del Club</label>
-                                    <input
-                                        type="text"
-                                        value={config.siteName}
-                                        onChange={e => setConfig({ ...config, siteName: e.target.value })}
-                                        className="w-full rounded-lg border-gray-200 border p-3 focus:ring-2 focus:ring-blue-100 outline-none transition"
-                                    />
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Color Primario</label>
-                                        <div className="flex items-center gap-3">
-                                            <input
-                                                type="color"
-                                                value={config.primaryColor}
-                                                onChange={e => setConfig({ ...config, primaryColor: e.target.value })}
-                                                className="h-12 w-full rounded-lg cursor-pointer border-0 bg-transparent p-0"
-                                            />
-                                            <span className="text-xs font-mono text-gray-500">{config.primaryColor}</span>
-                                        </div>
+                {
+                    activeTab === 'legales' && (
+                        <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 animate-in fade-in slide-in-from-bottom-4">
+                            <div className="max-w-4xl">
+                                <div className="flex items-center gap-3 mb-6">
+                                    <div className="bg-blue-50 p-3 rounded-2xl text-blue-600">
+                                        <FileText size={24} />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Color Secundario</label>
-                                        <div className="flex items-center gap-3">
-                                            <input
-                                                type="color"
-                                                value={config.secondaryColor}
-                                                onChange={e => setConfig({ ...config, secondaryColor: e.target.value })}
-                                                className="h-12 w-full rounded-lg cursor-pointer border-0 bg-transparent p-0"
-                                            />
-                                            <span className="text-xs font-mono text-gray-500">{config.secondaryColor}</span>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Color de Fondo</label>
-                                        <div className="flex items-center gap-3">
-                                            <input
-                                                type="color"
-                                                value={config.backgroundColor || '#f9fafb'}
-                                                onChange={e => setConfig({ ...config, backgroundColor: e.target.value })}
-                                                className="h-12 w-full rounded-lg cursor-pointer border-0 bg-transparent p-0"
-                                            />
-                                            <span className="text-xs font-mono text-gray-500">{config.backgroundColor || '#f9fafb'}</span>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Color de Títulos</label>
-                                        <div className="flex items-center gap-3">
-                                            <input
-                                                type="color"
-                                                value={config.sectionTitleColor || '#9ca3af'}
-                                                onChange={e => setConfig({ ...config, sectionTitleColor: e.target.value })}
-                                                className="h-12 w-full rounded-lg cursor-pointer border-0 bg-transparent p-0"
-                                            />
-                                            <span className="text-xs font-mono text-gray-500">{config.sectionTitleColor || '#9ca3af'}</span>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Color de Enlaces</label>
-                                        <div className="flex items-center gap-3">
-                                            <input
-                                                type="color"
-                                                value={config.linkColor || '#4a148c'}
-                                                onChange={e => setConfig({ ...config, linkColor: e.target.value })}
-                                                className="h-12 w-full rounded-lg cursor-pointer border-0 bg-transparent p-0"
-                                            />
-                                            <span className="text-xs font-mono text-gray-500">{config.linkColor || '#4a148c'}</span>
-                                        </div>
+                                        <h3 className="text-xl font-black text-gray-800 tracking-tight">Términos y Condiciones</h3>
+                                        <p className="text-gray-500 text-sm">Este texto aparecerá en el perfil de usuario de la PWA. Puedes usar formato simple.</p>
                                     </div>
                                 </div>
 
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Logo URL</label>
-                                    <input
-                                        type="text"
-                                        placeholder="https://..."
-                                        value={config.logoUrl}
-                                        onChange={e => setConfig({ ...config, logoUrl: e.target.value })}
-                                        className="w-full rounded-lg border-gray-200 border p-3 focus:ring-2 focus:ring-blue-100 outline-none transition"
-                                    />
-                                    <p className="text-xs text-gray-400 mt-2">Recomendado: PNG transparente de 200x200px</p>
-                                </div>
+                                <div className="space-y-6">
+                                    <div className="flex flex-col gap-2">
+                                        <div className="flex justify-between items-end">
+                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Contenido de los Términos</label>
+                                            <div className="text-[10px] text-gray-400 bg-gray-50 px-2 py-1 rounded">Soporta Markdown Básico</div>
+                                        </div>
+                                        <textarea
+                                            rows={20}
+                                            className="w-full p-4 rounded-2xl border-2 border-gray-100 focus:border-blue-500 focus:ring-4 focus:ring-blue-50 outline-none transition text-sm font-medium leading-relaxed bg-gray-50/30"
+                                            placeholder="Escribe aquí los términos..."
+                                            value={config.contact?.termsContent || ''}
+                                            onChange={e => setConfig({
+                                                ...config,
+                                                contact: { ...config.contact!, termsContent: e.target.value }
+                                            })}
+                                        />
+                                    </div>
 
+                                    <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100 flex gap-3">
+                                        <div className="text-xl">💡</div>
+                                        <div className="text-xs text-blue-700 leading-relaxed pt-1">
+                                            <strong>Tip:</strong> Puedes usar variables como <code className="bg-white px-1 rounded">{"{siteName}"}</code> que se reemplazarán automáticamente por <strong>{config.siteName}</strong> en la PWA.
+                                        </div>
+                                    </div>
 
-                                {/* SECTION: Contact & Social */}
-                                <div className="pt-6 border-t border-gray-100 space-y-4">
-                                    <h4 className="font-bold text-gray-800 flex items-center gap-2">
-                                        📱 Contacto y Redes
-                                    </h4>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="col-span-full">
-                                            <label className="block text-xs font-semibold text-gray-600 mb-1">Dirección del Local</label>
-                                            <input
-                                                type="text"
-                                                placeholder="Av. Principal 123..."
-                                                value={config.contact?.address || ''}
-                                                onChange={e => setConfig({
-                                                    ...config,
-                                                    contact: { ...config.contact!, address: e.target.value }
-                                                })}
-                                                className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
-                                            />
-                                        </div>
-                                        <div className="col-span-full">
-                                            <label className="block text-xs font-semibold text-gray-600 mb-1">Horarios de Atención</label>
-                                            <input
-                                                type="text"
-                                                placeholder="Lun a Vie 9 a 18 hs..."
-                                                value={config.contact?.openingHours || ''}
-                                                onChange={e => setConfig({
-                                                    ...config,
-                                                    contact: { ...config.contact!, openingHours: e.target.value }
-                                                })}
-                                                className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-semibold text-gray-600 mb-1">WhatsApp (Soporte)</label>
-                                            <input
-                                                type="text"
-                                                placeholder="549..."
-                                                value={config.contact?.whatsapp || ''}
-                                                onChange={e => setConfig({
-                                                    ...config,
-                                                    contact: { ...config.contact!, whatsapp: e.target.value }
-                                                })}
-                                                className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-green-100 outline-none"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-semibold text-gray-600 mb-1">Email Público</label>
-                                            <input
-                                                type="email"
-                                                placeholder="contacto@..."
-                                                value={config.contact?.email || ''}
-                                                onChange={e => setConfig({
-                                                    ...config,
-                                                    contact: { ...config.contact!, email: e.target.value }
-                                                })}
-                                                className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-semibold text-gray-600 mb-1">Instagram</label>
-                                            <input
-                                                type="text"
-                                                placeholder="@usuario"
-                                                value={config.contact?.instagram || ''}
-                                                onChange={e => setConfig({
-                                                    ...config,
-                                                    contact: { ...config.contact!, instagram: e.target.value }
-                                                })}
-                                                className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-pink-100 outline-none"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-semibold text-gray-600 mb-1">Facebook</label>
-                                            <input
-                                                type="text"
-                                                placeholder="/pagina"
-                                                value={config.contact?.facebook || ''}
-                                                onChange={e => setConfig({
-                                                    ...config,
-                                                    contact: { ...config.contact!, facebook: e.target.value }
-                                                })}
-                                                className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
-                                            />
-                                        </div>
-                                        <div className="col-span-full">
-                                            <label className="block text-xs font-semibold text-gray-600 mb-1">Sitio Web</label>
-                                            <input
-                                                type="text"
-                                                placeholder="https://..."
-                                                value={config.contact?.website || ''}
-                                                onChange={e => setConfig({
-                                                    ...config,
-                                                    contact: { ...config.contact!, website: e.target.value }
-                                                })}
-                                                className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-gray-100 outline-none"
-                                            />
-                                        </div>
-                                        <div className="col-span-full">
-                                            <label className="block text-xs font-semibold text-gray-600 mb-1">URL de la App (para Botón de Email)</label>
-                                            <input
-                                                type="url"
-                                                placeholder="https://fidelidad-next.vercel.app/login"
-                                                value={config.contact?.pwaUrl || ''}
-                                                onChange={e => setConfig({
-                                                    ...config,
-                                                    contact: { ...config.contact!, pwaUrl: e.target.value }
-                                                })}
-                                                className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-gray-100 outline-none"
-                                            />
-                                        </div>
+                                    <div className="pt-4 border-t border-gray-100">
+                                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Link Externo (Opcional)</label>
+                                        <input
+                                            type="text"
+                                            placeholder="https://..."
+                                            value={config.contact?.termsAndConditions || ''}
+                                            onChange={e => setConfig({
+                                                ...config,
+                                                contact: { ...config.contact!, termsAndConditions: e.target.value }
+                                            })}
+                                            className="w-full rounded-xl border-gray-200 border p-3 text-sm focus:ring-2 focus:ring-blue-100 outline-none bg-gray-50/50"
+                                        />
+                                        <p className="text-[10px] text-gray-400 mt-2 px-1">
+                                            <strong>⚠️ Prioridad:</strong> Si este link está presente, el botón de Términos redirigirá aquí. Si queda vacío, se mostrará el contenido de arriba en un cuadro interno.
+                                        </p>
                                     </div>
                                 </div>
                             </div>
                         </div>
+                    )
+                }
 
-                        {/* Vista Previa Móvil */}
-                        <div className="flex flex-col items-center justify-start pt-8">
-                            <div
-                                className="border-[8px] border-gray-900 rounded-[3rem] overflow-hidden w-80 shadow-2xl relative h-[600px] transition-colors duration-500"
-                                style={{ backgroundColor: config.backgroundColor || '#f9fafb' }}
-                            >
-                                {/* Notch */}
-                                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-gray-900 rounded-b-xl z-20"></div>
+                {
+                    activeTab === 'branding' && (
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fade-in">
+                            {/* ... (Existing Branding Content) ... */}
+                            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                                {/* ... (Existing Form) ... */}
+                                <h2 className="text-lg font-semibold mb-6 text-gray-800">Personalización de Marca</h2>
+                                <div className="space-y-6">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Nombre del Club</label>
+                                        <input
+                                            type="text"
+                                            value={config.siteName}
+                                            onChange={e => setConfig({ ...config, siteName: e.target.value })}
+                                            className="w-full rounded-lg border-gray-200 border p-3 focus:ring-2 focus:ring-blue-100 outline-none transition"
+                                        />
+                                    </div>
 
-                                {/* Header Mock */}
-                                <div className="p-6 pt-12 text-white flex justify-between items-center transition-colors duration-500" style={{ backgroundColor: config.primaryColor }}>
-                                    <div className="flex items-center gap-2">
-                                        {config.logoUrl ? (
-                                            <img src={config.logoUrl} alt="Logo" className="w-8 h-8 rounded-full object-contain bg-white" />
-                                        ) : (
-                                            <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-[10px]">Logo</div>
-                                        )}
-                                        <span className="font-bold">{config.siteName}</span>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">Color Primario</label>
+                                            <div className="flex items-center gap-3">
+                                                <input
+                                                    type="color"
+                                                    value={config.primaryColor}
+                                                    onChange={e => setConfig({ ...config, primaryColor: e.target.value })}
+                                                    className="h-12 w-full rounded-lg cursor-pointer border-0 bg-transparent p-0"
+                                                />
+                                                <span className="text-xs font-mono text-gray-500">{config.primaryColor}</span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">Color Secundario</label>
+                                            <div className="flex items-center gap-3">
+                                                <input
+                                                    type="color"
+                                                    value={config.secondaryColor}
+                                                    onChange={e => setConfig({ ...config, secondaryColor: e.target.value })}
+                                                    className="h-12 w-full rounded-lg cursor-pointer border-0 bg-transparent p-0"
+                                                />
+                                                <span className="text-xs font-mono text-gray-500">{config.secondaryColor}</span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">Color de Fondo</label>
+                                            <div className="flex items-center gap-3">
+                                                <input
+                                                    type="color"
+                                                    value={config.backgroundColor || '#f9fafb'}
+                                                    onChange={e => setConfig({ ...config, backgroundColor: e.target.value })}
+                                                    className="h-12 w-full rounded-lg cursor-pointer border-0 bg-transparent p-0"
+                                                />
+                                                <span className="text-xs font-mono text-gray-500">{config.backgroundColor || '#f9fafb'}</span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">Color de Títulos</label>
+                                            <div className="flex items-center gap-3">
+                                                <input
+                                                    type="color"
+                                                    value={config.sectionTitleColor || '#9ca3af'}
+                                                    onChange={e => setConfig({ ...config, sectionTitleColor: e.target.value })}
+                                                    className="h-12 w-full rounded-lg cursor-pointer border-0 bg-transparent p-0"
+                                                />
+                                                <span className="text-xs font-mono text-gray-500">{config.sectionTitleColor || '#9ca3af'}</span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">Color de Enlaces</label>
+                                            <div className="flex items-center gap-3">
+                                                <input
+                                                    type="color"
+                                                    value={config.linkColor || '#4a148c'}
+                                                    onChange={e => setConfig({ ...config, linkColor: e.target.value })}
+                                                    className="h-12 w-full rounded-lg cursor-pointer border-0 bg-transparent p-0"
+                                                />
+                                                <span className="text-xs font-mono text-gray-500">{config.linkColor || '#4a148c'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Logo URL</label>
+                                        <input
+                                            type="text"
+                                            placeholder="https://..."
+                                            value={config.logoUrl}
+                                            onChange={e => setConfig({ ...config, logoUrl: e.target.value })}
+                                            className="w-full rounded-lg border-gray-200 border p-3 focus:ring-2 focus:ring-blue-100 outline-none transition"
+                                        />
+                                        <p className="text-xs text-gray-400 mt-2">Recomendado: PNG transparente de 200x200px</p>
+                                    </div>
+
+                                    <div className="pt-4 border-t border-gray-100">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <label className="block text-sm font-bold text-gray-700">Velocidad del Carrusel</label>
+                                            <span className="text-xs font-black bg-blue-50 text-blue-600 px-2.5 py-1 rounded-full">{config.carouselSpeedSeconds || 6} segundos</span>
+                                        </div>
+                                        <p className="text-[10px] text-gray-400 mb-3 italic">Controla qué tan rápido rotan las campañas en la página principal del cliente.</p>
+                                        <input
+                                            type="range"
+                                            min="2"
+                                            max="15"
+                                            step="1"
+                                            value={config.carouselSpeedSeconds || 6}
+                                            onChange={e => setConfig({ ...config, carouselSpeedSeconds: parseInt(e.target.value) })}
+                                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                                        />
+                                        <div className="flex justify-between text-[9px] text-gray-400 font-bold uppercase mt-1.5 px-1">
+                                            <span>🔥 Rápido (2s)</span>
+                                            <span>🧘 Lento (15s)</span>
+                                        </div>
+                                    </div>
+
+
+                                    {/* SECTION: Contact & Social */}
+                                    <div className="pt-6 border-t border-gray-100 space-y-4">
+                                        <h4 className="font-bold text-gray-800 flex items-center gap-2">
+                                            📱 Contacto y Redes
+                                        </h4>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="col-span-full">
+                                                <label className="block text-xs font-semibold text-gray-600 mb-1">Dirección del Local</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Av. Principal 123..."
+                                                    value={config.contact?.address || ''}
+                                                    onChange={e => setConfig({
+                                                        ...config,
+                                                        contact: { ...config.contact!, address: e.target.value }
+                                                    })}
+                                                    className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
+                                                />
+                                            </div>
+                                            <div className="col-span-full">
+                                                <label className="block text-xs font-semibold text-gray-600 mb-1">Horarios de Atención</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Lun a Vie 9 a 18 hs..."
+                                                    value={config.contact?.openingHours || ''}
+                                                    onChange={e => setConfig({
+                                                        ...config,
+                                                        contact: { ...config.contact!, openingHours: e.target.value }
+                                                    })}
+                                                    className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-semibold text-gray-600 mb-1">WhatsApp (Soporte)</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="549..."
+                                                    value={config.contact?.whatsapp || ''}
+                                                    onChange={e => setConfig({
+                                                        ...config,
+                                                        contact: { ...config.contact!, whatsapp: e.target.value }
+                                                    })}
+                                                    className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-green-100 outline-none"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-semibold text-gray-600 mb-1">Email Público</label>
+                                                <input
+                                                    type="email"
+                                                    placeholder="contacto@..."
+                                                    value={config.contact?.email || ''}
+                                                    onChange={e => setConfig({
+                                                        ...config,
+                                                        contact: { ...config.contact!, email: e.target.value }
+                                                    })}
+                                                    className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-semibold text-gray-600 mb-1">Instagram</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="@usuario"
+                                                    value={config.contact?.instagram || ''}
+                                                    onChange={e => setConfig({
+                                                        ...config,
+                                                        contact: { ...config.contact!, instagram: e.target.value }
+                                                    })}
+                                                    className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-pink-100 outline-none"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-semibold text-gray-600 mb-1">Facebook</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="/pagina"
+                                                    value={config.contact?.facebook || ''}
+                                                    onChange={e => setConfig({
+                                                        ...config,
+                                                        contact: { ...config.contact!, facebook: e.target.value }
+                                                    })}
+                                                    className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
+                                                />
+                                            </div>
+                                            <div className="col-span-full">
+                                                <label className="block text-xs font-semibold text-gray-600 mb-1">Sitio Web</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="https://..."
+                                                    value={config.contact?.website || ''}
+                                                    onChange={e => setConfig({
+                                                        ...config,
+                                                        contact: { ...config.contact!, website: e.target.value }
+                                                    })}
+                                                    className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-gray-100 outline-none"
+                                                />
+                                            </div>
+                                            <div className="col-span-full">
+                                                <label className="block text-xs font-semibold text-gray-600 mb-1">URL de la App (para Botón de Email)</label>
+                                                <input
+                                                    type="url"
+                                                    placeholder="https://fidelidad-next.vercel.app/login"
+                                                    value={config.contact?.pwaUrl || ''}
+                                                    onChange={e => setConfig({
+                                                        ...config,
+                                                        contact: { ...config.contact!, pwaUrl: e.target.value }
+                                                    })}
+                                                    className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-gray-100 outline-none"
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
+                            </div>
 
-                                {/* Hero Mock */}
+                            {/* Vista Previa Móvil (Columna 2) */}
+                            <div className="flex flex-col items-center justify-start pt-8">
                                 <div
-                                    className="p-6 m-4 rounded-2xl text-white shadow-lg text-center transition-all duration-500"
-                                    style={{
-                                        backgroundColor: config.secondaryColor,
-                                        marginTop: '16px'
-                                    }}
+                                    className="border-[8px] border-gray-900 rounded-[3rem] overflow-hidden w-80 shadow-2xl relative h-[600px] transition-colors duration-500"
+                                    style={{ backgroundColor: config.backgroundColor || '#f9fafb' }}
                                 >
-                                    <p className="text-sm opacity-80 mb-1">Tu Saldo</p>
-                                    <p className="text-4xl font-black tracking-tight">1.250</p>
-                                    <span className="text-xs uppercase tracking-widest opacity-70">Puntos Disponibles</span>
-                                </div>
+                                    {/* Notch */}
+                                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-gray-900 rounded-b-xl z-20"></div>
 
-                                {/* Saldo Mock */}
-                                <div className="mx-4 mb-4 p-4 rounded-2xl bg-white shadow-lg border border-gray-50 flex items-center justify-between animate-fade-in">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center text-sm shadow-inner">💵</div>
-                                        <div>
-                                            <h3 className="text-gray-900 font-black text-base">$ 1.250</h3>
-                                            <p className="text-[8px] text-gray-500 font-bold uppercase tracking-tighter leading-none">Saldo a favor</p>
+                                    {/* Header Mock */}
+                                    <div className="p-6 pt-12 text-white flex justify-between items-center transition-colors duration-500" style={{ backgroundColor: config.primaryColor }}>
+                                        <div className="flex items-center gap-2">
+                                            {config.logoUrl ? (
+                                                <img src={config.logoUrl} alt="Logo" className="w-8 h-8 rounded-full object-contain bg-white" />
+                                            ) : (
+                                                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-[10px]">Logo</div>
+                                            )}
+                                            <span className="font-bold">{config.siteName}</span>
                                         </div>
                                     </div>
-                                    <div className="text-right">
-                                        <div className="inline-block px-1.5 py-0.5 rounded bg-red-50 text-red-600 font-bold text-[8px]">
-                                            Faltan $ {Math.round((config.pointsMoneyBase || 100) * 0.7)}
-                                        </div>
-                                    </div>
-                                </div>
 
-                                {/* Bottom Nav Mock */}
-                                <div className="absolute bottom-0 left-0 w-full bg-white border-t border-gray-100 flex justify-center items-center gap-6 py-3 pb-8 z-10 rounded-b-[2.8rem] shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
-                                    <div className="flex flex-col items-center gap-0.5" style={{ color: config.primaryColor }}>
-                                        <div className="w-6 h-6 flex items-center justify-center"><Home size={18} strokeWidth={2.5} /></div>
-                                        <span className="text-[8px] font-black uppercase tracking-tighter bg-clip-text text-transparent" style={{ backgroundImage: `linear-gradient(to right, ${config.primaryColor}, ${config.secondaryColor})` }}>Inicio</span>
-                                    </div>
-                                    <div className="flex flex-col items-center gap-0.5 opacity-50 grayscale">
-                                        <div className="w-6 h-6 flex items-center justify-center text-gray-400"><Gift size={18} /></div>
-                                        <span className="text-[8px] font-bold uppercase tracking-tighter text-gray-600">Premios</span>
-                                    </div>
-                                    <div className="flex flex-col items-center gap-0.5 opacity-50 grayscale">
-                                        <div className="w-6 h-6 flex items-center justify-center text-gray-400"><MessageCircle size={18} /></div>
-                                        <span className="text-[8px] font-bold uppercase tracking-tighter text-gray-600">Contacto</span>
-                                    </div>
-                                </div>
-
-                                <div className="px-6 text-center">
-                                    <p className="text-xs text-gray-400">Vista previa en tiempo real de la App del Cliente</p>
-                                    <button
-                                        type="button"
-                                        onClick={() => setConfig({
-                                            ...config,
-                                            primaryColor: '#4a148c',
-                                            secondaryColor: '#880e4f',
-                                            backgroundColor: '#f5f3f7',
-                                            sectionTitleColor: '#9ca3af',
-                                            linkColor: '#4a148c'
-                                        })}
-                                        className="mt-4 text-xs font-bold text-gray-400 hover:text-gray-600 underline"
+                                    {/* Hero Mock */}
+                                    <div
+                                        className="p-6 m-4 rounded-2xl text-white shadow-lg text-center transition-all duration-500"
+                                        style={{
+                                            backgroundColor: config.secondaryColor,
+                                            marginTop: '16px'
+                                        }}
                                     >
-                                        Restaurar Predeterminado (Original)
-                                    </button>
+                                        <p className="text-sm opacity-80 mb-1">Tu Saldo</p>
+                                        <p className="text-4xl font-black tracking-tight">1.250</p>
+                                        <span className="text-xs uppercase tracking-widest opacity-70">Puntos Disponibles</span>
+                                    </div>
+
+                                    {/* Simulated Content / Carousel Preview */}
+                                    <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6 scrollbar-hide">
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between items-center px-1">
+                                                <div className="w-20 h-2 bg-gray-200 rounded-full"></div>
+                                                <div className="w-8 h-2 bg-indigo-200 rounded-full"></div>
+                                            </div>
+
+                                            {/* PREVIEW CAROUSEL */}
+                                            <div className="relative group">
+                                                <div className="aspect-[16/9] rounded-2xl overflow-hidden bg-gray-100 relative shadow-inner border border-gray-50">
+                                                    <div className="absolute inset-0 flex items-center justify-center">
+                                                        <div className="flex flex-col items-center gap-2">
+                                                            <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-400">
+                                                                <Sparkles size={16} className="animate-pulse" />
+                                                            </div>
+                                                            <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Vista Previa Carrusel</span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Animated Bar representing the cycle */}
+                                                    <div className="absolute bottom-0 left-0 h-1 bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]"
+                                                        style={{
+                                                            width: '100%',
+                                                            animation: `carousel-progress ${config.carouselSpeedSeconds || 5}s linear infinite`
+                                                        }}
+                                                    ></div>
+                                                </div>
+                                                <div className="flex justify-center gap-1 mt-2">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-gray-200"></div>
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-gray-200"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-50 flex gap-4 items-center">
+                                            <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-400 shrink-0">
+                                                <Sparkles size={24} />
+                                            </div>
+                                            <div className="flex-1 space-y-2">
+                                                <div className="w-2/3 h-2 bg-gray-100 rounded-full"></div>
+                                                <div className="w-full h-2 bg-gray-50 rounded-full"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Bottom Nav Mock */}
+                                    <div className="absolute bottom-0 left-0 w-full bg-white border-t border-gray-100 flex justify-center items-center gap-6 py-3 pb-8 z-10 rounded-b-[2.8rem] shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+                                        <div className="flex flex-col items-center gap-0.5" style={{ color: config.primaryColor }}>
+                                            <div className="w-6 h-6 flex items-center justify-center"><Home size={18} strokeWidth={2.5} /></div>
+                                            <span className="text-[8px] font-black uppercase tracking-tighter bg-clip-text text-transparent" style={{ backgroundImage: `linear-gradient(to right, ${config.primaryColor}, ${config.secondaryColor})` }}>Inicio</span>
+                                        </div>
+                                        <div className="flex flex-col items-center gap-0.5 opacity-50 grayscale">
+                                            <div className="w-6 h-6 flex items-center justify-center text-gray-400"><Gift size={18} /></div>
+                                            <span className="text-[8px] font-bold uppercase tracking-tighter text-gray-600">Premios</span>
+                                        </div>
+                                        <div className="flex flex-col items-center gap-0.5 opacity-50 grayscale">
+                                            <div className="w-6 h-6 flex items-center justify-center text-gray-400"><MessageCircle size={18} /></div>
+                                            <span className="text-[8px] font-bold uppercase tracking-tighter text-gray-600">Contacto</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="px-6 text-center">
+                                        <p className="text-xs text-gray-400">Vista previa en tiempo real de la App del Cliente</p>
+                                        <button
+                                            type="button"
+                                            onClick={() => setConfig({
+                                                ...config,
+                                                primaryColor: '#4a148c',
+                                                secondaryColor: '#880e4f',
+                                                backgroundColor: '#f5f3f7',
+                                                sectionTitleColor: '#9ca3af',
+                                                linkColor: '#4a148c'
+                                            })}
+                                            className="mt-4 text-xs font-bold text-gray-400 hover:text-gray-600 underline"
+                                        >
+                                            Restaurar Predeterminado (Original)
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                    </div>
-                )
+                        </div>
+                    )
                 }
 
                 {
@@ -2680,7 +2736,7 @@ export const ConfigPage = () => {
                         {loading ? 'Guardando...' : <><Save size={20} /> Guardar Todo</>}
                     </button>
                 </div>
-            </form >
+            </form>
 
             <EmailPreviewModal
                 isOpen={previewModal.isOpen}
@@ -2690,6 +2746,6 @@ export const ConfigPage = () => {
                 templateTitle={previewModal.title}
                 templateContent={previewModal.content}
             />
-        </div >
+        </div>
     );
 };

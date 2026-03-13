@@ -210,6 +210,8 @@ export interface AppConfig {
     };
     enableDateSimulator?: boolean;
     enableDuplicateControl?: boolean;
+    pwaIconUrl?: string;
+    carouselSpeedSeconds?: number;
 }
 
 export interface Prize {

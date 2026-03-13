@@ -14,6 +14,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
     secondaryColor: '#1e3a8a',
     backgroundColor: '#f9fafb',
     logoUrl: '',
+    carouselSpeedSeconds: 6,
     contact: {
         whatsapp: '',
         email: '',
@@ -59,11 +60,8 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
         enableQStashTrigger: true,
         notificationPromptIntervalDays: 30,
         enableLargePrompt: true,
-        enableContextualNotifPrompt: true,
         maxLargePromptDismissalsPC: 2,
         maxLargePromptDismissalsMobile: 2,
-        maxContextualDismissalsPC: 2,
-        maxContextualDismissalsMobile: 2,
     },
     referrals: {
         enabled: true,

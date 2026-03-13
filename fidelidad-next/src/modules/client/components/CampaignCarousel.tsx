@@ -6,9 +6,10 @@ import { CampaignActionModal } from './CampaignActionModal';
 interface CampaignCarouselProps {
     campaigns?: BonusRule[];
     loading?: boolean;
+    speedSeconds?: number;
 }
 
-export const CampaignCarousel = ({ campaigns: propCampaigns, loading: propLoading }: CampaignCarouselProps) => {
+export const CampaignCarousel = ({ campaigns: propCampaigns, loading: propLoading, speedSeconds }: CampaignCarouselProps) => {
     const [internalCampaigns, setInternalCampaigns] = useState<BonusRule[]>([]);
     const [internalLoading, setInternalLoading] = useState(true);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -68,11 +69,12 @@ export const CampaignCarousel = ({ campaigns: propCampaigns, loading: propLoadin
     // Auto-scroll logic
     useEffect(() => {
         if (visibleCampaigns.length <= 1) return;
+        const speed = (speedSeconds || 6) * 1000;
         const interval = setInterval(() => {
             setCurrentIndex(prev => (prev + 1) % visibleCampaigns.length);
-        }, 6000);
+        }, speed);
         return () => clearInterval(interval);
-    }, [visibleCampaigns.length]);
+    }, [visibleCampaigns.length, speedSeconds]);
 
     const [touchStart, setTouchStart] = useState<number | null>(null);
     const [touchEnd, setTouchEnd] = useState<number | null>(null);

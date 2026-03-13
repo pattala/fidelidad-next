@@ -38,10 +38,14 @@ export const ClientProfilePage = () => {
             const dbStatus = userData.permissions?.notifications?.status;
 
             if (browserState === 'granted' && dbStatus !== 'granted') {
-                await updateDoc(doc(db, 'users', userAuth.uid), {
-                    'permissions.notifications.status': 'granted',
-                    'permissions.notifications.updatedAt': Date.now()
-                });
+                // SOLO sincronizar a 'granted' si NO está en 'denied' (manual del usuario)
+                // Esto permite al usuario "apagar" notificaciones en la app aunque el navegador las permita.
+                if (dbStatus === 'pending' || dbStatus === 'later' || !dbStatus) {
+                    await updateDoc(doc(db, 'users', userAuth.uid), {
+                        'permissions.notifications.status': 'granted',
+                        'permissions.notifications.updatedAt': Date.now()
+                    });
+                }
             } else if (browserState !== 'granted' && dbStatus === 'granted') {
                 const newState = browserState === 'denied' ? 'denied' : 'pending';
                 await updateDoc(doc(db, 'users', userAuth.uid), {

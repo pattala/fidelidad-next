@@ -25,7 +25,6 @@ import { CampaignCarousel } from '../components/CampaignCarousel';
 import { PointsExpirationWarning } from '../components/PointsExpirationWarning';
 import { PointsExpirationModal } from '../components/PointsExpirationModal';
 import { NotificationPermissionPrompt } from '../components/NotificationPermissionPrompt';
-import { ContextualPermissionBanner } from '../components/ContextualPermissionBanner';
 import { useFcmToken } from '../../../hooks/useFcmToken';
 import { ModernConfirmModal } from '../components/ModernConfirmModal';
 import { CampaignActionModal } from '../components/CampaignActionModal';
@@ -347,10 +346,13 @@ export const ClientHomePage = () => {
             const dbStatus = userData.permissions?.notifications?.status;
 
             if (browserState === 'granted' && dbStatus !== 'granted') {
-                await updateDoc(doc(db, 'users', user.uid), {
-                    'permissions.notifications.status': 'granted',
-                    'permissions.notifications.updatedAt': TimeService.now().getTime()
-                });
+                // SOLO sincronizar a 'granted' si NO está en 'denied' (manual del usuario)
+                if (dbStatus === 'pending' || dbStatus === 'later' || !dbStatus) {
+                    await updateDoc(doc(db, 'users', user.uid), {
+                        'permissions.notifications.status': 'granted',
+                        'permissions.notifications.updatedAt': TimeService.now().getTime()
+                    });
+                }
             } else if (browserState !== 'granted' && dbStatus === 'granted') {
                 await updateDoc(doc(db, 'users', user.uid), {
                     'permissions.notifications.status': browserState === 'denied' ? 'denied' : 'pending',
@@ -538,7 +540,7 @@ export const ClientHomePage = () => {
 
             {/* HERO CAROUSEL */}
             <section className="relative z-10 mx-0">
-                <CampaignCarousel campaigns={carouselCampaigns} loading={false} />
+                <CampaignCarousel campaigns={carouselCampaigns} loading={false} speedSeconds={config?.carouselSpeedSeconds} />
             </section>
 
             {/* BIRTHDAY BANNER */}

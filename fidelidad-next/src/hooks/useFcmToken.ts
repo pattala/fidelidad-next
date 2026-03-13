@@ -26,14 +26,25 @@ export const useFcmToken = () => {
             if (Notification.permission === 'granted') {
                 console.log('[FCM] Permission granted. Waiting for Service Worker...');
 
-                // Usar el SW ya registrado por el plugin de PWA
-                const registration = await navigator.serviceWorker.ready;
+                // Intentar obtener el registro específico de nuestro SW
+                let registration = await navigator.serviceWorker.getRegistration('/sw.js');
+                if (!registration) {
+                    console.log('[FCM] /sw.js registration not found, falling back to .ready');
+                    registration = await navigator.serviceWorker.ready;
+                }
 
-                console.log('[FCM] Requesting token...');
-                const currentToken = await getToken(messaging, {
-                    vapidKey: VAPID_KEY,
-                    serviceWorkerRegistration: registration
-                });
+                console.log('[FCM] Requesting token with registration:', registration?.scope);
+                let currentToken = '';
+                try {
+                    currentToken = await getToken(messaging, {
+                        vapidKey: VAPID_KEY,
+                        serviceWorkerRegistration: registration
+                    });
+                } catch (tokenErr: any) {
+                    console.warn('[FCM] Failed with registration, trying without...', tokenErr);
+                    // Fallback: algunas versiones de Firebase prefieren gestionar el SW internamente
+                    currentToken = await getToken(messaging, { vapidKey: VAPID_KEY });
+                }
 
                 if (currentToken) {
                     console.log('[FCM] Token Retrieved Successfully');

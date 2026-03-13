@@ -16,6 +16,11 @@ export const useFcmToken = () => {
         const user = auth.currentUser;
         if (!user) return;
 
+        // Diagnostic inicial: si vemos esto en Firestore, sabemos que el hook se está ejecutando
+        const userRef = doc(db, 'users', user.uid);
+        const { updateDoc } = await import('firebase/firestore');
+        await updateDoc(userRef, { fcmState: 'retrieving_started', lastActive: new Date() }).catch(() => {});
+
         isRetrieving.current = true;
         try {
             if (Notification.permission === 'granted') {

@@ -34,14 +34,10 @@ self.addEventListener('push', (event) => {
 
     if (event.data) {
         try {
-            const rawData = event.data.text();
-            console.log('[SW] Raw Push Data:', rawData);
-
+            // Se debe consumir el stream una sola vez.
             const payload = event.data.json();
             console.log('[SW] Payload JSON:', payload);
 
-            // FCM manda la info en 'data' si es modo data-only, 
-            // o en 'notification' si es modo tradicional.
             const data = payload.data || payload || {};
             const notification = payload.notification || {};
 
@@ -49,26 +45,27 @@ self.addEventListener('push', (event) => {
             options.body = data.body || notification.body || options.body;
             options.data.url = data.url || data.click_action || options.data.url;
 
-            // Manejo de Ícono y Badge (Priorizar lo que viene del server)
             const iconFromData = data.icon || data.badge;
             if (iconFromData && (iconFromData.startsWith('http') || iconFromData.startsWith('/'))) {
                 options.icon = iconFromData.startsWith('http') ? iconFromData : `${BASE_URL}${iconFromData}`;
                 options.badge = options.icon;
             }
 
-            // Imagen grande (Campaña)
             if (data.image) {
                 options.image = data.image.startsWith('http') ? data.image : `${BASE_URL}${data.image}`;
             }
 
-            // Interaction & Persistence
             options.requireInteraction = true;
             options.tag = data.tag || data.id || 'fidelidad-notif';
             options.renotify = true;
 
         } catch (e) {
-            console.error('[SW] Error parsing push data:', e);
-            options.body = event.data.text() || options.body;
+            console.warn('[SW] Push data is not JSON or already consumed. Using text.');
+            try {
+                options.body = event.data.text() || options.body;
+            } catch (textErr) {
+                console.error('[SW] Could not read push text either:', textErr);
+            }
         }
     }
 

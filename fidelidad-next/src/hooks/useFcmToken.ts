@@ -16,122 +16,58 @@ export const useFcmToken = () => {
         const user = auth.currentUser;
         if (!user) return;
 
-        // Diagnostic inicial: si vemos esto en Firestore, sabemos que el hook se está ejecutando
-        const userRef = doc(db, 'users', user.uid);
-        const { updateDoc } = await import('firebase/firestore');
-        await updateDoc(userRef, { fcmState: 'retrieving_started', lastActive: new Date() }).catch(() => {});
-
         isRetrieving.current = true;
         try {
             if (Notification.permission === 'granted') {
-                console.log('[FCM] Permission granted. Waiting for Service Worker...');
-
-                // Intentar obtener el registro específico de nuestro SW
-                let registration = await navigator.serviceWorker.getRegistration('/sw.js');
-                if (!registration) {
-                    console.log('[FCM] /sw.js registration not found, falling back to .ready');
-                    registration = await navigator.serviceWorker.ready;
-                }
-
-                console.log('[FCM] Requesting token with registration:', registration?.scope);
-                let currentToken = '';
-                try {
-                    currentToken = await getToken(messaging, {
-                        vapidKey: VAPID_KEY,
-                        serviceWorkerRegistration: registration
-                    });
-                } catch (tokenErr: any) {
-                    console.warn('[FCM] Failed with registration, trying without...', tokenErr);
-                    // Fallback: algunas versiones de Firebase prefieren gestionar el SW internamente
-                    currentToken = await getToken(messaging, { vapidKey: VAPID_KEY });
-                }
+                console.log('[FCM] Requesting token (Simple Mode)...');
+                
+                // Intentamos el método más directo posible
+                const currentToken = await getToken(messaging, { vapidKey: VAPID_KEY });
 
                 if (currentToken) {
-                    console.log('[FCM] Token Retrieved Successfully');
+                    console.log('[FCM] Token Retrieved Successfully:', currentToken);
                     setToken(currentToken);
 
-                    try {
-                        const response = await fetch('/api/notifications?action=register-token', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                token: currentToken,
-                                userId: user.uid
-                            })
-                        });
-                        const resData = await response.json();
-                        if (!resData.ok) throw new Error(resData.error || 'Error registrando token');
-                        console.log('[FCM] Token registered via API', resData);
-                        
-                        const userRef = doc(db, 'users', user.uid);
-                        const { updateDoc, serverTimestamp } = await import('firebase/firestore');
-                        await updateDoc(userRef, {
-                            fcmState: 'registered',
-                            lastActive: serverTimestamp()
-                        }).catch(() => {});
-                    } catch (err: any) {
-                        console.error('[FCM] Error calling register-fcm-token API:', err);
-                        const userRef = doc(db, 'users', user.uid);
-                        const { updateDoc, arrayUnion, serverTimestamp } = await import('firebase/firestore');
-                        await updateDoc(userRef, {
-                            fcmToken: currentToken,
-                            fcmTokens: arrayUnion(currentToken),
-                            lastFcmUpdate: serverTimestamp(),
-                            fcmState: 'api_failed',
-                            lastFcmError: `API registration failed: ${err.message}`
-                        }).catch(() => { });
-                    }
+                    // REGISTRO DIRECTO EN FIRESTORE (Como el Backup)
+                    const { updateDoc, serverTimestamp, arrayUnion } = await import('firebase/firestore');
+                    const userRef = doc(db, 'users', user.uid);
+                    
+                    await updateDoc(userRef, {
+                        fcmToken: currentToken,
+                        fcmTokens: arrayUnion(currentToken),
+                        lastFcmUpdate: serverTimestamp(),
+                        fcmState: 'registered',
+                        lastActive: serverTimestamp()
+                    });
+                    
+                    console.log('[FCM] Token saved directly to Firestore.');
+
                 } else {
                     console.log('[FCM] No token available.');
-                    const userRef = doc(db, 'users', user.uid);
                     const { updateDoc } = await import('firebase/firestore');
-                    await updateDoc(userRef, { fcmState: 'token_null' }).catch(() => {});
-                }
-            } else if (Notification.permission === 'denied') {
-                console.warn('[FCM] Notification permission denied.');
-                const userRef = doc(db, 'users', user.uid);
-                const { updateDoc } = await import('firebase/firestore');
-                try {
-                    await updateDoc(userRef, {
-                        fcmToken: null,
-                        lastFcmUpdate: new Date(),
-                        fcmState: 'permission_denied',
-                        lastFcmError: 'Notification permission denied'
-                    });
-                } catch (e) {
+                    await updateDoc(doc(db, 'users', user.uid), { fcmState: 'token_null' }).catch(() => {});
                 }
             } else {
-                const userRef = doc(db, 'users', user.uid);
                 const { updateDoc } = await import('firebase/firestore');
-                await updateDoc(userRef, { fcmState: `prompt_needed_${Notification.permission}` }).catch(() => {});
+                await updateDoc(doc(db, 'users', user.uid), { fcmState: `permission_${Notification.permission}` }).catch(() => {});
             }
         } catch (e: any) {
             console.error(`[FCM] Error (Attempt ${retryCount}):`, e);
-            if (user && retryCount === 0) {
-                const userRef = doc(db, 'users', user.uid);
-                const { updateDoc } = await import('firebase/firestore');
-                await updateDoc(userRef, {
-                    fcmState: 'client_error',
-                    lastFcmError: `FCM client error: ${e.message}`,
-                    lastFcmErrorTs: new Date()
-                }).catch(() => { });
-            }
+            
+            const { updateDoc } = await import('firebase/firestore');
+            await updateDoc(doc(db, 'users', user.uid), {
+                fcmState: 'client_error',
+                lastFcmError: e.message
+            }).catch(() => { });
 
-            const isIdbError = e?.message?.includes('database connection is closing') ||
-                e?.code?.includes('indexeddb') ||
-                e?.name === 'InvalidStateError';
-
-            if (retryCount < 3) {
-                const delay = isIdbError ? 3000 : 2000;
-                console.log(`[FCM] Retrying in ${delay}ms...`);
+            if (retryCount < 2) {
                 setTimeout(() => {
                     isRetrieving.current = false;
                     retrieveToken(retryCount + 1);
-                }, delay);
-                return; 
+                }, 2000);
+                return;
             }
         } finally {
-            // Liberamos si no hubo error o si ya agotamos reintentos
             isRetrieving.current = false;
         }
     };

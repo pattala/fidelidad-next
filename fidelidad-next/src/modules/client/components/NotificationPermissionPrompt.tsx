@@ -161,15 +161,17 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const newCount = currentCount + 1;
 
         if (maxAttempts && newCount >= maxAttempts) {
-            const intervalDays = config?.messaging?.notificationPromptIntervalDays;
+            const intervalDays = config?.messaging?.notificationPromptIntervalDays || 30;
             await updatePermission(type as any, 'later_phase1_complete');
-            if (intervalDays) {
+            
+            // Fix: avoid showing "0 días" (which looks like "o días")
+            if (intervalDays > 0) {
                 toast(`Entendido. Te consultaremos en ${intervalDays} días o puedes activarlo desde tu perfil.`, { icon: '🤝', duration: 5000 });
             } else {
-                toast(`Entendido. Puedes activarlo desde tu perfil.`, { icon: '🤝', duration: 5000 });
+                toast(`Entendido. Te consultaremos próximamente o puedes activarlo desde tu perfil.`, { icon: '🤝', duration: 5000 });
             }
         } else {
-            const cooldownHours = isMobile ? (config?.messaging?.mobileCooldownHours) : 0;
+            const cooldownHours = isMobile ? (config?.messaging?.mobileCooldownHours || 24) : 0;
             const nextPrompt = TimeService.now().getTime() + ((cooldownHours || 0) * 60 * 60 * 1000);
             await updatePermission(type as any, 'later', { nextPrompt });
             if (isMobileDevice && cooldownHours && cooldownHours > 0) {
@@ -217,8 +219,11 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
                                 const counterKey = isMobile ? 'mobile_dismissedCount' : 'pc_dismissedCount';
                                 const type = step === 'geolocation' ? 'geolocation' : 'notifications';
                                 const current = (permissions[type]?.[counterKey] || 0) + 1;
-                                const max = isMobile ? (safeMessaging.maxLargePromptDismissalsMobile) : (safeMessaging.maxLargePromptDismissalsPC);
-                                return `Oportunidad ${current} de ${max || '-'}`;
+                                const max = isMobile ? (safeMessaging.maxLargePromptDismissalsMobile || 2) : (safeMessaging.maxLargePromptDismissalsPC || 2);
+                                
+                                console.log(`[Prompt Debug] ${type} attempt: ${current} of ${max}`);
+                                
+                                return `Oportunidad ${current} de ${max}`;
                             })()}
                         </span>
                     </div>

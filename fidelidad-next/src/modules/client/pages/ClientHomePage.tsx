@@ -447,10 +447,15 @@ export const ClientHomePage = () => {
                 !isGeoCooldown;
 
             // Debug log
-            if (!canShowNotif && !canShowGeo && (userData.visitCount || 0) < 3) {
+            if (readyForBanner && (userData.visitCount || 0) < 5) {
                 console.log('[Banner Debug]', {
-                    notifStatus, notifCount, maxAttempts, isNotifCooldown, browserState,
-                    canShowNotif, canShowGeo, isMobileDevice
+                    phase: 'checking large banners',
+                    device: isMobileDevice ? 'MOBILE' : 'PC',
+                    notif: { status: notifStatus, count: notifCount, max: maxAttempts, cooling: isNotifCooldown },
+                    geo: { status: geoStatus, count: geoCount, max: maxAttempts, cooling: isGeoCooldown },
+                    canShowNotif,
+                    canShowGeo,
+                    browserState
                 });
             }
 

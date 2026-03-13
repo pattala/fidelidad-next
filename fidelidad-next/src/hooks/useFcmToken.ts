@@ -46,18 +46,30 @@ export const useFcmToken = () => {
                         const resData = await response.json();
                         if (!resData.ok) throw new Error(resData.error || 'Error registrando token');
                         console.log('[FCM] Token registered via API', resData);
+                        
+                        const userRef = doc(db, 'users', user.uid);
+                        const { updateDoc, serverTimestamp } = await import('firebase/firestore');
+                        await updateDoc(userRef, {
+                            fcmState: 'registered',
+                            lastActive: serverTimestamp()
+                        }).catch(() => {});
                     } catch (err: any) {
                         console.error('[FCM] Error calling register-fcm-token API:', err);
-                        // Fallback manual si la API falla (opcional, pero mejor centralizar)
                         const userRef = doc(db, 'users', user.uid);
                         const { updateDoc, arrayUnion, serverTimestamp } = await import('firebase/firestore');
                         await updateDoc(userRef, {
                             fcmToken: currentToken,
                             fcmTokens: arrayUnion(currentToken),
                             lastFcmUpdate: serverTimestamp(),
+                            fcmState: 'api_failed',
                             lastFcmError: `API registration failed: ${err.message}`
                         }).catch(() => { });
                     }
+                } else {
+                    console.log('[FCM] No token available.');
+                    const userRef = doc(db, 'users', user.uid);
+                    const { updateDoc } = await import('firebase/firestore');
+                    await updateDoc(userRef, { fcmState: 'token_null' }).catch(() => {});
                 }
             } else if (Notification.permission === 'denied') {
                 console.warn('[FCM] Notification permission denied.');
@@ -67,11 +79,15 @@ export const useFcmToken = () => {
                     await updateDoc(userRef, {
                         fcmToken: null,
                         lastFcmUpdate: new Date(),
+                        fcmState: 'permission_denied',
                         lastFcmError: 'Notification permission denied'
                     });
                 } catch (e) {
-                    // Silently fail if doc doesn't exist
                 }
+            } else {
+                const userRef = doc(db, 'users', user.uid);
+                const { updateDoc } = await import('firebase/firestore');
+                await updateDoc(userRef, { fcmState: `prompt_needed_${Notification.permission}` }).catch(() => {});
             }
         } catch (e: any) {
             console.error(`[FCM] Error (Attempt ${retryCount}):`, e);
@@ -79,6 +95,7 @@ export const useFcmToken = () => {
                 const userRef = doc(db, 'users', user.uid);
                 const { updateDoc } = await import('firebase/firestore');
                 await updateDoc(userRef, {
+                    fcmState: 'client_error',
                     lastFcmError: `FCM client error: ${e.message}`,
                     lastFcmErrorTs: new Date()
                 }).catch(() => { });
@@ -95,13 +112,11 @@ export const useFcmToken = () => {
                     isRetrieving.current = false;
                     retrieveToken(retryCount + 1);
                 }, delay);
-                return; // Evitar el reset de isRetrieving al final si estamos reintentando
+                return; 
             }
         } finally {
-            // Solo liberamos si no estamos en medio de un reintento programado
-            if (retryCount >= 3 || !isRetrieving.current) {
-                isRetrieving.current = false;
-            }
+            // Liberamos si no hubo error o si ya agotamos reintentos
+            isRetrieving.current = false;
         }
     };
 

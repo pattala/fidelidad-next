@@ -5,12 +5,14 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { doc, onSnapshot, collection, query, where, addDoc } from 'firebase/firestore';
 import { db, auth } from '../../../lib/firebase';
 import { useFcmToken } from '../../../hooks/useFcmToken'; // Import Hook
+import { usePWAInstall } from '../../../hooks/usePWAInstall'; // Added PWA Install Hook
 import { signOut } from 'firebase/auth'; // Added for Logout
 import { useClientAuth } from '../contexts/ClientAuthContext';
 import { ConfigService } from '../../../services/configService';
 
 export const ClientLayout = () => {
     const { user, userData, loading: authLoading, isAdmin } = useClientAuth();
+    const { deferredPrompt, handleInstall } = usePWAInstall(); // PWA Install Hook
     const [isContactOpen, setIsContactOpen] = useState(false);
     const [config, setConfig] = useState<any>({});
     const [unreadCount, setUnreadCount] = useState(0);
@@ -184,7 +186,31 @@ export const ClientLayout = () => {
                         )}
                     </div>
 
-                    <div className="w-10 flex justify-end">
+                    <div className="flex items-center gap-1">
+                        {/* PWA Install Button */}
+                        {deferredPrompt && (
+                            <button
+                                onClick={handleInstall}
+                                className="relative p-1.5 rounded-xl bg-white/10 hover:bg-white/20 transition-all active:scale-95 group/install border border-white/10"
+                                title="Instalar App"
+                            >
+                                <div className="relative">
+                                    <img
+                                        src={config.logoUrl || "/logo.png"}
+                                        alt="Install"
+                                        className="h-6 w-6 object-contain rounded-full opacity-80"
+                                    />
+                                    <div className="absolute -bottom-1 -right-1 bg-white text-blue-600 rounded-full p-0.5 shadow-md border border-gray-100 flex items-center justify-center animate-bounce-slow">
+                                        <svg viewBox="0 0 24 24" width="10" height="10" stroke="currentColor" strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                            <polyline points="7 10 12 15 17 10"></polyline>
+                                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                                        </svg>
+                                    </div>
+                                </div>
+                            </button>
+                        )}
+
                         <button
                             onClick={() => navigate('/inbox')}
                             className={`relative p-2 rounded-xl transition-all active:scale-95 ${unreadCount > 0 ? 'bg-white/10' : ''}`}

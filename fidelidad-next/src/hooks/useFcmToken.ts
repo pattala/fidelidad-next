@@ -84,7 +84,8 @@ export const useFcmToken = () => {
                         'permissions.notifications.status': 'granted',
                         // Maintain a list of active platforms for the dashboard
                         [`permissions.notifications.platforms`]: arrayUnion(platform),
-                        'permissions.notifications.userAgent': navigator.userAgent,
+                        'permissions.notifications.userAgent': navigator.userAgent, // Common field
+                        [`permissions.notifications.${prefix}userAgent`]: navigator.userAgent, // Per platform
                         lastActive: serverTimestamp()
                     }).catch(err => console.warn('[FCM] Firestore save error:', err));
 

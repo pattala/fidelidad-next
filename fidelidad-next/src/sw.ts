@@ -34,29 +34,36 @@ self.addEventListener('push', (event) => {
 
     if (event.data) {
         try {
-            const rawData = event.data.text();
-            console.log('[SW] Raw Push Data:', rawData);
+            // Unificamos lectura de JSON para evitar errores de stream consumido
+            const payload = event.data.json() || {};
+            console.log('[SW] Push Payload:', JSON.stringify(payload).substring(0, 100) + '...');
 
-            const payload = event.data.json();
             const notification = payload.notification || {};
             const data = payload.data || payload || {};
 
             title = notification.title || data.title || title;
             options.body = notification.body || data.body || options.body;
-            options.data.url = data.url || data.click_action || options.data.url;
+            options.data.url = data.url || data.click_action || notification.click_action || options.data.url;
 
             if (data.icon && (data.icon.startsWith('http') || data.icon.startsWith('/'))) {
                 options.icon = data.icon;
                 options.badge = data.icon;
+            } else if (notification.icon) {
+                 options.icon = notification.icon;
+                 options.badge = notification.icon;
             }
 
             options.requireInteraction = true;
             options.tag = data.tag || data.id || 'fidelidad-notif';
             options.renotify = true;
+            options.vibrate = [200, 100, 200, 100, 200]; // Patrón más fuerte para celus
 
         } catch (e) {
-            console.error('[SW] Error parsing push data:', e);
-            options.body = event.data.text() || options.body;
+            console.error('[SW] Error parsing push data, showing generic:', e);
+            try {
+                const text = event.data.text();
+                if (text) options.body = text;
+            } catch (txtErr) {}
         }
     }
 

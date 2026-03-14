@@ -43,23 +43,34 @@ export const ClientProfilePage = () => {
         const syncReality = async () => {
             if (!userData || !userAuth || !config) return;
             const prefix = isMobileDevice ? 'mobile_' : 'pc_';
-            const browserState = typeof Notification !== 'undefined' ? Notification.permission : 'default';
-            const dbStatus = userData.permissions?.notifications?.[`${prefix}status`];
+            const browserState = typeof Notification !== 'undefined' ? (Notification.permission as string) : 'default';
+            const notifications = userData.permissions?.notifications || {};
+            const dbPlatformStatus = notifications[`${prefix}status`];
+            const globalStatus = notifications.status;
 
-            if (browserState === 'granted' && dbStatus !== 'granted') {
-                // SOLO sincronizar a 'granted' si NO está en 'denied' o 'blocked' (manual del usuario)
-                if (dbStatus === 'pending' || dbStatus === 'later' || !dbStatus || dbStatus === 'later_phase1_complete') {
-                    await updateDoc(doc(db, 'users', userAuth.uid), {
-                        [`permissions.notifications.${prefix}status`]: 'granted',
-                        'permissions.notifications.status': 'granted', // Ensure global sync
-                        'permissions.notifications.updatedAt': Date.now()
-                    });
+            // Log de diagnóstico interno (solo consola)
+            console.log(`[Sync] Platform: ${prefix}, Browser: ${browserState}, DB Platform: ${dbPlatformStatus}, DB Global: ${globalStatus}`);
+
+            if (browserState === 'granted') {
+                // Si el navegador dice SI, pero la base de datos dice algo distinto para esta plataforma O para el global
+                if (dbPlatformStatus !== 'granted' || globalStatus !== 'granted') {
+                    // Evitar pisar 'blocked' si el usuario lo marcó así manualmente en el perfil (aunque el navegador diga granted)
+                    // Pero si está en pending/later/null, lo subimos a granted.
+                    if (dbPlatformStatus !== 'blocked') {
+                        await updateDoc(doc(db, 'users', userAuth.uid), {
+                            [`permissions.notifications.${prefix}status`]: 'granted',
+                            'permissions.notifications.status': 'granted',
+                            'permissions.notifications.updatedAt': Date.now()
+                        });
+                    }
                 }
-            } else if (browserState !== 'granted' && dbStatus === 'granted') {
+            } else if (browserState !== 'granted' && dbPlatformStatus === 'granted') {
+                // Si el navegador dice NO, pero la base de datos decía SI para esta plataforma, bajamos a pending/denied
                 const newState = browserState === 'denied' ? 'denied' : 'pending';
                 await updateDoc(doc(db, 'users', userAuth.uid), {
                     [`permissions.notifications.${prefix}status`]: newState,
-                    'permissions.notifications.status': newState, // Ensure global sync
+                    // El global solo lo bajamos a pending si NO hay otra plataforma que esté en granted
+                    'permissions.notifications.status': newState, 
                     'permissions.notifications.updatedAt': Date.now()
                 });
             }

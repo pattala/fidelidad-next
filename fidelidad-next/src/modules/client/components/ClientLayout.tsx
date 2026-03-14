@@ -212,8 +212,8 @@ export const ClientLayout = () => {
                             </button>
                         )}
 
-                        {/* PWA Install Button (Fallback for all Mobile browsers) */}
-                        {isMobile && !isStandalone && !deferredPrompt && (
+                        {/* PWA Install Button (Fallback for PC & Mobile) */}
+                        {!isStandalone && !deferredPrompt && (
                             <button
                                 onClick={() => setShowIOSHint(true)}
                                 className="relative p-1.5 rounded-xl bg-white/10 hover:bg-white/20 transition-all active:scale-95 border border-white/10"
@@ -570,7 +570,7 @@ export const ClientLayout = () => {
                                                 <p className="text-sm font-bold text-gray-700">Dale a <span className="text-blue-600 font-black">"Agregar"</span> arriba a la derecha</p>
                                             </div>
                                         </>
-                                    ) : (
+                                    ) : isMobile ? (
                                         <>
                                             <div className="flex items-center gap-4">
                                                 <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-black flex-shrink-0">1</div>
@@ -583,6 +583,21 @@ export const ClientLayout = () => {
                                             <div className="flex items-center gap-4">
                                                 <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-black flex-shrink-0">3</div>
                                                 <p className="text-sm font-bold text-gray-700">Confirmá en <span className="text-blue-600 font-black">"Instalar"</span></p>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-black flex-shrink-0">1</div>
+                                                <p className="text-sm font-bold text-gray-700">Buscá el ícono de <span className="text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg inline-flex items-center gap-1 font-black">Instalar <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></span></p>
+                                            </div>
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-black flex-shrink-0">2</div>
+                                                <p className="text-sm font-bold text-gray-700">Lo vas a ver arriba en la <span className="text-gray-900 underline font-black">barra de direcciones</span></p>
+                                            </div>
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-black flex-shrink-0">3</div>
+                                                <p className="text-sm font-bold text-gray-700">Dale a <span className="text-blue-600 font-black">"Instalar"</span> en el aviso</p>
                                             </div>
                                         </>
                                     )}

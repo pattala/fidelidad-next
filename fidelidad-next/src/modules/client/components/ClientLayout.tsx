@@ -12,8 +12,8 @@ import { ConfigService } from '../../../services/configService';
 
 export const ClientLayout = () => {
     const { user, userData, loading: authLoading, isAdmin } = useClientAuth();
-    const { deferredPrompt, handleInstall, isIOS, isStandalone } = usePWAInstall(); // PWA Install Hook
-    const [showIOSHint, setShowIOSHint] = useState(false); // iOS Install Hint Modal
+    const { deferredPrompt, handleInstall, isIOS, isStandalone, isMobile } = usePWAInstall(); // PWA Install Hook
+    const [showIOSHint, setShowIOSHint] = useState(false); // Install Hint Modal
     const [isContactOpen, setIsContactOpen] = useState(false);
     const [config, setConfig] = useState<any>({});
     const [unreadCount, setUnreadCount] = useState(0);
@@ -212,8 +212,8 @@ export const ClientLayout = () => {
                             </button>
                         )}
 
-                        {/* PWA Install Button (iOS Fallback) */}
-                        {isIOS && !isStandalone && !deferredPrompt && (
+                        {/* PWA Install Button (Fallback for all Mobile browsers) */}
+                        {isMobile && !isStandalone && !deferredPrompt && (
                             <button
                                 onClick={() => setShowIOSHint(true)}
                                 className="relative p-1.5 rounded-xl bg-white/10 hover:bg-white/20 transition-all active:scale-95 border border-white/10"
@@ -555,18 +555,37 @@ export const ClientLayout = () => {
                                 <p className="text-sm text-gray-500 font-medium mb-8">Seguí estos 3 pasos para agregarla a tu pantalla de inicio:</p>
 
                                 <div className="w-full space-y-6 text-left">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-black flex-shrink-0">1</div>
-                                        <p className="text-sm font-bold text-gray-700">Tocá el botón <span className="text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg inline-flex items-center gap-1 font-black">Compartir <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg></span></p>
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-black flex-shrink-0">2</div>
-                                        <p className="text-sm font-bold text-gray-700">Buscá y tocá en <span className="text-gray-900 underline font-black">"Agregar al Inicio"</span></p>
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-black flex-shrink-0">3</div>
-                                        <p className="text-sm font-bold text-gray-700">Dale a <span className="text-blue-600 font-black">"Agregar"</span> arriba a la derecha</p>
-                                    </div>
+                                    {isIOS ? (
+                                        <>
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-black flex-shrink-0">1</div>
+                                                <p className="text-sm font-bold text-gray-700">Tocá el botón <span className="text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg inline-flex items-center gap-1 font-black">Compartir <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg></span></p>
+                                            </div>
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-black flex-shrink-0">2</div>
+                                                <p className="text-sm font-bold text-gray-700">Buscá y tocá en <span className="text-gray-900 underline font-black">"Agregar al Inicio"</span></p>
+                                            </div>
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-black flex-shrink-0">3</div>
+                                                <p className="text-sm font-bold text-gray-700">Dale a <span className="text-blue-600 font-black">"Agregar"</span> arriba a la derecha</p>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-black flex-shrink-0">1</div>
+                                                <p className="text-sm font-bold text-gray-700">Tocá los <span className="text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg inline-flex items-center gap-1 font-black">3 puntos <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1.5"></circle><circle cx="12" cy="7" r="1.5"></circle><circle cx="12" cy="17" r="1.5"></circle></svg></span> (arriba)</p>
+                                            </div>
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-black flex-shrink-0">2</div>
+                                                <p className="text-sm font-bold text-gray-700">Buscá y tocá en <span className="text-gray-900 underline font-black">"Instalar Aplicación"</span></p>
+                                            </div>
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-black flex-shrink-0">3</div>
+                                                <p className="text-sm font-bold text-gray-700">Confirmá en <span className="text-blue-600 font-black">"Instalar"</span></p>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
 
                                 <button

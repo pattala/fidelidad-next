@@ -1,8 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { db, auth } from '../../../lib/firebase';
-import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
-import { signOut, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
-import { LogOut, Key, ChevronRight, QrCode, FileText, X, ExternalLink, Eye, EyeOff, MapPin, Phone, User as UserIcon, Building, Bell, Download } from 'lucide-react';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { signOut, updatePassword } from 'firebase/auth';
+import { LogOut, Key, ChevronRight, QrCode, FileText, X, ExternalLink, Eye, EyeOff, MapPin, Phone, User as UserIcon, Building } from 'lucide-react';
 import QRCode from "react-qr-code";
 import toast from 'react-hot-toast';
 import { useNavigate, useOutletContext } from 'react-router-dom';
@@ -21,14 +21,6 @@ export const ClientProfilePage = () => {
         setHeaderTitle: (title: string | null) => void
     }>();
 
-    const isMobileDevice = React.useMemo(() => {
-        if (typeof window === 'undefined') return false;
-        return (
-            /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
-            (navigator.maxTouchPoints > 0 && /Macintosh/.test(navigator.userAgent))
-        );
-    }, []);
-
     // Set Header State
     useEffect(() => {
         setHeaderTitle('Perfil');
@@ -38,65 +30,12 @@ export const ClientProfilePage = () => {
         };
     }, [setHeaderTitle]);
 
-    // --- NOTIFICATION REALITY SYNC ---
-    useEffect(() => {
-        const syncReality = async () => {
-            if (!userData || !userAuth || !config) return;
-            const prefix = isMobileDevice ? 'mobile_' : 'pc_';
-            const browserState = typeof Notification !== 'undefined' ? (Notification.permission as string) : 'default';
-            const notifications = userData.permissions?.notifications || {};
-            const dbPlatformStatus = notifications[`${prefix}status`];
-            const globalStatus = notifications.status;
-
-            // Log de diagnóstico interno (solo consola)
-            console.log(`[Sync] Platform: ${prefix}, Browser: ${browserState}, DB Platform: ${dbPlatformStatus}, DB Global: ${globalStatus}`);
-
-            if (browserState === 'granted') {
-                // Si el navegador dice SI, pero la base de datos dice algo distinto para esta plataforma O para el global
-                if (dbPlatformStatus !== 'granted' || globalStatus !== 'granted') {
-                    // Evitar pisar 'blocked' si el usuario lo marcó así manualmente en el perfil (aunque el navegador diga granted)
-                    // Pero si está en pending/later/null, lo subimos a granted.
-                    if (dbPlatformStatus !== 'blocked') {
-                        await updateDoc(doc(db, 'users', userAuth.uid), {
-                            [`permissions.notifications.${prefix}status`]: 'granted',
-                            'permissions.notifications.status': 'granted',
-                            'permissions.notifications.updatedAt': Date.now()
-                        });
-                    }
-                }
-            } else if (browserState !== 'granted' && dbPlatformStatus === 'granted') {
-                // Si el navegador dice NO, pero la base de datos decía SI para esta plataforma, bajamos a pending/denied
-                const newState = browserState === 'denied' ? 'denied' : 'pending';
-                await updateDoc(doc(db, 'users', userAuth.uid), {
-                    [`permissions.notifications.${prefix}status`]: newState,
-                    // El global solo lo bajamos a pending si NO hay otra plataforma que esté en granted
-                    'permissions.notifications.status': newState, 
-                    'permissions.notifications.updatedAt': Date.now()
-                });
-            }
-        };
-        syncReality();
-
-        window.addEventListener('focus', syncReality);
-        return () => window.removeEventListener('focus', syncReality);
-    }, [userAuth?.uid, userData?.permissions?.notifications?.status]);
-
     // Change Password State
     const [isChangePassOpen, setIsChangePassOpen] = useState(false);
-    const [currentPass, setCurrentPass] = useState('');
     const [newPass, setNewPass] = useState('');
     const [showPass, setShowPass] = useState(false);
-    const [showCurrentPass, setShowCurrentPass] = useState(false);
     const [loadingPass, setLoadingPass] = useState(false);
     const [isTermsOpen, setIsTermsOpen] = useState(false);
-    const termsScrollRef = useRef<HTMLDivElement>(null);
-
-    // Reset scroll when T&C opens
-    useEffect(() => {
-        if (isTermsOpen && termsScrollRef.current) {
-            termsScrollRef.current.scrollTop = 0;
-        }
-    }, [isTermsOpen]);
 
     // Edit Profile State
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -106,8 +45,6 @@ export const ClientProfilePage = () => {
     // No longer need manual auth/db effect, ClientAuthContext handles it
 
     const handleLogout = async () => {
-        // Clear session dismissals so next login counts as a fresh attempt
-        sessionStorage.clear();
         await signOut(auth);
         navigate('/login');
     };
@@ -117,6 +54,7 @@ export const ClientProfilePage = () => {
         if (!userAuth || !userData) return;
         setLoadingEdit(true);
         try {
+            const { updateDoc } = await import('firebase/firestore');
             const userRef = doc(db, 'users', userAuth.uid);
 
             const fullCalle = `${editData.street || ''} ${editData.number || ''}`.trim();
@@ -155,30 +93,20 @@ export const ClientProfilePage = () => {
 
     const handleChangePassword = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!userAuth || !userAuth.email) return;
-
         setLoadingPass(true);
         try {
-            // Re-authenticate first
-            const credential = EmailAuthProvider.credential(userAuth.email, currentPass);
-            await reauthenticateWithCredential(userAuth, credential);
-
-            // If re-auth successful, update password
-            await updatePassword(userAuth, newPass);
-
-            toast.success("¡Contraseña actualizada!");
-            setIsChangePassOpen(false);
-            setNewPass('');
-            setCurrentPass('');
+            if (userAuth) {
+                await updatePassword(userAuth, newPass);
+                toast.success("¡Contraseña actualizada!");
+                setIsChangePassOpen(false);
+                setNewPass('');
+            }
         } catch (error: any) {
             console.error(error);
-            if (error.code === 'auth/wrong-password') {
-                toast.error("La contraseña actual es incorrecta.");
-            } else if (error.code === 'auth/requires-recent-login') {
-                toast.error("Por seguridad, vuelve a iniciar sesión.");
+            toast.error("Error: " + error.message);
+            if (error.code === 'auth/requires-recent-login') {
+                toast.error("Por seguridad, vuelve a iniciar sesión para cambiar la clave.");
                 handleLogout();
-            } else {
-                toast.error("Error: " + (error.message || "No se pudo actualizar la contraseña"));
             }
         } finally {
             setLoadingPass(false);
@@ -187,58 +115,43 @@ export const ClientProfilePage = () => {
 
     const { retrieveToken } = useFcmToken();
 
-    // Optimistic state for toggles
-    const [localPermissions, setLocalPermissions] = useState<{ [key: string]: string }>({});
-
     const handleTogglePermission = async (type: 'notifications' | 'geolocation') => {
         if (!userAuth || !userData) return;
 
-        const prefix = isMobileDevice ? 'mobile_' : 'pc_';
-        const currentStatus = localPermissions[type] || userData.permissions?.[type]?.[`${prefix}status`] || 'pending';
+        const currentStatus = userData.permissions?.[type]?.status;
         const newStatus = currentStatus === 'granted' ? 'denied' : 'granted';
 
-        // 1. Update LOCAL UI immediately (Optimistic)
-        setLocalPermissions(prev => ({ ...prev, [type]: newStatus }));
-
-        // 2. Perform background actions
-        const performAsync = async () => {
-            if (newStatus === 'granted') {
-                if (type === 'notifications') {
-                    const p = await Notification.requestPermission();
-                    if (p !== 'granted') {
-                        toast.error("Permiso bloqueado en el navegador");
-                        setLocalPermissions(prev => ({ ...prev, [type]: 'denied' }));
-                        return;
-                    }
-                    // Register token immediately in background
-                    retrieveToken(); 
-                } else {
-                    const p = await new Promise((resolve) => {
-                        navigator.geolocation.getCurrentPosition(() => resolve('granted'), () => resolve('denied'));
-                    });
-                    if (p !== 'granted') {
-                        toast.error("Permiso de ubicación denegado");
-                        setLocalPermissions(prev => ({ ...prev, [type]: 'denied' }));
-                        return;
-                    }
+        // If trying to grant, we should probably ask browser again
+        if (newStatus === 'granted') {
+            if (type === 'notifications') {
+                const p = await Notification.requestPermission();
+                if (p !== 'granted') {
+                    toast.error("Permiso bloqueado en el navegador");
+                    return;
+                }
+                // Register token immediately
+                await retrieveToken();
+            } else {
+                // simple check for geo
+                const p = await new Promise((resolve) => {
+                    navigator.geolocation.getCurrentPosition(() => resolve('granted'), () => resolve('denied'));
+                });
+                if (p !== 'granted') {
+                    toast.error("Permiso de ubicación denegado");
+                    return;
                 }
             }
+        }
 
-            try {
-                await updateDoc(doc(db, 'users', userAuth.uid), {
-                    [`permissions.${type}.${prefix}status`]: newStatus,
-                    [`permissions.${type}.status`]: newStatus,
-                    [`permissions.${type}.updatedAt`]: Date.now()
-                });
-                toast.success(`${type === 'notifications' ? 'Notificaciones' : 'Ubicación'} ${newStatus === 'granted' ? 'activadas' : 'desactivadas'}`);
-            } catch (e) {
-                console.error(e);
-                setLocalPermissions(prev => ({ ...prev, [type]: currentStatus })); // Rollback on error
-                toast.error("Error al actualizar permisos");
-            }
-        };
-
-        performAsync();
+        try {
+            const { updateDoc } = await import('firebase/firestore');
+            await updateDoc(doc(db, 'users', userAuth.uid), {
+                [`permissions.${type}.status`]: newStatus
+            });
+            toast.success(`${type === 'notifications' ? 'Notificaciones' : 'Ubicación'} ${newStatus === 'granted' ? 'activadas' : 'desactivadas'}`);
+        } catch (e) {
+            console.error(e);
+        }
     };
 
     if (!userData) return <div className="p-10 text-center animate-pulse">Cargando perfil...</div>;
@@ -351,15 +264,15 @@ export const ClientProfilePage = () => {
                                 <span className="text-xl">🔔</span>
                             </div>
                             <div>
-                                <span className="font-bold text-gray-700 text-sm block">Avisos y Premios</span>
-                                <span className="text-[10px] text-gray-400 font-medium">Entérate al instante de tus puntos</span>
+                                <span className="font-bold text-gray-700 text-sm block">Notificaciones</span>
+                                <span className="text-[10px] text-gray-400 font-medium">Alertas de puntos y premios</span>
                             </div>
                         </div>
                         <button
                             onClick={() => handleTogglePermission('notifications')}
-                            className={`w-12 h-6 rounded-full p-1 transition-colors ${(localPermissions.notifications || userData.permissions?.notifications?.[`${isMobileDevice ? 'mobile_' : 'pc_'}status`]) === 'granted' ? 'bg-green-500' : 'bg-gray-300'}`}
+                            className={`w-12 h-6 rounded-full p-1 transition-colors ${userData.permissions?.notifications?.status === 'granted' ? 'bg-green-500' : 'bg-gray-300'}`}
                         >
-                            <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${(localPermissions.notifications || userData.permissions?.notifications?.[`${isMobileDevice ? 'mobile_' : 'pc_'}status`]) === 'granted' ? 'translate-x-6' : ''}`}></div>
+                            <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${userData.permissions?.notifications?.status === 'granted' ? 'translate-x-6' : ''}`}></div>
                         </button>
                     </div>
 
@@ -369,15 +282,15 @@ export const ClientProfilePage = () => {
                                 <MapPin size={20} />
                             </div>
                             <div>
-                                <span className="font-bold text-gray-700 text-sm block">Beneficios Locales</span>
-                                <span className="text-[10px] text-gray-400 font-medium">Accede a promos y recompensas por zona</span>
+                                <span className="font-bold text-gray-700 text-sm block">Geolocalización</span>
+                                <span className="text-[10px] text-gray-400 font-medium">Búsqueda de sucursales cercanas</span>
                             </div>
                         </div>
                         <button
                             onClick={() => handleTogglePermission('geolocation')}
-                            className={`w-12 h-6 rounded-full p-1 transition-colors ${(localPermissions.geolocation || userData.permissions?.geolocation?.[`${isMobileDevice ? 'mobile_' : 'pc_'}status`]) === 'granted' ? 'bg-green-500' : 'bg-gray-300'}`}
+                            className={`w-12 h-6 rounded-full p-1 transition-colors ${userData.permissions?.geolocation?.status === 'granted' ? 'bg-green-500' : 'bg-gray-300'}`}
                         >
-                            <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${(localPermissions.geolocation || userData.permissions?.geolocation?.[`${isMobileDevice ? 'mobile_' : 'pc_'}status`]) === 'granted' ? 'translate-x-6' : ''}`}></div>
+                            <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${userData.permissions?.geolocation?.status === 'granted' ? 'translate-x-6' : ''}`}></div>
                         </button>
                     </div>
                 </div>
@@ -403,23 +316,6 @@ export const ClientProfilePage = () => {
                     {isChangePassOpen && (
                         <div className="p-4 bg-gray-50/50 border-t border-gray-100 animate-fade-in">
                             <form onSubmit={handleChangePassword} className="flex flex-col gap-3">
-                                <div className="relative">
-                                    <input
-                                        type={showCurrentPass ? "text" : "password"}
-                                        placeholder="Contraseña actual"
-                                        className="w-full p-3 pr-12 rounded-xl border border-gray-200 text-sm outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
-                                        required
-                                        value={currentPass}
-                                        onChange={e => setCurrentPass(e.target.value)}
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowCurrentPass(!showCurrentPass)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-orange-600 transition"
-                                    >
-                                        {showCurrentPass ? <EyeOff size={18} /> : <Eye size={18} />}
-                                    </button>
-                                </div>
                                 <div className="relative">
                                     <input
                                         type={showPass ? "text" : "password"}
@@ -484,45 +380,6 @@ export const ClientProfilePage = () => {
                         <span className="font-bold text-gray-700 text-sm group-hover:text-red-600 transition">Cerrar Sesión</span>
                     </div>
                 </button>
-
-                {/* Técnico / Soporte section (Subtle and helpful) */}
-                <div className="pt-6 pb-2 border-t border-gray-50">
-                    <h3 className="text-gray-400 font-bold text-[9px] uppercase tracking-[0.2em] ml-2 mb-4">Ayuda Técnica y Soporte</h3>
-                    <div className="grid grid-cols-2 gap-3">
-                        <button
-                            onClick={async () => {
-                                const t = toast.loading("Sincronizando notificaciones...");
-                                try {
-                                    await retrieveToken(true);
-                                    toast.success("¡Notificaciones sincronizadas!", { id: t });
-                                } catch (e) {
-                                    toast.error("Error al sincronizar", { id: t });
-                                }
-                            }}
-                            className="bg-gray-50/80 p-4 rounded-3xl border border-gray-100 flex flex-col items-center gap-2 active:scale-95 transition-all text-center group"
-                        >
-                            <div className="bg-white p-2 rounded-xl text-indigo-500 shadow-sm group-hover:bg-indigo-500 group-hover:text-white transition-colors">
-                                <Bell size={18} />
-                            </div>
-                            <span className="text-[9px] font-black uppercase text-gray-600 tracking-tight leading-tight">Sincronizar<br />Notificaciones</span>
-                        </button>
-
-                        <button
-                            onClick={() => {
-                                localStorage.removeItem('pwa_prompt_last');
-                                localStorage.removeItem('pwa_prompt_current_cycle_count');
-                                localStorage.removeItem('pwa_prompt_cycle_start');
-                                toast.success("Aviso de App reseteado");
-                            }}
-                            className="bg-gray-50/80 p-4 rounded-3xl border border-gray-100 flex flex-col items-center gap-2 active:scale-95 transition-all text-center group"
-                        >
-                            <div className="bg-white p-2 rounded-xl text-emerald-500 shadow-sm group-hover:bg-emerald-500 group-hover:text-white transition-colors">
-                                <Download size={18} />
-                            </div>
-                            <span className="text-[9px] font-black uppercase text-gray-600 tracking-tight leading-tight">Resetear aviso<br />Instalar App</span>
-                        </button>
-                    </div>
-                </div>
             </div>
 
             <div className="h-4"></div>
@@ -530,43 +387,41 @@ export const ClientProfilePage = () => {
             {/* Terms Modal */}
             {
                 isTermsOpen && (
-                    <div className="fixed inset-0 z-[200] flex flex-col items-center justify-start pointer-events-none animate-fade-in">
-                        <div className="w-full max-w-md h-full pointer-events-auto bg-white flex flex-col shadow-2xl mx-auto">
-                            {/* Header */}
-                            <div className="flex items-center justify-between px-4 py-4 bg-white border-b border-gray-100 shadow-sm flex-none">
-                                <h2 className="text-lg font-black text-gray-800">Términos y Condiciones</h2>
-                                <button
-                                    onClick={() => setIsTermsOpen(false)}
-                                    className="p-2 text-gray-400 hover:text-gray-800 hover:bg-gray-100 rounded-full transition"
-                                >
-                                    <X size={24} />
-                                </button>
-                            </div>
-                            {/* Content */}
-                            <div ref={termsScrollRef} className="flex-1 overflow-y-auto p-6 text-sm text-gray-600 scrollbar-hide">
-                                {config?.contact?.termsContent ? (
-                                    <div className="space-y-4 whitespace-pre-wrap leading-relaxed">
-                                        {(config.contact.termsContent || '')
-                                            .replace(/\{siteName\}/g, config?.siteName || 'Club')
-                                            .split('\n\n')
-                                            .map((block: string, idx: number) => {
-                                                if (block.startsWith('## ')) {
-                                                    return <h4 key={idx} className="font-extrabold text-gray-900 mt-6 mb-2 uppercase tracking-widest text-[10px]">{block.replace('## ', '')}</h4>;
-                                                }
-                                                if (block.startsWith('# ')) {
-                                                    return <h3 key={idx} className="text-lg font-black text-gray-800 mb-4">{block.replace('# ', '')}</h3>;
-                                                }
-                                                if (block.startsWith('***')) {
-                                                    return <hr key={idx} className="my-6 border-gray-100" />;
-                                                }
-                                                return <p key={idx} className="mb-2">{block}</p>;
-                                            })
-                                        }
-                                    </div>
-                                ) : (
-                                    <p className="text-center py-10 text-gray-400 italic">No se han definido términos y condiciones.</p>
-                                )}
-                            </div>
+                    <div className="fixed inset-0 z-50 flex flex-col bg-white animate-fade-in">
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-4 py-4 bg-white border-b border-gray-100 shadow-sm flex-none z-10">
+                            <h2 className="text-lg font-black text-gray-800">Términos y Condiciones</h2>
+                            <button
+                                onClick={() => setIsTermsOpen(false)}
+                                className="p-2 text-gray-400 hover:text-gray-800 hover:bg-gray-100 rounded-full transition"
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+                        {/* Content (Dynamic Render) */}
+                        <div className="flex-1 overflow-y-auto p-6 text-sm text-gray-600 scrollbar-hide">
+                            {config?.contact?.termsContent ? (
+                                <div className="space-y-4 whitespace-pre-wrap leading-relaxed">
+                                    {(config.contact.termsContent || '')
+                                        .replace(/\{siteName\}/g, config?.siteName || 'Club')
+                                        .split('\n\n')
+                                        .map((block: string, idx: number) => {
+                                            if (block.startsWith('## ')) {
+                                                return <h4 key={idx} className="font-extrabold text-gray-900 mt-6 mb-2 uppercase tracking-widest text-[10px]">{block.replace('## ', '')}</h4>;
+                                            }
+                                            if (block.startsWith('# ')) {
+                                                return <h3 key={idx} className="text-lg font-black text-gray-800 mb-4">{block.replace('# ', '')}</h3>;
+                                            }
+                                            if (block.startsWith('***')) {
+                                                return <hr key={idx} className="my-6 border-gray-100" />;
+                                            }
+                                            return <p key={idx} className="mb-2">{block}</p>;
+                                        })
+                                    }
+                                </div>
+                            ) : (
+                                <p className="text-center py-10 text-gray-400 italic">No se han definido términos y condiciones.</p>
+                            )}
                         </div>
                     </div>
                 )

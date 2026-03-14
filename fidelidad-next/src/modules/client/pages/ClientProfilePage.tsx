@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { db, auth } from '../../../lib/firebase';
 import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { signOut, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
-import { LogOut, Key, ChevronRight, QrCode, FileText, X, ExternalLink, Eye, EyeOff, MapPin, Phone, User as UserIcon, Building } from 'lucide-react';
+import { LogOut, Key, ChevronRight, QrCode, FileText, X, ExternalLink, Eye, EyeOff, MapPin, Phone, User as UserIcon, Building, Bell, Download } from 'lucide-react';
 import QRCode from "react-qr-code";
 import toast from 'react-hot-toast';
 import { useNavigate, useOutletContext } from 'react-router-dom';
@@ -484,6 +484,45 @@ export const ClientProfilePage = () => {
                         <span className="font-bold text-gray-700 text-sm group-hover:text-red-600 transition">Cerrar Sesión</span>
                     </div>
                 </button>
+
+                {/* Técnico / Soporte section (Subtle and helpful) */}
+                <div className="pt-6 pb-2 border-t border-gray-50">
+                    <h3 className="text-gray-400 font-bold text-[9px] uppercase tracking-[0.2em] ml-2 mb-4">Ayuda Técnica y Soporte</h3>
+                    <div className="grid grid-cols-2 gap-3">
+                        <button
+                            onClick={async () => {
+                                const t = toast.loading("Sincronizando notificaciones...");
+                                try {
+                                    await retrieveToken(true);
+                                    toast.success("¡Notificaciones sincronizadas!", { id: t });
+                                } catch (e) {
+                                    toast.error("Error al sincronizar", { id: t });
+                                }
+                            }}
+                            className="bg-gray-50/80 p-4 rounded-3xl border border-gray-100 flex flex-col items-center gap-2 active:scale-95 transition-all text-center group"
+                        >
+                            <div className="bg-white p-2 rounded-xl text-indigo-500 shadow-sm group-hover:bg-indigo-500 group-hover:text-white transition-colors">
+                                <Bell size={18} />
+                            </div>
+                            <span className="text-[9px] font-black uppercase text-gray-600 tracking-tight leading-tight">Sincronizar<br />Notificaciones</span>
+                        </button>
+
+                        <button
+                            onClick={() => {
+                                localStorage.removeItem('pwa_prompt_last');
+                                localStorage.removeItem('pwa_prompt_current_cycle_count');
+                                localStorage.removeItem('pwa_prompt_cycle_start');
+                                toast.success("Aviso de App reseteado");
+                            }}
+                            className="bg-gray-50/80 p-4 rounded-3xl border border-gray-100 flex flex-col items-center gap-2 active:scale-95 transition-all text-center group"
+                        >
+                            <div className="bg-white p-2 rounded-xl text-emerald-500 shadow-sm group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+                                <Download size={18} />
+                            </div>
+                            <span className="text-[9px] font-black uppercase text-gray-600 tracking-tight leading-tight">Resetear aviso<br />Instalar App</span>
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <div className="h-4"></div>

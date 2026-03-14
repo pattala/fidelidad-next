@@ -36,5 +36,8 @@ export const usePWAInstall = () => {
         setDeferredPrompt(null);
     };
 
-    return { deferredPrompt, handleInstall };
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+
+    return { deferredPrompt, handleInstall, isIOS, isStandalone };
 };

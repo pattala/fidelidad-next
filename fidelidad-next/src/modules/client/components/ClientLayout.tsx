@@ -12,7 +12,8 @@ import { ConfigService } from '../../../services/configService';
 
 export const ClientLayout = () => {
     const { user, userData, loading: authLoading, isAdmin } = useClientAuth();
-    const { deferredPrompt, handleInstall } = usePWAInstall(); // PWA Install Hook
+    const { deferredPrompt, handleInstall, isIOS, isStandalone } = usePWAInstall(); // PWA Install Hook
+    const [showIOSHint, setShowIOSHint] = useState(false); // iOS Install Hint Modal
     const [isContactOpen, setIsContactOpen] = useState(false);
     const [config, setConfig] = useState<any>({});
     const [unreadCount, setUnreadCount] = useState(0);
@@ -150,7 +151,7 @@ export const ClientLayout = () => {
                         minHeight: 'var(--header-h)'
                     }}
                 >
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 w-[80px]">
                         {(location.pathname !== '/' || isContactOpen) && (
                             <button
                                 onClick={() => {
@@ -165,7 +166,7 @@ export const ClientLayout = () => {
                                 <ChevronLeft size={24} strokeWidth={2.5} />
                             </button>
                         )}
-                        <div className="bg-white p-0.5 rounded-full shadow-lg ml-1">
+                        <div className="bg-white p-0.5 rounded-full shadow-lg ml-1 shrink-0">
                             <img
                                 src={config.logoUrl || "/logo.png"}
                                 alt="Logo"
@@ -176,7 +177,7 @@ export const ClientLayout = () => {
                     </div>
 
                     <div className="flex flex-col items-center flex-1 overflow-hidden">
-                        <h1 className="font-black text-[11px] uppercase tracking-widest text-center drop-shadow-sm truncate w-full px-2">
+                        <h1 className="font-black text-[13px] uppercase tracking-widest text-center drop-shadow-md truncate w-full px-2">
                             {config?.siteName || 'Club de Fidelidad'}
                         </h1>
                         {userData?.isTestUser && (
@@ -186,8 +187,8 @@ export const ClientLayout = () => {
                         )}
                     </div>
 
-                    <div className="flex items-center gap-1">
-                        {/* PWA Install Button */}
+                    <div className="flex items-center gap-1 w-[80px] justify-end">
+                        {/* PWA Install Button (Android/Chrome) */}
                         {deferredPrompt && (
                             <button
                                 onClick={handleInstall}
@@ -205,6 +206,30 @@ export const ClientLayout = () => {
                                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                                             <polyline points="7 10 12 15 17 10"></polyline>
                                             <line x1="12" y1="15" x2="12" y2="3"></line>
+                                        </svg>
+                                    </div>
+                                </div>
+                            </button>
+                        )}
+
+                        {/* PWA Install Button (iOS Fallback) */}
+                        {isIOS && !isStandalone && !deferredPrompt && (
+                            <button
+                                onClick={() => setShowIOSHint(true)}
+                                className="relative p-1.5 rounded-xl bg-white/10 hover:bg-white/20 transition-all active:scale-95 border border-white/10"
+                                title="Cómo Instalar"
+                            >
+                                <div className="relative">
+                                    <img
+                                        src={config.logoUrl || "/logo.png"}
+                                        alt="Install"
+                                        className="h-6 w-6 object-contain rounded-full opacity-80"
+                                    />
+                                    <div className="absolute -bottom-1 -right-1 bg-white text-blue-600 rounded-full p-0.5 shadow-md border border-gray-100 flex items-center justify-center animate-bounce-slow">
+                                        <svg viewBox="0 0 24 24" width="10" height="10" stroke="currentColor" strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
                                         </svg>
                                     </div>
                                 </div>
@@ -501,6 +526,55 @@ export const ClientLayout = () => {
                                         <span className="text-gray-400 group-hover:translate-x-1 transition text-xl">›</span>
                                     </a>
                                 )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+                {/* iOS Install Guide Modal */}
+                {showIOSHint && (
+                    <div className="absolute inset-0 z-[150] flex items-center justify-center bg-black/60 backdrop-blur-sm px-6 animate-fade-in">
+                        <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl relative animate-in-up">
+                            <button
+                                onClick={() => setShowIOSHint(false)}
+                                className="absolute top-6 right-6 text-gray-400 hover:text-gray-600"
+                            >
+                                <X size={24} />
+                            </button>
+
+                            <div className="flex flex-col items-center text-center">
+                                <div className="bg-blue-50 p-4 rounded-3xl mb-6">
+                                    <div className="relative">
+                                        <img src={config.logoUrl || "/logo.png"} alt="App" className="h-16 w-16 rounded-2xl shadow-lg" />
+                                        <div className="absolute -bottom-2 -right-2 bg-blue-600 text-white rounded-full p-1.5 border-4 border-white shadow-md">
+                                            <Gift size={20} />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <h2 className="text-xl font-black text-gray-800 mb-2 uppercase tracking-tight">Instalá la App</h2>
+                                <p className="text-sm text-gray-500 font-medium mb-8">Seguí estos 3 pasos para agregarla a tu pantalla de inicio:</p>
+
+                                <div className="w-full space-y-6 text-left">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-black flex-shrink-0">1</div>
+                                        <p className="text-sm font-bold text-gray-700">Tocá el botón <span className="text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg inline-flex items-center gap-1 font-black">Compartir <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg></span></p>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-black flex-shrink-0">2</div>
+                                        <p className="text-sm font-bold text-gray-700">Buscá y tocá en <span className="text-gray-900 underline font-black">"Agregar al Inicio"</span></p>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-black flex-shrink-0">3</div>
+                                        <p className="text-sm font-bold text-gray-700">Dale a <span className="text-blue-600 font-black">"Agregar"</span> arriba a la derecha</p>
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={() => setShowIOSHint(false)}
+                                    className="mt-10 w-full py-4 bg-gray-900 text-white rounded-2xl font-black uppercase tracking-widest text-xs active:scale-95 transition-all shadow-xl"
+                                >
+                                    ¡Entendido!
+                                </button>
                             </div>
                         </div>
                     </div>

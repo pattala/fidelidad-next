@@ -574,11 +574,11 @@ export const ClientLayout = () => {
                                         <>
                                             <div className="flex items-center gap-4">
                                                 <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-black flex-shrink-0">1</div>
-                                                <p className="text-sm font-bold text-gray-700">Tocá los <span className="text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg inline-flex items-center gap-1 font-black">3 puntos <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1.5"></circle><circle cx="12" cy="7" r="1.5"></circle><circle cx="12" cy="17" r="1.5"></circle></svg></span> (arriba)</p>
+                                                <p className="text-sm font-bold text-gray-700">Tocá los <span className="text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg inline-flex items-center gap-1 font-black">3 puntos <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1.5"></circle><circle cx="12" cy="7" r="1.5"></circle><circle cx="12" cy="17" r="1.5"></circle></svg></span> (arriba o abajo)</p>
                                             </div>
                                             <div className="flex items-center gap-4">
                                                 <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-black flex-shrink-0">2</div>
-                                                <p className="text-sm font-bold text-gray-700">Buscá y tocá en <span className="text-gray-900 underline font-black">"Instalar Aplicación"</span></p>
+                                                <p className="text-sm font-bold text-gray-700">Buscá el ícono de <span className="text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg inline-flex items-center gap-1 font-black">Instalar <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v8"></path><path d="m8 12 4 4 4-4"></path></svg></span></p>
                                             </div>
                                             <div className="flex items-center gap-4">
                                                 <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-black flex-shrink-0">3</div>
@@ -589,7 +589,7 @@ export const ClientLayout = () => {
                                         <>
                                             <div className="flex items-center gap-4">
                                                 <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-black flex-shrink-0">1</div>
-                                                <p className="text-sm font-bold text-gray-700">Buscá el ícono de <span className="text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg inline-flex items-center gap-1 font-black">Instalar <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></span></p>
+                                                <p className="text-sm font-bold text-gray-700">Buscá el ícono de <span className="text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg inline-flex items-center gap-1 font-black">Instalar <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line><path d="m9 10 3 3 3-3"></path><path d="M12 7v6"></path></svg></span></p>
                                             </div>
                                             <div className="flex items-center gap-4">
                                                 <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-black flex-shrink-0">2</div>

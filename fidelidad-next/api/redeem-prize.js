@@ -238,6 +238,7 @@ export default async function handler(req, res) {
                 .replace(/{siteName}/g, config.siteName || 'Club Fidelidad');
 
             // Inbox Notification (MANUAL)
+            const inboxRef = db.collection("users").doc(targetUid).collection("inbox").doc();
             tx.set(inboxRef, {
                 title: '¡Canje Exitoso! 🎁',
                 body: unifiedMsg,

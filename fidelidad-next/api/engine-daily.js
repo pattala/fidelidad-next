@@ -163,71 +163,48 @@ export default async function handler(req, res) {
     };
     const logSourceLabel = sourceLabelMap[triggerSource] || 'Auto';
 
-    // --- DEDUPLICACIÓN (solo en modo daily y si no es manual/override) ---
+    // --- DEDUPLICACIÓN INTELIGENTE (RED DE SEGURIDAD) ---
     if (isDailyMode && !isManualSim) {
         const arFormatter = new Intl.DateTimeFormat('en-CA', {
             timeZone: 'America/Argentina/Buenos_Aires',
             year: 'numeric', month: '2-digit', day: '2-digit'
         });
         const todayAR = arFormatter.format(new Date());
+        
+        // Cargar marcador de última ejecución
         const checkSnap = await db.collection('config').doc('dailyCheck').get();
-        const lastRun = checkSnap.exists ? checkSnap.data()?.lastRunDate : null;
+        const dailyCheckData = checkSnap.exists ? checkSnap.data() : {};
+        const lastRun = dailyCheckData.lastRunDate;
+        const lastRunTimestamp = dailyCheckData.lastRunTimestamp || null;
 
-        if (lastRun === todayAR && !finalIgnoreDeduplication) {
-            console.log(`[DailyCheck] Ya se ejecutó hoy (${todayAR}). Saltando procesos pero calculando contadores.`);
-
-            // 1. Contar Cumpleaños Hoy (que no hayan sido saludados aún este año)
-            const today = new Date();
-            const currentYear = today.getFullYear().toString();
-            const todayMsg = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-
-            const usersSnap = await db.collection('users').where('birthDate', '!=', '').get();
-            const birthdayCount = usersSnap.docs.filter(doc => {
-                const data = doc.data();
-                return data.birthDate?.endsWith(todayMsg) && data.lastBirthdayGreetingYear !== currentYear;
-            }).length;
-
-            // 2. Contar Vencimientos (30 días de ventana)
-            const todayStr = todayAR; // Use AR time mapped earlier
-            const windowEnd = new Date(today);
-            windowEnd.setDate(windowEnd.getDate() + (config.messaging?.expirationWarningDays || 30));
-            const windowEndStr = arFormatter.format(windowEnd);
-
-            const expSnap = await db.collection('users')
-                .where('nextExpirationDate', '<=', windowEndStr)
-                .where('nextExpirationDate', '>', todayStr)
-                .get();
-
-            const expirationCount = expSnap.docs.filter(d => {
-                const data = d.data();
-                if ((data.points || 0) <= 0) return false;
-                if (data.lastWhatsAppManualDate && data.lastWhatsAppManualDate >= todayStr) return false;
-                return true;
-            }).length;
-
-            const skipSummary = `Motor al día (${todayAR}). Gatillo: ${logSourceLabel}. Cumpleaños: ${birthdayCount}. Vencimientos: ${expirationCount}.`;
-
-            // Solo guardamos el log en Audit Logs si el disparo provino de una interacción real humana
-            // (extensión, dashboard, pwa) para no saturar la base de datos con los pings cada hora del cron.
-            if (['dashboard', 'pwa', 'extension'].includes(triggerSource)) {
-                await db.collection('audit_logs').add({
-                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                    type: 'daily_check_info',
-                    status: 'success',
-                    summary: skipSummary,
-                    details: [{ action: 'idle_check', info: 'Deduplicación activa (Todo al día).', trigger: triggerSource }],
-                    executor: logSourceLabel
-                });
+        // Lógica de salto para gatillos automáticos (PWA, Extensión, QStash)
+        if (lastRun === todayAR && triggerSource !== 'dashboard' && !finalIgnoreDeduplication) {
+            
+            // RED DE SEGURIDAD: ¿Hubo cambios administrativos después de la última ejecución?
+            let hasAdministrativeChanges = false;
+            if (lastRunTimestamp) {
+                const recentAudits = await db.collection('audit_logs')
+                    .where('timestamp', '>', lastRunTimestamp)
+                    .where('type', 'in', ['config_mgmt', 'campaign_mgmt', 'prize_updated'])
+                    .limit(1)
+                    .get();
+                
+                if (!recentAudits.empty) {
+                    hasAdministrativeChanges = true;
+                    console.log(`[DailyCheck] Detectados cambios administrativos recientes (${triggerSource}). Forzando ejecución.`);
+                }
             }
 
-            return res.status(200).json({
-                ok: true,
-                skipped: true,
-                message: `Todo al día (${todayAR})`,
-                lastRun: todayAR,
-                summary: { notified: 0, totalToday: birthdayCount },
-                expirations: { summary: { notified: 0, totalInWindow: expirationCount } }
-            });
+            if (!hasAdministrativeChanges) {
+                console.log(`[DailyCheck] Todo al día y sin cambios (${todayAR}). Gatillo: ${triggerSource}. SALTANDO LECTURAS.`);
+                return res.status(200).json({
+                    ok: true,
+                    skipped: true,
+                    message: `Todo al día (${todayAR})`,
+                    lastRun: todayAR,
+                    trigger: triggerSource
+                });
+            }
         }
     }
 

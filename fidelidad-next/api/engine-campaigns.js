@@ -51,8 +51,38 @@ export default async function handler(req, res) {
         const allowedEnd = config.messaging?.engineAllowedEndHour ?? 21;
         const isWithinNotificationWindow = currentH >= allowedStart && currentH < allowedEnd;
 
-        const reqIgnoreDeduplication = req.body?.ignoreDeduplication === true || req.query?.ignoreDeduplication === 'true';
-        const finalIgnoreDeduplication = reqIgnoreDeduplication || (config.enableDuplicateControl === false);
+        // --- DEDUPLICACIÓN INTELIGENTE (RED DE SEGURIDAD) ---
+        const triggerSource = req.query?.trigger || req.body?.trigger || "unknown";
+        const isManualSim = req.body?.isManual === true || req.query?.isManual === 'true';
+
+        if (!isManualSim && triggerSource !== 'dashboard') {
+            const arFormatter = new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'America/Argentina/Buenos_Aires',
+                year: 'numeric', month: '2-digit', day: '2-digit'
+            });
+            const todayAR = arFormatter.format(new Date());
+
+            // Usamos un marcador específico para campañas para no interferir con el diario
+            const checkSnap = await db.collection('config').doc('campaignCheck').get();
+            const checkData = checkSnap.exists ? checkSnap.data() : {};
+            const lastRunDate = checkData.lastRunDate;
+            const lastRunTimestamp = checkData.lastRunTimestamp || null;
+
+            // Si ya corrió hoy, verificamos si hubo cambios administrativos
+            if (lastRunDate === todayAR && lastRunTimestamp) {
+                const recentAudits = await db.collection('audit_logs')
+                    .where('timestamp', '>', lastRunTimestamp)
+                    .where('type', 'in', ['campaign_mgmt', 'config_updated'])
+                    .limit(1)
+                    .get();
+
+                if (recentAudits.empty) {
+                    console.log(`[Engine-Campaigns] Todo al día. Gatillo ${triggerSource} saltado para ahorrar cuota.`);
+                    return res.status(200).json({ ok: true, skipped: true, message: "Todo al día" });
+                }
+                console.log(`[Engine-Campaigns] Detectados cambios en campañas. Forzando ejecución para gatillo ${triggerSource}.`);
+            }
+        }
 
         // 2. OBTENER TODAS LAS CAMPAÑAS ACTIVAS
         const snapshot = await db.collection('campanas').where('active', '==', true).get();
@@ -186,6 +216,16 @@ export default async function handler(req, res) {
                     results.details.push({ id: campId, name: camp.name, error: err.message });
                 }
             }
+        }
+
+        // Marcar como ejecutado para deduplicación
+        if (triggerSource !== 'dashboard' && !isManualSim) {
+            const arFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires', year: 'numeric', month: '2-digit', day: '2-digit' });
+            await db.collection('config').doc('campaignCheck').set({
+                lastRunDate: arFormatter.format(new Date()),
+                lastRunTimestamp: admin.firestore.FieldValue.serverTimestamp(),
+                trigger: triggerSource
+            }, { merge: true });
         }
 
         return res.status(200).json({ ok: true, results });

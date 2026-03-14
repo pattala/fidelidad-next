@@ -49,29 +49,9 @@ export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) 
                         setIsAdmin(false);
                         setLoading(false);
 
-                        // Silent background trigger for daily engine
-                        try {
-                            const { getDoc, doc } = await import('firebase/firestore');
-                            const configSnap = await getDoc(doc(db, 'config', 'general'));
-                            if (configSnap.exists()) {
-                                const cfg = configSnap.data();
-                                if (cfg.messaging?.enableClientTrigger !== false) {
-                                    const headers = {
-                                        'Content-Type': 'application/json',
-                                        'x-api-key': import.meta.env.VITE_API_KEY || ''
-                                    };
-                                    fetch('/api/engine-daily?mode=daily&trigger=pwa', { method: 'POST', headers }).catch(() => { });
-                                    fetch('/api/engine-campaigns?trigger=pwa', { method: 'POST', headers }).catch(() => { });
-                                }
-                            } else {
-                                const headers = {
-                                    'Content-Type': 'application/json',
-                                    'x-api-key': import.meta.env.VITE_API_KEY || ''
-                                };
-                                fetch('/api/engine-daily?mode=daily&trigger=pwa', { method: 'POST', headers }).catch(() => { });
-                                fetch('/api/engine-campaigns?trigger=pwa', { method: 'POST', headers }).catch(() => { });
-                            }
-                        } catch (e) { }
+                        // --- OPTIMIZACIÓN QUOTA: Gatillos Movidos ---
+                        // Ya no los ejecutamos en el onSnapshot para evitar bucles infinitos.
+                        // La lógica de gatillo ahora se maneja de forma controlada en un useEffect separado.
                     } else {
                         try {
                             const { getDoc } = await import('firebase/firestore');
@@ -79,7 +59,8 @@ export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) 
                             if (adminSnap.exists()) {
                                 setIsAdmin(true);
                                 setUserData(null);
-                                fetch('/api/engine-daily?mode=daily&trigger=pwa', {
+                                // Trigger dashboard style call for admins
+                                fetch('/api/engine-daily?mode=daily&trigger=dashboard', {
                                     method: 'POST',
                                     headers: {
                                         'Content-Type': 'application/json',
@@ -126,9 +107,45 @@ export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) 
         };
     }, []);
 
+    // --- GATILLO INTELIGENTE (PWA Autónoma) ---
+    // Este efecto avisa al motor de cambios, pero el motor decide si trabajar o no.
+    useEffect(() => {
+        if (!user || isAdmin || isProfileMissing) return;
+
+        const triggerEngine = async () => {
+            try {
+                const token = await auth.currentUser?.getIdToken();
+                const API_KEY = import.meta.env.VITE_API_KEY || '';
+                
+                // Llamada silenciosa al motor diario
+                // Usamos trigger=pwa para que el servidor sepa que puede aplicar deduplicación
+                fetch('/api/engine-daily?mode=daily&trigger=pwa', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': API_KEY,
+                        'Authorization': `Bearer ${token}`
+                    }
+                }).catch(() => {});
+            } catch (e) {
+                // Silencioso, no queremos interrumpir la UI
+            }
+        };
+
+        // Debounce simple para no saturar ante cambios rápidos
+        const timer = setTimeout(triggerEngine, 2000);
+        return () => clearTimeout(timer);
+    }, [userData?.points, userData?.accumulated_balance, userData?.lastPointsUpdate]);
+
     return (
-        <ClientAuthContext.Provider value={{ user, userData, loading, isAdmin, isProfileMissing } as any}>
-            {children}
+        <ClientAuthContext.Provider value={{
+            user,
+            userData,
+            loading,
+            isAdmin,
+            isProfileMissing
+        }}>
+            {!loading && children}
         </ClientAuthContext.Provider>
     );
 };

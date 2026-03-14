@@ -68,6 +68,7 @@ export interface Client {
         processedAt?: any;
     };
     isTestUser?: boolean;
+    pwaInstalled?: boolean; // Nueva: Flag para saber si el usuario instaló la App
 }
 
 export interface User {
@@ -190,6 +191,10 @@ export interface AppConfig {
         maxContextualDismissalsPC?: number;
         maxContextualDismissalsMobile?: number;
         mobileCooldownHours?: number; // Cooldown para móviles en horas (0 = inmediato)
+        pwaInstallPromptCooldownHours?: number; // Nueva: Cooldown para el cartel de "Instalar" pos-compra
+        pwaInstallPromptMaxAttempts?: number; // Nueva: Máximo de intentos para el cartel "Instalar"
+        pwaInstallPromptResetDays?: number; // Nueva: Días para reiniciar el ciclo de intentos (ej. 30 días)
+        enablePwaInstallPromptRepetition?: boolean; // Nueva: Toggle para activar el reinicio del ciclo
     };
 
     // Sistema de Referidos

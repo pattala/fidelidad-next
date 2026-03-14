@@ -29,6 +29,8 @@ import { useFcmToken } from '../../../hooks/useFcmToken';
 import { ModernConfirmModal } from '../components/ModernConfirmModal';
 import { CampaignActionModal } from '../components/CampaignActionModal';
 import { useClientAuth } from '../contexts/ClientAuthContext';
+import { usePWAInstall } from '../../../hooks/usePWAInstall';
+import { PWAInstallAdvantageModal } from '../components/PWAInstallAdvantageModal';
 const RecentActivityList = ({ uid }: { uid?: string }) => {
     const [activities, setActivities] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -137,6 +139,23 @@ export const ClientHomePage = () => {
         const timer = setTimeout(() => setReadyForBanner(true), 1600);
         return () => clearTimeout(timer);
     }, []);
+    
+    const { config } = useOutletContext<{ config: any }>();
+
+    // --- PWA INSTALL LOGIC ---
+    const { isStandalone, handleInstall, isIOS, isInstalled } = usePWAInstall();
+    const [showPWAAdvantages, setShowPWAAdvantages] = useState(false);
+
+    // Track PWA installation in Firestore
+    useEffect(() => {
+        if (user?.uid && isInstalled && !userData?.pwaInstalled && !isAdmin) {
+            updateDoc(doc(db, 'users', user.uid), {
+                pwaInstalled: true,
+                pwaInstalledAt: TimeService.now().getTime()
+            }).catch(console.error);
+        }
+    }, [isInstalled, user?.uid, userData?.pwaInstalled, isAdmin]);
+
     const isMobileDevice = useMemo(() => {
         if (typeof window === 'undefined') return false;
         const ua = navigator.userAgent;
@@ -160,7 +179,72 @@ export const ClientHomePage = () => {
         }
     };
 
-    const { config } = useOutletContext<{ config: any }>();
+    // --- POINTS INCREASE DETECTION (Moment of Glory) ---
+    useEffect(() => {
+        if (userData?.points !== undefined && !authLoading && !isAdmin) {
+            const currentPoints = userData.points;
+            const previousPoints = prevPointsRef.current;
+
+            // Only trigger if points increased (Moment of Glory)
+            if (previousPoints !== null && currentPoints > previousPoints) {
+                console.log(`[PWA Logic] Points increased from ${previousPoints} to ${currentPoints}`);
+                
+                // Logic to decide if we show the PWA prompt
+                const checkAndShowPwaPrompt = () => {
+                    if (isStandalone || userData.pwaInstalled) return;
+
+                    const messaging = config?.messaging || {};
+                    const now = TimeService.now().getTime();
+                    
+                    // 1. Get stats from localStorage
+                    const lastPromptTs = parseInt(localStorage.getItem('pwa_prompt_last') || '0');
+                    const promptCount = parseInt(localStorage.getItem('pwa_prompt_current_cycle_count') || '0');
+                    const cycleStartTs = parseInt(localStorage.getItem('pwa_prompt_cycle_start') || '0');
+                    
+                    const cooldownMs = (messaging.pwaInstallPromptCooldownHours || 24) * 3600 * 1000;
+                    const maxAttempts = messaging.pwaInstallPromptMaxAttempts || 3;
+                    const resetMs = (messaging.pwaInstallPromptResetDays || 30) * 24 * 3600 * 1000;
+                    const repetitionEnabled = messaging.enablePwaInstallPromptRepetition ?? true;
+
+                    // 2. Check if we are in a reset period
+                    if (promptCount >= maxAttempts) {
+                        if (!repetitionEnabled) return; // Never repeat
+                        
+                        // Check if reset period has passed
+                        if (now - lastPromptTs < resetMs) {
+                            console.log(`[PWA Logic] In reset period. Next available in ${Math.round((resetMs - (now - lastPromptTs)) / (3600 * 1000))} hours`);
+                            return;
+                        }
+                        
+                        // Reset period passed! Reset count
+                        console.log(`[PWA Logic] Reset period passed. Restarting cycle.`);
+                        localStorage.setItem('pwa_prompt_current_cycle_count', '0');
+                        localStorage.setItem('pwa_prompt_cycle_start', now.toString());
+                    }
+
+                    // 3. Check cooldown
+                    if (now - lastPromptTs < cooldownMs) {
+                        console.log(`[PWA Logic] In cooldown. Waiting ${Math.round((cooldownMs - (now - lastPromptTs)) / 60000)} minutes`);
+                        return;
+                    }
+
+                    // 4. Show it!
+                    setTimeout(() => {
+                        setShowPWAAdvantages(true);
+                        localStorage.setItem('pwa_prompt_last', now.toString());
+                        localStorage.setItem('pwa_prompt_current_cycle_count', (promptCount >= maxAttempts ? 1 : promptCount + 1).toString());
+                        if (promptCount === 0 || now - lastPromptTs > resetMs) {
+                            localStorage.setItem('pwa_prompt_cycle_start', now.toString());
+                        }
+                    }, 1000); // Small delay for the "celebration" to feel natural
+                };
+
+                checkAndShowPwaPrompt();
+            }
+
+            prevPointsRef.current = currentPoints;
+        }
+    }, [userData?.points, authLoading, isAdmin, isStandalone, !!config]);
 
     const [campaigns, setCampaigns] = useState<BonusRule[]>([]);
 
@@ -804,12 +888,26 @@ export const ClientHomePage = () => {
                 <CampaignActionModal
                     isOpen={!!selectedPromo}
                     onClose={() => setSelectedPromo(null)}
-                    title={selectedPromo.title || selectedPromo.name}
-                    description={selectedPromo.description}
-                    actionUrl={selectedPromo.actionUrl || selectedPromo.link}
-                    actionText={selectedPromo.actionText || selectedPromo.buttonText}
+                    title={(selectedPromo as any).title || (selectedPromo as any).name}
+                    description={(selectedPromo as any).description}
+                    actionUrl={(selectedPromo as any).actionUrl || (selectedPromo as any).link}
+                    actionText={(selectedPromo as any).actionText || (selectedPromo as any).buttonText}
                 />
             )}
+
+            <PWAInstallAdvantageModal
+                isOpen={showPWAAdvantages}
+                onClose={() => setShowPWAAdvantages(false)}
+                isIOS={isIOS}
+                onInstall={() => {
+                    if (isIOS) {
+                        toast('Para instalar: Toca "Compartir" y luego "Agregar a Inicio"', { icon: '📲' });
+                    } else {
+                        handleInstall();
+                    }
+                    setShowPWAAdvantages(false);
+                }}
+            />
         </div>
     );
 };

@@ -63,6 +63,10 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
         enableLargePrompt: true,
         maxLargePromptDismissalsPC: 2,
         maxLargePromptDismissalsMobile: 2,
+        pwaInstallPromptCooldownHours: 24,
+        pwaInstallPromptMaxAttempts: 3,
+        pwaInstallPromptResetDays: 30,
+        enablePwaInstallPromptRepetition: true,
     },
     referrals: {
         enabled: true,

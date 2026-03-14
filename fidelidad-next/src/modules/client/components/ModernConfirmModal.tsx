@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { type ReactNode } from 'react';
 import { X, Check, AlertTriangle } from 'lucide-react';
 
 interface ModernConfirmModalProps {
@@ -11,6 +10,7 @@ interface ModernConfirmModalProps {
     confirmText?: string;
     cancelText?: string;
     type?: 'danger' | 'info' | 'warning';
+    children?: ReactNode;
 }
 
 export const ModernConfirmModal: React.FC<ModernConfirmModalProps> = ({
@@ -21,7 +21,8 @@ export const ModernConfirmModal: React.FC<ModernConfirmModalProps> = ({
     onCancel,
     confirmText = 'Confirmar',
     cancelText = 'Cancelar',
-    type = 'danger'
+    type = 'danger',
+    children
 }) => {
     if (!isOpen) return null;
 
@@ -57,9 +58,17 @@ export const ModernConfirmModal: React.FC<ModernConfirmModalProps> = ({
                     {title}
                 </h3>
 
-                <p className="text-sm text-gray-500 font-medium leading-relaxed mb-8 px-2 italic-none">
-                    {message}
-                </p>
+                {message && (
+                    <p className="text-sm text-gray-500 font-medium leading-relaxed mb-4 px-2 italic-none">
+                        {message}
+                    </p>
+                )}
+
+                {children && (
+                    <div className="w-full mb-8">
+                        {children}
+                    </div>
+                )}
 
                 <div className="flex flex-col gap-3 w-full">
                     <button

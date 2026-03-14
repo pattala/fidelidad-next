@@ -151,7 +151,7 @@ export const ClientLayout = () => {
                         minHeight: 'var(--header-h)'
                     }}
                 >
-                    <div className="flex items-center gap-1 w-[80px]">
+                    <div className="flex items-center gap-1 w-[72px] shrink-0">
                         {(location.pathname !== '/' || isContactOpen) && (
                             <button
                                 onClick={() => {
@@ -176,9 +176,9 @@ export const ClientLayout = () => {
                         </div>
                     </div>
 
-                    <div className="flex flex-col items-center flex-1 overflow-hidden">
-                        <h1 className="font-black text-[13px] uppercase tracking-widest text-center drop-shadow-md truncate w-full px-2">
-                            {config?.siteName || 'Club de Fidelidad'}
+                    <div className="flex flex-col items-center flex-1 min-w-0">
+                        <h1 className="font-black text-[14px] uppercase tracking-widest text-center drop-shadow-md truncate w-full px-2 leading-none">
+                            {config?.siteName || ''}
                         </h1>
                         {userData?.isTestUser && (
                             <span className="bg-blue-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tighter flex items-center gap-0.5 shadow-sm">
@@ -187,7 +187,7 @@ export const ClientLayout = () => {
                         )}
                     </div>
 
-                    <div className="flex items-center gap-1 w-[80px] justify-end">
+                    <div className="flex items-center gap-1 w-[72px] justify-end shrink-0">
                         {/* PWA Install Button (Android/Chrome) */}
                         {deferredPrompt && (
                             <button

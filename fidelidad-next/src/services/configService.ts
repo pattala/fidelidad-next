@@ -9,7 +9,7 @@ const CONFIG_DOC_PATH = 'config/general';
 
 // Default Init Config
 export const DEFAULT_APP_CONFIG: AppConfig = {
-    siteName: 'Club de Fidelidad',
+    siteName: '',
     primaryColor: '#2563eb',
     secondaryColor: '#1e3a8a',
     backgroundColor: '#f9fafb',

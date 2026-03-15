@@ -187,8 +187,10 @@ async function handleCheck(req, res, db) {
 
                     const historyRef = userDoc.ref.collection('points_history');
                     const impendingCreditsSnap = await historyRef.where('type', '==', 'credit').where('expiresAt', '>', admin.firestore.Timestamp.fromDate(startOfToday)).where('expiresAt', '<=', admin.firestore.Timestamp.fromDate(warningDate)).get();
+                    
                     let totalImpendingAmount = 0;
-                    const validCredits = [];
+                    const creditsByDate = {}; // { 'dd/mm/yyyy': totalPoints }
+
                     impendingCreditsSnap.forEach(d => {
                         const dData = d.data();
                         if (dData.status === 'expired') return;
@@ -196,10 +198,22 @@ async function handleCheck(req, res, db) {
                         if (rem > 0) {
                             totalImpendingAmount += rem;
                             const dObj = dData.expiresAt.toDate();
-                            validCredits.push({ rem, date: `${dObj.getDate().toString().padStart(2, '0')}/${(dObj.getMonth() + 1).toString().padStart(2, '0')}/${dObj.getFullYear()}` });
+                            const dateKey = `${dObj.getDate().toString().padStart(2, '0')}/${(dObj.getMonth() + 1).toString().padStart(2, '0')}/${dObj.getFullYear()}`;
+                            creditsByDate[dateKey] = (creditsByDate[dateKey] || 0) + rem;
                         }
                     });
+                    
                     if (totalImpendingAmount <= 0) continue;
+
+                    // Convert grouped credits to a sorted array for the message
+                    const validCredits = Object.entries(creditsByDate)
+                        .map(([date, rem]) => ({ rem, date }))
+                        .sort((a, b) => {
+                            // Sort by date (assuming dd/mm/yyyy format)
+                            const [da, ma, ya] = a.date.split('/').map(Number);
+                            const [db, mb, yb] = b.date.split('/').map(Number);
+                            return new Date(ya, ma - 1, da) - new Date(yb, mb - 1, db);
+                        });
 
                     // El usuario tiene puntos por vencer, por lo tanto suma al contador de la extensión
                     if (userData.nextExpirationDate <= proactivePinStr) logResults.totalInWindow++;
@@ -241,19 +255,44 @@ async function handleCheck(req, res, db) {
                     const channels = config.messaging?.eventConfigs?.expirationWarning?.channels || ['push', 'email'];
                     const template = config.messaging?.templates?.expirationWarning || "¡Hola {nombre}! 📢 Tienes {puntos} puntos próximos a vencer el {fecha}. Entra a la App para aprovecharlos.";
                     const [y, m, d] = userData.nextExpirationDate.split('-');
-                    const displayDate = `${d}/${m}/${y}`;
-                    const msg = template.replace(/{nombre}/g, userData.name || 'Socio').replace(/{puntos}/g, totalImpendingAmount.toString()).replace(/{fecha}/g, displayDate);
+                    let displayDate = `${d}/${m}/${y}`;
+                    
+                    let msg = template.replace(/{nombre}/g, userData.name || 'Socio').replace(/{puntos}/g, totalImpendingAmount.toString());
+
+                    // Refinement: If there are multiple dates, avoid suggesting all points expire on a single date
+                    if (validCredits.length > 1) {
+                        // Remove " el {fecha}" or " el día {fecha}" to keep it natural
+                        msg = msg.replace(/ el {fecha}/g, "").replace(/ el día {fecha}/g, "").replace(/{fecha}/g, "próximamente");
+                        // Append breakdown to the main message for push notifications as well
+                        msg += ` Detalle: ${validCredits.map(c => `${c.rem} pts (${c.date})`).join(', ')}`;
+                    } else {
+                        msg = msg.replace(/{fecha}/g, displayDate);
+                    }
                     const breakdownStr = validCredits.map(c => `${c.rem} pts (${c.date})`).join(', ');
                     const title = "⚠️ Tus puntos están por vencer";
 
-                    if (channels.includes('push') && userData.fcmTokens?.length) {
-                        await admin.messaging().sendEachForMulticast({ tokens: userData.fcmTokens, notification: { title, body: msg }, data: { url: "/", icon: config.logoUrl || "" } }).catch(console.error);
+                    // Token Deduplication
+                    const uniqueTokens = Array.from(new Set(userData.fcmTokens || []));
+
+                    if (channels.includes('push') && uniqueTokens.length) {
+                        await admin.messaging().sendEachForMulticast({ tokens: uniqueTokens, notification: { title, body: msg }, data: { url: "/", icon: config.logoUrl || "" } }).catch(console.error);
                     }
                     if (channels.includes('email') && userData.email && process.env.SMTP_USER) {
                         const htmlInner = `<div style="color: #333;"><h2>${title}</h2><p>${msg}</p><div style="background:#fdf2f2;padding:20px;border-radius:12px;"><h4>Detalle:</h4><p>${breakdownStr}</p></div></div>`;
                         await transporter.sendMail({ from: `"${config.siteName || 'Club Fidelidad'}" <${process.env.SMTP_USER}>`, to: userData.email, subject: title, html: buildHtmlLayout(htmlInner, config) }).catch(console.error);
                     }
-                    await userDoc.ref.collection('inbox').add({ title, body: `${msg}\n\nDetalle: ${breakdownStr}`, url: "/", type: "system", read: false, date: admin.firestore.FieldValue.serverTimestamp(), expireAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 2592000000)) });
+                    // Deterministic ID to prevent duplicates in Inbox
+                    const inboxId = `exp_warning_${userData.nextExpirationDate}`;
+                    await userDoc.ref.collection('inbox').doc(inboxId).set({ 
+                        title, 
+                        body: `${msg}\n\nDetalle: ${breakdownStr}`, 
+                        url: "/", 
+                        type: "system", 
+                        read: false, 
+                        date: admin.firestore.FieldValue.serverTimestamp(), 
+                        expireAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 2592000000)) 
+                    }, { merge: true });
+                    
                     await userDoc.ref.update({ lastExpirationNotice: referenceDateStr, lastExpirationNoticeTargetDate: userData.nextExpirationDate, lastExpirationNoticeAmount: totalImpendingAmount, lastWhatsAppManualDate: null });
                     logResults.notified++;
                     logResults.details.push({

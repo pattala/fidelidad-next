@@ -278,8 +278,9 @@ export default async function handler(req, res) {
                         try {
                             const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
                             const icon = getAbsoluteUrl(config.logoUrl || "/pwa-192x192.png", PWA_URL);
+                            const uniqueTokens = Array.from(new Set(userData.fcmTokens));
                             await app.messaging().sendEachForMulticast({
-                                tokens: userData.fcmTokens,
+                                tokens: uniqueTokens,
                                 data: { title, body: msg, url: "/", icon: icon, type: "birthday" }
                             });
                             actionsTaken.push("push");

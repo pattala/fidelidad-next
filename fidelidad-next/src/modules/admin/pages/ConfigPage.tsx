@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Save, Plus, Trash2, Palette, Calculator, Monitor, Smartphone, Settings, Home, Gift, MessageCircle, FileText, AlertTriangle, RefreshCw, ShieldAlert, Shield, Users, Clock, Eye, Sparkles, Cake, Zap, UserPlus, Megaphone, Bell, MapPin } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Save, Plus, Trash2, Palette, Calculator, Monitor, Smartphone, Settings, Home, Gift, MessageCircle, FileText, AlertTriangle, RefreshCw, ShieldAlert, Shield, Users, Clock, Eye, Sparkles, Cake, Zap, UserPlus, Megaphone, Bell, MapPin, Download, QrCode } from 'lucide-react';
+import QRCode from 'react-qr-code';
 import { ConfigService, DEFAULT_TEMPLATES } from '../../../services/configService';
 import { EmailPreviewModal } from '../components/EmailPreviewModal';
 import { EmailService } from '../../../services/emailService';
@@ -1449,18 +1450,61 @@ export const ConfigPage = () => {
                                                     className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-gray-100 outline-none"
                                                 />
                                             </div>
-                                            <div className="col-span-full">
-                                                <label className="block text-xs font-semibold text-gray-600 mb-1">URL de la App (para Botón de Email)</label>
-                                                <input
-                                                    type="url"
-                                                    placeholder="https://fidelidad-next.vercel.app/login"
-                                                    value={config.contact?.pwaUrl || ''}
-                                                    onChange={e => setConfig({
-                                                        ...config,
-                                                        contact: { ...config.contact!, pwaUrl: e.target.value }
-                                                    })}
-                                                    className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-gray-100 outline-none"
-                                                />
+                                            <div className="col-span-full bg-blue-50/30 p-4 rounded-xl border border-blue-100/50">
+                                                <div className="flex flex-col md:flex-row gap-6 items-start">
+                                                    <div className="flex-1 w-full">
+                                                        <label className="block text-xs font-black text-blue-900 uppercase tracking-tighter mb-2">URL de la App (Bandera Blanca)</label>
+                                                        <input
+                                                            type="url"
+                                                            placeholder="https://tu-dominio.com"
+                                                            value={config.contact?.pwaUrl || ''}
+                                                            onChange={e => setConfig({
+                                                                ...config,
+                                                                contact: { ...config.contact!, pwaUrl: e.target.value }
+                                                            })}
+                                                            className="w-full rounded-lg border-blue-200 border p-3 text-sm focus:ring-2 focus:ring-blue-100 outline-none bg-white font-bold"
+                                                        />
+                                                        <p className="text-[10px] text-blue-600 mt-2 font-medium italic">
+                                                            ⚠️ Esta URL es la que se usará para generar el QR de auto-registro y los links en los correos.
+                                                        </p>
+                                                    </div>
+                                                    
+                                                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center gap-3 self-center md:self-start">
+                                                        <div className="bg-gray-50 p-3 rounded-xl">
+                                                            <QRCode 
+                                                                value={config.contact?.pwaUrl || window.location.origin} 
+                                                                size={120}
+                                                                style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                                                                viewBox={`0 0 256 256`}
+                                                            />
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const svg = document.querySelector(".bg-gray-50 svg") as SVGGraphicsElement;
+                                                                if (!svg) return;
+                                                                const svgData = new XMLSerializer().serializeToString(svg);
+                                                                const canvas = document.createElement("canvas");
+                                                                const ctx = canvas.getContext("2d");
+                                                                const img = new Image();
+                                                                img.onload = () => {
+                                                                    canvas.width = img.width;
+                                                                    canvas.height = img.height;
+                                                                    ctx?.drawImage(img, 0, 0);
+                                                                    const pngFile = canvas.toDataURL("image/png");
+                                                                    const downloadLink = document.createElement("a");
+                                                                    downloadLink.download = `QR-${config.siteName}.png`;
+                                                                    downloadLink.href = pngFile;
+                                                                    downloadLink.click();
+                                                                };
+                                                                img.src = "data:image/svg+xml;base64," + btoa(svgData);
+                                                            }}
+                                                            className="flex items-center gap-2 px-3 py-1.5 bg-gray-900 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-black transition-colors"
+                                                        >
+                                                            <Download size={14} /> Descargar QR
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

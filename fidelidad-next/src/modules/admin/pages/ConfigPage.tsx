@@ -1468,12 +1468,11 @@ export const ConfigPage = () => {
                                                             ⚠️ Esta URL es la que se usará para generar el QR de auto-registro y los links en los correos.
                                                         </p>
                                                     </div>
-                                                    
-                                                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center gap-3 self-center md:self-start">
-                                                        <div className="bg-gray-50 p-3 rounded-xl">
+                                                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center gap-4 self-center md:self-start">
+                                                        <div id="qr-code-container" className="bg-white p-3 rounded-xl">
                                                             <QRCode 
-                                                                value={config.contact?.pwaUrl || window.location.origin} 
-                                                                size={120}
+                                                                value={`${config.contact?.pwaUrl || window.location.origin}/register`} 
+                                                                size={256}
                                                                 style={{ height: "auto", maxWidth: "100%", width: "100%" }}
                                                                 viewBox={`0 0 256 256`}
                                                             />
@@ -1481,23 +1480,27 @@ export const ConfigPage = () => {
                                                         <button
                                                             type="button"
                                                             onClick={() => {
-                                                                const svg = document.querySelector(".bg-gray-50 svg") as SVGGraphicsElement;
+                                                                const svg = document.querySelector("#qr-code-container svg") as SVGGraphicsElement;
                                                                 if (!svg) return;
                                                                 const svgData = new XMLSerializer().serializeToString(svg);
                                                                 const canvas = document.createElement("canvas");
                                                                 const ctx = canvas.getContext("2d");
                                                                 const img = new Image();
                                                                 img.onload = () => {
-                                                                    canvas.width = img.width;
-                                                                    canvas.height = img.height;
-                                                                    ctx?.drawImage(img, 0, 0);
+                                                                    canvas.width = 1000;
+                                                                    canvas.height = 1000;
+                                                                    if (ctx) {
+                                                                        ctx.fillStyle = "white";
+                                                                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                                                                        ctx.drawImage(img, 0, 0, 1000, 1000);
+                                                                    }
                                                                     const pngFile = canvas.toDataURL("image/png");
                                                                     const downloadLink = document.createElement("a");
                                                                     downloadLink.download = `QR-${config.siteName}.png`;
                                                                     downloadLink.href = pngFile;
                                                                     downloadLink.click();
                                                                 };
-                                                                img.src = "data:image/svg+xml;base64," + btoa(svgData);
+                                                                img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
                                                             }}
                                                             className="flex items-center gap-2 px-3 py-1.5 bg-gray-900 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-black transition-colors"
                                                         >
@@ -1509,9 +1512,9 @@ export const ConfigPage = () => {
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                                </div>
 
-                            {/* Vista Previa Móvil (Columna 2) */}
+                             {/* Vista Previa Móvil (Columna 2) */}
                             <div className="flex flex-col items-center justify-start pt-8">
                                 <div
                                     className="border-[8px] border-gray-900 rounded-[3rem] overflow-hidden w-80 shadow-2xl relative h-[600px] transition-colors duration-500"

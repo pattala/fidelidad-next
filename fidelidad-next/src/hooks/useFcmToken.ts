@@ -3,8 +3,8 @@ import { getToken, deleteToken } from 'firebase/messaging';
 import { messaging, db, auth } from '../lib/firebase';
 import { doc, updateDoc, serverTimestamp, arrayUnion } from 'firebase/firestore';
 
-// TRUE ORIGINAL VAPID KEY (verified from token-ok backup and original_vapid.txt)
-const VAPID_KEY = 'BHmqZhSCc-QcEmLflzdu228dg_dkTRmUm3jRb7mQjIw05sMTioOuc_MdZgOD_u1bHtAHegsNrkRziYNQIAuwirk';
+// TRUE ORIGINAL VAPID KEY (VERIFIED FROM fidelidad-next_token-ok BACKUP)
+const VAPID_KEY = 'BHmqZhSCc-QcEmLflzdu228dg_dkTRmUm3jRb7mQjlw05sMTio0uc_MdZg0D_u1bHtAHegsNrkRziYNQIAuwirk';
 
 export const useFcmToken = () => {
     const [token, setToken] = useState<string | null>(null);
@@ -22,12 +22,12 @@ export const useFcmToken = () => {
         isRetrieving.current = true;
         try {
             // SILENT REFRESH MECHANISM (Safety Layer)
-            const storedVapid = localStorage.getItem('fcm_vapid_key_v2');
+            const storedVapid = localStorage.getItem('fcm_vapid_key_vfinal');
             if (storedVapid && storedVapid !== VAPID_KEY) {
                 console.log('[FCM] VAPID Key Mismatch detected. Forcing silent refresh...');
                 try {
                     await deleteToken(messaging);
-                    console.log('[FCM] Old corrupted token deleted successfully.');
+                    console.log('[FCM] Old token deleted successfully.');
                 } catch (err) {
                     console.warn('[FCM] Error deleting old token:', err);
                 }
@@ -36,14 +36,15 @@ export const useFcmToken = () => {
             if (Notification.permission === 'granted') {
                 console.log('[FCM] Permission granted. Registering Service Worker...');
 
-                // Explicit registration of the SW to ensure it's active
-                console.log('[FCM] Registering Service Worker...');
+                // Explicit registration of the SW to ensure it's active (Robust logic from token-ok)
+                console.log('[FCM] Registering Service Worker (/sw.js)...');
                 const registration = await navigator.serviceWorker.register('/sw.js', {
                     scope: '/'
                 });
 
                 // Wait for the SW to be active
                 if (registration.installing) {
+                    console.log('[FCM] SW Installing...');
                     await new Promise<void>((resolve) => {
                         const sw = registration.installing;
                         if (!sw) return resolve();
@@ -54,8 +55,10 @@ export const useFcmToken = () => {
                             }
                         };
                         sw.addEventListener('statechange', stateChangeListener);
-                        setTimeout(resolve, 5000); // Fallback
+                        setTimeout(resolve, 5000); 
                     });
+                } else if (registration.waiting) {
+                    console.log('[FCM] SW waiting.');
                 }
                 
                 await navigator.serviceWorker.ready;
@@ -68,10 +71,10 @@ export const useFcmToken = () => {
                 });
 
                 if (currentToken) {
-                    console.log('[FCM] Token Retrieved Successfully');
+                    console.log('[FCM] Token Retrieved Successfully:', currentToken);
                     setToken(currentToken);
                     
-                    localStorage.setItem('fcm_vapid_key_v2', VAPID_KEY);
+                    localStorage.setItem('fcm_vapid_key_vfinal', VAPID_KEY);
 
                     const userRef = doc(db, 'users', user.uid);
                     
@@ -80,7 +83,7 @@ export const useFcmToken = () => {
                             fcmToken: currentToken,
                             fcmTokens: arrayUnion(currentToken),
                             lastFcmUpdate: serverTimestamp(),
-                            fcmState: 'registered_vok', // Tag for the token-ok logic
+                            fcmState: 'registered_final_ok',
                             'permissions.notifications.status': 'granted',
                             lastActive: serverTimestamp()
                         });
@@ -97,7 +100,7 @@ export const useFcmToken = () => {
                                         updatedAt: new Date()
                                     }
                                 },
-                                fcmState: 'registered_vok'
+                                fcmState: 'registered_final_ok'
                             }, { merge: true });
                         } else {
                             throw err;

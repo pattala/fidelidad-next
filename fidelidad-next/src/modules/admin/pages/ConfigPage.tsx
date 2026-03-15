@@ -1470,11 +1470,11 @@ export const ConfigPage = () => {
                                                     </div>
                                                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center gap-4 self-center md:self-start">
                                                         <div id="qr-code-container" className="bg-white p-3 rounded-xl">
-                                                            <QRCode 
+                                                              <QRCode 
                                                                 value={`${config.contact?.pwaUrl || window.location.origin}/register`} 
-                                                                size={256}
-                                                                style={{ height: "auto", maxWidth: "100%", width: "100%" }}
-                                                                viewBox={`0 0 256 256`}
+                                                                size={140}
+                                                                style={{ height: "auto", maxWidth: "100%" }}
+                                                                viewBox={`0 0 140 140`}
                                                             />
                                                         </div>
                                                         <button
@@ -1487,12 +1487,12 @@ export const ConfigPage = () => {
                                                                 const ctx = canvas.getContext("2d");
                                                                 const img = new Image();
                                                                 img.onload = () => {
-                                                                    canvas.width = 1000;
-                                                                    canvas.height = 1000;
+                                                                    canvas.width = 600;
+                                                                    canvas.height = 600;
                                                                     if (ctx) {
                                                                         ctx.fillStyle = "white";
                                                                         ctx.fillRect(0, 0, canvas.width, canvas.height);
-                                                                        ctx.drawImage(img, 0, 0, 1000, 1000);
+                                                                        ctx.drawImage(img, 0, 0, 600, 600);
                                                                     }
                                                                     const pngFile = canvas.toDataURL("image/png");
                                                                     const downloadLink = document.createElement("a");

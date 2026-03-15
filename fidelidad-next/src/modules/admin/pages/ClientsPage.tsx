@@ -1028,7 +1028,7 @@ export const ClientsPage = () => {
                                         </div>
                                         {client.expirationDetails && client.expirationDetails.filter(e => e.points > 0).length > 0 ? (
                                             <div className="space-y-1 mt-1">
-                                                {client.expirationDetails.filter(e => e.points > 0).map((exp, idx) => (
+                                                {client.expirationDetails.filter(e => e.points > 0).slice(0, 3).map((exp, idx) => (
                                                     <div
                                                         key={idx}
                                                         className="flex items-center justify-center gap-1 text-[9px] font-bold text-orange-600 bg-orange-50 py-0.5 px-1.5 rounded border border-orange-100"
@@ -1038,6 +1038,11 @@ export const ClientsPage = () => {
                                                         {exp.points} ({exp.date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })})
                                                     </div>
                                                 ))}
+                                                {client.expirationDetails.filter(e => e.points > 0).length > 3 && (
+                                                    <div className="text-[8px] font-black text-orange-400 uppercase tracking-tighter mt-1">
+                                                        + {client.expirationDetails.filter(e => e.points > 0).length - 3} vencimientos más
+                                                    </div>
+                                                )}
                                             </div>
                                         ) : (
                                             <div className="text-[9px] text-gray-300 font-bold mt-1">Sin vencimientos</div>

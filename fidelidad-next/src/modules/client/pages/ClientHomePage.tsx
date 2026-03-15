@@ -142,6 +142,14 @@ export const ClientHomePage = () => {
     
     const { config } = useOutletContext<{ config: any }>();
 
+    const isMobileDevice = useMemo(() => {
+        if (typeof window === 'undefined') return false;
+        const ua = navigator.userAgent;
+        const isMobileUA = /iPhone|iPad|iPod|Android/i.test(ua);
+        const isIPadOS = (navigator.maxTouchPoints > 0 && /Macintosh/.test(ua));
+        return isMobileUA || isIPadOS;
+    }, []);
+
     // --- PWA INSTALL LOGIC ---
     const { isStandalone, handleInstall, isIOS, isInstalled } = usePWAInstall();
     const [showPWAAdvantages, setShowPWAAdvantages] = useState(false);
@@ -154,15 +162,32 @@ export const ClientHomePage = () => {
                 pwaInstalledAt: TimeService.now().getTime()
             }).catch(console.error);
         }
-    }, [isInstalled, user?.uid, userData?.pwaInstalled, isAdmin]);
 
-    const isMobileDevice = useMemo(() => {
-        if (typeof window === 'undefined') return false;
-        const ua = navigator.userAgent;
-        const isMobileUA = /iPhone|iPad|iPod|Android/i.test(ua);
-        const isIPadOS = (navigator.maxTouchPoints > 0 && /Macintosh/.test(ua));
-        return isMobileUA || isIPadOS;
-    }, []);
+        // Sync local PWA prompt stats to Firestore on load if missing
+        if (user?.uid && !isAdmin && userData) {
+            const deviceKey = isMobileDevice ? 'Mobile' : 'PC';
+            const dbField = `pwaPromptStats${deviceKey}`;
+            const localKey_last = `pwa_prompt_last_${deviceKey.toLowerCase()}`;
+            const localKey_count = `pwa_prompt_count_${deviceKey.toLowerCase()}`;
+
+            if (!userData[dbField]) {
+                const localLast = localStorage.getItem(localKey_last);
+                const localCount = localStorage.getItem(localKey_count);
+                if (localLast && localCount) {
+                    updateDoc(doc(db, 'users', user.uid), {
+                        [dbField]: {
+                            lastPromptTs: parseInt(localLast),
+                            currentCycleCount: parseInt(localCount),
+                            totalPromptsShown: parseInt(localCount),
+                            lastUpdate: TimeService.now().getTime(),
+                            source: 'local_migration'
+                        }
+                    }).catch(console.error);
+                }
+            }
+        }
+    }, [isInstalled, user?.uid, userData?.pwaInstalled, isAdmin, isMobileDevice]);
+
     const isCondensed = useMemo(() => {
         if (typeof window === 'undefined') return false;
         return window.innerWidth < 768;
@@ -190,21 +215,28 @@ export const ClientHomePage = () => {
                 console.log(`[PWA Logic] Points increased from ${previousPoints} to ${currentPoints}`);
                 
                 // Logic to decide if we show the PWA prompt
-                const checkAndShowPwaPrompt = () => {
+                const checkAndShowPwaPrompt = async () => {
                     if (isStandalone || userData.pwaInstalled) return;
 
                     const messaging = config?.messaging || {};
                     const now = TimeService.now().getTime();
                     
-                    // 1. Get stats from localStorage
-                    const lastPromptTs = parseInt(localStorage.getItem('pwa_prompt_last') || '0');
-                    const promptCount = parseInt(localStorage.getItem('pwa_prompt_current_cycle_count') || '0');
-                    const cycleStartTs = parseInt(localStorage.getItem('pwa_prompt_cycle_start') || '0');
+                    const deviceKey = isMobileDevice ? 'Mobile' : 'PC';
+                    const dbField = `pwaPromptStats${deviceKey}`;
+                    const localKey_last = `pwa_prompt_last_${deviceKey.toLowerCase()}`;
+                    const localKey_count = `pwa_prompt_count_${deviceKey.toLowerCase()}`;
+                    
+                    // 1. Get stats from Firestore (source of truth) or localStorage (fallback)
+                    const dbStats = userData[dbField] || {};
+                    const lastPromptTs = dbStats.lastPromptTs || parseInt(localStorage.getItem(localKey_last) || '0');
+                    const promptCount = dbStats.currentCycleCount || parseInt(localStorage.getItem(localKey_count) || '0');
                     
                     const cooldownMs = (messaging.pwaInstallPromptCooldownHours || 24) * 3600 * 1000;
                     const maxAttempts = messaging.pwaInstallPromptMaxAttempts || 3;
                     const resetMs = (messaging.pwaInstallPromptResetDays || 30) * 24 * 3600 * 1000;
                     const repetitionEnabled = messaging.enablePwaInstallPromptRepetition ?? true;
+
+                    let newCount = promptCount;
 
                     // 2. Check if we are in a reset period
                     if (promptCount >= maxAttempts) {
@@ -212,29 +244,42 @@ export const ClientHomePage = () => {
                         
                         // Check if reset period has passed
                         if (now - lastPromptTs < resetMs) {
-                            console.log(`[PWA Logic] In reset period. Next available in ${Math.round((resetMs - (now - lastPromptTs)) / (3600 * 1000))} hours`);
+                            console.log(`[PWA Logic ${deviceKey}] In reset period. Next available in ${Math.round((resetMs - (now - lastPromptTs)) / (3600 * 1000))} hours`);
                             return;
                         }
                         
                         // Reset period passed! Reset count
-                        console.log(`[PWA Logic] Reset period passed. Restarting cycle.`);
-                        localStorage.setItem('pwa_prompt_current_cycle_count', '0');
-                        localStorage.setItem('pwa_prompt_cycle_start', now.toString());
+                        console.log(`[PWA Logic ${deviceKey}] Reset period passed. Restarting cycle.`);
+                        newCount = 0;
                     }
 
                     // 3. Check cooldown
                     if (now - lastPromptTs < cooldownMs) {
-                        console.log(`[PWA Logic] In cooldown. Waiting ${Math.round((cooldownMs - (now - lastPromptTs)) / 60000)} minutes`);
+                        console.log(`[PWA Logic ${deviceKey}] In cooldown. Waiting ${Math.round((cooldownMs - (now - lastPromptTs)) / 60000)} minutes`);
                         return;
                     }
 
                     // 4. Show it!
-                    setTimeout(() => {
+                    setTimeout(async () => {
                         setShowPWAAdvantages(true);
-                        localStorage.setItem('pwa_prompt_last', now.toString());
-                        localStorage.setItem('pwa_prompt_current_cycle_count', (promptCount >= maxAttempts ? 1 : promptCount + 1).toString());
-                        if (promptCount === 0 || now - lastPromptTs > resetMs) {
-                            localStorage.setItem('pwa_prompt_cycle_start', now.toString());
+                        const finalCount = newCount + 1;
+                        
+                        // Local update
+                        localStorage.setItem(localKey_last, now.toString());
+                        localStorage.setItem(localKey_count, finalCount.toString());
+                        
+                        // Firestore update (Sync)
+                        if (user?.uid) {
+                            const newStats = {
+                                lastPromptTs: now,
+                                currentCycleCount: finalCount,
+                                totalPromptsShown: (dbStats.totalPromptsShown || 0) + 1,
+                                lastUpdate: now
+                            };
+                            
+                            updateDoc(doc(db, 'users', user.uid), {
+                                [dbField]: newStats
+                            }).catch(console.error);
                         }
                     }, 1000); // Small delay for the "celebration" to feel natural
                 };

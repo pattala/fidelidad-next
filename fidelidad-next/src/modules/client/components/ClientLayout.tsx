@@ -176,12 +176,20 @@ export const ClientLayout = () => {
                         </div>
                     </div>
 
-                    <div className="flex flex-col items-center flex-1 min-w-0">
-                        <h1 className="font-black text-[14px] uppercase tracking-widest text-center drop-shadow-md truncate w-full px-2 leading-none">
+                    <div className="flex flex-col items-center flex-1 min-w-0 px-2">
+                        <h1
+                            className="font-black uppercase tracking-widest text-center shadow-sm truncate w-full px-2 leading-none"
+                            style={{
+                                fontFamily: config.siteNameFont || 'inherit',
+                                fontSize: `${config.siteNameSize || 14}px`,
+                                textAlign: config.siteNameAlignment || 'center',
+                                display: 'block'
+                            }}
+                        >
                             {config?.siteName || ''}
                         </h1>
                         {userData?.isTestUser && (
-                            <span className="bg-blue-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tighter flex items-center gap-0.5 shadow-sm">
+                            <span className="bg-blue-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tighter flex items-center gap-0.5 shadow-sm mt-1">
                                 <Shield size={8} /> Test Mode
                             </span>
                         )}

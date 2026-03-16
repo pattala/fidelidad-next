@@ -91,6 +91,9 @@ export const ConfigPage = () => {
         sectionTitleColor: '#9ca3af', // Default gray-400
         linkColor: '#4a148c', // Default purple-900 like
         logoUrl: '',
+        siteNameFont: 'Inter',
+        siteNameSize: 14,
+        siteNameAlignment: 'center',
         carouselSpeedSeconds: 6,
         pointsPerPeso: 1,
         pointsMoneyBase: 100, // Default 100
@@ -1228,6 +1231,61 @@ export const ConfigPage = () => {
                                         />
                                     </div>
 
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">Tipografía</label>
+                                            <select
+                                                value={config.siteNameFont || 'Inter'}
+                                                onChange={e => setConfig({ ...config, siteNameFont: e.target.value })}
+                                                className="w-full rounded-lg border-gray-200 border p-3 focus:ring-2 focus:ring-blue-100 outline-none transition"
+                                            >
+                                                <option value="Inter">Inter (Sanz)</option>
+                                                <option value="Roboto">Roboto</option>
+                                                <option value="Montserrat">Montserrat</option>
+                                                <option value="Playfair Display">Playfair Display (Serif)</option>
+                                                <option value="Outfit">Outfit</option>
+                                                <option value="system-ui">Sistema</option>
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <div className="flex justify-between items-center mb-2">
+                                                <label className="block text-sm font-medium text-gray-700">Tamaño de Letra</label>
+                                                <span className="text-xs font-black bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">{config.siteNameSize || 14}px</span>
+                                            </div>
+                                            <input
+                                                type="range"
+                                                min="10"
+                                                max="24"
+                                                step="1"
+                                                value={config.siteNameSize || 14}
+                                                onChange={e => setConfig({ ...config, siteNameSize: parseInt(e.target.value) })}
+                                                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600 mt-4"
+                                            />
+                                            <div className="flex justify-between text-[9px] text-gray-400 font-bold uppercase mt-2">
+                                                <span>Chica</span>
+                                                <span>Grande</span>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">Alineación</label>
+                                            <div className="flex p-1 bg-gray-100 rounded-xl">
+                                                {(['left', 'center', 'right'] as const).map((align) => (
+                                                    <button
+                                                        key={align}
+                                                        type="button"
+                                                        onClick={() => setConfig({ ...config, siteNameAlignment: align })}
+                                                        className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${config.siteNameAlignment === align ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'
+                                                            }`}
+                                                    >
+                                                        {align === 'left' ? 'Izq' : align === 'center' ? 'Centro' : 'Der'}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-2">Color Primario</label>
@@ -1524,14 +1582,31 @@ export const ConfigPage = () => {
                                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-gray-900 rounded-b-xl z-20"></div>
 
                                     {/* Header Mock */}
-                                    <div className="p-6 pt-12 text-white flex justify-between items-center transition-colors duration-500" style={{ backgroundColor: config.primaryColor }}>
-                                        <div className="flex items-center gap-2">
+                                    <div
+                                        className="p-4 pt-12 text-white flex items-center transition-all duration-500"
+                                        style={{
+                                            backgroundColor: config.primaryColor,
+                                            justifyContent: config.siteNameAlignment === 'left' ? 'flex-start' : config.siteNameAlignment === 'right' ? 'flex-end' : 'center'
+                                        }}
+                                    >
+                                        <div className={`flex items-center gap-2 ${config.siteNameAlignment === 'right' ? 'flex-row-reverse text-right' : ''}`}>
                                             {config.logoUrl ? (
-                                                <img src={config.logoUrl} alt="Logo" className="w-8 h-8 rounded-full object-contain bg-white" />
+                                                <img src={config.logoUrl} alt="Logo" className="w-8 h-8 rounded-full object-contain bg-white shrink-0" />
                                             ) : (
-                                                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-[10px]">Logo</div>
+                                                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-[10px] shrink-0">Logo</div>
                                             )}
-                                            <span className="font-bold">{config.siteName}</span>
+                                            <span
+                                                style={{
+                                                    fontFamily: config.siteNameFont,
+                                                    fontSize: `${config.siteNameSize || 14}px`,
+                                                    fontWeight: '800',
+                                                    textTransform: 'uppercase',
+                                                    letterSpacing: '0.05em'
+                                                }}
+                                                className="truncate"
+                                            >
+                                                {config.siteName}
+                                            </span>
                                         </div>
                                     </div>
 

@@ -88,6 +88,9 @@ export interface AppConfig {
     backgroundColor?: string;
     logoUrl: string;
     pwaPaddingTop?: number; // Padding superior en píxeles para páginas de la PWA
+    siteNameFont?: string;
+    siteNameSize?: number;
+    siteNameAlignment?: 'left' | 'center' | 'right';
 
     // Contacto & Redes
     contact?: {

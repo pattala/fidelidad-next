@@ -14,6 +14,9 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
     secondaryColor: '#1e3a8a',
     backgroundColor: '#f9fafb',
     logoUrl: '',
+    siteNameFont: 'Inter',
+    siteNameSize: 14,
+    siteNameAlignment: 'center',
     carouselSpeedSeconds: 6,
     contact: {
         whatsapp: '',

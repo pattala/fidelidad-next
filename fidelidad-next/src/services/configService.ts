@@ -14,6 +14,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
     secondaryColor: '#1e3a8a',
     backgroundColor: '#f9fafb',
     logoUrl: '',
+    logoSize: 32,
     siteNameFont: 'Inter',
     siteNameSize: 14,
     siteNameAlignment: 'center',

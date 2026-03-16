@@ -91,6 +91,7 @@ export const ConfigPage = () => {
         sectionTitleColor: '#9ca3af', // Default gray-400
         linkColor: '#4a148c', // Default purple-900 like
         logoUrl: '',
+        logoSize: 32,
         siteNameFont: 'Inter',
         siteNameSize: 14,
         siteNameAlignment: 'center',
@@ -1376,16 +1377,37 @@ export const ConfigPage = () => {
                                         </button>
                                     </div>
 
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Logo URL</label>
-                                        <input
-                                            type="text"
-                                            placeholder="https://..."
-                                            value={config.logoUrl}
-                                            onChange={e => setConfig({ ...config, logoUrl: e.target.value })}
-                                            className="w-full rounded-lg border-gray-200 border p-3 focus:ring-2 focus:ring-blue-100 outline-none transition"
-                                        />
-                                        <p className="text-xs text-gray-400 mt-2">Recomendado: PNG transparente de 200x200px</p>
+                                    <div className="pt-4 border-t border-gray-100 flex flex-col md:flex-row gap-6">
+                                        <div className="flex-1">
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">Logo URL</label>
+                                            <input
+                                                type="text"
+                                                placeholder="https://..."
+                                                value={config.logoUrl}
+                                                onChange={e => setConfig({ ...config, logoUrl: e.target.value })}
+                                                className="w-full rounded-lg border-gray-200 border p-3 focus:ring-2 focus:ring-blue-100 outline-none transition"
+                                            />
+                                            <p className="text-xs text-gray-400 mt-2">Recomendado: PNG transparente de 200x200px</p>
+                                        </div>
+                                        <div className="w-full md:w-48 shrink-0">
+                                            <div className="flex justify-between items-center mb-2">
+                                                <label className="block text-sm font-medium text-gray-700">Tamaño Logo</label>
+                                                <span className="text-xs font-black bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">{config.logoSize || 32}px</span>
+                                            </div>
+                                            <input
+                                                type="range"
+                                                min="24"
+                                                max="64"
+                                                step="4"
+                                                value={config.logoSize || 32}
+                                                onChange={e => setConfig({ ...config, logoSize: parseInt(e.target.value) })}
+                                                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600 mt-4"
+                                            />
+                                            <div className="flex justify-between text-[9px] text-gray-400 font-bold uppercase mt-2">
+                                                <span>Chico</span>
+                                                <span>Grande</span>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <div className="pt-4 border-t border-gray-100">
@@ -1583,31 +1605,45 @@ export const ConfigPage = () => {
 
                                     {/* Header Mock */}
                                     <div
-                                        className="p-4 pt-12 text-white flex items-center transition-all duration-500"
-                                        style={{
-                                            backgroundColor: config.primaryColor,
-                                            justifyContent: config.siteNameAlignment === 'left' ? 'flex-start' : config.siteNameAlignment === 'right' ? 'flex-end' : 'center'
-                                        }}
+                                        className="px-4 pt-12 h-24 text-white flex items-center gap-2 transition-all duration-500 overflow-hidden"
+                                        style={{ backgroundColor: config.primaryColor }}
                                     >
-                                        <div className={`flex items-center gap-2 ${config.siteNameAlignment === 'right' ? 'flex-row-reverse text-right' : ''}`}>
+                                        <div className="w-12 shrink-0 flex items-center justify-center">
                                             {config.logoUrl ? (
-                                                <img src={config.logoUrl} alt="Logo" className="w-8 h-8 rounded-full object-contain bg-white shrink-0" />
+                                                <img
+                                                    src={config.logoUrl}
+                                                    alt="Logo"
+                                                    className="rounded-full object-contain bg-white shrink-0 shadow-sm"
+                                                    style={{ width: `${config.logoSize || 32}px`, height: `${config.logoSize || 32}px` }}
+                                                />
                                             ) : (
-                                                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-[10px] shrink-0">Logo</div>
+                                                <div
+                                                    className="bg-white/20 rounded-full flex items-center justify-center text-[10px] shrink-0"
+                                                    style={{ width: `${config.logoSize || 32}px`, height: `${config.logoSize || 32}px` }}
+                                                >
+                                                    Logo
+                                                </div>
                                             )}
+                                        </div>
+
+                                        <div className="flex-1 min-w-0">
                                             <span
                                                 style={{
                                                     fontFamily: config.siteNameFont,
                                                     fontSize: `${config.siteNameSize || 14}px`,
+                                                    textAlign: config.siteNameAlignment || 'center',
                                                     fontWeight: '800',
                                                     textTransform: 'uppercase',
-                                                    letterSpacing: '0.05em'
+                                                    letterSpacing: '0.05em',
+                                                    display: 'block'
                                                 }}
-                                                className="truncate"
+                                                className="truncate w-full"
                                             >
                                                 {config.siteName}
                                             </span>
                                         </div>
+
+                                        <div className="w-12 shrink-0"></div> {/* Spacer to maintain center/balance */}
                                     </div>
 
                                     {/* Hero Mock */}

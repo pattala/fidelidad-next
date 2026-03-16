@@ -87,6 +87,7 @@ export interface AppConfig {
     secondaryColor: string;
     backgroundColor?: string;
     logoUrl: string;
+    logoSize?: number;
     pwaPaddingTop?: number; // Padding superior en píxeles para páginas de la PWA
     siteNameFont?: string;
     siteNameSize?: number;

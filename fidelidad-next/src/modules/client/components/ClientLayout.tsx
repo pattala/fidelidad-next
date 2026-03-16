@@ -166,11 +166,12 @@ export const ClientLayout = () => {
                                 <ChevronLeft size={24} strokeWidth={2.5} />
                             </button>
                         )}
-                        <div className="bg-white p-0.5 rounded-full shadow-lg ml-1 shrink-0">
+                        <div className="bg-white p-0.5 rounded-full shadow-lg ml-1 shrink-0 flex items-center justify-center overflow-hidden">
                             <img
                                 src={config.logoUrl || "/logo.png"}
                                 alt="Logo"
-                                className="h-8 w-8 object-contain rounded-full"
+                                className="object-contain rounded-full shrink-0 transition-all duration-300"
+                                style={{ width: `${config.logoSize || 32}px`, height: `${config.logoSize || 32}px` }}
                                 onError={(e) => e.currentTarget.src = 'https://placehold.co/100x100?text=LOGO'}
                             />
                         </div>

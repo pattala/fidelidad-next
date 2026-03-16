@@ -107,10 +107,26 @@ async function handleDelete(req, res, db) {
     if (!docId && !provAuthUID && !provEmail) return res.status(400).json({ ok: false, error: "Falta identificador" });
     try {
         let userId = docId, authUID = provAuthUID, email = provEmail;
-        if (docId) {
-            const snap = await db.collection("users").doc(docId).get();
-            if (snap.exists) { authUID = snap.data().authUID; email = snap.data().email; }
+        if (userId) {
+            const snap = await db.collection("users").doc(userId).get();
+            if (snap.exists) {
+                const userData = snap.data();
+                authUID = userData.authUID;
+                email = userData.email;
+
+                // PROTECCIÓN DE CUENTAS MAESTRAS
+                const masterEmails = ['pablo_attala@yahoo.com.ar', 'admin@admin.com'];
+                if (masterEmails.includes(email?.toLowerCase())) {
+                    return res.status(403).json({ ok: false, error: "Esta cuenta está protegida por el sistema y no puede ser eliminada." });
+                }
+            }
         } else if (provEmail) {
+            // PROTECCIÓN DE CUENTAS MAESTRAS (Check by provEmail too)
+            const masterEmails = ['pablo_attala@yahoo.com.ar', 'admin@admin.com'];
+            if (masterEmails.includes(provEmail?.toLowerCase())) {
+                return res.status(403).json({ ok: false, error: "Esta cuenta está protegida por el sistema y no puede ser eliminada." });
+            }
+
             const snap = await db.collection("users").where("email", "==", provEmail.toLowerCase()).limit(1).get();
             if (!snap.empty) { userId = snap.docs[0].id; authUID = snap.docs[0].data().authUID; }
         }

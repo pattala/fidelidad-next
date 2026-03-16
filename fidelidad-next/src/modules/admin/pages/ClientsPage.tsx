@@ -533,6 +533,16 @@ export const ClientsPage = () => {
     // 3. Eliminar
     const handleDelete = async (id: string, name: string) => {
         if (isReadOnly) return;
+
+        // PROTECCIÓN DE CUENTAS MAESTRAS
+        const masterEmails = ['pablo_attala@yahoo.com.ar', 'admin@admin.com'];
+        // Obtenemos el email buscando en la lista local de clientes (id es doc.id)
+        const targetClient = clients.find(c => c.id === id);
+        if (targetClient && masterEmails.includes(targetClient.email?.toLowerCase())) {
+            toast.error("Esta es una cuenta maestra del sistema y no puede ser eliminada.");
+            return;
+        }
+
         if (!window.confirm(`¿Estás seguro de eliminar a ${name}? Esta acción borrará permanentemente sus puntos, visitas y mensajes.`)) return;
 
         const toastId = toast.loading('Eliminando usuario y limpiando datos...');

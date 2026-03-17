@@ -46,8 +46,8 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
             [`permissions.${type}.${prefix}nextPrompt`]: options?.nextPrompt || 0
         };
 
-        // If it's a "phase 1 complete" (reached max attempts), we can also set a long-term nextPrompt or just leave it
-        if (status === 'later_phase1_complete') {
+        // If it's a "phase 1 complete" (reached max attempts) or explicit "blocked", we set a long-term nextPrompt
+        if (status === 'later_phase1_complete' || status === 'blocked') {
             const rawInterval = config?.messaging?.notificationPromptIntervalDays;
             const intervalDays = typeof rawInterval === 'number' ? rawInterval : parseInt(rawInterval) || 30;
             
@@ -57,7 +57,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
             
             // Reset counter for the next cycle
             updateData[`permissions.${type}.${counterKey}`] = 0;
-            console.log(`[Permission Sync] ${type} exhausted. Next prompt in ${safeInterval} days.`);
+            console.log(`[Permission Sync] ${type} (${status}). Next prompt in ${safeInterval} days.`);
         }
 
         try {
@@ -83,8 +83,8 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const notifNextPrompt = permissions.notifications?.[`${prefix}nextPrompt`] || 0;
         const isNotifCooldown = notifNextPrompt > TimeService.now().getTime();
 
-        const canShowNotif = (notifStatus === 'pending' || notifStatus === 'later' || notifStatus === 'later_phase1_complete') &&
-            (notifStatus === 'later_phase1_complete' ? true : notifAttempts < (Number(maxNotif) || 2)) &&
+        const canShowNotif = (notifStatus === 'pending' || notifStatus === 'later' || notifStatus === 'later_phase1_complete' || notifStatus === 'blocked') &&
+            ((notifStatus === 'later_phase1_complete' || notifStatus === 'blocked') ? true : notifAttempts < (Number(maxNotif) || 2)) &&
             !isNotifCooldown &&
             browserNotifState === 'default' &&
             !currentHandled.includes('notifications');
@@ -99,8 +99,8 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const maxGeo = safeMessaging.maxLargePromptDismissalsMobile;
         
         const canShowGeo = isMobile &&
-            (geoStatus === 'pending' || geoStatus === 'later' || geoStatus === 'later_phase1_complete') &&
-            (geoStatus === 'later_phase1_complete' ? true : geoAttempts < (Number(maxGeo) || 2)) &&
+            (geoStatus === 'pending' || geoStatus === 'later' || geoStatus === 'later_phase1_complete' || geoStatus === 'blocked') &&
+            ((geoStatus === 'later_phase1_complete' || geoStatus === 'blocked') ? true : geoAttempts < (Number(maxGeo) || 2)) &&
             !isGeoCooldown &&
             !currentHandled.includes('geolocation');
 
@@ -192,22 +192,34 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
             const intervalDays = Number(rawInterval) || 30;
             await updatePermission(type as any, 'later_phase1_complete');
             if (intervalDays > 0) {
-                toast(`Entendido. Volveremos a consultarte en ${intervalDays} días. También podés activarlo desde tu Perfil en cualquier momento.`, { icon: '🤝', duration: 6000 });
+                toast(`Volveremos a consultar en ${intervalDays} días,o lo podes cambiar desde tu perfil !!!`, { icon: '🤝', duration: 6000 });
             }
         } else {
             const rawCooldown = isMobile ? (config?.messaging?.mobileCooldownHours) : 0;
-            const cooldownHours = Number(rawCooldown) || 24;
+            // Bug fix: If is PC, rawCooldown is 0. Number(0) || 24 would give 24.
+            const cooldownHours = isMobile ? (Number(rawCooldown) || 24) : 0;
             const nextPrompt = TimeService.now().getTime() + (cooldownHours * 60 * 60 * 1000);
+            if (!isMobile) {
+                console.log("[PC Logic] No cooldown applied for PC (Session based)");
+            }
             await updatePermission(type as any, 'later', { nextPrompt });
-            // SILENCE: No toast for intermediate "later" actions
         }
         moveToNextOrEnd(type as any);
     };
 
     const handleNo = async () => {
         const type = step;
+        const rawInterval = config?.messaging?.notificationPromptIntervalDays;
+        const intervalDays = Number(rawInterval) || 30;
+        
         await updatePermission(type as any, 'blocked');
-        toast('Entendido.', { icon: '🤝' });
+        
+        if (intervalDays > 0) {
+            toast(`Volveremos a consultar en ${intervalDays} días,o lo podes cambiar desde tu perfil !!!`, { icon: '🤝', duration: 6000 });
+        } else {
+            toast('Entendido.', { icon: '🤝' });
+        }
+        
         moveToNextOrEnd(type as any);
     };
 

@@ -247,17 +247,36 @@ export const ClientHomePage = () => {
                             console.log(`[PWA Logic ${deviceKey}] In reset period. Next available in ${Math.round((resetMs - (now - lastPromptTs)) / (3600 * 1000))} hours`);
                             return;
                         }
-                        
+
                         // Reset period passed! Reset count
                         console.log(`[PWA Logic ${deviceKey}] Reset period passed. Restarting cycle.`);
                         newCount = 0;
                     }
 
+                    // Show toast if just exhausted
+                    if (promptCount === maxAttempts - 1) {
+                         const resetDays = config?.messaging?.pwaInstallPromptResetDays || 30;
+                         toast(`Volveremos a consultar en ${resetDays} días,o lo podes cambiar desde tu perfil !!!`, { icon: '🤝', duration: 6000 });
+                    }
+
                     // 3. Check cooldown
-                    if (now - lastPromptTs < cooldownMs) {
+                    const isCooling = now - lastPromptTs < cooldownMs;
+                    console.log(`[PWA Logic ${deviceKey}] Status:`, {
+                        now,
+                        lastPromptTs,
+                        diffMinutes: Math.round((now - lastPromptTs) / 60000),
+                        cooldownMinutes: Math.round(cooldownMs / 60000),
+                        isCooling,
+                        promptCount,
+                        maxAttempts
+                    });
+
+                    if (isCooling) {
                         console.log(`[PWA Logic ${deviceKey}] In cooldown. Waiting ${Math.round((cooldownMs - (now - lastPromptTs)) / 60000)} minutes`);
                         return;
                     }
+
+                    // (Optional) If we want a toast when attempts are exhausted (already handled in step 2 check mostly)
 
                     // 4. Show it!
                     setTimeout(async () => {

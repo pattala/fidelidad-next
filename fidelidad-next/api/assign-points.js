@@ -692,7 +692,8 @@ export default async function handler(req, res) {
                         .replace(/{siteName}/g, config.siteName || 'Club Fidelidad');
 
                     const phone = (result.guestData.phone || '').replace(/\D/g, '');
-                    if (phone.length >= 8) {
+
+                    if (phone.length >= 10) {
                         result.whatsappLink = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(waMsg.trim())}`;
 
                         // Audit Log (Manual) - ACUMULAR

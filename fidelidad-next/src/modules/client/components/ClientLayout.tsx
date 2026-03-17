@@ -179,7 +179,7 @@ export const ClientLayout = () => {
 
                     <div className="flex flex-col items-center flex-1 min-w-0 px-2">
                         <h1
-                            className="font-black uppercase tracking-widest text-center shadow-sm truncate w-full px-2 leading-none"
+                            className="font-black uppercase tracking-widest text-center shadow-sm w-full px-2"
                             style={{
                                 fontFamily: config.siteNameFont || 'inherit',
                                 fontSize: `${config.siteNameSize || 14}px`,

@@ -1637,7 +1637,7 @@ export const ConfigPage = () => {
                                                     letterSpacing: '0.05em',
                                                     display: 'block'
                                                 }}
-                                                className="truncate w-full"
+                                                className="w-full"
                                             >
                                                 {config.siteName}
                                             </span>

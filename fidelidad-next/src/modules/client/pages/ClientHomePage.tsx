@@ -208,6 +208,42 @@ export const ClientHomePage = () => {
         }
     };
 
+    // --- 🔍 DIAGNÓSTICO: Log de estado al cargar ---
+    useEffect(() => {
+        if (!userData || !config || authLoading || isAdmin) return;
+        const prefix = isMobileDevice ? 'mobile_' : 'pc_';
+        const deviceKey = isMobileDevice ? 'Mobile' : 'PC';
+        const permissions = userData.permissions || {};
+        const notif = permissions.notifications || {};
+        const gloriaStats = userData[`pwaPromptStats${deviceKey}`] || {};
+        const messaging = config?.messaging || {};
+
+        const maxBanner = isMobileDevice
+            ? (messaging.maxLargePromptDismissalsMobile || 2)
+            : (messaging.maxLargePromptDismissalsPC || 2);
+        const maxGloria = messaging.pwaInstallPromptMaxAttempts || 3;
+        const cooldownGloriaH = messaging.pwaInstallPromptCooldownHours || 24;
+        const lastGloriaTs = gloriaStats.lastPromptTs || 0;
+        const minutesSinceGloria = lastGloriaTs ? Math.round((Date.now() - lastGloriaTs) / 60000) : null;
+
+        console.log(
+            '%c🔍 RAMPET DIAGNÓSTICO',
+            'background:#4a148c;color:white;font-weight:bold;padding:4px 8px;border-radius:4px'
+        );
+        console.table({
+            '📱 Dispositivo': deviceKey,
+            '🔔 Status Notif': notif[`${prefix}status`] || 'pending',
+            '🔵 Intentos Banner': `${notif[`${prefix}dismissedCount`] || 0} / ${maxBanner}`,
+            '✨ Intentos Gloria': `${gloriaStats.currentCycleCount || 0} / ${maxGloria}`,
+            '⏱ Cooldown Gloria': lastGloriaTs
+                ? `${minutesSinceGloria}min transcurridos (cooldown: ${cooldownGloriaH * 60}min)`
+                : 'Sin intentos previos',
+            '🔒 Bloqueado hasta': notif[`${prefix}nextPrompt`]
+                ? new Date(notif[`${prefix}nextPrompt`]).toLocaleString('es-AR')
+                : 'Sin bloqueo',
+        });
+    }, [!!userData, authLoading, isAdmin]);
+
     // --- POINTS INCREASE DETECTION (Moment of Glory) ---
     useEffect(() => {
         if (userData?.points !== undefined && !authLoading && !isAdmin) {

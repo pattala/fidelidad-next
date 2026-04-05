@@ -78,8 +78,8 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const notifNextPrompt = permissions.notifications?.[`${prefix}nextPrompt`] || 0;
         const isNotifCooldown = notifNextPrompt > TimeService.now().getTime();
 
-        const canShowNotif = (notifStatus === 'pending' || notifStatus === 'later' || notifStatus === 'later_phase1_complete') &&
-            ((notifStatus === 'later_phase1_complete') ? true : notifAttempts < (Number(maxNotif) || 2)) &&
+        const canShowNotif = (notifStatus === 'pending' || notifStatus === 'later') &&
+            notifAttempts < (Number(maxNotif) || 2) &&
             (isMobile ? !isNotifCooldown : true) &&
             browserNotifState === 'default' &&
             !currentHandled.includes('notifications');
@@ -93,8 +93,8 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const maxGeo = safeMessaging.maxLargePromptDismissalsMobile;
         
         const canShowGeo = isMobile &&
-            (geoStatus === 'pending' || geoStatus === 'later' || geoStatus === 'later_phase1_complete') &&
-            ((geoStatus === 'later_phase1_complete') ? true : geoAttempts < (Number(maxGeo) || 2)) &&
+            (geoStatus === 'pending' || geoStatus === 'later') &&
+            geoAttempts < (Number(maxGeo) || 2) &&
             !isGeoCooldown &&
             !currentHandled.includes('geolocation');
 

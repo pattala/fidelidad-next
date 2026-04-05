@@ -620,14 +620,14 @@ export const ClientHomePage = () => {
 
             const browserState = typeof Notification !== 'undefined' ? Notification.permission : 'denied';
 
-            const canShowNotif = (notifStatus === 'pending' || notifStatus === 'later' || notifStatus === 'later_phase1_complete') &&
-                (notifStatus === 'later_phase1_complete' ? true : notifCount < maxAttempts) &&
+            const canShowNotif = (notifStatus === 'pending' || notifStatus === 'later') &&
+                notifCount < maxAttempts &&
                 !isNotifCooldown &&
                 browserState === 'default';
 
             const canShowGeo = isMobileDevice &&
-                (geoStatus === 'pending' || geoStatus === 'later' || geoStatus === 'later_phase1_complete') &&
-                (geoStatus === 'later_phase1_complete' ? true : geoCount < maxAttempts) &&
+                (geoStatus === 'pending' || geoStatus === 'later') &&
+                geoCount < maxAttempts &&
                 !isGeoCooldown;
 
             // Debug log

@@ -1,70 +1,74 @@
-# 🧪 Guía de Pruebas Exhaustivas (RAMPET PWA)
+# 🧪 GUÍA DE PRUEBAS "A PRUEBA DE TODO" (VERSIÓN FINAL)
 
-Esta guía te llevará paso a paso para verificar que el sistema de permisos y el "Momento de Gloria" funcionan exactamente como pediste: **Sin solapamientos y con prioridades claras.**
-
----
-
-## 🛠️ PASO 0: Preparación (Desde el Panel Admin)
-Antes de empezar, necesitamos un "Lienzo Limpio":
-1.  **Crea un Cliente Nuevo:** Ve a la sección de Clientes y crea uno de prueba (ej. "Prueba PC").
-2.  **Verifica la Configuración:** En el panel "Mensajería", asegúrate de tener:
-    *   Máx. Intentos PC: **3**
-    *   Máx. Intentos Móvil: **3**
-    *   Cooldown Móvil: **24 HS**
-    *   Re-suscripción: **30 DÍAS**
+Esta guía asegura que el sistema sea profesional: **No molesta, no se solapa y aprovecha los puntos para ganar permisos.**
 
 ---
 
-## 💻 BLOQUE 1: Pruebas en Computadora (PC)
-*Objetivo: Verificar que funciona por SESIÓN y que el Momento de Gloria recupera permisos.*
-
-### Escenario 1.1: El Banner Inicial
-1.  **Acción:** Inicia sesión con el cliente de prueba en una pestaña de Incógnito (recomendado).
-2.  **Resultado Esperado:** A los pocos segundos, debe aparecer el **Banner Grande Superior** pidiendo notificaciones.
-3.  **Acción:** Haz clic en **"Quizás luego"**.
-4.  **Verificación:** 
-    *   El cartel desaparece.
-    *   **Refresca la página (F5):** El cartel **NO** debe volver a aparecer (estamos en la misma sesión).
-
-### Escenario 1.2: El Momento de Gloria (Recuperación)
-*(Continuando desde el punto anterior, con el banner ya descartado)*
-1.  **Acción:** Desde el Panel Admin, búscale los puntos a este usuario y **súmale 100 puntos**.
-2.  **Acción:** Vuelve a la pestaña del cliente (PC).
-3.  **Resultado Esperado:** Debe aparecer un cartel con estrellas (Sparkles) que diga: **"¡Tu cuenta está creciendo! Activá los avisos para enterarte de más premios"**.
-    *   *Nota:* Este es el "Momento de Gloria" trabajando para recuperar el permiso que el usuario negó al principio.
-
-### Escenario 1.3: Nuevo Login
-1.  **Acción:** Cierra la pestaña por completo y vuelve a abrir la app (o borra la sesión).
-2.  **Resultado Esperado:** El **Banner Grande vuelve a aparecer (es el Intento #2).**
+## 🏁 3 FORMAS DE EMPEZAR (Elige una para cada prueba)
+Sea cual sea la forma que elijas, el objetivo es el mismo: **Un Cliente con 0 visitas.**
+1.  **DESDE EL PANEL:** Creas el socio en "Clientes" -> Vas a la PWA -> Te logueas.
+2.  **DESDE PWA PC:** En la pantalla de login, pulsas "Registrate" -> Llenas los datos -> Entras al Home.
+3.  **DESDE PWA MÓVIL:** Igual que en PC, pero desde el celular.
 
 ---
 
-## 📱 BLOQUE 2: Pruebas en Celular (PWA)
-*Objetivo: Verificar que funciona por COOLDOWN (Tiempo).*
-
-### Escenario 2.1: Prioridad de Permisos
-1.  **Acción:** Entra desde el celular. Aparece el banner de Permisos.
-2.  **Acción:** **NO lo cierres**. Quédate con el cartel abierto.
-3.  **Acción:** (Desde el Admin) Súmale puntos al usuario.
-4.  **Resultado Esperado:** **NO debe solaparse nada**. El Momento de Gloria debe esperar a que el primer cartel termine de procesarse.
-
-### Escenario 2.2: Momento de Gloria (PWA Install)
-1.  **Acción:** Acepta todos los permisos (Notificaciones y GPS).
-2.  **Acción:** Suma puntos desde el Admin.
-3.  **Resultado Esperado:** Debe aparecer el cartel de "Momento de Gloria" pero esta vez invitando a **"Instalar la App"** (porque los permisos ya los tiene).
+## 🛠️ CONFIGURACIÓN INICIAL (En el Panel Admin)
+1.  Ve a **Mensajería**.
+2.  Pon **Máx. Intentos PC: 2**.
+3.  Pon **Máx. Intentos Gloria: 2**.
+4.  Pon **Re-suscripción: 30 DÍAS**.
+5.  **Simulador de Fecha:** Déjalo en **0 días** (Hoy).
 
 ---
 
-## 📋 RESUMEN DE RESULTADOS ESPERADOS
+## 💻 ESCENARIO 1: LA PC (Sesiones y Paciencia)
+*Objetivo: Ver que el sistema es "paciente" y no molesta en la misma sesión.*
 
-| Si el usuario... | Y suma puntos... | Resultado |
-| :--- | :--- | :--- |
-| **No contestó** el banner inicial | Suma puntos | **Silencio.** No se solapan. |
-| Puso **"Luego"** al banner | Suma puntos | Sale Gloria invitando a **Permisos**. |
-| **Aceptó** los permisos | Suma puntos | Sale Gloria invitando a **Instalar App**. |
-| **Ya instaló** la App y tiene permisos | Suma puntos | **Silencio.** El cliente ya es VIP total. |
+1.  **ACCION:** Registra un socio nuevo y logueate en la PC.
+2.  **RESULTADO:** Aparece el **Banner Azul (Intento 1)**.
+3.  **ACCION:** Haz clic en **"QUIZÁS LUEGO"**.
+4.  **ACCION (La trampa):** Sin cerrar la pestaña, ve al Admin y súmale 100 puntos.
+5.  **RESULTADO ESPERADO:** **NO sale nada.** Gloria está "callada" porque todavía te queda 1 intento del ciclo inicial.
+6.  **ACCION:** Cierra la pestaña y vuelve a entrar (Login 2).
+7.  **RESULTADO:** Aparece el **Banner Azul (Intento 2 - último)**.
+8.  **ACCION:** Haz clic en **"QUIZÁS LUEGO"**.
+9.  **ACCION (El salvavidas):** Ve al Admin y súmale otros 100 puntos.
+10. **RESULTADO ESPERADO:** **¡Aparece el Momento de Gloria!** Como ya gastaste tus 2 intentos normales, ahora Gloria sale a intentar recuperarte.
 
 ---
 
-## ⚠️ NOTA PARA EL TESTER (PABLO)
-Para "forzar" que los puntos suban y ver el efecto, asegúrate de que la pestaña del cliente esté abierta mientras haces el cambio en el Panel Admin. El sistema detecta el cambio en tiempo real y dispara la celebración.
+## 🌟 ESCENARIO 2: EL REINICIO POR ÉXITO (Hacia la instalación)
+*Objetivo: Ver que si acepta permisos, le damos chances nuevas para instalar la App.*
+
+1.  **ACCION (En Gloria):** Pulsa **"SÍ, ACEPTO"**.
+2.  **RESULTADO:** Permisos activados. Contador de Gloria vuelve a 0.
+3.  **ACCION:** Ve al Admin y súmale puntos de nuevo.
+4.  **RESULTADO ESPERADO:** **¡NUEVO CARTEL!** Ahora te invita a **Instalar la App**. (Esto prueba que el ciclo se reinició para el siguiente objetivo).
+
+---
+
+## 📱 ESCENARIO 3: EL CELULAR (Cooldown 24hs)
+*Objetivo: Ver que el celular te hace esperar un día entero.*
+
+1.  **ACCION:** Logueate en celular -> Banner Azul -> Pon **"QUIZÁS LUEGO"**.
+2.  **ACCION:** Cierra y vuelve a entrar -> **SILENCIO:** No sale nada (faltan 24hs).
+3.  **ACCION:** En el Admin, adelanta el **Simulador de Fecha** a **+2 días**.
+4.  **RESULTADO:** Al abrir la App de nuevo en el celular, **vuelve a salir el cartel**.
+
+---
+
+## 🛑 ESCENARIO 4: BLOQUEO TOTAL (No, Gracias)
+*Objetivo: Ver que si dice "No", el sistema lo respeta por 30 días.*
+
+1.  **ACCION:** En cualquier banner azul, pulsa **"NO, GRACIAS"**.
+2.  **RESULTADO:** Cartel de "Volveremos en 30 días".
+3.  **ACCION:** Suma puntos, cierra sesión... **SILENCIO ABSOLUTO.** No sale nada por un mes.
+
+---
+
+### ✅ Checklist Final para el OK:
+- [ ] ¿El banner azul sale correctamente al primer registro?
+- [ ] ¿Si refresco (F5) en PC deja de salir?
+- [ ] ¿Aparece el Gloria RECIÉN cuando se acaban los intentos iniciales?
+- [ ] ¿Si acepto permisos, el siguiente gloria me pide la App?
+- [ ] ¿Si digo "No, gracias", se calla todo por un mes?

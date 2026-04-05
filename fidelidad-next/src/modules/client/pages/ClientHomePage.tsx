@@ -306,7 +306,7 @@ export const ClientHomePage = () => {
                     
                     const cooldownMs = (messaging.pwaInstallPromptCooldownHours || 24) * 3600 * 1000;
                     const maxAttempts = messaging.pwaInstallPromptMaxAttempts || 3;
-                    const resetMs = (messaging.pwaInstallPromptResetDays || 30) * 24 * 3600 * 1000;
+                    const resetMs = (messaging.notificationPromptIntervalDays || 30) * 24 * 3600 * 1000;
                     const repetitionEnabled = messaging.enablePwaInstallPromptRepetition ?? true;
 
                     let newCount = promptCount;
@@ -1047,7 +1047,7 @@ export const ClientHomePage = () => {
                     const maxAttempts = Number(messaging.pwaInstallPromptMaxAttempts) || 3;
 
                     if (currentCount >= maxAttempts && user?.uid) {
-                        const resetDays = Number(messaging.pwaInstallPromptResetDays) || 30;
+                        const resetDays = Number(messaging.notificationPromptIntervalDays) || 30;
                         const nextPrompt = nowTs + (resetDays * 24 * 3600 * 1000);
                         const prefix = isMobileDevice ? 'mobile_' : 'pc_';
                         await updateDoc(doc(db, 'users', user.uid), {

@@ -236,13 +236,14 @@ export const ClientHomePage = () => {
                         return;
                     }
 
-                    // ESPERA DE ETAPA 1: Si todavía tiene intentos pendientes de la etapa inicial, Gloria no se solapa
-                    const counterKeyStage1 = isMobileDevice ? 'mobile_dismissedCount' : 'pc_dismissedCount';
-                    const dismissedCountStage1 = permissions[counterKeyStage1] || 0;
+                    // ESPERA DE ETAPA 1: Gloria solo actúa si el status confirma que la Fase 1 terminó
                     const messaging = config?.messaging || {};
-                    const maxStage1 = isMobileDevice ? (messaging.maxLargePromptDismissalsMobile) : (messaging.maxLargePromptDismissalsPC);
-                    if (!isGranted && dismissedCountStage1 < (Number(maxStage1) || 2)) {
-                        console.log(`[PWA Logic] Still in Stage 1 cycle (${dismissedCountStage1}/${maxStage1}). Gloria waiting.`);
+                    const isPhase1Complete = notifStatus === 'later_phase1_complete' || notifStatus === 'blocked';
+                    if (!isGranted && !isPhase1Complete) {
+                        const counterKeyStage1 = isMobileDevice ? 'mobile_dismissedCount' : 'pc_dismissedCount';
+                        const dismissedCountStage1 = permissions[counterKeyStage1] || 0;
+                        const maxStage1 = isMobileDevice ? (messaging.maxLargePromptDismissalsMobile) : (messaging.maxLargePromptDismissalsPC);
+                        console.log(`[PWA Logic] Still in Stage 1 cycle (status: ${notifStatus}, ${dismissedCountStage1}/${maxStage1}). Gloria waiting.`);
                         return;
                     }
 

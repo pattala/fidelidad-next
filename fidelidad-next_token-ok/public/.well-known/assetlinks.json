@@ -1,0 +1,14 @@
+[
+    {
+        "relation": [
+            "delegate_permission/common.handle_all_urls"
+        ],
+        "target": {
+            "namespace": "android_app",
+            "package_name": "com.fidelidad.app",
+            "sha256_cert_fingerprints": [
+                "FA:2A:03:CB:38:8C:9D:46:1A:E5:6C:3C:2E:3D:24:E2:03:84:12:3C:4E:5F:63:21:42:15:33:41:52:13:42:12"
+            ]
+        }
+    }
+]

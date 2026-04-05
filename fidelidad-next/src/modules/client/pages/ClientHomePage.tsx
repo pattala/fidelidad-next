@@ -226,13 +226,13 @@ export const ClientHomePage = () => {
                     const prefix = isMobileDevice ? 'mobile_' : 'pc_';
                     const notifStatus = permissions[`${prefix}status`] || 'pending';
                     const isGranted = notifStatus === 'granted';
-                    const isBlocked = notifStatus === 'blocked' || notifStatus === 'later_phase1_complete';
+                    const isHardBlocked = notifStatus === 'blocked';
 
-                    // REGRESIÓN DE SEGURIDAD: Respetar Bloqueo de 30 días
+                    // Solo bloquear si hay un tiempo de espera real (bloqueo final post-Gloria)
                     const nextPromptGlobal = permissions[`${prefix}nextPrompt`] || 0;
                     const now = TimeService.now().getTime();
-                    if (isBlocked && now < nextPromptGlobal) {
-                        console.log(`[PWA Logic] User is blocked/later_complete. Gloria silenced until ${new Date(nextPromptGlobal).toLocaleString()}`);
+                    if (isHardBlocked && nextPromptGlobal > 0 && now < nextPromptGlobal) {
+                        console.log(`[PWA Logic] User is hard-blocked. Gloria silenced until ${new Date(nextPromptGlobal).toLocaleString()}`);
                         return;
                     }
 
@@ -289,11 +289,7 @@ export const ClientHomePage = () => {
                         newCount = 0;
                     }
 
-                    // Show toast if just exhausted
-                    if (promptCount === maxAttempts - 1) {
-                         const resetDays = config?.messaging?.pwaInstallPromptResetDays || 30;
-                         toast(`Volveremos a consultar en ${resetDays} días,o lo podes cambiar desde tu perfil !!!`, { icon: '🤝', duration: 6000 });
-                    }
+                    // El toast final se muestra al cerrar el modal (onClose), no aquí
 
                     // 3. Check cooldown
                     const isCooling = now - lastPromptTs < cooldownMs;
@@ -1004,7 +1000,29 @@ export const ClientHomePage = () => {
 
             <PWAInstallAdvantageModal
                 isOpen={showPWAAdvantages}
-                onClose={() => setShowPWAAdvantages(false)}
+                onClose={async () => {
+                    const nowTs = TimeService.now().getTime();
+                    const deviceKey = isMobileDevice ? 'Mobile' : 'PC';
+                    const dbFieldStats = `pwaPromptStats${deviceKey}`;
+                    const stats = userData?.[dbFieldStats] || {};
+                    const currentCount = stats.currentCycleCount || 0;
+                    const messaging = config?.messaging || {};
+                    const maxAttempts = Number(messaging.pwaInstallPromptMaxAttempts) || 3;
+
+                    if (currentCount >= maxAttempts && user?.uid) {
+                        const resetDays = Number(messaging.pwaInstallPromptResetDays) || 30;
+                        const nextPrompt = nowTs + (resetDays * 24 * 3600 * 1000);
+                        const prefix = isMobileDevice ? 'mobile_' : 'pc_';
+                        await updateDoc(doc(db, 'users', user.uid), {
+                            [`permissions.notifications.${prefix}status`]: 'blocked',
+                            'permissions.notifications.status': 'blocked',
+                            [`permissions.notifications.${prefix}nextPrompt`]: nextPrompt,
+                            'permissions.notifications.updatedAt': nowTs
+                        }).catch(console.error);
+                        toast(`Nos vemos en ${resetDays} días, recuerda que puedes cambiar los permisos desde tu perfil`, { icon: '🤝', duration: 6000 });
+                    }
+                    setShowPWAAdvantages(false);
+                }}
                 isIOS={isIOS}
                 mode={gloriaMode}
                 onInstall={async () => {

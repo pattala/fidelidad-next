@@ -175,10 +175,8 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const newCount = currentCount + 1;
 
         if (newCount >= maxAttempts) {
-            const intervalDays = messaging.notificationPromptIntervalDays || 30;
-            const nextPrompt = TimeService.now().getTime() + (intervalDays * 24 * 3600 * 1000);
-            await updatePermission(type as any, 'later_phase1_complete', nextPrompt, 0);
-            toast(`Volveremos a consultar en ${intervalDays} días, o lo podes cambiar desde tu perfil !!!`, { icon: '🤝', duration: 6000 });
+            // Ya no bloqueamos aquí. Solo marcamos fase 1 completa para dejar paso a Gloria.
+            await updatePermission(type as any, 'later_phase1_complete', 0, 0);
             onPhaseEnd(true);
         } else {
             const rawCooldown = isMobile ? messaging.mobileCooldownHours : 0;

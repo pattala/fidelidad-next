@@ -2008,21 +2008,9 @@ export const ConfigPage = () => {
                                                             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 font-bold">VECES</span>
                                                         </div>
                                                     </div>
-                                                    <div className="flex-1">
-                                                        <label className="block text-[10px] font-bold text-gray-400 mb-1">Cooldown</label>
-                                                        <div className="relative">
-                                                            <input
-                                                                type="number" min="1" max="720"
-                                                                value={config.messaging?.pwaInstallPromptCooldownHours || 24}
-                                                                onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, pwaInstallPromptCooldownHours: parseInt(e.target.value) || 24 } })}
-                                                                className="w-full pl-3 pr-8 py-2 font-bold bg-gray-50 border border-gray-100 rounded-lg outline-none focus:ring-2 focus:ring-emerald-100 text-sm"
-                                                            />
-                                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 font-bold">HS</span>
-                                                        </div>
-                                                    </div>
                                                 </div>
                                                 <p className="text-[9px] text-gray-400 leading-tight">
-                                                    El cartel aparecerá hasta {config.messaging?.pwaInstallPromptMaxAttempts || 3} veces consecutivas (cada {config.messaging?.pwaInstallPromptCooldownHours || 24}hs) al sumar puntos.
+                                                    El cartel aparecerá hasta {config.messaging?.pwaInstallPromptMaxAttempts || 3} veces al sumar puntos.
                                                 </p>
                                             </div>
 
@@ -2031,22 +2019,9 @@ export const ConfigPage = () => {
                                                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Reinicio del Ciclo</label>
                                                     <span className={`text-[10px] font-black px-2 py-0.5 rounded ${config.messaging?.enablePwaInstallPromptRepetition ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-200 text-gray-500'}`}>PASO 2</span>
                                                 </div>
-                                                <div>
-                                                    <label className="block text-[10px] font-bold text-gray-400 mb-1">Reiniciar tras:</label>
-                                                    <div className="relative">
-                                                        <input
-                                                            type="number" min="1" max="365"
-                                                            disabled={!config.messaging?.enablePwaInstallPromptRepetition}
-                                                            value={config.messaging?.pwaInstallPromptResetDays || 30}
-                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, pwaInstallPromptResetDays: parseInt(e.target.value) || 30 } })}
-                                                            className="w-full pl-3 pr-10 py-2 font-bold bg-gray-50 border border-gray-100 rounded-lg outline-none focus:ring-2 focus:ring-emerald-100 text-sm disabled:cursor-not-allowed"
-                                                        />
-                                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 font-bold">DÍAS</span>
-                                                    </div>
-                                                </div>
                                                 <p className="text-[9px] text-gray-400 leading-tight">
                                                     {config.messaging?.enablePwaInstallPromptRepetition 
-                                                        ? `Después de los ${config.messaging?.pwaInstallPromptMaxAttempts} intentos, se respetará el ciclo global de ${config.messaging?.notificationPromptIntervalDays || 30} días (configurado en "Días para repetir aviso de permisos").`
+                                                        ? `Después de agotarse los ${config.messaging?.pwaInstallPromptMaxAttempts || 3} intentos, se respetará el ciclo global de ${config.messaging?.notificationPromptIntervalDays || 30} días (configurado en "Días para repetir aviso de permisos" más arriba).`
                                                         : 'El ciclo de intentos se mostrará solo una vez y no volverá a aparecer tras agotarse.'}
                                                 </p>
                                             </div>

@@ -219,10 +219,10 @@ export const ClientHomePage = () => {
         const messaging = config?.messaging || {};
 
         const maxBanner = isMobileDevice
-            ? (messaging.maxLargePromptDismissalsMobile || 2)
-            : (messaging.maxLargePromptDismissalsPC || 2);
-        const maxGloria = messaging.pwaInstallPromptMaxAttempts || 3;
-        const cooldownGloriaH = messaging.pwaInstallPromptCooldownHours || 24;
+            ? (Number(messaging.maxLargePromptDismissalsMobile) || 2)
+            : (Number(messaging.maxLargePromptDismissalsPC) || 2);
+        const maxGloria = Number(messaging.pwaInstallPromptMaxAttempts) || 3;
+        const cooldownGloriaH = Number(messaging.pwaInstallPromptCooldownHours) || 24;
         const lastGloriaTs = gloriaStats.lastPromptTs || 0;
         const minutesSinceGloria = lastGloriaTs ? Math.round((Date.now() - lastGloriaTs) / 60000) : null;
 
@@ -304,9 +304,9 @@ export const ClientHomePage = () => {
                     const lastPromptTs = dbStats.lastPromptTs || parseInt(localStorage.getItem(localKey_last) || '0');
                     const promptCount = dbStats.currentCycleCount || parseInt(localStorage.getItem(localKey_count) || '0');
                     
-                    const cooldownMs = (messaging.pwaInstallPromptCooldownHours || 24) * 3600 * 1000;
-                    const maxAttempts = messaging.pwaInstallPromptMaxAttempts || 3;
-                    const resetMs = (messaging.notificationPromptIntervalDays || 30) * 24 * 3600 * 1000;
+                    const cooldownMs = (Number(messaging.pwaInstallPromptCooldownHours) || 24) * 3600 * 1000;
+                    const maxAttempts = Number(messaging.pwaInstallPromptMaxAttempts) || 3;
+                    const resetMs = (Number(messaging.notificationPromptIntervalDays) || 30) * 24 * 3600 * 1000;
                     const repetitionEnabled = messaging.enablePwaInstallPromptRepetition ?? true;
 
                     let newCount = promptCount;
@@ -341,8 +341,7 @@ export const ClientHomePage = () => {
                     });
 
                     if (isCooling) {
-                        console.log(`[PWA Logic ${deviceKey}] In cooldown. Waiting ${Math.round((cooldownMs - (now - lastPromptTs)) / 60000)} minutes`);
-                        return;
+                        console.log(`[PWA Logic ${deviceKey}] In cooldown... but bypassing for Momento de Gloria!`);
                     }
 
                     // (Optional) If we want a toast when attempts are exhausted (already handled in step 2 check mostly)

@@ -127,13 +127,13 @@ export default async function handler(req, res) {
             if (!camp.autoBroadcast) continue;
 
             // 1. ¿Ya se envió hoy?
-            if (camp.broadcastSentAt === todayStr && !finalIgnoreDeduplication) {
+            if (camp.broadcastSentAt === todayStr && !isManualSim) {
                 results.skipped++;
                 continue;
             }
 
             // 2. ¿Dentro de la Ventana de Notificación?
-            if (!isWithinNotificationWindow && !finalIgnoreDeduplication) {
+            if (!isWithinNotificationWindow && !isManualSim) {
                 // Si la campaña empieza antes de las 9 AM, se notificará a las 9 AM exactas.
                 continue;
             }
@@ -158,7 +158,7 @@ export default async function handler(req, res) {
                 // ya no tiene sentido mandar la notificación masiva de "inicio".
                 const sixHoursLater = new Date(startTimeDate);
                 sixHoursLater.setHours(sixHoursLater.getHours() + 6);
-                if (now > sixHoursLater && !finalIgnoreDeduplication) continue;
+                if (now > sixHoursLater && !isManualSim) continue;
             }
 
             // --- EJECUCIÓN DEL BROADCAST ---

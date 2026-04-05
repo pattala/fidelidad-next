@@ -5,6 +5,8 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import { TimeService } from '../../../services/timeService';
 
+const PC_PROMPT_SESSION_KEY = 'rampet_pc_prompt_shown';
+
 interface Props {
     user: any;
     userData: any;
@@ -16,7 +18,7 @@ interface Props {
 export const NotificationPermissionPrompt = ({ user, userData, config, onNotificationGranted, onPhaseEnd }: Props) => {
     const [step, setStep] = useState<'none' | 'notifications' | 'geolocation'>('none');
     const [handledSteps, setHandledSteps] = useState<string[]>([]);
-    const syncInProgress = useRef(false);
+    const [alreadyHandledInSession, setAlreadyHandledInSession] = useState(false);
 
     const isMobileDevice = useMemo(() => {
         if (typeof window === 'undefined') return false;
@@ -25,40 +27,35 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const isIPadOS = (navigator.maxTouchPoints > 0 && /Macintosh/.test(ua));
         return isMobileUA || isIPadOS;
     }, []);
-    const isMobile = isMobileDevice; // For this component, we care about the device type for permissions
+    const isMobile = isMobileDevice;
 
-    const updatePermission = async (type: 'notifications' | 'geolocation', status: string, options?: { nextPrompt?: number }) => {
+    useEffect(() => {
+        if (!isMobile) {
+            const isHandled = sessionStorage.getItem(PC_PROMPT_SESSION_KEY) === 'true';
+            if (isHandled) setAlreadyHandledInSession(true);
+        }
+    }, [isMobile]);
+
+    const markAsHandledInSession = () => {
+        if (!isMobile) {
+            sessionStorage.setItem(PC_PROMPT_SESSION_KEY, 'true');
+            setAlreadyHandledInSession(true);
+        }
+    };
+
+    const updatePermission = async (type: 'notifications' | 'geolocation', status: string, nextPrompt: number = 0, dismissedCount: number = 0) => {
         if (!user) return;
         const ref = doc(db, 'users', user.uid);
         const prefix = isMobile ? 'mobile_' : 'pc_';
         const counterKey = isMobile ? 'mobile_dismissedCount' : 'pc_dismissedCount';
-        let dismissedCount = userData?.permissions?.[type]?.[counterKey] || 0;
-
-        if (status === 'later') {
-            dismissedCount++;
-        }
 
         const updateData: any = {
             [`permissions.${type}.${prefix}status`]: status,
-            [`permissions.${type}.status`]: status, // Unified status for Dashboard compatibility
+            [`permissions.${type}.status`]: status,
             [`permissions.${type}.updatedAt`]: TimeService.now().getTime(),
             [`permissions.${type}.${counterKey}`]: dismissedCount,
-            [`permissions.${type}.${prefix}nextPrompt`]: options?.nextPrompt || 0
+            [`permissions.${type}.${prefix}nextPrompt`]: nextPrompt
         };
-
-        // If it's a "phase 1 complete" (reached max attempts) or explicit "blocked", we set a long-term nextPrompt
-        if (status === 'later_phase1_complete' || status === 'blocked') {
-            const rawInterval = config?.messaging?.notificationPromptIntervalDays;
-            const intervalDays = typeof rawInterval === 'number' ? rawInterval : parseInt(rawInterval) || 30;
-            
-            // Even if it's 0, we set at least 1 day to avoid infinite loop on refresh
-            const safeInterval = Math.max(1, intervalDays);
-            updateData[`permissions.${type}.${prefix}nextPrompt`] = TimeService.now().getTime() + (safeInterval * 24 * 60 * 60 * 1000);
-            
-            // Reset counter for the next cycle
-            updateData[`permissions.${type}.${counterKey}`] = 0;
-            console.log(`[Permission Sync] ${type} (${status}). Next prompt in ${safeInterval} days.`);
-        }
 
         try {
             await updateDoc(ref, updateData);
@@ -67,15 +64,13 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         }
     };
 
-    // --- HELPERS FOR FLOW ---
     const checkNextStep = (currentHandled: string[]) => {
-        if (!userData || !config) return 'none';
+        if (!userData || !config || alreadyHandledInSession) return 'none';
         const permissions = userData.permissions || {};
         const safeMessaging = config?.messaging || {};
         const prefix = isMobile ? 'mobile_' : 'pc_';
         const counterKey = isMobile ? 'mobile_dismissedCount' : 'pc_dismissedCount';
 
-        // 1. Notif Check
         const browserNotifState = typeof Notification !== 'undefined' ? Notification.permission : 'denied';
         const notifStatus = permissions.notifications?.[`${prefix}status`] || 'pending';
         const notifAttempts = permissions.notifications?.[counterKey] || 0;
@@ -83,15 +78,14 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const notifNextPrompt = permissions.notifications?.[`${prefix}nextPrompt`] || 0;
         const isNotifCooldown = notifNextPrompt > TimeService.now().getTime();
 
-        const canShowNotif = (notifStatus === 'pending' || notifStatus === 'later' || notifStatus === 'later_phase1_complete' || notifStatus === 'blocked') &&
-            ((notifStatus === 'later_phase1_complete' || notifStatus === 'blocked') ? true : notifAttempts < (Number(maxNotif) || 2)) &&
-            !isNotifCooldown &&
+        const canShowNotif = (notifStatus === 'pending' || notifStatus === 'later' || notifStatus === 'later_phase1_complete') &&
+            ((notifStatus === 'later_phase1_complete') ? true : notifAttempts < (Number(maxNotif) || 2)) &&
+            (isMobile ? !isNotifCooldown : true) &&
             browserNotifState === 'default' &&
             !currentHandled.includes('notifications');
 
         if (canShowNotif) return 'notifications';
 
-        // 2. Geo Check
         const geoStatus = permissions.geolocation?.[`${prefix}status`] || 'pending';
         const geoAttempts = permissions.geolocation?.[counterKey] || 0;
         const geoNextPrompt = permissions.geolocation?.[`${prefix}nextPrompt`] || 0;
@@ -99,8 +93,8 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const maxGeo = safeMessaging.maxLargePromptDismissalsMobile;
         
         const canShowGeo = isMobile &&
-            (geoStatus === 'pending' || geoStatus === 'later' || geoStatus === 'later_phase1_complete' || geoStatus === 'blocked') &&
-            ((geoStatus === 'later_phase1_complete' || geoStatus === 'blocked') ? true : geoAttempts < (Number(maxGeo) || 2)) &&
+            (geoStatus === 'pending' || geoStatus === 'later' || geoStatus === 'later_phase1_complete') &&
+            ((geoStatus === 'later_phase1_complete') ? true : geoAttempts < (Number(maxGeo) || 2)) &&
             !isGeoCooldown &&
             !currentHandled.includes('geolocation');
 
@@ -109,16 +103,15 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         return 'none';
     };
 
-    // Initial Trigger
     useEffect(() => {
-        if (!userData || !user || !config || step !== 'none') return;
+        if (!userData || !user || !config || step !== 'none' || alreadyHandledInSession) return;
         const next = checkNextStep(handledSteps);
         if (next !== 'none') {
             setStep(next as any);
         } else {
-            onPhaseEnd(false); // Nothing for us to do
+            onPhaseEnd(false);
         }
-    }, [userData?.permissions, config]);
+    }, [userData?.permissions, config, alreadyHandledInSession]);
 
     const moveToNextOrEnd = (justHandled: string) => {
         const newHandled = [...handledSteps, justHandled];
@@ -128,7 +121,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
             setStep(next as any);
         } else {
             setStep('none');
-            onPhaseEnd(true); // End of round, trigger global cooldown
+            onPhaseEnd(true);
         }
     };
 
@@ -140,14 +133,12 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
                 await updatePermission('notifications', 'granted');
                 toast.success('¡Activado!');
                 onNotificationGranted();
-                // Direct call to retrieveToken for faster registration in standalone/standalone
                 if (typeof (window as any).retrieveToken === 'function') {
                     (window as any).retrieveToken();
                 }
                 moveToNextOrEnd('notifications');
             } else {
-                await updatePermission('notifications', 'later');
-                moveToNextOrEnd('notifications');
+                handleLater();
             }
         } else if (currentStep === 'geolocation') {
             if ('geolocation' in navigator) {
@@ -164,8 +155,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
                         moveToNextOrEnd('geolocation');
                     },
                     async () => {
-                        await updatePermission('geolocation', 'later');
-                        moveToNextOrEnd('geolocation');
+                        handleLater();
                     },
                     { enableHighAccuracy: false, timeout: 6000, maximumAge: 60000 }
                 );
@@ -177,50 +167,43 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
 
     const handleLater = async () => {
         const type = step;
-        const rawMax = isMobile
-            ? (config?.messaging?.maxLargePromptDismissalsMobile)
-            : (config?.messaging?.maxLargePromptDismissalsPC);
+        const messaging = config?.messaging || {};
+        const rawMax = isMobile ? messaging.maxLargePromptDismissalsMobile : messaging.maxLargePromptDismissalsPC;
         const maxAttempts = Number(rawMax) || 2;
         const counterKey = isMobile ? 'mobile_dismissedCount' : 'pc_dismissedCount';
         const currentCount = Number(userData?.permissions?.[type]?.[counterKey]) || 0;
         const newCount = currentCount + 1;
 
-        console.log(`[Sequential Banner] ${type} - Count: ${newCount}/${maxAttempts}`);
-
         if (newCount >= maxAttempts) {
-            const rawInterval = config?.messaging?.notificationPromptIntervalDays;
-            const intervalDays = Number(rawInterval) || 30;
-            await updatePermission(type as any, 'later_phase1_complete');
-            if (intervalDays > 0) {
-                toast(`Volveremos a consultar en ${intervalDays} días,o lo podes cambiar desde tu perfil !!!`, { icon: '🤝', duration: 6000 });
-            }
+            const intervalDays = messaging.notificationPromptIntervalDays || 30;
+            const nextPrompt = TimeService.now().getTime() + (intervalDays * 24 * 3600 * 1000);
+            await updatePermission(type as any, 'later_phase1_complete', nextPrompt, 0);
+            toast(`Volveremos a consultar en ${intervalDays} días, o lo podes cambiar desde tu perfil !!!`, { icon: '🤝', duration: 6000 });
+            markAsHandledInSession();
+            onPhaseEnd(true);
         } else {
-            const rawCooldown = isMobile ? (config?.messaging?.mobileCooldownHours) : 0;
-            // Bug fix: If is PC, rawCooldown is 0. Number(0) || 24 would give 24.
+            const rawCooldown = isMobile ? messaging.mobileCooldownHours : 0;
             const cooldownHours = isMobile ? (Number(rawCooldown) || 24) : 0;
-            const nextPrompt = TimeService.now().getTime() + (cooldownHours * 60 * 60 * 1000);
-            if (!isMobile) {
-                console.log("[PC Logic] No cooldown applied for PC (Session based)");
-            }
-            await updatePermission(type as any, 'later', { nextPrompt });
+            const nextPrompt = isMobile ? (TimeService.now().getTime() + (cooldownHours * 3600 * 1000)) : 0;
+            await updatePermission(type as any, 'later', nextPrompt, newCount);
+            moveToNextOrEnd(type as any);
         }
-        moveToNextOrEnd(type as any);
     };
 
     const handleNo = async () => {
         const type = step;
-        const rawInterval = config?.messaging?.notificationPromptIntervalDays;
-        const intervalDays = Number(rawInterval) || 30;
-        
-        await updatePermission(type as any, 'blocked');
+        const messaging = config?.messaging || {};
+        const intervalDays = messaging.notificationPromptIntervalDays || 30;
+        const nextPrompt = TimeService.now().getTime() + (intervalDays * 24 * 3600 * 1000);
+        await updatePermission(type as any, 'blocked', nextPrompt);
         
         if (intervalDays > 0) {
-            toast(`Volveremos a consultar en ${intervalDays} días,o lo podes cambiar desde tu perfil !!!`, { icon: '🤝', duration: 6000 });
+            toast(`Volveremos a consultar en ${intervalDays} días, o lo podes cambiar desde tu perfil !!!`, { icon: '🤝', duration: 6000 });
         } else {
             toast('Entendido.', { icon: '🤝' });
         }
-        
-        moveToNextOrEnd(type as any);
+        markAsHandledInSession();
+        onPhaseEnd(true);
     };
 
     if (step === 'none') return null;

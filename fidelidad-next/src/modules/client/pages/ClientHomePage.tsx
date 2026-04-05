@@ -139,6 +139,8 @@ export const ClientHomePage = () => {
         const timer = setTimeout(() => setReadyForBanner(true), 1600);
         return () => clearTimeout(timer);
     }, []);
+
+    const PC_PROMPT_SESSION_KEY = 'rampet_pc_prompt_shown';
     
     const { config } = useOutletContext<{ config: any }>();
 
@@ -553,6 +555,13 @@ export const ClientHomePage = () => {
                     if (activeBannerPhase !== 'none') setActiveBannerPhase('none');
                     return;
                 }
+            }
+        } else {
+            // PC Session Check
+            const isHandled = sessionStorage.getItem(PC_PROMPT_SESSION_KEY) === 'true';
+            if (isHandled) {
+                if (activeBannerPhase !== 'none') setActiveBannerPhase('none');
+                return;
             }
         }
 

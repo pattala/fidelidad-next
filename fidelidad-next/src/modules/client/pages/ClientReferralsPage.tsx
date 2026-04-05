@@ -205,12 +205,23 @@ export const ClientReferralsPage = () => {
                     </button>
                 </div>
 
-                <button
-                    onClick={handleShare}
-                    className="w-full bg-white text-gray-900 py-4 rounded-2xl font-black text-sm hover:bg-purple-100 transition-all flex items-center justify-center gap-3 active:scale-95 shadow-lg"
-                >
-                    Compartir por WhatsApp
-                </button>
+                {(() => {
+                    const siteName = config?.siteName || 'Club Fidelidad';
+                    const points = config?.referrals?.pointsForReferee || 100;
+                    const text = `¡Hola! 👋 Te invito a sumarte a ${siteName}. Registrate con mi link y ganá ${points} puntos de regalo para tu primer premio: ${referralLink}`;
+                    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
+                    
+                    return (
+                        <a
+                            href={whatsappUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full bg-white text-gray-900 py-4 rounded-2xl font-black text-sm hover:bg-purple-100 transition-all flex items-center justify-center gap-3 active:scale-95 shadow-lg no-underline"
+                        >
+                            Compartir por WhatsApp
+                        </a>
+                    );
+                })()}
             </div>
 
             {/* Stats / How it works */}

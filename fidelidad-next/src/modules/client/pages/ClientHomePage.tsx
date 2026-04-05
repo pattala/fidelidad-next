@@ -153,8 +153,10 @@ export const ClientHomePage = () => {
     }, []);
 
     // --- PWA INSTALL LOGIC ---
-    const { isStandalone, handleInstall, isIOS, isInstalled } = usePWAInstall();
+    const { isStandalone, handleInstall, isIOS: isIOSHook, isInstalled } = usePWAInstall();
     const [showPWAAdvantages, setShowPWAAdvantages] = useState(false);
+    const [gloriaMode, setGloriaMode] = useState<'permissions' | 'install'>('install');
+    const [isIOS, setIsIOS] = useState(false);
 
     // Track PWA installation in Firestore
     useEffect(() => {
@@ -216,12 +218,28 @@ export const ClientHomePage = () => {
             if (previousPoints !== null && currentPoints > previousPoints) {
                 console.log(`[PWA Logic] Points increased from ${previousPoints} to ${currentPoints}`);
                 
-                // Logic to decide if we show the PWA prompt
+                // 1. PHASE 1 GUARD: If initial banner is active or pending, skip Gloria
+                if (activeBannerPhase !== 'none') return;
+
                 const checkAndShowPwaPrompt = async () => {
-                    if (isStandalone || userData.pwaInstalled) return;
+                    const permissions = userData.permissions?.notifications || {};
+                    const prefix = isMobileDevice ? 'mobile_' : 'pc_';
+                    const notifStatus = permissions[`${prefix}status`] || 'pending';
+                    const isGranted = notifStatus === 'granted';
+
+                    // Decidir el modo: si no tiene permisos, el objetivo es recuperarlos.
+                    // Si ya los tiene, el objetivo es la instalación PWA.
+                    const currentMode = !isGranted ? 'permissions' : 'install';
+                    setGloriaMode(currentMode);
+
+                    // Si ya es PWA y ya tiene permisos, no hay nada que pedir en Gloria
+                    if (isStandalone && isGranted) return;
+                    if (userData.pwaInstalled && isGranted) return;
 
                     const messaging = config?.messaging || {};
                     const now = TimeService.now().getTime();
+                    const statsKey = isMobileDevice ? 'pwaPromptStatsMobile' : 'pwaPromptStatsPC';
+                    let stats = userData[statsKey] || {};
                     
                     const deviceKey = isMobileDevice ? 'Mobile' : 'PC';
                     const dbField = `pwaPromptStats${deviceKey}`;
@@ -972,11 +990,29 @@ export const ClientHomePage = () => {
                 isOpen={showPWAAdvantages}
                 onClose={() => setShowPWAAdvantages(false)}
                 isIOS={isIOS}
-                onInstall={() => {
-                    if (isIOS) {
-                        toast('Para instalar: Toca "Compartir" y luego "Agregar a Inicio"', { icon: '📲' });
+                mode={gloriaMode}
+                onInstall={async () => {
+                    if (gloriaMode === 'permissions') {
+                        // Intentar activar notificaciones directamente
+                        try {
+                            const permission = await Notification.requestPermission();
+                            if (permission === 'granted') {
+                                toast.success('¡Notificaciones activadas!', { icon: '🔔' });
+                                if (typeof (window as any).retrieveToken === 'function') {
+                                    (window as any).retrieveToken();
+                                }
+                            } else {
+                                toast.error('No se pudieron activar. Revisa los ajustes de tu navegador.');
+                            }
+                        } catch (e) {
+                            console.error(e);
+                        }
                     } else {
-                        handleInstall();
+                        if (isIOS) {
+                            toast('Para instalar: Toca "Compartir" y luego "Agregar a Inicio"', { icon: '📲' });
+                        } else {
+                            handleInstall();
+                        }
                     }
                     setShowPWAAdvantages(false);
                 }}

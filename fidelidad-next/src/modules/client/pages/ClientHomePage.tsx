@@ -226,9 +226,27 @@ export const ClientHomePage = () => {
                     const prefix = isMobileDevice ? 'mobile_' : 'pc_';
                     const notifStatus = permissions[`${prefix}status`] || 'pending';
                     const isGranted = notifStatus === 'granted';
+                    const isBlocked = notifStatus === 'blocked' || notifStatus === 'later_phase1_complete';
+
+                    // REGRESIÓN DE SEGURIDAD: Respetar Bloqueo de 30 días
+                    const nextPromptGlobal = permissions[`${prefix}nextPrompt`] || 0;
+                    const now = TimeService.now().getTime();
+                    if (isBlocked && now < nextPromptGlobal) {
+                        console.log(`[PWA Logic] User is blocked/later_complete. Gloria silenced until ${new Date(nextPromptGlobal).toLocaleString()}`);
+                        return;
+                    }
+
+                    // ESPERA DE ETAPA 1: Si todavía tiene intentos pendientes de la etapa inicial, Gloria no se solapa
+                    const counterKeyStage1 = isMobileDevice ? 'mobile_dismissedCount' : 'pc_dismissedCount';
+                    const dismissedCountStage1 = permissions[counterKeyStage1] || 0;
+                    const messaging = config?.messaging || {};
+                    const maxStage1 = isMobileDevice ? (messaging.maxLargePromptDismissalsMobile) : (messaging.maxLargePromptDismissalsPC);
+                    if (!isGranted && dismissedCountStage1 < (Number(maxStage1) || 2)) {
+                        console.log(`[PWA Logic] Still in Stage 1 cycle (${dismissedCountStage1}/${maxStage1}). Gloria waiting.`);
+                        return;
+                    }
 
                     // Decidir el modo: si no tiene permisos, el objetivo es recuperarlos.
-                    // Si ya los tiene, el objetivo es la instalación PWA.
                     const currentMode = !isGranted ? 'permissions' : 'install';
                     setGloriaMode(currentMode);
 
@@ -236,8 +254,6 @@ export const ClientHomePage = () => {
                     if (isStandalone && isGranted) return;
                     if (userData.pwaInstalled && isGranted) return;
 
-                    const messaging = config?.messaging || {};
-                    const now = TimeService.now().getTime();
                     const statsKey = isMobileDevice ? 'pwaPromptStatsMobile' : 'pwaPromptStatsPC';
                     let stats = userData[statsKey] || {};
                     
@@ -992,12 +1008,27 @@ export const ClientHomePage = () => {
                 isIOS={isIOS}
                 mode={gloriaMode}
                 onInstall={async () => {
+                    const now = TimeService.now().getTime();
+                    const deviceKey = isMobileDevice ? 'Mobile' : 'PC';
+                    const dbFieldStats = `pwaPromptStats${deviceKey}`;
+
                     if (gloriaMode === 'permissions') {
-                        // Intentar activar notificaciones directamente
                         try {
                             const permission = await Notification.requestPermission();
                             if (permission === 'granted') {
                                 toast.success('¡Notificaciones activadas!', { icon: '🔔' });
+                                
+                                // REGLA DE ORO: Reiniciar contador de Gloria a 0 por éxito
+                                if (user?.uid) {
+                                    updateDoc(doc(db, 'users', user.uid), {
+                                        'permissions.notifications.status': 'granted',
+                                        [`permissions.notifications.${isMobileDevice ? 'mobile_' : 'pc_'}status`]: 'granted',
+                                        [`permissions.notifications.updatedAt`]: now,
+                                        [`${dbFieldStats}.currentCycleCount`]: 0, // RESET por éxito con permisos
+                                        [`${dbFieldStats}.lastUpdate`]: now
+                                    }).catch(console.error);
+                                }
+
                                 if (typeof (window as any).retrieveToken === 'function') {
                                     (window as any).retrieveToken();
                                 }
@@ -1012,6 +1043,16 @@ export const ClientHomePage = () => {
                             toast('Para instalar: Toca "Compartir" y luego "Agregar a Inicio"', { icon: '📲' });
                         } else {
                             handleInstall();
+                        }
+                        
+                        // REGLA DE ORO: Si acepta instalar, marcamos éxito total y reseteamos
+                        if (user?.uid) {
+                            updateDoc(doc(db, 'users', user.uid), {
+                                pwaInstalled: true,
+                                pwaInstalledAt: now,
+                                [`${dbFieldStats}.currentCycleCount`]: 0,
+                                [`${dbFieldStats}.lastUpdate`]: now
+                            }).catch(console.error);
                         }
                     }
                     setShowPWAAdvantages(false);

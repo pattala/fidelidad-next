@@ -242,7 +242,7 @@ export const ClientHomePage = () => {
                 ? new Date(notif[`${prefix}nextPrompt`]).toLocaleString('es-AR')
                 : 'Sin bloqueo',
         });
-    }, [!!userData, authLoading, isAdmin]);
+    }, [!!userData, !!config, authLoading, isAdmin]);
 
     // --- POINTS INCREASE DETECTION (Moment of Glory) ---
     useEffect(() => {

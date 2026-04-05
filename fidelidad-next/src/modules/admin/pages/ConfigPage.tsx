@@ -2027,14 +2027,31 @@ export const ConfigPage = () => {
                                             </div>
 
                                             <div className={`p-4 rounded-xl border transition-all shadow-sm space-y-3 ${config.messaging?.enablePwaInstallPromptRepetition ? 'bg-white border-emerald-100' : 'bg-gray-50 border-gray-200 grayscale opacity-75'}`}>
-                                                <p className="text-[9px] text-gray-400 leading-tight mt-1">
-                                                    {config.messaging?.enablePwaInstallPromptRepetition
-                                                        ? `Después de los ${config.messaging?.pwaInstallPromptMaxAttempts} intentos, se respetará el ciclo de reinicio global (configurado en "Días para repetir aviso de permisos").`
+                                                <div className="flex justify-between items-center">
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Reinicio del Ciclo</label>
+                                                    <span className={`text-[10px] font-black px-2 py-0.5 rounded ${config.messaging?.enablePwaInstallPromptRepetition ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-200 text-gray-500'}`}>PASO 2</span>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 mb-1">Reiniciar tras:</label>
+                                                    <div className="relative">
+                                                        <input
+                                                            type="number" min="1" max="365"
+                                                            disabled={!config.messaging?.enablePwaInstallPromptRepetition}
+                                                            value={config.messaging?.pwaInstallPromptResetDays || 30}
+                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, pwaInstallPromptResetDays: parseInt(e.target.value) || 30 } })}
+                                                            className="w-full pl-3 pr-10 py-2 font-bold bg-gray-50 border border-gray-100 rounded-lg outline-none focus:ring-2 focus:ring-emerald-100 text-sm disabled:cursor-not-allowed"
+                                                        />
+                                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 font-bold">DÍAS</span>
+                                                    </div>
+                                                </div>
+                                                <p className="text-[9px] text-gray-400 leading-tight">
+                                                    {config.messaging?.enablePwaInstallPromptRepetition 
+                                                        ? `Después de los ${config.messaging?.pwaInstallPromptMaxAttempts} intentos, se respetará el ciclo global de ${config.messaging?.notificationPromptIntervalDays || 30} días (configurado en "Días para repetir aviso de permisos").`
                                                         : 'El ciclo de intentos se mostrará solo una vez y no volverá a aparecer tras agotarse.'}
                                                 </p>
-
                                             </div>
                                         </div>
+                                    </div>
 
                                 </div>
                             </div>

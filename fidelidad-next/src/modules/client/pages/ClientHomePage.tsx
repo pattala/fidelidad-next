@@ -306,7 +306,7 @@ export const ClientHomePage = () => {
                     
                     const cooldownMs = (Number(messaging.pwaInstallPromptCooldownHours) || 24) * 3600 * 1000;
                     const maxAttempts = Number(messaging.pwaInstallPromptMaxAttempts) || 3;
-                    const resetMs = (Number(messaging.notificationPromptIntervalDays) || 30) * 24 * 3600 * 1000;
+                    const resetMs = (Number(messaging.pwaInstallPromptResetDays) || 30) * 24 * 3600 * 1000;
                     const repetitionEnabled = messaging.enablePwaInstallPromptRepetition ?? true;
 
                     let newCount = promptCount;
@@ -340,8 +340,17 @@ export const ClientHomePage = () => {
                         maxAttempts
                     });
 
-                    if (isCooling) {
-                        console.log(`[PWA Logic ${deviceKey}] In cooldown... but bypassing for Momento de Gloria!`);
+                    if (isMobileDevice) {
+                        if (isCooling) {
+                            console.log(`[PWA Logic ${deviceKey}] In cooldown. Waiting ${Math.round((cooldownMs - (now - lastPromptTs)) / 60000)} minutes`);
+                            return;
+                        }
+                    } else {
+                        // PC logic: 1 momento de gloria per session (login)
+                        if (sessionStorage.getItem('gloria_shown_this_session')) {
+                            console.log(`[PWA Logic PC] Already shown this session. Waiting for next login.`);
+                            return;
+                        }
                     }
 
                     // (Optional) If we want a toast when attempts are exhausted (already handled in step 2 check mostly)
@@ -351,6 +360,10 @@ export const ClientHomePage = () => {
                         setShowPWAAdvantages(true);
                         const finalCount = newCount + 1;
                         
+                        if (!isMobileDevice) {
+                            sessionStorage.setItem('gloria_shown_this_session', 'true');
+                        }
+
                         // Local update
                         localStorage.setItem(localKey_last, now.toString());
                         localStorage.setItem(localKey_count, finalCount.toString());
@@ -1046,7 +1059,7 @@ export const ClientHomePage = () => {
                     const maxAttempts = Number(messaging.pwaInstallPromptMaxAttempts) || 3;
 
                     if (currentCount >= maxAttempts && user?.uid) {
-                        const resetDays = Number(messaging.notificationPromptIntervalDays) || 30;
+                        const resetDays = Number(messaging.pwaInstallPromptResetDays) || 30;
                         const nextPrompt = nowTs + (resetDays * 24 * 3600 * 1000);
                         const prefix = isMobileDevice ? 'mobile_' : 'pc_';
                         await updateDoc(doc(db, 'users', user.uid), {

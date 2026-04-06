@@ -6,13 +6,13 @@ import { getMessaging } from "firebase/messaging";
 // Configuración de Fidelidad V2
 // Nota: En producción, estos valores deberían ir en variables de entorno (VITE_API_KEY, etc.)
 const firebaseConfig = {
-    apiKey: "AIzaSyCiWY4sS9VaJUcfD0o5c_ZRFT0NxFdfOX8",
-    authDomain: "fidelidad-v2-f2ff4.firebaseapp.com",
-    projectId: "fidelidad-v2-f2ff4",
-    storageBucket: "fidelidad-v2-f2ff4.firebasestorage.app",
-    messagingSenderId: "770588553750",
-    appId: "1:770588553750:web:1cf6afeeac65541274fb37",
-    measurementId: "G-MMLYXW7ZQC"
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyCiWY4sS9VaJUcfD0o5c_ZRFT0NxFdfOX8",
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "fidelidad-v2-f2ff4.firebaseapp.com",
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "fidelidad-v2-f2ff4",
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "fidelidad-v2-f2ff4.firebasestorage.app",
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "770588553750",
+    appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:770588553750:web:1cf6afeeac65541274fb37",
+    measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-MMLYXW7ZQC"
 };
 
 // Initialize Firebase

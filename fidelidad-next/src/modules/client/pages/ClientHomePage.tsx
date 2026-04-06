@@ -183,10 +183,10 @@ export const ClientHomePage = () => {
             geoStatus: geo[`${prefix}status`] || 'pending',
             geoAttempts: `${geo[`${prefix}dismissedCount`] || 0} / ${maxBanner}`,
             blockedUntil: notif[`${prefix}nextPrompt`]
-                ? new Date(notif[`${prefix}nextPrompt`]).toLocaleTimeString()
+                ? new Date(notif[`${prefix}nextPrompt`]).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
                 : 'Sin bloqueo',
             geoBlockedUntil: geo[`${prefix}nextPrompt`]
-                ? new Date(geo[`${prefix}nextPrompt`]).toLocaleTimeString()
+                ? new Date(geo[`${prefix}nextPrompt`]).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
                 : 'Sin bloqueo',
             globalCooldown: permissions.global_lastMobileDismissal
                 ? `${Math.round((TimeService.now().getTime() - permissions.global_lastMobileDismissal) / 1000)}s`

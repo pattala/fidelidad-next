@@ -158,6 +158,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
                         const prefix = isMobile ? 'mobile_' : 'pc_';
                         await updateDoc(doc(db, 'users', user.uid), {
                             [`permissions.geolocation.${prefix}status`]: 'granted',
+                            [`permissions.geolocation.status`]: 'granted',
                             [`permissions.geolocation.updatedAt`]: ts,
                             lastLocation: { lat: pos.coords.latitude, lng: pos.coords.longitude, timestamp: new Date(ts) }
                         });

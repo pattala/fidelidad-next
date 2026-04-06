@@ -865,7 +865,7 @@ export const ClientsPage = () => {
                                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">Permisos</th>
                                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">Actividad / Visitas</th>
                                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">Puntos</th>
-                                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">Puntos a Favor</th>
+                                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">Dinero a Favor</th>
                                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Acciones</th>
                             </tr>
                         </thead>
@@ -1003,8 +1003,8 @@ export const ClientsPage = () => {
                                                             toast.success(`Coordenadas copiadas: ${coords}`);
                                                         }
                                                     }}
-                                                    title={`Ubicación: ${client.permissions?.geolocation?.status === 'granted' ? (client.lastLocation ? 'Activa (Con Coordenadas - Clic para copiar)' : 'Permiso concedido pero sin datos aún') : 'Pendiente/Denegado'}`}
-                                                    className={`p-1.5 rounded-md transition-all ${(client.permissions?.geolocation?.status === 'granted' && client.lastLocation) ? 'text-green-600 bg-green-50 border border-green-100 shadow-sm hover:scale-110 active:scale-95' : 'text-gray-300 bg-gray-50'}`}
+                                                    title={`Ubicación: ${(client.permissions?.geolocation?.status === 'granted' || (client.permissions?.geolocation as any)?.mobile_status === 'granted' || (client.permissions?.geolocation as any)?.pc_status === 'granted') ? (client.lastLocation ? 'Activa (Con Coordenadas - Clic para copiar)' : 'Permiso concedido pero sin datos aún') : 'Pendiente/Denegado'}`}
+                                                    className={`p-1.5 rounded-md transition-all ${((client.permissions?.geolocation?.status === 'granted' || (client.permissions?.geolocation as any)?.mobile_status === 'granted' || (client.permissions?.geolocation as any)?.pc_status === 'granted') && client.lastLocation) ? 'text-green-600 bg-green-50 border border-green-100 shadow-sm hover:scale-110 active:scale-95' : 'text-gray-300 bg-gray-50'}`}
                                                 >
                                                     <MapPin size={14} />
                                                 </button>

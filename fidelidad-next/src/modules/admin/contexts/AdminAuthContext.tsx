@@ -99,7 +99,7 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
                         setRole(null);
                         setLoading(false);
                     }
-                }, 800);
+                }, 4000);
             }
         });
 

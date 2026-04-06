@@ -19,6 +19,14 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
     const [step, setStep] = useState<'none' | 'notifications' | 'geolocation'>('none');
     const [handledSteps, setHandledSteps] = useState<string[]>([]);
     const [alreadyHandledInSession, setAlreadyHandledInSession] = useState(false);
+    const [simTrigger, setSimTrigger] = useState(0);
+
+    // Listen for simulation changes (Date Simulator)
+    useEffect(() => {
+        const handler = () => setSimTrigger(p => p + 1);
+        window.addEventListener('time-simulation-change', handler);
+        return () => window.removeEventListener('time-simulation-change', handler);
+    }, []);
 
     const isMobileDevice = useMemo(() => {
         if (typeof window === 'undefined') return false;
@@ -65,7 +73,8 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
     };
 
     const checkNextStep = (currentHandled: string[]) => {
-        if (!userData || !config || alreadyHandledInSession) return 'none';
+        const isSimulated = TimeService.getOffsetInDays() > 0;
+        if (!userData || !config || (alreadyHandledInSession && !isSimulated)) return 'none';
         const permissions = userData.permissions || {};
         const safeMessaging = config?.messaging || {};
         const prefix = isMobile ? 'mobile_' : 'pc_';
@@ -104,14 +113,15 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
     };
 
     useEffect(() => {
-        if (!userData || !user || !config || step !== 'none' || alreadyHandledInSession) return;
+        const isSimulated = TimeService.getOffsetInDays() > 0;
+        if (!userData || !user || !config || step !== 'none' || (alreadyHandledInSession && !isSimulated)) return;
         const next = checkNextStep(handledSteps);
         if (next !== 'none') {
             setStep(next as any);
         } else {
             onPhaseEnd(false);
         }
-    }, [userData?.permissions, config, alreadyHandledInSession]);
+    }, [userData?.permissions, config, alreadyHandledInSession, simTrigger]);
 
     const moveToNextOrEnd = (justHandled: string) => {
         const newHandled = [...handledSteps, justHandled];

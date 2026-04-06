@@ -102,7 +102,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const maxGeo = safeMessaging.maxLargePromptDismissalsMobile;
         
         const canShowGeo = isMobile &&
-            (geoStatus === 'pending' || geoStatus === 'later') &&
+            (geoStatus === 'pending' || geoStatus === 'later' || geoStatus === 'later_phase1_complete' || geoStatus === 'blocked') &&
             geoAttempts < (Number(maxGeo) || 2) &&
             !isGeoCooldown &&
             !currentHandled.includes('geolocation');

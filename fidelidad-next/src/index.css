@@ -16,10 +16,10 @@ html {
 }
 
 :root {
-    --primary: #8e24aa;
-    --secondary: #d81b60;
+    --color-primary: #8e24aa;
+    --color-secondary: #d81b60;
     --bg-cosmic: linear-gradient(135deg, #4a148c 0%, #880e4f 50%, #ad1457 100%);
-    --bg-light: #f5f3f7;
+    --color-background: #f5f3f7;
     scrollbar-gutter: stable;
 
     /* Safe Area Variables */

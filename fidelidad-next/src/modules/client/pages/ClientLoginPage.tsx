@@ -121,27 +121,27 @@ export const ClientLoginPage = () => {
     };
 
     return (
-        <div className="min-h-[100dvh] sm:h-[100dvh] sm:min-h-0 bg-gray-50 flex flex-col justify-center items-center p-4 relative overflow-hidden w-full">
+        <div className="min-h-[100dvh] sm:h-[100dvh] sm:min-h-0 bg-transparent flex flex-col justify-start items-center p-4 pt-12 sm:pt-0 sm:justify-center relative overflow-hidden w-full">
 
             {/* Background Decoration */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-purple-200/50 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-teal-200/50 rounded-full blur-3xl -ml-16 -mb-16 pointer-events-none"></div>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-teal-500/10 rounded-full blur-3xl -ml-16 -mb-16 pointer-events-none"></div>
 
-            <div className="relative z-10 w-full max-w-md bg-transparent sm:bg-white/40 sm:backdrop-blur-xl sm:p-8 sm:rounded-[2.5rem] sm:shadow-2xl sm:border sm:border-white/50 flex flex-col shrink-0 mx-auto">
+            <div className="relative z-10 w-full max-w-md bg-transparent sm:bg-white/10 sm:backdrop-blur-xl sm:p-8 sm:rounded-[2.5rem] sm:shadow-2xl sm:border sm:border-white/10 flex flex-col shrink-0 mx-auto">
 
                 {/* Logo / Brand */}
-                <div className="mb-6 sm:mb-10 text-center">
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-3xl mx-auto shadow-xl shadow-purple-500/10 flex items-center justify-center mb-2 sm:mb-4 transform -rotate-3 overflow-hidden p-2">
+                <div className="mb-8 sm:mb-10 text-center">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-2xl mx-auto shadow-2xl shadow-black/20 flex items-center justify-center mb-6 sm:mb-4 overflow-hidden p-2">
                         {config?.logoUrl ? (
                             <img src={config.logoUrl} alt="Logo" className="w-full h-full object-contain" />
                         ) : (
                             <span className="text-3xl sm:text-4xl">🚀</span>
                         )}
                     </div>
-                    <h1 className="text-2xl sm:text-3xl font-black text-gray-800 tracking-tight">
+                    <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tighter uppercase leading-tight px-4">
                         {config?.siteName || 'Club Fidelidad'}
                     </h1>
-                    <p className="text-xs sm:text-sm text-gray-500 font-medium mt-1">Tu programa de recompensas</p>
+                    <p className="text-sm sm:text-base text-purple-200 font-bold mt-2 opacity-90">Tu programa de recompensas</p>
                 </div>
 
                 {/* Login Card */}

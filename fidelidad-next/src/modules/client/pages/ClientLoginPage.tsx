@@ -121,7 +121,7 @@ export const ClientLoginPage = () => {
     };
 
     return (
-        <div className="min-h-[100dvh] sm:h-[100dvh] sm:min-h-0 bg-transparent flex flex-col justify-start items-center p-4 pt-12 sm:pt-0 sm:justify-center relative overflow-hidden w-full">
+        <div className="min-h-[100dvh] sm:h-[100dvh] sm:min-h-0 bg-transparent flex flex-col justify-start items-center p-4 pt-6 sm:pt-0 sm:justify-center relative overflow-hidden w-full">
 
             {/* Background Decoration */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
@@ -130,8 +130,8 @@ export const ClientLoginPage = () => {
             <div className="relative z-10 w-full max-w-md bg-transparent sm:bg-white/10 sm:backdrop-blur-xl sm:p-8 sm:rounded-[2.5rem] sm:shadow-2xl sm:border sm:border-white/10 flex flex-col shrink-0 mx-auto">
 
                 {/* Logo / Brand */}
-                <div className="mb-8 sm:mb-10 text-center">
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-2xl mx-auto shadow-2xl shadow-black/20 flex items-center justify-center mb-6 sm:mb-4 overflow-hidden p-2">
+                <div className="mb-4 sm:mb-10 text-center">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-2xl mx-auto shadow-2xl shadow-black/20 flex items-center justify-center mb-4 sm:mb-4 overflow-hidden p-2">
                         {config?.logoUrl ? (
                             <img src={config.logoUrl} alt="Logo" className="w-full h-full object-contain" />
                         ) : (
@@ -226,7 +226,7 @@ export const ClientLoginPage = () => {
                 </div>
 
                 {/* Footer Link */}
-                <div className="text-center mt-6 sm:mt-8">
+                <div className="text-center mt-4 sm:mt-8">
                     <p className="text-xs sm:text-sm text-gray-500 font-medium">
                         ¿No tienes cuenta? <button onClick={() => navigate('/register')} className="text-purple-600 font-bold hover:underline">Regístrate gratis</button>
                     </p>

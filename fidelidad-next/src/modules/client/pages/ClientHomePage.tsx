@@ -158,6 +158,38 @@ export const ClientHomePage = () => {
     const [gloriaMode, setGloriaMode] = useState<'permissions' | 'install'>('install');
     const [isIOS, setIsIOS] = useState(false);
 
+    // --- DIAGNOSTIC DATA (For Test Users) ---
+    const diagnostic = useMemo(() => {
+        if (!userData || !config) return null;
+        const deviceKey = isMobileDevice ? 'Mobile' : 'PC';
+        const prefix = isMobileDevice ? 'mobile_' : 'pc_';
+        const permissions = userData.permissions || {};
+        const notif = permissions.notifications || {};
+        const geo = permissions.geolocation || {};
+        const messaging = config?.messaging || {};
+
+        const maxBanner = isMobileDevice
+            ? (Number(messaging.maxLargePromptDismissalsMobile) || 2)
+            : (Number(messaging.maxLargePromptDismissalsPC) || 2);
+
+        return {
+            device: deviceKey,
+            notifStatus: notif[`${prefix}status`] || 'pending',
+            notifAttempts: `${notif[`${prefix}dismissedCount`] || 0} / ${maxBanner}`,
+            geoStatus: geo[`${prefix}status`] || 'pending',
+            geoAttempts: `${geo[`${prefix}dismissedCount`] || 0} / ${maxBanner}`,
+            blockedUntil: notif[`${prefix}nextPrompt`]
+                ? new Date(notif[`${prefix}nextPrompt`]).toLocaleTimeString()
+                : 'Sin bloqueo',
+            geoBlockedUntil: geo[`${prefix}nextPrompt`]
+                ? new Date(geo[`${prefix}nextPrompt`]).toLocaleTimeString()
+                : 'Sin bloqueo',
+            globalCooldown: permissions.global_lastMobileDismissal
+                ? `${Math.round((TimeService.now().getTime() - permissions.global_lastMobileDismissal) / 1000)}s`
+                : '0s'
+        };
+    }, [userData, config, isMobileDevice]);
+
     // Track PWA installation in Firestore
     useEffect(() => {
         if (user?.uid && isInstalled && !userData?.pwaInstalled && !isAdmin) {
@@ -215,6 +247,7 @@ export const ClientHomePage = () => {
         const deviceKey = isMobileDevice ? 'Mobile' : 'PC';
         const permissions = userData.permissions || {};
         const notif = permissions.notifications || {};
+        const geo = permissions.geolocation || {};
         const gloriaStats = userData[`pwaPromptStats${deviceKey}`] || {};
         const messaging = config?.messaging || {};
 
@@ -240,6 +273,9 @@ export const ClientHomePage = () => {
                 : 'Sin intentos previos',
             '🔒 Bloqueado hasta': notif[`${prefix}nextPrompt`]
                 ? new Date(notif[`${prefix}nextPrompt`]).toLocaleString('es-AR')
+                : 'Sin bloqueo',
+            '🌍 Geo Bloqueado hasta': geo[`${prefix}nextPrompt`]
+                ? new Date(geo[`${prefix}nextPrompt`]).toLocaleString('es-AR')
                 : 'Sin bloqueo',
         });
     }, [!!userData, !!config, authLoading, isAdmin]);
@@ -986,6 +1022,64 @@ export const ClientHomePage = () => {
                     setShowPWAAdvantages(false);
                 }}
             />
+            {/* DIAGNOSTIC PANEL (Test Users Only) */}
+            {userData?.isTestUser && diagnostic && (
+                <div className="mx-2 mt-8 p-6 bg-blue-900/90 backdrop-blur-md rounded-[2.5rem] border-2 border-blue-400/30 text-white shadow-2xl relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:rotate-12 transition-transform">
+                        <Shield size={60} />
+                    </div>
+                    <div className="relative z-10">
+                        <div className="flex items-center gap-2 mb-4">
+                            <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+                            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-blue-200">Panel de Diagnóstico (Modo Test)</h3>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-y-4 gap-x-2">
+                            <div>
+                                <p className="text-[8px] font-bold text-blue-300 uppercase tracking-widest mb-0.5">Dispositivo</p>
+                                <p className="text-sm font-black uppercase">{diagnostic.device}</p>
+                            </div>
+                            <div>
+                                <p className="text-[8px] font-bold text-blue-300 uppercase tracking-widest mb-0.5">Global Cooldown</p>
+                                <p className="text-sm font-black">{diagnostic.globalCooldown}</p>
+                            </div>
+                            <div className="col-span-2 h-px bg-blue-400/20 my-1"></div>
+                            <div>
+                                <p className="text-[8px] font-bold text-blue-300 uppercase tracking-widest mb-0.5">Notif. Status</p>
+                                <div className="flex items-center gap-2">
+                                    <p className="text-xs font-black uppercase">{diagnostic.notifStatus}</p>
+                                    <span className="text-[10px] font-bold opacity-60">({diagnostic.notifAttempts})</span>
+                                </div>
+                            </div>
+                            <div>
+                                <p className="text-[8px] font-bold text-blue-300 uppercase tracking-widest mb-0.5">Geo. Status</p>
+                                <div className="flex items-center gap-2">
+                                    <p className="text-xs font-black uppercase">{diagnostic.geoStatus}</p>
+                                    <span className="text-[10px] font-bold opacity-60">({diagnostic.geoAttempts})</span>
+                                </div>
+                            </div>
+                            <div className="col-span-2 h-px bg-blue-400/20 my-1"></div>
+                            <div>
+                                <p className="text-[8px] font-bold text-blue-300 uppercase tracking-widest mb-0.5">Bloqueo Notif</p>
+                                <p className="text-xs font-black">{diagnostic.blockedUntil}</p>
+                            </div>
+                            <div>
+                                <p className="text-[8px] font-bold text-blue-300 uppercase tracking-widest mb-0.5">Bloqueo Geo</p>
+                                <p className="text-xs font-black">{diagnostic.geoBlockedUntil}</p>
+                            </div>
+                        </div>
+
+                        <div className="mt-6 pt-4 border-t border-blue-400/20">
+                            <p className="text-[9px] text-blue-200/70 italic leading-tight">
+                                * Este panel solo es visible porque eres un <strong>Usuario de Prueba</strong>. Úsalo para validar los cooldowns en tiempo real.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* BOTTOM PADDING (SAFETY) */}
+            <div className="h-8"></div>
         </div>
     );
 };

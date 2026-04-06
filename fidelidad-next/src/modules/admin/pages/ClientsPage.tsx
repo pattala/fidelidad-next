@@ -900,6 +900,11 @@ export const ClientsPage = () => {
                                                         }`}>
                                                         {client.source === 'pwa' ? 'PWA' : 'Local'}
                                                     </span>
+                                                    {client.isTestUser && (
+                                                        <span className="bg-blue-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded flex items-center gap-0.5 uppercase shadow-sm">
+                                                            <Shield size={8} /> TEST
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 <div className="flex flex-col gap-0.5 mt-1">
                                                     <span className="text-[10px] text-gray-500 font-medium flex items-center gap-1 truncate">

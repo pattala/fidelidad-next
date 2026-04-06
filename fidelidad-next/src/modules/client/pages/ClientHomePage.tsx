@@ -134,6 +134,10 @@ export const ClientHomePage = () => {
     const lastActionTs = useRef<number>(0);
     const initialLoadTs = useRef<number>(Date.now());
     const [readyForBanner, setReadyForBanner] = useState(false);
+    const [hideDiagnostic, setHideDiagnostic] = useState(() => {
+        if (typeof sessionStorage === 'undefined') return false;
+        return sessionStorage.getItem('rampet_hide_diagnostic') === 'true';
+    });
 
     useEffect(() => {
         const timer = setTimeout(() => setReadyForBanner(true), 1600);
@@ -604,6 +608,59 @@ export const ClientHomePage = () => {
         <div
             className="relative font-sans text-gray-800 px-4 pt-4 pb-12 space-y-8 animate-fade-in"
         >
+            {/* DIAGNOSTIC PANEL (Test Users Only - TOP POSITION) */}
+            {userData?.isTestUser && diagnostic && !hideDiagnostic && (
+                <div className="mx-0 mb-8 p-5 bg-blue-900/90 backdrop-blur-md rounded-3xl border-2 border-blue-400/30 text-white shadow-2xl relative overflow-hidden group">
+                    <button
+                        onClick={() => {
+                            setHideDiagnostic(true);
+                            sessionStorage.setItem('rampet_hide_diagnostic', 'true');
+                        }}
+                        className="absolute top-4 right-4 z-20 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-all active:scale-90"
+                    >
+                        <X size={14} />
+                    </button>
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:rotate-12 transition-transform">
+                        <Shield size={60} />
+                    </div>
+                    <div className="relative z-10 pr-8">
+                        <div className="flex items-center gap-2 mb-3">
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></span>
+                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-200">Panel de Diagnóstico</h3>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-y-3 gap-x-2">
+                            <div>
+                                <p className="text-[7px] font-bold text-blue-300 uppercase tracking-widest mb-0.5">Dispositivo</p>
+                                <p className="text-xs font-black uppercase">{diagnostic.device}</p>
+                            </div>
+                            <div>
+                                <p className="text-[7px] font-bold text-blue-300 uppercase tracking-widest mb-0.5">Glo. Cooldown</p>
+                                <p className="text-xs font-black">{diagnostic.globalCooldown}</p>
+                            </div>
+                            <div className="col-span-2 h-px bg-blue-400/20"></div>
+                            <div>
+                                <p className="text-[7px] font-bold text-blue-300 uppercase tracking-widest mb-0.5">Notif. Status</p>
+                                <p className="text-[10px] font-bold uppercase">{diagnostic.notifStatus} ({diagnostic.notifAttempts})</p>
+                            </div>
+                            <div>
+                                <p className="text-[7px] font-bold text-blue-300 uppercase tracking-widest mb-0.5">Geo. Status</p>
+                                <p className="text-[10px] font-bold uppercase">{diagnostic.geoStatus} ({diagnostic.geoAttempts})</p>
+                            </div>
+                            <div className="col-span-2 h-px bg-blue-400/20"></div>
+                            <div>
+                                <p className="text-[7px] font-bold text-blue-300 uppercase tracking-widest mb-0.5">🔥 Bloqueo Notif</p>
+                                <p className="text-[10px] font-black text-orange-300">{diagnostic.blockedUntil}</p>
+                            </div>
+                            <div>
+                                <p className="text-[7px] font-bold text-blue-300 uppercase tracking-widest mb-0.5">🌍 Bloqueo Geo</p>
+                                <p className="text-[10px] font-black text-blue-200">{diagnostic.geoBlockedUntil}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {activeBannerPhase === 'large' && (
                 <NotificationPermissionPrompt
                     user={user}
@@ -1022,62 +1079,6 @@ export const ClientHomePage = () => {
                     setShowPWAAdvantages(false);
                 }}
             />
-            {/* DIAGNOSTIC PANEL (Test Users Only) */}
-            {userData?.isTestUser && diagnostic && (
-                <div className="mx-2 mt-8 p-6 bg-blue-900/90 backdrop-blur-md rounded-[2.5rem] border-2 border-blue-400/30 text-white shadow-2xl relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:rotate-12 transition-transform">
-                        <Shield size={60} />
-                    </div>
-                    <div className="relative z-10">
-                        <div className="flex items-center gap-2 mb-4">
-                            <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
-                            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-blue-200">Panel de Diagnóstico (Modo Test)</h3>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 gap-y-4 gap-x-2">
-                            <div>
-                                <p className="text-[8px] font-bold text-blue-300 uppercase tracking-widest mb-0.5">Dispositivo</p>
-                                <p className="text-sm font-black uppercase">{diagnostic.device}</p>
-                            </div>
-                            <div>
-                                <p className="text-[8px] font-bold text-blue-300 uppercase tracking-widest mb-0.5">Global Cooldown</p>
-                                <p className="text-sm font-black">{diagnostic.globalCooldown}</p>
-                            </div>
-                            <div className="col-span-2 h-px bg-blue-400/20 my-1"></div>
-                            <div>
-                                <p className="text-[8px] font-bold text-blue-300 uppercase tracking-widest mb-0.5">Notif. Status</p>
-                                <div className="flex items-center gap-2">
-                                    <p className="text-xs font-black uppercase">{diagnostic.notifStatus}</p>
-                                    <span className="text-[10px] font-bold opacity-60">({diagnostic.notifAttempts})</span>
-                                </div>
-                            </div>
-                            <div>
-                                <p className="text-[8px] font-bold text-blue-300 uppercase tracking-widest mb-0.5">Geo. Status</p>
-                                <div className="flex items-center gap-2">
-                                    <p className="text-xs font-black uppercase">{diagnostic.geoStatus}</p>
-                                    <span className="text-[10px] font-bold opacity-60">({diagnostic.geoAttempts})</span>
-                                </div>
-                            </div>
-                            <div className="col-span-2 h-px bg-blue-400/20 my-1"></div>
-                            <div>
-                                <p className="text-[8px] font-bold text-blue-300 uppercase tracking-widest mb-0.5">Bloqueo Notif</p>
-                                <p className="text-xs font-black">{diagnostic.blockedUntil}</p>
-                            </div>
-                            <div>
-                                <p className="text-[8px] font-bold text-blue-300 uppercase tracking-widest mb-0.5">Bloqueo Geo</p>
-                                <p className="text-xs font-black">{diagnostic.geoBlockedUntil}</p>
-                            </div>
-                        </div>
-
-                        <div className="mt-6 pt-4 border-t border-blue-400/20">
-                            <p className="text-[9px] text-blue-200/70 italic leading-tight">
-                                * Este panel solo es visible porque eres un <strong>Usuario de Prueba</strong>. Úsalo para validar los cooldowns en tiempo real.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             {/* BOTTOM PADDING (SAFETY) */}
             <div className="h-8"></div>
         </div>

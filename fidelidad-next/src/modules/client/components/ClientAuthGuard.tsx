@@ -16,16 +16,14 @@ export const ClientAuthGuard = ({ children }: { children: React.ReactNode }) => 
                     }
                     navigate('/login');
                 } else if (isAdmin) {
-                    // CRITICAL: Admins are NOT allowed in the PWA zone as clients.
-                    // We force a logout so they can log in with a user account if they wish.
-                    console.log("[AuthGuard] Admin detected in PWA. Forcing logout and redirect to login.");
-                    const { auth } = await import('../../../lib/firebase');
-                    const { signOut } = await import('firebase/auth');
-                    await signOut(auth);
+                    // Admins are NOT allowed in the PWA zone as clients.
+                    // We just redirect to login WITHOUT signing out, so the Admin session
+                    // stays alive in other tabs (like the Admin Panel).
+                    console.log("[AuthGuard] Admin detected in PWA. Redirecting to pwa login.");
                     navigate('/login');
                 } else if (isProfileMissing) {
                     // User is authenticated but has no Firestore profile in 'users'.
-                    // We force a logout to avoid loops and send to login.
+                    // Here we DO sign out because they shouldn't be in this state.
                     const { auth } = await import('../../../lib/firebase');
                     const { signOut } = await import('firebase/auth');
                     await signOut(auth);

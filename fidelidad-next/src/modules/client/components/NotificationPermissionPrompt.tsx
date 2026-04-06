@@ -78,9 +78,9 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const notifNextPrompt = permissions.notifications?.[`${prefix}nextPrompt`] || 0;
         const isNotifCooldown = notifNextPrompt > TimeService.now().getTime();
 
-        const canShowNotif = (notifStatus === 'pending' || notifStatus === 'later') &&
+        const canShowNotif = (notifStatus === 'pending' || notifStatus === 'later' || notifStatus === 'later_phase1_complete' || notifStatus === 'blocked') &&
             notifAttempts < (Number(maxNotif) || 2) &&
-            (isMobile ? !isNotifCooldown : true) &&
+            !isNotifCooldown &&
             browserNotifState === 'default' &&
             !currentHandled.includes('notifications');
 
@@ -175,8 +175,15 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const newCount = currentCount + 1;
 
         if (newCount >= maxAttempts) {
-            // Ya no bloqueamos aquí. Solo marcamos fase 1 completa para dejar paso a Gloria.
-            await updatePermission(type as any, 'later_phase1_complete', 0, 0);
+            // Ya no bloqueamos de por vida. Marcamos fase 1 completa y aplicamos el intervalo de días configurado.
+            const intervalDays = messaging.notificationPromptIntervalDays || 30;
+            const nextPrompt = TimeService.now().getTime() + (intervalDays * 24 * 3600 * 1000);
+            
+            await updatePermission(type as any, 'later_phase1_complete', nextPrompt, 0);
+            
+            if (intervalDays > 0) {
+                toast(`Volveremos a consultar en ${intervalDays} días, o lo podes cambiar desde tu perfil !!!`, { icon: '🤝', duration: 6000 });
+            }
             onPhaseEnd(true);
         } else {
             const rawCooldown = isMobile ? messaging.mobileCooldownHours : 0;

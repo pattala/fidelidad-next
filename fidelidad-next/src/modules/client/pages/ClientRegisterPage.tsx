@@ -393,7 +393,7 @@ export const ClientRegisterPage = () => {
                                 )}
                             </div>
                             <h1 className="text-2xl sm:text-3xl font-black text-gray-800 tracking-tight">
-                                {config?.siteName || 'Club Fidelidad'}
+                                {config?.siteName || import.meta.env.VITE_APP_NAME || 'Sistema de Beneficios'}
                             </h1>
                             <p className="text-xs sm:text-sm text-gray-500 font-medium mt-1">Crea tu cuenta gratis</p>
                         </div>

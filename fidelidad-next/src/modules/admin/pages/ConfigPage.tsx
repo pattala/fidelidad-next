@@ -84,7 +84,7 @@ export const ConfigPage = () => {
 
     // Estado inicial
     const [config, setConfig] = useState<AppConfig>({
-        siteName: 'Club Fidelidad',
+        siteName: import.meta.env.VITE_APP_NAME || 'Sistema de Beneficios',
         primaryColor: '#2563eb',
         secondaryColor: '#1e3a8a',
         backgroundColor: '#f9fafb',

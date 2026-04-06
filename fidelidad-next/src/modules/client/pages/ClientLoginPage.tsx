@@ -139,7 +139,7 @@ export const ClientLoginPage = () => {
                         )}
                     </div>
                     <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tighter uppercase leading-tight px-4">
-                        {config?.siteName || 'Club Fidelidad'}
+                        {config?.siteName || import.meta.env.VITE_APP_NAME || 'Sistema de Beneficios'}
                     </h1>
                     <p className="text-sm sm:text-base text-purple-200 font-bold mt-2 opacity-90">Tu programa de recompensas</p>
                 </div>

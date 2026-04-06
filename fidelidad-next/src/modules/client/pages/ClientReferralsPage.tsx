@@ -76,7 +76,7 @@ export const ClientReferralsPage = () => {
 
     const handleShare = () => {
         if (referralCode === 'GENERANDO...') return;
-        const siteName = config?.siteName || 'Club Fidelidad';
+        const siteName = config?.siteName || import.meta.env.VITE_APP_NAME || 'Sistema de Beneficios';
         const points = config?.referrals?.pointsForReferee || 100;
         const text = `¡Hola! 👋 Te invito a sumarte a ${siteName}. Registrate con mi link y ganá ${points} puntos de regalo para tu primer premio: ${referralLink}`;
         const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
@@ -206,7 +206,7 @@ export const ClientReferralsPage = () => {
                 </div>
 
                 {(() => {
-                    const siteName = config?.siteName || 'Club Fidelidad';
+                    const siteName = config?.siteName || import.meta.env.VITE_APP_NAME || 'Sistema de Beneficios';
                     const points = config?.referrals?.pointsForReferee || 100;
                     const text = `¡Hola! 👋 Te invito a sumarte a ${siteName}. Registrate con mi link y ganá ${points} puntos de regalo para tu primer premio: ${referralLink}`;
                     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;

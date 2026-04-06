@@ -27,7 +27,7 @@ const MOCK_DATA: Record<string, string> = {
     horario: "20:00",
     amigo: "Sofía García",
     nombre_referido: "Carlos López",
-    siteName: "Club Fidelidad",
+    siteName: import.meta.env.VITE_APP_NAME || "Sistema de Beneficios",
     direccion: "Av. Siempre Viva 742",
     whatsapp: "+54 9 11 1234-5678"
 };
@@ -42,7 +42,7 @@ export const EmailPreviewModal = ({ isOpen, onClose, config, templateTitle, temp
         let processed = text;
         const dynamicVars = {
             ...MOCK_DATA,
-            siteName: config.siteName || "Club Fidelidad"
+            siteName: config.siteName || import.meta.env.VITE_APP_NAME || "Sistema de Beneficios"
         };
         Object.entries(dynamicVars).forEach(([key, value]) => {
             const regex = new RegExp(`\\{${key}\\}`, 'g');

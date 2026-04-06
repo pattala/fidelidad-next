@@ -1,17 +1,16 @@
 
-const STORAGE_KEY = 'fiddle_simulated_date_offset';
+let globalOffset = 0; // Days offset from Firestore
 
 export const TimeService = {
     /**
      * Returns the current (potentially simulated) date.
      */
     now(): Date {
-        const offsetStored = localStorage.getItem(STORAGE_KEY);
-        const offset = offsetStored ? parseInt(offsetStored, 10) : 0;
-
         const date = new Date();
-        // Add offset in milliseconds (days * 24 * 60 * 60 * 1000)
-        date.setTime(date.getTime() + (offset * 24 * 60 * 60 * 1000));
+        // Add global offset in milliseconds (days * 24 * 60 * 60 * 1000)
+        if (globalOffset !== 0) {
+            date.setTime(date.getTime() + (globalOffset * 24 * 60 * 60 * 1000));
+        }
         return date;
     },
 
@@ -24,28 +23,20 @@ export const TimeService = {
         return d;
     },
 
-    setOffsetInDays(days: number) {
-        localStorage.setItem(STORAGE_KEY, days.toString());
-        // Dispatch event for reactive UI updates if needed
-        window.dispatchEvent(new Event('time-simulation-change'));
+    /**
+     * Sets the global simulation offset (from Firestore config).
+     */
+    setGlobalOffset(days: number) {
+        if (globalOffset !== days) {
+            globalOffset = days;
+            // Dispatch event for reactive UI updates
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new Event('time-simulation-change'));
+            }
+        }
     },
 
     getOffsetInDays(): number {
-        const offset = localStorage.getItem(STORAGE_KEY);
-        return offset ? parseInt(offset, 10) : 0;
-    },
-
-    reset() {
-        localStorage.removeItem(STORAGE_KEY);
-        window.dispatchEvent(new Event('time-simulation-change'));
+        return globalOffset;
     }
 };
-
-// Listen for changes from other tabs
-if (typeof window !== 'undefined') {
-    window.addEventListener('storage', (e) => {
-        if (e.key === STORAGE_KEY) {
-            window.dispatchEvent(new Event('time-simulation-change'));
-        }
-    });
-}

@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../../../lib/firebase';
+import { TimeService } from '../../../services/timeService';
 
 interface ClientAuthContextType {
     user: User | null;
@@ -133,6 +134,19 @@ export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) 
         const timer = setTimeout(triggerEngine, 2000);
         return () => clearTimeout(timer);
     }, [userData?.points, userData?.accumulated_balance, userData?.lastPointsUpdate]);
+
+    // --- SINCRONIZACIÓN GLOBAL DE TIEMPO ---
+    useEffect(() => {
+        const configRef = doc(db, 'config', 'general');
+        const unsub = onSnapshot(configRef, (snap) => {
+            if (snap.exists()) {
+                const data = snap.data();
+                const offset = Number(data.simulatedOffsetDays || 0);
+                TimeService.setGlobalOffset(offset);
+            }
+        });
+        return () => unsub();
+    }, []);
 
     return (
         <ClientAuthContext.Provider value={{

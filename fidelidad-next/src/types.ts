@@ -219,6 +219,7 @@ export interface AppConfig {
         };
     };
     enableDateSimulator?: boolean;
+    simulatedOffsetDays?: number;
     enableDuplicateControl?: boolean;
     pwaIconUrl?: string;
     carouselSpeedSeconds?: number;

@@ -79,6 +79,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
         rewardCriteria: 'first_transaction'
     },
     enableDateSimulator: false,
+    simulatedOffsetDays: 0,
     enableDuplicateControl: true
 };
 

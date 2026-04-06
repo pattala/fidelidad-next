@@ -3,7 +3,7 @@ import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { Home, Users, User, Gift, Settings, LogOut, MessageCircle, BarChart3, ChevronDown, ChevronRight, Clock, Menu, X, Sparkles } from 'lucide-react';
 import { auth, db } from '../../../lib/firebase';
 import { signOut } from 'firebase/auth';
-import { onSnapshot, doc } from 'firebase/firestore';
+import { onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import toast from 'react-hot-toast';
 import { ConfigService } from '../../../services/configService';
 import { TimeService } from '../../../services/timeService';
@@ -42,6 +42,11 @@ export const AdminLayout = () => {
             if (snap.exists()) {
                 const data = snap.data();
                 setConfig(data);
+                
+                // Sincronizar el simulador global
+                const offset = Number(data.simulatedOffsetDays || 0);
+                TimeService.setGlobalOffset(offset);
+                setSimulatedOffset(offset);
 
                 // Update Favicon
                 if (data.logoUrl) {
@@ -88,17 +93,28 @@ export const AdminLayout = () => {
         navigate('/admin');
     };
 
-    const updateSimulation = (days: number) => {
+    const updateSimulation = async (days: number) => {
         const newOffset = simulatedOffset + days;
-        TimeService.setOffsetInDays(newOffset);
-        setSimulatedOffset(newOffset);
-        window.location.reload();
+        try {
+            await updateDoc(doc(db, 'config', 'general'), {
+                simulatedOffsetDays: newOffset
+            });
+            toast.success(`Día simulación: ${newOffset}`);
+        } catch (e) {
+            console.error(e);
+            toast.error("Error al actualizar simulación");
+        }
     };
 
-    const resetSimulation = () => {
-        TimeService.reset();
-        setSimulatedOffset(0);
-        window.location.reload();
+    const resetSimulation = async () => {
+        try {
+            await updateDoc(doc(db, 'config', 'general'), {
+                simulatedOffsetDays: 0
+            });
+            toast.success("Simulación reseteada");
+        } catch (e) {
+            console.error(e);
+        }
     };
 
     const simulatedDate = TimeService.now();

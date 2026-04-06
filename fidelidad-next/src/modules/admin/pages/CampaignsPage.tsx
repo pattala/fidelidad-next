@@ -149,19 +149,19 @@ export const CampaignsPage = () => {
                 // Mutua exclusión: Limpiar campos según el tipo elegido
                 rewardType: isFlashMode ? 'INFO' : formData.rewardType,
                 rewardValue: isFlashMode ? 0 : ((formData.rewardType === 'INFO' || formData.rewardType === 'TEXT') ? 0 : formData.rewardValue),
-                rewardText: isFlashMode ? '' : formData.rewardText,
+                rewardText: isFlashMode ? '' : (formData.rewardText || ''),
                 daysOfWeek: isFlashMode ? [] : (formData.daysOfWeek || []),
 
                 // Si NO es flash, limpiamos los campos flash
-                flashTitle: isFlashMode ? formData.flashTitle : '',
+                flashTitle: isFlashMode ? (formData.flashTitle || '') : '',
                 flashRewardType: isFlashMode ? formData.flashRewardType : 'FIXED',
                 flashRewardValue: isFlashMode ? formData.flashRewardValue : 0,
-                flashRewardText: isFlashMode ? formData.flashRewardText : '',
+                flashRewardText: isFlashMode ? (formData.flashRewardText || '') : '',
                 flashDays: isFlashMode ? formData.flashDays : [],
                 flashGraceMins: isFlashMode ? formData.flashGraceMins : 0,
 
                 startTime: isFlashMode ? formData.startTime : '',
-                endTime: isFlashMode ? formData.endTime : '',
+                endTime: isFlashMode ? (formData.endTime || '') : '',
                 broadcastLeadMins: formData.autoBroadcast ? (formData.broadcastLeadMins || 15) : 0,
                 isInternal: !!formData.isInternal
             };

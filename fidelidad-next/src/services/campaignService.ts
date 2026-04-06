@@ -160,7 +160,17 @@ export const CampaignService = {
     async update(id: string, updates: Partial<BonusRule>) {
         try {
             const docRef = doc(db, COLLECTION_NAME, id);
-            await updateDoc(docRef, updates);
+            
+            // Sanitize: Firebase updateDoc forbids 'undefined' values.
+            // We strip them out while keeping nulls or other empty values.
+            const cleanUpdates = Object.entries(updates).reduce((acc, [key, val]) => {
+                if (val !== undefined) acc[key] = val;
+                return acc;
+            }, {} as any);
+
+            if (Object.keys(cleanUpdates).length === 0) return true;
+
+            await updateDoc(docRef, cleanUpdates);
             // Evitar loggear el mantenimiento automático para no llenar la bitácora
             if (!Object.keys(updates).every(k => k === 'active')) {
                 await AuditService.log('campaign_mgmt', `Campaña actualizada (ID: ${id.slice(0, 5)}...)`, [

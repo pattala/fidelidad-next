@@ -7,20 +7,36 @@ import { buildHtmlLayout } from "../utils/emailLayout.js";
 
 // ---------- Inicialización Firebase Admin ----------
 function initFirebaseAdmin() {
-    if (!admin.apps.length) {
-        const credsRaw = process.env.GOOGLE_CREDENTIALS_JSON || "";
-        if (!credsRaw) throw new Error("Falta GOOGLE_CREDENTIALS_JSON.");
-        let creds;
-        try { creds = JSON.parse(credsRaw); } catch { creds = JSON.parse(credsRaw.replace(/\\n/g, "\n")); }
-        admin.initializeApp({
-            credential: admin.credential.cert({
-                projectId: creds.project_id,
-                clientEmail: creds.client_email,
-                privateKey: creds.private_key?.replace(/\\n/g, "\n"),
-            }),
-        });
+    try {
+        if (!admin.apps.length) {
+            const credsRaw = process.env.GOOGLE_CREDENTIALS_JSON || "";
+            if (!credsRaw) {
+                console.error("[Firebase Admin] MISSING GOOGLE_CREDENTIALS_JSON");
+                throw new Error("Missing environment credentials.");
+            }
+            
+            let creds;
+            try { 
+                creds = JSON.parse(credsRaw); 
+            } catch (err) { 
+                // Fallback for double-escaped newlines in some ENV environments
+                creds = JSON.parse(credsRaw.replace(/\\n/g, "\n")); 
+            }
+            
+            admin.initializeApp({
+                credential: admin.credential.cert({
+                    projectId: creds.project_id,
+                    clientEmail: creds.client_email,
+                    privateKey: creds.private_key?.replace(/\\n/g, "\n"),
+                }),
+            });
+            console.log("[Firebase Admin] Initialized successfully");
+        }
+        return admin;
+    } catch (error) {
+        console.error("[Firebase Admin] Init Error:", error.message);
+        throw error;
     }
-    return admin;
 }
 
 // ---------- Nodemailer ----------
@@ -311,17 +327,39 @@ export default async function handler(req, res) {
             try {
                 const currentHost = req.headers.host;
                 const baseUrl = currentHost ? `https://${currentHost}` : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+                
+                // Red de seguridad: Timeout para evitar que Vercel mate el proceso por una llamada lenta
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s timeout
+
                 const eRes = await fetch(`${baseUrl}/api/expirations?action=check&trigger=${triggerSource}&silent=true`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET, 'x-api-secret': SECRET, 'x-executor-role': 'system' },
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'x-api-key': SECRET, 
+                        'x-api-secret': SECRET, 
+                        'x-executor-role': 'system' 
+                    },
                     body: JSON.stringify({
                         simulatedDate: referenceDate.toISOString(),
                         ignoreDeduplication: finalIgnoreDeduplication,
                         isManual: isManual
-                    })
+                    }),
+                    signal: controller.signal
                 });
-                expirationsResult = await eRes.json();
-            } catch (e) { console.error("Error expirations:", e.message); }
+                
+                clearTimeout(timeoutId);
+                
+                if (eRes.ok) {
+                    expirationsResult = await eRes.json();
+                } else {
+                    console.error(`[DailyCheck] Expirations API returned status ${eRes.status}`);
+                    expirationsResult = { ok: false, error: `Status ${eRes.status}` };
+                }
+            } catch (e) { 
+                console.error("[DailyCheck] Error calling expirations API:", e.message); 
+                expirationsResult = { ok: false, error: e.message };
+            }
         }
 
         // --- AUDITORIA CONSOLIDADA ---

@@ -37,6 +37,7 @@ export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) 
             if (firebaseUser) {
                 setUser(firebaseUser);
                 setIsProfileMissing(false);
+                setIsAdmin(false); // Reset to false until checked
                 setLoading(true);
 
                 const userRef = doc(db, 'users', firebaseUser.uid);
@@ -48,10 +49,6 @@ export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) 
                         setUserData(snap.data());
                         setIsAdmin(false);
                         setLoading(false);
-
-                        // --- OPTIMIZACIÓN QUOTA: Gatillos Movidos ---
-                        // Ya no los ejecutamos en el onSnapshot para evitar bucles infinitos.
-                        // La lógica de gatillo ahora se maneja de forma controlada en un useEffect separado.
                     } else {
                         try {
                             const { getDoc } = await import('firebase/firestore');
@@ -59,35 +56,35 @@ export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) 
                             if (adminSnap.exists()) {
                                 setIsAdmin(true);
                                 setUserData(null);
-                                // Trigger dashboard style call for admins
-                                fetch('/api/engine-daily?mode=daily&trigger=dashboard', {
+                                // Trigger dashboard style call for admins (to maintain activity)
+                                fetch('/api/engine-daily?mode=daily&trigger=pwa_admin', {
                                     method: 'POST',
                                     headers: {
                                         'Content-Type': 'application/json',
                                         'x-api-key': import.meta.env.VITE_API_KEY || ''
                                     },
                                     body: JSON.stringify({})
-                                }).catch(err => console.error('[ClientAuth] Engine error:', err));
+                                }).catch(() => {});
                             } else {
                                 setIsAdmin(false);
                                 setUserData(null);
                                 setIsProfileMissing(true);
                             }
                         } catch (e) {
-                            console.error("Error checking admin status:", e);
+                            console.error("Error checking role:", e);
                             setIsProfileMissing(true);
                         } finally {
                             setLoading(false);
                         }
                     }
                 }, (err: any) => {
-                    console.error("Firestore Client Auth Error:", err);
+                    console.error("Firestore Auth Snapshot Error:", err);
                     setLoading(false);
                 });
 
             } else {
-                // Not authenticated
-                setLoading(true);
+                // Not authenticated immediately - Wait for Firebase to finish trying
+                // Increasing to 4s for slower PWA environments/tabs
                 resolveTimer = setTimeout(() => {
                     if (!auth.currentUser) {
                         setUser(null);
@@ -96,7 +93,7 @@ export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) 
                         setIsProfileMissing(false);
                         setLoading(false);
                     }
-                }, 2000); // Increased to 2s to allow push-click sessions to restore
+                }, 4000); 
             }
         });
 

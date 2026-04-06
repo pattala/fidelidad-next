@@ -151,26 +151,28 @@ export const ClientLoginPage = () => {
                     <form onSubmit={handleLogin} className="space-y-4">
                         <div className="relative">
                             <Mail className="absolute left-4 top-3 text-gray-400" size={18} />
-                            <input
-                                type="email"
-                                required
-                                placeholder="tu@email.com"
-                                className="w-full bg-gray-50 pl-11 pr-4 py-3 sm:py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50 outline-none transition-all"
-                                value={email}
-                                onChange={e => setEmail(e.target.value)}
-                            />
+                                <input
+                                    type="email"
+                                    required
+                                    autoComplete="email"
+                                    placeholder="tu@email.com"
+                                    className="w-full bg-gray-50 pl-11 pr-4 py-3 sm:py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50 outline-none transition-all"
+                                    value={email}
+                                    onChange={e => setEmail(e.target.value)}
+                                />
                         </div>
 
                         <div className="relative">
                             <Lock className="absolute left-4 top-3 text-gray-400" size={18} />
-                            <input
-                                type={showPass ? "text" : "password"}
-                                required
-                                placeholder="Tu contraseña"
-                                className="w-full bg-gray-50 pl-11 pr-12 py-3 sm:py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50 outline-none transition-all"
-                                value={pass}
-                                onChange={e => setPass(e.target.value)}
-                            />
+                                <input
+                                    type={showPass ? "text" : "password"}
+                                    required
+                                    autoComplete="current-password"
+                                    placeholder="Tu contraseña"
+                                    className="w-full bg-gray-50 pl-11 pr-12 py-3 sm:py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50 outline-none transition-all"
+                                    value={pass}
+                                    onChange={e => setPass(e.target.value)}
+                                />
                             <button
                                 type="button"
                                 onClick={() => setShowPass(!showPass)}

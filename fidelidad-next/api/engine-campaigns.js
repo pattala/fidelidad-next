@@ -4,20 +4,35 @@
 import admin from "firebase-admin";
 
 function initFirebaseAdmin() {
-    if (!admin.apps.length) {
-        const credsRaw = process.env.GOOGLE_CREDENTIALS_JSON || "";
-        if (!credsRaw) throw new Error("Falta GOOGLE_CREDENTIALS_JSON.");
-        let creds;
-        try { creds = JSON.parse(credsRaw); } catch { creds = JSON.parse(credsRaw.replace(/\\n/g, "\n")); }
-        admin.initializeApp({
-            credential: admin.credential.cert({
-                projectId: creds.project_id,
-                clientEmail: creds.client_email,
-                privateKey: creds.private_key?.replace(/\\n/g, "\n"),
-            }),
-        });
+    try {
+        if (!admin.apps.length) {
+            const credsRaw = process.env.GOOGLE_CREDENTIALS_JSON || "";
+            if (!credsRaw) {
+                console.error("[Firebase Admin Campaigns] MISSING GOOGLE_CREDENTIALS_JSON");
+                throw new Error("Missing credentials.");
+            }
+            
+            let creds;
+            try { 
+                creds = JSON.parse(credsRaw); 
+            } catch (err) { 
+                creds = JSON.parse(credsRaw.replace(/\\n/g, "\n")); 
+            }
+            
+            admin.initializeApp({
+                credential: admin.credential.cert({
+                    projectId: creds.project_id,
+                    clientEmail: creds.client_email,
+                    privateKey: creds.private_key?.replace(/\\n/g, "\n"),
+                }),
+            });
+            console.log("[Firebase Admin Campaigns] Initialized successfully");
+        }
+        return admin;
+    } catch (error) {
+        console.error("[Firebase Admin Campaigns] Init Error:", error.message);
+        throw error;
     }
-    return admin;
 }
 
 export default async function handler(req, res) {

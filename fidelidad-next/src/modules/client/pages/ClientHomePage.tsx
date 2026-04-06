@@ -244,152 +244,9 @@ export const ClientHomePage = () => {
         });
     }, [!!userData, !!config, authLoading, isAdmin]);
 
-    // --- POINTS INCREASE DETECTION (Moment of Glory) ---
-    useEffect(() => {
-        if (userData?.points !== undefined && !authLoading && !isAdmin) {
-            const currentPoints = userData.points;
-            const previousPoints = prevPointsRef.current;
-
-            // Only trigger if points increased (Moment of Glory)
-            if (previousPoints !== null && currentPoints > previousPoints) {
-                console.log(`[PWA Logic] Points increased from ${previousPoints} to ${currentPoints}`);
-                
-                // 1. PHASE 1 GUARD: If initial banner is active or pending, skip Gloria
-                if (activeBannerPhase !== 'none') return;
-
-                const checkAndShowPwaPrompt = async () => {
-                    const permissions = userData.permissions?.notifications || {};
-                    const prefix = isMobileDevice ? 'mobile_' : 'pc_';
-                    const notifStatus = permissions[`${prefix}status`] || 'pending';
-                    const isGranted = notifStatus === 'granted';
-                    const isHardBlocked = notifStatus === 'blocked';
-
-                    // Solo bloquear si hay un tiempo de espera real (bloqueo final post-Gloria)
-                    const nextPromptGlobal = permissions[`${prefix}nextPrompt`] || 0;
-                    const now = TimeService.now().getTime();
-                    if (isHardBlocked && nextPromptGlobal > 0 && now < nextPromptGlobal) {
-                        console.log(`[PWA Logic] User is hard-blocked. Gloria silenced until ${new Date(nextPromptGlobal).toLocaleString()}`);
-                        return;
-                    }
-
-                    // ESPERA DE ETAPA 1: Gloria solo actúa si el status confirma que la Fase 1 terminó
-                    const messaging = config?.messaging || {};
-                    const isPhase1Complete = notifStatus === 'later_phase1_complete' || notifStatus === 'blocked';
-                    if (!isGranted && !isPhase1Complete) {
-                        const counterKeyStage1 = isMobileDevice ? 'mobile_dismissedCount' : 'pc_dismissedCount';
-                        const dismissedCountStage1 = permissions[counterKeyStage1] || 0;
-                        const maxStage1 = isMobileDevice ? (messaging.maxLargePromptDismissalsMobile) : (messaging.maxLargePromptDismissalsPC);
-                        console.log(`[PWA Logic] Still in Stage 1 cycle (status: ${notifStatus}, ${dismissedCountStage1}/${maxStage1}). Gloria waiting.`);
-                        return;
-                    }
-
-                    // Decidir el modo: si no tiene permisos, el objetivo es recuperarlos.
-                    const currentMode = !isGranted ? 'permissions' : 'install';
-                    setGloriaMode(currentMode);
-
-                    // Si ya es PWA y ya tiene permisos, no hay nada que pedir en Gloria
-                    if (isStandalone && isGranted) return;
-                    if (userData.pwaInstalled && isGranted) return;
-
-                    const statsKey = isMobileDevice ? 'pwaPromptStatsMobile' : 'pwaPromptStatsPC';
-                    let stats = userData[statsKey] || {};
-                    
-                    const deviceKey = isMobileDevice ? 'Mobile' : 'PC';
-                    const dbField = `pwaPromptStats${deviceKey}`;
-                    const localKey_last = `pwa_prompt_last_${deviceKey.toLowerCase()}`;
-                    const localKey_count = `pwa_prompt_count_${deviceKey.toLowerCase()}`;
-                    
-                    // 1. Get stats from Firestore (source of truth) or localStorage (fallback)
-                    const dbStats = userData[dbField] || {};
-                    const lastPromptTs = dbStats.lastPromptTs || parseInt(localStorage.getItem(localKey_last) || '0');
-                    const promptCount = dbStats.currentCycleCount || parseInt(localStorage.getItem(localKey_count) || '0');
-                    
-                    const cooldownMs = (Number(messaging.pwaInstallPromptCooldownHours) || 24) * 3600 * 1000;
-                    const maxAttempts = Number(messaging.pwaInstallPromptMaxAttempts) || 3;
-                    const resetMs = (Number(messaging.pwaInstallPromptResetDays) || 30) * 24 * 3600 * 1000;
-                    const repetitionEnabled = messaging.enablePwaInstallPromptRepetition ?? true;
-
-                    let newCount = promptCount;
-
-                    // 2. Check if we are in a reset period
-                    if (promptCount >= maxAttempts) {
-                        if (!repetitionEnabled) return; // Never repeat
-                        
-                        // Check if reset period has passed
-                        if (now - lastPromptTs < resetMs) {
-                            console.log(`[PWA Logic ${deviceKey}] In reset period. Next available in ${Math.round((resetMs - (now - lastPromptTs)) / (3600 * 1000))} hours`);
-                            return;
-                        }
-
-                        // Reset period passed! Reset count
-                        console.log(`[PWA Logic ${deviceKey}] Reset period passed. Restarting cycle.`);
-                        newCount = 0;
-                    }
-
-                    // El toast final se muestra al cerrar el modal (onClose), no aquí
-
-                    // 3. Check cooldown
-                    const isCooling = now - lastPromptTs < cooldownMs;
-                    console.log(`[PWA Logic ${deviceKey}] Status:`, {
-                        now,
-                        lastPromptTs,
-                        diffMinutes: Math.round((now - lastPromptTs) / 60000),
-                        cooldownMinutes: Math.round(cooldownMs / 60000),
-                        isCooling,
-                        promptCount,
-                        maxAttempts
-                    });
-
-                    if (isMobileDevice) {
-                        if (isCooling) {
-                            console.log(`[PWA Logic ${deviceKey}] In cooldown. Waiting ${Math.round((cooldownMs - (now - lastPromptTs)) / 60000)} minutes`);
-                            return;
-                        }
-                    } else {
-                        // PC logic: 1 momento de gloria per session (login)
-                        if (sessionStorage.getItem('gloria_shown_this_session')) {
-                            console.log(`[PWA Logic PC] Already shown this session. Waiting for next login.`);
-                            return;
-                        }
-                    }
-
-                    // (Optional) If we want a toast when attempts are exhausted (already handled in step 2 check mostly)
-
-                    // 4. Show it!
-                    setTimeout(async () => {
-                        setShowPWAAdvantages(true);
-                        const finalCount = newCount + 1;
-                        
-                        if (!isMobileDevice) {
-                            sessionStorage.setItem('gloria_shown_this_session', 'true');
-                        }
-
-                        // Local update
-                        localStorage.setItem(localKey_last, now.toString());
-                        localStorage.setItem(localKey_count, finalCount.toString());
-                        
-                        // Firestore update (Sync)
-                        if (user?.uid) {
-                            const newStats = {
-                                lastPromptTs: now,
-                                currentCycleCount: finalCount,
-                                totalPromptsShown: (dbStats.totalPromptsShown || 0) + 1,
-                                lastUpdate: now
-                            };
-                            
-                            updateDoc(doc(db, 'users', user.uid), {
-                                [dbField]: newStats
-                            }).catch(console.error);
-                        }
-                    }, 1000); // Small delay for the "celebration" to feel natural
-                };
-
-                checkAndShowPwaPrompt();
-            }
-
-            prevPointsRef.current = currentPoints;
-        }
-    }, [userData?.points, authLoading, isAdmin, isStandalone, !!config]);
+    // --- POINTS INCREASE DETECTION (Removed) ---
+    // User requested to remove "Momento de Gloria" (Phase 2) PWA logic.
+    // We stick to Phase 1 (Initial Banners).
 
     const [campaigns, setCampaigns] = useState<BonusRule[]>([]);
 
@@ -415,26 +272,26 @@ export const ClientHomePage = () => {
 
     const displayName = userData?.name || userData?.nombre || (isAdmin ? 'Administrador' : (authLoading ? 'Cargando...' : (user ? (user.displayName || 'Socio') : 'Invitado')));
 
+    const isVisitLogged = useRef(false);
     useEffect(() => {
         if (user && !userData && !authLoading && !isAdmin) {
             // This might happen if auth is ok but firestore doc is missing
             console.warn("User authenticated but no firestore data found.");
         }
 
-        if (user) {
+        if (user && !isVisitLogged.current) {
             // Registro de Actividad (Ping / Visita)
             (async () => {
                 try {
-                    const sessionKey = `vcount_${user.uid}_${new Date().toISOString().split('T')[0]}`;
                     const sessionVisitId = sessionStorage.getItem('current_visit_id');
-                    const hasCountedToday = sessionStorage.getItem(sessionKey);
 
                     // Si no tenemos ID de visita en esta sesión, es una visita nueva (por Login o por abrir pestaña)
                     if (!sessionVisitId) {
+                        isVisitLogged.current = true;
                         const newVisitId = Math.random().toString(36).substring(7);
                         sessionStorage.setItem('current_visit_id', newVisitId);
 
-                        const { updateDoc, increment, serverTimestamp, collection, addDoc } = await import('firebase/firestore');
+                        const { updateDoc, increment, serverTimestamp, doc, setDoc } = await import('firebase/firestore');
                         const userRef = doc(db, 'users', user.uid);
                         const currentName = userData?.name || userData?.nombre || user.displayName || (isAdmin ? 'Admin' : 'Socio');
 
@@ -445,7 +302,11 @@ export const ClientHomePage = () => {
                             });
                         }
 
-                        await addDoc(collection(db, 'users', user.uid, 'visit_history'), {
+                        // Usamos setDoc con un ID basado en el tiempo + random para evitar "Document already exists"
+                        const historyId = `${Date.now()}_${Math.random().toString(36).substring(7)}`;
+                        const historyRef = doc(db, 'users', user.uid, 'visit_history', historyId);
+                        
+                        await setDoc(historyRef, {
                             date: serverTimestamp(),
                             type: 'app_open',
                             clientName: currentName,

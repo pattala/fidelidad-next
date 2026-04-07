@@ -176,3 +176,25 @@ Esto ocurre si no has pegado las **Reglas de Firestore** (Paso 1, punto 6) o si 
 
 ### 5. ¿Cómo entrar al panel si no me deja con mi clave?
 Si el acceso falla, revisa el Paso 4. Asegúrate que en la colección `admins` del Firestore, el **ID del documento** sea exactamente igual al ID de usuario que te asignó Firebase al registrarte.
+
+---
+
+## 📈 Estrategia de Ramas (Mantenimiento Seguro)
+
+Para evitar que los experimentos en el **Laboratorio** rompan las páginas de tus clientes en producción, usamos este sistema de "doble filtro":
+
+### 🏰 Rama `main` (Producción)
+Esta es la versión estable. **Todos los clientes reales** (como Franccesca Martinez) deben estar conectados a esta rama en Vercel. 
+- *Solo se toca cuando estamos 100% seguros de que los cambios funcionan.*
+
+### 🧪 Rama `desarrollo` (Laboratorio)
+Esta es tu mesa de trabajo. **Tu proyecto de Laboratorio** (el tuyo personal) debe estar conectado a esta rama en Vercel.
+- *Aquí es donde hacemos pruebas, cambiamos el diseño y arreglamos errores.*
+
+### 🔄 Cómo pasar cambios del Laboratorio a los Clientes
+Cuando termines de probar algo en el Laboratorio y quieras que llegue a todos tus clientes:
+1. Pídeme: *"Pasa los cambios de desarrollo a la rama main"*.
+2. Yo haré un **Merge**, y en ese instante Vercel detectará el cambio en `main` y actualizará automáticamente todos los sitios de tus clientes. 
+
+> [!TIP]
+> De esta forma, puedes "romper" y arreglar cosas en tu entorno de desarrollo sin miedo a que tus clientes vean errores en vivo.

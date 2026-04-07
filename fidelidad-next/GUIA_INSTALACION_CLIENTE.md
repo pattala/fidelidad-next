@@ -10,10 +10,13 @@ Esta es tu "Receta de Cocina" maestra. Cada vez que consigas un cliente nuevo (E
 ## 🍳 Paso 1: Configurar su Base de Datos (Firebase)
 *Aquí creamos la carpeta segura donde se guardarán los usuarios y puntos SOLO de este cliente.*
 
-1. Ve a [Firebase Console](https://console.firebase.google.com/) y haz clic en **"Agregar proyecto"**.
-2. Ponle nombre (Ej: `rampet-heladeria`) y créalo.
-3. En el menú izquierdo ve a **Build > Authentication** y habilita "Correo electrónico/contraseña".
-4. En el menú izquierdo ve a **Build > Firestore Database** y crea una base de datos en "Modo Nativo" (Ubicación: `southamerica-east1`).
+1. Ve a [Firebase Console](https://console.firebase.google.com/) y haz clic en **"Agregar proyecto"** (o "Crear un proyecto de Firebase nuevo").
+2. Escribe el nombre del local (Ej: `franccesca-martinez`) y dale a Continuar.
+3. Te preguntará si quieres habilitar **Google Analytics**. 
+   * *Opción Recomendada:* Apaga el interruptor azul y dale a **Crear proyecto** (terminas más rápido).
+   * *Si lo dejaste prendido:* Dale a Continuar, y en la siguiente pantalla elige **"Default Account for Firebase"** en la lista desplegable, y dale a **Crear proyecto**.
+4. En el menú izquierdo ve a **Build > Authentication** y haz clic en "Comenzar" (Get Started). Luego ve a "Correo electrónico/contraseña", habilítalo y dale a Guardar.
+5. En el menú izquierdo ve a **Build > Firestore Database**, dale a "Crear base de datos", elige "Siguiente" o "Modo Producción", y asegúrate de elegir la Ubicación: `southamerica-east1` (San Pablo).
 5. Vamos a "Engañar" a la seguridad por ahora para poder probar: Ve a la pestaña **"Rules"** (Reglas) de Firestore y pon todo en `true` así:
    ```javascript
    rules_version = '2';

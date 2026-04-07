@@ -48,7 +48,7 @@ Antes de irte de Firebase, necesitas recolectar TRES grupos de contraseñas. ¡A
 1. Entra a [Vercel](https://vercel.com/) y haz clic en el botón negro **"Add New" -> "Project"**.
 2. Te mostrará tus repositorios de GitHub. Debajo de `pattala/fidelidad-next`, haz clic en **"Import"**.
 3. Ponle nombre al proyecto (Ej: `app-heladeria`).
-4. **FRAMEWORK PRESET:** Asegúrate de que diga **`Vite`**. (A veces se pone en 'Other'. Si sucede, ábrelo y elige Vite, o te dará error 404).
+4. ⚠️ **MUY IMPORTANTE - FRAMEWORK PRESET:** Asegúrate de que la caja desplegable diga **`Vite`**. (A veces por error dice 'Other'. Si no lo cambias a Vite, te dará error 404).
 5. **¡ALTO! No le des a Deploy todavía.**
 6. Haz clic donde dice **"Environment Variables"** para desplegar el menú de variables secretas. Aquí es donde conectarás el GitHub con el Firebase de la Heladería. 
 

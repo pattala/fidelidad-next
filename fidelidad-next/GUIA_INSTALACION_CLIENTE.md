@@ -198,3 +198,16 @@ Cuando termines de probar algo en el Laboratorio y quieras que llegue a todos tu
 
 > [!TIP]
 > De esta forma, puedes "romper" y arreglar cosas en tu entorno de desarrollo sin miedo a que tus clientes vean errores en vivo.
+
+---
+
+## 🧩 Extensión de Chrome
+
+La extensión es la misma para todos los clientes (un único archivo `.zip` o carpeta). Lo que cambia es la configuración interna:
+
+1. Al instalarla, haz clic en el icono de la extensión.
+2. Ingresa los datos específicos del cliente:
+   - **App Name**: El nombre del negocio.
+   - **API URL**: La URL de Vercel de ese cliente (ej: `https://franccesca.vercel.app`).
+   - **API Key**: El valor de `VITE_API_KEY` que configuraste para ese cliente.
+3. Haz clic en **Guardar**.

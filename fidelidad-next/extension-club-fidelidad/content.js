@@ -8,9 +8,9 @@ let selectedClient = null;
 let currentPromos = []; // Store calculable promos globally for this context
 
 // Cargar configuración de storage
-chrome.storage.local.get(['apiUrl', 'apiKey'], (res) => {
+chrome.storage.local.get(['appName', 'apiUrl', 'apiKey'], (res) => {
     config = res;
-    console.log("⚙️ [Club Fidelidad] Configura-Check:", res.apiUrl ? `URL: ${res.apiUrl}` : "❌ URL NO ENCONTRADA", res.apiKey ? "✅ API KEY OK" : "❌ KEY NO ENCONTRADA");
+    console.log("⚙️ [Integrador] Configura-Check:", res.apiUrl ? `URL: ${res.apiUrl}` : "❌ URL NO ENCONTRADA", res.apiKey ? "✅ API KEY OK" : "❌ KEY NO ENCONTRADA");
 
     // --- DAILY CHECK: cumpleaños + vencimientos (1x/día, silencioso) ---
     if (res.apiUrl && res.apiKey) {
@@ -134,7 +134,7 @@ function showGlobalAlert(birthdays, expirations, adminUrl) {
                             <span style="font-size: 18px;">📢</span>
                         </div>
                         <div style="flex: 1;">
-                            <h4 style="margin: 0; font-size: 13px; font-weight: 800; color: #92400e;">Club Fidelidad</h4>
+                            <h4 style="margin: 0; font-size: 13px; font-weight: 800; color: #92400e;">${config.appName || 'Sistema de Beneficios'}</h4>
                             <p id="cf-alert-counts" style="margin: 0; font-size: 11px; color: #b45309; line-height: 1.2;">
                                 ${birthdays > 0 ? `🎂 C: ${birthdays}` : ''} 
                                 ${expirations > 0 ? `⏳ V: ${expirations}` : ''}

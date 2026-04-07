@@ -30,7 +30,15 @@ Antes de irte de Firebase, necesitas recolectar TRES grupos de contraseñas. ¡A
 
 *   **A) Las Llaves Web**: Haz clic en la "Tuerca" ⚙️ arriba a la izquierda > **Configuración del proyecto** > Pestaña **General**. Desplázate hacia abajo hasta la sección "Tus apps", y haz clic en el ícono de **`</>` (Web)** para crear una "app web". Ponle cualquier nombre y regístrala. Te mostrará un código lleno de datos como `apiKey`, `authDomain`, etc. Copia todos esos valorcitos a tu bloc de notas.
 *   **B) La Llave Maestra (JSON)**: Haz clic en la "Tuerca" ⚙️ arriba a la izquierda > **Configuración del proyecto** > Pestaña **Cuentas de Servicio**. Dale al botón **"Generar nueva clave privada"**. Se descargará un archivo `.json`. Si lo abres, verás un código larguísimo.
-*   **C) Llave de Notificaciones (VAPID)**: Ve a "Tuerca" ⚙️ > Pestaña **Cloud Messaging**. Baja a "Web configuration" y dale a "Generate Key Pair". Copia ese código.
+*   **C) Llave de Notificaciones (VAPID)**: Ve a "Tuerca" ⚙️ > Pestaña **Cloud Messaging**. Baja a "Web configuration" y dale a "Generate Key Pair". Copia el código público.
+
+### 📧 1.2 Obtener la Contraseña de Correo (SMTP_PASS)
+*Para que el sistema pueda enviar notificaciones de puntos a los clientes, usaremos un Gmail.*
+1. Entra a la cuenta de Google (Gmail) que usará el cliente para enviar correos.
+2. Ve a la **Gestión de tu Cuenta de Google > Seguridad**.
+3. Asegúrate de encender la **"Verificación en 2 pasos"** (2-Step Verification). Es obligatorio.
+4. Una vez encendida, usa la barra superior "Buscar en la cuenta de Google" y busca: **"Contraseñas de aplicación"** (o "App passwords").
+5. Créale una con el nombre "Vercel Beneficios" y te dará **un código de 16 letras** (Ej: `abcd efgh ijkl mnop`). Esa es tu clave para Vercel. Cópiala al bloc de notas.
 
 ---
 

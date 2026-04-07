@@ -15,8 +15,8 @@ Esta es tu "Receta de Cocina" maestra. Cada vez que consigas un cliente nuevo (E
 3. Te preguntará si quieres habilitar **Google Analytics**. 
    * *Opción Recomendada:* Apaga el interruptor azul y dale a **Crear proyecto** (terminas más rápido).
    * *Si lo dejaste prendido:* Dale a Continuar, y en la siguiente pantalla elige **"Default Account for Firebase"** en la lista desplegable, y dale a **Crear proyecto**.
-4. En el menú izquierdo ve a **Build > Authentication** y haz clic en "Comenzar" (Get Started). Luego ve a "Correo electrónico/contraseña", habilítalo y dale a Guardar.
-5. En el menú izquierdo ve a **Build > Firestore Database**, dale a "Crear base de datos", elige "Siguiente" o "Modo Producción", y asegúrate de elegir la Ubicación: `southamerica-east1` (San Pablo).
+4. En el menú izquierdo busca **Authentication** (suele estar bajo "Seguridad" o búscalo directamente en la barra de búsqueda superior). Haz clic en "Comenzar" (Get Started), ve a "Correo electrónico/contraseña", habilítalo y dale a Guardar.
+5. En el menú izquierdo ve a **Bases de datos y almacenamiento > Firestore**, dale a "Crear base de datos", elige "Siguiente" o "Modo Producción", y asegúrate de elegir la Ubicación: `southamerica-east1` (San Pablo).
 5. Vamos a "Engañar" a la seguridad por ahora para poder probar: Ve a la pestaña **"Rules"** (Reglas) de Firestore y pon todo en `true` así:
    ```javascript
    rules_version = '2';

@@ -5,6 +5,8 @@ import { Toaster } from 'react-hot-toast';
 import { RouterProvider } from 'react-router-dom';
 import { router } from './router';
 
+document.title = import.meta.env.VITE_APP_NAME || 'Sistema de Beneficios';
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
         <RouterProvider router={router} />

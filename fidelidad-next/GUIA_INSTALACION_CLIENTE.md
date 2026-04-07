@@ -28,7 +28,7 @@ Esta es tu "Receta de Cocina" maestra. Cada vez que consigas un cliente nuevo (E
 ### 🔑 1.1 Obtener los datos secretos de Firebase (Para Vercel)
 Antes de irte de Firebase, necesitas recolectar TRES grupos de contraseñas. ¡Abre un Bloc de notas y cópialas!
 
-*   **A) Las Llaves Web**: En la página de inicio de Firebase, haz clic en el ícono de **`</>` (Web)** para crear una "app web". Ponle cualquier nombre. Te mostrará un código lleno de datos como `apiKey`, `authDomain`, etc. Copia todos esos valorcitos a tu bloc de notas.
+*   **A) Las Llaves Web**: Haz clic en la "Tuerca" ⚙️ arriba a la izquierda > **Configuración del proyecto** > Pestaña **General**. Desplázate hacia abajo hasta la sección "Tus apps", y haz clic en el ícono de **`</>` (Web)** para crear una "app web". Ponle cualquier nombre y regístrala. Te mostrará un código lleno de datos como `apiKey`, `authDomain`, etc. Copia todos esos valorcitos a tu bloc de notas.
 *   **B) La Llave Maestra (JSON)**: Haz clic en la "Tuerca" ⚙️ arriba a la izquierda > **Configuración del proyecto** > Pestaña **Cuentas de Servicio**. Dale al botón **"Generar nueva clave privada"**. Se descargará un archivo `.json`. Si lo abres, verás un código larguísimo.
 *   **C) Llave de Notificaciones (VAPID)**: Ve a "Tuerca" ⚙️ > Pestaña **Cloud Messaging**. Baja a "Web configuration" y dale a "Generate Key Pair". Copia ese código.
 

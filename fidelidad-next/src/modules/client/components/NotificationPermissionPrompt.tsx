@@ -138,17 +138,27 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
     const handleYes = async () => {
         const currentStep = step;
         if (currentStep === 'notifications') {
-            const permission = await Notification.requestPermission();
-            if (permission === 'granted') {
-                await updatePermission('notifications', 'granted');
-                toast.success('¡Activado!');
-                onNotificationGranted();
-                if (typeof (window as any).retrieveToken === 'function') {
-                    (window as any).retrieveToken();
+            try {
+                if (typeof Notification === 'undefined') {
+                    console.warn("Notifications API not available.");
+                    moveToNextOrEnd('notifications');
+                    return;
                 }
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    await updatePermission('notifications', 'granted');
+                    toast.success('¡Activado!');
+                    onNotificationGranted();
+                    if (typeof (window as any).retrieveToken === 'function') {
+                        (window as any).retrieveToken();
+                    }
+                    moveToNextOrEnd('notifications');
+                } else {
+                    handleLater();
+                }
+            } catch (e) {
+                console.error("Error requesting notification permission:", e);
                 moveToNextOrEnd('notifications');
-            } else {
-                handleLater();
             }
         } else if (currentStep === 'geolocation') {
             if ('geolocation' in navigator) {

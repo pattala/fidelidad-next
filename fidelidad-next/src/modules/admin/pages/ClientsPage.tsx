@@ -612,7 +612,15 @@ export const ClientsPage = () => {
             if (data.ok) {
                 toast.success(`¡Se asignaron ${data.pointsAdded} puntos!`);
                 if (data.whatsappLink && notifyWhatsapp) {
-                    setTimeout(() => window.open(data.whatsappLink, '_blank'), 500);
+                    setTimeout(() => {
+                        const link = document.createElement('a');
+                        link.href = data.whatsappLink;
+                        link.target = '_blank';
+                        link.rel = 'noopener noreferrer';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    }, 500);
                 }
 
                 // Actualizar cache de vencimientos

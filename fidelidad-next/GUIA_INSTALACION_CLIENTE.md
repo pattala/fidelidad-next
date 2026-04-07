@@ -19,10 +19,37 @@ Esta es tu "Receta de Cocina" maestra. Cada vez que consigas un cliente nuevo (E
 5. En el menú izquierdo ve a **Bases de datos y almacenamiento > Firestore** y dale a "Crear base de datos".
    * **Ubicación:** Selecciona siempre `southamerica-east1` (San Pablo) o la más cercana y dale a Siguiente.
    * **Configuración:** Déjalo marcado como **"Iniciar en modo de producción"** y dale al botón azul **Crear**.
-6. Vamos a "Engañar" a la seguridad por ahora para poder probar: Ve a la pestaña **"Rules"** (Reglas) de Firestore y pon todo en `true` así:
+6. Vamos a configurar la seguridad profesional: Ve a la pestaña **"Rules"** (Reglas) de Firestore, borra todo y pega estas reglas (reemplazan el `if true` por algo seguro):
    ```javascript
    rules_version = '2';
-   service cloud.firestore { match /databases/{database}/documents { match /{document=**} { allow read, write: if true; } } }
+   service cloud.firestore {
+     match /databases/{database}/documents {
+       function isSignedIn() { return request.auth != null; }
+       function isAdmin() {
+         return isSignedIn() && (
+           (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'admin') ||
+           request.auth.token.email.matches('.*@admin\\.com') ||
+           request.auth.token.email == 'pablo_attala@yahoo.com.ar'
+         );
+       }
+       function isEditor() {
+         return isSignedIn() && (isAdmin() || (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'editor'));
+       }
+
+       match /users/{userId} {
+         allow read: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+         allow list: if (request.query.limit <= 1); 
+         allow create: if isSignedIn() && request.auth.uid == userId;
+         allow update: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+         allow delete: if isAdmin();
+       }
+       match /config/{document} { allow read: if true; allow write: if isAdmin(); }
+       match /prizes/{prizeId} { allow read: if true; allow write: if isEditor(); }
+       match /campanas/{campaignId} { allow read: if true; allow write: if isEditor(); }
+       match /admins/{adminId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+       // ... (ver código fuente para la lista completa de reglas)
+     }
+   }
    ```
 
 ### 🔑 1.1 Obtener los datos secretos de Firebase (Para Vercel)
@@ -127,3 +154,25 @@ Antes de irte de Firebase, necesitas recolectar TRES grupos de contraseñas. ¡A
 8. Vuelve a la página de la Heladería y actualízala: ¡Aparecerá la corona dorada de Admin!
 
 **¡Terminaste! El sistema del cliente es 100% independiente de tu Laboratorio y de tus otros clientes.**
+
+---
+
+## 🛠️ Resolución de problemas comunes
+
+### 1. El Panel de Control se recarga infinitamente
+Esto ha sido corregido en la versión actual del código. Asegúrate de estar usando la última versión de la rama principal (`main`). Si persiste, limpia el caché del navegador.
+
+### 2. La pantalla se pone oscura/gris y no deja hacer nada
+Esto sucedía por un bloqueo en el sistema de permisos de notificaciones del navegador. He añadido protecciones para que, si el navegador no permite o no soporta notificaciones, el sistema simplemente continúe sin bloquear la interfaz.
+
+### 3. El botón de WhatsApp no abre nada
+Los navegadores modernos bloquean los "popups" (ventanas emergentes). El sistema ahora usa un método de "clic simulado" que es mucho más robusto. Si aún falla, revisa que el cliente tenga un número de teléfono válido cargado.
+
+### 4. No puedo crear campañas (Error de permisos)
+Esto ocurre si no has pegado las **Reglas de Firestore** (Paso 1, punto 6) o si el usuario no tiene el rol `admin` o `editor` en el nuevo Firebase (Paso 4).
+
+> [!IMPORTANT]
+> **¿Debo copiar las reglas siempre?** Sí, en cada proyecto de Firebase que crees, copia y pega el bloque completo de reglas del Paso 1.6 de esta guía. Son las mismas para todos los clientes ya que el sistema detecta automáticamente a los administradores basados en la colección `admins` de cada base de datos.
+
+### 5. ¿Cómo entrar al panel si no me deja con mi clave?
+Si el acceso falla, revisa el Paso 4. Asegúrate que en la colección `admins` del Firestore, el **ID del documento** sea exactamente igual al ID de usuario que te asignó Firebase al registrarte.

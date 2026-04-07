@@ -174,6 +174,17 @@ export const WhatsAppPage = () => {
         }
     };
 
+    // Helper para abrir WhatsApp de forma segura (evita bloqueadores de popups)
+    const openWhatsAppSafely = (url: string) => {
+        const link = document.createElement('a');
+        link.href = url;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     const handleSendIndividual = async (client: Client) => {
         if (isReadOnly) return;
         if (!client.phone) {
@@ -181,7 +192,7 @@ export const WhatsAppPage = () => {
             return;
         }
         const link = generateLink(client);
-        window.open(link, '_blank');
+        openWhatsAppSafely(link);
 
         // AUDIT LOG & DB UPDATE
         try {
@@ -243,7 +254,7 @@ export const WhatsAppPage = () => {
     const handleSendCurrent = async () => {
         const client = sendingQueue[currentIndex];
         const link = generateLink(client);
-        window.open(link, '_blank');
+        openWhatsAppSafely(link);
 
         // AUDIT LOG & DB UPDATE
         try {

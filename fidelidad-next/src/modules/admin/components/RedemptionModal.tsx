@@ -67,7 +67,15 @@ export const RedemptionModal = ({ client, onClose, onRedeemSuccess }: Redemption
 
                 // WhatsApp notification handling (if returned by API)
                 if (data.whatsappLink) {
-                    setTimeout(() => window.open(data.whatsappLink, '_blank'), 500);
+                    setTimeout(() => {
+                        const link = document.createElement('a');
+                        link.href = data.whatsappLink;
+                        link.target = '_blank';
+                        link.rel = 'noopener noreferrer';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    }, 500);
                 }
 
                 onRedeemSuccess();

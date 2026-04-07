@@ -240,12 +240,6 @@ export const DashboardPage = () => {
             setRecentActivity(activities);
         });
 
-        // listener para el simulador de tiempo
-        const handleSimChange = () => {
-            window.location.reload();
-        };
-        window.addEventListener('time-simulation-change', handleSimChange);
-
         return () => {
             unsubConfig();
             unsubUsers();
@@ -253,7 +247,6 @@ export const DashboardPage = () => {
             unsubCredits();
             unsubPrizes();
             unsubActivity();
-            window.removeEventListener('time-simulation-change', handleSimChange);
         };
     }, [activityLimit]);
 
@@ -362,12 +355,9 @@ export const DashboardPage = () => {
 
     const markExpirationHandled = async (user: any, action: 'sent' | 'cancelled') => {
         try {
-            // Fix: Use correct Time parsing instead of plain new Date() which uses device local/UTC depending on context
             const arTodayDate = TimeService.now();
             const todayAR = `${arTodayDate.getFullYear()}-${String(arTodayDate.getMonth() + 1).padStart(2, '0')}-${String(arTodayDate.getDate()).padStart(2, '0')}`;
 
-            // Campo manual: oculta la burbuja del dashboard
-            // Campo lastExpirationNotice: actualiza el contador de la extensión (check-birthdays)
             await updateDoc(doc(db, 'users', user.id), {
                 lastWhatsAppManualDate: todayAR,
                 lastExpirationNotice: todayAR
@@ -401,6 +391,17 @@ export const DashboardPage = () => {
             console.error('Error al marcar vencimiento gestionado:', e);
             toast.error('Error al actualizar');
         }
+    };
+
+    // Helper para abrir WhatsApp de forma segura (evita bloqueadores de popups)
+    const openWhatsAppSafely = (url: string) => {
+        const link = document.createElement('a');
+        link.href = url;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     return (
@@ -643,7 +644,7 @@ export const DashboardPage = () => {
                                                 {/* Enviar → abre WA + marca gestionado */}
                                                 <button
                                                     onClick={async () => {
-                                                        if (waLink) window.open(waLink, '_blank');
+                                                        if (waLink) openWhatsAppSafely(waLink);
                                                         else toast.error('Sin teléfono registrado');
                                                         await markExpirationHandled(user, 'sent');
                                                     }}
@@ -885,7 +886,7 @@ export const DashboardPage = () => {
                                                             const mode = mentionsGift ? 'full' : 'clean';
                                                             const res: any = await BirthdayService.sendBirthdayGreeting(client.id, client, config, { mode, whatsappOnly: true });
                                                             if (res?.whatsappLink) {
-                                                                window.open(res.whatsappLink, '_blank');
+                                                                openWhatsAppSafely(res.whatsappLink);
                                                             } else {
                                                                 toast.error("No se pudo generar el link de WhatsApp");
                                                             }

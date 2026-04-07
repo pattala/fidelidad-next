@@ -101,7 +101,8 @@ Antes de irte de Firebase, necesitas recolectar TRES grupos de contraseñas. ¡A
 
 1. Ve a [Upstash QStash](https://console.upstash.com/qstash).
 2. Ve a la pestaña **Schedules** > **"Create Schedule"** (Tarea Programada).
-3. **URL**: `https://URL_QUE_TE_DIO_VERCEL.vercel.app/api/engine-daily?mode=daily&trigger=qstash`
+3. **URL**: Tomas la URL de tu página Vercel y le sumas la ruta de la API al final.
+   - *Ejemplo:* `https://franccesca-martinez.vercel.app/api/engine-daily?mode=daily&trigger=qstash`
 4. **Schedule**: Escribe `0 9 * * *` (Significa a las 9:00 AM todos los días).
 5. **Headers**:
    - Nombre: `x-api-key`

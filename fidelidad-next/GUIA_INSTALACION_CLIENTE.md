@@ -103,7 +103,7 @@ Antes de irte de Firebase, necesitas recolectar TRES grupos de contraseñas. ¡A
 2. Ve a la pestaña **Schedules** > **"Create Schedule"** (Tarea Programada).
 3. **URL**: Tomas la URL de tu página Vercel y le sumas la ruta de la API al final.
    - *Ejemplo:* `https://franccesca-martinez.vercel.app/api/engine-daily?mode=daily&trigger=qstash`
-4. **Schedule**: Escribe `0 9 * * *` (Significa a las 9:00 AM todos los días).
+4. **Schedule**: Escribe `0 * * * *` (Significa que se ejecuta **cada 1 hora**, y el sistema internamente en su panel de control decide según el horario en qué momento enviar los WhatsApps usando ese pulso).
 5. **Headers**:
    - Nombre: `x-api-key`
    - Valor: Lo que hayas puesto en `VITE_API_KEY` (Ej: `helado_seguro_123`).

@@ -52,6 +52,8 @@ export default defineConfig(({ mode }) => {
             host: true
         },
         build: {
+            sourcemap: false,
+            minify: 'esbuild',
             rollupOptions: {
                 output: {
                     manualChunks(id) {

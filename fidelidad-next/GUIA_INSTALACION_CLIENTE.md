@@ -59,6 +59,8 @@ Antes de irte de Firebase, necesitas recolectar TRES grupos de contraseñas. ¡A
 3. Selecciona y copia TODO el texto.
 4. Pareséte en Vercel en la primera caja de texto vacía bajo "Environment Variables" y dale **Pegar (Ctrl+V)**. ¡Vercel armará los 16 renglones mágicamente!
 
+*(💡 **Nota sobre PWA_URL**: Como Vercel recién te dará el link oficial al terminar el Deploy, puedes deducirlo tú mismo sabiendo que siempre será `https://el-nombre-que-le-pusiste-al-proyecto.vercel.app`. Ponlo así en la plantilla, o modifícalo después de hacer el Deploy).*
+
 *(Si prefieres hacerlo una por una de forma manual, aquí tienes la lista):*
 
 #### 🏷️ El Nombre del Local

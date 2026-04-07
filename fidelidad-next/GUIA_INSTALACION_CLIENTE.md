@@ -52,7 +52,13 @@ Antes de irte de Firebase, necesitas recolectar TRES grupos de contraseñas. ¡A
 5. Haz clic donde dice **"Environment Variables"** para desplegar el menú de variables secretas. Aquí es donde conectarás el GitHub con el Firebase de la Heladería. 
 
 ### ⚙️ Agrega ESTAS 16 Variables EXACTAMENTE
-Ve copiando y pegando nombre por nombre, y llenando el valor al lado. Tras cada una, dale al botón "Add":
+**🌟 TRUCO DE MAGIA PREMIUM**: En la carpeta original del proyecto dejé un archivo llamado **`PLANTILLA_VARIABLES.txt`**. 
+1. Ábrelo, te aparecerá una lista con los 16 nombres vacíos.
+2. Escríbele o pégale los valores a la derecha del signo igual (sin dejar espacios).
+3. Selecciona y copia TODO el texto.
+4. Pareséte en Vercel en la primera caja de texto vacía bajo "Environment Variables" y dale **Pegar (Ctrl+V)**. ¡Vercel armará los 16 renglones mágicamente!
+
+*(Si prefieres hacerlo una por una de forma manual, aquí tienes la lista):*
 
 #### 🏷️ El Nombre del Local
 | NAME (Escríbelo exacto) | VALUE (El Valor) | Ejemplo |

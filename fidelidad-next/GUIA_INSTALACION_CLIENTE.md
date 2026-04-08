@@ -77,7 +77,11 @@ Antes de irte de Firebase, necesitas recolectar TRES grupos de contraseñas. ¡A
 3. **PROJECT NAME:** Bórra el nombre automático que te sugiere y escríbele el nombre de tu cliente en minúsculas y separado por guiones (Ej: `heladeria-los-pinos`). 
    *(💡 ¡Alerta!: Este será el link definitivo de la aplicación `https://heladeria-los-pinos.vercel.app`, ¡así que escríbelo bien!)*
 4. ⚠️ **MUY IMPORTANTE - FRAMEWORK PRESET:** Asegúrate de que la caja desplegable diga **`Vite`**. (A veces por error dice 'Other'. Si no lo cambias a Vite, te dará error 404).
-5. **¡ALTO! No le des a Deploy todavía.**
+5. 📂 **CONFIGURACIÓN DE CARPETA (ROOT DIRECTORY):**
+   - Una vez que Vercel importe el proyecto, ve a **Settings > Build & Development**.
+   - Busca el campo **"Root Directory"** y asegúrate de que esté **VACÍO** (o que diga `./`). 
+   - Si por defecto Vercel puso `fidelidad-next`, **bórralo**. Esto es vital para que encuentre tu código ahora que está en la raíz.
+6. **¡ALTO! No le des a Deploy todavía.**
 6. Haz clic donde dice **"Environment Variables"** para desplegar el menú de variables secretas. Aquí es donde conectarás el GitHub con el Firebase de la Heladería. 
 
 ### ⚙️ Agrega ESTAS 16 Variables EXACTAMENTE
@@ -131,13 +135,17 @@ Antes de irte de Firebase, necesitas recolectar TRES grupos de contraseñas. ¡A
 *Para que los puntos de LA HELADERÍA se venzan todos los días aunque no abras la app.*
 
 1. Ve a [Upstash QStash](https://console.upstash.com/qstash).
-2. Ve a la pestaña **Schedules** > **"Create Schedule"** (Tarea Programada).
-3. **URL**: Tomas la URL de tu página Vercel y le sumas la ruta de la API al final.
-   - *Ejemplo:* `https://franccesca-martinez.vercel.app/api/engine-daily?mode=daily&trigger=qstash`
-4. **Schedule**: Escribe `0 * * * *` (Significa que se ejecuta **cada 1 hora**, y el sistema internamente en su panel de control decide según el horario en qué momento enviar los WhatsApps usando ese pulso).
-5. **Headers**:
+2. **Una sola cuenta para todos**: Pablo, puedes usar la misma cuenta de Upstash para todos tus clientes (Franccesca, La Heladería, etc.). Simplemente crearás un "Schedule" (Tarea) diferente para cada uno.
+3. Ve a la pestaña **Schedules** > **"Create Schedule"** (Tarea Programada).
+4. **URL**: Tomas la URL de tu página Vercel y le sumas la ruta de la API al final.
+   - *Ejemplo para Franccesca:* `https://franccesca-martinez.vercel.app/api/engine-daily?mode=daily&trigger=qstash`
+   - *Ejemplo para Fidelidad:* `https://fidelidad-next.vercel.app/api/engine-daily?mode=daily&trigger=qstash`
+5. **Schedule**: Escribe `0 * * * *` (Significa que se ejecuta **cada 1 hora**, y el sistema internamente en su panel de control decide según el horario en qué momento enviar los WhatsApps usando ese pulso).
+6. **Headers (Importantísimo)**:
+   - Haz clic en **"Add Header"**.
    - Nombre: `x-api-key`
-   - Valor: Lo que hayas puesto en `VITE_API_KEY` (Ej: `helado_seguro_123`).
+   - Valor: Lo que hayas puesto en `VITE_API_KEY` para ese cliente específico (Ej: `franccesca2024`).
+7. **Dale a "Create"**. ¡Listo! Ese cliente ya tiene su despertador automático activo.
 
 ---
 

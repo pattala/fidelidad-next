@@ -174,7 +174,7 @@ export const ClientProfilePage = () => {
                     <div className="w-24 h-24 bg-indigo-50 rounded-full mx-auto border-4 border-white shadow-md mb-3 flex items-center justify-center text-indigo-400">
                         <UserIcon size={48} strokeWidth={2} />
                     </div>
-                    <h2 className="text-xl font-black text-gray-800">{userData.name}</h2>
+                    <h2 className="text-xl font-black text-gray-800">{userData.name || userData.nombre || 'Usuario'}</h2>
                     <p className="text-gray-500 font-medium text-sm">{userData.email}</p>
 
                     {/* Stats Row */}
@@ -196,18 +196,18 @@ export const ClientProfilePage = () => {
                         <button
                             onClick={() => {
                                 setEditData({
-                                    name: userData.name || '',
+                                    name: userData.name || userData.nombre || '',
                                     email: userData.email || '',
                                     dni: userData.dni || '',
-                                    phone: userData.phone || '',
-                                    street: userData.domicilio?.components?.calle?.split(' ').slice(0, -1).join(' ') || userData.calle?.split(' ').slice(0, -1).join(' ') || '',
-                                    number: userData.domicilio?.components?.numero || userData.calle?.split(' ').slice(-1)[0] || '',
-                                    piso: userData.piso || '',
-                                    depto: userData.depto || '',
-                                    localidad: userData.localidad || '',
-                                    partido: userData.partido || '',
-                                    provincia: userData.provincia || '',
-                                    cp: userData.cp || '',
+                                    phone: userData.phone || userData.telefono || userData.phone_number || '',
+                                    street: userData.domicilio?.components?.calle?.split(' ').slice(0, -1).join(' ') || userData.calle?.split(' ').slice(0, -1).join(' ') || userData.domicilio?.calle || '',
+                                    number: userData.domicilio?.components?.numero || userData.calle?.split(' ').slice(-1)[0] || userData.domicilio?.numero || '',
+                                    piso: userData.piso || userData.domicilio?.components?.piso || '',
+                                    depto: userData.depto || userData.domicilio?.components?.depto || '',
+                                    localidad: userData.localidad || userData.domicilio?.components?.localidad || '',
+                                    partido: userData.partido || userData.domicilio?.components?.partido || '',
+                                    provincia: userData.provincia || userData.domicilio?.components?.provincia || '',
+                                    cp: userData.cp || userData.domicilio?.components?.zipCode || '',
                                     birthDate: userData.birthDate || ''
                                 });
                                 setIsEditModalOpen(true);

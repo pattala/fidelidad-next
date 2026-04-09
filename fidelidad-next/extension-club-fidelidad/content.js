@@ -313,7 +313,7 @@ function showFidelidadPanel() {
     panel.innerHTML = `
         <div class="fidelidad-header">
             <div class="fidelidad-header-title">
-                <h1 id="cf-main-title">Sumar Puntos</h1>
+                <h1 id="cf-main-title">Sumar Puntos <span style="font-size: 10px; color: #e5e7eb; font-weight: normal; margin-left: 8px; opacity: 0.9;">(${config.appName || config.apiUrl || 'Configurando...'})</span></h1>
                 <span id="cf-client-name-header" style="font-size: 10px; opacity: 0.8; display: block;">Seleccione un cliente</span>
             </div>
             <span class="fidelidad-close" id="fidelidad-close">×</span>

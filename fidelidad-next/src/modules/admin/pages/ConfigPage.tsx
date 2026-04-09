@@ -895,6 +895,47 @@ export const ConfigPage = () => {
                                         <p className="text-[10px] text-purple-400 mt-3 italic">
                                             * Esta opción controla si el servidor procesa puntos enviados desde herramientas externas como el facturador.
                                         </p>
+
+                                        <div className="mt-6 pt-6 border-t border-purple-100">
+                                            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                                                <div>
+                                                    <span className="text-sm font-bold text-gray-800 block">Extensión para Navegador</span>
+                                                    <p className="text-xs text-gray-500 max-w-md mt-1">
+                                                        Usa nuestro <b>Integrador de Beneficios</b> para capturar montos de Rappi, UberEats y otros facturadores automáticamente.
+                                                    </p>
+                                                </div>
+                                                <a 
+                                                    href="/download/Integrador_Beneficios.zip" 
+                                                    download 
+                                                    className="flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-xl font-bold shadow-lg shadow-purple-200 hover:bg-purple-700 hover:scale-105 transition-all active:scale-95 shrink-0"
+                                                >
+                                                    <Download size={20} />
+                                                    Descargar Extensión
+                                                </a>
+                                            </div>
+
+                                            <div className="mt-4 bg-white/50 p-4 rounded-xl border border-purple-100">
+                                                <h4 className="text-[10px] font-black text-purple-600 uppercase tracking-widest mb-3">Guía de Instalación Rápida:</h4>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div className="flex gap-3">
+                                                        <span className="w-5 h-5 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0">1</span>
+                                                        <p className="text-[11px] text-gray-600 leading-tight"><b>Descargá y descomprimí</b> el archivo .ZIP en una carpeta de tu PC (ej: Documentos).</p>
+                                                    </div>
+                                                    <div className="flex gap-3">
+                                                        <span className="w-5 h-5 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0">2</span>
+                                                        <p className="text-[11px] text-gray-600 leading-tight">En Chrome, entrá a <b>chrome://extensions</b> y activá el <b>Modo desarrollador</b> (arriba-derecha).</p>
+                                                    </div>
+                                                    <div className="flex gap-3">
+                                                        <span className="w-5 h-5 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0">3</span>
+                                                        <p className="text-[11px] text-gray-600 leading-tight">Tocá en <b>Cargar descomprimida</b> y seleccioná la carpeta que acabas de extraer.</p>
+                                                    </div>
+                                                    <div className="flex gap-3">
+                                                        <span className="w-5 h-5 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0">4</span>
+                                                        <p className="text-[11px] text-gray-600 leading-tight">Abrí la extensión y configurá la <b>API URL</b> con la dirección de este sitio.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 

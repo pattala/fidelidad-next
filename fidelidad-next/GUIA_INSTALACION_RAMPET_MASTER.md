@@ -1,111 +1,135 @@
-# 🚀 Guía Maestra de Instalación: RAMPET v3.0
-**Manual de Despliegue Profesional e Independiente**
-
-Este documento es la fuente de verdad definitiva para el despliegue del ecosistema RAMPET. Siga estos pasos para garantizar una instalación 100% aislada, segura y funcional para nuevos clientes.
+# 🚀 Guía Maestra de Instalación: RAMPET v4.0 (Edición Definitiva)
+**Manual de Despliegue Profesional, Automatizado e Independiente**
 
 ---
 
-## 📋 Requisitos Previos
-1. **Cuenta en Google (Gmail)**: Para Firebase y SMTP.
-2. **Cuenta en Vercel**: Hosting del Frontend y API.
-3. **Cuenta en Upstash**: Para el motor automático (QStash).
-4. **Dominio del Cliente**: (Opcional) Ej: `fidelidad.cliente.com`.
+## 📋 Resumen del Ecosistema
+Esta guía es el recurso definitivo para desplegar instancias aisladas de RAMPET. Siga estos pasos para garantizar que cada cliente tenga su propia base de datos, sistema de mensajería y automatización sin cruces de datos.
 
 ---
 
-## 🛠️ Fase 1: Configuración de Firebase
-1. **Crear Proyecto**: Vaya a [Firebase Console](https://console.firebase.google.com/).
-2. **Configuración de la App (Web)**:
-   - Registre una "Web App".
-   - Copie el objeto `firebaseConfig` (lo necesitará para las variables `VITE_FIREBASE_*`).
-3. **Cuentas de Servicio (CUIDADO - CRÍTICO)**:
-   - Configuración del proyecto > Cuentas de servicio.
-   - Haga clic en **"Generar nueva clave privada"**.
-   - Descargue el JSON. **Este archivo completo será su variable `GOOGLE_CREDENTIALS_JSON`**.
-4. **Cloud Messaging**:
-   - Activa el SDK de Web Push.
-   - Genera un par de llaves **VAPID**. La "Key Pública" será su `VITE_VAPID_PUBLIC_KEY`.
+## 🏗️ Fase 0: Auditoría de Preparación (System Check)
+Antes de comenzar, verifique que su entorno local tenga las herramientas necesarias. Abra una terminal (PowerShell o CMD) y ejecute:
+
+```bash
+# Verificar Node.js (Requerido para el script de automatización)
+node -v
+
+# Verificar Git (Requerido para descargar el código)
+git --version
+
+# Verificar Firebase CLI (Requerido para subir reglas)
+firebase --version
+
+# Verificar Vercel CLI (Requerido para vincular el proyecto)
+vercel --version
+```
+> [!TIP]
+> Si algún comando falla, descargue la herramienta correspondiente antes de continuar.
 
 ---
 
-## 📧 Fase 2: Configuración de Correo (SMTP)
-1. Use una cuenta de Gmail dedicada al cliente.
-2. Activa **"Verificación en dos pasos"**.
-3. Vaya a [Contraseñas de aplicaciones](https://myaccount.google.com/apppasswords).
-4. Genere una contraseña para "Correo" y "Otro (RAMPET)".
-5. **SMTP_USER**: Su email.
-6. **SMTP_PASS**: La clave de 16 caracteres generada (sin espacios).
+## 🛠️ Fase 1: Infraestructura de Datos (Firebase)
+
+### 1.1 Configuración Inicial
+1.  **Crear Proyecto**: En [Firebase Console](https://console.firebase.google.com/).
+2.  **Authentication**: Habilite el método "Email/Password".
+3.  **Firestore**: Inicie en "Modo Producción" y elija la región más cercana a sus clientes.
+
+### 1.2 Reglas de Seguridad (Restaurado)
+Vaya a la pestaña **Rules** y pegue este bloque exactamente:
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() { return request.auth != null; }
+    function isAdmin() {
+      return isSignedIn() && (
+        (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'admin') ||
+        request.auth.token.email.matches('.*@admin\\.com')
+      );
+    }
+    match /users/{userId} {
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+    }
+    match /{path=**}/admins/{adminId} { allow read, write: if isAdmin(); }
+    match /config/{document} { allow read: if true; allow write: if isAdmin(); }
+    match /prizes/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /campanas/{id} { allow read: if true; allow write: if isAdmin(); }
+  }
+}
+```
 
 ---
 
-## 🤖 Fase 3: Motor Automático (QStash)
-1. Cree un equipo/cuenta en [Upstash](https://console.upstash.com/qstash).
-2. Copie las **Signing Keys** (Current y Next).
-3. **Destinatario**: En el Panel de Administración del cliente (Sección Avanzado), verá la URL de destino dinámica. Cópiela y péguela en QStash como un "Scheduled Job" (Cron: `0 9 * * *` para las 9 AM).
+## 📧 Fase 2: Configuración SMTP (Gmail)
+1. Active la **Verificación en 2 pasos** en su cuenta de Gmail.
+2. Genere una **Contraseña de Aplicación** (App Password).
+3. Guarde la clave de 16 caracteres. Esta será su variable `SMTP_PASS`.
 
 ---
 
-## 📊 Tabla Maestra de Variables de Entorno (30 Obligatorias)
+## 🤖 Fase 3: Automatización Superior (Bootstrap Script)
+*No cargue las 30 variables a mano. Use nuestra herramienta de inyección masiva.*
 
-Configure estas variables en **Vercel > Settings > Environment Variables**.
+1. Complete su archivo `PLANTILLA_VARIABLES.txt` localmente con los datos del nuevo cliente.
+2. En la terminal, dentro de la carpeta del proyecto, ejecute:
+   ```bash
+   node scripts/bootstrap-client.js
+   ```
+3. El script le pedirá el **Project ID** de Firebase y realizará lo siguiente:
+   - Vinculará su cuenta de Vercel.
+   - Creará el proyecto en Vercel si no existe.
+   - **Subirá las 30 variables de entorno automáticamente.**
+   - Desplegará las reglas de Cloud Firestore.
 
-| Categoría | Variable | Descripción / Ejemplo |
+---
+
+## 📊 Fase 4: Tabla Maestra de Variables (Sanitizada)
+
+| Categoría | Variable | Valor / Origen |
 | :--- | :--- | :--- |
-| **Identidad** | `VITE_APP_NAME` | Nombre comercial (ej: RAMPET Fidelidad) |
-| **Identidad** | `VITE_APP_SHORT_NAME` | Nombre para ícono móvil (max 12 carac.) |
-| **Seguridad** | `VITE_API_KEY` | Clave secreta compartida (ej: `rk_live_...`) |
-| **Seguridad** | `API_SECRET_KEY` | **DEBE COINCIDIR** con `VITE_API_KEY` |
-| **Seguridad** | `CORS_ALLOWED_ORIGINS` | `https://tu-dominio.vercel.app` |
-| **Firebase (WEB)** | `VITE_FIREBASE_API_KEY` | De la consola de Firebase |
-| **Firebase (WEB)** | `VITE_FIREBASE_AUTH_DOMAIN` | `proyecto-id.firebaseapp.com` |
-| **Firebase (WEB)** | `VITE_FIREBASE_PROJECT_ID` | ID único del proyecto |
-| **Firebase (WEB)** | `VITE_FIREBASE_STORAGE_BUCKET` | `proyecto-id.firebasestorage.app` |
-| **Firebase (WEB)** | `VITE_FIREBASE_MESSAGING_SENDER_ID`| ID numérico de mensajería |
-| **Firebase (WEB)** | `VITE_FIREBASE_APP_ID` | ID único de la App Web |
-| **Firebase (WEB)** | `VITE_FIREBASE_MEASUREMENT_ID` | `G-XXXXXXXX` (Opcional) |
-| **Push (PWA)** | `VITE_VAPID_PUBLIC_KEY` | Llave pública de Cloud Messaging |
-| **Backend (Admin)** | `GOOGLE_CREDENTIALS_JSON` | **Todo el contenido del JSON** de la llave privada |
-| **Correo (SMTP)** | `SMTP_USER` | Email de envío (ej: `notificaciones@gmail.com`) |
-| **Correo (SMTP)** | `SMTP_PASS` | Contraseña de aplicación de 16 dígitos |
-| **Dominio** | `PWA_URL` | URL completa (ej: `https://app.com`) |
-| **Upstash** | `QSTASH_CURRENT_SIGNING_KEY` | Desde el panel de Upstash |
-| **Upstash** | `QSTASH_NEXT_SIGNING_KEY` | Llave de respaldo de Upstash |
-| **Diseño** | `PUSH_ICON_URL` | Link a imagen cuadrada (512x512) |
-| **Diseño** | `PUSH_BADGE_URL` | Link a ícono blanco/negro (96x96) |
-| **Admin Setup** | `INITIAL_ADMIN_EMAIL` | Email del primer administrador (opcional) |
-| **Admin Setup** | `INITIAL_ADMIN_PASSWORD` | Password del primer admin (opcional) |
-| **WhatsApp** | `VITE_WHATSAPP_PHONE_ID` | (En desarrollo) Meta Phone ID |
-| **WhatsApp** | `VITE_WHATSAPP_WABA_ID` | (En desarrollo) Meta Business ID |
-| **WhatsApp** | `VITE_WHATSAPP_TOKEN` | (En desarrollo) Meta Access Token |
-| **Reglas** | `DEFAULT_POINTS_BASE` | `100` (Default por cada $100) |
-| **Reglas** | `DEFAULT_POINTS_VALUE` | `10` (Default $10 por punto) |
-| **Backend** | `NODE_VERSION` | `20.x` (Configurar en Vercel) |
-| **Backend** | `PROJECT_ROOT_DIR` | `fidelidad-next` |
+| **Identidad** | `VITE_APP_NAME` | Nombre Comercial (Ej: Franccesca Martinez) |
+| **Identidad** | `VITE_APP_SHORT_NAME` | Nombre corto PWA |
+| **Seguridad** | `VITE_API_KEY` | Clave secreta (Inventada, ej: `sec_123...`) |
+| **Seguridad** | `API_SECRET_KEY` | **IDÉNTICA** a `VITE_API_KEY` |
+| **Firebase** | `VITE_FIREBASE_API_KEY` | Firebase Config |
+| **Firebase** | `VITE_FIREBASE_AUTH_DOMAIN` | `proyecto.firebaseapp.com` |
+| **Firebase** | `VITE_FIREBASE_PROJECT_ID` | Tu Project ID |
+| **Firebase** | `VITE_FIREBASE_STORAGE_BUCKET`| `proyecto.firebasestorage.app` |
+| **Firebase** | `VITE_FIREBASE_MESSAGING_SENDER_ID`| ID Numérico |
+| **Firebase** | `VITE_FIREBASE_APP_ID` | App ID único |
+| **Firebase** | `VITE_FIREBASE_MEASUREMENT_ID` | G-XXXXXXXX (Opcional) |
+| **Notif.** | `VITE_VAPID_PUBLIC_KEY` | Firebase Cloud Messaging VAPID |
+| **Backend** | `GOOGLE_CREDENTIALS_JSON` | Contenido completo del JSON (Paso 1.2-B) |
+| **Email** | `SMTP_USER` | Su cuenta de Gmail |
+| **Email** | `SMTP_PASS` | La clave de 16 dígitos (Paso 2) |
+| **Deploy** | `PWA_URL` | URL final (Ej: `https://franccesca.vercel.app`) |
+| **Deploy** | `PROJECT_ROOT_DIR` | `fidelidad-next` |
+| **Deploy** | `NODE_VERSION` | `20.x` |
+| **QStash** | `QSTASH_CURRENT_SIGNING_KEY`| De Upstash Dashboard |
+| **QStash** | `QSTASH_NEXT_SIGNING_KEY` | De Upstash Dashboard |
 
 ---
 
-## 🚨 Solución de Problemas (Troubleshooting)
+## 🖼️ Fase 5: Referencia Visual y Troubleshooting
 
-### 1. El Panel de Control dice "Error de API"
-- **Causa**: `VITE_API_KEY` y `API_SECRET_KEY` no coinciden.
-- **Solución**: Asegúrese de que ambos tengan exactamente el mismo valor.
+### Verificación de Build en Vercel
+Asegúrese de que el **Root Directory** sea `fidelidad-next` para evitar errores 404.
+![Build Settings](file:///C:/Users/pablo/.gemini/antigravity/brain/9368840e-5c6b-4677-9fd8-5d8413c58f34/fix_vercel_root_dir_1775636159174.webp)
 
-### 2. QStash no ejecuta el motor
-- **Causa**: La URL de destino es incorrecta o las llaves de firma expiraron.
-- **Solución**: Verifique en el Panel Avanzado > QStash que la URL listada coincida con la configurada en el Job de Upstash.
-
-### 3. No llegan los correos
-- **Causa**: Contraseña de aplicación incorrecta.
-- **Solución**: Google no permite usar la clave normal de Gmail. Debe usar la **Contraseña de Aplicación** específica.
+### QStash dinámico (Nuevo)
+En el Panel Avanzado del Administrador, ahora verá la URL dinámica. Cópiela directamente desde allí para evitar errores de escritura. No apunte a `fidelidad-next` si está configurando un nuevo cliente.
 
 ---
 
-## 📤 Exportar a PDF
-Para generar un PDF profesional a partir de este manual:
-1. Abra este archivo en VS Code.
-2. Presione `Ctrl+Shift+P` y busque **"Markdown: Export as PDF"** (requiere extensión Markdown PDF).
-3. Obtendrá un documento limpio, con tablas y formato premium.
+## 🚨 Troubleshooting Común
+
+- **Error de Dominios**: Si las invitaciones fallan, añada el dominio de Vercel en Firebase Authentication > Settings > Authorized Domains.
+- **Error JSON**: Si `GOOGLE_CREDENTIALS_JSON` da error al iniciar, verifique que no falten comillas al copiar el contenido del archivo JSON.
 
 ---
-> [!NOTE]
-> Esta guía ha sido optimizada para la versión 3.0 de RAMPET, asegurando la **independencia total** de cada instancia.
+> [!IMPORTANT]
+> **Exportación a PDF**: Para entregar este manual al cliente, abra este archivo en VS Code y use la extensión **Markdown PDF** (`Ctrl+Shift+P > Markdown PDF: Export`).

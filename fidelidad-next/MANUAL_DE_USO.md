@@ -177,3 +177,22 @@ Para gestionar el acceso de su equipo, diríjase a **Mi Perfil > Gestión de Equ
 
 ---
 *Manual Operativo Avanzado v2.1 (Roles & Permissions update)*
+
+---
+
+## 🛠️ Anexo Técnico: Actualización del Sistema (Git Workflow)
+
+Para que usted pueda subir cambios sin depender de asistencia técnica directa, siga estos pasos en su terminal:
+
+### 1. Subir al Laboratorio (Fidelidad)
+*Para probar antes de lanzar a clientes:*
+1.  `git add .`
+2.  `git commit -m "mensaje descriptivo"`
+3.  `git push origin desarrollo`
+
+### 2. Actualización Masiva (Todos los Clientes)
+*Para que el cambio llegue a Franccesca y demás:*
+1.  `git checkout main`
+2.  `git merge desarrollo`
+3.  `git push origin main`
+4.  `git checkout desarrollo` (Para volver a modo prueba)

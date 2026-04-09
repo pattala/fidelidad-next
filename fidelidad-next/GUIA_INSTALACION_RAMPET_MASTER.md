@@ -118,3 +118,24 @@ Para no cargar estas 30 variables a mano en Vercel:
 > [!NOTE]
 > **Exportación**: Este manual ha sido optimizado para ser exportado como PDF desde VS Code (`Markdown PDF: Export`).
 
+---
+
+## 🔄 Ciclo de Desarrollo y Actualizaciones (Git Workflow)
+
+Para mantener el sistema actualizado y desplegar nuevas funciones, siga estos pasos desde su terminal según el entorno al que desee subir los cambios.
+
+### A. Subir cambios al Laboratorio (Fidelidad / Desarrollo)
+Use este flujo mientras esté probando funciones nuevas y no quiera que afecten a los clientes reales.
+1.  **Preparar archivos**: `git add .`
+2.  **Confirmar cambios**: `git commit -m "Descripción del cambio"`
+3.  **Subir a Desarrollo**: `git push origin desarrollo`
+*Esto disparará el deploy automático solo en el sitio de Fidelidad (Test).*
+
+### B. Subir cambios a Producción (Todos los Clientes / Main)
+Use este flujo solo cuando haya verificado que todo funciona perfectamente en el Laboratorio.
+1.  **Cambiar a rama principal**: `git checkout main`
+2.  **Traer cambios de desarrollo**: `git merge desarrollo`
+3.  **Subir a Producción**: `git push origin main`
+*Esto actualizará automáticamente a todos los proyectos conectados (Franccesca, etc.).*
+4.  **Volver a trabajar**: `git checkout desarrollo`
+

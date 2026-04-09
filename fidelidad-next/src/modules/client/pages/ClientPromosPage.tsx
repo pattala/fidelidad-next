@@ -7,6 +7,7 @@ import type { AppConfig } from '../../../types';
 import { useClientAuth } from '../contexts/ClientAuthContext';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
+import { CampaignActionModal } from '../components/CampaignActionModal';
 
 export const ClientPromosPage = () => {
     const { config, setHeaderTitle } = useOutletContext<{
@@ -16,6 +17,7 @@ export const ClientPromosPage = () => {
     const { userData } = useClientAuth();
     const [campaigns, setCampaigns] = useState<BonusRule[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedPromo, setSelectedPromo] = useState<BonusRule | null>(null);
     const navigate = useNavigate();
 
     // Set Header State
@@ -114,7 +116,24 @@ export const ClientPromosPage = () => {
                     </div>
                 ) : (
                     visibleCampaigns.map(camp => (
-                        <div key={camp.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col relative group active:scale-[0.99] transition">
+                        <div
+                            key={camp.id}
+                            className={`bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col relative group transition ${camp.actionUrl || camp.link ? 'cursor-pointer active:scale-[0.99]' : ''}`}
+                            onClick={() => {
+                                if (camp.actionUrl || camp.link) {
+                                    setSelectedPromo(camp);
+                                } else {
+                                    toast('Solo informativo... consultanos en el local!', {
+                                        icon: '📢',
+                                        style: {
+                                            borderRadius: '10px',
+                                            background: '#333',
+                                            color: '#fff',
+                                        },
+                                    });
+                                }
+                            }}
+                        >
                             {/* Optional Image */}
                             {camp.imageUrl && (
                                 <div className="h-32 w-full bg-gray-100 relative overflow-hidden">
@@ -190,11 +209,34 @@ export const ClientPromosPage = () => {
                                         </span>
                                     )}
                                 </div>
+
+                                {/* Action Button */}
+                                <div className="mt-4 pt-4 border-t border-gray-50 flex justify-end">
+                                    <button
+                                        className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${camp.actionUrl || camp.link
+                                            ? 'bg-purple-600 text-white shadow-lg shadow-purple-100'
+                                            : 'bg-gray-50 text-gray-400 border border-gray-100'
+                                            }`}
+                                    >
+                                        {camp.buttonText || (camp.actionUrl || camp.link ? 'Ver detalles' : 'Más info')}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     ))
                 )}
             </div>
+
+            {selectedPromo && (
+                <CampaignActionModal
+                    isOpen={!!selectedPromo}
+                    onClose={() => setSelectedPromo(null)}
+                    title={selectedPromo.title || selectedPromo.name}
+                    description={selectedPromo.description}
+                    actionUrl={selectedPromo.actionUrl || selectedPromo.link}
+                    actionText={selectedPromo.actionText || selectedPromo.buttonText}
+                />
+            )}
         </div>
     );
 };

@@ -103,15 +103,15 @@ async function handleCreate(req, res, db) {
 
 // --- SUB-HANDLER: DELETE USER ---
 async function handleDelete(req, res, db) {
-    const { docId, authUID: provAuthUID, email: provEmail } = req.body;
+    const { docId, authUID: provAuthUID, email: provEmail, targetCollection = 'users' } = req.body;
     if (!docId && !provAuthUID && !provEmail) return res.status(400).json({ ok: false, error: "Falta identificador" });
     try {
         let userId = docId, authUID = provAuthUID, email = provEmail;
         if (userId) {
-            const snap = await db.collection("users").doc(userId).get();
+            const snap = await db.collection(targetCollection).doc(userId).get();
             if (snap.exists) {
                 const userData = snap.data();
-                authUID = userData.authUID;
+                authUID = userData.authUID || userData.uid;
                 email = userData.email;
 
                 // PROTECCIÓN DE CUENTAS MAESTRAS
@@ -127,19 +127,21 @@ async function handleDelete(req, res, db) {
                 return res.status(403).json({ ok: false, error: "Esta cuenta está protegida por el sistema y no puede ser eliminada." });
             }
 
-            const snap = await db.collection("users").where("email", "==", provEmail.toLowerCase()).limit(1).get();
-            if (!snap.empty) { userId = snap.docs[0].id; authUID = snap.docs[0].data().authUID; }
+            const snap = await db.collection(targetCollection).where("email", "==", provEmail.toLowerCase()).limit(1).get();
+            if (!snap.empty) { userId = snap.docs[0].id; authUID = snap.docs[0].data().authUID || snap.docs[0].data().uid; }
         }
 
         if (userId) {
-            await db.collection("users").doc(userId).delete();
-            // Cascade delete subcollections (simplified for consolidate)
-            const subs = ["points_history", "inbox", "visit_history"];
-            for (const s of subs) {
-                const snap = await db.collection(`users/${userId}/${s}`).get();
-                const batch = db.batch();
-                snap.forEach(d => batch.delete(d.ref));
-                await batch.commit();
+            await db.collection(targetCollection).doc(userId).delete();
+            // Cascade delete subcollections (only for users, admins 보통 don't have them but it's safe)
+            if (targetCollection === 'users') {
+                const subs = ["points_history", "inbox", "visit_history"];
+                for (const s of subs) {
+                    const snap = await db.collection(`users/${userId}/${s}`).get();
+                    const batch = db.batch();
+                    snap.forEach(d => batch.delete(d.ref));
+                    await batch.commit();
+                }
             }
         }
         if (authUID) await admin.auth().deleteUser(authUID).catch(() => { });

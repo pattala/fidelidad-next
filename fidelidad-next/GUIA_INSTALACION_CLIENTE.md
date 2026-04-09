@@ -127,7 +127,20 @@ Antes de irte de Firebase, necesitas recolectar TRES grupos de contraseñas. ¡A
 | `GOOGLE_CREDENTIALS_JSON` | **CRÍTICO:** Abre el archivo .json que descargaste, copia TODO el texto gigante, desde la primera `{` hasta la última `}` y pégalo aquí crudo. |
 | `PWA_URL` | La dirección web que Vercel le va a dar a la app (Puedes editar esto después de hacer deploy). |
 
-6. Una vez agregadas todas, haz clic en el botón grande y azul **"Deploy"**. En 2 minutos se creará la página.
+### 🔐 Configura los Dominios Autorizados (¡Muy importante!)
+*Sin este paso, no podrás invitar a otros administradores a tu equipo.*
+
+1. Ve a tu consola de **Firebase** > **Authentication**.
+2. Haz clic en la pestaña superior **Settings**.
+3. Busca en el menú lateral izquierdo la opción **Authorized Domains**.
+4. Haz clic en **"Add Domain"**.
+5. Agrega el dominio de tu aplicación en Vercel (Ej: `franccesca-martinez.vercel.app`).
+6. También agrega tu dominio personalizado si compraste uno (Ej: `www.tuheladeria.com`).
+
+---
+
+### 🚀 ¡Lanzamiento!
+Una vez que hayas agregado todas las variables y el dominio, dale al botón **"Deploy"** abajo de todo. Vercel tardará 1 o 2 minutos y te dará un link. ¡Ese es tu panel de administración!
 
 ---
 
@@ -187,9 +200,27 @@ Si el acceso falla, revisa el Paso 4. Asegúrate que en la colección `admins` d
 
 ---
 
-## 📈 Estrategia de Ramas (Mantenimiento Seguro)
+# 🛠️ Posibles Fallas y Soluciones (Troubleshooting)
 
-Para evitar que los experimentos en el **Laboratorio** rompan las páginas de tus clientes en producción, usamos este sistema de "doble filtro":
+### 1. Error: "Domain not allowed by project" al invitar admin
+- **Causa**: No agregaste el dominio de Vercel en la lista de Firebase.
+- **Solución**: Ve a Firebase > Auth > Settings > Authorized Domains y agrega tu URL de Vercel.
+
+### 2. Error 404 en Vercel tras entrar a /admin
+- **Causa**: El "Root Directory" o el "Framework Preset" están mal configurados.
+- **Solución**: Ve a Vercel Settings > Build & Development. Asegúrate de que **Root Directory** sea `fidelidad-next` y el **Framework Preset** sea `Vite`.
+
+### 3. La pantalla se queda "oscura" u opaca en el panel
+- **Causa**: Conflicto de capas (z-index) en el menú lateral.
+- **Solución**: Este error fue corregido en la versión actual del código. Asegúrate de estar usando la última versión de la rama `desarrollo`.
+
+### 4. No llegan los correos de bienvenida o invitación
+- **Causa**: Problemas con las credenciales SMTP de Gmail.
+- **Solución**: Asegúrate de que `SMTP_PASS` sea una "Contraseña de Aplicación" generada en tu cuenta de Google, y que la navegación segura de Google no esté bloqueando el acceso.
+
+---
+
+# 🔄 Sincronización Lab -> Producción
 
 ### 🏰 Rama `main` (Producción)
 Esta es la versión estable. **Todos los clientes reales** (como Franccesca Martinez) deben estar conectados a esta rama en Vercel. 

@@ -210,15 +210,20 @@ export default async function handler(req, res) {
 
             // 4. EQUIPO Y CONTENIDOS
             if (options.team_total) {
-                // Borrar admins secundarios (no el actual)
-                // Usamos where role in [admin, editor, viewer] pero necesitamos el ID del ejecutor para protegerlo.
-                // Por ahora borremos todos los que NO son el admin@admin.com inicial o similar, 
-                // pero lo mejor es que el Front mande el uid a proteger.
-                const adminsSnap = await db.collection("users").where("role", "in", ["admin", "editor", "viewer"]).get();
+                // Borrar admins secundarios (no el actual) en la colección 'admins'
+                const adminsSnap = await db.collection("admins").get();
                 let deletedAdmins = 0;
                 for (const d of adminsSnap.docs) {
-                    if (d.id !== req.body.adminUid) {
+                    if (d.id !== req.body.adminUid && d.data().email !== 'admin@admin.com') {
+                        // Borrar de Firestore
                         await d.ref.delete();
+                        
+                        // Borrar de Firebase Auth (opcional, pero recomendado)
+                        const authUID = d.data().authUID || d.data().uid;
+                        if (authUID) {
+                            await admin.auth().deleteUser(authUID).catch(() => {});
+                        }
+                        
                         deletedAdmins++;
                     }
                 }

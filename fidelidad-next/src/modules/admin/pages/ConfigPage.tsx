@@ -2852,7 +2852,11 @@ export const ConfigPage = () => {
                                                                 {`${window.location.origin}/api/engine-daily?mode=daily&trigger=qstash`}
                                                             </code>
                                                             <button
-                                                                onClick={() => { navigator.clipboard.writeText(`https://fidelidad-next.vercel.app/api/engine-daily?mode=daily&trigger=qstash`); alert("URL Copiada"); }}
+                                                                onClick={() => {
+                                                                    const url = `${window.location.origin}/api/engine-daily?mode=daily&trigger=qstash`;
+                                                                    navigator.clipboard.writeText(url);
+                                                                    toast.success("URL Copiada");
+                                                                }}
                                                                 className="p-2 bg-white/10 hover:bg-white/20 rounded-lg"
                                                             >
                                                                 <Settings size={14} />

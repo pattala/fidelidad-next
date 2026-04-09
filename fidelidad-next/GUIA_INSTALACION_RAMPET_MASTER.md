@@ -87,6 +87,9 @@ Aquí se explica cómo obtener cada una de las variables requeridas en Vercel.
 *   **Cómo**: Estas las inventas tú. Puede ser cualquier palabra larga y compleja (ej: `rampet_security_3344_x`).
 *   **IMPORTANTE**: Ambas deben tener el **MISMO VALOR** exacto para que el frontend pueda hablar con el backend.
 
+### G. 📱 Nota sobre WhatsApp
+*   **¿Por qué no hay variables de WhatsApp?**: El sistema detecta automáticamente si el número está configurado en el panel administrativo. No es necesario cargarlo como variable de entorno, lo que da flexibilidad total al cliente para cambiarlo sin tocar código.
+
 ---
 
 ## 🤖 Fase 2: Automatización con Script Bootstrap
@@ -105,6 +108,13 @@ Para no cargar estas 30 variables a mano en Vercel:
 1. **Root Directory**: Asegúrese de que en Vercel sea `fidelidad-next`.
 2. **URL dinámica**: Una vez desplegado, vaya a **Avanzado** en el panel admin y verá la URL de QStash lista para copiar.
 
+### ✅ Checklist Final de Calidad
+- [ ] ¿El logo de la instancia es el correcto?
+- [ ] ¿Los botones de "Copiar URL" en Configuración devuelven la URL del dominio actual?
+- [ ] ¿Los correos de invitación llegan con el nombre del cliente?
+- [ ] ¿El simulador de fecha funciona sin afectar a otros clientes?
+
 ---
 > [!NOTE]
 > **Exportación**: Este manual ha sido optimizado para ser exportado como PDF desde VS Code (`Markdown PDF: Export`).
+

@@ -4,7 +4,7 @@
  */
 
 export function buildHtmlLayout(innerHtml, config = {}) {
-  const base = config.contact?.pwaUrl || process.env.PWA_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://fidelidad-next.vercel.app');
+  const base = config.contact?.pwaUrl || process.env.PWA_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '');
   const logo = config.logoUrl || process.env.PUSH_ICON_URL || `${base}/images/mi_logo.png`;
   const siteName = config.siteName || 'Club Fidelidad';
   const terms = config.contact?.termsAndConditions || process.env.URL_TERMINOS_Y_CONDICIONES || `${base}/profile`;

@@ -1,43 +1,31 @@
-# 🚀 Guía Maestra de Instalación: RAMPET v4.0 (Edición Definitiva)
+# 🚀 Guía Maestra de Instalación: RAMPET v4.1 (Edición de Oro)
 **Manual de Despliegue Profesional, Automatizado e Independiente**
 
----
-
-## 📋 Resumen del Ecosistema
-Esta guía es el recurso definitivo para desplegar instancias aisladas de RAMPET. Siga estos pasos para garantizar que cada cliente tenga su propia base de datos, sistema de mensajería y automatización sin cruces de datos.
+Este documento es la fuente de verdad definitiva para el despliegue del ecosistema RAMPET. Siga estos pasos para garantizar una instalación 100% aislada, segura y funcional.
 
 ---
 
 ## 🏗️ Fase 0: Auditoría de Preparación (System Check)
-Antes de comenzar, verifique que su entorno local tenga las herramientas necesarias. Abra una terminal (PowerShell o CMD) y ejecute:
+Antes de comenzar, verifique que su entorno local tenga las herramientas necesarias. Abra una terminal y ejecute:
 
 ```bash
-# Verificar Node.js (Requerido para el script de automatización)
-node -v
-
-# Verificar Git (Requerido para descargar el código)
-git --version
-
-# Verificar Firebase CLI (Requerido para subir reglas)
-firebase --version
-
-# Verificar Vercel CLI (Requerido para vincular el proyecto)
-vercel --version
+node -v      # Debe devolver v18+ 
+git --version   # Debe estar instalado
+firebase -V    # Firebase CLI
+vercel -v      # Vercel CLI
 ```
-> [!TIP]
-> Si algún comando falla, descargue la herramienta correspondiente antes de continuar.
 
 ---
 
 ## 🛠️ Fase 1: Infraestructura de Datos (Firebase)
 
 ### 1.1 Configuración Inicial
-1.  **Crear Proyecto**: En [Firebase Console](https://console.firebase.google.com/).
-2.  **Authentication**: Habilite el método "Email/Password".
-3.  **Firestore**: Inicie en "Modo Producción" y elija la región más cercana a sus clientes.
+1. **Crear Proyecto**: En [Firebase Console](https://console.firebase.google.com/).
+2. **Authentication**: Habilitar "Email/Password".
+3. **Firestore**: Iniciar en "Modo Producción" (Región San Pablo `southamerica-east1` recomendada).
 
-### 1.2 Reglas de Seguridad (Restaurado)
-Vaya a la pestaña **Rules** y pegue este bloque exactamente:
+### 1.2 Reglas de Seguridad (Seguridad Granular)
+Pestaña **Rules** de Firestore. Pegue este bloque para proteger los puntos de los socios:
 ```javascript
 rules_version = '2';
 service cloud.firestore {
@@ -45,8 +33,7 @@ service cloud.firestore {
     function isSignedIn() { return request.auth != null; }
     function isAdmin() {
       return isSignedIn() && (
-        (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'admin') ||
-        request.auth.token.email.matches('.*@admin\\.com')
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
       );
     }
     match /users/{userId} {
@@ -64,72 +51,60 @@ service cloud.firestore {
 
 ---
 
-## 📧 Fase 2: Configuración SMTP (Gmail)
-1. Active la **Verificación en 2 pasos** en su cuenta de Gmail.
-2. Genere una **Contraseña de Aplicación** (App Password).
-3. Guarde la clave de 16 caracteres. Esta será su variable `SMTP_PASS`.
+## 📖 Diccionario de Obtención de Keys (Paso a Paso)
+
+Aquí se explica cómo obtener cada una de las variables requeridas en Vercel.
+
+### A. Grupo Firebase Client (`VITE_FIREBASE_*`)
+*   **Dónde**: Tuerca ⚙️ > Project Settings > General > Sección "Your Apps".
+*   **Cómo**: Si no hay una app, dale a `Add App` (ícono `</>`). Registra el nombre.
+*   **Qué copiar**: En el bloque de código que aparece, verás `apiKey`, `authDomain`, etc. Cópialos uno por uno a su variable correspondiente.
+
+### B. Grupo Admin SDK (`GOOGLE_CREDENTIALS_JSON`)
+*   **Donde**: Tuerca ⚙️ > Project Settings > Service Accounts.
+*   **Cómo**: Clic en botón "Generate New Private Key" > Generate Key.
+*   **Qué copiar**: Se descargará un archivo `.json`. Abre ese archivo con un bloc de notas, copia **TODO** el contenido (incluyendo las llaves `{ }`) y pégalo tal cual en el valor de la variable en Vercel.
+
+### C. Grupo Push (`VITE_VAPID_PUBLIC_KEY`)
+*   **Dónde**: Tuerca ⚙️ > Project Settings > Cloud Messaging.
+*   **Cómo**: Baja hasta "Web Push certificates" > Clic en "Generate Key Pair".
+*   **Qué copiar**: Copia la cadena larga de texto bajo la columna "Key pair".
+
+### D. Grupo Correo (`SMTP_USER` y `SMTP_PASS`)
+*   **Dónde**: Configuración de tu cuenta de Google (Gmail).
+*   **Cómo**:
+    1. Activa "Seguridad" > "Verificación en 2 pasos".
+    2. Busca (arriba en el buscador de la cuenta) "Contraseñas de aplicaciones".
+    3. Nombre de la App: "RAMPET".
+*   **Qué copiar**: Google te dará un código de **16 letras**. Ese es tu `SMTP_PASS`. Tu `SMTP_USER` es simplemente tu email de Gmail.
+
+### E. Grupo Automatización QStash (`QSTASH_*`)
+*   **Dónde**: [Upstash Console](https://console.upstash.com/qstash).
+*   **Cómo**: Crea una cuenta gratuita y ve a la pestaña QStash.
+*   **Qué copiar**: En la página principal verás `Current Signing Key` y `Next Signing Key`. Cópialas a Vercel.
+
+### F. Grupo Seguridad Interna (`VITE_API_KEY` y `API_SECRET_KEY`)
+*   **Cómo**: Estas las inventas tú. Puede ser cualquier palabra larga y compleja (ej: `rampet_security_3344_x`).
+*   **IMPORTANTE**: Ambas deben tener el **MISMO VALOR** exacto para que el frontend pueda hablar con el backend.
 
 ---
 
-## 🤖 Fase 3: Automatización Superior (Bootstrap Script)
-*No cargue las 30 variables a mano. Use nuestra herramienta de inyección masiva.*
+## 🤖 Fase 2: Automatización con Script Bootstrap
+Para no cargar estas 30 variables a mano en Vercel:
 
-1. Complete su archivo `PLANTILLA_VARIABLES.txt` localmente con los datos del nuevo cliente.
-2. En la terminal, dentro de la carpeta del proyecto, ejecute:
+1. Edite el archivo `PLANTILLA_VARIABLES.txt` con los valores obtenidos en el Diccionario anterior.
+2. Ejecute en su PC:
    ```bash
    node scripts/bootstrap-client.js
    ```
-3. El script le pedirá el **Project ID** de Firebase y realizará lo siguiente:
-   - Vinculará su cuenta de Vercel.
-   - Creará el proyecto en Vercel si no existe.
-   - **Subirá las 30 variables de entorno automáticamente.**
-   - Desplegará las reglas de Cloud Firestore.
+3. El script subirá todo a Vercel y configurará el proyecto automáticamente.
 
 ---
 
-## 📊 Fase 4: Tabla Maestra de Variables (Sanitizada)
-
-| Categoría | Variable | Valor / Origen |
-| :--- | :--- | :--- |
-| **Identidad** | `VITE_APP_NAME` | Nombre Comercial (Ej: Franccesca Martinez) |
-| **Identidad** | `VITE_APP_SHORT_NAME` | Nombre corto PWA |
-| **Seguridad** | `VITE_API_KEY` | Clave secreta (Inventada, ej: `sec_123...`) |
-| **Seguridad** | `API_SECRET_KEY` | **IDÉNTICA** a `VITE_API_KEY` |
-| **Firebase** | `VITE_FIREBASE_API_KEY` | Firebase Config |
-| **Firebase** | `VITE_FIREBASE_AUTH_DOMAIN` | `proyecto.firebaseapp.com` |
-| **Firebase** | `VITE_FIREBASE_PROJECT_ID` | Tu Project ID |
-| **Firebase** | `VITE_FIREBASE_STORAGE_BUCKET`| `proyecto.firebasestorage.app` |
-| **Firebase** | `VITE_FIREBASE_MESSAGING_SENDER_ID`| ID Numérico |
-| **Firebase** | `VITE_FIREBASE_APP_ID` | App ID único |
-| **Firebase** | `VITE_FIREBASE_MEASUREMENT_ID` | G-XXXXXXXX (Opcional) |
-| **Notif.** | `VITE_VAPID_PUBLIC_KEY` | Firebase Cloud Messaging VAPID |
-| **Backend** | `GOOGLE_CREDENTIALS_JSON` | Contenido completo del JSON (Paso 1.2-B) |
-| **Email** | `SMTP_USER` | Su cuenta de Gmail |
-| **Email** | `SMTP_PASS` | La clave de 16 dígitos (Paso 2) |
-| **Deploy** | `PWA_URL` | URL final (Ej: `https://franccesca.vercel.app`) |
-| **Deploy** | `PROJECT_ROOT_DIR` | `fidelidad-next` |
-| **Deploy** | `NODE_VERSION` | `20.x` |
-| **QStash** | `QSTASH_CURRENT_SIGNING_KEY`| De Upstash Dashboard |
-| **QStash** | `QSTASH_NEXT_SIGNING_KEY` | De Upstash Dashboard |
+## 🚀 Fase 3: Despliegue y Verificación
+1. **Root Directory**: Asegúrese de que en Vercel sea `fidelidad-next`.
+2. **URL dinámica**: Una vez desplegado, vaya a **Avanzado** en el panel admin y verá la URL de QStash lista para copiar.
 
 ---
-
-## 🖼️ Fase 5: Referencia Visual y Troubleshooting
-
-### Verificación de Build en Vercel
-Asegúrese de que el **Root Directory** sea `fidelidad-next` para evitar errores 404.
-![Build Settings](file:///C:/Users/pablo/.gemini/antigravity/brain/9368840e-5c6b-4677-9fd8-5d8413c58f34/fix_vercel_root_dir_1775636159174.webp)
-
-### QStash dinámico (Nuevo)
-En el Panel Avanzado del Administrador, ahora verá la URL dinámica. Cópiela directamente desde allí para evitar errores de escritura. No apunte a `fidelidad-next` si está configurando un nuevo cliente.
-
----
-
-## 🚨 Troubleshooting Común
-
-- **Error de Dominios**: Si las invitaciones fallan, añada el dominio de Vercel en Firebase Authentication > Settings > Authorized Domains.
-- **Error JSON**: Si `GOOGLE_CREDENTIALS_JSON` da error al iniciar, verifique que no falten comillas al copiar el contenido del archivo JSON.
-
----
-> [!IMPORTANT]
-> **Exportación a PDF**: Para entregar este manual al cliente, abra este archivo en VS Code y use la extensión **Markdown PDF** (`Ctrl+Shift+P > Markdown PDF: Export`).
+> [!NOTE]
+> **Exportación**: Este manual ha sido optimizado para ser exportado como PDF desde VS Code (`Markdown PDF: Export`).

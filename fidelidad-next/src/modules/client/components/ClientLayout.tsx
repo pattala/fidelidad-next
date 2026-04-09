@@ -27,7 +27,7 @@ export const ClientLayout = () => {
 
     // Geolocation Tracking (Passive)
     useEffect(() => {
-        if (user && !isAdmin) {
+        if (user && !isAdmin && isMobile) {
             const userRef = doc(db, 'users', user.uid);
             const unsubDoc = onSnapshot(userRef, (snap) => {
                 const data = snap.data();

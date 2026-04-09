@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
     Plus, Trash2, Calendar, Target, Award, Save, X, Megaphone, Sparkles,
     ToggleLeft, ToggleRight, Edit, Send, Monitor, Layout, Clock, Image as ImageIcon,
-    ChevronRight, Zap, Info, MousePointer2, MessageCircle, Type, Smartphone, AlignLeft, AlignCenter, AlignRight, Bold, Play, Shield
+    ChevronRight, Zap, Info, MousePointer2, MessageCircle, Type, Smartphone, AlignLeft, AlignCenter, AlignRight, Bold, Play, Shield, Copy
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { CampaignService, type BonusRule } from '../../../services/campaignService';
@@ -261,6 +261,26 @@ export const CampaignsPage = () => {
             ]);
             fetchBonuses();
         } catch (error) { toast.error('Error'); }
+    };
+
+    const handleDuplicate = async (bonus: BonusRule) => {
+        if (isReadOnly) return;
+        const load = toast.loading('Duplicando campaña...');
+        try {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { id, ...rest } = bonus;
+            const newBonus = {
+                ...rest,
+                name: `${bonus.name} (COPIA)`,
+                active: false // Requested by user
+            };
+            await CampaignService.create(newBonus as Omit<BonusRule, 'id'>);
+            toast.success('Campaña duplicada correctamente', { id: load });
+            fetchBonuses();
+        } catch (error) {
+            toast.error('Error al duplicar la campaña', { id: load });
+            console.error(error);
+        }
     };
 
     const handleBroadcast = async (bonus: BonusRule) => {
@@ -823,6 +843,13 @@ export const CampaignsPage = () => {
                                                 title="Editar"
                                             >
                                                 <Edit size={18} />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDuplicate(bonus)}
+                                                className="p-2 text-gray-400 hover:text-orange-500 hover:bg-orange-50 rounded-xl transition-all transform active:scale-90"
+                                                title="Duplicar"
+                                            >
+                                                <Copy size={18} />
                                             </button>
                                             <button
                                                 onClick={() => handleBroadcast(bonus)}

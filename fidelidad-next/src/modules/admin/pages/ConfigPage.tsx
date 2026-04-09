@@ -2849,7 +2849,7 @@ export const ConfigPage = () => {
                                                         <span className="text-[9px] text-gray-500 font-bold uppercase">Destination URL</span>
                                                         <div className="flex gap-2">
                                                             <code className="text-[10px] bg-white/10 p-2 rounded-lg flex-1 truncate">
-                                                                {`https://fidelidad-next.vercel.app/api/engine-daily?mode=daily&trigger=qstash`}
+                                                                {`${window.location.origin}/api/engine-daily?mode=daily&trigger=qstash`}
                                                             </code>
                                                             <button
                                                                 onClick={() => { navigator.clipboard.writeText(`https://fidelidad-next.vercel.app/api/engine-daily?mode=daily&trigger=qstash`); alert("URL Copiada"); }}

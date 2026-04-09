@@ -10,7 +10,7 @@ export const EmailService = {
         // Fallback or validation
         const safeLogo = logoUrl || 'https://via.placeholder.com/150?text=Logo';
         const safeColor = primaryColor || '#0ea5e9'; // Using the same blue as backend for consistency
-        const base = config.contact?.pwaUrl || 'https://fidelidad-next.vercel.app';
+        const base = config.contact?.pwaUrl || (typeof window !== 'undefined' ? window.location.origin : '');
 
         const contact = config.contact || {};
         const termsUrl = contact.termsAndConditions || '#';

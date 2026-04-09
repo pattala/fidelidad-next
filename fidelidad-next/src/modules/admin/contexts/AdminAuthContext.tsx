@@ -91,6 +91,20 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
 
                 fetchRole();
             } else {
+                // Check for manual Master Bypass
+                const bypassEmail = localStorage.getItem('admin_master_bypass');
+                if (bypassEmail) {
+                    setRole('admin');
+                    // Mock a firebase-like user object for compatibility
+                    setUser({ 
+                        email: bypassEmail, 
+                        uid: 'master-bypass',
+                        displayName: 'Master Admin'
+                    } as any);
+                    setLoading(false);
+                    return;
+                }
+
                 // Grace period: give Firebase 800ms to restore session before treating as logged out
                 // This prevents false guest redirects during page load with LOCAL persistence
                 setTimeout(() => {

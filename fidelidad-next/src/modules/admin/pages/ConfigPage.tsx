@@ -935,6 +935,58 @@ export const ConfigPage = () => {
                                                     </div>
                                                 </div>
                                             </div>
+
+                                            <div className="mt-8 pt-6 border-t border-purple-100">
+                                                <div className="flex items-center gap-2 mb-4">
+                                                    <div className="bg-purple-100 p-1.5 rounded-lg text-purple-600">
+                                                        <Key size={16} />
+                                                    </div>
+                                                    <h4 className="text-sm font-black text-gray-800 uppercase tracking-tight">Credenciales de Conexión</h4>
+                                                </div>
+                                                
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div className="bg-white/50 p-4 rounded-xl border border-purple-100">
+                                                        <label className="text-[10px] font-black text-purple-600 uppercase tracking-widest block mb-2">Paso 1: Configurar API URL</label>
+                                                        <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-purple-50 group">
+                                                            <code className="text-[11px] text-gray-600 flex-1 truncate font-mono">
+                                                                {window.location.origin}
+                                                            </code>
+                                                            <button 
+                                                                onClick={() => {
+                                                                    navigator.clipboard.writeText(window.location.origin);
+                                                                    toast.success("URL de API copiada", { icon: '🔗' });
+                                                                }}
+                                                                className="p-2 hover:bg-purple-50 rounded-lg text-purple-600 transition-all active:scale-90"
+                                                                title="Copiar URL"
+                                                            >
+                                                                <Copy size={14} />
+                                                            </button>
+                                                        </div>
+                                                        <p className="text-[9px] text-gray-400 mt-2 italic">Pegar este valor en "API URL" dentro de la extensión.</p>
+                                                    </div>
+
+                                                    <div className="bg-white/50 p-4 rounded-xl border border-purple-100">
+                                                        <label className="text-[10px] font-black text-purple-600 uppercase tracking-widest block mb-2">Paso 2: Configurar API Key</label>
+                                                        <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-purple-50 group">
+                                                            <code className="text-[11px] text-gray-600 flex-1 truncate font-mono">
+                                                                {import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSy..."}
+                                                            </code>
+                                                            <button 
+                                                                onClick={() => {
+                                                                    const apiKey = import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyCiWY4sS9VaJUcfD0o5c_ZRFT0NxFdfOX8";
+                                                                    navigator.clipboard.writeText(apiKey);
+                                                                    toast.success("API Key copiada", { icon: '🔑' });
+                                                                }}
+                                                                className="p-2 hover:bg-purple-50 rounded-lg text-purple-600 transition-all active:scale-90"
+                                                                title="Copiar API Key"
+                                                            >
+                                                                <Copy size={14} />
+                                                            </button>
+                                                        </div>
+                                                        <p className="text-[9px] text-gray-400 mt-2 italic">Pegar este valor en "API Key" dentro de la extensión.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

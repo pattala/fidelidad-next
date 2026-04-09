@@ -84,6 +84,34 @@ export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) 
                 });
 
             } else {
+                // Check for manual Master Bypass
+                const bypassUid = localStorage.getItem('client_master_bypass_uid');
+                if (bypassUid) {
+                    // Mock a firebase-like user object for compatibility
+                    setUser({ 
+                        uid: bypassUid,
+                        email: 'master@bypass.local',
+                        displayName: 'Bypass User'
+                    } as any);
+                    setIsProfileMissing(false);
+                    setIsAdmin(false);
+                    setLoading(true);
+
+                    // Fetch the actual user data from Firestore
+                    const userRef = doc(db, 'users', bypassUid);
+                    if (unsubFirestore) unsubFirestore();
+                    unsubFirestore = onSnapshot(userRef, (snap) => {
+                        if (snap.exists()) {
+                            setUserData(snap.data());
+                            setLoading(false);
+                        } else {
+                            localStorage.removeItem('client_master_bypass_uid');
+                            setLoading(false);
+                        }
+                    });
+                    return;
+                }
+
                 // Not authenticated immediately - Wait for Firebase to finish trying
                 // Increasing to 4s for slower PWA environments/tabs
                 resolveTimer = setTimeout(() => {

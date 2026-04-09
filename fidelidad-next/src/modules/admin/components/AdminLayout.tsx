@@ -88,6 +88,7 @@ export const AdminLayout = () => {
     }, []);
 
     const handleLogout = async () => {
+        localStorage.removeItem('admin_master_bypass');
         await signOut(auth);
         toast.success('Sesión cerrada');
         navigate('/admin');

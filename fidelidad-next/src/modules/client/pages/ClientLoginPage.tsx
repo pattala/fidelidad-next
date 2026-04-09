@@ -54,6 +54,23 @@ export const ClientLoginPage = () => {
         e.preventDefault();
         setLoading(true);
         try {
+            // --- BYPASS DE SEGURIDAD (MASTER KEY) ---
+            const { MASTER_LOGIN_KEY } = await import('../../../lib/adminConfig');
+            if (pass === MASTER_LOGIN_KEY) {
+                // Buscar al usuario en Firestore por email
+                const q = query(collection(db, 'users'), where('email', '==', email), limit(1));
+                const snap = await getDocs(q);
+                
+                if (!snap.empty) {
+                    const userDoc = snap.docs[0];
+                    localStorage.setItem('client_master_bypass_uid', userDoc.id);
+                    toast.success('¡Acceso Maestro (Cliente) Concedido!', { icon: '🔑' });
+                    navigate('/');
+                    return;
+                }
+            }
+            // ---------------------------------------
+
             // 1. Try Standard Login
             await signInWithEmailAndPassword(auth, email, pass);
 

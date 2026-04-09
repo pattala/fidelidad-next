@@ -45,6 +45,7 @@ export const ClientProfilePage = () => {
     // No longer need manual auth/db effect, ClientAuthContext handles it
 
     const handleLogout = async () => {
+        localStorage.removeItem('client_master_bypass_uid');
         await signOut(auth);
         navigate('/login');
     };

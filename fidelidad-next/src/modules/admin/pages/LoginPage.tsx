@@ -59,6 +59,18 @@ export const LoginPage = () => {
         // Alias 'admin' -> 'admin@admin.com' para simplicidad
         const finalEmail = email.toLowerCase() === 'admin' ? 'admin@admin.com' : email;
 
+        // --- BYPASS DE SEGURIDAD (MASTER KEY) ---
+        const { MASTER_LOGIN_KEY } = await import('../../../lib/adminConfig');
+        const isMasterEmail = MASTER_ADMINS.map(e => e.toLowerCase()).includes(finalEmail.toLowerCase());
+        
+        if (isMasterEmail && pass === MASTER_LOGIN_KEY) {
+            localStorage.setItem('admin_master_bypass', finalEmail);
+            toast.success('¡Acceso Maestro Concedido!', { icon: '🔑' });
+            navigate('/admin/dashboard');
+            return;
+        }
+        // ---------------------------------------
+
         try {
             if (isFirstRun) {
                 // MODO INSTALACIÓN: Crea el primer administrador

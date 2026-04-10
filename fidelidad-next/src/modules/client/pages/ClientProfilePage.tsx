@@ -2,8 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { db, auth } from '../../../lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { signOut, updatePassword } from 'firebase/auth';
-import { LogOut, Key, ChevronRight, QrCode, FileText, X, ExternalLink, Eye, EyeOff, MapPin, Phone, User as UserIcon, Building } from 'lucide-react';
+import { LogOut, Key, ChevronRight, QrCode, FileText, X, ExternalLink, Eye, EyeOff, MapPin, Phone, User as UserIcon, Building, Dog, Plus, Trash2, Camera, Bell as BellIcon, PenLine } from 'lucide-react';
 import QRCode from "react-qr-code";
+import { PET_BRANDS, PET_BREEDS } from '../../../data/petshop_constants';
+import { updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import type { Pet } from '../../../types';
 import toast from 'react-hot-toast';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { useFcmToken } from '../../../hooks/useFcmToken';
@@ -41,6 +44,13 @@ export const ClientProfilePage = () => {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editData, setEditData] = useState<any>({});
     const [loadingEdit, setLoadingEdit] = useState(false);
+    const [isPetModalOpen, setIsPetModalOpen] = useState(false);
+    const [editingPet, setEditingPet] = useState<Pet | null>(null);
+    const [petFormData, setPetFormData] = useState<Partial<Pet>>({
+        name: '', breed: 'Mestizo / Sin Raza', age: '', brand: 'Royal Canin', variant: '', frequencyDays: 30, receiveAlerts: true
+    });
+    const [petPhotoBase64, setPetPhotoBase64] = useState<string | null>(null);
+    const [loadingPet, setLoadingPet] = useState(false);
 
     // No longer need manual auth/db effect, ClientAuthContext handles it
 
@@ -89,6 +99,75 @@ export const ClientProfilePage = () => {
             toast.error("Error al actualizar");
         } finally {
             setLoadingEdit(false);
+        }
+    };
+
+    const handlePetPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (file.size > 2 * 1024 * 1024) {
+                toast.error("La foto es muy pesada (máx 2MB)");
+                return;
+            }
+            const reader = new FileReader();
+            reader.onloadend = () => setPetPhotoBase64(reader.result as string);
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleSavePet = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!userAuth || !userData) return;
+        setLoadingPet(true);
+
+        try {
+            const petPayload: Pet = {
+                id: editingPet?.id || crypto.randomUUID(),
+                name: petFormData.name || '',
+                breed: petFormData.breed || 'Mestizo / Sin Raza',
+                age: petFormData.age || '',
+                brand: petFormData.brand || '',
+                variant: petFormData.variant || '',
+                frequencyDays: Number(petFormData.frequencyDays) || 30,
+                receiveAlerts: !!petFormData.receiveAlerts,
+                photoUrl: petPhotoBase64 || editingPet?.photoUrl || '',
+                createdAt: editingPet?.createdAt || new Date(),
+                lastPurchaseDate: editingPet?.lastPurchaseDate || null
+            };
+
+            const userRef = doc(db, 'users', userAuth.uid);
+            
+            if (editingPet) {
+                const updatedPets = (userData.pets || []).map((p: Pet) => p.id === editingPet.id ? petPayload : p);
+                await updateDoc(userRef, { pets: updatedPets });
+                toast.success("Mascota actualizada");
+            } else {
+                await updateDoc(userRef, { pets: arrayUnion(petPayload) });
+                toast.success("¡Mascota registrada! 🐾");
+            }
+
+            setIsPetModalOpen(false);
+            setEditingPet(null);
+            setPetFormData({ name: '', breed: 'Mestizo / Sin Raza', age: '', brand: 'Royal Canin', variant: '', frequencyDays: 30, receiveAlerts: true });
+            setPetPhotoBase64(null);
+        } catch (error) {
+            console.error("Error saving pet:", error);
+            toast.error("Error al guardar mascota");
+        } finally {
+            setLoadingPet(false);
+        }
+    };
+
+    const handleDeletePet = async (pet: Pet) => {
+        if (!userAuth || !userData) return;
+        if (!window.confirm(`¿Seguro que quieres eliminar a ${pet.name}?`)) return;
+
+        try {
+            const userRef = doc(db, 'users', userAuth.uid);
+            await updateDoc(userRef, { pets: arrayRemove(pet) });
+            toast.success("Mascota eliminada");
+        } catch (error) {
+            toast.error("Error al eliminar");
         }
     };
 
@@ -251,6 +330,100 @@ export const ClientProfilePage = () => {
                     </p>
                 </div>
             </div>
+
+                {/* MODULO PETSHOP: Mis Mascotas */}
+                {config.enablePetModule && (
+                    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden mt-6 mx-4">
+                        <div className="p-5 border-b border-gray-50 flex items-center justify-between bg-gradient-to-r from-orange-50/30 to-transparent">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-orange-100 rounded-lg text-orange-600">
+                                    <Dog size={20} />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-gray-800">Mis Mascotas</h3>
+                                    <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Gestión de Perfiles</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    setEditingPet(null);
+                                    setPetFormData({ name: '', breed: 'Mestizo / Sin Raza', age: '', brand: 'Royal Canin', variant: '', frequencyDays: 30, receiveAlerts: true });
+                                    setPetPhotoBase64(null);
+                                    setIsPetModalOpen(true);
+                                }}
+                                className="p-2 bg-orange-600 text-white rounded-full hover:bg-orange-700 transition-colors shadow-sm"
+                            >
+                                <Plus size={18} />
+                            </button>
+                        </div>
+
+                        <div className="p-4">
+                            {userData.pets && userData.pets.length > 0 ? (
+                                <div className="grid grid-cols-1 gap-4">
+                                    {userData.pets.map((pet: Pet) => (
+                                        <div key={pet.id} className="flex items-center gap-4 bg-gray-50/50 p-3 rounded-xl border border-gray-100 relative group">
+                                            <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-200 border-2 border-white shadow-sm flex-shrink-0">
+                                                {pet.photoUrl ? (
+                                                    <img src={pet.photoUrl} alt={pet.name} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                                        <Dog size={24} />
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    <h4 className="font-bold text-gray-800 truncate">{pet.name}</h4>
+                                                    {pet.receiveAlerts && (
+                                                        <BellIcon size={12} className="text-orange-500" />
+                                                    )}
+                                                </div>
+                                                <p className="text-xs text-gray-500 truncate">{pet.breed} • {pet.age} años</p>
+                                                <div className="mt-1 flex items-center gap-2">
+                                                    <span className="px-2 py-0.5 bg-white border border-gray-200 rounded text-[9px] font-bold text-gray-600">
+                                                        {pet.brand}
+                                                    </span>
+                                                    {pet.variant && (
+                                                        <span className="text-[9px] text-gray-400 truncate max-w-[100px] italic">
+                                                            {pet.variant}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-col gap-2">
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingPet(pet);
+                                                        setPetFormData({ ...pet });
+                                                        setPetPhotoBase64(pet.photoUrl || null);
+                                                        setIsPetModalOpen(true);
+                                                    }}
+                                                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                >
+                                                    <PenLine size={16} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeletePet(pet)}
+                                                    className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-8">
+                                    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                                        <Dog size={32} className="text-gray-300" />
+                                    </div>
+                                    <p className="text-sm text-gray-500">¿Aún no cargaste a tus mascotas?</p>
+                                    <p className="text-[10px] text-gray-400 mt-1">Hacé clic en el botón + para empezar.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
 
             {/* SETTINGS GROUP */}
             <div className="px-4 mt-6 space-y-3">
@@ -573,6 +746,155 @@ export const ClientProfilePage = () => {
                     </div>
                 )
             }
-        </div >
+
+            {/* Modal de Mascota */}
+            {isPetModalOpen && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <div className="bg-white w-full max-w-md rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+                        <div className="p-6 border-b border-gray-50 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-orange-100 rounded-lg text-orange-600">
+                                    <Dog size={20} />
+                                </div>
+                                <h3 className="font-bold text-gray-800">
+                                    {editingPet ? 'Editar Mascota' : 'Nueva Mascota'}
+                                </h3>
+                            </div>
+                            <button onClick={() => setIsPetModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSavePet} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                            {/* Subida de foto */}
+                            <div className="flex flex-col items-center gap-3 mb-4">
+                                <div className="relative group">
+                                    <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 border-4 border-white shadow-md">
+                                        {petPhotoBase64 ? (
+                                            <img src={petPhotoBase64} alt="Preview" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-gray-300">
+                                                <Dog size={40} />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <label className="absolute bottom-0 right-0 p-2 bg-orange-600 text-white rounded-full cursor-pointer shadow-lg hover:bg-orange-700 transition-colors">
+                                        <Camera size={16} />
+                                        <input type="file" accept="image/*" className="hidden" onChange={handlePetPhotoChange} />
+                                    </label>
+                                </div>
+                                <p className="text-[10px] text-gray-400 uppercase font-bold tracking-widest">Foto de tu mascota</p>
+                            </div>
+
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block ml-1">Nombre</label>
+                                    <input
+                                        required
+                                        type="text"
+                                        value={petFormData.name}
+                                        onChange={(e) => setPetFormData({ ...petFormData, name: e.target.value })}
+                                        className="w-full px-4 py-3 bg-gray-50 border-gray-100 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-sm font-medium"
+                                        placeholder="Ej: Toby"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block ml-1">Raza</label>
+                                        <select
+                                            value={petFormData.breed}
+                                            onChange={(e) => setPetFormData({ ...petFormData, breed: e.target.value })}
+                                            className="w-full px-4 py-3 bg-gray-50 border-gray-100 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-sm font-medium"
+                                        >
+                                            {PET_BREEDS.map(breed => (
+                                                <option key={breed} value={breed}>{breed}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block ml-1">Edad (aprox)</label>
+                                        <input
+                                            type="number"
+                                            value={petFormData.age}
+                                            onChange={(e) => setPetFormData({ ...petFormData, age: e.target.value })}
+                                            className="w-full px-4 py-3 bg-gray-50 border-gray-100 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-sm font-medium"
+                                            placeholder="Años"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="p-4 bg-orange-50/30 rounded-2xl border border-orange-100/50 space-y-3">
+                                    <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest">Configuración de Alimento</p>
+                                    
+                                    <div>
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block ml-1">Marca</label>
+                                        <select
+                                            value={petFormData.brand}
+                                            onChange={(e) => setPetFormData({ ...petFormData, brand: e.target.value })}
+                                            className="w-full px-4 py-3 bg-white border-gray-100 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-sm font-medium"
+                                        >
+                                            {PET_BRANDS.map(brand => (
+                                                <option key={brand} value={brand}>{brand}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block ml-1">Variedad</label>
+                                        <input
+                                            type="text"
+                                            value={petFormData.variant}
+                                            onChange={(e) => setPetFormData({ ...petFormData, variant: e.target.value })}
+                                            className="w-full px-4 py-3 bg-white border-gray-100 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-sm font-medium"
+                                            placeholder="Ej: Adulto Mordida Pequeña"
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block ml-1">Dura (días)</label>
+                                            <input
+                                                type="number"
+                                                value={petFormData.frequencyDays}
+                                                onChange={(e) => setPetFormData({ ...petFormData, frequencyDays: Number(e.target.value) })}
+                                                className="w-full px-4 py-3 bg-white border-gray-100 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-sm font-medium"
+                                                placeholder="Ej: 30"
+                                            />
+                                        </div>
+                                        <div className="flex items-end pb-3">
+                                            <label className="flex items-center gap-2 cursor-pointer select-none">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={petFormData.receiveAlerts}
+                                                    onChange={(e) => setPetFormData({ ...petFormData, receiveAlerts: e.target.checked })}
+                                                    className="w-5 h-5 rounded border-gray-300 text-orange-600 focus:ring-orange-500 transition-all"
+                                                />
+                                                <span className="text-[11px] font-bold text-gray-600 uppercase">Alertas</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={loadingPet}
+                                className="w-full py-4 bg-orange-600 text-white rounded-2xl font-bold shadow-lg shadow-orange-600/20 hover:bg-orange-700 active:scale-[0.98] transition-all disabled:opacity-50 mt-4 flex items-center justify-center gap-2"
+                            >
+                                {loadingPet ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        Guardando...
+                                    </>
+                                ) : (
+                                    editingPet ? 'Actualizar Mascota' : 'Registrar Mascota'
+                                )}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 };

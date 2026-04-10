@@ -117,6 +117,8 @@ export const ClientsPage = () => {
     const [applyPromotions, setApplyPromotions] = useState(true); // New State: Default True
     const [availablePromotions, setAvailablePromotions] = useState<any[]>([]);
     const [selectedPromos, setSelectedPromos] = useState<string[]>([]);
+    const [isPetFoodPurchase, setIsPetFoodPurchase] = useState(false);
+    const [selectedPetsForFood, setSelectedPetsForFood] = useState<string[]>([]);
 
     // Toggles Alta Cliente
     const [applyWelcomeBonus, setApplyWelcomeBonus] = useState(true);
@@ -623,6 +625,25 @@ export const ClientsPage = () => {
                     }, 500);
                 }
 
+                // 3. Update User Balance
+                const userRef = doc(db, 'users', selectedClientForPoints.id);
+                const updates: any = {
+                    points: increment(data.pointsAdded)
+                };
+
+                // SECCION PETSHOP: Actualizar fecha de compra de alimento
+                if (isPetFoodPurchase && selectedClientForPoints.pets) {
+                    const updatedPets = selectedClientForPoints.pets.map(pet => {
+                        if (selectedPetsForFood.includes(pet.id)) {
+                            return { ...pet, lastPurchaseDate: admin.firestore.Timestamp.fromDate(new Date(pointsData.purchaseDate)) };
+                        }
+                        return pet;
+                    });
+                    updates.pets = updatedPets;
+                }
+
+                await updateDoc(userRef, updates);
+
                 // Actualizar cache de vencimientos
                 ExpirationService.updateNextExpirationCache(selectedClientForPoints.id);
 
@@ -914,6 +935,16 @@ export const ClientsPage = () => {
                                                         </span>
                                                     )}
                                                 </div>
+                                                {config?.enablePetModule && client.pets && client.pets.length > 0 && (
+                                                    <div className="flex flex-wrap gap-1 mt-1.5 translate-y-[-2px]">
+                                                        {client.pets.map((pet, idx) => (
+                                                            <div key={idx} className="flex items-center gap-1 bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded border border-orange-100/50" title={`${pet.breed} - Come: ${pet.foodBrand}`}>
+                                                                <span className="text-[10px]">🐾</span>
+                                                                <span className="text-[9px] font-black uppercase tracking-tighter truncate max-w-[60px]">{pet.name}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
                                                 <div className="flex flex-col gap-0.5 mt-1">
                                                     <span className="text-[10px] text-gray-500 font-medium flex items-center gap-1 truncate">
                                                         <Mail size={10} /> {client.email}
@@ -1454,6 +1485,17 @@ export const ClientsPage = () => {
                                 <div>
                                     <h2 className="text-xl font-bold">Sumar Puntos</h2>
                                     <p className="text-green-100 text-xs">{selectedClientForPoints.name}</p>
+                                    {config?.enablePetModule && selectedClientForPoints.pets && selectedClientForPoints.pets.length > 0 && (
+                                        <div className="flex flex-wrap gap-1 mt-2">
+                                            {selectedClientForPoints.pets.map((p, i) => (
+                                                <div key={i} className="bg-white/20 px-2 py-1 rounded-lg flex items-center gap-1.5 border border-white/20">
+                                                    <span className="text-[10px]">🐾</span>
+                                                    <span className="text-[10px] font-bold uppercase">{p.name}</span>
+                                                    <span className="text-[9px] opacity-70">({p.foodBrand})</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                                 <button onClick={closePointsModal} className="p-2 hover:bg-white/10 rounded-full transition"><X size={20} /></button>
                             </div>
@@ -1616,6 +1658,43 @@ export const ClientsPage = () => {
                                         />
                                         <span className="text-sm font-medium text-gray-700">Notificar por WhatsApp</span>
                                     </label>
+
+                                    {/* SECCION PETSHOP: Marcar compra de alimento */}
+                                    {config?.enablePetModule && selectedClientForPoints.pets && selectedClientForPoints.pets.length > 0 && (
+                                        <div className="mt-4 pt-4 border-t border-gray-100">
+                                            <label className="flex items-center gap-3 cursor-pointer mb-2">
+                                                <input
+                                                    type="checkbox"
+                                                    className="w-5 h-5 rounded border-orange-300 text-orange-600 focus:ring-orange-500"
+                                                    checked={isPetFoodPurchase}
+                                                    onChange={e => {
+                                                        setIsPetFoodPurchase(e.target.checked);
+                                                        if (e.target.checked) setSelectedPetsForFood(selectedClientForPoints.pets!.map(p => p.id));
+                                                    }}
+                                                />
+                                                <span className="text-sm font-bold text-orange-700">Reposición de Alimento 🐾</span>
+                                            </label>
+                                            
+                                            {isPetFoodPurchase && selectedClientForPoints.pets.length > 1 && (
+                                                <div className="flex flex-wrap gap-2 pl-8 animate-fade-in">
+                                                    {selectedClientForPoints.pets.map(pet => (
+                                                        <label key={pet.id} className="flex items-center gap-1.5 cursor-pointer bg-white border border-orange-100 px-2 py-1 rounded-lg">
+                                                            <input
+                                                                type="checkbox"
+                                                                className="w-3.5 h-3.5 rounded text-orange-500 focus:ring-orange-400"
+                                                                checked={selectedPetsForFood.includes(pet.id)}
+                                                                onChange={e => {
+                                                                    if (e.target.checked) setSelectedPetsForFood([...selectedPetsForFood, pet.id]);
+                                                                    else setSelectedPetsForFood(selectedPetsForFood.filter(id => id !== pet.id));
+                                                                }}
+                                                            />
+                                                            <span className="text-[10px] font-bold text-gray-600 uppercase">{pet.name}</span>
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
 
                                 <button type="submit" disabled={actionLoading} className="w-full py-4 bg-green-600 text-white rounded-2xl font-bold text-lg hover:bg-green-700 transition shadow-lg shadow-green-100 disabled:opacity-50">

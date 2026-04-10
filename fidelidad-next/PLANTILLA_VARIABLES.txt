@@ -8,6 +8,7 @@ VITE_APP_SHORT_NAME=NOMBRE_CORTO
 VITE_API_KEY=tu_api_key_aqui                  
 API_SECRET_KEY=tu_secret_key_aqui           
 VITE_MASTER_LOGIN_KEY=Felipe01                # Clave maestra universal (Opcional, defecto: Felipe01)
+VITE_ENABLE_PET_MODULE=false                  # Activa módulo de Mascotas (Opcional, defecto: false)
 
 # --- Correo (Gmail) ---
 SMTP_USER=usuario@gmail.com               

@@ -80,7 +80,8 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
     },
     enableDateSimulator: false,
     simulatedOffsetDays: 0,
-    enableDuplicateControl: true
+    enableDuplicateControl: true,
+    enablePetModule: import.meta.env.VITE_ENABLE_PET_MODULE === 'true'
 };
 
 export const ConfigService = {
@@ -177,5 +178,6 @@ export const DEFAULT_TEMPLATES = {
     referralReward: "¡Hola {nombre}! 🎁 Ganaste {puntos} puntos porque tu amigo {amigo} comenzó a usar {siteName}. ¡Gracias por recomendarnos! ✨",
     referralPoints: "🎁 ¡Buenas noticias! Ganaste {puntos} puntos porque {nombre_referido} se unió a {siteName}. ¡Gracias por recomendarnos! 🚀",
     expirationWarning: "¡Hola {nombre}! 🚀 Tenés {puntos} puntos para gastar antes del {fecha}. ¡Canjealos hoy por un premio antes de que se venzan! 🎁✨",
-    referralChallenge: "¡NUEVO DESAFÍO ACTIVO! 🚀 Traé amigos a {siteName} y ganá bonos extra de puntos por tiempo limitado. ¡Entrá ahora para participar! 🎁"
+    referralChallenge: "¡NUEVO DESAFÍO ACTIVO! 🚀 Traé amigos a {siteName} y ganá bonos extra de puntos por tiempo limitado. ¡Entrá ahora para participar! 🎁",
+    petFoodAlert: "¡Hola {nombre}! 🐾 A {mascota} le queda poco alimento {marca}. ¡Vení a buscar su bolsa y seguí sumando puntos! 🎁✨"
 };

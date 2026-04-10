@@ -362,10 +362,39 @@ export default async function handler(req, res) {
             }
         }
 
+        // --- PASO 3: ALERTAS PETSHOP (CALL SILENT) ---
+        let petAlertsResult = { ok: true, summary: { notified: 0, details: [] } };
+        if (isDailyMode && config.enablePetModule) {
+            try {
+                const currentHost = req.headers.host;
+                const baseUrl = currentHost ? `https://${currentHost}` : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+                
+                const pRes = await fetch(`${baseUrl}/api/pet-alerts?trigger=${triggerSource}&silent=true`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'x-api-key': SECRET, 
+                        'x-api-secret': SECRET, 
+                        'x-executor-role': 'system' 
+                    },
+                    body: JSON.stringify({
+                        simulatedDate: referenceDate.toISOString(),
+                        ignoreDeduplication: finalIgnoreDeduplication
+                    })
+                });
+                
+                if (pRes.ok) {
+                    petAlertsResult = await pRes.json();
+                }
+            } catch (e) { 
+                console.error("[DailyCheck] Error calling pet-alerts API:", e.message); 
+            }
+        }
+
         // --- AUDITORIA CONSOLIDADA ---
-        const totalNotified = logResults.processed + (expirationsResult.summary?.notified || 0);
+        const totalNotified = logResults.processed + (expirationsResult.summary?.notified || 0) + (petAlertsResult.results?.notified || 0);
         const auditSummary = `Motor Diario Ejecutado. Gatillo: ${logSourceLabel}. Total Notificaciones: ${totalNotified}. 
-            (Cumpleaños: ${logResults.processed}, Vencimientos: ${expirationsResult.summary?.notified || 0})`;
+            (Cumpleaños: ${logResults.processed}, Vencimientos: ${expirationsResult.summary?.notified || 0}, Petshop: ${petAlertsResult.results?.notified || 0})`;
 
         await db.collection('audit_logs').add({
             timestamp: admin.firestore.FieldValue.serverTimestamp(),

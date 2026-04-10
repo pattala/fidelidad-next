@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Save, Plus, Trash2, Palette, Calculator, Monitor, Smartphone, Settings, Home, Gift, MessageCircle, FileText, AlertTriangle, RefreshCw, ShieldAlert, Shield, Users, Clock, Eye, Sparkles, Cake, Zap, UserPlus, Megaphone, Bell, MapPin, Download, QrCode } from 'lucide-react';
+import { Save, Plus, Trash2, Palette, Calculator, Monitor, Smartphone, Settings, Home, Gift, MessageCircle, FileText, AlertTriangle, RefreshCw, ShieldAlert, Shield, Users, Clock, Eye, Sparkles, Cake, Zap, UserPlus, Megaphone, Bell, MapPin, Download, QrCode, Key } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import { ConfigService, DEFAULT_TEMPLATES } from '../../../services/configService';
 import { EmailPreviewModal } from '../components/EmailPreviewModal';
@@ -2778,7 +2778,48 @@ export const ConfigPage = () => {
                                         </div>
                                     )}
                                 </div>
-                            </div>
+
+                                {/* Pet Food Alert Template */}
+                                {config.enablePetModule && (
+                                    <div className="p-4 bg-orange-50/30 rounded-xl border border-orange-100 space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <h4 className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                                                🐾 Aviso de Reposición de Alimento
+                                            </h4>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <div className="relative flex-1">
+                                                <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">🔔</span>
+                                                <textarea
+                                                    rows={2}
+                                                    value={config.messaging?.templates?.petFoodAlert || ''}
+                                                    onChange={e => setConfig({
+                                                        ...config,
+                                                        messaging: {
+                                                            ...config.messaging!,
+                                                            templates: { ...config.messaging?.templates, petFoodAlert: e.target.value }
+                                                        }
+                                                    })}
+                                                    placeholder={DEFAULT_TEMPLATES.petFoodAlert}
+                                                    className="w-full pl-10 pr-3 py-3 rounded-lg border border-orange-200 focus:ring-2 focus:ring-orange-100 outline-none resize-none text-sm"
+                                                />
+                                            </div>
+                                            <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, petFoodAlert: DEFAULT_TEMPLATES.petFoodAlert } } })} className="px-3 py-2 text-gray-400 hover:text-orange-600 rounded-lg transition" title="Restaurar predeterminado">↺</button>
+                                        </div>
+                                        <VariableChips vars={['siteName', 'nombre', 'mascota', 'marca']} onSelect={v => insertVar('petFoodAlert', v)} />
+                                        
+                                        <div className="bg-white/50 p-3 rounded-lg border border-orange-100">
+                                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Canales de Envío</label>
+                                            <ChannelSelector
+                                                channels={config.messaging?.eventConfigs?.petFoodAlert?.channels || []}
+                                                onChange={(newChannels) => setConfig({
+                                                    ...config,
+                                                    messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, petFoodAlert: { channels: newChannels } } }
+                                                })}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
 
                             {/* Email Preview Button */}
                             {config.messaging?.emailEnabled && (
@@ -2836,6 +2877,23 @@ export const ConfigPage = () => {
                                             className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.enableDuplicateControl !== false ? 'bg-red-600' : 'bg-gray-200'}`}
                                         >
                                             <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enableDuplicateControl !== false ? 'translate-x-5' : 'translate-x-0'}`} />
+                                        </button>
+                                    </div>
+
+                                    {/* MODULO PETSHOP: Toggle Global */}
+                                    <div className="flex items-center justify-between p-6 bg-orange-50/50 rounded-2xl border border-orange-100">
+                                        <div className="flex-1">
+                                            <span className="text-sm font-black text-orange-900 uppercase flex items-center gap-2">
+                                                <Dog size={16} /> Módulo Petshop
+                                            </span>
+                                            <p className="text-[10px] text-orange-600 font-bold mt-1">Habilita la sección "Mis Mascotas" en el perfil del cliente y el sistema de alertas de alimento.</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setConfig({ ...config, enablePetModule: !config.enablePetModule })}
+                                            className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.enablePetModule ? 'bg-orange-600' : 'bg-gray-200'}`}
+                                        >
+                                            <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enablePetModule ? 'translate-x-5' : 'translate-x-0'}`} />
                                         </button>
                                     </div>
 

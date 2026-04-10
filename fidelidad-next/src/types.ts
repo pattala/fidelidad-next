@@ -1,3 +1,17 @@
+export interface Pet {
+    id: string;
+    name: string;
+    breed: string;
+    age: string;
+    brand: string;
+    variant: string;
+    photoUrl?: string;
+    frequencyDays: number;
+    lastPurchaseDate?: any;
+    receiveAlerts: boolean;
+    createdAt: any;
+}
+
 export interface Client {
     id: string;
     name: string;
@@ -69,6 +83,7 @@ export interface Client {
     };
     isTestUser?: boolean;
     pwaInstalled?: boolean; // Nueva: Flag para saber si el usuario instaló la App
+    pets?: Pet[];
 }
 
 export interface User {
@@ -167,10 +182,9 @@ export interface AppConfig {
             flashOffer?: string;
             birthday?: string;
             birthdaySimple?: string;
-            referralReward?: string;
-            referralPoints?: string;
             expirationWarning?: string; // Tono: Tenés {puntos} pts para gastar antes del {fecha}! Mirá lo que podés llevarte →
             referralChallenge?: string;
+            petFoodAlert?: string;
         };
         enableExpirationWarnings?: boolean;
         repeatExpirationWarnings?: boolean;
@@ -223,6 +237,7 @@ export interface AppConfig {
     enableDuplicateControl?: boolean;
     pwaIconUrl?: string;
     carouselSpeedSeconds?: number;
+    enablePetModule?: boolean;
 }
 
 export interface Prize {

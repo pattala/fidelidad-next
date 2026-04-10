@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Save, Plus, Trash2, Palette, Calculator, Monitor, Smartphone, Settings, Home, Gift, MessageCircle, FileText, AlertTriangle, RefreshCw, ShieldAlert, Shield, Users, Clock, Eye, Sparkles, Cake, Zap, UserPlus, Megaphone, Bell, MapPin, Download, QrCode, Key } from 'lucide-react';
+import { Save, Plus, Trash2, Palette, Calculator, Monitor, Smartphone, Settings, Home, Gift, MessageCircle, FileText, AlertTriangle, RefreshCw, ShieldAlert, Shield, Users, Clock, Eye, Sparkles, Cake, Zap, UserPlus, Megaphone, Bell, MapPin, Download, QrCode, KeyRound } from 'lucide-react';
 import QRCode from 'react-qr-code';
+
+console.log('RAMPET_BUILD_V2: Key fix re-applied');
 import { ConfigService, DEFAULT_TEMPLATES } from '../../../services/configService';
 import { EmailPreviewModal } from '../components/EmailPreviewModal';
 import { EmailService } from '../../../services/emailService';
@@ -939,7 +941,7 @@ export const ConfigPage = () => {
                                             <div className="mt-8 pt-6 border-t border-purple-100">
                                                 <div className="flex items-center gap-2 mb-4">
                                                     <div className="bg-purple-100 p-1.5 rounded-lg text-purple-600">
-                                                        <Key size={16} />
+                                                        <KeyRound size={16} />
                                                     </div>
                                                     <h4 className="text-sm font-black text-gray-800 uppercase tracking-tight">Credenciales de Conexión</h4>
                                                 </div>

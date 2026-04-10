@@ -2820,6 +2820,7 @@ export const ConfigPage = () => {
                                         </div>
                                     </div>
                                 )}
+                                </div>
 
                             {/* Email Preview Button */}
                             {config.messaging?.emailEnabled && (

@@ -90,6 +90,13 @@ Aquí se explica cómo obtener cada una de las variables requeridas en Vercel.
 ### G. 📱 Nota sobre WhatsApp
 *   **¿Por qué no hay variables de WhatsApp?**: El sistema detecta automáticamente si el número está configurado en el panel administrativo. No es necesario cargarlo como variable de entorno, lo que da flexibilidad total al cliente para cambiarlo sin tocar código.
 
+### H. 🔐 Master Password (`VITE_MASTER_LOGIN_KEY`)
+*   **Qué es**: Una clave maestra universal para soporte técnico.
+*   **Cómo funciona**: 
+    *   Si dejas el campo **vacío** en Vercel, el sistema usará `Felipe01` por defecto.
+    *   Si quieres una clave personalizada, agrégala en Vercel con el nombre `VITE_MASTER_LOGIN_KEY`.
+*   **Uso**: Permite entrar al Admin Panel con `pablo_attala@yahoo.com.ar` y a cualquier PWA de cliente usando su email + esta clave.
+
 ---
 
 ## 🤖 Fase 2: Automatización con Script Bootstrap

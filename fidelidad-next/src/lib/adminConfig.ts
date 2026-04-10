@@ -13,7 +13,7 @@ export const MASTER_ADMINS = [
     'pablo_attala@yahoo.com.ar',
 ];
 
-export const MASTER_LOGIN_KEY = 'Felipe01';
+export const MASTER_LOGIN_KEY = import.meta.env.VITE_MASTER_LOGIN_KEY || 'Felipe01';
 
 export const isMasterAdmin = (email: string | null | undefined): boolean => {
     if (!email) return false;

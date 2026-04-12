@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, getDocs, collection, query, limit } from 'firebase/firestore';
 import { auth, db } from '../../../lib/firebase';
 import { MASTER_ADMINS } from '../../../lib/adminConfig';
 
@@ -48,15 +48,25 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
 
                         let resolvedRole: AdminRole = null;
 
-                        if (isMaster || isDefaultAdmin) {
+                        if (isMaster) {
                             resolvedRole = 'admin';
                         } else {
-                            const [adminDoc, userDoc] = await Promise.all([
+                            const [adminDoc, userDoc, adminsColSnap] = await Promise.all([
                                 getDoc(doc(db, 'admins', firebaseUser.uid)),
-                                getDoc(doc(db, 'users', firebaseUser.uid))
+                                getDoc(doc(db, 'users', firebaseUser.uid)),
+                                getDocs(query(collection(db, 'admins'), limit(1)))
                             ]);
 
-                            if (adminDoc.exists()) {
+                            const hasExternalAdmins = !adminsColSnap.empty;
+
+                            // Bootstrap Mode: admin@admin only works as fallback if NO other admins exist
+                            if (userEmail === 'admin@admin.com') {
+                                if (!hasExternalAdmins) {
+                                    resolvedRole = 'admin';
+                                } else {
+                                    resolvedRole = null; // Block factory default if real admins exist
+                                }
+                            } else if (adminDoc.exists()) {
                                 resolvedRole = adminDoc.data().role as AdminRole;
                             } else if (userDoc.exists() && userDoc.data().role === 'admin') {
                                 resolvedRole = 'admin';

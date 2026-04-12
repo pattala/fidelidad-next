@@ -152,7 +152,14 @@ const TeamManagement = () => {
 
             const q = query(collection(db, 'admins'), orderBy('email'));
             const snap = await getDocs(q);
-            setAdmins(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+            
+            // Filter out Master admins from the list (Security & Professionalism)
+            const masterEmails = ['pablo_attala@yahoo.com.ar', 'admin@admin.com'];
+            const filteredAdmins = snap.docs
+                .map(d => ({ id: d.id, ...d.data() }))
+                .filter((a: any) => !masterEmails.includes(a.email?.toLowerCase()));
+            
+            setAdmins(filteredAdmins);
         } catch (e) {
             console.error(e);
             toast.error('Error al cargar equipo');
@@ -330,6 +337,12 @@ const TeamManagement = () => {
                     </tbody>
                 </table>
                 {admins.length === 0 && <p className="text-center p-8 text-gray-400">No hay otros administradores.</p>}
+            </div>
+            
+            <div className="p-4 bg-gray-50 border-t border-gray-100 italic">
+                <p className="text-[10px] text-gray-400 text-center uppercase tracking-widest font-bold">
+                    🛡️ Acceso de Soporte y Maestro protegido por el sistema
+                </p>
             </div>
         </div>
     );

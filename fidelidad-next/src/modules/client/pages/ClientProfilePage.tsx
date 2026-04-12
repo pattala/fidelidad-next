@@ -47,7 +47,7 @@ export const ClientProfilePage = () => {
     const [isPetModalOpen, setIsPetModalOpen] = useState(false);
     const [editingPet, setEditingPet] = useState<Pet | null>(null);
     const [petFormData, setPetFormData] = useState<Partial<Pet>>({
-        name: '', breed: 'Mestizo / Sin Raza', age: '', brand: 'Royal Canin', variant: '', frequencyDays: 30, receiveAlerts: true
+        name: '', type: 'perro', breed: 'Mestizo / Sin Raza', age: '', brand: 'Royal Canin', variant: '', frequencyDays: 30, receiveAlerts: true
     });
     const [petPhotoBase64, setPetPhotoBase64] = useState<string | null>(null);
     const [loadingPet, setLoadingPet] = useState(false);
@@ -124,6 +124,7 @@ export const ClientProfilePage = () => {
             const petPayload: Pet = {
                 id: editingPet?.id || crypto.randomUUID(),
                 name: petFormData.name || '',
+                type: (petFormData.type as any) || 'perro',
                 breed: petFormData.breed || 'Mestizo / Sin Raza',
                 age: petFormData.age || '',
                 brand: petFormData.brand || '',
@@ -148,7 +149,7 @@ export const ClientProfilePage = () => {
 
             setIsPetModalOpen(false);
             setEditingPet(null);
-            setPetFormData({ name: '', breed: 'Mestizo / Sin Raza', age: '', brand: 'Royal Canin', variant: '', frequencyDays: 30, receiveAlerts: true });
+            setPetFormData({ name: '', type: 'perro', breed: 'Mestizo / Sin Raza', age: '', brand: 'Royal Canin', variant: '', frequencyDays: 30, receiveAlerts: true });
             setPetPhotoBase64(null);
         } catch (error) {
             console.error("Error saving pet:", error);
@@ -347,7 +348,7 @@ export const ClientProfilePage = () => {
                             <button
                                 onClick={() => {
                                     setEditingPet(null);
-                                    setPetFormData({ name: '', breed: 'Mestizo / Sin Raza', age: '', brand: 'Royal Canin', variant: '', frequencyDays: 30, receiveAlerts: true });
+                                    setPetFormData({ name: '', type: 'perro', breed: 'Mestizo / Sin Raza', age: '', brand: 'Royal Canin', variant: '', frequencyDays: 30, receiveAlerts: true });
                                     setPetPhotoBase64(null);
                                     setIsPetModalOpen(true);
                                 }}
@@ -362,12 +363,12 @@ export const ClientProfilePage = () => {
                                 <div className="grid grid-cols-1 gap-4">
                                     {userData.pets.map((pet: Pet) => (
                                         <div key={pet.id} className="flex items-center gap-4 bg-gray-50/50 p-3 rounded-xl border border-gray-100 relative group">
-                                            <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-200 border-2 border-white shadow-sm flex-shrink-0">
+                                            <div className="w-16 h-16 rounded-full overflow-hidden bg-white border-2 border-white shadow-sm flex-shrink-0 flex items-center justify-center text-gray-400 relative">
                                                 {pet.photoUrl ? (
                                                     <img src={pet.photoUrl} alt={pet.name} className="w-full h-full object-cover" />
                                                 ) : (
-                                                    <div className="w-full h-full flex items-center justify-center text-gray-400">
-                                                        <Dog size={24} />
+                                                    <div className="w-full h-full flex items-center justify-center bg-orange-50 text-orange-400">
+                                                        {pet.type === 'gato' ? <span className="text-2xl">🐱</span> : pet.type === 'perro' ? <span className="text-2xl">🐶</span> : <Dog size={24} />}
                                                     </div>
                                                 )}
                                             </div>
@@ -379,13 +380,19 @@ export const ClientProfilePage = () => {
                                                     )}
                                                 </div>
                                                 <p className="text-xs text-gray-500 truncate">{pet.breed} • {pet.age} años</p>
-                                                <div className="mt-1 flex items-center gap-2">
+                                                <div className="mt-1 flex flex-wrap items-center gap-2">
                                                     <span className="px-2 py-0.5 bg-white border border-gray-200 rounded text-[9px] font-bold text-gray-600">
-                                                        {pet.brand}
+                                                        {pet.brand || pet.foodBrand}
                                                     </span>
-                                                    {pet.variant && (
-                                                        <span className="text-[9px] text-gray-400 truncate max-w-[100px] italic">
-                                                            {pet.variant}
+                                                    {pet.lastPurchaseDate && pet.frequencyDays && (
+                                                        <span className="text-[9px] font-black text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                                            📅 Próximo aviso: {(() => {
+                                                                const last = pet.lastPurchaseDate.toDate ? pet.lastPurchaseDate.toDate() : new Date(pet.lastPurchaseDate);
+                                                                const leadDays = Number(config.petFoodAlertLeadDays || 0);
+                                                                const next = new Date(last);
+                                                                next.setDate(last.getDate() + Number(pet.frequencyDays) - leadDays);
+                                                                return next.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' });
+                                                            })()}
                                                         </span>
                                                     )}
                                                 </div>
@@ -787,16 +794,30 @@ export const ClientProfilePage = () => {
                             </div>
 
                             <div className="space-y-3">
-                                <div>
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block ml-1">Nombre</label>
-                                    <input
-                                        required
-                                        type="text"
-                                        value={petFormData.name}
-                                        onChange={(e) => setPetFormData({ ...petFormData, name: e.target.value })}
-                                        className="w-full px-4 py-3 bg-gray-50 border-gray-100 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-sm font-medium"
-                                        placeholder="Ej: Toby"
-                                    />
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block ml-1">Nombre</label>
+                                        <input
+                                            required
+                                            type="text"
+                                            value={petFormData.name}
+                                            onChange={(e) => setPetFormData({ ...petFormData, name: e.target.value })}
+                                            className="w-full px-4 py-3 bg-gray-50 border-gray-100 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-sm font-medium"
+                                            placeholder="Ej: Toby"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block ml-1">¿Qué es?</label>
+                                        <select
+                                            value={petFormData.type || 'perro'}
+                                            onChange={(e) => setPetFormData({ ...petFormData, type: e.target.value as any })}
+                                            className="w-full px-4 py-3 bg-gray-50 border-gray-100 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-sm font-bold"
+                                        >
+                                            <option value="perro">🐶 Perro</option>
+                                            <option value="gato">🐱 Gato</option>
+                                            <option value="otro">🐾 Otro</option>
+                                        </select>
+                                    </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-3">

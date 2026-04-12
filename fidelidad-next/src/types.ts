@@ -1,6 +1,7 @@
 export interface Pet {
     id: string;
     name: string;
+    type: 'perro' | 'gato' | 'otro';
     breed: string;
     age: string;
     brand: string;
@@ -137,6 +138,9 @@ export interface AppConfig {
     sectionTitleColor?: string;
     linkColor?: string;
 
+    pointsForAddress?: number;
+    enableAddressBonus?: boolean;
+    petFoodAlertLeadDays?: number;
     welcomePoints?: number;
     enableWelcomeBonus?: boolean;
     enableWelcomeMessage?: boolean;
@@ -146,8 +150,6 @@ export interface AppConfig {
     enableExternalIntegration?: boolean;
 
     // Gamification & Bonos
-    enableAddressBonus?: boolean;
-    pointsForAddress?: number;
 
     // Vencimiento por Rangos
     expirationRules?: Array<{

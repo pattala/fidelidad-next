@@ -93,15 +93,21 @@ export default async function handler(req, res) {
                 if (!pet.receiveAlerts || !pet.lastPurchaseDate || !pet.frequencyDays) continue;
 
                 const lastPurchase = pet.lastPurchaseDate.toDate ? pet.lastPurchaseDate.toDate() : new Date(pet.lastPurchaseDate);
-                const nextAlertDate = new Date(lastPurchase);
-                nextAlertDate.setDate(lastPurchase.getDate() + Number(pet.frequencyDays));
+                const leadDays = Number(config.petFoodAlertLeadDays || 0);
+                
+                // exhaustionDate: Cuando se acaba el alimento definitivamente
+                const exhaustionDate = new Date(lastPurchase);
+                exhaustionDate.setDate(lastPurchase.getDate() + Number(pet.frequencyDays));
+                
+                // alertDate: Cuando enviamos el aviso (exhaustion - leadDays)
+                const alertDate = new Date(exhaustionDate);
+                alertDate.setDate(exhaustionDate.getDate() - leadDays);
 
-                // We send the alert if today is the day of nextAlertDate
-                const nextAlertDateStr = nextAlertDate.toISOString().split('T')[0];
+                const alertDateStr = alertDate.toISOString().split('T')[0];
 
-                if (todayStr === nextAlertDateStr) {
+                if (todayStr === alertDateStr) {
                     // Check if already notified today for this pet
-                    const alertId = `petfood_${userDoc.id}_${pet.id}_${nextAlertDateStr}`;
+                    const alertId = `petfood_${userDoc.id}_${pet.id}_${alertDateStr}`;
                     // (Optional: Implement a log check to avoid duplicates)
                     
                     try {

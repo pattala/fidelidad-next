@@ -2825,15 +2825,31 @@ export const ConfigPage = () => {
                                         </div>
                                         <VariableChips vars={['siteName', 'nombre', 'mascota', 'marca']} onSelect={v => insertVar('petFoodAlert', v)} />
                                         
-                                        <div className="bg-white/50 p-3 rounded-lg border border-orange-100">
-                                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Canales de Envío</label>
-                                            <ChannelSelector
-                                                channels={config.messaging?.eventConfigs?.petFoodAlert?.channels || []}
-                                                onChange={(newChannels) => setConfig({
-                                                    ...config,
-                                                    messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, petFoodAlert: { channels: newChannels } } }
-                                                })}
-                                            />
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="bg-white/50 p-3 rounded-lg border border-orange-100">
+                                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Canales de Envío</label>
+                                                <ChannelSelector
+                                                    channels={config.messaging?.eventConfigs?.petFoodAlert?.channels || []}
+                                                    onChange={(newChannels) => setConfig({
+                                                        ...config,
+                                                        messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, petFoodAlert: { channels: newChannels } } }
+                                                    })}
+                                                />
+                                            </div>
+                                            <div className="bg-white/50 p-3 rounded-lg border border-orange-100">
+                                                <label className="block text-[10px] font-bold text-orange-700 uppercase tracking-widest mb-1">Anticipación de Aviso</label>
+                                                <div className="flex items-center gap-2">
+                                                    <input 
+                                                        type="number"
+                                                        value={config.petFoodAlertLeadDays || 0}
+                                                        onChange={e => setConfig({ ...config, petFoodAlertLeadDays: parseInt(e.target.value) || 0 })}
+                                                        className="w-20 p-2 bg-white rounded-lg border border-orange-100 text-sm font-bold outline-none focus:ring-2 focus:ring-orange-200"
+                                                        min="0"
+                                                        max="15"
+                                                    />
+                                                    <span className="text-xs text-gray-500 font-medium">días antes de agotarse</span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 )}

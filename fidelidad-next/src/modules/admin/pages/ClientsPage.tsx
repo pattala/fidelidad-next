@@ -1434,8 +1434,8 @@ export const ClientsPage = () => {
                                                     >
                                                         <Trash2 size={14} />
                                                     </button>
-                                                    <div className="grid grid-cols-2 gap-4">
-                                                        <div>
+                                                    <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                                                        <div className="col-span-1">
                                                             <label className="block text-[10px] font-bold text-orange-700 uppercase mb-1">Nombre</label>
                                                             <input 
                                                                 type="text"
@@ -1448,6 +1448,22 @@ export const ClientsPage = () => {
                                                                 className="w-full p-2 bg-white rounded-lg border border-orange-100 text-sm font-bold outline-none focus:ring-2 focus:ring-orange-200"
                                                                 placeholder="Ej: Firulais"
                                                             />
+                                                        </div>
+                                                        <div className="col-span-1">
+                                                            <label className="block text-[10px] font-bold text-orange-700 uppercase mb-1">Tipo de Mascota</label>
+                                                            <select
+                                                                value={pet.type || 'perro'}
+                                                                onChange={e => {
+                                                                    const newPets = [...formData.pets];
+                                                                    newPets[idx].type = e.target.value;
+                                                                    setFormData({ ...formData, pets: newPets });
+                                                                }}
+                                                                className="w-full p-2 bg-white rounded-lg border border-orange-100 text-sm font-bold outline-none focus:ring-2 focus:ring-orange-200"
+                                                            >
+                                                                <option value="perro">🐶 Perro</option>
+                                                                <option value="gato">🐱 Gato</option>
+                                                                <option value="otro">🐾 Otro</option>
+                                                            </select>
                                                         </div>
                                                         <div>
                                                             <label className="block text-[10px] font-bold text-orange-700 uppercase mb-1">Especie / Raza</label>
@@ -1467,7 +1483,7 @@ export const ClientsPage = () => {
                                                             <label className="block text-[10px] font-bold text-orange-700 uppercase mb-1">Marca de Alimento</label>
                                                             <input 
                                                                 type="text"
-                                                                value={pet.foodBrand}
+                                                                value={pet.foodBrand || pet.brand}
                                                                 onChange={e => {
                                                                     const newPets = [...formData.pets];
                                                                     newPets[idx].foodBrand = e.target.value;
@@ -1478,18 +1494,34 @@ export const ClientsPage = () => {
                                                             />
                                                         </div>
                                                         <div>
-                                                            <label className="block text-[10px] font-bold text-orange-700 uppercase mb-1">Edad / Otros</label>
+                                                            <label className="block text-[10px] font-bold text-orange-700 uppercase mb-1">Frecuencia (Días)</label>
                                                             <input 
-                                                                type="text"
-                                                                value={pet.age}
+                                                                type="number"
+                                                                value={pet.frequencyDays || 30}
                                                                 onChange={e => {
                                                                     const newPets = [...formData.pets];
-                                                                    newPets[idx].age = e.target.value;
+                                                                    newPets[idx].frequencyDays = Math.max(1, parseInt(e.target.value) || 30);
                                                                     setFormData({ ...formData, pets: newPets });
                                                                 }}
-                                                                className="w-full p-2 bg-white rounded-lg border border-orange-100 text-sm outline-none focus:ring-2 focus:ring-orange-200"
-                                                                placeholder="Ej: 3 años"
+                                                                className="w-full p-2 bg-white rounded-lg border border-orange-100 text-sm font-bold outline-none focus:ring-2 focus:ring-orange-200"
+                                                                min="1"
                                                             />
+                                                        </div>
+                                                        <div className="flex items-center gap-2 pt-4">
+                                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    className="sr-only peer"
+                                                                    checked={pet.receiveAlerts !== false}
+                                                                    onChange={e => {
+                                                                        const newPets = [...formData.pets];
+                                                                        newPets[idx].receiveAlerts = e.target.checked;
+                                                                        setFormData({ ...formData, pets: newPets });
+                                                                    }}
+                                                                />
+                                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-600"></div>
+                                                                <span className="ml-2 text-[10px] font-bold text-orange-700 uppercase">Alertas</span>
+                                                            </label>
                                                         </div>
                                                     </div>
                                                 </div>

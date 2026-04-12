@@ -18,6 +18,11 @@ import { ARGENTINA_LOCATIONS } from '../../../data/locations';
 type AppConfig = any; // Placeholder if not defined, adjust as per actual project structure
 
 export const ClientProfilePage = () => {
+    // Generate simple ID for pets to avoid dependency on global crypto.randomUUID
+    const generateSafeId = () => {
+        return Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
+    };
+
     const { user: userAuth, userData, loading: authLoading } = useClientAuth();
     const navigate = useNavigate();
     const { config, setHeaderTitle } = useOutletContext<{
@@ -28,13 +33,16 @@ export const ClientProfilePage = () => {
 
     // Auto-open Pet Modal if coming from registration
     useEffect(() => {
-        if (searchParams.get('addPet') === 'true') {
+        if (searchParams.get('addPet') === 'true' && userData && config) {
             setEditingPet(null);
             setPetFormData({ name: '', type: 'perro', breed: 'Mestizo / Sin Raza', age: '', brand: 'Royal Canin', variant: '', frequencyDays: 30, receiveAlerts: true });
             setPetPhotoBase64(null);
             setIsPetModalOpen(true);
+            
+            // Clear param to avoid re-opening on manual refreshes
+            navigate('/perfil', { replace: true });
         }
-    }, [searchParams]);
+    }, [searchParams, userData, config, navigate]);
 
     // Set Header State
     useEffect(() => {
@@ -163,7 +171,7 @@ export const ClientProfilePage = () => {
 
         try {
             const petPayload: Pet = {
-                id: editingPet?.id || crypto.randomUUID(),
+                id: editingPet?.id || generateSafeId(),
                 name: petFormData.name || '',
                 type: (petFormData.type as any) || 'perro',
                 breed: petFormData.breed || 'Mestizo / Sin Raza',
@@ -276,7 +284,12 @@ export const ClientProfilePage = () => {
         }
     };
 
-    if (!userData) return <div className="p-10 text-center animate-pulse">Cargando perfil...</div>;
+    if (!userData || !config) return (
+        <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-10 animate-fade-in">
+            <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p className="text-gray-500 font-medium animate-pulse">Cargando perfil...</p>
+        </div>
+    );
 
     const qrValue = userData.socioNumber || userData.dni || userAuth?.uid || 'no-id';
 

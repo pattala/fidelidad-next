@@ -270,6 +270,11 @@ export const ClientRegisterPage = () => {
                                         <input type="text" placeholder="Calle" className="flex-1 bg-gray-50 px-4 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none" value={street} onChange={e => setStreet(e.target.value)} />
                                         <input type="text" placeholder="N°" className="w-20 bg-gray-50 px-4 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none text-center" value={number} onChange={e => setNumber(e.target.value)} />
                                     </div>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <input type="text" placeholder="Piso" className="bg-gray-50 px-4 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none text-center" value={floor} onChange={e => setFloor(e.target.value)} />
+                                        <input type="text" placeholder="Depto" className="bg-gray-50 px-4 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none text-center" value={apt} onChange={e => setApt(e.target.value)} />
+                                        <input type="text" placeholder="CP" className="bg-gray-50 px-4 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none text-center" value={cp} onChange={e => setCp(e.target.value)} />
+                                    </div>
                                     <div className="flex items-center gap-2 pt-2">
                                         <input type="checkbox" id="terms" required checked={termsAccepted} onChange={e => setTermsAccepted(e.target.checked)} className="w-5 h-5 rounded border-gray-300 text-purple-600" />
                                         <label htmlFor="terms" className="text-xs text-gray-600">Acepto los <button type="button" onClick={() => setShowTermsModal(true)} className="font-bold text-purple-600 hover:underline">Términos y Condiciones</button></label>

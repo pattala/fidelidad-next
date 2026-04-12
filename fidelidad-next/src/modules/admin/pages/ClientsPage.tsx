@@ -1,11 +1,6 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-    Users, Plus, Search, Filter, Mail, Phone, MapPin, Check, Bell, Coins, History,
-    Shield, ArrowRight, Download, Edit2, Trash2, X, ChevronRight, Gift, Sparkles, Cake,
-    FileDown, MessageCircle, Edit, TrendingUp, Monitor, Smartphone, Dog
-} from 'lucide-react';
+import { Users, Search, Plus, Filter, Mail, Phone, MapPin, Trash2, Edit, X, Download, Gift, ArrowRight, Dog, History, Calendar, Star, CheckCircle2, AlertCircle, Camera, User } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { collection, addDoc, getDocs, query, orderBy, doc, deleteDoc, updateDoc, increment, runTransaction, arrayUnion, where, setDoc, collectionGroup, onSnapshot, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db, auth } from '../../../lib/firebase';
@@ -31,12 +26,14 @@ const INITIAL_CLIENT_STATE = {
     dni: '',
     phone: '',
     provincia: '',
-    partido: '', // Added
+    partido: '',
     localidad: '',
     calle: '',
+    numero: '',
     piso: '',
     depto: '',
     cp: '',
+    photoUrl: '',
     socioNumber: '',
     points: 0,
     birthDate: '',
@@ -291,16 +288,21 @@ export const ClientsPage = () => {
                 const clientPayload = {
                     ...formData,
                     nombre: formData.name.trim(),
+                    name: formData.name.trim(),
                     telefono: formData.phone.trim(),
+                    phone: formData.phone.trim(),
                     numeroSocio: Number(formData.socioNumber),
                     socioNumber: Number(formData.socioNumber),
                     updatedAt: new Date(),
                     formatted_address: formattedAddress,
+                    calle: `${formData.calle} ${formData.numero}`.trim(),
+                    numero: formData.numero,
                     domicilio: {
                         status: 'complete',
                         addressLine: formattedAddress,
                         components: {
                             calle: formData.calle,
+                            numero: formData.numero,
                             piso: formData.piso,
                             depto: formData.depto,
                             localidad: formData.localidad,
@@ -354,6 +356,7 @@ export const ClientsPage = () => {
                         addressLine: formattedAddress,
                         components: {
                             calle: formData.calle,
+                            numero: formData.numero,
                             piso: formData.piso,
                             depto: formData.depto,
                             localidad: formData.localidad,
@@ -698,6 +701,7 @@ export const ClientsPage = () => {
             partido: client.partido || '',
             localidad: client.localidad || '',
             calle: client.calle || '',
+            numero: client.numero || '',
             piso: client.piso || '',
             depto: client.depto || '',
             cp: client.cp || '',
@@ -705,7 +709,8 @@ export const ClientsPage = () => {
             points: client.points || 0,
             birthDate: client.birthDate || '',
             isTestUser: client.isTestUser || false,
-            pets: client.pets || []
+            pets: client.pets || [],
+            photoUrl: client.photoUrl || ''
         });
         setIsModalOpen(true);
     };
@@ -857,7 +862,7 @@ export const ClientsPage = () => {
                         onClick={handleExportExcel}
                         className="flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-6 py-3 rounded-xl font-bold transition shadow-sm"
                     >
-                        <FileDown size={20} className="text-blue-600" /> Exportar a Excel
+                        <Download size={20} className="text-blue-600" /> Exportar a Excel
                     </button>
                     {!isReadOnly && (
                         <button
@@ -893,7 +898,8 @@ export const ClientsPage = () => {
                     <table className="w-full text-left">
                         <thead className="bg-gray-50 border-b border-gray-100">
                             <tr>
-                                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Socio / Nombre</th>
+                                <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Socio / Perfil</th>
+                                <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Contacto</th>
                                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Dirección / Maps</th>
                                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">Permisos</th>
                                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">Actividad / Visitas</th>
@@ -906,87 +912,50 @@ export const ClientsPage = () => {
                             {filteredClients.map((client) => (
                                 <tr key={client.id} className="hover:bg-gray-50/50 transition-colors group">
                                     <td className="px-6 py-4">
-                                        <div className="flex items-center gap-3">
-                                            {(() => {
-                                                const today = TimeService.now();
-                                                const todayMD = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-                                                const isBirthday = client.birthDate?.endsWith(todayMD);
-
-                                                return (
-                                                    <div className={`w-14 h-10 ${isBirthday ? 'bg-pink-50 text-pink-600 border-pink-200 animate-pulse' : 'bg-blue-50 text-blue-700 border-blue-100'} rounded-lg flex flex-col items-center justify-center border flex-shrink-0 relative`}>
-                                                        <span className="text-[9px] font-bold uppercase leading-none opacity-60">Socio</span>
-                                                        <span className="text-sm font-black leading-none">{client.socioNumber}</span>
-                                                        {isBirthday && (
-                                                            <div className="absolute -top-2 -right-2 bg-pink-500 text-white p-1 rounded-full shadow-sm animate-bounce">
-                                                                <Cake size={10} />
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })()}
-                                            <div className="overflow-hidden">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="font-bold text-gray-800 leading-tight truncate">{client.name}</div>
-                                                    <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider shrink-0 ${client.source === 'pwa'
-                                                        ? 'bg-purple-100 text-purple-600 border border-purple-200'
-                                                        : 'bg-emerald-100 text-emerald-600 border border-emerald-200'
-                                                        }`}>
-                                                        {client.source === 'pwa' ? 'PWA' : 'Local'}
-                                                    </span>
-                                                    {client.isTestUser && (
-                                                        <span className="bg-blue-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded flex items-center gap-0.5 uppercase shadow-sm">
-                                                            <Shield size={8} /> TEST
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                {config?.enablePetModule && client.pets && client.pets.length > 0 && (
-                                                    <div className="flex flex-wrap gap-1 mt-1.5 translate-y-[-2px]">
-                                                        {client.pets.map((pet, idx) => (
-                                                            <div key={idx} className="flex items-center gap-1 bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded border border-orange-100/50" title={`${pet.breed} - Come: ${pet.foodBrand}`}>
-                                                                <span className="text-[10px]">🐾</span>
-                                                                <span className="text-[9px] font-black uppercase tracking-tighter truncate max-w-[60px]">{pet.name}</span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 rounded-2xl bg-gray-50 flex-shrink-0 border-2 border-white shadow-sm overflow-hidden flex items-center justify-center text-gray-300">
+                                                {client.photoUrl ? (
+                                                    <img src={client.photoUrl} alt="Perfil" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <User size={24} />
                                                 )}
-                                                <div className="flex flex-col gap-0.5 mt-1">
-                                                    <span className="text-[10px] text-gray-500 font-medium flex items-center gap-1 truncate">
-                                                        <Mail size={10} /> {client.email}
-                                                    </span>
-                                                    <div className="flex gap-2">
-                                                        <span className="text-[10px] text-gray-400 font-bold">DNI {client.dni}</span>
-                                                        <span className="text-[10px] text-gray-400 font-bold flex items-center gap-1">
-                                                            <Phone size={8} /> {client.phone}
-                                                        </span>
-                                                    </div>
-                                                    <div className="text-[9px] text-blue-500 font-bold mt-0.5" title="Fecha en la que el usuario se registró en el Club">
-                                                        Miembro desde: {client.registrationDate ? new Date(client.registrationDate?.toDate?.() || client.registrationDate).toLocaleDateString() : 'N/D'}
-                                                    </div>
-                                                    {client.referredBy && (
-                                                        <div className="text-[9px] text-orange-600 font-black mt-1 flex items-center gap-1 bg-orange-50 w-fit px-1.5 py-0.5 rounded border border-orange-100">
-                                                            <Gift size={10} /> Invitado por: {clients.find(c => c.id === client.referredBy)?.name || 'Otro Socio'}
-                                                        </div>
-                                                    )}
-                                                    {client.referralStats && client.referralStats.count > 0 && (
-                                                        <div className="text-[9px] text-purple-600 font-black mt-1 flex items-center gap-1 bg-purple-50 w-fit px-1.5 py-0.5 rounded border border-purple-100">
-                                                            <Users size={10} /> Invitó a: {client.referralStats.count} {client.referralStats.count === 1 ? 'amigo' : 'amigos'} (+{client.referralStats.pointsEarned} pts)
-                                                        </div>
+                                            </div>
+                                            <div>
+                                                <div className="text-sm font-black text-gray-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{client.name}</div>
+                                                <div className="text-[10px] font-bold text-gray-400 mt-0.5 flex items-center gap-1">
+                                                    <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">DNI {client.dni}</span>
+                                                    {client.socioNumber && (
+                                                        <span className="bg-blue-50 px-1.5 py-0.5 rounded text-blue-600">#{client.socioNumber}</span>
                                                     )}
                                                 </div>
                                             </div>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
+                                        <div className="flex flex-col">
+                                            <div className="flex items-center gap-2 text-[10px] text-gray-400 font-bold">
+                                                <Phone size={10} className="text-gray-300" />
+                                                {client.phone}
+                                            </div>
+                                            {client.email && (
+                                                <div className="flex items-center gap-2 text-[10px] text-gray-400 font-bold mt-1">
+                                                    <Mail size={10} className="text-gray-300" />
+                                                    {client.email}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
                                         {client.calle ? (
                                             <div className="max-w-[180px]">
                                                 <div className="text-sm text-gray-700 font-medium truncate">
-                                                    {client.calle} {client.piso ? ` ${client.piso}°${client.depto}` : ''}
+                                                    {client.calle} {client.numero} {client.piso ? ` ${client.piso}°${client.depto}` : ''}
                                                 </div>
                                                 <div className="text-[10px] text-gray-400 truncate">
                                                     {client.localidad}, {client.provincia}
                                                 </div>
                                                 <a
-                                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${client.calle}, ${client.localidad}, ${client.provincia}, Argentina`)}`}
+                                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${client.calle} ${client.numero}, ${client.localidad}, ${client.provincia}, Argentina`)}`}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className="inline-flex items-center gap-1 text-[10px] text-blue-500 hover:text-blue-700 font-bold mt-1"
@@ -1002,7 +971,7 @@ export const ClientsPage = () => {
                                         <div className="flex justify-center gap-2">
                                             <div className="flex flex-col items-center gap-1" title={client.termsAccepted ? "Términos Aceptados" : "Términos Pendientes"}>
                                                 <div className={`p-1.5 rounded-md ${client.termsAccepted ? 'text-blue-600 bg-blue-50' : 'text-gray-300 bg-gray-50'}`}>
-                                                    <Check size={14} strokeWidth={3} />
+                                                    <CheckCircle2 size={14} strokeWidth={3} />
                                                 </div>
                                                 <span className={`text-[7px] font-black uppercase ${client.termsAccepted ? 'text-blue-500' : 'text-gray-300'}`}>
                                                     {client.termsAccepted ? 'OK' : 'PEND'}
@@ -1011,19 +980,7 @@ export const ClientsPage = () => {
 
                                             <div className="flex flex-col items-center gap-1" title={`Notificaciones: ${client.permissions?.notifications?.status === 'granted' ? (client.fcmToken ? 'Activas (Con Token)' : 'Permiso concedido pero falta registrar Token') : 'Pendiente/Denegado'}`}>
                                                 <div className={`p-1.5 rounded-md ${(client.permissions?.notifications?.status === 'granted' && client.fcmToken) ? 'text-purple-600 bg-purple-50 border border-purple-100 shadow-sm' : 'text-gray-300 bg-gray-50'}`}>
-                                                    <Bell size={14} />
-                                                </div>
-                                                <div className="flex gap-1 h-3 mt-1">
-                                                    {client.permissions?.notifications?.platforms?.includes('pc') && (
-                                                        <div title={`PC (Token ok)`} className="bg-indigo-100 p-0.5 rounded shadow-sm">
-                                                            <Monitor size={10} className="text-indigo-600" />
-                                                        </div>
-                                                    )}
-                                                    {client.permissions?.notifications?.platforms?.includes('mobile') && (
-                                                        <div title={`Celular (Token ok)`} className="bg-purple-100 p-0.5 rounded shadow-sm">
-                                                            <Smartphone size={10} className="text-purple-600" />
-                                                        </div>
-                                                    )}
+                                                    <AlertCircle size={14} />
                                                 </div>
                                                 <span className={`text-[7px] font-black uppercase ${client.permissions?.notifications?.status === 'granted' ? 'text-purple-600' : (client.permissions?.notifications?.status === 'blocked' ? 'text-red-400' : 'text-gray-300')}`}>
                                                     {(() => {
@@ -1075,13 +1032,13 @@ export const ClientsPage = () => {
                                                 {client.lastActive ? (
                                                     `Hoy ${new Date(client.lastActive.toDate ? client.lastActive.toDate() : client.lastActive).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })}`
                                                 ) : 'Nunca'}
-                                                <Sparkles size={10} className="opacity-0 group-hover/visits:opacity-100" />
+                                                <Star size={10} className="opacity-0 group-hover/visits:opacity-100" />
                                             </div>
                                         </button>
                                     </td>
                                     <td className="px-6 py-4 text-center">
                                         <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 rounded-full font-black mb-1">
-                                            <Coins size={14} />
+                                            <History size={14} />
                                             {client.points || 0}
                                         </div>
                                         {client.expirationDetails && client.expirationDetails.filter(e => e.points > 0).length > 0 ? (
@@ -1092,7 +1049,7 @@ export const ClientsPage = () => {
                                                         className="flex items-center justify-center gap-1 text-[9px] font-bold text-orange-600 bg-orange-50 py-0.5 px-1.5 rounded border border-orange-100"
                                                         title={`Vencimiento`}
                                                     >
-                                                        <History size={10} />
+                                                        <Calendar size={10} />
                                                         {exp.points} ({exp.date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })})
                                                     </div>
                                                 ))}
@@ -1108,23 +1065,12 @@ export const ClientsPage = () => {
                                     </td>
                                     <td className="px-6 py-4 text-center">
                                         <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-black ${(client.accumulated_balance || 0) > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-50 text-gray-400 opacity-50'}`}>
-                                            <TrendingUp size={14} />
+                                            <Star size={14} />
                                             ${(client.accumulated_balance || 0).toLocaleString()}
                                         </div>
                                         {client.accumulated_balance_updated_at && (
                                             <div className="text-[8px] text-gray-400 mt-1 font-bold">
                                                 Act: {new Date(client.accumulated_balance_updated_at.toDate ? client.accumulated_balance_updated_at.toDate() : client.accumulated_balance_updated_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })}
-                                            </div>
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        {config?.enablePetModule && client.pets && client.pets.length > 0 && (
-                                            <div className="flex flex-wrap gap-1 max-w-[150px]">
-                                                {client.pets.map((pet: any, idx: number) => (
-                                                    <span key={idx} className="bg-orange-50 text-orange-700 text-[8px] px-1.5 py-0.5 rounded-full font-black border border-orange-100 flex items-center gap-1">
-                                                        <span>🐾</span> {pet.name.toUpperCase()}
-                                                    </span>
-                                                ))}
                                             </div>
                                         )}
                                     </td>
@@ -1228,90 +1174,79 @@ export const ClientsPage = () => {
 
                                 {(editingId || formStep === 1) && (
                                     <div className="animate-fade-in">
-                                        <h3 className="font-bold text-gray-800 flex items-center gap-2 mb-4"><Users size={16} /> Datos del Socio</h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <div>
-                                                <label className="block text-sm font-bold text-gray-700 mb-2">Nombre y Apellido *</label>
-                                                <input
-                                                    type="text"
-                                                    required
-                                                    className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
-                                                    value={formData.name}
-                                                    onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                                />
+                                        <div className="flex shrink-0 gap-6">
+                                            {/* Photo (ReadOnly for Admin) */}
+                                            <div className="w-24 h-24 rounded-3xl bg-gray-50 flex-shrink-0 border-2 border-white shadow-lg overflow-hidden flex items-center justify-center text-gray-300">
+                                                {formData.photoUrl ? (
+                                                    <img src={formData.photoUrl as string} alt="Perfil" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <Camera size={40} />
+                                                )}
                                             </div>
-                                            <div>
-                                                <label className="block text-sm font-bold text-gray-700 mb-2">DNI *</label>
-                                                <input
-                                                    type="text"
-                                                    required
-                                                    placeholder="Será su contraseña"
-                                                    className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
-                                                    value={formData.dni}
-                                                    onChange={e => setFormData({ ...formData, dni: e.target.value })}
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-bold text-gray-700 mb-2">Email *</label>
-                                                <input
-                                                    type="email"
-                                                    required
-                                                    className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
-                                                    value={formData.email}
-                                                    onChange={e => setFormData({ ...formData, email: e.target.value })}
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-bold text-gray-700 mb-2">Teléfono *</label>
-                                                <input
-                                                    type="text"
-                                                    required
-                                                    placeholder="Ej: 1122334455"
-                                                    className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
-                                                    value={formData.phone}
-                                                    onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-bold text-gray-700 mb-2">Cumpleaños</label>
-                                                <input
-                                                    type="date"
-                                                    className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
-                                                    value={formData.birthDate}
-                                                    onChange={e => setFormData({ ...formData, birthDate: e.target.value })}
-                                                />
-                                            </div>
-                                            {editingId && (
-                                                <div>
-                                                    <label className="block text-sm font-bold text-gray-700 mb-2">N° de Socio</label>
-                                                    <input
-                                                        type="text"
-                                                        disabled
-                                                        className="w-full p-3 rounded-xl border border-gray-100 bg-gray-50 text-gray-500 outline-none"
-                                                        value={formData.socioNumber}
-                                                    />
-                                                </div>
-                                            )}
-                                        </div>
 
-                                        <div className="mt-6 flex items-center gap-3 p-4 bg-blue-50 rounded-2xl border border-blue-100">
-                                            <div className="flex-1">
-                                                <h4 className="text-sm font-bold text-blue-800 flex items-center gap-2">
-                                                    <Shield size={16} /> Usuario de Prueba / Tester
-                                                </h4>
-                                                <p className="text-[10px] text-blue-600 mt-0.5">
-                                                    Los usuarios de prueba pueden ver campañas internas y premios restringidos en la PWA.
-                                                </p>
+                                            <div className="flex-1 space-y-4">
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Nombre Completo</label>
+                                                        <div className="relative">
+                                                            <Users className="absolute left-3 top-3 text-gray-300" size={16} />
+                                                            <input
+                                                                type="text"
+                                                                className="w-full bg-gray-50 pl-10 pr-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-purple-200 outline-none text-sm font-bold transition-all"
+                                                                placeholder="Juan Pérez"
+                                                                value={formData.name}
+                                                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                                                required
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Email</label>
+                                                        <div className="relative">
+                                                            <Mail className="absolute left-3 top-3 text-gray-300" size={16} />
+                                                            <input
+                                                                type="email"
+                                                                className="w-full bg-gray-50 pl-10 pr-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-purple-200 outline-none text-sm font-bold transition-all"
+                                                                placeholder="juan@email.com"
+                                                                value={formData.email}
+                                                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                                                required
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">DNI (Usuario y Clave)</label>
+                                                        <div className="relative">
+                                                            <User className="absolute left-3 top-3 text-gray-300" size={16} />
+                                                            <input
+                                                                type="text"
+                                                                className="w-full bg-gray-50 pl-10 pr-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-purple-200 outline-none text-sm font-bold transition-all"
+                                                                placeholder="30123456"
+                                                                value={formData.dni}
+                                                                onChange={(e) => setFormData({ ...formData, dni: e.target.value.replace(/\D/g, '') })}
+                                                                required
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Teléfono</label>
+                                                        <div className="relative">
+                                                            <Phone className="absolute left-3 top-3 text-gray-300" size={16} />
+                                                            <input
+                                                                type="text"
+                                                                className="w-full bg-gray-50 pl-10 pr-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-purple-200 outline-none text-sm font-bold transition-all"
+                                                                placeholder="1144556677"
+                                                                value={formData.phone}
+                                                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                                                required
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    className="sr-only peer"
-                                                    checked={formData.isTestUser}
-                                                    onChange={e => setFormData({ ...formData, isTestUser: e.target.checked })}
-                                                />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                                            </label>
                                         </div>
                                     </div>
                                 )}
@@ -1321,97 +1256,76 @@ export const ClientsPage = () => {
                                         <hr className="border-gray-100" />
                                         <h3 className="font-bold text-gray-800 flex items-center gap-2"><MapPin size={16} /> Ubicación</h3>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                            <div className="md:col-span-2 lg:col-span-2">
-                                                <label className="block text-sm font-bold text-gray-700 mb-2">Calle y Número</label>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div>
+                                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Provincia</label>
+                                                <select
+                                                    className="w-full bg-gray-50 px-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-purple-200 outline-none text-sm font-bold"
+                                                    value={formData.provincia}
+                                                    onChange={(e) => setFormData({ ...formData, provincia: e.target.value, partido: '', localidad: '' })}
+                                                >
+                                                    <option value="">Provincia</option>
+                                                    {Object.keys(ARGENTINA_LOCATIONS).map(p => <option key={p} value={p}>{p}</option>)}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Partido</label>
+                                                <select
+                                                    className="w-full bg-gray-50 px-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-purple-200 outline-none text-sm font-bold disabled:opacity-50"
+                                                    value={formData.partido}
+                                                    disabled={!formData.provincia}
+                                                    onChange={(e) => setFormData({ ...formData, partido: e.target.value, localidad: '' })}
+                                                >
+                                                    <option value="">Partido</option>
+                                                    {formData.provincia && Object.keys((ARGENTINA_LOCATIONS as any)[formData.provincia] || {}).map(p => <option key={p} value={p}>{p}</option>)}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Localidad</label>
+                                                <select
+                                                    className="w-full bg-gray-50 px-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-purple-200 outline-none text-sm font-bold disabled:opacity-50"
+                                                    value={formData.localidad}
+                                                    disabled={!formData.partido}
+                                                    onChange={(e) => setFormData({ ...formData, localidad: e.target.value })}
+                                                >
+                                                    <option value="">Localidad</option>
+                                                    {formData.provincia && formData.partido && ((ARGENTINA_LOCATIONS as any)[formData.provincia][formData.partido] || []).map((l: string) => <option key={l} value={l}>{l}</option>)}
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-4 gap-4">
+                                            <div className="col-span-2">
+                                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Calle</label>
                                                 <input
                                                     type="text"
-                                                    className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
-                                                    placeholder="Ej: Av. Rivadavia 1234"
+                                                    className="w-full bg-gray-50 px-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-purple-200 outline-none text-sm font-bold transition-all"
+                                                    placeholder="Ej: Av. Santa Fe"
                                                     value={formData.calle}
                                                     onChange={e => setFormData({ ...formData, calle: e.target.value })}
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-sm font-bold text-gray-700 mb-2">Piso</label>
+                                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Número</label>
                                                 <input
                                                     type="text"
-                                                    className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
-                                                    placeholder="Ej: 2"
-                                                    value={formData.piso}
-                                                    onChange={e => setFormData({ ...formData, piso: e.target.value })}
+                                                    className="w-full bg-gray-50 px-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-purple-200 outline-none text-sm font-bold text-center transition-all"
+                                                    placeholder="1234"
+                                                    value={formData.numero}
+                                                    onChange={e => setFormData({ ...formData, numero: e.target.value })}
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-sm font-bold text-gray-700 mb-2">Depto</label>
+                                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">CP</label>
                                                 <input
                                                     type="text"
-                                                    className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
-                                                    placeholder="Ej: B"
-                                                    value={formData.depto}
-                                                    onChange={e => setFormData({ ...formData, depto: e.target.value })}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                            <div>
-                                                <label className="block text-sm font-bold text-gray-700 mb-2">Provincia</label>
-                                                <select
-                                                    className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
-                                                    value={formData.provincia}
-                                                    onChange={e => setFormData({ ...formData, provincia: e.target.value, partido: '', localidad: '' })}
-                                                >
-                                                    <option value="">Seleccionar...</option>
-                                                    {Object.keys(ARGENTINA_LOCATIONS).map(p => <option key={p} value={p}>{p}</option>)}
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-bold text-gray-700 mb-2">Localidad / Partido</label>
-                                                <select
-                                                    className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
-                                                    value={formData.partido}
-                                                    onChange={e => setFormData({ ...formData, partido: e.target.value, localidad: '' })}
-                                                    disabled={!formData.provincia}
-                                                >
-                                                    <option value="">Seleccionar...</option>
-                                                    {formData.provincia && Object.keys((ARGENTINA_LOCATIONS as any)[formData.provincia]).map(p => <option key={p} value={p}>{p}</option>)}
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-bold text-gray-700 mb-2">Barrio / Ciudad</label>
-                                                <select
-                                                    className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
-                                                    value={formData.localidad}
-                                                    onChange={e => setFormData({ ...formData, localidad: e.target.value })}
-                                                    disabled={!formData.partido}
-                                                >
-                                                    <option value="">Seleccionar...</option>
-                                                    {formData.partido && (ARGENTINA_LOCATIONS as any)[formData.provincia][formData.partido].map((l: string) => <option key={l} value={l}>{l}</option>)}
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-bold text-gray-700 mb-2">Cód. Postal</label>
-                                                <input
-                                                    type="text"
-                                                    className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none"
-                                                    placeholder="Ej: 1425"
+                                                    className="w-full bg-gray-50 px-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-purple-200 outline-none text-sm font-bold text-center transition-all"
+                                                    placeholder="1425"
                                                     value={formData.cp}
                                                     onChange={e => setFormData({ ...formData, cp: e.target.value })}
                                                 />
                                             </div>
                                         </div>
-                                    </div>
-                                )}
-
-                                {!editingId && formStep === 2 && (
-                                    <div className="animate-fade-in p-5 bg-orange-50 rounded-2xl border border-orange-100 mt-6 space-y-4">
-                                        <h4 className="font-bold text-orange-800 flex items-center gap-2">
-                                            <Gift size={18} /> Premios de Bienvenida y Notificaciones
-                                        </h4>
-                                        <p className="text-xs text-orange-700">
-                                            Al crear un cliente manualmente, puedes decidir si otorgarle los premios iniciales como si se hubiera registrado en la App.
-                                        </p>
                                     </div>
                                 )}
 
@@ -1422,106 +1336,86 @@ export const ClientsPage = () => {
                                         
                                         <div className="space-y-4">
                                             {formData.pets.map((pet: any, idx: number) => (
-                                                <div key={idx} className="p-4 bg-orange-50/50 rounded-2xl border border-orange-100 relative group animate-fade-in">
-                                                    <button 
-                                                        type="button"
-                                                        onClick={() => {
-                                                            const newPets = [...formData.pets];
-                                                            newPets.splice(idx, 1);
-                                                            setFormData({ ...formData, pets: newPets });
-                                                        }}
-                                                        className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-600 hover:bg-white rounded-full transition-all opacity-0 group-hover:opacity-100"
-                                                    >
-                                                        <Trash2 size={14} />
-                                                    </button>
-                                                    <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                                                        <div className="col-span-1">
-                                                            <label className="block text-[10px] font-bold text-orange-700 uppercase mb-1">Nombre</label>
-                                                            <input 
-                                                                type="text"
-                                                                value={pet.name}
-                                                                onChange={e => {
-                                                                    const newPets = [...formData.pets];
-                                                                    newPets[idx].name = e.target.value;
-                                                                    setFormData({ ...formData, pets: newPets });
-                                                                }}
-                                                                className="w-full p-2 bg-white rounded-lg border border-orange-100 text-sm font-bold outline-none focus:ring-2 focus:ring-orange-200"
-                                                                placeholder="Ej: Firulais"
-                                                            />
-                                                        </div>
-                                                        <div className="col-span-1">
-                                                            <label className="block text-[10px] font-bold text-orange-700 uppercase mb-1">Tipo de Mascota</label>
-                                                            <select
-                                                                value={pet.type || 'perro'}
-                                                                onChange={e => {
-                                                                    const newPets = [...formData.pets];
-                                                                    newPets[idx].type = e.target.value;
-                                                                    setFormData({ ...formData, pets: newPets });
-                                                                }}
-                                                                className="w-full p-2 bg-white rounded-lg border border-orange-100 text-sm font-bold outline-none focus:ring-2 focus:ring-orange-200"
-                                                            >
-                                                                <option value="perro">🐶 Perro</option>
-                                                                <option value="gato">🐱 Gato</option>
-                                                                <option value="otro">🐾 Otro</option>
-                                                            </select>
-                                                        </div>
-                                                        <div>
-                                                            <label className="block text-[10px] font-bold text-orange-700 uppercase mb-1">Especie / Raza</label>
-                                                            <input 
-                                                                type="text"
-                                                                value={pet.breed}
-                                                                onChange={e => {
-                                                                    const newPets = [...formData.pets];
-                                                                    newPets[idx].breed = e.target.value;
-                                                                    setFormData({ ...formData, pets: newPets });
-                                                                }}
-                                                                className="w-full p-2 bg-white rounded-lg border border-orange-100 text-sm outline-none focus:ring-2 focus:ring-orange-200"
-                                                                placeholder="Ej: Golden Retriever"
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <label className="block text-[10px] font-bold text-orange-700 uppercase mb-1">Marca de Alimento</label>
-                                                            <input 
-                                                                type="text"
-                                                                value={pet.foodBrand || pet.brand}
-                                                                onChange={e => {
-                                                                    const newPets = [...formData.pets];
-                                                                    newPets[idx].foodBrand = e.target.value;
-                                                                    setFormData({ ...formData, pets: newPets });
-                                                                }}
-                                                                className="w-full p-2 bg-white rounded-lg border border-orange-100 text-sm outline-none focus:ring-2 focus:ring-orange-200"
-                                                                placeholder="Ej: Royal Canin"
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <label className="block text-[10px] font-bold text-orange-700 uppercase mb-1">Frecuencia (Días)</label>
-                                                            <input 
-                                                                type="number"
-                                                                value={pet.frequencyDays || 30}
-                                                                onChange={e => {
-                                                                    const newPets = [...formData.pets];
-                                                                    newPets[idx].frequencyDays = Math.max(1, parseInt(e.target.value) || 30);
-                                                                    setFormData({ ...formData, pets: newPets });
-                                                                }}
-                                                                className="w-full p-2 bg-white rounded-lg border border-orange-100 text-sm font-bold outline-none focus:ring-2 focus:ring-orange-200"
-                                                                min="1"
-                                                            />
-                                                        </div>
-                                                        <div className="flex items-center gap-2 pt-4">
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    className="sr-only peer"
-                                                                    checked={pet.receiveAlerts !== false}
+                                                <div key={idx} className="p-4 bg-orange-50/50 rounded-2xl border border-orange-100 relative group animate-fade-in flex gap-4">
+                                                    {/* Pet Photo */}
+                                                    <div className="w-16 h-16 rounded-xl bg-white border border-orange-100 flex-shrink-0 flex items-center justify-center text-orange-200 overflow-hidden shadow-sm">
+                                                        {pet.photoUrl ? (
+                                                            <img src={pet.photoUrl} alt={pet.name} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <span className="text-2xl">🐾</span>
+                                                        )}
+                                                    </div>
+                                                    
+                                                    <div className="flex-1">
+                                                        <button 
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const newPets = [...formData.pets];
+                                                                newPets.splice(idx, 1);
+                                                                setFormData({ ...formData, pets: newPets });
+                                                            }}
+                                                            className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-600 hover:bg-white rounded-full transition-all opacity-0 group-hover:opacity-100 shadow-sm"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                        <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                                                            <div className="col-span-1">
+                                                                <label className="block text-[10px] font-bold text-orange-700 uppercase mb-1">Nombre</label>
+                                                                <input 
+                                                                    type="text"
+                                                                    value={pet.name}
                                                                     onChange={e => {
                                                                         const newPets = [...formData.pets];
-                                                                        newPets[idx].receiveAlerts = e.target.checked;
+                                                                        newPets[idx].name = e.target.value;
                                                                         setFormData({ ...formData, pets: newPets });
                                                                     }}
+                                                                    className="w-full p-2 bg-white rounded-lg border border-orange-100 text-sm font-bold outline-none focus:ring-2 focus:ring-orange-200"
+                                                                    placeholder="Ej: Firulais"
                                                                 />
-                                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-600"></div>
-                                                                <span className="ml-2 text-[10px] font-bold text-orange-700 uppercase">Alertas</span>
-                                                            </label>
+                                                            </div>
+                                                            <div className="col-span-1">
+                                                                <label className="block text-[10px] font-bold text-orange-700 uppercase mb-1">Tipo</label>
+                                                                <select
+                                                                    value={pet.type || 'perro'}
+                                                                    onChange={e => {
+                                                                        const newPets = [...formData.pets];
+                                                                        newPets[idx].type = e.target.value as any;
+                                                                        setFormData({ ...formData, pets: newPets });
+                                                                    }}
+                                                                    className="w-full p-2 bg-white rounded-lg border border-orange-100 text-sm font-bold outline-none focus:ring-2 focus:ring-orange-200"
+                                                                >
+                                                                    <option value="perro">🐶 Perro</option>
+                                                                    <option value="gato">🐱 Gato</option>
+                                                                    <option value="otro">🐾 Otro</option>
+                                                                </select>
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-[10px] font-bold text-orange-700 uppercase mb-1">Marca Alimento</label>
+                                                                <input 
+                                                                    type="text"
+                                                                    value={pet.foodBrand || pet.brand || ''}
+                                                                    onChange={e => {
+                                                                        const newPets = [...formData.pets];
+                                                                        newPets[idx].foodBrand = e.target.value;
+                                                                        setFormData({ ...formData, pets: newPets });
+                                                                    }}
+                                                                    className="w-full p-2 bg-white rounded-lg border border-orange-100 text-sm outline-none focus:ring-2 focus:ring-orange-200"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-[10px] font-bold text-orange-700 uppercase mb-1">Frecuencia (Días)</label>
+                                                                <input 
+                                                                    type="number"
+                                                                    value={pet.frequencyDays || 30}
+                                                                    onChange={e => {
+                                                                        const newPets = [...formData.pets];
+                                                                        newPets[idx].frequencyDays = Math.max(1, parseInt(e.target.value) || 30);
+                                                                        setFormData({ ...formData, pets: newPets });
+                                                                    }}
+                                                                    className="w-full p-2 bg-white rounded-lg border border-orange-100 text-sm font-bold outline-none focus:ring-2 focus:ring-orange-200"
+                                                                    min="1"
+                                                                />
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>

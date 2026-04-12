@@ -20,6 +20,7 @@ export interface Client {
     email: string;
     dni: string;
     phone: string;
+    photoUrl?: string;
     role?: string;
     socioNumber?: string;
     points: number;
@@ -30,6 +31,7 @@ export interface Client {
     createdAt?: any;
     // Address fields
     calle?: string;
+    numero?: string;
     piso?: string;
     depto?: string;
     provincia?: string;

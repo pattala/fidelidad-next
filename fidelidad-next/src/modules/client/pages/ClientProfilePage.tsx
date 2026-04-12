@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { useFcmToken } from '../../../hooks/useFcmToken';
 import { useClientAuth } from '../contexts/ClientAuthContext';
+import { ARGENTINA_LOCATIONS } from '../../../data/locations';
 
 // Assuming AppConfig is defined elsewhere or is a type alias for the config object
 // For the purpose of this edit, we'll assume it's a valid type.
@@ -50,7 +51,14 @@ export const ClientProfilePage = () => {
         name: '', type: 'perro', breed: 'Mestizo / Sin Raza', age: '', brand: 'Royal Canin', variant: '', frequencyDays: 30, receiveAlerts: true
     });
     const [petPhotoBase64, setPetPhotoBase64] = useState<string | null>(null);
+    const [userPhotoBase64, setUserPhotoBase64] = useState<string | null>(null);
     const [loadingPet, setLoadingPet] = useState(false);
+    const [loadingPhoto, setLoadingPhoto] = useState(false);
+
+    // Address Cascade State
+    const [selectedProv, setSelectedProv] = useState('');
+    const [selectedPart, setSelectedPart] = useState('');
+    const [selectedLoc, setSelectedLoc] = useState('');
 
     // No longer need manual auth/db effect, ClientAuthContext handles it
 
@@ -112,6 +120,28 @@ export const ClientProfilePage = () => {
             const reader = new FileReader();
             reader.onloadend = () => setPetPhotoBase64(reader.result as string);
             reader.readAsDataURL(file);
+        }
+    };
+
+    const handleUserPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !userAuth) return;
+
+        setLoadingPhoto(true);
+        try {
+            const reader = new FileReader();
+            reader.onloadend = async () => {
+                const base64 = reader.result as string;
+                const userRef = doc(db, 'users', userAuth.uid);
+                await updateDoc(userRef, { photoUrl: base64 });
+                toast.success("Foto de perfil actualizada");
+                setUserPhotoBase64(null); // Reset local temp
+            };
+            reader.readAsDataURL(file);
+        } catch (error) {
+            toast.error("Error al subir foto");
+        } finally {
+            setLoadingPhoto(false);
         }
     };
 
@@ -252,8 +282,23 @@ export const ClientProfilePage = () => {
                 className="-mt-20 px-4 relative z-10 animate-fade-in"
             >
                 <div className="bg-white rounded-3xl shadow-xl p-6 text-center border border-gray-100">
-                    <div className="w-24 h-24 bg-indigo-50 rounded-full mx-auto border-4 border-white shadow-md mb-3 flex items-center justify-center text-indigo-400">
-                        <UserIcon size={48} strokeWidth={2} />
+                    <div className="relative w-24 h-24 mx-auto mb-3">
+                        <div className="w-24 h-24 bg-indigo-50 rounded-full border-4 border-white shadow-md flex items-center justify-center text-indigo-400 overflow-hidden">
+                            {userData.photoUrl ? (
+                                <img src={userData.photoUrl} alt="Perfil" className="w-full h-full object-cover" />
+                            ) : (
+                                <UserIcon size={48} strokeWidth={2} />
+                            )}
+                        </div>
+                        <label className="absolute bottom-0 right-0 bg-white p-2 rounded-full shadow-lg border border-gray-100 cursor-pointer hover:bg-gray-50 transition transform hover:scale-110 active:scale-90">
+                            <Camera size={14} className="text-indigo-600" />
+                            <input type="file" className="hidden" accept="image/*" onChange={handleUserPhotoChange} />
+                        </label>
+                        {loadingPhoto && (
+                            <div className="absolute inset-0 bg-white/60 rounded-full flex items-center justify-center">
+                                <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+                        )}
                     </div>
                     <h2 className="text-xl font-black text-gray-800">{userData.name || userData.nombre || 'Usuario'}</h2>
                     <p className="text-gray-500 font-medium text-sm">{userData.email}</p>
@@ -291,6 +336,9 @@ export const ClientProfilePage = () => {
                                     cp: userData.cp || userData.domicilio?.components?.zipCode || '',
                                     birthDate: userData.birthDate || ''
                                 });
+                                setSelectedProv(userData.provincia || userData.domicilio?.components?.provincia || '');
+                                setSelectedPart(userData.partido || userData.domicilio?.components?.partido || '');
+                                setSelectedLoc(userData.localidad || userData.domicilio?.components?.localidad || '');
                                 setIsEditModalOpen(true);
                             }}
                             className="text-xs font-bold text-indigo-600 bg-indigo-50 px-4 py-2 rounded-full hover:bg-indigo-100 transition w-fit"
@@ -676,6 +724,53 @@ export const ClientProfilePage = () => {
                                     />
                                 </div>
 
+                                <div className="space-y-3">
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">Zona / Ubicación</label>
+                                    <div className="grid grid-cols-1 gap-2">
+                                        <select
+                                            className="w-full bg-gray-50 px-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-indigo-200 outline-none text-sm font-bold"
+                                            value={selectedProv}
+                                            onChange={(e) => { 
+                                                const p = e.target.value;
+                                                setSelectedProv(p); 
+                                                setSelectedPart(''); 
+                                                setSelectedLoc('');
+                                                setEditData({...editData, provincia: p, partido: '', localidad: ''});
+                                            }}
+                                        >
+                                            <option value="">Provincia</option>
+                                            {Object.keys(ARGENTINA_LOCATIONS).map(p => <option key={p} value={p}>{p}</option>)}
+                                        </select>
+                                        <select
+                                            className="w-full bg-gray-50 px-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-indigo-200 outline-none text-sm font-bold disabled:opacity-50"
+                                            value={selectedPart}
+                                            disabled={!selectedProv}
+                                            onChange={(e) => {
+                                                const p = e.target.value;
+                                                setSelectedPart(p);
+                                                setSelectedLoc('');
+                                                setEditData({...editData, partido: p, localidad: ''});
+                                            }}
+                                        >
+                                            <option value="">Partido/Departamento</option>
+                                            {selectedProv && Object.keys(ARGENTINA_LOCATIONS[selectedProv] || {}).map(p => <option key={p} value={p}>{p}</option>)}
+                                        </select>
+                                        <select
+                                            className="w-full bg-gray-50 px-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-indigo-200 outline-none text-sm font-bold disabled:opacity-50"
+                                            value={selectedLoc}
+                                            disabled={!selectedPart}
+                                            onChange={(e) => {
+                                                const l = e.target.value;
+                                                setSelectedLoc(l);
+                                                setEditData({...editData, localidad: l});
+                                            }}
+                                        >
+                                            <option value="">Localidad/Barrio</option>
+                                            {selectedProv && selectedPart && (ARGENTINA_LOCATIONS[selectedProv][selectedPart] || []).map((l: string) => <option key={l} value={l}>{l}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+
                                 <div className="grid grid-cols-3 gap-2">
                                     <div className="col-span-2">
                                         <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">Calle</label>
@@ -684,7 +779,7 @@ export const ClientProfilePage = () => {
                                             className="w-full bg-gray-50 px-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-indigo-200 outline-none text-sm font-bold"
                                             value={editData.street}
                                             onChange={e => setEditData({ ...editData, street: e.target.value })}
-                                            required
+                                            required={editData.number?.length > 0}
                                         />
                                     </div>
                                     <div>
@@ -694,12 +789,12 @@ export const ClientProfilePage = () => {
                                             className="w-full bg-gray-50 px-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-indigo-200 outline-none text-sm font-bold text-center"
                                             value={editData.number}
                                             onChange={e => setEditData({ ...editData, number: e.target.value })}
-                                            required
+                                            required={editData.street?.length > 0}
                                         />
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-2">
+                                <div className="grid grid-cols-3 gap-2">
                                     <div>
                                         <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">Piso</label>
                                         <input
@@ -718,25 +813,13 @@ export const ClientProfilePage = () => {
                                             onChange={e => setEditData({ ...editData, depto: e.target.value })}
                                         />
                                     </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-2">
                                     <div>
-                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">Provincia</label>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">CP</label>
                                         <input
                                             type="text"
-                                            className="w-full bg-gray-50 px-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-indigo-200 outline-none text-sm font-bold"
-                                            value={editData.provincia}
-                                            onChange={e => setEditData({ ...editData, provincia: e.target.value })}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">Localidad</label>
-                                        <input
-                                            type="text"
-                                            className="w-full bg-gray-50 px-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-indigo-200 outline-none text-sm font-bold"
-                                            value={editData.localidad}
-                                            onChange={e => setEditData({ ...editData, localidad: e.target.value })}
+                                            className="w-full bg-gray-50 px-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-indigo-200 outline-none text-sm font-bold text-center"
+                                            value={editData.cp}
+                                            onChange={e => setEditData({ ...editData, cp: e.target.value })}
                                         />
                                     </div>
                                 </div>

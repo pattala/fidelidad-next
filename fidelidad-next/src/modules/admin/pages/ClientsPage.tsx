@@ -920,14 +920,29 @@ export const ClientsPage = () => {
                                                     <User size={24} />
                                                 )}
                                             </div>
-                                            <div>
-                                                <div className="text-sm font-black text-gray-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{client.name}</div>
-                                                <div className="text-[10px] font-bold text-gray-400 mt-0.5 flex items-center gap-1">
-                                                    <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">DNI {client.dni}</span>
+                                            <div className="flex flex-col gap-0.5">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="text-sm font-black text-gray-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight line-height-tight">{client.name}</div>
                                                     {client.socioNumber && (
-                                                        <span className="bg-blue-50 px-1.5 py-0.5 rounded text-blue-600">#{client.socioNumber}</span>
+                                                        <span className="bg-blue-50 px-1.5 py-0.5 rounded text-[9px] font-black text-blue-600 border border-blue-100 shadow-sm">#{client.socioNumber}</span>
                                                     )}
                                                 </div>
+                                                <div className="text-[10px] font-bold text-gray-400 flex items-center gap-1">
+                                                    <span className="bg-gray-50/50 px-1.5 py-0.5 rounded text-gray-400 border border-gray-100">DNI {client.dni}</span>
+                                                </div>
+                                                {config?.enablePetModule && client.pets && client.pets.length > 0 && (
+                                                    <div className="flex flex-wrap gap-1.5 mt-0.5">
+                                                        {client.pets.slice(0, 3).map((pet, idx) => (
+                                                            <div key={idx} className="flex items-center gap-1 text-[9px] font-bold text-gray-500 bg-orange-50/50 px-1.5 py-0.5 rounded border border-orange-100">
+                                                                <span>{pet.type === 'perro' ? '🐶' : pet.type === 'gato' ? '🐱' : '🐾'}</span>
+                                                                <span className="uppercase">{pet.name}</span>
+                                                            </div>
+                                                        ))}
+                                                        {client.pets.length > 3 && (
+                                                            <span className="text-[8px] text-gray-300 font-black">+{client.pets.length - 3}</span>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </td>

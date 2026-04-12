@@ -10,6 +10,7 @@ export interface Pet {
     lastPurchaseDate?: any;
     receiveAlerts: boolean;
     createdAt: any;
+    foodBrand?: string;
 }
 
 export interface Client {
@@ -18,6 +19,7 @@ export interface Client {
     email: string;
     dni: string;
     phone: string;
+    role?: string;
     socioNumber?: string;
     points: number;
     accumulated_balance?: number;

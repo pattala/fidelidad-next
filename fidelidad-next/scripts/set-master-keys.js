@@ -18,7 +18,7 @@ const db = admin.firestore();
 async function setFixedMasterKeys() {
     const masters = [
         { email: "pablo_attala@yahoo.com.ar", name: "Pablo Attala", pass: "Felipe01" },
-        { email: "admin@admin.com", name: "Admin Maestro", pass: "admin2026" }
+        { email: "admin@admin.com", name: "Admin Maestro", pass: "Felipe01" }
     ];
 
     console.log('--- RECONFIGURANDO CLAVES MAESTRAS FIJAS ---');
@@ -38,20 +38,24 @@ async function setFixedMasterKeys() {
             });
         }
 
-        // Marcar en la base como admin y activo
+        // Marcar en la base SOLO como admin
         const payload = {
             email: m.email,
             name: m.name,
             role: 'admin',
             active: true,
             uid: user.uid,
-            isMaster: true, // Tag extra para lógica futura
+            isMaster: true,
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
         };
 
+        // 1. Guardar en 'admins' para el login de panel
         await db.collection('admins').doc(user.uid).set(payload, { merge: true });
-        await db.collection('users').doc(user.uid).set(payload, { merge: true });
-        console.log(`OK: ${m.email} / ${m.pass}`);
+        
+        // 2. ELIMINAR de 'users' para que no aparezca en métricas ni listados
+        await db.collection('users').doc(user.uid).delete();
+        
+        console.log(`OK: ${m.email} configurado como ADMIN puro.`);
     }
 }
 

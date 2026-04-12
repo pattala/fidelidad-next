@@ -2899,21 +2899,23 @@ export const ConfigPage = () => {
                                     </div>
 
                                     {/* MODULO PETSHOP: Toggle Global */}
-                                    <div className="flex items-center justify-between p-6 bg-orange-50/50 rounded-2xl border border-orange-100">
-                                        <div className="flex-1">
-                                            <span className="text-sm font-black text-orange-900 uppercase flex items-center gap-2">
-                                                <Dog size={16} /> Módulo Petshop
-                                            </span>
-                                            <p className="text-[10px] text-orange-600 font-bold mt-1">Habilita la sección "Mis Mascotas" en el perfil del cliente y el sistema de alertas de alimento.</p>
+                                    {import.meta.env.VITE_ENABLE_PET_MODULE === 'true' && (
+                                        <div className="flex items-center justify-between p-6 bg-orange-50/50 rounded-2xl border border-orange-100">
+                                            <div className="flex-1">
+                                                <span className="text-sm font-black text-orange-900 uppercase flex items-center gap-2">
+                                                    <Dog size={16} /> Módulo Petshop
+                                                </span>
+                                                <p className="text-[10px] text-orange-600 font-bold mt-1">Habilita la sección "Mis Mascotas" en el perfil del cliente y el sistema de alertas de alimento.</p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setConfig({ ...config, enablePetModule: !config.enablePetModule })}
+                                                className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.enablePetModule ? 'bg-orange-600' : 'bg-gray-200'}`}
+                                            >
+                                                <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enablePetModule ? 'translate-x-5' : 'translate-x-0'}`} />
+                                            </button>
                                         </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => setConfig({ ...config, enablePetModule: !config.enablePetModule })}
-                                            className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.enablePetModule ? 'bg-orange-600' : 'bg-gray-200'}`}
-                                        >
-                                            <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enablePetModule ? 'translate-x-5' : 'translate-x-0'}`} />
-                                        </button>
-                                    </div>
+                                    )}
 
                                     {/* Motor Automático Diario */}
                                     <div className="p-6 bg-blue-50/50 rounded-2xl border border-blue-100 space-y-4">

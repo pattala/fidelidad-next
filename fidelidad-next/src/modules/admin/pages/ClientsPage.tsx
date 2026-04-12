@@ -4,10 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import {
     Users, Plus, Search, Filter, Mail, Phone, MapPin, Check, Bell, Coins, History,
     Shield, ArrowRight, Download, Edit2, Trash2, X, ChevronRight, Gift, Sparkles, Cake,
-    FileDown, MessageCircle, Edit, TrendingUp, Monitor, Smartphone
+    FileDown, MessageCircle, Edit, TrendingUp, Monitor, Smartphone, Dog
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { collection, addDoc, getDocs, query, orderBy, doc, deleteDoc, updateDoc, increment, runTransaction, arrayUnion, where, setDoc, collectionGroup, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, orderBy, doc, deleteDoc, updateDoc, increment, runTransaction, arrayUnion, where, setDoc, collectionGroup, onSnapshot, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db, auth } from '../../../lib/firebase';
 import { ConfigService, DEFAULT_TEMPLATES } from '../../../services/configService';
 import { NotificationService } from '../../../services/notificationService';
@@ -40,7 +40,8 @@ const INITIAL_CLIENT_STATE = {
     socioNumber: '',
     points: 0,
     birthDate: '',
-    isTestUser: false
+    isTestUser: false,
+    pets: [] as any[]
 };
 
 
@@ -187,7 +188,7 @@ export const ClientsPage = () => {
 
             // Ordenar en memoria por createdAt desc (clientes más nuevos primero)
             const sortedAndFiltered = loadedClients
-                .filter((c: Client) => c.name || c.dni)
+                .filter((c: Client) => (c.name || c.dni) && c.role !== 'admin')
                 .sort((a: Client, b: Client) => {
                     const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
                     const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
@@ -308,6 +309,7 @@ export const ClientsPage = () => {
                             zipCode: formData.cp
                         }
                     },
+                    pets: formData.pets || [],
                     termsAccepted: true,
                     termsAcceptedAt: new Date().toISOString()
                 };
@@ -346,6 +348,7 @@ export const ClientsPage = () => {
                     birthDate: formData.birthDate,
                     localidad: formData.localidad,
                     numeroSocio: finalSocioId,
+                    pets: formData.pets || [],
                     domicilio: {
                         status: 'complete',
                         addressLine: formattedAddress,
@@ -635,7 +638,7 @@ export const ClientsPage = () => {
                 if (isPetFoodPurchase && selectedClientForPoints.pets) {
                     const updatedPets = selectedClientForPoints.pets.map(pet => {
                         if (selectedPetsForFood.includes(pet.id)) {
-                            return { ...pet, lastPurchaseDate: admin.firestore.Timestamp.fromDate(new Date(pointsData.purchaseDate)) };
+                            return { ...pet, lastPurchaseDate: Timestamp.fromDate(new Date(pointsData.purchaseDate)) };
                         }
                         return pet;
                     });
@@ -701,7 +704,8 @@ export const ClientsPage = () => {
             socioNumber: client.socioNumber || '',
             points: client.points || 0,
             birthDate: client.birthDate || '',
-            isTestUser: client.isTestUser || false
+            isTestUser: client.isTestUser || false,
+            pets: client.pets || []
         });
         setIsModalOpen(true);
     };
@@ -1113,6 +1117,17 @@ export const ClientsPage = () => {
                                             </div>
                                         )}
                                     </td>
+                                    <td className="px-6 py-4">
+                                        {config?.enablePetModule && client.pets && client.pets.length > 0 && (
+                                            <div className="flex flex-wrap gap-1 max-w-[150px]">
+                                                {client.pets.map((pet: any, idx: number) => (
+                                                    <span key={idx} className="bg-orange-50 text-orange-700 text-[8px] px-1.5 py-0.5 rounded-full font-black border border-orange-100 flex items-center gap-1">
+                                                        <span>🐾</span> {pet.name.toUpperCase()}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </td>
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex items-center justify-end gap-2">
                                             {!isReadOnly && (
@@ -1397,8 +1412,105 @@ export const ClientsPage = () => {
                                         <p className="text-xs text-orange-700">
                                             Al crear un cliente manualmente, puedes decidir si otorgarle los premios iniciales como si se hubiera registrado en la App.
                                         </p>
+                                    </div>
+                                )}
 
-                                        <div className="space-y-3">
+                                {/* SECCION MASCOTAS (Módulo Petshop) */}
+                                {config?.enablePetModule && (editingId || formStep === 2) && (
+                                    <div className="animate-fade-in space-y-4 pt-6 border-t border-gray-100">
+                                        <h3 className="font-bold text-gray-800 flex items-center gap-2"><Dog size={16} /> Mis Mascotas</h3>
+                                        
+                                        <div className="space-y-4">
+                                            {formData.pets.map((pet: any, idx: number) => (
+                                                <div key={idx} className="p-4 bg-orange-50/50 rounded-2xl border border-orange-100 relative group animate-fade-in">
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const newPets = [...formData.pets];
+                                                            newPets.splice(idx, 1);
+                                                            setFormData({ ...formData, pets: newPets });
+                                                        }}
+                                                        className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-600 hover:bg-white rounded-full transition-all opacity-0 group-hover:opacity-100"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div>
+                                                            <label className="block text-[10px] font-bold text-orange-700 uppercase mb-1">Nombre</label>
+                                                            <input 
+                                                                type="text"
+                                                                value={pet.name}
+                                                                onChange={e => {
+                                                                    const newPets = [...formData.pets];
+                                                                    newPets[idx].name = e.target.value;
+                                                                    setFormData({ ...formData, pets: newPets });
+                                                                }}
+                                                                className="w-full p-2 bg-white rounded-lg border border-orange-100 text-sm font-bold outline-none focus:ring-2 focus:ring-orange-200"
+                                                                placeholder="Ej: Firulais"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-[10px] font-bold text-orange-700 uppercase mb-1">Especie / Raza</label>
+                                                            <input 
+                                                                type="text"
+                                                                value={pet.breed}
+                                                                onChange={e => {
+                                                                    const newPets = [...formData.pets];
+                                                                    newPets[idx].breed = e.target.value;
+                                                                    setFormData({ ...formData, pets: newPets });
+                                                                }}
+                                                                className="w-full p-2 bg-white rounded-lg border border-orange-100 text-sm outline-none focus:ring-2 focus:ring-orange-200"
+                                                                placeholder="Ej: Golden Retriever"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-[10px] font-bold text-orange-700 uppercase mb-1">Marca de Alimento</label>
+                                                            <input 
+                                                                type="text"
+                                                                value={pet.foodBrand}
+                                                                onChange={e => {
+                                                                    const newPets = [...formData.pets];
+                                                                    newPets[idx].foodBrand = e.target.value;
+                                                                    setFormData({ ...formData, pets: newPets });
+                                                                }}
+                                                                className="w-full p-2 bg-white rounded-lg border border-orange-100 text-sm outline-none focus:ring-2 focus:ring-orange-200"
+                                                                placeholder="Ej: Royal Canin"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-[10px] font-bold text-orange-700 uppercase mb-1">Edad / Otros</label>
+                                                            <input 
+                                                                type="text"
+                                                                value={pet.age}
+                                                                onChange={e => {
+                                                                    const newPets = [...formData.pets];
+                                                                    newPets[idx].age = e.target.value;
+                                                                    setFormData({ ...formData, pets: newPets });
+                                                                }}
+                                                                className="w-full p-2 bg-white rounded-lg border border-orange-100 text-sm outline-none focus:ring-2 focus:ring-orange-200"
+                                                                placeholder="Ej: 3 años"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            
+                                            <button 
+                                                type="button"
+                                                onClick={() => setFormData({ 
+                                                    ...formData, 
+                                                    pets: [...formData.pets, { id: Math.random().toString(36).substr(2, 9), name: '', breed: '', age: '', foodBrand: '', receiveAlerts: true, createdAt: new Date() }] 
+                                                })}
+                                                className="w-full py-3 border-2 border-dashed border-orange-200 rounded-2xl text-orange-600 font-bold text-sm hover:bg-orange-50 hover:border-orange-300 transition-all flex items-center justify-center gap-2"
+                                            >
+                                                <Plus size={16} /> Agregar Mascota
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {!editingId && formStep === 2 && (
+                                    <div className="space-y-3">
                                             {(config?.welcomePoints || 0) > 0 && config?.enableWelcomeBonus !== false && (
                                                 <label className="flex items-center gap-3 cursor-pointer p-2 hover:bg-orange-100/50 rounded-lg transition">
                                                     <input
@@ -1442,8 +1554,8 @@ export const ClientsPage = () => {
                                                 </div>
                                             </label>
                                         </div>
-                                    </div>
-                                )}
+                                    )}
+
 
                                 <div className="mt-8 flex justify-end gap-3 pt-6 border-t border-gray-50">
                                     {formStep === 2 && !editingId && (

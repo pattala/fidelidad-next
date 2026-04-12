@@ -12,6 +12,7 @@ export interface Pet {
     receiveAlerts: boolean;
     createdAt: any;
     foodBrand?: string;
+    birthDate?: any;
 }
 
 export interface Client {

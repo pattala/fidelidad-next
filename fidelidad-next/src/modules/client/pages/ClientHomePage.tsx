@@ -134,6 +134,28 @@ export const ClientHomePage = () => {
     const [activeBannerPhase, setActiveBannerPhase] = useState<'none' | 'large'>('none');
     const [zoomedPhoto, setZoomedPhoto] = useState<string | null>(null);
 
+    // Helper for dynamic pet age
+    const getPetAge = (pet: any) => {
+        if (!pet.birthDate) return pet.age ? `${pet.age} años` : '';
+        try {
+            const birth = pet.birthDate.toDate ? pet.birthDate.toDate() : new Date(pet.birthDate);
+            const now = new Date();
+            let age = now.getFullYear() - birth.getFullYear();
+            const m = now.getMonth() - birth.getMonth();
+            if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) {
+                age--;
+            }
+            if (age < 1) {
+                const months = (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth());
+                return months > 0 ? `${months} m` : 'Recién nacido';
+            }
+            return `${age} años`;
+        } catch (e) {
+            return pet.age ? `${pet.age} años` : '';
+        }
+    };
+
+
     const prevPointsRef = useRef<number | null>(null);
     const lastActionTs = useRef<number>(0);
     const initialLoadTs = useRef<number>(Date.now());
@@ -898,7 +920,11 @@ export const ClientHomePage = () => {
                                                 </div>
                                             )}
                                         </div>
-                                        <span className="text-[10px] font-black text-gray-700 uppercase tracking-tighter truncate max-w-[60px]">{pet.name}</span>
+                                        <div className="flex flex-col items-center">
+                                            <span className="text-[10px] font-black text-gray-700 uppercase tracking-tighter truncate max-w-[60px] leading-none">{pet.name}</span>
+                                            <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tighter mt-0.5">{getPetAge(pet)}</span>
+                                        </div>
+
                                     </div>
                                 ))}
                                 <button 

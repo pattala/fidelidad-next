@@ -19,6 +19,27 @@ type AppConfig = any; // Placeholder if not defined, adjust as per actual projec
 
 export const ClientProfilePage = () => {
     // Generate simple ID for pets to avoid dependency on global crypto.randomUUID
+    // Helper for dynamic pet age
+    const getPetAge = (pet: any) => {
+        if (!pet.birthDate) return pet.age ? `${pet.age} años` : '';
+        try {
+            const birth = pet.birthDate.toDate ? pet.birthDate.toDate() : new Date(pet.birthDate);
+            const now = new Date();
+            let age = now.getFullYear() - birth.getFullYear();
+            const m = now.getMonth() - birth.getMonth();
+            if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) {
+                age--;
+            }
+            if (age < 1) {
+                const months = (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth());
+                return months > 0 ? `${months} m` : 'Recién nacido';
+            }
+            return `${age} años`;
+        } catch (e) {
+            return pet.age ? `${pet.age} años` : '';
+        }
+    };
+
     const generateSafeId = () => {
         return Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
     };
@@ -73,6 +94,8 @@ export const ClientProfilePage = () => {
     const [userPhotoBase64, setUserPhotoBase64] = useState<string | null>(null);
     const [loadingPet, setLoadingPet] = useState(false);
     const [loadingPhoto, setLoadingPhoto] = useState(false);
+    const [isCustomBreed, setIsCustomBreed] = useState(false);
+    const [isCustomBrand, setIsCustomBrand] = useState(false);
 
     // Address Cascade State
     const [selectedProv, setSelectedProv] = useState('');
@@ -170,12 +193,24 @@ export const ClientProfilePage = () => {
         setLoadingPet(true);
 
         try {
+            // Logic to calculate birthDate from age (auto-aging)
+            let calculatedBirthDate = editingPet?.birthDate || null;
+            if (petFormData.age && (!editingPet || petFormData.age !== editingPet.age)) {
+                const ageNum = parseInt(petFormData.age.toString());
+                if (!isNaN(ageNum)) {
+                    const now = new Date();
+                    // Store the approximate date of birth
+                    calculatedBirthDate = new Date(now.getFullYear() - ageNum, now.getMonth(), now.getDate());
+                }
+            }
+
             const petPayload: Pet = {
                 id: editingPet?.id || generateSafeId(),
                 name: petFormData.name || '',
                 type: (petFormData.type as any) || 'perro',
                 breed: petFormData.breed || 'Mestizo / Sin Raza',
                 age: petFormData.age || '',
+                birthDate: calculatedBirthDate,
                 brand: petFormData.brand || '',
                 variant: petFormData.variant || '',
                 frequencyDays: Number(petFormData.frequencyDays) || 30,
@@ -194,12 +229,16 @@ export const ClientProfilePage = () => {
             } else {
                 await updateDoc(userRef, { pets: arrayUnion(petPayload) });
                 toast.success("¡Mascota registrada! 🐾");
+                // Rule: Return to Home after registration
+                navigate('/');
             }
 
             setIsPetModalOpen(false);
             setEditingPet(null);
             setPetFormData({ name: '', type: 'perro', breed: 'Mestizo / Sin Raza', age: '', brand: 'Royal Canin', variant: '', frequencyDays: 30, receiveAlerts: true });
             setPetPhotoBase64(null);
+            setIsCustomBreed(false);
+            setIsCustomBrand(false);
         } catch (error) {
             console.error("Error saving pet:", error);
             toast.error("Error al guardar mascota");
@@ -274,7 +313,6 @@ export const ClientProfilePage = () => {
         }
 
         try {
-            const { updateDoc } = await import('firebase/firestore');
             await updateDoc(doc(db, 'users', userAuth.uid), {
                 [`permissions.${type}.status`]: newStatus
             });
@@ -380,29 +418,6 @@ export const ClientProfilePage = () => {
                 </div>
             </div>
 
-            {/* DIGITAL CREDENTIAL (QR) */}
-            <div className="px-4 mt-6">
-                <div className="bg-white rounded-3xl shadow-sm p-6 flex flex-col items-center gap-4 border border-gray-100">
-                    <div className="flex items-center gap-2 text-gray-800 font-bold">
-                        <QrCode className="text-indigo-500" />
-                        <h3>Tu Credencial Digital</h3>
-                    </div>
-                    <div className="bg-white p-2 rounded-xl border-2 border-dashed border-gray-200">
-                        {/* QR Code Lib Component */}
-                        <div style={{ padding: "10px", background: 'white' }}>
-                            <QRCode
-                                value={qrValue}
-                                size={180}
-                                style={{ height: "auto", maxWidth: "100%", width: "100%" }}
-                                viewBox={`0 0 256 256`}
-                            />
-                        </div>
-                    </div>
-                    <p className="text-xs text-gray-400 text-center max-w-[200px]">
-                        Muestra este código en caja para sumar puntos o canjear premios.
-                    </p>
-                </div>
-            </div>
 
                 {/* MODULO PETSHOP: Mis Mascotas */}
                 {config?.enablePetModule && (
@@ -419,9 +434,10 @@ export const ClientProfilePage = () => {
                             </div>
                             <button
                                 onClick={() => {
-                                    setEditingPet(null);
                                     setPetFormData({ name: '', type: 'perro', breed: 'Mestizo / Sin Raza', age: '', brand: 'Royal Canin', variant: '', frequencyDays: 30, receiveAlerts: true });
                                     setPetPhotoBase64(null);
+                                    setIsCustomBreed(false);
+                                    setIsCustomBrand(false);
                                     setIsPetModalOpen(true);
                                 }}
                                 className="p-2 bg-orange-600 text-white rounded-full hover:bg-orange-700 transition-colors shadow-sm"
@@ -451,7 +467,7 @@ export const ClientProfilePage = () => {
                                                         <BellIcon size={12} className="text-orange-500" />
                                                     )}
                                                 </div>
-                                                <p className="text-xs text-gray-500 truncate">{pet.breed} • {pet.age} años</p>
+                                                <p className="text-xs text-gray-500 truncate">{pet.breed} • {getPetAge(pet)}</p>
                                                 <div className="mt-1 flex flex-wrap items-center gap-2">
                                                     <span className="px-2 py-0.5 bg-white border border-gray-200 rounded text-[9px] font-bold text-gray-600">
                                                         {pet.brand || pet.foodBrand}
@@ -475,6 +491,8 @@ export const ClientProfilePage = () => {
                                                         setEditingPet(pet);
                                                         setPetFormData({ ...pet });
                                                         setPetPhotoBase64(pet.photoUrl || null);
+                                                        setIsCustomBreed(pet.breed ? !PET_BREEDS.includes(pet.breed) : false);
+                                                        setIsCustomBrand(pet.brand ? !PET_BRANDS.includes(pet.brand) : false);
                                                         setIsPetModalOpen(true);
                                                     }}
                                                     className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -620,6 +638,29 @@ export const ClientProfilePage = () => {
                         <ChevronRight size={18} className="text-gray-300" />
                     </button>
                 )}
+
+                    {/* DIGITAL CREDENTIAL (QR) - MOVED TO BOTTOM */}
+                    <div className="px-4 py-6 border-t border-gray-50">
+                        <div className="bg-white rounded-3xl shadow-sm p-6 flex flex-col items-center gap-4 border border-gray-100">
+                            <div className="flex items-center gap-2 text-gray-800 font-bold">
+                                <QrCode className="text-indigo-500" />
+                                <h3>Tu Credencial Digital</h3>
+                            </div>
+                            <div className="bg-orange-50/30 p-4 rounded-3xl border-2 border-dashed border-orange-200">
+                                <div style={{ padding: "10px", background: 'white' }} className="rounded-2xl shadow-inner">
+                                    <QRCode
+                                        value={qrValue}
+                                        size={180}
+                                        style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                                        viewBox={`0 0 256 256`}
+                                    />
+                                </div>
+                            </div>
+                            <p className="text-[10px] text-gray-400 text-center max-w-[200px] font-bold uppercase tracking-widest leading-relaxed">
+                                Muestra este código en caja para sumar puntos o canjear premios.
+                            </p>
+                        </div>
+                    </div>
 
                 {/* Logout Button */}
                 <button
@@ -930,17 +971,43 @@ export const ClientProfilePage = () => {
                                 <div className="grid grid-cols-2 gap-3">
                                     <div>
                                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block ml-1">Raza</label>
-                                        <input
-                                            type="text"
-                                            list="breeds-list"
-                                            value={petFormData.breed}
-                                            onChange={(e) => setPetFormData({ ...petFormData, breed: e.target.value })}
-                                            className="w-full px-4 py-3 bg-gray-50 border-gray-100 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-sm font-medium"
-                                            placeholder="Busca o escribe..."
-                                        />
-                                        <datalist id="breeds-list">
-                                            {PET_BREEDS.map(breed => <option key={breed} value={breed} />)}
-                                        </datalist>
+                                        {!isCustomBreed ? (
+                                            <select
+                                                value={PET_BREEDS.includes(petFormData.breed || '') ? petFormData.breed : 'Otro'}
+                                                onChange={(e) => {
+                                                    if (e.target.value === 'Otro') {
+                                                        setIsCustomBreed(true);
+                                                        setPetFormData({ ...petFormData, breed: '' });
+                                                    } else {
+                                                        setPetFormData({ ...petFormData, breed: e.target.value });
+                                                    }
+                                                }}
+                                                className="w-full px-4 py-3 bg-gray-50 border-gray-100 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-sm font-medium"
+                                            >
+                                                {PET_BREEDS.map(breed => (
+                                                    <option key={breed} value={breed}>{breed}</option>
+                                                ))}
+                                                <option value="Otro">✎ Otro (Escribir...)</option>
+                                            </select>
+                                        ) : (
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    autoFocus
+                                                    value={petFormData.breed}
+                                                    onChange={(e) => setPetFormData({ ...petFormData, breed: e.target.value })}
+                                                    className="w-full px-4 py-3 bg-gray-50 border-gray-100 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-sm font-medium"
+                                                    placeholder="Escribe la raza..."
+                                                />
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => setIsCustomBreed(false)}
+                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-orange-600 uppercase"
+                                                >
+                                                    Lista
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                     <div>
                                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block ml-1">Edad (aprox)</label>
@@ -959,17 +1026,43 @@ export const ClientProfilePage = () => {
                                     
                                     <div>
                                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block ml-1">Marca</label>
-                                        <input
-                                            type="text"
-                                            list="brands-list"
-                                            value={petFormData.brand}
-                                            onChange={(e) => setPetFormData({ ...petFormData, brand: e.target.value })}
-                                            className="w-full px-4 py-3 bg-white border-gray-100 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-sm font-medium"
-                                            placeholder="Busca o escribe marca..."
-                                        />
-                                        <datalist id="brands-list">
-                                            {PET_BRANDS.map(brand => <option key={brand} value={brand} />)}
-                                        </datalist>
+                                        {!isCustomBrand ? (
+                                            <select
+                                                value={PET_BRANDS.includes(petFormData.brand || '') ? petFormData.brand : 'Otro'}
+                                                onChange={(e) => {
+                                                    if (e.target.value === 'Otro') {
+                                                        setIsCustomBrand(true);
+                                                        setPetFormData({ ...petFormData, brand: '' });
+                                                    } else {
+                                                        setPetFormData({ ...petFormData, brand: e.target.value });
+                                                    }
+                                                }}
+                                                className="w-full px-4 py-3 bg-white border-gray-100 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-sm font-medium"
+                                            >
+                                                {PET_BRANDS.map(brand => (
+                                                    <option key={brand} value={brand}>{brand}</option>
+                                                ))}
+                                                <option value="Otro">✎ Otro (Escribir...)</option>
+                                            </select>
+                                        ) : (
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    autoFocus
+                                                    value={petFormData.brand}
+                                                    onChange={(e) => setPetFormData({ ...petFormData, brand: e.target.value })}
+                                                    className="w-full px-4 py-3 bg-white border-gray-100 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-sm font-medium"
+                                                    placeholder="Escribe la marca..."
+                                                />
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => setIsCustomBrand(false)}
+                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-orange-600 uppercase"
+                                                >
+                                                    Lista
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div>

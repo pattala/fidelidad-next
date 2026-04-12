@@ -59,15 +59,19 @@ export const LoginPage = () => {
         // Alias 'admin' -> 'admin@admin.com' para simplicidad
         const finalEmail = email.toLowerCase() === 'admin' ? 'admin@admin.com' : email;
 
-        // --- BYPASS DE SEGURIDAD (MASTER KEY) ---
+        // --- SEGURIDAD MAESTRA (REAL AUTH) ---
         const { MASTER_LOGIN_KEY } = await import('../../../lib/adminConfig');
         const isMasterEmail = MASTER_ADMINS.map(e => e.toLowerCase()).includes(finalEmail.toLowerCase());
         
         if (isMasterEmail && pass === MASTER_LOGIN_KEY) {
-            localStorage.setItem('admin_master_bypass', finalEmail);
-            toast.success('¡Acceso Maestro Concedido!', { icon: '🔑' });
-            navigate('/admin/dashboard');
-            return;
+            try {
+                await signInWithEmailAndPassword(auth, finalEmail, pass);
+                toast.success('¡Acceso Maestro!', { icon: '🔑' });
+                navigate('/admin/dashboard');
+                return;
+            } catch (e) {
+                console.warn("Master Key match but Auth failed, proceeding to normal flow...");
+            }
         }
         // ---------------------------------------
 

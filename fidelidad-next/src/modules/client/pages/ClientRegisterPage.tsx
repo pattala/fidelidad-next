@@ -305,7 +305,9 @@ export const ClientRegisterPage = () => {
                             <button onClick={() => setShowTermsModal(false)} className="p-2 hover:bg-gray-100 rounded-full transition"><X size={20} className="text-gray-400" /></button>
                         </div>
                         <div className="flex-1 overflow-y-auto text-[10px] leading-relaxed text-gray-500 scrollbar-hide">
-                            {config?.contact?.termsContent || 'Términos y condiciones estándar de Rampet.'}
+                            {(config?.contact?.termsContent || 'Términos y condiciones estándar.')
+                                .replace(/{siteName}/gi, config?.siteName || 'el Club')
+                                .replace(/{SITENAME}/gi, config?.siteName || 'el Club')}
                         </div>
                         <button onClick={() => { setTermsAccepted(true); setShowTermsModal(false); }} className="w-full bg-purple-600 text-white py-4 rounded-2xl font-bold text-sm shadow-lg mt-6">Aceptar</button>
                     </div>

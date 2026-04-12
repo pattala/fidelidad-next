@@ -8,7 +8,7 @@ import { PET_BRANDS, PET_BREEDS } from '../../../data/petshop_constants';
 import { updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import type { Pet } from '../../../types';
 import toast from 'react-hot-toast';
-import { useNavigate, useOutletContext } from 'react-router-dom';
+import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
 import { useFcmToken } from '../../../hooks/useFcmToken';
 import { useClientAuth } from '../contexts/ClientAuthContext';
 import { ARGENTINA_LOCATIONS } from '../../../data/locations';
@@ -24,6 +24,17 @@ export const ClientProfilePage = () => {
         config: AppConfig,
         setHeaderTitle: (title: string | null) => void
     }>();
+    const [searchParams] = useSearchParams();
+
+    // Auto-open Pet Modal if coming from registration
+    useEffect(() => {
+        if (searchParams.get('addPet') === 'true') {
+            setEditingPet(null);
+            setPetFormData({ name: '', type: 'perro', breed: 'Mestizo / Sin Raza', age: '', brand: 'Royal Canin', variant: '', frequencyDays: 30, receiveAlerts: true });
+            setPetPhotoBase64(null);
+            setIsPetModalOpen(true);
+        }
+    }, [searchParams]);
 
     // Set Header State
     useEffect(() => {
@@ -381,7 +392,7 @@ export const ClientProfilePage = () => {
             </div>
 
                 {/* MODULO PETSHOP: Mis Mascotas */}
-                {config.enablePetModule && (
+                {config?.enablePetModule && (
                     <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden mt-6 mx-4">
                         <div className="p-5 border-b border-gray-50 flex items-center justify-between bg-gradient-to-r from-orange-50/30 to-transparent">
                             <div className="flex items-center gap-3">
@@ -436,7 +447,7 @@ export const ClientProfilePage = () => {
                                                         <span className="text-[9px] font-black text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full flex items-center gap-1">
                                                             📅 Próximo aviso: {(() => {
                                                                 const last = pet.lastPurchaseDate.toDate ? pet.lastPurchaseDate.toDate() : new Date(pet.lastPurchaseDate);
-                                                                const leadDays = Number(config.petFoodAlertLeadDays || 0);
+                                                                const leadDays = Number(config?.petFoodAlertLeadDays || 0);
                                                                 const next = new Date(last);
                                                                 next.setDate(last.getDate() + Number(pet.frequencyDays) - leadDays);
                                                                 return next.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' });
@@ -579,7 +590,7 @@ export const ClientProfilePage = () => {
                 {(config?.contact?.termsAndConditions || config?.contact?.termsContent) && (
                     <button
                         onClick={() => {
-                            if (config.contact?.termsAndConditions) {
+                            if (config?.contact?.termsAndConditions) {
                                 window.open(config.contact.termsAndConditions, '_blank');
                             } else {
                                 setIsTermsOpen(true);

@@ -158,8 +158,18 @@ export const ClientsPage = () => {
                 const depto = data.domicilio?.components?.depto || data.depto || '';
                 const cp = data.domicilio?.components?.zipCode || data.cp || '';
 
-                const expirations = metrics.expirations || [];
-                const sortedExpirations = [...expirations].sort((a: any, b: any) => a.date.getTime() - b.date.getTime());
+                const liveExpirations = metrics.expirations || [];
+                
+                // FALLBACK: Si no hay detalle en vivo pero el socio tiene puntos y una fecha de vencimiento guardada en el perfil, usarla como respaldo.
+                let finalExpirations = [...liveExpirations];
+                if (finalExpirations.length === 0 && (data.points || data.puntos) > 0 && data.nextExpirationDate) {
+                    finalExpirations.push({
+                        date: new Date(data.nextExpirationDate + 'T12:00:00'),
+                        points: data.nextExpirationAmount || (data.points || data.puntos)
+                    });
+                }
+
+                const sortedExpirations = finalExpirations.sort((a: any, b: any) => a.date.getTime() - b.date.getTime());
 
                 return {
                     id: doc.id,
@@ -170,7 +180,7 @@ export const ClientsPage = () => {
                     phone: data.phone || data.telefono || '',
                     points: data.points ?? data.puntos ?? 0,
                     socioNumber: String(data.socioNumber || data.numeroSocio || ''),
-                    expiringPoints: metrics.expiring,
+                    expiringPoints: metrics.expiring || data.nextExpirationAmount || 0,
                     expirationDetails: sortedExpirations,
                     totalSpent: metrics.totalspent,
                     redeemedPoints: metrics.redeemedPoints,

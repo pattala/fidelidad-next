@@ -207,10 +207,10 @@ export const LoginPage = () => {
             <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-sm border border-gray-100">
                 <div className="text-center mb-8">
                     <h2 className="text-2xl font-black text-blue-600">
-                        {isFirstRun ? 'Configuración de Sistema' : 'Panel de Control'}
+                        Panel de Control
                     </h2>
                     <p className="text-gray-400 text-sm font-medium mt-1">
-                        {isFirstRun ? 'Crea la cuenta de administrador inicial' : 'Ingresa tus credenciales'}
+                        Ingresa tus credenciales para acceder
                     </p>
                 </div>
 
@@ -278,21 +278,12 @@ export const LoginPage = () => {
                     <button
                         type="submit"
                         disabled={loading}
-                        className={`w-full py-4 rounded-xl font-bold text-sm shadow-lg transition-all flex items-center justify-center gap-2 ${isFirstRun
-                            ? 'bg-green-600 hover:bg-green-700 text-white shadow-green-200'
-                            : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200'
-                            } disabled:opacity-50`}
+                        className="w-full py-4 rounded-xl font-bold text-sm shadow-lg transition-all flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200 disabled:opacity-50"
                     >
-                        {loading ? 'Procesando...' : (isFirstRun ? 'Crear Administrador Maestro' : 'Iniciar Sesión')}
+                        {loading ? 'Procesando...' : 'Iniciar Sesión'}
                     </button>
 
-                    {isFirstRun && (
-                        <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 mt-4">
-                            <p className="text-[10px] text-amber-700 leading-relaxed">
-                                <strong>MODO INSTALACIÓN:</strong> No se detectaron administradores. La primera cuenta que crees tendrá el control total del sistema.
-                            </p>
-                        </div>
-                    )}
+
                 </form>
             </div>
         </div>

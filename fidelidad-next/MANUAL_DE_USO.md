@@ -21,6 +21,7 @@ Este documento es la guía definitiva para la operación, configuración y estra
    - [Cómo funciona el motor de WhatsApp](#cómo-funciona-el-motor-de-whatsapp)
 6. [Solución de Problemas](#6-solución-de-problemas)
 7. [Gestión de Roles y Permisos](#7-gestión-de-roles-y-permisos)
+8. [Mantenimiento Avanzado: Reset Maestro](#8-mantenimiento-avanzado-reset-maestro)
 
 ---
 
@@ -177,6 +178,38 @@ Para gestionar el acceso de su equipo, diríjase a **Mi Perfil > Gestión de Equ
 
 ---
 *Manual Operativo Avanzado v2.1 (Roles & Permissions update)*
+
+---
+
+## 8. 🔴 Mantenimiento Avanzado: Reset Maestro
+
+Ubicado en **Configuración > Avanzado**, el Reset Maestro es una herramienta de "limpieza profunda" de la base de datos. Se utiliza principalmente para pasar de una etapa de pruebas a producción o para corregir desfasajes masivos de datos.
+
+### 👥 Grupo: Socios (Datos de Clientes)
+
+*   **SOCIOS TOTAL**: ⚠️ **Eliminación Definitiva.** Borra todos los clientes de la base de datos, sus puntos, historiales y elimina sus cuentas de acceso al sistema (Firebase Authentication).
+    *   *Uso:* Vaciar el sistema por completo para empezar una nueva base de datos.
+*   **SOCIOS HISTORIAL**: **Limpieza de Saldos.** Mantiene a los clientes creados pero vacía sus historiales de puntos y pone sus saldos en 0.
+    *   *Uso:* Reiniciar la contabilidad sin perder la lista de contactos de clientes actuales.
+*   **SOCIOS MENSAJES**: Borra todas las notificaciones e ítems recibidos en el buzón (Inbox) de los clientes.
+*   **GEO TOTAL**: Borra los registros acumulados de geolocalización de los clientes.
+*   **TRANSACCIONES TOTAL**: Elimina el registro global de transacciones financieras del sistema.
+
+### ⚙️ Grupo: Estructura (Personalización)
+
+*   **MARCA TOTAL**: Restablece los colores originales (azul/blanco) y elimina la URL del logo personalizado, dejando el logo por defecto.
+*   **GAMIFICATION TOTAL**: Restaura los valores estándar de "Reglas del Juego" (monto por punto, bono de bienvenida, etc.).
+*   **PRIZES TOTAL**: Vacía el catálogo de premios (Premios > Activos).
+*   **CAMPAIGNS TOTAL**: Elimina todas las campañas de marketing creadas.
+*   **TEAM TOTAL**: Elimina a todos los administradores secundarios, manteniendo solo su usuario actual y el acceso maestro administrativo.
+*   **LEGALES TOTAL**: Restablece el texto de Términos y Condiciones a la plantilla legal básica.
+*   **AUDIT TOTAL**: Borra el libro de auditoría (Registro de quién hizo qué en el panel).
+
+> [!CAUTION]
+> **Estas acciones son irreversibles.** El sistema siempre le pedirá escribir la palabra `RESET` en mayúsculas para confirmar que está seguro de lo que va a ejecutar.
+
+---
+*Actualizado v2.2 (Reset Maestro Documentation)*
 
 ---
 

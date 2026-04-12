@@ -180,15 +180,14 @@ export const ExpirationService = {
 
             snap.docs.forEach(d => {
                 const hData = d.data();
-                const amount = Number(hData.amount || 0);
+                const rawAmount = hData.amount ?? hData.puntos ?? 0;
+                const amount = Number(rawAmount);
+                const type = (hData.type || '').toLowerCase();
 
-                if (hData.type === 'credit') {
+                if (type === 'credit') {
                     // Money Spent
                     if (hData.moneySpent !== undefined) {
                         totalspent += Number(hData.moneySpent);
-                    } else {
-                        // Estimate legacy if needed, or ignore if it was a gift. 
-                        // For simplicity in the service, we only count explicit moneySpent.
                     }
 
                     // Expiring?
@@ -203,7 +202,7 @@ export const ExpirationService = {
                             expDates[dateKey] = (expDates[dateKey] || 0) + remaining;
                         }
                     }
-                } else if (hData.type === 'debit') {
+                } else if (type === 'debit') {
                     if (!hData.isExpirationAdjustment && hData.status !== 'expired') {
                         redeemedPoints += Math.abs(amount);
                         redeemedValue += Number(hData.redeemedValue || 0);

@@ -94,6 +94,7 @@ export const ConfigService = {
                 // Deep merge defaults (simple version)
                 return {
                     ...DEFAULT_APP_CONFIG,
+                    enablePetModule: data.enablePetModule ?? DEFAULT_APP_CONFIG.enablePetModule,
                     ...data,
                     contact: {
                         ...DEFAULT_APP_CONFIG.contact,

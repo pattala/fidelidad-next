@@ -170,7 +170,9 @@ export interface AppConfig {
             offer?: { channels: MessagingChannel[] };
             birthday?: { channels: MessagingChannel[] };
             referralReward?: { channels: MessagingChannel[] };
+            referralPoints?: { channels: MessagingChannel[] };
             expirationWarning?: { channels: MessagingChannel[] };
+            petFoodAlert?: { channels: MessagingChannel[] };
         };
 
         templates?: {
@@ -184,6 +186,8 @@ export interface AppConfig {
             birthdaySimple?: string;
             expirationWarning?: string; // Tono: Tenés {puntos} pts para gastar antes del {fecha}! Mirá lo que podés llevarte →
             referralChallenge?: string;
+            referralReward?: string;
+            referralPoints?: string;
             petFoodAlert?: string;
         };
         enableExpirationWarnings?: boolean;

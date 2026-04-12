@@ -113,7 +113,21 @@ export const ConfigPage = () => {
                 pointsAdded: { channels: ['whatsapp', 'push', 'email'] },
                 redemption: { channels: ['whatsapp', 'push', 'email'] },
                 campaign: { channels: ['push', 'email'] },
-                offer: { channels: ['push', 'email'] }
+                offer: { channels: ['push', 'email'] },
+                referralReward: { channels: ['email', 'push'] },
+                referralPoints: { channels: ['email', 'push'] },
+                petFoodAlert: { channels: ['whatsapp', 'push'] }
+            },
+            templates: {
+                welcome: '',
+                pointsAdded: '',
+                redemption: '',
+                campaign: '',
+                offer: '',
+                birthday: '',
+                referralReward: '',
+                referralPoints: '',
+                petFoodAlert: ''
             },
             mobileCooldownHours: 24,
             notificationPromptIntervalDays: 30,
@@ -129,7 +143,8 @@ export const ConfigPage = () => {
             rewardCriteria: 'first_transaction'
         },
         enableDateSimulator: false,
-        enableDuplicateControl: true
+        enableDuplicateControl: true,
+        enablePetModule: import.meta.env.VITE_ENABLE_PET_MODULE === 'true'
     });
 
     const { isReadOnly, user } = useAdminAuth();
@@ -216,7 +231,7 @@ export const ConfigPage = () => {
     }, [activeTab]);
 
     // Updated type definition in insertVar to include 'birthday' and 'referralChallenge'
-    const insertVar = (field: 'pointsAdded' | 'redemption' | 'welcome' | 'campaign' | 'offer' | 'flashOffer' | 'birthday' | 'birthdaySimple' | 'referralReward' | 'referralPoints' | 'expirationWarning' | 'referralChallenge', variable: string) => {
+    const insertVar = (field: 'pointsAdded' | 'redemption' | 'welcome' | 'campaign' | 'offer' | 'flashOffer' | 'birthday' | 'birthdaySimple' | 'referralReward' | 'referralPoints' | 'expirationWarning' | 'referralChallenge' | 'petFoodAlert', variable: string) => {
         const currentTemplates = config.messaging?.templates || {};
         const currentValue = currentTemplates[field] || '';
         setConfig({

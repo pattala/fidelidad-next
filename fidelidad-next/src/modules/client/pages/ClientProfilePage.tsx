@@ -335,13 +335,13 @@ export const ClientProfilePage = () => {
         <div className="bg-white pb-24 relative">
 
             {/* Header / Cover */}
-            <div className="bg-gradient-to-br from-indigo-600 to-purple-700 h-48 relative rounded-b-[3rem] shadow-lg">
+            <div className="bg-gradient-to-br from-indigo-600 to-purple-700 h-42 relative rounded-b-[3rem] shadow-lg">
                 <div className="absolute inset-0 bg-black/10"></div>
             </div>
 
             {/* Profile Card Overlay */}
             <div
-                className="-mt-20 px-4 relative z-10 animate-fade-in"
+                className="-mt-26 px-4 relative z-10 animate-fade-in"
             >
                 <div className="bg-white rounded-3xl shadow-xl p-6 text-center border border-gray-100">
                     <div className="relative w-24 h-24 mx-auto mb-3">

@@ -535,8 +535,8 @@ export const ClientProfilePage = () => {
                                 <MapPin size={20} />
                             </div>
                             <div>
-                                <span className="font-bold text-gray-700 text-sm block">Geolocalización</span>
-                                <span className="text-[10px] text-gray-400 font-medium">Búsqueda de sucursales cercanas</span>
+                                <span className="font-bold text-gray-700 text-sm block">Noticias y Beneficios Cercanos</span>
+                                <span className="text-[10px] text-gray-400 font-medium">Alertas de ofertas y novedades locales</span>
                             </div>
                         </div>
                         <button
@@ -749,7 +749,7 @@ export const ClientProfilePage = () => {
                                 </div>
 
                                 <div className="space-y-3">
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">Zona / Ubicación</label>
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">Zona de Alertas y Beneficios Locales</label>
                                     <div className="grid grid-cols-1 gap-2">
                                         <select
                                             className="w-full bg-gray-50 px-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-indigo-200 outline-none text-sm font-bold"
@@ -930,15 +930,17 @@ export const ClientProfilePage = () => {
                                 <div className="grid grid-cols-2 gap-3">
                                     <div>
                                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block ml-1">Raza</label>
-                                        <select
+                                        <input
+                                            type="text"
+                                            list="breeds-list"
                                             value={petFormData.breed}
                                             onChange={(e) => setPetFormData({ ...petFormData, breed: e.target.value })}
                                             className="w-full px-4 py-3 bg-gray-50 border-gray-100 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-sm font-medium"
-                                        >
-                                            {PET_BREEDS.map(breed => (
-                                                <option key={breed} value={breed}>{breed}</option>
-                                            ))}
-                                        </select>
+                                            placeholder="Busca o escribe..."
+                                        />
+                                        <datalist id="breeds-list">
+                                            {PET_BREEDS.map(breed => <option key={breed} value={breed} />)}
+                                        </datalist>
                                     </div>
                                     <div>
                                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block ml-1">Edad (aprox)</label>
@@ -957,15 +959,17 @@ export const ClientProfilePage = () => {
                                     
                                     <div>
                                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block ml-1">Marca</label>
-                                        <select
+                                        <input
+                                            type="text"
+                                            list="brands-list"
                                             value={petFormData.brand}
                                             onChange={(e) => setPetFormData({ ...petFormData, brand: e.target.value })}
                                             className="w-full px-4 py-3 bg-white border-gray-100 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-sm font-medium"
-                                        >
-                                            {PET_BRANDS.map(brand => (
-                                                <option key={brand} value={brand}>{brand}</option>
-                                            ))}
-                                        </select>
+                                            placeholder="Busca o escribe marca..."
+                                        />
+                                        <datalist id="brands-list">
+                                            {PET_BRANDS.map(brand => <option key={brand} value={brand} />)}
+                                        </datalist>
                                     </div>
 
                                     <div>

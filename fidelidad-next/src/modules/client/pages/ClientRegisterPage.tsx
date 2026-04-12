@@ -134,23 +134,28 @@ export const ClientRegisterPage = () => {
             const finalPhone = `+549${cleanPhone}`;
             const fullAddress = `${street} ${number} ${floor ? 'Piso ' + floor : ''} ${apt ? 'Dpto ' + apt : ''}, ${localidad}, ${partido}, ${province}`.trim();
 
+            const isAddressComplete = !!(province && localidad && street && number);
+            const wBonus = (config?.enableWelcomeBonus && config?.welcomePoints) ? Number(config.welcomePoints) : 0;
+            const aBonus = (config?.enableAddressBonus && config?.pointsForAddress && isAddressComplete) ? Number(config.pointsForAddress) : 0;
+            const totalPoints = wBonus + aBonus;
+
             await setDoc(doc(db, 'users', user.uid), {
                 name, nombre: name, dni, email, phone: finalPhone, phone_raw: cleanPhone,
                 photoUrl: photoBase64,
                 birthDate, authUID: user.uid,
                 domicilio: {
-                    status: 'complete',
-                    addressLine: fullAddress,
+                    status: isAddressComplete ? 'complete' : 'pending',
+                    addressLine: isAddressComplete ? fullAddress : '',
                     components: { calle: street, numero: number, piso: floor, depto: apt, localidad, partido, provincia: province, zipCode: cp }
                 },
-                localidad, partido, provincia: province, calle: street, numero: number, piso: floor, depto: apt, cp,
+                localidad: localidad || '', partido: partido || '', provincia: province || '', calle: street || '', numero: number || '', piso: floor || '', depto: apt || '', cp: cp || '',
                 role: 'client', createdAt: new Date(), fechaInscripcion: new Date().toISOString(),
-                points: 0, puntos: 0, accumulated_balance: 0,
+                points: totalPoints, puntos: totalPoints, accumulated_balance: 0,
                 permissions: { notifications: { status: 'pending' }, geolocation: { status: 'pending' } },
                 termsAccepted: true, termsAcceptedAt: new Date().toISOString(),
                 source: 'pwa', referralCode: myRefCode, referredBy: inviterUid,
                 referralStats: { count: 0, pointsEarned: 0 },
-                metadata: { createdFrom: 'pwa', version: '2.6-3step' }
+                metadata: { createdFrom: 'pwa', version: '2.6-3step', bonusDetails: { welcome: wBonus, address: aBonus } }
             });
 
             const token = await user.getIdToken();

@@ -15,7 +15,10 @@ import {
     X,
     Shield,
     TrendingUp,
-    Coins
+    Coins,
+    Dog,
+    Cat,
+    Maximize2
 } from 'lucide-react';
 import { TimeService } from '../../../services/timeService';
 import { signOut } from 'firebase/auth';
@@ -129,6 +132,7 @@ export const ClientHomePage = () => {
     const [selectedPromo, setSelectedPromo] = useState<BonusRule | null>(null);
     const [currentTimeStore, setCurrentTimeStore] = useState(new Date());
     const [activeBannerPhase, setActiveBannerPhase] = useState<'none' | 'large'>('none');
+    const [zoomedPhoto, setZoomedPhoto] = useState<string | null>(null);
 
     const prevPointsRef = useRef<number | null>(null);
     const lastActionTs = useRef<number>(0);
@@ -678,9 +682,19 @@ export const ClientHomePage = () => {
             {/* GREETING LINE */}
             <div className="flex justify-between items-center px-2">
                 <div className="flex items-center gap-3">
-                    <div className="bg-white/80 backdrop-blur-md w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm border border-purple-50 text-purple-600">
+                <div 
+                    className="bg-white/80 backdrop-blur-md w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm border border-purple-50 text-purple-600 cursor-zoom-in active:scale-95 transition-all overflow-hidden"
+                    onClick={() => {
+                        const photo = userData?.photoUrl || userData?.foto;
+                        if (photo) setZoomedPhoto(photo);
+                    }}
+                >
+                    {userData?.photoUrl || userData?.foto ? (
+                        <img src={userData.photoUrl || userData.foto} alt="Perfil" className="w-full h-full object-cover" />
+                    ) : (
                         <UserIcon size={28} strokeWidth={2.5} />
-                    </div>
+                    )}
+                </div>
                     <div>
                         <div className="flex items-center gap-2">
                             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">Hola,</span>
@@ -847,12 +861,54 @@ export const ClientHomePage = () => {
                                     <Clock size={12} strokeWidth={3} />
                                     Vencimientos
                                 </button>
-
                                 <button
                                     onClick={() => navigate('/rewards')}
-                                    className="bg-[#ffca28] text-[#5d4037] py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-[0_4px_15px_rgba(255,202,40,0.2)] active:scale-[0.98] transition"
+                                    className="text-center text-[10px] font-black text-purple-600 uppercase tracking-widest hover:text-purple-800 transition-colors flex items-center justify-center gap-1.5 py-3 bg-purple-50/50 rounded-2xl border border-purple-100/50"
                                 >
-                                    Ver premios <ChevronRight size={14} strokeWidth={3} />
+                                    <Coins size={12} strokeWidth={3} />
+                                    Canjear
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* MY PETS DASHBOARD (NEW) */}
+                    {config?.enablePetModule && userData?.pets && userData.pets.length > 0 && (
+                        <div className="pt-2 animate-fade-in border-t border-gray-50 mt-2">
+                            <div className="flex items-center justify-between mb-3 px-1">
+                                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Mis Mascotas</h3>
+                                <button onClick={() => navigate('/perfil')} className="text-[9px] font-bold text-purple-600 uppercase">Ver todas</button>
+                            </div>
+                            <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide -mx-1 px-1">
+                                {userData.pets.map((pet: any) => (
+                                    <div 
+                                        key={pet.id} 
+                                        className="flex flex-col items-center gap-1.5 shrink-0 group"
+                                        onClick={() => {
+                                            if (pet.photoUrl) setZoomedPhoto(pet.photoUrl);
+                                            else navigate('/perfil');
+                                        }}
+                                    >
+                                        <div className="w-14 h-14 rounded-2xl bg-white shadow-sm border border-gray-100 flex items-center justify-center overflow-hidden active:scale-90 transition-all cursor-zoom-in relative">
+                                            {pet.photoUrl ? (
+                                                <img src={pet.photoUrl} alt={pet.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="bg-orange-50 w-full h-full flex items-center justify-center text-orange-400">
+                                                    {pet.type === 'gato' ? <Cat size={24} /> : pet.type === 'perro' ? <Dog size={24} /> : <Sparkles size={20} />}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <span className="text-[10px] font-black text-gray-700 uppercase tracking-tighter truncate max-w-[60px]">{pet.name}</span>
+                                    </div>
+                                ))}
+                                <button 
+                                    onClick={() => navigate('/perfil?addPet=true')}
+                                    className="flex flex-col items-center gap-1.5 shrink-0"
+                                >
+                                    <div className="w-14 h-14 rounded-2xl border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-300 hover:border-purple-300 hover:text-purple-300 transition-all active:scale-90">
+                                        <Plus size={20} />
+                                    </div>
+                                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">Más</span>
                                 </button>
                             </div>
                         </div>
@@ -1081,6 +1137,25 @@ export const ClientHomePage = () => {
             />
             {/* BOTTOM PADDING (SAFETY) */}
             <div className="h-8"></div>
+            {/* PHOTO ZOOM MODAL */}
+            {zoomedPhoto && (
+                <div 
+                    className="fixed inset-0 z-[1000] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+                    onClick={() => setZoomedPhoto(null)}
+                >
+                    <div className="relative max-w-sm w-full animate-zoom-in">
+                        <button className="absolute -top-12 right-0 text-white p-2">
+                            <X size={32} />
+                        </button>
+                        <img 
+                            src={zoomedPhoto} 
+                            alt="Zoomed" 
+                            className="w-full aspect-square object-cover rounded-[3rem] shadow-2xl border-4 border-white/20"
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

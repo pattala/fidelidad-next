@@ -1075,50 +1075,55 @@ export const ClientsPage = () => {
                                         )}
                                     </td>
                                     <td className="px-6 py-4 text-right">
-                                        <div className="flex items-center justify-end gap-2">
+                                        <div className="flex flex-col items-end gap-2">
+                                            {/* Primary Actions Row */}
                                             {!isReadOnly && (
-                                                <>
+                                                <div className="flex items-center gap-2">
                                                     <button
                                                         onClick={() => openPointsModal(client)}
-                                                        className="px-3 py-1.5 bg-green-600 text-white hover:bg-green-700 rounded-lg transition-all font-bold flex items-center gap-1.5 shadow-sm shadow-green-100"
+                                                        className="px-3 py-1.5 bg-green-600 text-white hover:bg-green-700 rounded-lg transition-all font-bold flex items-center gap-1.5 shadow-sm shadow-green-100 text-xs"
                                                         title="Sumar Puntos"
                                                     >
-                                                        <Plus size={16} /> Sumar
+                                                        <Plus size={14} /> Sumar
                                                     </button>
                                                     <button
                                                         onClick={() => openRedemptionModal(client)}
-                                                        className="px-3 py-1.5 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-all font-bold flex items-center gap-1.5 shadow-sm shadow-blue-100"
+                                                        className="px-3 py-1.5 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-all font-bold flex items-center gap-1.5 shadow-sm shadow-blue-100 text-xs"
                                                         title="Canjear"
                                                     >
-                                                        <Gift size={16} /> Canjes
+                                                        <Gift size={14} /> Canjes
                                                     </button>
-                                                </>
+                                                </div>
                                             )}
-                                            <button
-                                                onClick={() => openHistoryModal(client)}
-                                                className="p-2 bg-gray-50 text-gray-500 hover:bg-gray-600 hover:text-white rounded-lg transition-all"
-                                                title="Ver Historial"
-                                            >
-                                                <History size={18} />
-                                            </button>
-                                            {!isReadOnly && (
-                                                <>
-                                                    <button
-                                                        onClick={() => openEditClientModal(client)}
-                                                        className="p-2 hover:bg-gray-100 text-gray-400 hover:text-blue-600 rounded-lg transition-all"
-                                                        title="Editar"
-                                                    >
-                                                        <Edit size={18} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDelete(client.id, client.name)}
-                                                        className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-lg transition-all"
-                                                        title="Eliminar"
-                                                    >
-                                                        <Trash2 size={18} />
-                                                    </button>
-                                                </>
-                                            )}
+                                            
+                                            {/* Functional Icons Row */}
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => openHistoryModal(client)}
+                                                    className="p-1.5 bg-gray-50 text-gray-500 hover:bg-gray-600 hover:text-white rounded-lg transition-all"
+                                                    title="Ver Historial"
+                                                >
+                                                    <History size={16} />
+                                                </button>
+                                                {!isReadOnly && (
+                                                    <>
+                                                        <button
+                                                            onClick={() => openEditClientModal(client)}
+                                                            className="p-1.5 hover:bg-gray-100 text-gray-400 hover:text-blue-600 rounded-lg transition-all"
+                                                            title="Editar"
+                                                        >
+                                                            <Edit size={16} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDelete(client.id, client.name)}
+                                                            className="p-1.5 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-lg transition-all"
+                                                            title="Eliminar"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
                                         </div>
                                     </td>
                                 </tr>

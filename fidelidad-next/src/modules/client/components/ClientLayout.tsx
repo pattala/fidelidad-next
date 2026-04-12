@@ -360,11 +360,11 @@ export const ClientLayout = () => {
                     </button>
 
                     <button
-                        onClick={() => navigate('/profile')}
-                        className={`flex flex-col items-center gap-1.5 transition-all duration-300 flex-1 ${isActive('/profile') ? '' : 'text-gray-400'}`}
-                        style={{ color: isActive('/profile') ? (config.primaryColor || '#4a148c') : undefined }}
+                        onClick={() => navigate('/perfil')}
+                        className={`flex flex-col items-center gap-1.5 transition-all duration-300 flex-1 ${isActive('/perfil') ? '' : 'text-gray-400'}`}
+                        style={{ color: isActive('/perfil') ? (config.primaryColor || '#4a148c') : undefined }}
                     >
-                        <User size={20} strokeWidth={isActive('/profile') ? 2.5 : 2} />
+                        <User size={20} strokeWidth={isActive('/perfil') ? 2.5 : 2} />
                         <span className="text-[10px] font-black uppercase tracking-tighter">Perfil</span>
                     </button>
                 </nav>

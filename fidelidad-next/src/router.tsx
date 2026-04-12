@@ -57,7 +57,7 @@ export const router = createBrowserRouter([
                 element: <ClientRewardsPage />
             },
             {
-                path: "profile",
+                path: "perfil",
                 element: <ClientProfilePage />
             },
             {

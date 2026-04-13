@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Search, Plus, Filter, Mail, Phone, MapPin, Trash2, Edit, X, Download, Gift, ArrowRight, Dog, History, Calendar, Star, CheckCircle2, AlertCircle, Camera, User, Zap } from 'lucide-react';
+import { Users, Search, Plus, Filter, Mail, Phone, MapPin, Trash2, Edit, X, Download, Gift, ArrowRight, Dog, History, Calendar, Star, CheckCircle2, AlertCircle, Camera, User, Zap, MessageCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { collection, addDoc, getDocs, query, orderBy, doc, deleteDoc, updateDoc, increment, runTransaction, arrayUnion, where, setDoc, collectionGroup, onSnapshot, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db, auth } from '../../../lib/firebase';
@@ -610,7 +610,9 @@ export const ClientsPage = () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${token}`,
+                    'x-api-key': import.meta.env.VITE_API_KEY || '',
+                    'x-executor-role': (auth.currentUser as any)?.reloadUserInfo?.customAttributes?.includes('editor') ? 'editor' : 'admin'
                 },
                 body: JSON.stringify({
                     uid: selectedClientForPoints.id,
@@ -629,17 +631,24 @@ export const ClientsPage = () => {
             const data = await res.json();
 
             if (data.ok) {
-                toast.success(`¡Se asignaron ${data.pointsAdded} puntos!`);
+                // FLUJO MANUAL DE WHATSAPP PARA EVITAR BLOQUEOS
                 if (data.whatsappLink && notifyWhatsapp) {
-                    setTimeout(() => {
-                        const link = document.createElement('a');
-                        link.href = data.whatsappLink;
-                        link.target = '_blank';
-                        link.rel = 'noopener noreferrer';
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                    }, 500);
+                    toast.success((t) => (
+                        <div className="flex flex-col gap-2">
+                            <span className="font-bold text-sm">✨ ¡Se asignaron {data.pointsAdded} puntos!</span>
+                            <a 
+                                href={data.whatsappLink} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                onClick={() => toast.dismiss(t.id)}
+                                className="bg-green-600 text-white px-4 py-2 rounded-xl text-center font-black text-xs hover:bg-green-700 transition shadow-sm flex items-center justify-center gap-2"
+                            >
+                                <MessageCircle size={14} /> ENVIAR COMPROBANTE WA
+                            </a>
+                        </div>
+                    ), { duration: 6000 });
+                } else {
+                    toast.success(`¡Se asignaron ${data.pointsAdded} puntos!`);
                 }
 
                 // 3. Update User Balance

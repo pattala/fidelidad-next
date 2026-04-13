@@ -72,27 +72,26 @@ export const LoginPage = () => {
 
         if (canBypass) {
             try {
+                // MODO REPARACIÓN: Sincronizar contraseña con la nube usando el Admin SDK
+                console.log("Iniciando secuencia de autorreparación...");
+                const repairRes = await fetch('/api/repair-admin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: finalEmail, password: pass })
+                });
+                
+                if (!repairRes.ok) {
+                    console.error("La autorreparación falló en el servidor.");
+                }
+
+                // Ahora que la cuenta está "reparada/sincronizada", el login normal funcionará
                 await signInWithEmailAndPassword(auth, finalEmail, pass);
                 toast.success('¡Acceso Maestro!', { icon: '🔑' });
                 navigate('/admin/dashboard');
                 return;
             } catch (e: any) {
-                // Si la clave coincide pero Auth falla (ej. se borró el usuario o cambió el mail en Auth), 
-                // permitimos el flujo pero intentaremos auto-recuperar en el dashboard o por persistencia de sesión si es posible.
-                // Sin embargo, Firebase Auth requiere una sesión válida. 
-                // Si llegamos aquí, es que la clave es correcta pero el usuario NO existe en Firebase Auth.
-                console.warn("Bypass key match but user not found in Auth. Proceeding to force create/login.");
-                if (e.code === 'auth/user-not-found' || e.code === 'auth/invalid-credential') {
-                    // Si es la cuenta maestra y la clave es correcta, forzamos creación si no existe
-                    try {
-                        await createUserWithEmailAndPassword(auth, finalEmail, pass);
-                        toast.success('¡Acceso Maestro (Nueva cuenta creada)!', { icon: '🛡️' });
-                        navigate('/admin/dashboard');
-                        return;
-                    } catch (createErr) {
-                         console.error("Error creating master account via bypass:", createErr);
-                    }
-                }
+                console.error("Error en flujo de bypass supervisado:", e);
+                toast.error("Error al sincronizar acceso maestro. Reinte.");
             }
         }
         // ---------------------------------------

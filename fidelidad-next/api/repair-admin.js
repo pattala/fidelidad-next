@@ -1,6 +1,14 @@
 // api/repair-admin.js
 import admin from "firebase-admin";
-import { MASTER_ADMINS, MASTER_LOGIN_KEY, DEFAULT_ADMIN_KEY } from "../src/lib/adminConfig";
+
+const MASTER_ADMINS = [
+    'pablo_attala@yahoo.com.ar',
+    'admin@admin.com',
+];
+
+// Usamos process.env para compatibilidad con Node.js en Vercel
+const MASTER_LOGIN_KEY = process.env.VITE_MASTER_LOGIN_KEY || 'Felipe01';
+const DEFAULT_ADMIN_KEY = 'adminadmin';
 
 function initFirebaseAdmin() {
     if (admin.apps.length) return;
@@ -24,45 +32,41 @@ export default async function handler(req, res) {
         const auth = admin.auth();
         const db = admin.firestore();
 
-        const finalEmail = email.toLowerCase();
+        const finalEmail = email.toLowerCase().trim();
+        const finalPass = password.trim();
         
         // 1. Validar si es una credencial maestra válida según el código
         const isMasterAccount = MASTER_ADMINS.map(e => e.toLowerCase()).includes(finalEmail);
         const isDefaultAccount = finalEmail === 'admin@admin.com';
         
-        const isValidMasterKey = (isMasterAccount && password === MASTER_LOGIN_KEY);
-        const isValidDefaultKey = (isDefaultAccount && password === DEFAULT_ADMIN_KEY);
+        const isValidMasterKey = (isMasterAccount && finalPass === MASTER_LOGIN_KEY);
+        const isValidDefaultKey = (isDefaultAccount && finalPass === DEFAULT_ADMIN_KEY);
 
         if (!isValidMasterKey && !isValidDefaultKey) {
-            return res.status(403).json({ ok: false, error: "Credenciales maestras no válidas para reparación." });
+            console.warn(`[repair-admin] Intento de reparación no autorizado para: ${finalEmail}`);
+            return res.status(403).json({ ok: false, error: "Credenciales no autorizadas." });
         }
 
-        console.log(`[repair-admin] Iniciando reparación para: ${finalEmail}`);
+        console.log(`[repair-admin] Procesando reparación estable para: ${finalEmail}`);
 
-        // 2. Intentar buscar el usuario en Auth
+        // 2. Sincronizar usuario en Firebase Auth
         let userRecord;
         try {
             userRecord = await auth.getUserByEmail(finalEmail);
-            // Si existe, actualizamos la contraseña forzosamente
-            await auth.updateUser(userRecord.uid, {
-                password: password
-            });
-            console.log(`[repair-admin] Contraseña actualizada para: ${finalEmail}`);
+            await auth.updateUser(userRecord.uid, { password: finalPass });
         } catch (e) {
             if (e.code === 'auth/user-not-found') {
-                // Si no existe, lo creamos
                 userRecord = await auth.createUser({
                     email: finalEmail,
-                    password: password,
+                    password: finalPass,
                     emailVerified: true
                 });
-                console.log(`[repair-admin] Usuario creado para: ${finalEmail}`);
             } else {
                 throw e;
             }
         }
 
-        // 3. Asegurar que tenga el documento en Firestore 'admins'
+        // 3. Sincronizar documento en Firestore
         const adminRef = db.collection('admins').doc(userRecord.uid);
         const adminSnap = await adminRef.get();
         
@@ -71,25 +75,21 @@ export default async function handler(req, res) {
                 email: finalEmail,
                 role: 'admin',
                 isMaster: true,
-                repairedAt: admin.firestore.FieldValue.serverTimestamp(),
-                status: 'active'
+                status: 'active',
+                createdAt: admin.firestore.FieldValue.serverTimestamp()
             });
-            console.log(`[repair-admin] Documento Firestore creado para: ${finalEmail}`);
         } else {
             await adminRef.update({
+                role: 'admin',
                 isMaster: true,
-                lastRepairAt: admin.firestore.FieldValue.serverTimestamp()
+                lastSyncAt: admin.firestore.FieldValue.serverTimestamp()
             });
         }
 
-        return res.status(200).json({ 
-            ok: true, 
-            message: "Cuenta reparada y sincronizada correctamente.",
-            action: adminSnap.exists ? 'updated' : 'created'
-        });
+        return res.status(200).json({ ok: true, message: "Acceso sincronizado." });
 
     } catch (err) {
-        console.error("repair-admin error:", err);
-        return res.status(500).json({ ok: false, error: err.message });
+        console.error("repair-admin fatal error:", err);
+        return res.status(500).json({ ok: false, error: "Error interno de sincronización" });
     }
 }

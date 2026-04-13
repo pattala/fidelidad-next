@@ -887,6 +887,18 @@ function showFidelidadPanel() {
             });
             const data = await res.json();
             if (data.ok) {
+                // AUTO-OPEN WHATSAPP if requested
+                if (data.whatsappLink && applyWhatsApp) {
+                    setTimeout(() => {
+                        const link = document.createElement('a');
+                        link.href = data.whatsappLink;
+                        link.target = '_blank';
+                        link.rel = 'noopener noreferrer';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    }, 300);
+                }
                 renderSuccess(data);
             } else {
                 statusDiv.innerText = `❌ Error: ${data.error}`;

@@ -632,6 +632,17 @@ export const ClientsPage = () => {
             if (data.ok) {
                 // FLUJO MANUAL DE WHATSAPP PARA EVITAR BLOQUEOS
                 if (data.whatsappLink && notifyWhatsapp) {
+                    // AUTO-OPEN WHATSAPP
+                    setTimeout(() => {
+                        const link = document.createElement('a');
+                        link.href = data.whatsappLink!;
+                        link.target = '_blank';
+                        link.rel = 'noopener noreferrer';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    }, 300);
+
                     toast.success((t) => (
                         <div className="flex flex-col gap-2">
                             <span className="font-bold text-sm">✨ ¡Se asignaron {data.pointsAdded} puntos!</span>
@@ -642,7 +653,7 @@ export const ClientsPage = () => {
                                 onClick={() => toast.dismiss(t.id)}
                                 className="bg-green-600 text-white px-4 py-2 rounded-xl text-center font-black text-xs hover:bg-green-700 transition shadow-sm flex items-center justify-center gap-2"
                             >
-                                <MessageCircle size={14} /> ENVIAR COMPROBANTE WA
+                                <MessageCircle size={14} /> RE-ENVIAR COMPROBANTE WA
                             </a>
                         </div>
                     ), { duration: 6000 });

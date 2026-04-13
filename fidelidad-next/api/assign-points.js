@@ -448,13 +448,12 @@ export default async function handler(req, res) {
 
             // --- ACTUALIZACIÓN DEL CLIENTE (INVITADO) ---
             if (points > 0) {
-                const currentPoints = Number((cData.points !== undefined) ? cData.points : (cData.puntos ?? 0));
-                const newPoints = currentPoints + points;
-                const finalConcept = (concept || (reason === 'welcome_signup' ? 'Puntos de Bienvenida' : (reason === 'profile_address' ? 'Premio por completar dirección' : 'Compra en local'))) + (req.body?.calculatedPromoDetails || "");
+                const currentPoints = Number(cData.points ?? cData.puntos ?? 0);
+                const newPoints = (isNaN(currentPoints) ? 0 : currentPoints) + points;
 
                 const clientUpdate = {
-                    points: newPoints,
-                    puntos: newPoints,
+                    points: admin.firestore.FieldValue.increment(points),
+                    puntos: admin.firestore.FieldValue.increment(points),
                     accumulated_balance: newAccumulatedBalance,
                     accumulated_balance_updated_at: admin.firestore.FieldValue.serverTimestamp(),
                     [`rewards_awarded.${reason}`]: true,

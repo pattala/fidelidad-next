@@ -115,8 +115,8 @@ export const DashboardPage = () => {
                 const isGhost = !data.name && !data.nombre && !data.dni;
                 if (data.role !== 'admin' && !isGhost) {
                     clientCount++;
-                    const userPoints = data.points ?? data.puntos ?? 0;
-                    points += userPoints;
+                    const userPoints = Number(data.points ?? data.puntos ?? 0);
+                    if (!isNaN(userPoints)) points += userPoints;
                     totalAccumulatedBalance += Number(data.accumulated_balance || 0);
 
                     // 1. Birthdays (Only if not already greeted this year)

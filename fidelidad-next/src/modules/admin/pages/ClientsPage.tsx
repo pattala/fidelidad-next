@@ -651,11 +651,9 @@ export const ClientsPage = () => {
                     toast.success(`¡Se asignaron ${data.pointsAdded} puntos!`);
                 }
 
-                // 3. Update User Balance
+                // 3. Update User Balance (Solo si hay campos extras como en Petshop)
                 const userRef = doc(db, 'users', selectedClientForPoints.id);
-                const updates: any = {
-                    points: increment(data.pointsAdded)
-                };
+                const updates: any = {};
 
                 // SECCION PETSHOP: Actualizar fecha de compra de alimento
                 if (isPetFoodPurchase && selectedClientForPoints.pets) {
@@ -668,7 +666,9 @@ export const ClientsPage = () => {
                     updates.pets = updatedPets;
                 }
 
-                await updateDoc(userRef, updates);
+                if (Object.keys(updates).length > 0) {
+                    await updateDoc(userRef, updates);
+                }
 
                 // Actualizar cache de vencimientos
                 ExpirationService.updateNextExpirationCache(selectedClientForPoints.id);

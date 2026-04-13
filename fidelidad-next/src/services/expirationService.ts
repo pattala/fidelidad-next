@@ -81,7 +81,8 @@ export const ExpirationService = {
                 // 3. Update User Balance
                 const userRef = doc(db, 'users', userId);
                 batch.update(userRef, {
-                    points: increment(-totalExpired)
+                    points: increment(-totalExpired),
+                    puntos: increment(-totalExpired)
                 });
 
                 await batch.commit();

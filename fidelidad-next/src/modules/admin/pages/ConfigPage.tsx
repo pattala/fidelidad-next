@@ -144,7 +144,9 @@ export const ConfigPage = () => {
         },
         enableDateSimulator: false,
         enableDuplicateControl: true,
-        enablePetModule: import.meta.env.VITE_ENABLE_PET_MODULE === 'true'
+        enablePetModule: import.meta.env.VITE_ENABLE_PET_MODULE === 'true',
+        promoPenaltyStep: 15, // Porcentaje de reducción base
+        promoMinFloor: 25     // Suelo mínimo (ej: 25%)
     });
 
     const { isReadOnly, user } = useAdminAuth();

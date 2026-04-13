@@ -2,8 +2,9 @@
 console.log("🚀 [Club Fidelidad] V31: Iniciando script con arreglos de arrastre y nuevos logs.");
 
 let config = { apiUrl: '', apiKey: '' };
-let apiRatios = { base: 100, perPeso: 1 };
+let apiRatios = { base: 100, perPeso: 1, penaltyStep: 15, minFloor: 25 };
 let detectedAmount = 0;
+let promosCount = 0;
 let selectedClient = null;
 let currentPromos = []; // Store calculable promos globally for this context
 
@@ -346,6 +347,19 @@ function showFidelidadPanel() {
                         </div>
                     </div>
 
+                    <!-- SELECTOR DE PROMOS (Nuevo) -->
+                    <div id="cf-promos-selector-container" style="background: #fff7ed; padding: 12px; border-radius: 12px; border: 1px solid #ffedd5; margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <label style="font-size: 11px; font-weight: 900; color: #9a3412; text-transform: uppercase;">🔥 Productos en Promo</label>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <button type="button" id="cf-promo-minus" style="width: 24px; height: 24px; border-radius: 50%; border: 1px solid #fdba74; background: white; color: #c2410c; font-weight: bold; cursor: pointer;">-</button>
+                                <span id="cf-promo-count-display" style="font-size: 14px; font-weight: 900; color: #c2410c; min-width: 12px; text-align: center;">0</span>
+                                <button type="button" id="cf-promo-plus" style="width: 24px; height: 24px; border-radius: 50%; border: 1px solid #fdba74; background: white; color: #c2410c; font-weight: bold; cursor: pointer;">+</button>
+                            </div>
+                        </div>
+                        <p id="cf-promo-factor-hint" style="margin: 4px 0 0 0; font-size: 9px; color: #c2410c; opacity: 0.7; font-weight: 600; text-align: center;">Sin penalización</p>
+                    </div>
+
                     <div class="cf-grid">
                         <div class="cf-field">
                             <label class="cf-label">Concepto</label>
@@ -442,6 +456,30 @@ function showFidelidadPanel() {
     const tabCanjes = document.getElementById('cf-tab-content-canjes');
     const prizesList = document.getElementById('cf-prizes-list');
     const mainTitle = document.getElementById('cf-main-title');
+    const promoMinus = document.getElementById('cf-promo-minus');
+    const promoPlus = document.getElementById('cf-promo-plus');
+    const promoCountDisplay = document.getElementById('cf-promo-count-display');
+    const promoHint = document.getElementById('cf-promo-factor-hint');
+
+    promoMinus.onclick = () => {
+        promosCount = Math.max(0, promosCount - 1);
+        renderPromoUI();
+    };
+    promoPlus.onclick = () => {
+        promosCount++;
+        renderPromoUI();
+    };
+
+    function renderPromoUI() {
+        promoCountDisplay.innerText = promosCount;
+        const penaltyFactor = 1 - (promosCount * (apiRatios.penaltyStep / 100));
+        const finalFactor = Math.max(apiRatios.minFloor / 100, penaltyFactor);
+        
+        if (promosCount === 0) promoHint.innerText = 'Sin penalización';
+        else promoHint.innerText = `Se aplicará factor del ${Math.round(finalFactor * 100)}%`;
+        
+        updatePointsPreview();
+    }
 
     // MANTENER SIEMPRE EN PESOS EN LA EXTENSIÓN
     let isPesos = true;
@@ -467,21 +505,33 @@ function showFidelidadPanel() {
             ptsBase = Math.floor(val);
         }
 
+        // --- AJUSTE POR PROMOCIONES (Nuevo) ---
+        let promoFactor = 1;
+        if (isPesos && promosCount > 0) {
+            promoFactor = Math.max(apiRatios.minFloor / 100, 1 - (promosCount * (apiRatios.penaltyStep / 100)));
+        }
+        const ptsAfterPromo = Math.floor(ptsBase * promoFactor);
+
         let bonus = 0;
         const applyPromos = document.getElementById('cf-apply-promos').checked;
         if (applyPromos) {
             const selectedIds = Array.from(document.querySelectorAll('.cf-promo-check:checked')).map(el => el.value);
             currentPromos.filter(p => selectedIds.includes(p.id)).forEach(b => {
-                if (b.rewardType === 'MULTIPLIER') bonus += Math.floor(ptsBase * (b.rewardValue - 1));
-                else bonus += (b.rewardValue || 0);
+                const isFlash = b.isFlash;
+                const rType = isFlash ? (b.flashRewardType || b.rewardType) : b.rewardType;
+                const rValue = isFlash ? (b.flashRewardValue ?? b.rewardValue) : b.rewardValue;
+
+                if (rType === 'MULTIPLIER') bonus += Math.floor(ptsAfterPromo * (rValue - 1));
+                else bonus += (rValue || 0);
             });
         }
 
-        const totalFinal = ptsBase + bonus;
+        const totalFinal = ptsAfterPromo + bonus;
         previewContainer.style.display = 'block';
         previewContainer.innerHTML = `
-            <span style="font-weight: bold; color: #374151;">✨ Se asignarán: <strong style="color: #059669;">${totalFinal} puntos</strong></span>
-            ${bonus > 0 ? `<div style="font-size: 10px; color: #9ca3af;">(Base: ${ptsBase} + Bonus: ${bonus})</div>` : ''}
+            <div style="font-weight: bold; color: #374151;">✨ Se asignarán: <strong style="color: #059669;">${totalFinal} puntos</strong></div>
+            ${promosCount > 0 ? `<div style="font-size: 10px; color: #d97706; font-weight: 800;">📉 Ajuste Promos: ${Math.round(promoFactor * 100)}% (${ptsAfterPromo} pts)</div>` : ''}
+            ${bonus > 0 ? `<div style="font-size: 10px; color: #9ca3af;">+ Bonus extra: ${bonus} pts</div>` : ''}
         `;
     }
 
@@ -565,6 +615,8 @@ function showFidelidadPanel() {
             if (data.ok && data.clients && data.clients.length > 0) {
                 apiRatios.base = data.pointsMoneyBase || 100;
                 apiRatios.perPeso = data.pointsPerPeso || 1;
+                apiRatios.penaltyStep = data.promoPenaltyStep ?? 15;
+                apiRatios.minFloor = data.promoMinFloor ?? 25;
                 renderResults(data.clients, data.activePromotions || [], data.activePrizes || []);
                 // Refrescar contador C/V del widget (igual que promos: datos frescos en cada búsqueda)
                 refreshAlertCounts();
@@ -793,6 +845,7 @@ function showFidelidadPanel() {
                     concept: concept,
                     date: date,
                     bonusIds: applyPromos ? bonusIds : [],
+                    promosCount: promosCount,
                     applyWhatsApp: applyWhatsApp
                 })
             });

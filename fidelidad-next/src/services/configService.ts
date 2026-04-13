@@ -81,7 +81,9 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
     enableDateSimulator: false,
     simulatedOffsetDays: 0,
     enableDuplicateControl: true,
-    enablePetModule: import.meta.env.VITE_ENABLE_PET_MODULE === 'true'
+    enablePetModule: import.meta.env.VITE_ENABLE_PET_MODULE === 'true',
+    promoPenaltyStep: 15,
+    promoMinFloor: 25
 };
 
 export const ConfigService = {

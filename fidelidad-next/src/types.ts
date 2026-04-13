@@ -249,6 +249,8 @@ export interface AppConfig {
     pwaIconUrl?: string;
     carouselSpeedSeconds?: number;
     enablePetModule?: boolean;
+    promoPenaltyStep?: number;
+    promoMinFloor?: number;
 }
 
 export interface Prize {

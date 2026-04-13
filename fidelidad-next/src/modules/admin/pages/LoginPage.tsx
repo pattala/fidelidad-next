@@ -56,28 +56,29 @@ export const LoginPage = () => {
         e.preventDefault();
         setLoading(true);
 
-        // Alias 'admin' -> 'admin@admin.com' para simplicidad
-        const finalEmail = email.toLowerCase() === 'admin' ? 'admin@admin.com' : email;
+        // Limpieza estricta de credenciales
+        const finalEmail = email.trim().toLowerCase();
+        const finalPass = pass.trim();
 
         // --- SEGURIDAD MAESTRA (Modo Router) ---
-        const { MASTER_LOGIN_KEY, DEFAULT_ADMIN_KEY } = await import('../../../lib/adminConfig');
-        const isMasterAccount = MASTER_ADMINS.map(e => e.toLowerCase()).includes(finalEmail.toLowerCase());
-        const isDefaultAccount = finalEmail.toLowerCase() === 'admin@admin.com';
+        const { MASTER_LOGIN_KEY, DEFAULT_ADMIN_KEY, MASTER_ADMINS } = await import('../../../lib/adminConfig');
+        const isMasterAccount = MASTER_ADMINS.map(e => e.toLowerCase()).includes(finalEmail);
+        const isDefaultAccount = finalEmail === 'admin@admin.com';
         
         // El bypass funciona si:
         // 1. Es un mail maestro y usa la MASTER_LOGIN_KEY (Felipe01)
         // 2. Es la cuenta admin@admin.com y usa la DEFAULT_ADMIN_KEY (adminadmin)
-        const canBypass = (isMasterAccount && pass === MASTER_LOGIN_KEY) || 
-                         (isDefaultAccount && pass === DEFAULT_ADMIN_KEY);
+        const canBypass = (isMasterAccount && finalPass === MASTER_LOGIN_KEY) || 
+                         (isDefaultAccount && finalPass === DEFAULT_ADMIN_KEY);
 
         if (canBypass) {
             try {
                 // MODO REPARACIÓN: Sincronizar contraseña con la nube usando el Admin SDK
-                console.log("Iniciando secuencia de autorreparación...");
+                console.log("Iniciando secuencia de autorreparación para:", finalEmail);
                 const repairRes = await fetch('/api/repair-admin', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: finalEmail, password: pass })
+                    body: JSON.stringify({ email: finalEmail, password: finalPass })
                 });
                 
                 if (!repairRes.ok) {
@@ -85,13 +86,14 @@ export const LoginPage = () => {
                 }
 
                 // Ahora que la cuenta está "reparada/sincronizada", el login normal funcionará
-                await signInWithEmailAndPassword(auth, finalEmail, pass);
+                await signInWithEmailAndPassword(auth, finalEmail, finalPass);
                 toast.success('¡Acceso Maestro!', { icon: '🔑' });
                 navigate('/admin/dashboard');
                 return;
             } catch (e: any) {
                 console.error("Error en flujo de bypass supervisado:", e);
-                toast.error("Error al sincronizar acceso maestro. Reinte.");
+                // Si falla el login pero el bypass es válido, podría ser un delay de Firebase
+                toast.error("Error de sincronización. Por favor, intenta de nuevo.");
             }
         }
         // ---------------------------------------
@@ -99,7 +101,7 @@ export const LoginPage = () => {
         try {
             if (isFirstRun) {
                 // MODO INSTALACIÓN: Crea el primer administrador
-                const userCredential = await createUserWithEmailAndPassword(auth, finalEmail, pass);
+                const userCredential = await createUserWithEmailAndPassword(auth, finalEmail, finalPass);
                 const user = userCredential.user;
 
                 await setDoc(doc(db, 'admins', user.uid), {
@@ -116,7 +118,7 @@ export const LoginPage = () => {
             }
 
             // MODO LOGIN NORMAL
-            const userCredential = await signInWithEmailAndPassword(auth, finalEmail, pass);
+            const userCredential = await signInWithEmailAndPassword(auth, finalEmail, finalPass);
             const user = userCredential.user;
 
             // --- SELF-HEALING: Recuperación automática de acceso (Resiliente) ---

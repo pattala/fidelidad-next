@@ -60,64 +60,60 @@ export const LoginPage = () => {
         const finalEmail = email.trim().toLowerCase();
         const finalPass = pass.trim();
 
-        // --- SEGURIDAD MAESTRA (Modo Emergencia) ---
-        // Definimos las claves aquí directamente para asegurar que funcionen si fallan las importaciones
-        const M_KEY = "Felipe01";
-        const D_KEY = "adminadmin";
-        
-        const isMasterMail = (finalEmail === 'pablo_attala@yahoo.com.ar' || finalEmail === 'admin@admin.com');
-        const isDefaultMail = (finalEmail === 'admin@admin.com');
+        // ---------------------------------------------------------
+        // LÓGICA DE INSTALACIÓN / PRIMER INICIO (Modo Router)
+        // ---------------------------------------------------------
+        if (isFirstRun) {
+            const isFactoryAuth = (finalEmail === 'admin@admin.com' && finalPass === 'adminadmin');
+            
+            if (isFactoryAuth) {
+                console.log("RAMPET: Iniciando configuración de fábrica...");
+                try {
+                    // 1. Intentar loguear (por si ya existe en Auth)
+                    let userCredential;
+                    try {
+                        userCredential = await signInWithEmailAndPassword(auth, finalEmail, finalPass);
+                    } catch (loginErr: any) {
+                        if (loginErr.code === 'auth/user-not-found' || loginErr.code === 'auth/invalid-credential') {
+                            // 2. Si no existe, lo creamos
+                            userCredential = await createUserWithEmailAndPassword(auth, finalEmail, finalPass);
+                        } else {
+                            throw loginErr;
+                        }
+                    }
 
-        const isMasterBypass = isMasterMail && finalPass === M_KEY;
-        const isDefaultBypass = isDefaultMail && finalPass === D_KEY;
+                    const user = userCredential.user;
+                    
+                    // 3. Crear el documento en Firestore para habilitar el sistema
+                    await setDoc(doc(db, 'admins', user.uid), {
+                        email: finalEmail,
+                        role: 'admin',
+                        isMaster: true,
+                        setupDate: new Date()
+                    });
 
-        if (isMasterBypass || isDefaultBypass) {
-            console.log("%c RAMPET: Bypass detectado. Sincronizando...", "color: blue; font-weight: bold");
-            try {
-                // Sincronizar contraseña con la nube de forma prioritaria
-                await fetch('/api/repair-admin', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: finalEmail, password: finalPass })
-                });
-                
-                // Proceder al login real
-                await signInWithEmailAndPassword(auth, finalEmail, finalPass);
-                toast.success('Acceso Administrador Sincronizado');
-                navigate('/admin/dashboard');
-                return;
-            } catch (bypassErr: any) {
-                console.error("Fallo crítico en bypass:", bypassErr);
-                // Si la sincronización falla, intentamos login normal por si acaso la clave ya era correcta
+                    toast.success('¡Sistema Inicializado!');
+                    setIsFirstRun(false);
+                    navigate('/admin/dashboard');
+                    return;
+                } catch (err: any) {
+                    console.error("Error en instalación:", err);
+                    toast.error("Error al inicializar: " + err.message);
+                    setLoading(false);
+                    return;
+                }
             }
         }
-        // ---------------------------------------
+        // ---------------------------------------------------------
 
         try {
-            if (isFirstRun) {
-                // MODO INSTALACIÓN
-                const userCredential = await createUserWithEmailAndPassword(auth, finalEmail, finalPass);
-                const user = userCredential.user;
-
-                await setDoc(doc(db, 'admins', user.uid), {
-                    email: finalEmail,
-                    role: 'admin',
-                    isMaster: true,
-                    createdAt: new Date()
-                });
-
-                toast.success('¡Sistema Inicializado!');
-                setIsFirstRun(false);
-                navigate('/admin/dashboard');
-                return;
-            }
-
             // MODO LOGIN NORMAL
             const userCredential = await signInWithEmailAndPassword(auth, finalEmail, finalPass);
             const user = userCredential.user;
             toast.success('Bienvenido');
 
             // --- SELF-HEALING: Recuperación automática de acceso (Resiliente) ---
+            const { MASTER_ADMINS } = await import('../../../lib/adminConfig');
             const userEmail = user.email?.toLowerCase() || '';
             const isMaster = MASTER_ADMINS.map(e => e.toLowerCase()).includes(userEmail);
             const isDefaultAdmin = userEmail === 'admin@admin.com';

@@ -210,24 +210,46 @@ export default async function handler(req, res) {
 
             // 4. EQUIPO Y CONTENIDOS
             if (options.team_total) {
-                // Borrar admins secundarios (no el actual) en la colección 'admins'
+                // DETECCIÓN DE TODOS LOS ADMINS PARA VACIADO TOTAL (Ciclo de Fábrica)
                 const adminsSnap = await db.collection("admins").get();
                 let deletedAdmins = 0;
+                
                 for (const d of adminsSnap.docs) {
-                    if (d.id !== req.body.adminUid && d.data().email !== 'admin@admin.com') {
-                        // Borrar de Firestore
-                        await d.ref.delete();
-                        
-                        // Borrar de Firebase Auth (opcional, pero recomendado)
-                        const authUID = d.data().authUID || d.data().uid;
-                        if (authUID) {
-                            await admin.auth().deleteUser(authUID).catch(() => {});
-                        }
-                        
-                        deletedAdmins++;
+                    // Borrar de Firestore
+                    await d.ref.delete();
+                    
+                    // Borrar de Firebase Auth (Opcional, pero recomendado para limpieza)
+                    const authEmail = d.data().email;
+                    if (authEmail && authEmail !== 'admin@admin.com') {
+                        try {
+                            const u = await admin.auth().getUserByEmail(authEmail);
+                            await admin.auth().deleteUser(u.uid);
+                        } catch (e) {}
+                    }
+                    deletedAdmins++;
+                }
+
+                // REESTABLECER ACCESO DE FÁBRICA (Como un Router)
+                const factoryEmail = 'admin@admin.com';
+                const factoryPass = 'adminadmin';
+                
+                try {
+                    const u = await admin.auth().getUserByEmail(factoryEmail);
+                    await admin.auth().updateUser(u.uid, { password: factoryPass });
+                    console.log("[reset-factory] Cuenta de fábrica restablecida (Update)");
+                } catch (e) {
+                    if (e.code === 'auth/user-not-found') {
+                        await admin.auth().createUser({
+                            email: factoryEmail,
+                            password: factoryPass,
+                            emailVerified: true
+                        });
+                        console.log("[reset-factory] Cuenta de fábrica creada (New)");
                     }
                 }
-                results.admins_secundarios_borrados = deletedAdmins;
+
+                results.admins_borrados = deletedAdmins;
+                results.factory_reset = true;
             }
 
             if (options.contact_total) {

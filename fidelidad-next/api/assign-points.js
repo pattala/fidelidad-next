@@ -193,6 +193,7 @@ export default async function handler(req, res) {
                 clients: Array.from(results.values()),
                 pointsMoneyBase,
                 pointsPerPeso,
+                discountRecoveryRatio: Number(configData.discountRecoveryRatio) || 0,
                 promoPenaltyStep: Number(configData.promoPenaltyStep) ?? 15,
                 promoMinFloor: Number(configData.promoMinFloor) ?? 25,
                 activePromotions,
@@ -272,19 +273,9 @@ export default async function handler(req, res) {
                 basePoints = Math.floor(totalVal / costPerPoint);
                 newAccumulatedBalance = totalVal % costPerPoint;
 
-                // --- APLICAR AJUSTE POR PROMOCIONES (Nuevo) ---
-                if (promosCount && Number(promosCount) > 0) {
-                    const penaltyStep = Number(config.promoPenaltyStep) ?? 15;
-                    const minFloor = Number(config.promoMinFloor) ?? 25;
-                    
-                    const penaltyFactor = 1 - (Number(promosCount) * (penaltyStep / 100));
-                    const finalFactor = Math.max(minFloor / 100, penaltyFactor);
-                    
-                    const pointsBeforeAjuste = basePoints;
-                    basePoints = Math.floor(basePoints * finalFactor);
-                    
-                    req.body.calculatedPromoDetails = (req.body.calculatedPromoDetails || "") + ` [Ajuste Promos: ${Math.round(finalFactor * 100)}% por ${promosCount} prod.]`;
-                }
+                // --- AJUSTE POR PROMOCIONES REMOVIDO (Ahora automático por detección de negativos) ---
+                const pointsBeforeAjuste = basePoints;
+                // basePoints = Math.floor(basePoints * finalFactor); // Eliminado
             } else {
                 // Modo Manual (ya viene en puntos)
                 basePoints = Number(finalAmount);

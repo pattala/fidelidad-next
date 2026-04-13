@@ -251,6 +251,7 @@ export interface AppConfig {
     enablePetModule?: boolean;
     promoPenaltyStep?: number;
     promoMinFloor?: number;
+    discountRecoveryRatio?: number; // Factor K: Porcentaje de recuperación por descuentos
 }
 
 export interface Prize {

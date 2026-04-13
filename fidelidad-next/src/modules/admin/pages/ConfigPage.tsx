@@ -146,7 +146,8 @@ export const ConfigPage = () => {
         enableDuplicateControl: true,
         enablePetModule: import.meta.env.VITE_ENABLE_PET_MODULE === 'true',
         promoPenaltyStep: 15, // Porcentaje de reducción base
-        promoMinFloor: 25     // Suelo mínimo (ej: 25%)
+        promoMinFloor: 25,     // Suelo mínimo (ej: 25%)
+        discountRecoveryRatio: 0 // Factor K
     });
 
     const { isReadOnly, user } = useAdminAuth();
@@ -613,6 +614,30 @@ export const ConfigPage = () => {
                                                         <span className="text-gray-500 text-sm font-medium">puntos de bienvenida.</span>
                                                     </div>
                                                 )}
+
+                                                {/* NUEVO: Factor K (Recuperación por Descuento) */}
+                                                <div className="pt-4 border-t border-gray-100">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <div className="flex-1">
+                                                            <span className="text-sm font-bold text-blue-600 flex items-center gap-2">
+                                                                <Sparkles size={16} /> Factor K: Recuperación por Descuentos
+                                                            </span>
+                                                            <p className="text-xs text-gray-500 mt-0.5">Otorga puntos sobre el monto neto de descuentos (ej: Combos, Cupones).</p>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">
+                                                            <input
+                                                                type="number" min="0" max="100"
+                                                                value={config.discountRecoveryRatio || 0}
+                                                                onChange={e => setConfig({ ...config, discountRecoveryRatio: parseInt(e.target.value) || 0 })}
+                                                                className="w-16 bg-transparent outline-none font-black text-blue-700 text-right pr-1"
+                                                            />
+                                                            <span className="text-blue-600 font-bold text-xs">%</span>
+                                                        </div>
+                                                    </div>
+                                                    <p className="text-[10px] text-gray-400 italic">
+                                                        Ejemplo: Con 10%, si un cliente usa un cupón de $5000 (equivale a 50 pts), recibirá **5 pts** de bono adicional.
+                                                    </p>
+                                                </div>
 
                                                 {/* NUEVO: Bono por Domicilio */}
                                                 <div className="flex items-center justify-between pt-4 border-t border-gray-100">

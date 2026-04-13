@@ -5,7 +5,6 @@ let config = { apiUrl: '', apiKey: '' };
 let apiRatios = { base: 100, perPeso: 1, penaltyStep: 15, minFloor: 25 };
 let detectedAmount = 0;
 let detectedDiscounts = 0;
-let promosCount = 0;
 let selectedClient = null;
 let currentPromos = []; // Store calculable promos globally for this context
 
@@ -280,21 +279,33 @@ function detectAmount() {
             const cells = row.querySelectorAll('td');
             // La columna 6 (índice 5) suele ser el Total por ítem
             if (cells.length >= 6) {
+                const rowText = row.innerText.toUpperCase();
                 const totalText = cells[5].innerText.trim();
-                if (totalText.startsWith('-')) {
+                
+                // Detectamos por signo menos o por palabras clave de descuento/combo
+                const isNegative = totalText.startsWith('-') || totalText.includes('(');
+                // --- CONFIGURACIÓN DE PALABRAS CLAVE ---
+                // Si necesitas agregar más palabras, agrégalas aquí abajo usando || rowText.includes('NUEVA_PALABRA')
+                const hasDiscountKeyword = rowText.includes('DESCUENTO') || 
+                                           rowText.includes('PROMO') || 
+                                           rowText.includes('COMBO') || 
+                                           rowText.includes('BONIF');
+
+                if (isNegative || hasDiscountKeyword) {
                     const numeric = Math.abs(parseFloat(totalText.replace(/[^0-9.,-]/g, '').replace(',', '.')));
                     if (!isNaN(numeric)) discountSum += numeric;
                 }
             }
         });
         
-        // Búsqueda genérica por si la tabla cambia de estructura
+        // Búsqueda genérica refinada si la tabla no dio resultados
         if (discountSum === 0) {
             document.querySelectorAll('td, span, div').forEach(el => {
                 const text = el.innerText.trim();
-                if (text.startsWith('-') && text.length > 1 && text.length < 15 && !el.children.length) {
+                // Regex mejorado para capturar montos negativos o entre paréntesis
+                if (((text.startsWith('-') || (text.startsWith('(') && text.endsWith(')'))) && text.length > 1 && text.length < 20 && !el.children.length)) {
                     const numeric = Math.abs(parseFloat(text.replace(/[^0-9.,-]/g, '').replace(',', '.')));
-                    if (!isNaN(numeric) && numeric > 1) { // Ignorar negativos muy pequeños
+                    if (!isNaN(numeric) && numeric > 1) { 
                          discountSum += numeric;
                     }
                 }
@@ -320,9 +331,9 @@ function detectAmount() {
 
 let detectTimeout = null;
 const observer = new MutationObserver(() => {
-    // Debounce the detection to avoid performance issues during intensive DOM mutations
+    // Debounce reducido para activación más rápida
     if (detectTimeout) clearTimeout(detectTimeout);
-    detectTimeout = setTimeout(() => detectAmount(), 300);
+    detectTimeout = setTimeout(() => detectAmount(), 150);
 });
 observer.observe(document.body, { childList: true, subtree: true, attributes: true, characterData: true });
 // Initial detection sequence
@@ -333,12 +344,18 @@ setTimeout(detectAmount, 2500);
 function showFidelidadPanel() {
     if (document.getElementById('fidelidad-panel')) {
         const amountEl = document.getElementById('cf-display-amount');
+        const inputMonto = document.getElementById('cf-input-amount');
+        const baseActual = detectedAmount - detectedDiscounts;
+
         if (amountEl) {
-            const baseActual = detectedAmount - detectedDiscounts;
             amountEl.innerHTML = `$ ${detectedAmount.toLocaleString('es-AR')} ${detectedDiscounts > 0 ? `<span style="font-size: 10px; color: #ef4444; font-weight: normal; margin-left:8px;">(Base: $${baseActual.toLocaleString('es-AR')})</span>` : ''}`;
         }
-        const inputMonto = document.getElementById('cf-input-amount');
-        if (inputMonto && !inputMonto.value) inputMonto.value = detectedAmount;
+        
+        // Solo actualizar si el input está vacío o aún no tiene el monto detectado (para no pisar cambios manuales)
+        if (inputMonto && (!inputMonto.value || inputMonto.dataset.autoFilled === 'true')) {
+            inputMonto.value = baseActual;
+            inputMonto.dataset.autoFilled = 'true';
+        }
         return;
     }
 
@@ -377,24 +394,14 @@ function showFidelidadPanel() {
                         <label id="cf-amount-label" class="cf-label font-bold">Monto de la Compra ($)</label>
                         <div class="cf-input-group">
                             <span id="cf-currency-symbol" class="cf-addon">$</span>
-                            <input type="number" id="cf-input-amount" class="fidelidad-input cf-input-big" value="${detectedAmount}">
+                            <input type="number" id="cf-input-amount" class="fidelidad-input cf-input-big" value="${detectedAmount - detectedDiscounts}" data-auto-filled="true">
+                        </div>
+                        <div id="cf-display-amount" style="font-size: 11px; margin-top: 4px; color: #6b7280;">
+                            $ ${detectedAmount.toLocaleString('es-AR')} ${detectedDiscounts > 0 ? `<span style="color:#ef4444;">(-$${detectedDiscounts.toLocaleString('es-AR')} desc.)</span>` : ''}
                         </div>
                         <div id="cf-preview-container" class="cf-preview-box" style="margin-top: 8px; font-size: 12px; color: #6b7280; display: none;">
                             <!-- Preview text will be injected here -->
                         </div>
-                    </div>
-
-                    <!-- SELECTOR DE PROMOS (Nuevo) -->
-                    <div id="cf-promos-selector-container" style="background: #fff7ed; padding: 12px; border-radius: 12px; border: 1px solid #ffedd5; margin-bottom: 20px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <label style="font-size: 11px; font-weight: 900; color: #9a3412; text-transform: uppercase;">🔥 Productos en Promo</label>
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <button type="button" id="cf-promo-minus" style="width: 24px; height: 24px; border-radius: 50%; border: 1px solid #fdba74; background: white; color: #c2410c; font-weight: bold; cursor: pointer;">-</button>
-                                <span id="cf-promo-count-display" style="font-size: 14px; font-weight: 900; color: #c2410c; min-width: 12px; text-align: center;">0</span>
-                                <button type="button" id="cf-promo-plus" style="width: 24px; height: 24px; border-radius: 50%; border: 1px solid #fdba74; background: white; color: #c2410c; font-weight: bold; cursor: pointer;">+</button>
-                            </div>
-                        </div>
-                        <p id="cf-promo-factor-hint" style="margin: 4px 0 0 0; font-size: 9px; color: #c2410c; opacity: 0.7; font-weight: 600; text-align: center;">Sin penalización</p>
                     </div>
 
                     <div class="cf-grid">
@@ -493,31 +500,6 @@ function showFidelidadPanel() {
     const tabCanjes = document.getElementById('cf-tab-content-canjes');
     const prizesList = document.getElementById('cf-prizes-list');
     const mainTitle = document.getElementById('cf-main-title');
-    const promoMinus = document.getElementById('cf-promo-minus');
-    const promoPlus = document.getElementById('cf-promo-plus');
-    const promoCountDisplay = document.getElementById('cf-promo-count-display');
-    const promoHint = document.getElementById('cf-promo-factor-hint');
-
-    promoMinus.onclick = () => {
-        promosCount = Math.max(0, promosCount - 1);
-        renderPromoUI();
-    };
-    promoPlus.onclick = () => {
-        promosCount++;
-        renderPromoUI();
-    };
-
-    function renderPromoUI() {
-        promoCountDisplay.innerText = promosCount;
-        const penaltyFactor = 1 - (promosCount * (apiRatios.penaltyStep / 100));
-        const finalFactor = Math.max(apiRatios.minFloor / 100, penaltyFactor);
-        
-        if (promosCount === 0) promoHint.innerText = 'Sin penalización';
-        else promoHint.innerText = `Se aplicará factor del ${Math.round(finalFactor * 100)}%`;
-        
-        updatePointsPreview();
-    }
-
     // MANTENER SIEMPRE EN PESOS EN LA EXTENSIÓN
     let isPesos = true;
 
@@ -547,12 +529,7 @@ function showFidelidadPanel() {
             ptsBase = Math.floor(val);
         }
 
-        // --- AJUSTE POR PROMOCIONES (Nuevo) ---
-        let promoFactor = 1;
-        if (isPesos && promosCount > 0) {
-            promoFactor = Math.max(apiRatios.minFloor / 100, 1 - (promosCount * (apiRatios.penaltyStep / 100)));
-        }
-        const ptsAfterPromo = Math.floor(ptsBase * promoFactor);
+        const ptsAfterPromo = ptsBase;
 
         let bonus = 0;
         const applyPromos = document.getElementById('cf-apply-promos').checked;
@@ -568,13 +545,26 @@ function showFidelidadPanel() {
             });
         }
 
+        // --- FACTOR K: RECUPERACIÓN POR DESCUENTO ---
+        let bonusK = 0;
+        if (isPesos && detectedDiscounts > 0 && apiRatios.discountK > 0) {
+            const ptsPerCurrency = (apiRatios.perPeso || 1) / (apiRatios.base || 100);
+            const lostPoints = detectedDiscounts * ptsPerCurrency;
+            bonusK = Math.floor(lostPoints * (apiRatios.discountK / 100));
+            bonus += bonusK;
+        }
+
         const totalFinal = ptsAfterPromo + bonus;
         previewContainer.style.display = 'block';
+        
         previewContainer.innerHTML = `
             <div style="font-weight: bold; color: #374151;">✨ Se asignarán: <strong style="color: #059669;">${totalFinal} puntos</strong></div>
-            ${(val === detectedAmount && detectedDiscounts > 0) ? `<div style="font-size: 10px; color: #ef4444; font-weight: 700;">📉 Descuentos detectados: -$${detectedDiscounts.toLocaleString('es-AR')}</div>` : ''}
-            ${promosCount > 0 ? `<div style="font-size: 10px; color: #d97706; font-weight: 800;">📉 Ajuste Promos: ${Math.round(promoFactor * 100)}% (${ptsAfterPromo} pts)</div>` : ''}
-            ${bonus > 0 ? `<div style="font-size: 10px; color: #9ca3af;">+ Bonus extra: ${bonus} pts</div>` : ''}
+            <div style="font-size: 10px; color: #6b7280; margin-top: 2px;">
+                Cálculo: $${val.toLocaleString('es-AR')} / ${apiRatios.base} x ${apiRatios.perPeso}
+                ${(bonus - bonusK) > 0 ? ` + ${bonus - bonusK} pts promos` : ''}
+                ${bonusK > 0 ? ` + ${bonusK} pts Bono Descuento (K)` : ''}
+            </div>
+            ${(detectedDiscounts > 0) ? `<div style="font-size: 10px; color: #ef4444; font-weight: 700;">📉 El sistema restó $${detectedDiscounts.toLocaleString('es-AR')} de descuentos detectados.</div>` : ''}
         `;
     }
 
@@ -655,17 +645,21 @@ function showFidelidadPanel() {
                 headers: { 'x-api-key': config.apiKey }
             });
             const data = await res.json();
-            if (data.ok && data.clients && data.clients.length > 0) {
+            if (data.ok) {
                 apiRatios.base = data.pointsMoneyBase || 100;
                 apiRatios.perPeso = data.pointsPerPeso || 1;
-                apiRatios.penaltyStep = data.promoPenaltyStep ?? 15;
-                apiRatios.minFloor = data.promoMinFloor ?? 25;
-                renderResults(data.clients, data.activePromotions || [], data.activePrizes || []);
-                // Refrescar contador C/V del widget (igual que promos: datos frescos en cada búsqueda)
-                refreshAlertCounts();
+                apiRatios.discountK = data.discountRecoveryRatio || 0;
+
+                if (data.clients && data.clients.length > 0) {
+                    renderResults(data.clients, data.activePromotions || [], data.activePrizes || []);
+                    // Refrescar contador C/V del widget (igual que promos: datos frescos en cada búsqueda)
+                    refreshAlertCounts();
+                } else {
+                    resultsDiv.innerHTML = '<div class="fidelidad-result-item" style="cursor:default; color:#666; text-align:center;">No se encontraron socios</div>';
+                    resultsDiv.style.display = 'block';
+                }
             } else {
-                resultsDiv.innerHTML = '<div class="fidelidad-result-item" style="cursor:default; color:#666; text-align:center;">No se encontraron socios</div>';
-                resultsDiv.style.display = 'block';
+                statusDiv.innerText = '❌ Error de conexión';
             }
         } catch (e) {
             statusDiv.innerText = '❌ Error de conexión';

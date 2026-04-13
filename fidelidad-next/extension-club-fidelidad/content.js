@@ -735,8 +735,8 @@ function showFidelidadPanel() {
                         const isFlash = p.isFlash;
                         const rType = isFlash ? (p.flashRewardType || p.rewardType) : p.rewardType;
                         const rValue = isFlash ? (p.flashRewardValue || p.rewardValue) : p.rewardValue;
-                        const rText = isFlash ? (p.flashRewardText || p.rewardText) : p.rewardText;
-                        const label = rType === 'MULTIPLIER' ? `Multiplicador x${rValue}` : (rType === 'FIXED' ? `Bonus +${rValue} pts` : rText);
+                        const rText = isFlash ? (p.flashRewardText || p.rewardText || '') : (p.rewardText || '');
+                        const label = rType === 'MULTIPLIER' ? `Multiplicador x${rValue}` : (rType === 'FIXED' ? `Bonus +${rValue} pts` : (rText || 'Promo activa'));
                         const title = p.title || p.name;
                         const timeRange = (p.startTime || p.endTime) ?
                             `<span class="cf-promo-time">⏰ ${p.startTime || '00:00'} a ${p.endTime || '23:59'} hs</span>` : '';
@@ -882,7 +882,6 @@ function showFidelidadPanel() {
                     concept: concept,
                     date: date,
                     bonusIds: applyPromos ? bonusIds : [],
-                    promosCount: promosCount,
                     applyWhatsApp: applyWhatsApp
                 })
             });

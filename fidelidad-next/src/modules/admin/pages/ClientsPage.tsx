@@ -736,7 +736,7 @@ export const ClientsPage = () => {
     const openPointsModal = async (client: Client) => {
         if (isReadOnly) return;
         setSelectedClientForPoints(client);
-        setPointsData({ amount: '', concept: 'Compra en local', isPesos: true, purchaseDate: new Date().toISOString().split('T')[0] });
+        setPointsData({ amount: '', concept: 'Compra en local', isPesos: true, purchaseDate: new Date().toISOString().split('T')[0], promosCount: 0 });
 
         const isWAEnabled = NotificationService.isChannelEnabled(config, 'pointsAdded', 'whatsapp');
         setNotifyWhatsapp(isWAEnabled);

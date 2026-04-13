@@ -645,6 +645,8 @@ function showFidelidadPanel() {
                 e.stopPropagation();
 
                 selectedClient = { id: c.id, name: c.name, accumulated_balance: c.accumulated_balance || 0 };
+                promosCount = 0; // Reset promos count for new client
+                renderPromoUI();
 
                 // UI Update
                 clientHeader.innerText = `Socio: ${selectedClient.name}`;

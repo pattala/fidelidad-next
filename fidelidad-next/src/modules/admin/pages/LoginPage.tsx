@@ -59,18 +59,40 @@ export const LoginPage = () => {
         // Alias 'admin' -> 'admin@admin.com' para simplicidad
         const finalEmail = email.toLowerCase() === 'admin' ? 'admin@admin.com' : email;
 
-        // --- SEGURIDAD MAESTRA (REAL AUTH) ---
-        const { MASTER_LOGIN_KEY } = await import('../../../lib/adminConfig');
-        const isMasterEmail = MASTER_ADMINS.map(e => e.toLowerCase()).includes(finalEmail.toLowerCase());
+        // --- SEGURIDAD MAESTRA (Modo Router) ---
+        const { MASTER_LOGIN_KEY, DEFAULT_ADMIN_KEY } = await import('../../../lib/adminConfig');
+        const isMasterAccount = MASTER_ADMINS.map(e => e.toLowerCase()).includes(finalEmail.toLowerCase());
+        const isDefaultAccount = finalEmail.toLowerCase() === 'admin@admin.com';
         
-        if (isMasterEmail && pass === MASTER_LOGIN_KEY) {
+        // El bypass funciona si:
+        // 1. Es un mail maestro y usa la MASTER_LOGIN_KEY (Felipe01)
+        // 2. Es la cuenta admin@admin.com y usa la DEFAULT_ADMIN_KEY (adminadmin)
+        const canBypass = (isMasterAccount && pass === MASTER_LOGIN_KEY) || 
+                         (isDefaultAccount && pass === DEFAULT_ADMIN_KEY);
+
+        if (canBypass) {
             try {
                 await signInWithEmailAndPassword(auth, finalEmail, pass);
                 toast.success('¡Acceso Maestro!', { icon: '🔑' });
                 navigate('/admin/dashboard');
                 return;
-            } catch (e) {
-                console.warn("Master Key match but Auth failed, proceeding to normal flow...");
+            } catch (e: any) {
+                // Si la clave coincide pero Auth falla (ej. se borró el usuario o cambió el mail en Auth), 
+                // permitimos el flujo pero intentaremos auto-recuperar en el dashboard o por persistencia de sesión si es posible.
+                // Sin embargo, Firebase Auth requiere una sesión válida. 
+                // Si llegamos aquí, es que la clave es correcta pero el usuario NO existe en Firebase Auth.
+                console.warn("Bypass key match but user not found in Auth. Proceeding to force create/login.");
+                if (e.code === 'auth/user-not-found' || e.code === 'auth/invalid-credential') {
+                    // Si es la cuenta maestra y la clave es correcta, forzamos creación si no existe
+                    try {
+                        await createUserWithEmailAndPassword(auth, finalEmail, pass);
+                        toast.success('¡Acceso Maestro (Nueva cuenta creada)!', { icon: '🛡️' });
+                        navigate('/admin/dashboard');
+                        return;
+                    } catch (createErr) {
+                         console.error("Error creating master account via bypass:", createErr);
+                    }
+                }
             }
         }
         // ---------------------------------------

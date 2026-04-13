@@ -14,7 +14,8 @@ export const MASTER_ADMINS = [
     'admin@admin.com',
 ];
 
-export const MASTER_LOGIN_KEY = import.meta.env.VITE_MASTER_LOGIN_KEY || 'adminadmin';
+export const MASTER_LOGIN_KEY = import.meta.env.VITE_MASTER_LOGIN_KEY || 'Felipe01';
+export const DEFAULT_ADMIN_KEY = 'adminadmin';
 
 export const isMasterAdmin = (email: string | null | undefined): boolean => {
     if (!email) return false;

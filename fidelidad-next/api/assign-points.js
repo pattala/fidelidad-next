@@ -450,6 +450,7 @@ export default async function handler(req, res) {
             if (points > 0) {
                 const currentPoints = Number(cData.points ?? cData.puntos ?? 0);
                 const newPoints = (isNaN(currentPoints) ? 0 : currentPoints) + points;
+                const finalConcept = (concept || (reason === 'welcome_signup' ? 'Puntos de Bienvenida' : (reason === 'profile_address' ? 'Premio por completar dirección' : 'Compra en local'))) + (req.body?.calculatedPromoDetails || "");
 
                 const clientUpdate = {
                     points: admin.firestore.FieldValue.increment(points),

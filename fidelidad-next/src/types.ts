@@ -262,4 +262,5 @@ export interface Prize {
     imageUrl?: string;
     cashValue?: number; // Valor en pesos para reportes
     isInternal?: boolean;
+    expirationDate?: string; // Fecha límite de canje (YYYY-MM-DD)
 }

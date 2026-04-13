@@ -24,7 +24,8 @@ export const PrizesPage = () => {
         active: true,
         imageUrl: '',
         cashValue: 0,
-        isInternal: false
+        isInternal: false,
+        expirationDate: ''
     };
     const [formData, setFormData] = useState(INITIAL_FORM);
 
@@ -105,7 +106,8 @@ export const PrizesPage = () => {
             active: prize.active,
             imageUrl: prize.imageUrl || '',
             cashValue: prize.cashValue || 0,
-            isInternal: prize.isInternal || false
+            isInternal: prize.isInternal || false,
+            expirationDate: prize.expirationDate || ''
         });
         setIsModalOpen(true);
     };
@@ -146,6 +148,7 @@ export const PrizesPage = () => {
                                 <th className="p-4">Descripción</th>
                                 <th className="p-4 text-center">Pts. Req.</th>
                                 <th className="p-4 text-center">Stock</th>
+                                <th className="p-4 text-center">Vencimiento</th>
                                 <th className="p-4 text-center">Estado</th>
                                 <th className="p-4 text-right pr-6">Acciones</th>
                             </tr>
@@ -181,6 +184,11 @@ export const PrizesPage = () => {
                                     <td className="p-4 text-center">
                                         <span className={`inline-flex items-center gap-1 font-bold px-2 py-1 rounded-md ${prize.stock > 0 ? 'text-gray-700 bg-gray-100' : 'text-red-600 bg-red-50'} `}>
                                             <Package size={14} /> {prize.stock}
+                                        </span>
+                                    </td>
+                                    <td className="p-4 text-center">
+                                        <span className={`text-xs font-medium px-2 py-1 rounded-md ${prize.expirationDate ? (new Date(prize.expirationDate) < new Date() ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600') : 'text-gray-400'}`}>
+                                            {prize.expirationDate ? new Date(prize.expirationDate).toLocaleDateString('es-AR') : 'Sin fecha'}
                                         </span>
                                     </td>
                                     <td className="p-4 text-center">
@@ -330,6 +338,20 @@ export const PrizesPage = () => {
                                         onChange={e => setFormData({ ...formData, imageUrl: e.target.value })}
                                     />
                                 </div>
+                            </div>
+
+                            {/* Fecha de Vencimiento */}
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">Fecha de Vencimiento (Opcional)</label>
+                                <div className="relative">
+                                    <input
+                                        type="date"
+                                        className="w-full rounded-lg border-gray-200 border p-3 text-sm text-gray-600 outline-none focus:ring-2 focus:ring-pink-100"
+                                        value={formData.expirationDate}
+                                        onChange={e => setFormData({ ...formData, expirationDate: e.target.value })}
+                                    />
+                                </div>
+                                <p className="text-[10px] text-gray-400 mt-1 ml-1">El premio dejará de ser visible después de esta fecha.</p>
                             </div>
 
                             {/* Internal Toggle */}

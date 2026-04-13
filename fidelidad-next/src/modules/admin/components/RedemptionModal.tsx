@@ -41,6 +41,17 @@ export const RedemptionModal = ({ client, onClose, onRedeemSuccess }: Redemption
             return;
         }
 
+        // Expiration check
+        if (selectedPrize.expirationDate) {
+            const today = new Date();
+            const expDate = new Date(selectedPrize.expirationDate);
+            expDate.setHours(23, 59, 59, 999);
+            if (today > expDate) {
+                toast.error("El premio ha vencido");
+                return;
+            }
+        }
+
         if (!confirm(`¿Confirmar canje de ${selectedPrize.name} por ${selectedPrize.pointsRequired} pts?`)) return;
 
         setLoading(true);
@@ -120,16 +131,18 @@ export const RedemptionModal = ({ client, onClose, onRedeemSuccess }: Redemption
                         {prizes.map(prize => {
                             const canAfford = client.points >= prize.pointsRequired;
                             const hasStock = prize.stock > 0;
+                            const isExpired = prize.expirationDate ? new Date(prize.expirationDate).setHours(23, 59, 59, 999) < new Date().getTime() : false;
                             const isSelected = selectedPrize?.id === prize.id;
+                            const isDisable = !canAfford || !hasStock || isExpired;
 
                             return (
                                 <div
                                     key={prize.id}
-                                    onClick={() => (canAfford && hasStock) && setSelectedPrize(prize)}
+                                    onClick={() => !isDisable && setSelectedPrize(prize)}
                                     className={`
                                         relative rounded-xl border-2 p-4 cursor-pointer transition-all flex flex-col justify-between min-h-[160px]
                                         ${isSelected ? 'border-pink-500 bg-pink-50 ring-2 ring-pink-200' : 'bg-white border-gray-200 hover:border-pink-300'}
-                                        ${(!canAfford || !hasStock) ? 'opacity-50 grayscale cursor-not-allowed' : ''}
+                                        ${isDisable ? 'opacity-50 grayscale cursor-not-allowed' : ''}
                                     `}
                                 >
                                     {/* Badge Estado */}
@@ -141,6 +154,19 @@ export const RedemptionModal = ({ client, onClose, onRedeemSuccess }: Redemption
                                     <div className="mb-2">
                                         <h3 className="font-bold text-gray-800 leading-tight">{prize.name}</h3>
                                         <p className="text-[10px] text-gray-400 mt-1 line-clamp-2">{prize.description}</p>
+                                        
+                                        <div className="mt-2 space-y-1">
+                                            <div className="flex items-center gap-1">
+                                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${hasStock ? 'bg-gray-100 text-gray-600' : 'bg-red-100 text-red-600'}`}>
+                                                    Stock: {prize.stock}
+                                                </span>
+                                                {prize.expirationDate && (
+                                                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${isExpired ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                                                        {isExpired ? 'VENCIDO' : `Vence: ${new Date(prize.expirationDate).toLocaleDateString('es-AR')}`}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <div className="mt-auto pt-2 border-t border-gray-100 flex justify-between items-center">

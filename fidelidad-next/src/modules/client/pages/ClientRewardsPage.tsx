@@ -51,7 +51,13 @@ export const ClientRewardsPage = () => {
                     .filter(p => {
                         // 1. Stock check
                         if (p.stock <= 0) return false;
-                        // 2. Test Mode check
+                        // 2. Expiration check
+                        if (p.expirationDate) {
+                            const expDate = new Date(p.expirationDate);
+                            expDate.setHours(23, 59, 59, 999);
+                            if (new Date() > expDate) return false;
+                        }
+                        // 3. Test Mode check
                         if (p.isInternal && !userData?.isTestUser) return false;
                         return true;
                     });
@@ -128,7 +134,18 @@ export const ClientRewardsPage = () => {
                                 {/* Content */}
                                 <div className="p-4 flex-1 flex flex-col">
                                     <h3 className="font-bold text-gray-800 text-sm leading-tight mb-1 line-clamp-2">{prize.name}</h3>
-                                    <p className="text-[10px] text-gray-400 mb-3">{prize.category || 'General'}</p>
+                                    <p className="text-[10px] text-gray-400 mb-2">{prize.category || 'General'}</p>
+
+                                    <div className="flex flex-wrap gap-1.5 mb-3">
+                                        <span className="bg-gray-100 text-gray-500 text-[9px] font-bold px-2 py-0.5 rounded-full">
+                                            Quedan: {prize.stock}
+                                        </span>
+                                        {prize.expirationDate && (
+                                            <span className="bg-amber-50 text-amber-600 text-[9px] font-bold px-2 py-0.5 rounded-full border border-amber-100">
+                                                Hasta: {new Date(prize.expirationDate).toLocaleDateString('es-AR')}
+                                            </span>
+                                        )}
+                                    </div>
 
                                     <div className="mt-auto">
                                         {canRedeem ? (

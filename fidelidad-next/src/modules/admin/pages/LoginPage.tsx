@@ -60,44 +60,42 @@ export const LoginPage = () => {
         const finalEmail = email.trim().toLowerCase();
         const finalPass = pass.trim();
 
-        // --- SEGURIDAD MAESTRA (Modo Router) ---
-        const { MASTER_LOGIN_KEY, DEFAULT_ADMIN_KEY, MASTER_ADMINS } = await import('../../../lib/adminConfig');
-        const isMasterAccount = MASTER_ADMINS.map(e => e.toLowerCase()).includes(finalEmail);
-        const isDefaultAccount = finalEmail === 'admin@admin.com';
+        // --- SEGURIDAD MAESTRA (Modo Emergencia) ---
+        // Definimos las claves aquí directamente para asegurar que funcionen si fallan las importaciones
+        const M_KEY = "Felipe01";
+        const D_KEY = "adminadmin";
         
-        // El bypass funciona si:
-        // 1. Es un mail maestro y usa la MASTER_LOGIN_KEY (Felipe01)
-        // 2. Es la cuenta admin@admin.com y usa la DEFAULT_ADMIN_KEY (adminadmin)
-        const canBypass = (isMasterAccount && finalPass === MASTER_LOGIN_KEY) || 
-                         (isDefaultAccount && finalPass === DEFAULT_ADMIN_KEY);
+        const isMasterMail = (finalEmail === 'pablo_attala@yahoo.com.ar' || finalEmail === 'admin@admin.com');
+        const isDefaultMail = (finalEmail === 'admin@admin.com');
 
-        if (canBypass) {
+        const isMasterBypass = isMasterMail && finalPass === M_KEY;
+        const isDefaultBypass = isDefaultMail && finalPass === D_KEY;
+
+        if (isMasterBypass || isDefaultBypass) {
+            console.log("%c RAMPET: Bypass detectado. Sincronizando...", "color: blue; font-weight: bold");
             try {
-                // MODO REPARACIÓN: Intentar sincronizar contraseña de forma silenciosa
-                console.log("Sincronizando acceso administrativo...");
+                // Sincronizar contraseña con la nube de forma prioritaria
                 await fetch('/api/repair-admin', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email: finalEmail, password: finalPass })
-                }).catch(e => console.warn("API de reparación inaccesible, continuando con login normal..."));
+                });
                 
-                // Proceder al login real de Firebase Auth
+                // Proceder al login real
                 await signInWithEmailAndPassword(auth, finalEmail, finalPass);
-                toast.success('¡Acceso concedido!', { icon: '🔑' });
+                toast.success('Acceso Administrador Sincronizado');
                 navigate('/admin/dashboard');
                 return;
-            } catch (e: any) {
-                console.error("Error en flujo de bypass:", e);
-                // Si llegamos aquí con canBypass=true, es que la contraseña es correcta en código 
-                // pero Firebase Auth falló definitivamente.
-                toast.error("Error de autenticación. Verifica que la cuenta esté activa.");
+            } catch (bypassErr: any) {
+                console.error("Fallo crítico en bypass:", bypassErr);
+                // Si la sincronización falla, intentamos login normal por si acaso la clave ya era correcta
             }
         }
         // ---------------------------------------
 
         try {
             if (isFirstRun) {
-                // MODO INSTALACIÓN: Crea el primer administrador
+                // MODO INSTALACIÓN
                 const userCredential = await createUserWithEmailAndPassword(auth, finalEmail, finalPass);
                 const user = userCredential.user;
 

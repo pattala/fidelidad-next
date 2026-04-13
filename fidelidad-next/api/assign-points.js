@@ -194,8 +194,6 @@ export default async function handler(req, res) {
                 pointsMoneyBase,
                 pointsPerPeso,
                 discountRecoveryRatio: Number(configData.discountRecoveryRatio) || 0,
-                promoPenaltyStep: Number(configData.promoPenaltyStep) ?? 15,
-                promoMinFloor: Number(configData.promoMinFloor) ?? 25,
                 activePromotions,
                 activePrizes,
                 todayStr // Para debugging
@@ -209,7 +207,7 @@ export default async function handler(req, res) {
 
     try {
         const db = getDb();
-        const { uid, reason, amountOverride, amount, concept, metadata, bonusIds, promosCount, applyWhatsApp, skipNotifications } = req.body || {};
+        const { uid, reason, amountOverride, amount, concept, metadata, bonusIds, applyWhatsApp, skipNotifications } = req.body || {};
 
         // 1. Autenticación (DUAL MODE)
         let isAdmin = false;
@@ -262,9 +260,8 @@ export default async function handler(req, res) {
             const clientSnap = await db.collection('users').doc(targetUid).get();
             const currentAccumulated = clientSnap.exists ? Number(clientSnap.data().accumulated_balance ?? 0) : 0;
 
-            let basePoints = 0;
             if (reason === 'external_integration') {
-                // APLICAR CONVERSIÓN OFICIAL CON SALDO ACUMULADO
+                // --- CÁLCULO DE PUNTOS ---
                 const base = Number(config.pointsMoneyBase) || 100;
                 const ratio = Number(config.pointsPerPeso) || 1;
                 const costPerPoint = base / ratio;
@@ -272,10 +269,6 @@ export default async function handler(req, res) {
                 const totalVal = Number(finalAmount) + currentAccumulated;
                 basePoints = Math.floor(totalVal / costPerPoint);
                 newAccumulatedBalance = totalVal % costPerPoint;
-
-                // --- AJUSTE POR PROMOCIONES REMOVIDO (Ahora automático por detección de negativos) ---
-                const pointsBeforeAjuste = basePoints;
-                // basePoints = Math.floor(basePoints * finalFactor); // Eliminado
             } else {
                 // Modo Manual (ya viene en puntos)
                 basePoints = Number(finalAmount);

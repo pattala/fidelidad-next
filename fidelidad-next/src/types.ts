@@ -249,8 +249,6 @@ export interface AppConfig {
     pwaIconUrl?: string;
     carouselSpeedSeconds?: number;
     enablePetModule?: boolean;
-    promoPenaltyStep?: number;
-    promoMinFloor?: number;
     discountRecoveryRatio?: number; // Factor K: Porcentaje de recuperación por descuentos
 }
 

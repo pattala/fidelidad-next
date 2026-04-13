@@ -110,7 +110,7 @@ export const ClientsPage = () => {
     // Estado Modal Asignar Puntos
     const [pointsModalOpen, setPointsModalOpen] = useState(false);
     const [selectedClientForPoints, setSelectedClientForPoints] = useState<Client | null>(null);
-    const [pointsData, setPointsData] = useState({ amount: '', concept: 'Compra en local', isPesos: true, purchaseDate: new Date().toISOString().split('T')[0], promosCount: 0 });
+    const [pointsData, setPointsData] = useState({ amount: '', concept: 'Compra en local', isPesos: true, purchaseDate: new Date().toISOString().split('T')[0] });
     const [notifyWhatsapp, setNotifyWhatsapp] = useState(false); // Checkbox state
     const [applyPromotions, setApplyPromotions] = useState(true); // New State: Default True
     const [availablePromotions, setAvailablePromotions] = useState<any[]>([]);
@@ -621,7 +621,6 @@ export const ClientsPage = () => {
                     date: pointsData.purchaseDate,
                     reason: pointsData.isPesos ? 'external_integration' : 'manual',
                     bonusIds: applyPromotions ? selectedPromos : [],
-                    promosCount: pointsData.promosCount,
                     applyWhatsApp: notifyWhatsapp,
                     isPetFood: isPetFoodPurchase,
                     petIds: isPetFoodPurchase ? selectedPetsForFood : []
@@ -745,7 +744,7 @@ export const ClientsPage = () => {
     const openPointsModal = async (client: Client) => {
         if (isReadOnly) return;
         setSelectedClientForPoints(client);
-        setPointsData({ amount: '', concept: 'Compra en local', isPesos: true, purchaseDate: new Date().toISOString().split('T')[0], promosCount: 0 });
+        setPointsData({ amount: '', concept: 'Compra en local', isPesos: true, purchaseDate: new Date().toISOString().split('T')[0] });
 
         const isWAEnabled = NotificationService.isChannelEnabled(config, 'pointsAdded', 'whatsapp');
         setNotifyWhatsapp(isWAEnabled);
@@ -1607,6 +1606,7 @@ export const ClientsPage = () => {
                                             const val = parseFloat(pointsData.amount);
                                             if (isNaN(val) || val <= 0) return <span className="text-[11px] text-gray-400 font-medium italic">Ingresa un monto para ver los puntos</span>;
 
+                                            // --- PUNTO BASE ---
                                             let ptsBase = 0;
                                             if (pointsData.isPesos) {
                                                 const curAcc = selectedClientForPoints.accumulated_balance || 0;
@@ -1617,14 +1617,7 @@ export const ClientsPage = () => {
                                                 ptsBase = Math.floor(val);
                                             }
 
-                                            // --- AJUSTE POR PROMOCIONES (Nuevo) ---
-                                            let promoFactor = 1;
-                                            if (pointsData.isPesos && pointsData.promosCount > 0) {
-                                                const step = config.promoPenaltyStep ?? 15;
-                                                const floor = config.promoMinFloor ?? 25;
-                                                promoFactor = Math.max(floor / 100, 1 - (pointsData.promosCount * step / 100));
-                                            }
-                                            const ptsAfterPromo = Math.floor(ptsBase * promoFactor);
+                                            const ptsAfterPromo = ptsBase;
 
                                             let bonus = 0;
                                             if (applyPromotions) {
@@ -1643,11 +1636,6 @@ export const ClientsPage = () => {
                                                     <span className="text-xs text-gray-500 font-bold flex items-center gap-1.5 ">
                                                         ✨ Se asignarán: <strong className="text-green-600 font-black">{totalFinal} puntos</strong>
                                                     </span>
-                                                    {pointsData.promosCount > 0 && pointsData.isPesos && (
-                                                        <div className="text-[10px] text-orange-600 font-bold flex items-center gap-1">
-                                                            📉 Ajuste Promos: {Math.round(promoFactor * 100)}% ({ptsAfterPromo} pts)
-                                                        </div>
-                                                    )}
                                                     {bonus > 0 && (
                                                         <div className="text-[10px] text-blue-500 font-medium italic">
                                                             + Bonus extra: {bonus} pts
@@ -1659,33 +1647,7 @@ export const ClientsPage = () => {
                                     </div>
                                 </div>
 
-                                {/* SELECTOR DE PROMOCIONES (Nuevo) */}
-                                {pointsData.isPesos && (
-                                    <div className="bg-orange-50/50 p-4 rounded-2xl border border-orange-100 animate-fade-in">
-                                        <div className="flex justify-between items-center mb-3">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-orange-600 p-1.5 bg-white rounded-lg shadow-sm border border-orange-100"><Zap size={14} /></span>
-                                                <label className="text-xs font-black text-orange-800 uppercase tracking-tight">Productos en Promoción</label>
-                                            </div>
-                                            <div className="flex items-center gap-3">
-                                                <button 
-                                                    type="button"
-                                                    onClick={() => setPointsData({ ...pointsData, promosCount: Math.max(0, pointsData.promosCount - 1) })}
-                                                    className="w-8 h-8 rounded-full bg-white border border-orange-200 flex items-center justify-center text-orange-600 hover:bg-orange-600 hover:text-white transition shadow-sm"
-                                                >-</button>
-                                                <span className="text-lg font-black text-orange-700 w-4 text-center">{pointsData.promosCount}</span>
-                                                <button 
-                                                    type="button"
-                                                    onClick={() => setPointsData({ ...pointsData, promosCount: pointsData.promosCount + 1 })}
-                                                    className="w-8 h-8 rounded-full bg-white border border-orange-200 flex items-center justify-center text-orange-600 hover:bg-orange-600 hover:text-white transition shadow-sm"
-                                                >+</button>
-                                            </div>
-                                        </div>
-                                        <p className="text-[10px] text-orange-600/70 font-medium italic text-center">
-                                            {pointsData.promosCount === 0 ? 'Sin penalización por promos' : `Se aplicará un factor del ${Math.round(Math.max((config.promoMinFloor ?? 25) / 100, 1 - (pointsData.promosCount * (config.promoPenaltyStep ?? 15) / 100))*100)}%`}
-                                        </p>
-                                    </div>
-                                )}
+
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>

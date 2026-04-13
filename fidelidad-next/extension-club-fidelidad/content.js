@@ -2,7 +2,7 @@
 console.log("🚀 [Club Fidelidad] V31: Iniciando script con arreglos de arrastre y nuevos logs.");
 
 let config = { apiUrl: '', apiKey: '' };
-let apiRatios = { base: 100, perPeso: 1, penaltyStep: 15, minFloor: 25 };
+let apiRatios = { base: 100, perPeso: 1, discountK: 0 };
 let detectedAmount = 0;
 let detectedDiscounts = 0;
 let selectedClient = null;

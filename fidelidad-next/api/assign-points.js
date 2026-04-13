@@ -260,6 +260,7 @@ export default async function handler(req, res) {
             const clientSnap = await db.collection('users').doc(targetUid).get();
             const currentAccumulated = clientSnap.exists ? Number(clientSnap.data().accumulated_balance ?? 0) : 0;
 
+            let basePoints = 0;
             if (reason === 'external_integration') {
                 // --- CÁLCULO DE PUNTOS ---
                 const base = Number(config.pointsMoneyBase) || 100;

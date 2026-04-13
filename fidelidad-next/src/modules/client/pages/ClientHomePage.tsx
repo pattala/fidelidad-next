@@ -1009,6 +1009,13 @@ export const ClientHomePage = () => {
                                                 {camp.description}
                                             </p>
                                         )}
+                                        {camp.endDate && (
+                                            <div className="flex items-center gap-1 mt-1">
+                                                <span className="bg-amber-50 text-amber-600 text-[8px] font-bold px-1.5 py-0.5 rounded-md border border-amber-100/50 uppercase flex items-center gap-1">
+                                                    📅 Vence: {new Date(camp.endDate + 'T23:59:59').toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })}
+                                                </span>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                                 <button

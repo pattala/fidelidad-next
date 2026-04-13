@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { db, auth } from '../../../lib/firebase';
 import { collection, query, where, getDocs, doc, onSnapshot } from 'firebase/firestore';
-import { Gift, Lock, CheckCircle, Search, Filter } from 'lucide-react';
+import { Gift, Lock, CheckCircle, Search, Filter, Clock } from 'lucide-react';
 import { useOutletContext } from 'react-router-dom';
 import { useClientAuth } from '../contexts/ClientAuthContext';
 import type { AppConfig } from '../../../types';
@@ -141,8 +141,8 @@ export const ClientRewardsPage = () => {
                                             Quedan: {prize.stock}
                                         </span>
                                         {prize.expirationDate && (
-                                            <span className="bg-amber-50 text-amber-600 text-[9px] font-bold px-2 py-0.5 rounded-full border border-amber-100">
-                                                Hasta: {new Date(prize.expirationDate).toLocaleDateString('es-AR')}
+                                            <span className="bg-amber-50 text-amber-600 text-[9px] font-bold px-2 py-0.5 rounded-full border border-amber-100 flex items-center gap-1">
+                                                <Clock size={8} /> Vence: {new Date(prize.expirationDate + 'T23:59:59').toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })}
                                             </span>
                                         )}
                                     </div>

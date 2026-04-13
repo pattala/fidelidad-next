@@ -208,6 +208,11 @@ export const ClientPromosPage = () => {
                                             +{camp.rewardValue} Puntos
                                         </span>
                                     )}
+                                    {camp.endDate && (
+                                        <span className="bg-amber-50 text-amber-600 border border-amber-100 px-2 py-1 rounded-lg text-[10px] font-bold uppercase flex items-center gap-1">
+                                            📅 Vence: {new Date(camp.endDate + 'T23:59:59').toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })}
+                                        </span>
+                                    )}
                                 </div>
 
                                 {/* Action Button */}

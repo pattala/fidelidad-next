@@ -76,7 +76,7 @@ export const ClientRewardsPage = () => {
         <div className="bg-gray-50 pb-28 animate-fade-in">
 
             <div
-                className="px-4 pt-6 pb-4 grid grid-cols-2 gap-4 transition-all"
+                className="px-4 pt-6 pb-4 grid grid-cols-1 gap-6 transition-all"
             >
                 {loading ? (
                     [...Array(4)].map((_, i) => (
@@ -105,7 +105,7 @@ export const ClientRewardsPage = () => {
                                     }`}
                             >
                                 {/* Image Area */}
-                                <div className="h-32 bg-gray-100 relative overflow-hidden">
+                                <div className="h-48 bg-gray-100 relative overflow-hidden">
                                     {/* Glowing Backdrop if canRedeem */}
                                     {canRedeem && <div className="absolute inset-0 bg-purple-600/10 z-0"></div>}
 
@@ -132,17 +132,27 @@ export const ClientRewardsPage = () => {
                                 </div>
 
                                 {/* Content */}
-                                <div className="p-4 flex-1 flex flex-col">
-                                    <h3 className="font-bold text-gray-800 text-sm leading-tight mb-1 line-clamp-2">{prize.name}</h3>
-                                    <p className="text-[10px] text-gray-400 mb-2">{prize.category || 'General'}</p>
+                                <div className="p-5 flex-1 flex flex-col">
+                                    <div className="flex justify-between items-start gap-4 mb-2">
+                                        <div className="flex-1">
+                                            <h3 className="font-black text-gray-800 text-lg leading-tight uppercase tracking-tight">{prize.name}</h3>
+                                            <p className="text-[10px] text-purple-600 font-black uppercase tracking-widest mt-1 opacity-70">{prize.category || 'General'}</p>
+                                        </div>
+                                    </div>
 
-                                    <div className="flex flex-wrap gap-1.5 mb-3">
-                                        <span className="bg-gray-100 text-gray-500 text-[9px] font-bold px-2 py-0.5 rounded-full">
-                                            Quedan: {prize.stock}
+                                    {prize.description && (
+                                        <p className="text-sm text-gray-500 font-medium mb-4 leading-relaxed bg-gray-50/50 p-3 rounded-2xl border border-gray-100/50">
+                                            {prize.description}
+                                        </p>
+                                    )}
+
+                                    <div className="flex flex-wrap gap-2 mb-5">
+                                        <span className="bg-gray-100 text-gray-600 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-tighter">
+                                            Disponibles: {prize.stock} unidades
                                         </span>
                                         {prize.expirationDate && (
-                                            <span className="bg-amber-50 text-amber-600 text-[9px] font-bold px-2 py-0.5 rounded-full border border-amber-100 flex items-center gap-1">
-                                                <Clock size={8} /> Vence: {new Date(prize.expirationDate + 'T23:59:59').toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })}
+                                            <span className="bg-amber-50 text-amber-600 text-[10px] font-black px-3 py-1 rounded-full border border-amber-100 flex items-center gap-1.5 uppercase tracking-tighter">
+                                                <Clock size={12} /> Canjeá hasta: {new Date(prize.expirationDate + 'T23:59:59').toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })}
                                             </span>
                                         )}
                                     </div>

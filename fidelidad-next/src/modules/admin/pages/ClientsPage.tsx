@@ -9,6 +9,7 @@ import { NotificationService } from '../../../services/notificationService';
 import { EmailService } from '../../../services/emailService';
 import { CampaignService } from '../../../services/campaignService';
 import { TimeService } from '../../../services/timeService';
+import { PET_BRANDS, PET_BREEDS, DOG_BREEDS, CAT_BREEDS } from '../../../data/petshop_constants';
 import type { Client } from '../../../types';
 import { RedemptionModal } from '../components/RedemptionModal';
 import { PointsHistoryModal } from '../components/PointsHistoryModal';
@@ -1438,18 +1439,97 @@ export const ClientsPage = () => {
                                                                     <option value="otro">🐾 Otro</option>
                                                                 </select>
                                                             </div>
-                                                            <div>
+                                                            <div className="col-span-1">
+                                                                <label className="block text-[10px] font-bold text-orange-700 uppercase mb-1">Raza</label>
+                                                                {(pet.breed && !(pet.type === 'gato' ? CAT_BREEDS : pet.type === 'perro' ? DOG_BREEDS : PET_BREEDS).includes(pet.breed)) ? (
+                                                                    <div className="relative">
+                                                                        <input 
+                                                                            type="text"
+                                                                            value={pet.breed}
+                                                                            onChange={e => {
+                                                                                const newPets = [...formData.pets];
+                                                                                newPets[idx].breed = e.target.value;
+                                                                                setFormData({ ...formData, pets: newPets });
+                                                                            }}
+                                                                            className="w-full p-2 bg-white rounded-lg border border-orange-100 text-sm font-bold outline-none focus:ring-2 focus:ring-orange-200"
+                                                                            placeholder="Escribe la raza..."
+                                                                            autoFocus
+                                                                        />
+                                                                        <button 
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                const newPets = [...formData.pets];
+                                                                                newPets[idx].breed = '';
+                                                                                setFormData({ ...formData, pets: newPets });
+                                                                            }}
+                                                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-orange-600 uppercase"
+                                                                        >
+                                                                            Lista
+                                                                        </button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <select
+                                                                        value={(pet.type === 'gato' ? CAT_BREEDS : pet.type === 'perro' ? DOG_BREEDS : PET_BREEDS).includes(pet.breed || '') ? (pet.breed || '') : 'Otro'}
+                                                                        onChange={e => {
+                                                                            const newPets = [...formData.pets];
+                                                                            newPets[idx].breed = e.target.value === 'Otro' ? ' ' : e.target.value;
+                                                                            setFormData({ ...formData, pets: newPets });
+                                                                        }}
+                                                                        className="w-full p-2 bg-white rounded-lg border border-orange-100 text-sm font-bold outline-none focus:ring-2 focus:ring-orange-200 cursor-pointer"
+                                                                    >
+                                                                        <option value="" disabled>Seleccione Raza</option>
+                                                                        {(pet.type === 'gato' ? CAT_BREEDS : pet.type === 'perro' ? DOG_BREEDS : PET_BREEDS).map(b => (
+                                                                            <option key={b} value={b}>{b}</option>
+                                                                        ))}
+                                                                        <option value="Otro">✎ Otro (Escribir...)</option>
+                                                                    </select>
+                                                                )}
+                                                            </div>
+                                                            <div className="col-span-1">
                                                                 <label className="block text-[10px] font-bold text-orange-700 uppercase mb-1">Marca Alimento</label>
-                                                                <input 
-                                                                    type="text"
-                                                                    value={pet.foodBrand || pet.brand || ''}
-                                                                    onChange={e => {
-                                                                        const newPets = [...formData.pets];
-                                                                        newPets[idx].foodBrand = e.target.value;
-                                                                        setFormData({ ...formData, pets: newPets });
-                                                                    }}
-                                                                    className="w-full p-2 bg-white rounded-lg border border-orange-100 text-sm outline-none focus:ring-2 focus:ring-orange-200"
-                                                                />
+                                                                {(pet.foodBrand && !PET_BRANDS.includes(pet.foodBrand)) ? (
+                                                                    <div className="relative">
+                                                                        <input 
+                                                                            type="text"
+                                                                            value={pet.foodBrand || pet.brand || ''}
+                                                                            onChange={e => {
+                                                                                const newPets = [...formData.pets];
+                                                                                newPets[idx].foodBrand = e.target.value;
+                                                                                setFormData({ ...formData, pets: newPets });
+                                                                            }}
+                                                                            className="w-full p-2 bg-white rounded-lg border border-orange-100 text-sm font-bold outline-none focus:ring-2 focus:ring-orange-200"
+                                                                            placeholder="Escribe la marca..."
+                                                                            autoFocus
+                                                                        />
+                                                                        <button 
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                const newPets = [...formData.pets];
+                                                                                newPets[idx].foodBrand = '';
+                                                                                setFormData({ ...formData, pets: newPets });
+                                                                            }}
+                                                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-orange-600 uppercase"
+                                                                        >
+                                                                            Lista
+                                                                        </button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <select
+                                                                        value={PET_BRANDS.includes(pet.foodBrand || pet.brand || '') ? (pet.foodBrand || pet.brand || '') : 'Otro'}
+                                                                        onChange={e => {
+                                                                            const newPets = [...formData.pets];
+                                                                            newPets[idx].foodBrand = e.target.value === 'Otro' ? ' ' : e.target.value;
+                                                                            setFormData({ ...formData, pets: newPets });
+                                                                        }}
+                                                                        className="w-full p-2 bg-white rounded-lg border border-orange-100 text-sm font-bold outline-none focus:ring-2 focus:ring-orange-200 cursor-pointer"
+                                                                    >
+                                                                        <option value="" disabled>Seleccione Alimento</option>
+                                                                        {PET_BRANDS.map(b => (
+                                                                            <option key={b} value={b}>{b}</option>
+                                                                        ))}
+                                                                        <option value="Otro">✎ Otro (Escribir...)</option>
+                                                                    </select>
+                                                                )}
                                                             </div>
                                                             <div>
                                                                 <label className="block text-[10px] font-bold text-orange-700 uppercase mb-1">Frecuencia (Días)</label>

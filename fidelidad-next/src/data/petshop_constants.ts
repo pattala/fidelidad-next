@@ -15,7 +15,7 @@ export const PET_BRANDS = [
   'Agility'
 ];
 
-export const PET_BREEDS = [
+export const DOG_BREEDS = [
   'Labrador Retriever',
   'Pastor Alemán',
   'Golden Retriever',
@@ -47,3 +47,20 @@ export const PET_BREEDS = [
   'Dálmata',
   'Mestizo / Sin Raza'
 ];
+
+export const CAT_BREEDS = [
+  'Siamés',
+  'Persa',
+  'Maine Coon',
+  'Bengala',
+  'Sphynx (Esfinge)',
+  'British Shorthair',
+  'Abisinio',
+  'Ragdoll',
+  'Azul Ruso',
+  'Angora Turco',
+  'Europeo de Pelo Corto',
+  'Mestizo / Sin Raza'
+];
+
+export const PET_BREEDS = [...DOG_BREEDS, ...CAT_BREEDS];

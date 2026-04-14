@@ -4,7 +4,7 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { signOut, updatePassword } from 'firebase/auth';
 import { LogOut, Key, ChevronRight, QrCode, FileText, X, ExternalLink, Eye, EyeOff, MapPin, Phone, User as UserIcon, Building, Plus, Trash2, Camera, Bell as BellIcon, PenLine } from 'lucide-react';
 import QRCode from "react-qr-code";
-import { PET_BRANDS, PET_BREEDS } from '../../../data/petshop_constants';
+import { PET_BRANDS, PET_BREEDS, DOG_BREEDS, CAT_BREEDS } from '../../../data/petshop_constants';
 import { updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import type { Pet } from '../../../types';
 import toast from 'react-hot-toast';
@@ -975,7 +975,7 @@ export const ClientProfilePage = () => {
                                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block ml-1">Raza</label>
                                         {!isCustomBreed ? (
                                             <select
-                                                value={PET_BREEDS.includes(petFormData.breed || '') ? petFormData.breed : 'Otro'}
+                                                value={(petFormData.type === 'gato' ? CAT_BREEDS : petFormData.type === 'perro' ? DOG_BREEDS : PET_BREEDS).includes(petFormData.breed || '') ? petFormData.breed : 'Otro'}
                                                 onChange={(e) => {
                                                     if (e.target.value === 'Otro') {
                                                         setIsCustomBreed(true);
@@ -986,7 +986,7 @@ export const ClientProfilePage = () => {
                                                 }}
                                                 className="w-full px-4 py-3 bg-gray-50 border-gray-100 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-sm font-medium"
                                             >
-                                                {PET_BREEDS.map(breed => (
+                                                {(petFormData.type === 'gato' ? CAT_BREEDS : petFormData.type === 'perro' ? DOG_BREEDS : PET_BREEDS).map(breed => (
                                                     <option key={breed} value={breed}>{breed}</option>
                                                 ))}
                                                 <option value="Otro">✎ Otro (Escribir...)</option>

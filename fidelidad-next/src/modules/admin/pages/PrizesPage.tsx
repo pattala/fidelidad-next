@@ -4,6 +4,7 @@ import { Plus, Trash2, Gift, Ticket, Edit, Package, X, Save, Image as ImageIcon,
 import toast from 'react-hot-toast';
 import { PrizeService } from '../../../services/prizeService';
 import type { Prize } from '../../../types';
+import { TimeService } from '../../../services/timeService';
 
 import { useAdminAuth } from '../contexts/AdminAuthContext';
 
@@ -187,8 +188,8 @@ export const PrizesPage = () => {
                                         </span>
                                     </td>
                                     <td className="p-4 text-center">
-                                        <span className={`text-xs font-medium px-2 py-1 rounded-md ${prize.expirationDate ? (new Date(prize.expirationDate) < new Date() ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600') : 'text-gray-400'}`}>
-                                            {prize.expirationDate ? new Date(prize.expirationDate).toLocaleDateString('es-AR') : 'Sin fecha'}
+                                        <span className={`text-xs font-medium px-2 py-1 rounded-md ${prize.expirationDate ? (TimeService.isExpired(prize.expirationDate) ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600') : 'text-gray-400'}`}>
+                                            {prize.expirationDate ? TimeService.formatDisplayDate(prize.expirationDate) : 'Sin fecha'}
                                         </span>
                                     </td>
                                     <td className="p-4 text-center">

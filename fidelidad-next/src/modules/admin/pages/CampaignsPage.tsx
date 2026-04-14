@@ -795,14 +795,14 @@ export const CampaignsPage = () => {
 
                                 {bonus.endDate && (
                                     <span className={`text-[10px] font-black px-3 py-1 rounded-full flex items-center gap-1 shadow-sm border ${
-                                        (bonus.endDate < now.toLocaleDateString('en-CA'))
+                                        TimeService.isExpired(bonus.endDate)
                                             ? 'bg-red-50 text-red-600 border-red-100'
                                             : (bonus.endDate === now.toLocaleDateString('en-CA'))
                                                 ? 'bg-amber-50 text-amber-600 border-amber-100 animate-pulse'
                                                 : 'bg-blue-50 text-blue-600 border-blue-100'
                                     }`}>
                                         <Clock size={10} />
-                                        {(bonus.endDate < now.toLocaleDateString('en-CA')) ? 'EXPIRADA' : `VENCE: ${new Date(bonus.endDate + 'T23:59:59').toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })}`}
+                                        {TimeService.isExpired(bonus.endDate) ? 'EXPIRADA' : `VENCE: ${TimeService.formatDisplayDate(bonus.endDate)}`}
                                     </span>
                                 )}
 
@@ -848,7 +848,7 @@ export const CampaignsPage = () => {
                                     )}
                                     {!bonus.isFlash && bonus.startDate && (
                                         <div className="text-[9px] font-bold text-gray-400 flex items-center gap-1 ml-1" title="Fecha de Inicio">
-                                            <Calendar size={10} /> {new Date(bonus.startDate + 'T00:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })}
+                                            <Calendar size={10} /> {TimeService.formatDisplayDate(bonus.startDate)}
                                         </div>
                                     )}
                                 </div>

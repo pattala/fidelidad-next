@@ -43,10 +43,7 @@ export const RedemptionModal = ({ client, onClose, onRedeemSuccess }: Redemption
 
         // Expiration check
         if (selectedPrize.expirationDate) {
-            const today = new Date();
-            const expDate = new Date(selectedPrize.expirationDate);
-            expDate.setHours(23, 59, 59, 999);
-            if (today > expDate) {
+            if (TimeService.isExpired(selectedPrize.expirationDate)) {
                 toast.error("El premio ha vencido");
                 return;
             }
@@ -131,7 +128,7 @@ export const RedemptionModal = ({ client, onClose, onRedeemSuccess }: Redemption
                         {prizes.map(prize => {
                             const canAfford = client.points >= prize.pointsRequired;
                             const hasStock = prize.stock > 0;
-                            const isExpired = prize.expirationDate ? new Date(prize.expirationDate).setHours(23, 59, 59, 999) < new Date().getTime() : false;
+                            const isExpired = TimeService.isExpired(prize.expirationDate);
                             const isSelected = selectedPrize?.id === prize.id;
                             const isDisable = !canAfford || !hasStock || isExpired;
 
@@ -162,7 +159,7 @@ export const RedemptionModal = ({ client, onClose, onRedeemSuccess }: Redemption
                                                 </span>
                                                 {prize.expirationDate && (
                                                     <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${isExpired ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
-                                                        {isExpired ? 'VENCIDO' : `Vence: ${new Date(prize.expirationDate).toLocaleDateString('es-AR')}`}
+                                                        {isExpired ? 'VENCIDO' : `Vence: ${TimeService.formatDisplayDate(prize.expirationDate)}`}
                                                     </span>
                                                 )}
                                             </div>

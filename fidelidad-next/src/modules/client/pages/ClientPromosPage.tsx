@@ -8,6 +8,7 @@ import { useClientAuth } from '../contexts/ClientAuthContext';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import { CampaignActionModal } from '../components/CampaignActionModal';
+import { TimeService } from '../../../services/timeService';
 
 export const ClientPromosPage = () => {
     const { config, setHeaderTitle } = useOutletContext<{
@@ -210,7 +211,7 @@ export const ClientPromosPage = () => {
                                     )}
                                     {camp.endDate && (
                                         <span className="bg-amber-50 text-amber-600 border border-amber-100 px-2 py-1 rounded-full text-[10px] font-bold uppercase flex items-center gap-1">
-                                            <Clock size={10} /> Vence: {new Date(camp.endDate + 'T23:59:59').toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })}
+                                            <Clock size={10} /> Vence: {TimeService.formatDisplayDate(camp.endDate)}
                                         </span>
                                     )}
                                 </div>

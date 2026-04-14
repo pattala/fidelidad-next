@@ -5,6 +5,7 @@ import { Gift, Lock, CheckCircle, Search, Filter, Clock } from 'lucide-react';
 import { useOutletContext } from 'react-router-dom';
 import { useClientAuth } from '../contexts/ClientAuthContext';
 import type { AppConfig } from '../../../types';
+import { TimeService } from '../../../services/timeService';
 
 
 export const ClientRewardsPage = () => {
@@ -53,9 +54,7 @@ export const ClientRewardsPage = () => {
                         if (p.stock <= 0) return false;
                         // 2. Expiration check
                         if (p.expirationDate) {
-                            const expDate = new Date(p.expirationDate);
-                            expDate.setHours(23, 59, 59, 999);
-                            if (new Date() > expDate) return false;
+                            if (TimeService.isExpired(p.expirationDate)) return false;
                         }
                         // 3. Test Mode check
                         if (p.isInternal && !userData?.isTestUser) return false;
@@ -152,7 +151,7 @@ export const ClientRewardsPage = () => {
                                         </span>
                                         {prize.expirationDate && (
                                             <span className="bg-amber-50 text-amber-600 text-[10px] font-black px-3 py-1 rounded-full border border-amber-100 flex items-center gap-1.5 uppercase tracking-tighter">
-                                                <Clock size={12} /> Canjeá hasta: {new Date(prize.expirationDate + 'T23:59:59').toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })}
+                                                <Clock size={12} /> Canjeá hasta: {TimeService.formatDisplayDate(prize.expirationDate)}
                                             </span>
                                         )}
                                     </div>

@@ -2944,7 +2944,7 @@ export const ConfigPage = () => {
                                         <div className="flex items-center justify-between p-6 bg-orange-50/50 rounded-2xl border border-orange-100">
                                             <div className="flex-1">
                                                 <span className="text-sm font-black text-orange-900 uppercase flex items-center gap-2">
-                                                    <Dog size={16} /> Módulo Petshop
+                                                    🐾 Módulo Petshop
                                                 </span>
                                                 <p className="text-[10px] text-orange-600 font-bold mt-1">Habilita la sección "Mis Mascotas" en el perfil del cliente y el sistema de alertas de alimento.</p>
                                             </div>

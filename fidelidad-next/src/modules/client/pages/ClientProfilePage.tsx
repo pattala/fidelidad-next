@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { db, auth } from '../../../lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { signOut, updatePassword } from 'firebase/auth';
-import { LogOut, Key, ChevronRight, QrCode, FileText, X, ExternalLink, Eye, EyeOff, MapPin, Phone, User as UserIcon, Building, Dog, Plus, Trash2, Camera, Bell as BellIcon, PenLine } from 'lucide-react';
+import { LogOut, Key, ChevronRight, QrCode, FileText, X, ExternalLink, Eye, EyeOff, MapPin, Phone, User as UserIcon, Building, Plus, Trash2, Camera, Bell as BellIcon, PenLine } from 'lucide-react';
 import QRCode from "react-qr-code";
 import { PET_BRANDS, PET_BREEDS } from '../../../data/petshop_constants';
 import { updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
@@ -424,8 +424,8 @@ export const ClientProfilePage = () => {
                     <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden mt-6 mx-4">
                         <div className="p-5 border-b border-gray-50 flex items-center justify-between bg-gradient-to-r from-orange-50/30 to-transparent">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-orange-100 rounded-lg text-orange-600">
-                                    <Dog size={20} />
+                                <div className="p-2 bg-orange-100 rounded-lg text-orange-600 flex items-center justify-center">
+                                    <span className="text-xl">🐾</span>
                                 </div>
                                 <div>
                                     <h3 className="font-bold text-gray-800">Mis Mascotas</h3>
@@ -456,7 +456,7 @@ export const ClientProfilePage = () => {
                                                     <img src={pet.photoUrl} alt={pet.name} className="w-full h-full object-cover" />
                                                 ) : (
                                                     <div className="w-full h-full flex items-center justify-center bg-orange-50 text-orange-400">
-                                                        {pet.type === 'gato' ? <span className="text-2xl">🐱</span> : pet.type === 'perro' ? <span className="text-2xl">🐶</span> : <Dog size={24} />}
+                                                        {(pet.type || '').toLowerCase().trim() === 'gato' ? <span className="text-2xl">🐱</span> : (pet.type || '').toLowerCase().trim() === 'perro' ? <span className="text-2xl">🐶</span> : <span className="text-2xl">🐾</span>}
                                                     </div>
                                                 )}
                                             </div>
@@ -511,8 +511,8 @@ export const ClientProfilePage = () => {
                                 </div>
                             ) : (
                                 <div className="text-center py-8">
-                                    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3">
-                                        <Dog size={32} className="text-gray-300" />
+                                    <div className="w-16 h-16 bg-orange-50/50 rounded-full flex items-center justify-center mx-auto mb-3 text-orange-400">
+                                        <span className="text-3xl">🐶</span>
                                     </div>
                                     <p className="text-sm text-gray-500">¿Aún no cargaste a tus mascotas?</p>
                                     <p className="text-[10px] text-gray-400 mt-1">Hacé clic en el botón + para empezar.</p>
@@ -909,7 +909,7 @@ export const ClientProfilePage = () => {
                         <div className="p-6 border-b border-gray-50 flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-orange-100 rounded-lg text-orange-600">
-                                    <Dog size={20} />
+                                    <span className="text-xl">🐾</span>
                                 </div>
                                 <h3 className="font-bold text-gray-800">
                                     {editingPet ? 'Editar Mascota' : 'Nueva Mascota'}
@@ -928,8 +928,10 @@ export const ClientProfilePage = () => {
                                         {petPhotoBase64 ? (
                                             <img src={petPhotoBase64} alt="Preview" className="w-full h-full object-cover" />
                                         ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-gray-300">
-                                                <Dog size={40} />
+                                            <div className="w-full h-full flex items-center justify-center bg-orange-50 text-orange-400">
+                                                {(petFormData.type || '').toLowerCase().trim() === 'perro' ? <span className="text-4xl">🐶</span> : 
+                                                 (petFormData.type || '').toLowerCase().trim() === 'gato' ? <span className="text-4xl">🐱</span> : 
+                                                 <span className="text-4xl">🐾</span>}
                                             </div>
                                         )}
                                     </div>

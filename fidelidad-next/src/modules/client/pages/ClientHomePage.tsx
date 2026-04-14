@@ -916,7 +916,7 @@ export const ClientHomePage = () => {
                                                 <img src={pet.photoUrl} alt={pet.name} className="w-full h-full object-cover" />
                                             ) : (
                                                 <div className="bg-orange-50 w-full h-full flex items-center justify-center text-orange-400">
-                                                    {pet.type === 'gato' ? <Cat size={24} /> : pet.type === 'perro' ? <Dog size={24} /> : <Sparkles size={20} />}
+                                                    {(pet.type || '').toLowerCase().trim() === 'perro' ? <span className="text-xl">🐶</span> : (pet.type || '').toLowerCase().trim() === 'gato' ? <span className="text-xl">🐱</span> : <span className="text-xl">🐾</span>}
                                                 </div>
                                             )}
                                         </div>

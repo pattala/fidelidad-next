@@ -40,7 +40,7 @@ export const ClientPromosPage = () => {
             })) as BonusRule[];
 
             // Filtrado básico por fecha (mantenemos lógica de Catalogo completo)
-            const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD local
+            const todayStr = TimeService.now().toLocaleDateString('en-CA'); // YYYY-MM-DD local
 
             const activeInRange = fetched.filter(b => {
                 if (!b.active) return false;
@@ -65,11 +65,16 @@ export const ClientPromosPage = () => {
     }, []);
 
     // Real-time Expiration Logic
-    const [now, setNow] = useState(new Date());
+    const [now, setNow] = useState(TimeService.now());
 
     useEffect(() => {
-        const interval = setInterval(() => setNow(new Date()), 10000); // Check every 10s
-        return () => clearInterval(interval);
+        const interval = setInterval(() => setNow(TimeService.now()), 10000); // Check every 10s
+        const handleTimeChange = () => setNow(TimeService.now());
+        window.addEventListener('time-simulation-change', handleTimeChange);
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('time-simulation-change', handleTimeChange);
+        };
     }, []);
 
     const visibleCampaigns = campaigns.filter(camp => {
@@ -163,8 +168,8 @@ export const ClientPromosPage = () => {
                                 <div className="flex flex-wrap gap-2 mt-2">
                                     {(() => {
                                         if (!camp.startTime && !camp.endTime) return null;
-                                        const now = new Date();
-                                        const curHHmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                                        const currentNow = TimeService.now();
+                                        const curHHmm = `${String(currentNow.getHours()).padStart(2, '0')}:${String(currentNow.getMinutes()).padStart(2, '0')}`;
                                         const isUpcoming = camp.startTime && camp.startTime > curHHmm;
                                         const isExpiredToday = camp.endTime && camp.endTime < curHHmm;
                                         const isActiveNow = !isUpcoming && !isExpiredToday;

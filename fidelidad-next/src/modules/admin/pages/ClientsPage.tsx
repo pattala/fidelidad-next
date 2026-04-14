@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Search, Plus, Filter, Mail, Phone, MapPin, Trash2, Edit, X, Download, Gift, ArrowRight, Dog, History, Calendar, Star, CheckCircle2, AlertCircle, Camera, User, Zap, MessageCircle } from 'lucide-react';
+import { Users, Search, Plus, Filter, Mail, Phone, MapPin, Trash2, Edit, X, Download, Gift, ArrowRight, History, Calendar, Star, CheckCircle2, AlertCircle, Camera, User, Zap, MessageCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { collection, addDoc, getDocs, query, orderBy, doc, deleteDoc, updateDoc, increment, runTransaction, arrayUnion, where, setDoc, collectionGroup, onSnapshot, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db, auth } from '../../../lib/firebase';
@@ -15,8 +15,7 @@ import { PointsHistoryModal } from '../components/PointsHistoryModal';
 import { VisitHistoryModal } from '../components/VisitHistoryModal';
 import { ExpirationService } from '../../../services/expirationService';
 import { AuditService } from '../../../services/auditService';
-
-import { ARGENTINA_LOCATIONS } from '../../../data/locations'; // Import added
+import { ARGENTINA_LOCATIONS } from '../../../data/locations';
 import { useAdminAuth } from '../contexts/AdminAuthContext';
 import { PhoneUtils } from '../../../utils/phoneUtils';
 
@@ -964,7 +963,7 @@ export const ClientsPage = () => {
                                                     <div className="flex flex-wrap gap-1.5 mt-0.5">
                                                         {client.pets.slice(0, 3).map((pet, idx) => (
                                                             <div key={idx} className="flex items-center gap-1 text-[9px] font-bold text-gray-500 bg-orange-50/50 px-1.5 py-0.5 rounded border border-orange-100">
-                                                                <span>{pet.type === 'perro' ? '🐶' : pet.type === 'gato' ? '🐱' : '🐾'}</span>
+                                                                <span>{(pet.type || '').toLowerCase().trim() === 'perro' ? '🐶' : (pet.type || '').toLowerCase().trim() === 'gato' ? '🐱' : '🐾'}</span>
                                                                 <span className="uppercase">{pet.name}</span>
                                                             </div>
                                                         ))}
@@ -1382,7 +1381,7 @@ export const ClientsPage = () => {
                                 {/* SECCION MASCOTAS (Módulo Petshop) */}
                                 {config?.enablePetModule && (editingId || formStep === 2) && (
                                     <div className="animate-fade-in space-y-4 pt-6 border-t border-gray-100">
-                                        <h3 className="font-bold text-gray-800 flex items-center gap-2"><Dog size={16} /> Mis Mascotas</h3>
+                                        <h3 className="font-bold text-gray-800 flex items-center gap-2"><span>🐾</span> Mis Mascotas</h3>
                                         
                                         <div className="space-y-4">
                                             {formData.pets.map((pet: any, idx: number) => (
@@ -1392,7 +1391,7 @@ export const ClientsPage = () => {
                                                         {pet.photoUrl ? (
                                                             <img src={pet.photoUrl} alt={pet.name} className="w-full h-full object-cover" />
                                                         ) : (
-                                                            <span className="text-2xl">🐾</span>
+                                                            <span className="text-2xl">{(pet.type || '').toLowerCase().trim() === 'perro' ? '🐶' : (pet.type || '').toLowerCase().trim() === 'gato' ? '🐱' : '🐾'}</span>
                                                         )}
                                                     </div>
                                                     

@@ -7,6 +7,7 @@ let detectedAmount = 0;
 let detectedDiscounts = 0;
 let selectedClient = null;
 let currentPromos = []; // Store calculable promos globally for this context
+let enablePetModule = false; // Se actualiza desde la API según la instancia
 
 // Cargar configuración de storage
 chrome.storage.local.get(['appName', 'apiUrl', 'apiKey'], (res) => {
@@ -426,6 +427,13 @@ function showFidelidadPanel() {
                         <label class="cf-checkbox-label" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #f3f4f6;">
                             <input type="checkbox" id="cf-notify-wa"> Notificar por WhatsApp
                         </label>
+                        <!-- Sección Pet: se renderiza dinámicamente si enablePetModule=true y el cliente tiene mascotas -->
+                        <div id="cf-pet-food-section" style="display:none; margin-top: 12px; padding-top: 12px; border-top: 1px solid #f3f4f6;">
+                            <label class="cf-checkbox-label" style="color: #c2410c; font-weight: 700;">
+                                <input type="checkbox" id="cf-pet-food-check"> 🐾 Reposición de Alimento
+                            </label>
+                            <div id="cf-pet-list" style="display:none; padding-left: 20px; margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px;"></div>
+                        </div>
                     </div>
 
                     <button id="fidelidad-submit" class="fidelidad-button">Asignar Puntos</button>
@@ -649,6 +657,7 @@ function showFidelidadPanel() {
                 apiRatios.base = data.pointsMoneyBase || 100;
                 apiRatios.perPeso = data.pointsPerPeso || 1;
                 apiRatios.discountK = data.discountRecoveryRatio || 0;
+                enablePetModule = data.enablePetModule === true; // Flag dinámico de la instancia
 
                 if (data.clients && data.clients.length > 0) {
                     renderResults(data.clients, data.activePromotions || [], data.activePrizes || []);
@@ -681,7 +690,7 @@ function showFidelidadPanel() {
                 e.preventDefault();
                 e.stopPropagation();
 
-                selectedClient = { id: c.id, name: c.name, accumulated_balance: c.accumulated_balance || 0 };
+                selectedClient = { id: c.id, name: c.name, accumulated_balance: c.accumulated_balance || 0, pets: c.pets || [] };
 
                 // UI Update
                 clientHeader.innerText = `Socio: ${selectedClient.name}`;
@@ -696,6 +705,43 @@ function showFidelidadPanel() {
                 // Actualizar balance en pestaña canjes
                 const balanceEl = document.getElementById('cf-client-points-balance');
                 if (balanceEl) balanceEl.innerText = c.accumulated_points ?? (c.points ?? (c.puntos ?? 0));
+
+                // --- SECCIÓN PET FOOD: Mostrar solo si el módulo está activo y el cliente tiene mascotas ---
+                const petFoodSection = document.getElementById('cf-pet-food-section');
+                const petListDiv = document.getElementById('cf-pet-list');
+                const petFoodCheck = document.getElementById('cf-pet-food-check');
+                const clientPets = selectedClient.pets || [];
+
+                if (petFoodSection) {
+                    if (enablePetModule && clientPets.length > 0) {
+                        petFoodSection.style.display = 'block';
+                        // Renderizar checkboxes de mascotas si hay más de una
+                        if (petListDiv) {
+                            if (clientPets.length > 1) {
+                                petListDiv.style.display = 'flex';
+                                petListDiv.innerHTML = clientPets.map(pet =>
+                                    `<label style="display:flex; align-items:center; gap:4px; background:#fff7ed; border:1px solid #fed7aa; padding:3px 8px; border-radius:8px; cursor:pointer; font-size:10px; font-weight:700; color:#9a3412;">
+                                        <input type="checkbox" class="cf-pet-check" value="${pet.id}" checked> ${pet.name || 'Mascota'}
+                                    </label>`
+                                ).join('');
+                            } else {
+                                // Solo 1 mascota: sin checkboxes individuales
+                                petListDiv.style.display = 'none';
+                            }
+                        }
+                        // Toggle: mostrar/ocultar lista al marcar el check principal
+                        if (petFoodCheck) {
+                            petFoodCheck.onchange = () => {
+                                if (petListDiv && clientPets.length > 1) {
+                                    petListDiv.style.display = petFoodCheck.checked ? 'flex' : 'none';
+                                }
+                            };
+                        }
+                    } else {
+                        petFoodSection.style.display = 'none';
+                        if (petFoodCheck) petFoodCheck.checked = false;
+                    }
+                }
 
                 // --- TAB CANJES: Renderizar Premios ---
                 renderPrizes(allPrizes, (c.accumulated_points ?? (c.points ?? (c.puntos ?? 0))));
@@ -868,6 +914,18 @@ function showFidelidadPanel() {
         const applyWhatsApp = document.getElementById('cf-notify-wa').checked;
         const applyPromos = document.getElementById('cf-apply-promos').checked;
 
+        // Pet Food Data (solo si el módulo esta activo en esta instancia)
+        const petFoodCheck = document.getElementById('cf-pet-food-check');
+        const isPetFood = petFoodCheck ? petFoodCheck.checked : false;
+        const petIds = isPetFood
+            ? Array.from(document.querySelectorAll('.cf-pet-check:checked')).map(el => el.value)
+            : [];
+
+        // Si no seleccionó ninguna mascota pero marcó el check, tomar todas
+        const finalPetIds = (isPetFood && petIds.length === 0 && selectedClient.pets?.length > 0)
+            ? selectedClient.pets.map(p => p.id)
+            : petIds;
+
         submitBtn.disabled = true;
         submitBtn.innerText = 'PROCESANDO...';
 
@@ -882,7 +940,9 @@ function showFidelidadPanel() {
                     concept: concept,
                     date: date,
                     bonusIds: applyPromos ? bonusIds : [],
-                    applyWhatsApp: applyWhatsApp
+                    applyWhatsApp: applyWhatsApp,
+                    isPetFood: isPetFood,
+                    petIds: finalPetIds
                 })
             });
             const data = await res.json();
@@ -918,10 +978,22 @@ function showFidelidadPanel() {
                 <div style="font-size: 40px;">✅</div>
                 <div style="font-weight: bold; font-size: 18px; margin: 5px 0;">¡Puntos Asignados!</div>
                 <div style="font-size: 14px; color: #666; margin-bottom: 15px;">Se sumaron ${data.pointsAdded} puntos a ${selectedClient.name}.</div>
-                ${data.whatsappLink ? `<a href="${data.whatsappLink}" target="_blank" class="fidelidad-wa-link">ENVIAR WHATSAPP</a>` : ''}
+                ${data.whatsappLink ? `<a href="${data.whatsappLink}" target="_blank" class="fidelidad-wa-link" id="cf-wa-link-success">RE-ENVIAR WHATSAPP</a>` : ''}
                 <button class="fidelidad-button" style="background:#f3f4f6; color:#374151; margin-top:15px; border: 1px solid #d1d5db;" id="cf-final-close">CERRAR</button>
             </div>
         `;
+        // Auto-open WhatsApp si hay link (misma lógica que el panel admin)
+        if (data.whatsappLink) {
+            setTimeout(() => {
+                const link = document.createElement('a');
+                link.href = data.whatsappLink;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }, 400);
+        }
         document.getElementById('cf-final-close').onclick = () => {
             window.removeEventListener('keydown', killEvent, true);
             window.removeEventListener('keyup', killEvent, true);

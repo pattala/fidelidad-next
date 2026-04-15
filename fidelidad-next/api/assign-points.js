@@ -88,7 +88,8 @@ export default async function handler(req, res) {
                             dni: data.dni,
                             socioNumber: data.socioNumber || data.numeroSocio || data.socio_number,
                             phone: data.phone || data.telefono,
-                            accumulated_balance: data.accumulated_balance ?? 0
+                            accumulated_balance: data.accumulated_balance ?? 0,
+                            pets: data.pets || []  // Incluir mascotas para la extensión
                         });
                     }
                 });
@@ -194,6 +195,7 @@ export default async function handler(req, res) {
                 pointsMoneyBase,
                 pointsPerPeso,
                 discountRecoveryRatio: Number(configData.discountRecoveryRatio) || 0,
+                enablePetModule: configData.enablePetModule === true,  // Flag para la extensión
                 activePromotions,
                 activePrizes,
                 todayStr // Para debugging
@@ -207,7 +209,7 @@ export default async function handler(req, res) {
 
     try {
         const db = getDb();
-        const { uid, reason, amountOverride, amount, concept, metadata, bonusIds, applyWhatsApp, skipNotifications } = req.body || {};
+        const { uid, reason, amountOverride, amount, concept, metadata, bonusIds, applyWhatsApp, skipNotifications, isPetFood, petIds, date } = req.body || {};
 
         // 1. Autenticación (DUAL MODE)
         let isAdmin = false;
@@ -650,6 +652,35 @@ export default async function handler(req, res) {
         if (result.ok && points > 0) {
             // No bloqueamos la respuesta, pero lo ejecutamos
             updateNextExpirationDate(db, targetUid).catch(err => console.error("Error updating expiration date:", err));
+        }
+
+        // 5.6 ACTUALIZAR lastPurchaseDate DE MASCOTAS (Pet Food Alert)
+        // Cuando el operador marca "Reposicion de Alimento" - funciona tanto desde el panel como desde la extensión Chrome
+        if (isPetFood && Array.isArray(petIds) && petIds.length > 0) {
+            try {
+                const userSnap = await db.collection('users').doc(targetUid).get();
+                if (userSnap.exists) {
+                    const userData = userSnap.data();
+                    const purchaseTimestamp = date
+                        ? admin.firestore.Timestamp.fromDate(new Date(date + 'T12:00:00'))
+                        : admin.firestore.FieldValue.serverTimestamp();
+
+                    const updatedPets = (userData.pets || []).map(pet => {
+                        if (petIds.includes(pet.id)) {
+                            return { ...pet, lastPurchaseDate: purchaseTimestamp };
+                        }
+                        return pet;
+                    });
+
+                    if (updatedPets.length > 0) {
+                        await db.collection('users').doc(targetUid).update({ pets: updatedPets });
+                        console.log(`[assign-points] Pet lastPurchaseDate actualizado para ${petIds.length} mascota(s) del cliente ${targetUid}`);
+                    }
+                }
+            } catch (petErr) {
+                // No bloqueamos la respuesta principal
+                console.error('[assign-points] Error actualizando pet lastPurchaseDate:', petErr.message);
+            }
         }
 
         // 6. NOTIFICACIONES Y MENSAJERÍA (Fuera de la transacción para evitar re-intentos innecesarios)

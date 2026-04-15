@@ -1296,6 +1296,20 @@ export const ClientsPage = () => {
                                                         </div>
                                                     </div>
                                                 </div>
+
+                                                <div>
+                                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Fecha de Nacimiento</label>
+                                                    <div className="relative">
+                                                        <Calendar className="absolute left-3 top-3 text-gray-300" size={16} />
+                                                        <input
+                                                            type="date"
+                                                            className="w-full bg-gray-50 pl-10 pr-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-purple-200 outline-none text-sm font-bold transition-all text-gray-600"
+                                                            value={formData.birthDate}
+                                                            onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
+                                                            max={new Date().toISOString().split('T')[0]}
+                                                        />
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

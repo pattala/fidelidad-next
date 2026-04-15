@@ -169,7 +169,12 @@ export const ClientRegisterPage = () => {
             }).catch(e => console.warn('Error post-registro:', e));
 
             toast.success('¡Cuenta creada con éxito!', { duration: 4000 });
-            setStep(3);
+            // Si el modulo pet esta activo, ir al paso 3 (registro mascota), si no, ir al inicio
+            if (config?.enablePetModule) {
+                setStep(3);
+            } else {
+                navigate('/');
+            }
         } catch (error: any) {
             console.error(error);
             toast.error('Error al registrar: ' + error.message);
@@ -219,10 +224,10 @@ export const ClientRegisterPage = () => {
                         <div className="bg-white p-6 sm:p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 border border-gray-100 backdrop-blur-sm animate-fade-in">
                             <div className="mb-6 text-center">
                                 <h2 className="text-lg font-bold text-gray-800">
-                                    {step === 1 ? 'Completa tus Datos' : step === 2 ? 'Dirección de Entrega' : '¡Bienvenido! 🐾'}
+                                    {step === 1 ? 'Completa tus Datos' : step === 2 ? 'Dirección de Entrega' : '¡Ya eres parte del Club! 🐾'}
                                 </h2>
                                 <div className="flex justify-center gap-2 mt-4">
-                                    {[1, 2, 3].map(i => <div key={i} className={`h-1.5 w-8 rounded-full ${step === i ? 'bg-purple-600' : 'bg-gray-100'}`}></div>)}
+                                    {(config?.enablePetModule ? [1, 2, 3] : [1, 2]).map(i => <div key={i} className={`h-1.5 w-8 rounded-full ${step === i ? 'bg-purple-600' : 'bg-gray-100'}`}></div>)}
                                 </div>
                             </div>
 
@@ -243,6 +248,18 @@ export const ClientRegisterPage = () => {
                                     <div className="relative">
                                         <Mail className="absolute left-4 top-3.5 text-gray-400" size={18} />
                                         <input type="email" required placeholder="Email" className="w-full bg-gray-50 pl-11 pr-4 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none transition-all" value={email} onChange={e => setEmail(e.target.value)} />
+                                    </div>
+                                    <div className="relative">
+                                        <Gift className="absolute left-4 top-3.5 text-gray-400" size={18} />
+                                        <input
+                                            type="date"
+                                            className="w-full bg-gray-50 pl-11 pr-4 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none transition-all text-gray-500"
+                                            value={birthDate}
+                                            onChange={e => setBirthDate(e.target.value)}
+                                            max={new Date().toISOString().split('T')[0]}
+                                            placeholder="Fecha de nacimiento"
+                                        />
+                                        {!birthDate && <span className="absolute left-11 top-3.5 text-gray-400 text-sm font-medium pointer-events-none">Fecha de nacimiento (opcional)</span>}
                                     </div>
                                     <div className="relative">
                                         <Lock className="absolute left-4 top-3.5 text-gray-400" size={18} />

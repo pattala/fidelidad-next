@@ -256,7 +256,6 @@ export const ClientRegisterPage = () => {
                                             className="w-full bg-gray-50 pl-11 pr-4 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none transition-all text-gray-500"
                                             value={birthDate}
                                             onChange={e => setBirthDate(e.target.value)}
-                                            max={new Date().toISOString().split('T')[0]}
                                             placeholder="Fecha de nacimiento"
                                         />
                                         {!birthDate && <span className="absolute left-11 top-3.5 text-gray-400 text-sm font-medium pointer-events-none">Fecha de nacimiento (opcional)</span>}

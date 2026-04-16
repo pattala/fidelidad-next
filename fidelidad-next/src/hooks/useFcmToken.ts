@@ -35,6 +35,14 @@ export const useFcmToken = () => {
 
             if (Notification.permission === 'granted') {
                 console.log('[FCM] Permission granted. Registering Service Worker...');
+                
+                // Determinar tipo de dispositivo
+                const isMobile = () => {
+                    if (typeof window === 'undefined') return false;
+                    const ua = navigator.userAgent;
+                    return /iPhone|iPad|iPod|Android/i.test(ua) || (navigator.maxTouchPoints > 0 && /Macintosh/.test(ua));
+                };
+                const deviceKey = isMobile() ? 'mobile' : 'pc';
 
                 // Explicit registration of the SW to ensure it's active (Robust logic from token-ok)
                 console.log('[FCM] Registering Service Worker (/sw.js)...');
@@ -82,6 +90,7 @@ export const useFcmToken = () => {
                         await updateDoc(userRef, {
                             fcmToken: currentToken,
                             fcmTokens: arrayUnion(currentToken),
+                            [`fcmToken_${deviceKey}`]: currentToken,
                             lastFcmUpdate: serverTimestamp(),
                             fcmState: 'registered_final_ok',
                             'permissions.notifications.status': 'granted',
@@ -93,6 +102,7 @@ export const useFcmToken = () => {
                             await setDoc(userRef, {
                                 fcmToken: currentToken,
                                 fcmTokens: [currentToken],
+                                [`fcmToken_${deviceKey}`]: currentToken,
                                 lastFcmUpdate: serverTimestamp(),
                                 permissions: {
                                     notifications: {
@@ -112,8 +122,13 @@ export const useFcmToken = () => {
                 }
             } else if (Notification.permission === 'denied') {
                 console.log('[FCM] Permission denied.');
+                const deviceKey = (() => {
+                    if (typeof window === 'undefined') return 'pc';
+                    const ua = navigator.userAgent;
+                    return /iPhone|iPad|iPod|Android/i.test(ua) || (navigator.maxTouchPoints > 0 && /Macintosh/.test(ua)) ? 'mobile' : 'pc';
+                })();
                 await updateDoc(doc(db, 'users', user.uid), {
-                    fcmState: 'denied',
+                    fcmState: `denied_on_${deviceKey}`,
                     'permissions.notifications.status': 'denied',
                     lastFcmUpdate: serverTimestamp()
                 }).catch(() => { });

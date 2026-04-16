@@ -46,6 +46,8 @@ export const PushPage = () => {
                         fcmTokens: data.fcmTokens || [],
                         fcmState: data.fcmState || '',
                         lastFcmError: data.lastFcmError || '',
+                        fcmToken_mobile: data.fcmToken_mobile || null,
+                        fcmToken_pc: data.fcmToken_pc || null,
                         permissions: data.permissions || {}
                     };
                 });
@@ -83,6 +85,8 @@ export const PushPage = () => {
             fcmTokens: client.fcmTokens,
             fcmState: client.fcmState,
             lastFcmError: client.lastFcmError,
+            fcmToken_mobile: client.fcmToken_mobile,
+            fcmToken_pc: client.fcmToken_pc,
             notifStatus: client.permissions?.notifications?.status
         };
         setSearchTerm('');
@@ -215,6 +219,46 @@ export const PushPage = () => {
                         </label>
                     </div>
 
+                    {/* Target Single User details */}
+                    {targetType === 'single' && targetId && (
+                        <div className="mt-4 p-4 border border-gray-100 rounded-xl bg-gray-50/50 flex flex-col gap-3 relative">
+                            {(() => {
+                                const info = (window as any).__selectedClientTokenInfo || {};
+                                const hasTokens = !!(info.fcmToken || (info.fcmTokens && info.fcmTokens.length > 0) || info.fcmToken_mobile || info.fcmToken_pc);
+                                
+                                return (
+                                    <>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Dispositivos con Token:</span>
+                                            <div className="flex gap-2">
+                                                {info.fcmToken_pc ? (
+                                                    <span className="text-xs font-black px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200 shadow-sm flex items-center gap-1">💻 PC ✓</span>
+                                                ) : (
+                                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-400 border border-gray-200" title="No validó desde la PC">💻 PC ✖</span>
+                                                )}
+                                                {info.fcmToken_mobile ? (
+                                                    <span className="text-xs font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 shadow-sm flex items-center gap-1">📱 Celu ✓</span>
+                                                ) : (
+                                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-400 border border-gray-200" title="No validó desde el celular (o lo bloqueó nativamente)">📱 Celu ✖</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        {info.fcmState && info.fcmState !== 'registered_final_ok' && (
+                                            <div className="text-[10px] font-bold text-orange-500 bg-orange-50 px-2 py-1 rounded-md border border-orange-100 text-right">
+                                                Último Estado de Registro: <code>{info.fcmState}</code>
+                                            </div>
+                                        )}
+                                        {info.lastFcmError && (
+                                            <div className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded-md border border-red-100 mt-1 break-words">
+                                                🛑 Error Local: <code>{info.lastFcmError}</code>
+                                            </div>
+                                        )}
+                                    </>
+                                );
+                            })()}
+                        </div>
+                    )}
+
                     {/* Target Selection: Search UI */}
                     {targetType === 'single' && (
                         <div className="animate-fade-in-down relative z-20">
@@ -294,7 +338,7 @@ export const PushPage = () => {
                     {/* Warning: selected client has no FCM token */}
                     {targetType === 'single' && targetId && (() => {
                         const info = (window as any).__selectedClientTokenInfo || {};
-                        const hasToken = !!(info.fcmToken || (info.fcmTokens && info.fcmTokens.length > 0));
+                        const hasToken = !!(info.fcmToken || (info.fcmTokens && info.fcmTokens.length > 0) || info.fcmToken_mobile || info.fcmToken_pc);
                         const notifGranted = info.notifStatus === 'granted';
                         if (notifGranted && !hasToken) {
                             return (

@@ -41,7 +41,11 @@ export const PushPage = () => {
                         name: data.name || data.nombre || '',
                         phone: data.phone || data.telefono || '',
                         socioNumber: data.socioNumber || data.numeroSocio || '',
-                        points: data.points || data.puntos || 0
+                        points: data.points || data.puntos || 0,
+                        fcmToken: data.fcmToken || null,
+                        fcmTokens: data.fcmTokens || [],
+                        fcmState: data.fcmState || '',
+                        permissions: data.permissions || {}
                     };
                 });
                 setClients(list);
@@ -72,6 +76,13 @@ export const PushPage = () => {
     const selectClient = (client: any) => {
         setTargetId(client.id);
         setSelectedClientName(client.name);
+        // Store token info for diagnosis
+        (window as any).__selectedClientTokenInfo = {
+            fcmToken: client.fcmToken,
+            fcmTokens: client.fcmTokens,
+            fcmState: client.fcmState,
+            notifStatus: client.permissions?.notifications?.status
+        };
         setSearchTerm('');
         setShowSuggestions(false);
     };
@@ -256,7 +267,16 @@ export const PushPage = () => {
                                                                 {client.dni || 'Sin DNI'}
                                                             </p>
                                                         </div>
-                                                        <div className="text-xs font-bold text-orange-500">Seleccionar</div>
+                                                        <div className="flex items-center gap-2">
+                                                            {client.permissions?.notifications?.status === 'granted' ? (
+                                                                (client.fcmToken || (client.fcmTokens && client.fcmTokens.length > 0))
+                                                                    ? <span className="text-[9px] font-black text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100">🔔 TOKEN</span>
+                                                                    : <span className="text-[9px] font-black text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded border border-orange-200">⚠️ SIN TOKEN</span>
+                                                            ) : (
+                                                                <span className="text-[9px] font-black text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">sin permiso</span>
+                                                            )}
+                                                            <div className="text-xs font-bold text-orange-500">Seleccionar</div>
+                                                        </div>
                                                     </button>
                                                 ))
                                             ) : (
@@ -269,7 +289,30 @@ export const PushPage = () => {
                         </div>
                     )}
 
-                    {/* Message Fields */}
+                    {/* Warning: selected client has no FCM token */}
+                    {targetType === 'single' && targetId && (() => {
+                        const info = (window as any).__selectedClientTokenInfo || {};
+                        const hasToken = !!(info.fcmToken || (info.fcmTokens && info.fcmTokens.length > 0));
+                        const notifGranted = info.notifStatus === 'granted';
+                        if (notifGranted && !hasToken) {
+                            return (
+                                <div className="p-3 bg-orange-50 border border-orange-200 rounded-xl text-sm text-orange-700 font-medium">
+                                    <span className="font-black">⚠️ Atención:</span> Permiso concedido pero <strong>sin token FCM</strong>. El push <strong>fallará</strong>.
+                                    <span className="block text-xs mt-1">El cliente debe abrir la PWA para que el token se registre automáticamente.</span>
+                                    {info.fcmState && <span className="block text-xs mt-0.5 text-orange-400">Estado FCM: <code>{info.fcmState}</code></span>}
+                                </div>
+                            );
+                        }
+                        if (!notifGranted && targetId) {
+                            return (
+                                <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-500">
+                                    ℹ️ Este cliente no otorgó permiso de notificaciones push aún.
+                                </div>
+                            );
+                        }
+                        return null;
+                    })()}
+
                     <div className="space-y-4 pt-4 border-t border-gray-50">
                         <div>
                             <label className="block text-sm font-bold text-gray-700 mb-1">Título</label>

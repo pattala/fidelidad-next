@@ -1030,18 +1030,46 @@ export const ClientsPage = () => {
                                                 </span>
                                             </div>
 
-                                            <div className="flex flex-col items-center gap-1" title={`Notificaciones: ${client.permissions?.notifications?.status === 'granted' ? (client.fcmToken ? 'Activas (Con Token)' : 'Permiso concedido pero falta registrar Token') : 'Pendiente/Denegado'}`}>
-                                                <div className={`p-1.5 rounded-md ${(client.permissions?.notifications?.status === 'granted' && client.fcmToken) ? 'text-purple-600 bg-purple-50 border border-purple-100 shadow-sm' : 'text-gray-300 bg-gray-50'}`}>
+                                            <div className="flex flex-col items-center gap-1" title={(() => {
+                                                    const hasToken = !!(client.fcmToken || (client.fcmTokens && client.fcmTokens.length > 0));
+                                                    const tokenCount = (client.fcmTokens || []).length;
+                                                    const s = client.permissions?.notifications?.status;
+                                                    if (s === 'granted' && hasToken) return `✅ Push activo (${tokenCount} token${tokenCount !== 1 ? 's' : ''})`;
+                                                    if (s === 'granted' && !hasToken) return `⚠️ Permiso concedido pero SIN token FCM. El push fallará. El cliente debe abrir la PWA para registrar el token. Estado FCM: ${client.fcmState || 'desconocido'}`;
+                                                    if (s === 'blocked') return '🚫 Cliente bloqueó notificaciones';
+                                                    if (s === 'later' || s === 'later_phase1_complete') return '⏳ Cliente eligió recordar después';
+                                                    return 'Sin interacción aún';
+                                                })()}>
+                                                <div className={`p-1.5 rounded-md ${
+                                                    (() => {
+                                                        const hasToken = !!(client.fcmToken || (client.fcmTokens && client.fcmTokens.length > 0));
+                                                        const s = client.permissions?.notifications?.status;
+                                                        if (s === 'granted' && hasToken) return 'text-purple-600 bg-purple-50 border border-purple-100 shadow-sm';
+                                                        if (s === 'granted' && !hasToken) return 'text-orange-500 bg-orange-50 border border-orange-200 shadow-sm';
+                                                        if (s === 'blocked') return 'text-red-400 bg-red-50 border border-red-100';
+                                                        return 'text-gray-300 bg-gray-50';
+                                                    })()
+                                                }`}>
                                                     <AlertCircle size={14} />
                                                 </div>
-                                                <span className={`text-[7px] font-black uppercase ${client.permissions?.notifications?.status === 'granted' ? 'text-purple-600' : (client.permissions?.notifications?.status === 'blocked' ? 'text-red-400' : 'text-gray-300')}`}>
+                                                <span className={`text-[7px] font-black uppercase ${
+                                                    (() => {
+                                                        const hasToken = !!(client.fcmToken || (client.fcmTokens && client.fcmTokens.length > 0));
+                                                        const s = client.permissions?.notifications?.status;
+                                                        if (s === 'granted' && hasToken) return 'text-purple-600';
+                                                        if (s === 'granted' && !hasToken) return 'text-orange-500';
+                                                        if (s === 'blocked') return 'text-red-400';
+                                                        return 'text-gray-300';
+                                                    })()
+                                                }`}>
                                                     {(() => {
+                                                        const hasToken = !!(client.fcmToken || (client.fcmTokens && client.fcmTokens.length > 0));
                                                         const s = client.permissions?.notifications?.status || (client.permissions?.notifications as any)?.mobile_status || (client.permissions?.notifications as any)?.pc_status;
-                                                        const visits = client.visitCount || 0;
-                                                        if (s === 'granted') return 'ACTIVO';
+                                                        if (s === 'granted' && hasToken) return 'TOKEN✓';
+                                                        if (s === 'granted' && !hasToken) return '⚠️ SIN';
                                                         if (s === 'blocked') return 'BLOCK';
                                                         if (s === 'later' || s === 'later_phase1_complete') return 'ESPERA';
-                                                        return visits > 0 ? 'PEND' : 'NUNCA';
+                                                        return 'PEND';
                                                     })()}
                                                 </span>
                                             </div>

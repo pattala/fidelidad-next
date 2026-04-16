@@ -45,6 +45,7 @@ export const PushPage = () => {
                         fcmToken: data.fcmToken || null,
                         fcmTokens: data.fcmTokens || [],
                         fcmState: data.fcmState || '',
+                        lastFcmError: data.lastFcmError || '',
                         permissions: data.permissions || {}
                     };
                 });
@@ -81,6 +82,7 @@ export const PushPage = () => {
             fcmToken: client.fcmToken,
             fcmTokens: client.fcmTokens,
             fcmState: client.fcmState,
+            lastFcmError: client.lastFcmError,
             notifStatus: client.permissions?.notifications?.status
         };
         setSearchTerm('');
@@ -300,6 +302,7 @@ export const PushPage = () => {
                                     <span className="font-black">⚠️ Atención:</span> Permiso concedido pero <strong>sin token FCM</strong>. El push <strong>fallará</strong>.
                                     <span className="block text-xs mt-1">El cliente debe abrir la PWA para que el token se registre automáticamente.</span>
                                     {info.fcmState && <span className="block text-xs mt-0.5 text-orange-400">Estado FCM: <code>{info.fcmState}</code></span>}
+                                    {info.lastFcmError && <span className="block text-xs mt-0.5 text-red-500 font-bold">Error Local: <code>{info.lastFcmError}</code></span>}
                                 </div>
                             );
                         }

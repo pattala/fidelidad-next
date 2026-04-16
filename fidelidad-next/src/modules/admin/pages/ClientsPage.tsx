@@ -956,6 +956,13 @@ export const ClientsPage = () => {
                                                     {client.socioNumber && (
                                                         <span className="bg-blue-50 px-1.5 py-0.5 rounded text-[9px] font-black text-blue-600 border border-blue-100 shadow-sm">#{client.socioNumber}</span>
                                                     )}
+                                                    {/* Badge de origen de registro */}
+                                                    {(() => {
+                                                        const src = client.source || (client as any).metadata?.createdFrom || '';
+                                                        if (src === 'pwa') return <span title="Se registró por la App" className="bg-purple-50 px-1.5 py-0.5 rounded text-[9px] font-black text-purple-600 border border-purple-100">📱 App</span>;
+                                                        if (src === 'local') return <span title="Registrado en el local" className="bg-emerald-50 px-1.5 py-0.5 rounded text-[9px] font-black text-emerald-600 border border-emerald-100">🏪 Local</span>;
+                                                        return null;
+                                                    })()}
                                                 </div>
                                                 <div className="text-[10px] font-bold text-gray-400 flex items-center gap-1">
                                                     <span className="bg-gray-50/50 px-1.5 py-0.5 rounded text-gray-400 border border-gray-100">DNI {client.dni}</span>

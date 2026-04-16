@@ -189,6 +189,9 @@ export const MetricsPage = () => {
                 const userCensusSnap = await getDocs(collection(db, 'users'));
                 const existingClientUids = new Set<string>();
                 let totalClientsInSystem = 0;
+                let pwaCount = 0;
+                let localCount = 0;
+
                 userCensusSnap.forEach(d => {
                     const ud = d.data();
                     // Filtro consistente con ClientsPage: deben tener nombre o DNI.
@@ -200,8 +203,20 @@ export const MetricsPage = () => {
                     if (!isAdmin && hasBasicInfo) {
                         existingClientUids.add(d.id);
                         totalClientsInSystem++;
+
+                        // Contar origen de registro
+                        const src = ud.source || ud.metadata?.createdFrom || '';
+                        if (src === 'pwa') pwaCount++;
+                        else if (src === 'local') localCount++;
+                        else {
+                            // Heurística: si tiene authUID y no tiene socioNumber probablemente vino por PWA
+                            if (ud.authUID && !ud.socioNumber && !ud.numeroSocio) pwaCount++;
+                            else localCount++;
+                        }
                     }
                 });
+
+                setRegistrationSources({ pwa: pwaCount, local: localCount });
 
                 const currentResults = processStats(currentMovements);
                 const prevResults = processStats(prevMovements);

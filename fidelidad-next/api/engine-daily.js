@@ -322,44 +322,43 @@ export default async function handler(req, res) {
         }
 
         // --- PASO 2: VENCIMIENTOS (CALL SILENT) ---
+        // Nota: se ejecuta siempre (modo diario Y manual/simulación) para que el simulador de fechas funcione
         let expirationsResult = { ok: true, summary: { notified: 0, expiredPoints: 0, details: [] } };
-        if (isDailyMode) {
-            try {
-                const currentHost = req.headers.host;
-                const baseUrl = currentHost ? `https://${currentHost}` : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
-                
-                // Red de seguridad: Timeout para evitar que Vercel mate el proceso por una llamada lenta
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s timeout
+        try {
+            const currentHost = req.headers.host;
+            const baseUrl = currentHost ? `https://${currentHost}` : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+            
+            // Red de seguridad: Timeout para evitar que Vercel mate el proceso por una llamada lenta
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s timeout
 
-                const eRes = await fetch(`${baseUrl}/api/expirations?action=check&trigger=${triggerSource}&silent=true`, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json', 
-                        'x-api-key': SECRET, 
-                        'x-api-secret': SECRET, 
-                        'x-executor-role': 'system' 
-                    },
-                    body: JSON.stringify({
-                        simulatedDate: referenceDate.toISOString(),
-                        ignoreDeduplication: finalIgnoreDeduplication,
-                        isManual: isManual
-                    }),
-                    signal: controller.signal
-                });
-                
-                clearTimeout(timeoutId);
-                
-                if (eRes.ok) {
-                    expirationsResult = await eRes.json();
-                } else {
-                    console.error(`[DailyCheck] Expirations API returned status ${eRes.status}`);
-                    expirationsResult = { ok: false, error: `Status ${eRes.status}` };
-                }
-            } catch (e) { 
-                console.error("[DailyCheck] Error calling expirations API:", e.message); 
-                expirationsResult = { ok: false, error: e.message };
+            const eRes = await fetch(`${baseUrl}/api/expirations?action=check&trigger=${triggerSource}&silent=true`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'x-api-key': SECRET, 
+                    'x-api-secret': SECRET, 
+                    'x-executor-role': 'system' 
+                },
+                body: JSON.stringify({
+                    simulatedDate: referenceDate.toISOString(),
+                    ignoreDeduplication: finalIgnoreDeduplication,
+                    isManual: isManual
+                }),
+                signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (eRes.ok) {
+                expirationsResult = await eRes.json();
+            } else {
+                console.error(`[DailyCheck] Expirations API returned status ${eRes.status}`);
+                expirationsResult = { ok: false, error: `Status ${eRes.status}` };
             }
+        } catch (e) { 
+            console.error("[DailyCheck] Error calling expirations API:", e.message); 
+            expirationsResult = { ok: false, error: e.message };
         }
 
         // --- PASO 3: ALERTAS PETSHOP (CALL SILENT) ---

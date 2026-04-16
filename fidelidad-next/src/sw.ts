@@ -17,12 +17,13 @@ clientsClaim();
 //    e impide que el handler custom (abajo) muestre la notificación.
 //    El token FCM se gestiona desde la app principal, no desde el SW.
 
-// 3. Custom Push Handler (Parity with stable backup behavior)
+// 3. Custom Push Handler — handles data-only FCM messages (without top-level 'notification')
+// This ensures SW shows notifications in ALL states: foreground, background, and closed.
 self.addEventListener('push', (event) => {
-    console.log('[SW Unified] Push event received');
+    console.log('[SW] Push event received');
     const BASE_URL = self.location.origin;
 
-    let title = import.meta.env.VITE_APP_NAME || 'App de Beneficios';
+    let title = 'App de Beneficios';
     let options: any = {
         body: 'Tienes una novedad en tu cuenta',
         icon: `${BASE_URL}/pwa-192x192.png`,
@@ -34,45 +35,45 @@ self.addEventListener('push', (event) => {
 
     if (event.data) {
         try {
-            // Unificamos lectura de JSON para evitar errores de stream consumido
             const payload = event.data.json() || {};
-            console.log('[SW] Push Payload:', JSON.stringify(payload).substring(0, 100) + '...');
+            console.log('[SW] Push payload keys:', Object.keys(payload).join(','));
 
-            const notification = payload.notification || {};
+            // Con mensajes data-only, toda la info viene en payload.data
+            // Con mensajes legacy (notification+data), puede venir en ambos lados
+            const notif = payload.notification || {};
             const data = payload.data || payload || {};
 
-            title = notification.title || data.title || title;
-            options.body = notification.body || data.body || options.body;
-            options.data.url = data.url || data.click_action || notification.click_action || options.data.url;
+            title = data.title || notif.title || title;
+            options.body = data.body || notif.body || options.body;
+            options.data.url = data.url || data.click_action || notif.click_action || '/inbox';
 
-            if (data.icon && (data.icon.startsWith('http') || data.icon.startsWith('/'))) {
-                options.icon = data.icon;
-                options.badge = data.icon;
-            } else if (notification.icon) {
-                 options.icon = notification.icon;
-                 options.badge = notification.icon;
+            const iconCandidate = data.icon || notif.icon || '';
+            if (iconCandidate && (iconCandidate.startsWith('http') || iconCandidate.startsWith('/'))) {
+                options.icon = iconCandidate;
+                options.badge = iconCandidate;
             }
 
             options.requireInteraction = true;
             options.tag = data.tag || data.id || 'fidelidad-notif';
             options.renotify = true;
-            options.vibrate = [200, 100, 200, 100, 200]; // Patrón más fuerte para celus
+            options.vibrate = [200, 100, 200, 100, 200];
 
         } catch (e) {
-            console.error('[SW] Error parsing push data, showing generic:', e);
+            console.error('[SW] Error parsing push data:', e);
             try {
                 const text = event.data.text();
                 if (text) options.body = text;
-            } catch (txtErr) {}
+            } catch (_) {}
         }
     }
 
     event.waitUntil(
         self.registration.showNotification(title, options)
-            .then(() => console.log('[SW] showNotification SUCCESS'))
+            .then(() => console.log('[SW] showNotification OK'))
             .catch((err: any) => console.error('[SW] showNotification FAIL:', err))
     );
 });
+
 
 // 4. Notification Click Handler
 self.addEventListener('notificationclick', (event) => {

@@ -158,9 +158,16 @@ async function handleAssignSocio(req, res, db) {
     const { docId, sendWelcome } = req.body;
     if (!docId) return res.status(400).json({ ok: false, error: "Falta docId" });
     try {
+        // 1. Leer config para días de vencimiento
+        const configSnap = await db.collection('config').doc('general').get();
+        const config = configSnap.exists ? configSnap.data() : {};
+        const expirationDays = Number(config.pointsExpirationDays || config.expirationRules?.[0]?.days || 365);
+        const siteName = config.siteName || 'Club Fidelidad';
+
         const contadorRef = db.collection('config').doc('counters');
         const clienteRef = db.collection("users").doc(docId);
         let assignedNumber = null;
+
         await db.runTransaction(async (tx) => {
             const [cSnap, uSnap] = await Promise.all([tx.get(contadorRef), tx.get(clienteRef)]);
             if (!uSnap.exists) throw new Error("Cliente no encontrado");
@@ -171,17 +178,102 @@ async function handleAssignSocio(req, res, db) {
             assignedNumber = nextNum;
         });
 
+        // 2. Leer datos del cliente (despues de la transacción)
+        const clientSnap = await clienteRef.get();
+        const clientData = clientSnap.data() || {};
+        const userName = clientData.name || clientData.nombre || 'Socio';
+        const userEmail = clientData.email || '';
+
+        // 3. Registrar puntos de bienvenida en points_history (con expiresAt)
         if (sendWelcome) {
-            const baseUrl = process.env.PUBLIC_BASE_URL || `https://${req.headers.host}`;
-            await fetch(`${baseUrl}/api/notifications?action=email`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.API_SECRET_KEY || "" },
-                body: JSON.stringify({ to: (await clienteRef.get()).data().email, templateId: 'bienvenida', templateData: { numero_socio: assignedNumber, nombre: (await clienteRef.get()).data().nombre } })
-            }).catch(console.error);
+            const bonusDetails = clientData.metadata?.bonusDetails || {};
+            const wPoints = Number(bonusDetails.welcome || 0);
+            const aPoints = Number(bonusDetails.address || 0);
+            const totalBonus = wPoints + aPoints;
+
+            // Calcular fecha de vencimiento siempre (necesaria para email)
+            const now = new Date();
+            const expirationDate = new Date(now);
+            expirationDate.setDate(expirationDate.getDate() + expirationDays);
+            const expY = expirationDate.getFullYear();
+            const expM = String(expirationDate.getMonth() + 1).padStart(2, '0');
+            const expD = String(expirationDate.getDate()).padStart(2, '0');
+            const expirationDateStr = `${expD}/${expM}/${expY}`;
+
+            const batch = db.batch();
+
+            if (wPoints > 0) {
+                const wRef = clienteRef.collection('points_history').doc();
+                batch.set(wRef, {
+                    amount: wPoints, moneySpent: 0, type: 'credit',
+                    reason: 'welcome_signup', concept: 'Puntos de Bienvenida por registro',
+                    date: admin.firestore.Timestamp.fromDate(now),
+                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                    expiresAt: admin.firestore.Timestamp.fromDate(expirationDate),
+                    remainingPoints: wPoints, balanceAfter: clientData.points || totalBonus
+                });
+            }
+
+            if (aPoints > 0) {
+                const aRef = clienteRef.collection('points_history').doc();
+                batch.set(aRef, {
+                    amount: aPoints, moneySpent: 0, type: 'credit',
+                    reason: 'profile_address', concept: 'Premio por completar dirección',
+                    date: admin.firestore.Timestamp.fromDate(now),
+                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                    expiresAt: admin.firestore.Timestamp.fromDate(expirationDate),
+                    remainingPoints: aPoints, balanceAfter: clientData.points || totalBonus
+                });
+            }
+
+            if (totalBonus > 0) {
+                // Actualizar nextExpirationDate en el user doc
+                batch.update(clienteRef, {
+                    nextExpirationDate: `${expY}-${expM}-${expD}`,
+                    nextExpirationAmount: totalBonus,
+                    accumulated_balance: admin.firestore.FieldValue.increment(totalBonus)
+                });
+            }
+
+            // Inbox: mensaje de bienvenida (siempre, con o sin puntos)
+            const inboxRef = clienteRef.collection('inbox').doc(`welcome_${docId}`);
+            batch.set(inboxRef, {
+                title: `¡Bienvenido/a a ${siteName}! 🎉`,
+                body: totalBonus > 0
+                    ? `Tu cuenta fue creada con éxito. Número de socio: #${assignedNumber}. ¡Recibiste ${totalBonus} puntos de bienvenida que vencen el ${expirationDateStr}!`
+                    : `Tu cuenta fue creada con éxito. Número de socio: #${assignedNumber}. ¡Ya podés empezar a acumular puntos!`,
+                url: '/', type: 'welcome', read: false,
+                date: admin.firestore.FieldValue.serverTimestamp(),
+                expireAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 7776000000))
+            });
+
+            await batch.commit();
+
+            // 4. Enviar email de bienvenida con datos correctos
+            if (userEmail) {
+                const baseUrl = process.env.PUBLIC_BASE_URL || `https://${req.headers.host}`;
+                await fetch(`${baseUrl}/api/notifications?action=email`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.API_SECRET_KEY || "" },
+                    body: JSON.stringify({
+                        to: userEmail,
+                        templateId: 'bienvenida',
+                        templateData: {
+                            nombre: userName,
+                            numero_socio: assignedNumber,
+                            puntos_ganados: totalBonus,
+                            fecha_vencimiento: expirationDateStr,
+                            siteName
+                        }
+                    })
+                }).catch(console.error);
+            }
         }
+
         return res.status(200).json({ ok: true, numeroSocio: assignedNumber });
     } catch (e) { return res.status(500).json({ ok: false, error: e.message }); }
 }
+
 
 export default async function handler(req, res) {
     applyCors(req, res);

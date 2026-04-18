@@ -189,25 +189,20 @@ export const ClientHomePage = () => {
     const [isIOS, setIsIOS] = useState(false);
 
     // --- DIAGNOSTIC DATA (For Test Users) ---
-    const diagnostic = useMemo(() => {
-        if (!userData || !config) return null;
-        const deviceKey = isMobileDevice ? 'Mobile' : 'PC';
-        const prefix = isMobileDevice ? 'mobile_' : 'pc_';
-        const permissions = userData.permissions || {};
-        const notif = permissions.notifications || {};
-        const geo = permissions.geolocation || {};
-        const messaging = config?.messaging || {};
-
-        const maxBanner = isMobileDevice
-            ? (Number(messaging.maxLargePromptDismissalsMobile) || 2)
-            : (Number(messaging.maxLargePromptDismissalsPC) || 2);
+        const fcmDebug = userData[`fcmDebug_${deviceKey.toLowerCase()}`] || {};
 
         return {
             device: deviceKey,
+            version: 'v3.1-diag',
             notifStatus: notif[`${prefix}status`] || 'pending',
             notifAttempts: `${notif[`${prefix}dismissedCount`] || 0} / ${maxBanner}`,
             geoStatus: geo[`${prefix}status`] || 'pending',
             geoAttempts: `${geo[`${prefix}dismissedCount`] || 0} / ${maxBanner}`,
+            fcmStep: fcmDebug.step || 'none',
+            fcmError: fcmDebug.error || null,
+            fcmTime: fcmDebug.timestamp 
+                ? new Date(fcmDebug.timestamp).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                : null,
             blockedUntil: notif[`${prefix}nextPrompt`]
                 ? new Date(notif[`${prefix}nextPrompt`]).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
                 : 'Sin bloqueo',
@@ -658,11 +653,13 @@ export const ClientHomePage = () => {
                         <div className="grid grid-cols-2 gap-y-3 gap-x-2">
                             <div>
                                 <p className="text-[7px] font-bold text-blue-300 uppercase tracking-widest mb-0.5">Dispositivo</p>
-                                <p className="text-xs font-black uppercase">{diagnostic.device}</p>
+                                <p className="text-xs font-black uppercase">{diagnostic.device} <span className="text-[8px] opacity-40">({diagnostic.version})</span></p>
                             </div>
                             <div>
-                                <p className="text-[7px] font-bold text-blue-300 uppercase tracking-widest mb-0.5">Glo. Cooldown</p>
-                                <p className="text-xs font-black">{diagnostic.globalCooldown}</p>
+                                <p className="text-[7px] font-bold text-blue-300 uppercase tracking-widest mb-0.5">FCM Step</p>
+                                <p className={`text-[10px] font-black uppercase ${diagnostic.fcmError ? 'text-rose-400' : 'text-emerald-400'}`}>
+                                    {diagnostic.fcmStep} {diagnostic.fcmTime && <span className="text-[7px] opacity-70">@{diagnostic.fcmTime}</span>}
+                                </p>
                             </div>
                             <div className="col-span-2 h-px bg-blue-400/20"></div>
                             <div>
@@ -673,14 +670,23 @@ export const ClientHomePage = () => {
                                 <p className="text-[7px] font-bold text-blue-300 uppercase tracking-widest mb-0.5">Geo. Status</p>
                                 <p className="text-[10px] font-bold uppercase">{diagnostic.geoStatus} ({diagnostic.geoAttempts})</p>
                             </div>
+                            
+                            {diagnostic.fcmError && (
+                                <div className="col-span-2 bg-rose-500/20 p-2 rounded-lg border border-rose-500/30">
+                                    <p className="text-[7px] font-bold text-rose-300 uppercase tracking-widest mb-0.5">Error FCM</p>
+                                    <p className="text-[8px] font-mono leading-tight">{diagnostic.fcmError}</p>
+                                </div>
+                            )}
+
                             <div className="col-span-2 h-px bg-blue-400/20"></div>
                             <div>
                                 <p className="text-[7px] font-bold text-blue-300 uppercase tracking-widest mb-0.5">🔥 Bloqueo Notif</p>
                                 <p className="text-[10px] font-black text-orange-300">{diagnostic.blockedUntil}</p>
                             </div>
                             <div>
-                                <p className="text-[7px] font-bold text-blue-300 uppercase tracking-widest mb-0.5">🌍 Bloqueo Geo</p>
-                                <p className="text-[10px] font-black text-blue-200">{diagnostic.geoBlockedUntil}</p>
+                                <p className="text-[10px] font-bold text-blue-300 uppercase tracking-widest mb-0.5 cursor-pointer hover:text-white" onClick={() => retrieveToken()}>
+                                    [FORZAR REGISTRO]
+                                </p>
                             </div>
                         </div>
                     </div>

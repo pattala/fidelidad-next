@@ -19,6 +19,13 @@ export const useFcmToken = () => {
             return;
         }
 
+        const isMobileDevice = () => {
+            if (typeof window === 'undefined') return false;
+            const ua = navigator.userAgent;
+            return /iPhone|iPad|iPod|Android/i.test(ua) || (navigator.maxTouchPoints > 0 && /Macintosh/.test(ua));
+        };
+        const deviceKey = isMobileDevice() ? 'mobile' : 'pc';
+
         isRetrieving.current = true;
         try {
             // SILENT REFRESH MECHANISM (Safety Layer)
@@ -36,13 +43,6 @@ export const useFcmToken = () => {
             if (Notification.permission === 'granted') {
                 console.log('[FCM] Permission granted. Registering Service Worker...');
                 
-                const isMobile = () => {
-                    if (typeof window === 'undefined') return false;
-                    const ua = navigator.userAgent;
-                    return /iPhone|iPad|iPod|Android/i.test(ua) || (navigator.maxTouchPoints > 0 && /Macintosh/.test(ua));
-                };
-                const deviceKey = isMobile() ? 'mobile' : 'pc';
-
                 const logStep = async (step: string, extra = {}) => {
                     try {
                         const userRef = doc(db, 'users', user.uid);
@@ -65,7 +65,7 @@ export const useFcmToken = () => {
                 // Explicit registration of the SW to ensure it's active (Robust logic from token-ok)
                 console.log('[FCM] Registering Service Worker (/sw.js)...');
                 await logStep('sw_register_attempt');
-                const registration = await navigator.serviceWorker.register('/sw.js', {
+                const registration = await navigator.serviceWorker.register('/sw.js?v=3', {
                     scope: '/'
                 });
                 await logStep('sw_registered');
@@ -165,7 +165,7 @@ export const useFcmToken = () => {
                 await updateDoc(doc(db, 'users', user.uid), {
                     fcmState: 'client_error',
                     lastFcmError: e.message,
-                    [`fcmDebug_${isMobile() ? 'mobile' : 'pc'}`]: {
+                    [`fcmDebug_${deviceKey}`]: {
                         step: 'error',
                         error: e.message,
                         code: e.code,

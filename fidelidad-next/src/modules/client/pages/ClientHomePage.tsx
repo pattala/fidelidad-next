@@ -547,7 +547,6 @@ export const ClientHomePage = () => {
     }, [userData?.permissions?.notifications?.status, user?.uid]);
 
     // Prompt Logic
-    const { retrieveToken } = useFcmToken();
     const handlePermissionGranted = () => {
         retrieveToken();
     };

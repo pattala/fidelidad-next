@@ -189,6 +189,15 @@ export const ClientHomePage = () => {
     const [isIOS, setIsIOS] = useState(false);
 
     // --- DIAGNOSTIC DATA (For Test Users) ---
+    const diagnostic = useMemo(() => {
+        if (!userData || !config) return null;
+        const deviceKey = isMobileDevice ? 'Mobile' : 'PC';
+        const prefix = deviceKey.toLowerCase() === 'mobile' ? 'mobile_' : 'pc_';
+        const permissions = userData.permissions || {};
+        const notif = permissions.notifications || {};
+        const geo = permissions.geolocation || {};
+        const maxBanner = config.pwaPromptLimits?.maxAttempts || 3;
+        
         const fcmDebug = userData[`fcmDebug_${deviceKey.toLowerCase()}`] || {};
 
         return {

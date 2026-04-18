@@ -254,12 +254,25 @@ export const ClientHomePage = () => {
         const deviceKey = isMobileDevice ? 'mobile' : 'pc';
         try {
             await updateDoc(doc(db, 'users', user.uid), {
+                // Clear prefixed fields (Primary)
+                'permissions.notifications.mobile_status': 'pending',
+                'permissions.notifications.mobile_dismissedCount': 0,
+                'permissions.notifications.mobile_nextPrompt': null,
+                'permissions.notifications.pc_status': 'pending',
+                'permissions.notifications.pc_dismissedCount': 0,
+                'permissions.notifications.pc_nextPrompt': null,
+                // Clear generic fields (Legacy/Safety)
                 'permissions.notifications.status': 'pending',
                 'permissions.notifications.dismissedCount': 0,
                 'permissions.notifications.nextPrompt': null,
-                'permissions.geolocation.status': 'pending',
-                'permissions.geolocation.dismissedCount': 0,
-                'permissions.geolocation.nextPrompt': null,
+                
+                'permissions.geolocation.mobile_status': 'pending',
+                'permissions.geolocation.mobile_dismissedCount': 0,
+                'permissions.geolocation.mobile_nextPrompt': null,
+                'permissions.geolocation.pc_status': 'pending',
+                'permissions.geolocation.pc_dismissedCount': 0,
+                'permissions.geolocation.pc_nextPrompt': null,
+                
                 [`fcmDebug_${deviceKey}`]: { 
                     step: 'reset_manual', 
                     timestamp: new Date().toISOString(),

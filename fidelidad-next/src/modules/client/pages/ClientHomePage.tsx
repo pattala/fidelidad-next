@@ -133,6 +133,7 @@ export const ClientHomePage = () => {
     const [currentTimeStore, setCurrentTimeStore] = useState(new Date());
     const [activeBannerPhase, setActiveBannerPhase] = useState<'none' | 'large'>('none');
     const [zoomedPhoto, setZoomedPhoto] = useState<string | null>(null);
+    const { retrieveToken } = useFcmToken();
 
     // Helper for dynamic pet age
     const getPetAge = (pet: any) => {
@@ -202,7 +203,7 @@ export const ClientHomePage = () => {
 
         return {
             device: deviceKey,
-            version: 'v3.4-DEBUG-SYNC',
+            version: 'v3.5-DEBUG-FINAL',
             browserPerm: typeof Notification !== 'undefined' ? Notification.permission : 'unsupported',
             notifStatus: notif[`${prefix}status`] || 'pending',
             notifAttempts: `${notif[`${prefix}dismissedCount`] || 0} / ${maxBanner}`,
@@ -247,6 +248,30 @@ export const ClientHomePage = () => {
         return window.innerWidth < 768;
     }, []);
     const isMobile = isMobileDevice || isCondensed;
+
+    const handleResetPermissions = async () => {
+        if (!user?.uid) return;
+        const deviceKey = isMobileDevice ? 'mobile' : 'pc';
+        try {
+            await updateDoc(doc(db, 'users', user.uid), {
+                'permissions.notifications.status': 'pending',
+                'permissions.notifications.dismissedCount': 0,
+                'permissions.notifications.nextPrompt': null,
+                'permissions.geolocation.status': 'pending',
+                'permissions.geolocation.dismissedCount': 0,
+                'permissions.geolocation.nextPrompt': null,
+                [`fcmDebug_${deviceKey}`]: { 
+                    step: 'reset_manual', 
+                    timestamp: new Date().toISOString(),
+                    ua: navigator.userAgent
+                }
+            });
+            window.location.reload();
+        } catch (err) {
+            console.error('Failed to reset permissions:', err);
+            alert('Error al resetear permisos. Reintenta.');
+        }
+    };
 
     const handleInteraction = (triggerCooldown: boolean = true) => {
         const now = TimeService.now().getTime();
@@ -682,13 +707,13 @@ export const ClientHomePage = () => {
 
                             <div className="flex flex-col gap-1">
                                 <button
-                                    onClick={() => handleResetPermissions()}
+                                    onClick={handleResetPermissions}
                                     className="bg-rose-500/20 hover:bg-rose-500/40 text-[9px] font-black uppercase text-rose-300 py-1 px-2 rounded-lg border border-rose-500/30 transition-all text-center"
                                 >
                                     [LIMPIAR PERMISOS]
                                 </button>
                                 <button
-                                    onClick={() => retrieveToken()}
+                                    onClick={retrieveToken}
                                     className="bg-emerald-500/20 hover:bg-emerald-500/40 text-[9px] font-black uppercase text-emerald-300 py-1 px-2 rounded-lg border border-emerald-500/30 transition-all text-center"
                                 >
                                     [FORZAR REGISTRO]

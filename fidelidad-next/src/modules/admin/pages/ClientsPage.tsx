@@ -378,7 +378,8 @@ export const ClientsPage = () => {
                     role: 'client',
                     source: 'local',
                     termsAccepted: true,
-                    termsAcceptedAt: new Date().toISOString()
+                    termsAcceptedAt: new Date().toISOString(),
+                    isTestUser: formData.isTestUser || false
                 };
 
                 let apiSuccess = false;
@@ -1344,6 +1345,23 @@ export const ClientsPage = () => {
                                                             max={new Date().toISOString().split('T')[0]}
                                                         />
                                                     </div>
+                                                </div>
+
+                                                <div className="pt-2">
+                                                    <label className="flex items-center gap-3 cursor-pointer p-3 bg-blue-50/50 rounded-xl border border-blue-100 hover:bg-blue-50 transition shadow-sm">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={formData.isTestUser}
+                                                            onChange={(e) => setFormData({ ...formData, isTestUser: e.target.checked })}
+                                                            className="w-5 h-5 rounded border-blue-300 text-blue-600 focus:ring-blue-500"
+                                                        />
+                                                        <div className="flex flex-col">
+                                                            <span className="text-sm font-black text-blue-700 flex items-center gap-2">
+                                                                <Zap size={14} className="animate-pulse" /> USUARIO TESTER
+                                                            </span>
+                                                            <span className="text-[10px] text-blue-500 font-bold">Habilita panel de diagnóstico FCM en el celular.</span>
+                                                        </div>
+                                                    </label>
                                                 </div>
                                             </div>
                                         </div>

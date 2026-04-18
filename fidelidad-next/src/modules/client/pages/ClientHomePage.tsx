@@ -202,7 +202,8 @@ export const ClientHomePage = () => {
 
         return {
             device: deviceKey,
-            version: 'v3.1-diag',
+            version: 'v3.4-DEBUG-SYNC',
+            browserPerm: typeof Notification !== 'undefined' ? Notification.permission : 'unsupported',
             notifStatus: notif[`${prefix}status`] || 'pending',
             notifAttempts: `${notif[`${prefix}dismissedCount`] || 0} / ${maxBanner}`,
             geoStatus: geo[`${prefix}status`] || 'pending',
@@ -237,12 +238,7 @@ export const ClientHomePage = () => {
         if (user?.uid && !isAdmin && userData) {
             const deviceKey = isMobileDevice ? 'Mobile' : 'PC';
             const dbField = `pwaPromptStats${deviceKey}`;
-            const localKey_last = `pwa_prompt_last_${deviceKey.toLowerCase()}`;
-            const localKey_count = `pwa_prompt_count_${deviceKey.toLowerCase()}`;
-
             if (!userData[dbField]) {
-                const localLast = localStorage.getItem(localKey_last);
-                const localCount = localStorage.getItem(localKey_count);
                 if (localLast && localCount) {
                     updateDoc(doc(db, 'users', user.uid), {
                         [dbField]: {
@@ -665,19 +661,21 @@ export const ClientHomePage = () => {
                                 <p className="text-xs font-black uppercase">{diagnostic.device} <span className="text-[8px] opacity-40">({diagnostic.version})</span></p>
                             </div>
                             <div>
+                                <p className="text-[7px] font-bold text-blue-300 uppercase tracking-widest mb-0.5 text-orange-400">Browser Perm</p>
+                                <p className="text-[10px] font-black uppercase text-orange-300">{diagnostic.browserPerm}</p>
+                            </div>
+                            
+                            <div className="col-span-2 h-px bg-blue-400/20"></div>
+
+                            <div>
+                                <p className="text-[7px] font-bold text-blue-300 uppercase tracking-widest mb-0.5">DB status</p>
+                                <p className="text-[10px] font-bold uppercase">{diagnostic.notifStatus} ({diagnostic.notifAttempts})</p>
+                            </div>
+                            <div>
                                 <p className="text-[7px] font-bold text-blue-300 uppercase tracking-widest mb-0.5">FCM Step</p>
                                 <p className={`text-[10px] font-black uppercase ${diagnostic.fcmError ? 'text-rose-400' : 'text-emerald-400'}`}>
                                     {diagnostic.fcmStep} {diagnostic.fcmTime && <span className="text-[7px] opacity-70">@{diagnostic.fcmTime}</span>}
                                 </p>
-                            </div>
-                            <div className="col-span-2 h-px bg-blue-400/20"></div>
-                            <div>
-                                <p className="text-[7px] font-bold text-blue-300 uppercase tracking-widest mb-0.5">Notif. Status</p>
-                                <p className="text-[10px] font-bold uppercase">{diagnostic.notifStatus} ({diagnostic.notifAttempts})</p>
-                            </div>
-                            <div>
-                                <p className="text-[7px] font-bold text-blue-300 uppercase tracking-widest mb-0.5">Geo. Status</p>
-                                <p className="text-[10px] font-bold uppercase">{diagnostic.geoStatus} ({diagnostic.geoAttempts})</p>
                             </div>
                             
                             {diagnostic.fcmError && (
@@ -688,14 +686,25 @@ export const ClientHomePage = () => {
                             )}
 
                             <div className="col-span-2 h-px bg-blue-400/20"></div>
+                            
                             <div>
-                                <p className="text-[7px] font-bold text-blue-300 uppercase tracking-widest mb-0.5">🔥 Bloqueo Notif</p>
+                                <p className="text-[7px] font-bold text-blue-300 uppercase tracking-widest mb-0.5">🔥 Bloqueo</p>
                                 <p className="text-[10px] font-black text-orange-300">{diagnostic.blockedUntil}</p>
                             </div>
-                            <div>
-                                <p className="text-[10px] font-bold text-blue-300 uppercase tracking-widest mb-0.5 cursor-pointer hover:text-white" onClick={() => retrieveToken()}>
+
+                            <div className="flex flex-col gap-1">
+                                <button
+                                    onClick={() => handleResetPermissions()}
+                                    className="bg-rose-500/20 hover:bg-rose-500/40 text-[9px] font-black uppercase text-rose-300 py-1 px-2 rounded-lg border border-rose-500/30 transition-all text-center"
+                                >
+                                    [LIMPIAR PERMISOS]
+                                </button>
+                                <button
+                                    onClick={() => retrieveToken()}
+                                    className="bg-emerald-500/20 hover:bg-emerald-500/40 text-[9px] font-black uppercase text-emerald-300 py-1 px-2 rounded-lg border border-emerald-500/30 transition-all text-center"
+                                >
                                     [FORZAR REGISTRO]
-                                </p>
+                                </button>
                             </div>
                         </div>
                     </div>

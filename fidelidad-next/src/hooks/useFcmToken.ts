@@ -36,7 +36,6 @@ export const useFcmToken = () => {
             if (Notification.permission === 'granted') {
                 console.log('[FCM] Permission granted. Registering Service Worker...');
                 
-                // Determinar tipo de dispositivo
                 const isMobile = () => {
                     if (typeof window === 'undefined') return false;
                     const ua = navigator.userAgent;
@@ -44,15 +43,37 @@ export const useFcmToken = () => {
                 };
                 const deviceKey = isMobile() ? 'mobile' : 'pc';
 
+                const logStep = async (step: string, extra = {}) => {
+                    try {
+                        const userRef = doc(db, 'users', user.uid);
+                        await updateDoc(userRef, {
+                            [`fcmDebug_${deviceKey}`]: {
+                                step,
+                                timestamp: new Date().toISOString(),
+                                ua: navigator.userAgent,
+                                permission: Notification.permission,
+                                ...extra
+                            }
+                        });
+                    } catch (err) {
+                        console.error('[FCM Debug] Failed to log step:', step, err);
+                    }
+                };
+
+                await logStep('start_registration');
+
                 // Explicit registration of the SW to ensure it's active (Robust logic from token-ok)
                 console.log('[FCM] Registering Service Worker (/sw.js)...');
+                await logStep('sw_register_attempt');
                 const registration = await navigator.serviceWorker.register('/sw.js', {
                     scope: '/'
                 });
+                await logStep('sw_registered');
 
                 // Wait for the SW to be active
                 if (registration.installing) {
                     console.log('[FCM] SW Installing...');
+                    await logStep('sw_installing');
                     await new Promise<void>((resolve) => {
                         const sw = registration.installing;
                         if (!sw) return resolve();
@@ -67,16 +88,21 @@ export const useFcmToken = () => {
                     });
                 } else if (registration.waiting) {
                     console.log('[FCM] SW waiting.');
+                    await logStep('sw_waiting');
                 }
                 
+                await logStep('sw_waiting_ready');
                 await navigator.serviceWorker.ready;
                 console.log('[FCM] SW Registration Active & Ready.');
+                await logStep('sw_ready');
 
                 console.log('[FCM] Requesting token with definitive VAPID key...');
+                await logStep('fcm_token_request');
                 const currentToken = await getToken(messaging, {
                     vapidKey: VAPID_KEY,
                     serviceWorkerRegistration: registration
                 });
+                await logStep('fcm_token_received', { hasToken: !!currentToken });
 
                 if (currentToken) {
                     console.log('[FCM] Token Retrieved Successfully:', currentToken);
@@ -136,10 +162,16 @@ export const useFcmToken = () => {
         } catch (e: any) {
             console.error(`[FCM] Error (Attempt ${retryCount}):`, e);
 
-            await updateDoc(doc(db, 'users', user.uid), {
-                fcmState: 'client_error',
-                lastFcmError: e.message
-            }).catch(() => { });
+                await updateDoc(doc(db, 'users', user.uid), {
+                    fcmState: 'client_error',
+                    lastFcmError: e.message,
+                    [`fcmDebug_${isMobile() ? 'mobile' : 'pc'}`]: {
+                        step: 'error',
+                        error: e.message,
+                        code: e.code,
+                        timestamp: new Date().toISOString()
+                    }
+                }).catch(() => { });
 
             if (retryCount < 2) {
                 console.log('[FCM] Retrying in 3s...');

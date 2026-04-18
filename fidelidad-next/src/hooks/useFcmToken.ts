@@ -4,7 +4,7 @@ import { messaging, db, auth } from '../lib/firebase';
 import { doc, updateDoc, serverTimestamp, arrayUnion } from 'firebase/firestore';
 
 // TRUE ORIGINAL VAPID KEY (VERIFIED FROM fidelidad-next_token-ok BACKUP)
-const VAPID_KEY = 'BHmqZhSCc-QcEmLflzdu228dg_dkTRmUm3jRb7mQjIw05sMTioOuc_MdZgOD_u1bHtAHegsNrkRziYNQIAuwirk';
+const VAPID_KEY = 'BHmqZhSCc-QcEmLflzdu228dg_dkTRmUm3jRb7mQjlw05sMTio0uc_MdZg0D_u1bHtAHegsNrkRziYNQIAuwirk';
 
 export const useFcmToken = () => {
     const [token, setToken] = useState<string | null>(null);
@@ -22,7 +22,7 @@ export const useFcmToken = () => {
         isRetrieving.current = true;
         try {
             // SILENT REFRESH MECHANISM (Safety Layer)
-            const storedVapid = localStorage.getItem('fcm_vapid_key_vfinal_v2');
+            const storedVapid = localStorage.getItem('fcm_vapid_key_vfinal_v3');
             if (storedVapid && storedVapid !== VAPID_KEY) {
                 console.log('[FCM] VAPID Key Mismatch detected. Forcing silent refresh...');
                 try {
@@ -108,7 +108,7 @@ export const useFcmToken = () => {
                     console.log('[FCM] Token Retrieved Successfully:', currentToken);
                     setToken(currentToken);
                     
-                    localStorage.setItem('fcm_vapid_key_vfinal_v2', VAPID_KEY);
+                    localStorage.setItem('fcm_vapid_key_vfinal_v3', VAPID_KEY);
 
                     const userRef = doc(db, 'users', user.uid);
                     

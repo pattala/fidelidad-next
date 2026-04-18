@@ -65,9 +65,18 @@ export const useFcmToken = () => {
                 // Explicit registration of the SW to ensure it's active (Robust logic from token-ok)
                 console.log('[FCM] Registering Service Worker (/sw.js)...');
                 await logStep('sw_register_attempt');
-                const registration = await navigator.serviceWorker.register('/sw.js?v=3', {
-                    scope: '/'
-                });
+                
+                let registration;
+                try {
+                    registration = await navigator.serviceWorker.register('/sw.js?v=3', {
+                        scope: '/',
+                        type: 'module'
+                    });
+                } catch (regError: any) {
+                    await logStep('sw_register_failed', { error: regError.message });
+                    throw regError;
+                }
+                
                 await logStep('sw_registered');
 
                 // Wait for the SW to be active

@@ -238,19 +238,7 @@ export const ClientHomePage = () => {
         if (user?.uid && !isAdmin && userData) {
             const deviceKey = isMobileDevice ? 'Mobile' : 'PC';
             const dbField = `pwaPromptStats${deviceKey}`;
-            if (!userData[dbField]) {
-                if (localLast && localCount) {
-                    updateDoc(doc(db, 'users', user.uid), {
-                        [dbField]: {
-                            lastPromptTs: parseInt(localLast),
-                            currentCycleCount: parseInt(localCount),
-                            totalPromptsShown: parseInt(localCount),
-                            lastUpdate: TimeService.now().getTime(),
-                            source: 'local_migration'
-                        }
-                    }).catch(console.error);
-                }
-            }
+            // Removed obsolete migration logic to fix ReferenceError
         }
     }, [isInstalled, user?.uid, userData?.pwaInstalled, isAdmin, isMobileDevice]);
 

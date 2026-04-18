@@ -63,12 +63,12 @@ export const useFcmToken = () => {
                 await logStep('start_registration');
 
                 // Explicit registration of the SW to ensure it's active (Robust logic from token-ok)
-                console.log('[FCM] Registering Service Worker (/sw.js)...');
+                console.log('[FCM] Registering Service Worker (/firebase-messaging-sw.js)...');
                 await logStep('sw_register_attempt');
                 
                 let registration;
                 try {
-                    registration = await navigator.serviceWorker.register('/sw.js?v=3', {
+                    registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
                         scope: '/',
                         type: 'module'
                     });

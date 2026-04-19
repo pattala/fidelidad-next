@@ -536,34 +536,7 @@ export const ClientHomePage = () => {
     const balanceForCalc = rawBalance % costPerPoint;
     const missing = Math.max(0, Math.ceil(costPerPoint - (rawBalance % costPerPoint)));
 
-    // --- NOTIFICATION REALITY SYNC ---
-    useEffect(() => {
-        const syncReality = async () => {
-            if (!userData || !user || !config) return;
-            const browserState = typeof Notification !== 'undefined' ? Notification.permission : 'default';
-            const dbStatus = userData.permissions?.notifications?.status;
-
-            if (browserState === 'granted' && dbStatus !== 'granted') {
-                // SOLO sincronizar a 'granted' si NO está en 'denied' (manual del usuario)
-                if (dbStatus === 'pending' || dbStatus === 'later' || !dbStatus) {
-                    await updateDoc(doc(db, 'users', user.uid), {
-                        'permissions.notifications.status': 'granted',
-                        'permissions.notifications.updatedAt': TimeService.now().getTime()
-                    });
-                }
-            } else if (browserState !== 'granted' && dbStatus === 'granted') {
-                await updateDoc(doc(db, 'users', user.uid), {
-                    'permissions.notifications.status': browserState === 'denied' ? 'denied' : 'pending',
-                    'permissions.notifications.updatedAt': TimeService.now().getTime()
-                });
-            }
-        };
-        syncReality();
-
-        // Also sync on window focus (if they came back from settings)
-        window.addEventListener('focus', syncReality);
-        return () => window.removeEventListener('focus', syncReality);
-    }, [userData?.permissions?.notifications?.status, user?.uid]);
+    // Prompt Logic
 
     // Prompt Logic
     const handlePermissionGranted = () => {

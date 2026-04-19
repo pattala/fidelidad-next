@@ -29,7 +29,7 @@ export const useFcmToken = () => {
         isRetrieving.current = true;
         try {
             // SILENT REFRESH MECHANISM (Safety Layer)
-            const storedVapid = localStorage.getItem('fcm_vapid_key_vfinal_v3');
+            const storedVapid = localStorage.getItem('fcm_vapid_key_vfinal');
             if (storedVapid && storedVapid !== VAPID_KEY) {
                 console.log('[FCM] VAPID Key Mismatch detected. Forcing silent refresh...');
                 try {
@@ -43,80 +43,25 @@ export const useFcmToken = () => {
             if (Notification.permission === 'granted') {
                 console.log('[FCM] Permission granted. Registering Service Worker...');
                 
-                const logStep = async (step: string, extra = {}) => {
-                    try {
-                        const userRef = doc(db, 'users', user.uid);
-                        await updateDoc(userRef, {
-                            [`fcmDebug_${deviceKey}`]: {
-                                step,
-                                timestamp: new Date().toISOString(),
-                                ua: navigator.userAgent,
-                                permission: Notification.permission,
-                                ...extra
-                            }
-                        });
-                    } catch (err) {
-                        console.error('[FCM Debug] Failed to log step:', step, err);
-                    }
-                };
+                // Stable registration logic (No ?v=3, no module type)
+                const registration = await navigator.serviceWorker.register('/sw.js', {
+                    scope: '/'
+                });
 
-                await logStep('start_registration');
-
-                // Explicit registration of the SW to ensure it's active (Robust logic from token-ok)
-                console.log('[FCM] Registering Unified Service Worker (/sw.js)...');
-                await logStep('sw_register_attempt');
-                
-                let registration;
-                try {
-                    registration = await navigator.serviceWorker.register('/sw.js', {
-                        scope: '/'
-                    });
-                } catch (regError: any) {
-                    await logStep('sw_register_failed', { error: regError.message });
-                    throw regError;
-                }
-                
-                await logStep('sw_registered');
-
-                // Wait for the SW to be active
-                if (registration.installing) {
-                    console.log('[FCM] SW Installing...');
-                    await logStep('sw_installing');
-                    await new Promise<void>((resolve) => {
-                        const sw = registration.installing;
-                        if (!sw) return resolve();
-                        const stateChangeListener = () => {
-                            if (sw.state === 'activated') {
-                                sw.removeEventListener('statechange', stateChangeListener);
-                                resolve();
-                            }
-                        };
-                        sw.addEventListener('statechange', stateChangeListener);
-                        setTimeout(resolve, 5000); 
-                    });
-                } else if (registration.waiting) {
-                    console.log('[FCM] SW waiting.');
-                    await logStep('sw_waiting');
-                }
-                
-                await logStep('sw_waiting_ready');
                 await navigator.serviceWorker.ready;
                 console.log('[FCM] SW Registration Active & Ready.');
-                await logStep('sw_ready');
 
                 console.log('[FCM] Requesting token with definitive VAPID key...');
-                await logStep('fcm_token_request');
                 const currentToken = await getToken(messaging, {
                     vapidKey: VAPID_KEY,
                     serviceWorkerRegistration: registration
                 });
-                await logStep('fcm_token_received', { hasToken: !!currentToken });
 
                 if (currentToken) {
                     console.log('[FCM] Token Retrieved Successfully:', currentToken);
                     setToken(currentToken);
                     
-                    localStorage.setItem('fcm_vapid_key_vfinal_v3', VAPID_KEY);
+                    localStorage.setItem('fcm_vapid_key_vfinal', VAPID_KEY);
 
                     const userRef = doc(db, 'users', user.uid);
                     
@@ -172,13 +117,7 @@ export const useFcmToken = () => {
 
                 await updateDoc(doc(db, 'users', user.uid), {
                     fcmState: 'client_error',
-                    lastFcmError: e.message,
-                    [`fcmDebug_${deviceKey}`]: {
-                        step: 'error',
-                        error: e.message,
-                        code: e.code,
-                        timestamp: new Date().toISOString()
-                    }
+                    lastFcmError: e.message
                 }).catch(() => { });
 
             if (retryCount < 2) {

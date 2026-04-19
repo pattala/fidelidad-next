@@ -768,7 +768,6 @@ export const ClientHomePage = () => {
                                     LIMPIAR DB
                                 </button>
                             </div>
-                            </div>
                         </div>
                     </div>
                 </div>

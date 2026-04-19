@@ -212,24 +212,16 @@ export const ClientHomePage = () => {
 
         return {
             device: dk.toUpperCase(),
-            version: 'v4.0-TOKEN-SYNC',
+            version: 'v4.1-DEBUG-UA',
             browserPerm: typeof Notification !== 'undefined' ? Notification.permission : 'unsupported',
             notifStatus: notif[`${prefix}status`] || 'pending',
-            notifAttempts: `${notif[`${dk === 'mobile' ? 'mobile_dismissedCount' : 'pc_dismissedCount'}`] || 0} / ${maxBanner}`,
-            fcmStep: fcmDebug.step || 'none',
             fcmTime: fcmDebug.timestamp 
                 ? new Date(fcmDebug.timestamp).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
                 : null,
-            blockedUntil: notif[`${prefix}nextPrompt`]
-                ? new Date(notif[`${prefix}nextPrompt`]).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
-                : 'Sin bloqueo',
-            geoBlockedUntil: geo[`${prefix}nextPrompt`]
-                ? new Date(geo[`${prefix}nextPrompt`]).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
-                : 'Sin bloqueo',
-            globalCooldown: permissions.global_lastMobileDismissal
-                ? `${Math.round((TimeService.now().getTime() - permissions.global_lastMobileDismissal) / 1000)}s`
-                : '0s'
+            ua: typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A',
+            token: token ? `${token.substring(0, 8)}...${token.substring(token.length - 8)}` : 'VACÍO'
         };
+    }, [userData, config, isMobileDevice, token]);
     }, [userData, config, isMobileDevice]);
 
     // Track PWA installation in Firestore
@@ -667,48 +659,31 @@ export const ClientHomePage = () => {
                             <div>
                                 <p className="text-[7px] font-bold text-blue-300 uppercase tracking-widest mb-0.5 text-orange-400">Browser Perm</p>
                                 <p className="text-[10px] font-black uppercase text-orange-300">{diagnostic.browserPerm}</p>
-                            </div>
-                            
-                            <div className="col-span-2 h-px bg-blue-400/20"></div>
-
-                            <div>
-                                <p className="text-[7px] font-bold text-blue-300 uppercase tracking-widest mb-0.5">DB status</p>
-                                <p className="text-[10px] font-bold uppercase">{diagnostic.notifStatus} ({diagnostic.notifAttempts})</p>
-                            </div>
-                            <div>
-                                <p className="text-[7px] font-bold text-blue-300 uppercase tracking-widest mb-0.5">FCM Step</p>
-                                <p className={`text-[10px] font-black uppercase ${diagnostic.fcmError ? 'text-rose-400' : 'text-emerald-400'}`}>
-                                    {diagnostic.fcmStep} {diagnostic.fcmTime && <span className="text-[7px] opacity-70">@{diagnostic.fcmTime}</span>}
-                                </p>
-                            </div>
-                            
-                            {diagnostic.fcmError && (
-                                <div className="col-span-2 bg-rose-500/20 p-2 rounded-lg border border-rose-500/30">
-                                    <p className="text-[7px] font-bold text-rose-300 uppercase tracking-widest mb-0.5">Error FCM</p>
-                                    <p className="text-[8px] font-mono leading-tight">{diagnostic.fcmError}</p>
+                                                      <div className="col-span-2 space-y-2">
+                                <div className="bg-white/5 p-2 rounded-xl">
+                                    <p className="text-[7px] font-bold text-blue-300 uppercase tracking-widest mb-1">Detección UA:</p>
+                                    <p className="text-[8px] font-mono break-all opacity-80 leading-tight">{diagnostic.ua}</p>
                                 </div>
-                            )}
-
-                            <div className="col-span-2 h-px bg-blue-400/20"></div>
-                            
-                            <div>
-                                <p className="text-[7px] font-bold text-blue-300 uppercase tracking-widest mb-0.5">🔥 Bloqueo</p>
-                                <p className="text-[10px] font-black text-orange-300">{diagnostic.blockedUntil}</p>
+                                <div className="bg-white/5 p-2 rounded-xl">
+                                    <p className="text-[7px] font-bold text-blue-300 uppercase tracking-widest mb-1">Token Actual:</p>
+                                    <p className="text-[9px] font-mono font-black text-blue-200">{diagnostic.token}</p>
+                                </div>
                             </div>
 
-                            <div className="flex flex-col gap-1">
-                                <button
-                                    onClick={handleResetPermissions}
-                                    className="bg-rose-500/20 hover:bg-rose-500/40 text-[9px] font-black uppercase text-rose-300 py-1 px-2 rounded-lg border border-rose-500/30 transition-all text-center"
-                                >
-                                    [LIMPIAR PERMISOS]
-                                </button>
+                            <div className="col-span-2 grid grid-cols-2 gap-2 mt-2">
                                 <button
                                     onClick={retrieveToken}
-                                    className="bg-emerald-500/20 hover:bg-emerald-500/40 text-[9px] font-black uppercase text-emerald-300 py-1 px-2 rounded-lg border border-emerald-500/30 transition-all text-center"
+                                    className="col-span-1 bg-emerald-500/20 hover:bg-emerald-500/40 text-[9px] font-black uppercase text-emerald-300 py-3 px-2 rounded-xl border-2 border-emerald-500/30 transition-all flex items-center justify-center gap-2"
                                 >
-                                    [FORZAR REGISTRO]
+                                    🔄 FORZAR TOKEN
                                 </button>
+                                <button
+                                    onClick={handleResetPermissions}
+                                    className="col-span-1 bg-rose-500/10 hover:bg-rose-500/20 text-[9px] font-black uppercase text-rose-300/60 py-3 px-2 rounded-xl border border-rose-500/10 transition-all flex items-center justify-center gap-2"
+                                >
+                                    LIMPIAR DB
+                                </button>
+                            </div>
                             </div>
                         </div>
                     </div>

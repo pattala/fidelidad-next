@@ -247,6 +247,25 @@ export const ClientHomePage = () => {
     }, []);
     const isMobile = isMobileDevice || isCondensed;
 
+    const handleRequestNativePermission = async () => {
+        if (typeof Notification === 'undefined') {
+            toast.error('Este navegador no soporta notificaciones.');
+            return;
+        }
+        try {
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+                toast.success('¡Permiso otorgado!');
+                retrieveToken();
+            } else {
+                toast.error(`Permiso: ${permission}`);
+            }
+        } catch (err) {
+            console.error(err);
+            toast.error('Error al pedir permiso.');
+        }
+    };
+
     const handleResetPermissions = async () => {
         if (!user?.uid) return;
         const deviceKey = isMobileDevice ? 'mobile' : 'pc';
@@ -677,6 +696,14 @@ export const ClientHomePage = () => {
                             </div>
 
                             <div className="col-span-2 grid grid-cols-2 gap-2 mt-2">
+                                {diagnostic.browserPerm !== 'granted' && (
+                                    <button
+                                        onClick={handleRequestNativePermission}
+                                        className="col-span-2 bg-blue-500 hover:bg-blue-600 text-[10px] font-black uppercase text-white py-4 px-2 rounded-xl shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2 animate-bounce-slow"
+                                    >
+                                        🔔 PEDIR PERMISO NATIVO
+                                    </button>
+                                )}
                                 <button
                                     onClick={retrieveToken}
                                     className="col-span-1 bg-emerald-500/20 hover:bg-emerald-500/40 text-[9px] font-black uppercase text-emerald-300 py-3 px-2 rounded-xl border-2 border-emerald-500/30 transition-all flex items-center justify-center gap-2"

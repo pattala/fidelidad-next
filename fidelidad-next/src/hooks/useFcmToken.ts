@@ -69,6 +69,7 @@ export const useFcmToken = () => {
                             lastFcmUpdate: serverTimestamp(),
                             fcmState: 'registered_final_ok',
                             'permissions.notifications.status': 'granted',
+                            [`permissions.notifications.${deviceKey}_status`]: 'granted',
                             lastActive: serverTimestamp()
                         });
                     } catch (err: any) {

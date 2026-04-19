@@ -287,12 +287,24 @@ export const ClientProfilePage = () => {
     const handleTogglePermission = async (type: 'notifications' | 'geolocation') => {
         if (!userAuth || !userData) return;
 
+        const isMobileDevice = () => {
+            if (typeof window === 'undefined') return false;
+            const ua = navigator.userAgent;
+            return /iPhone|iPad|iPod|Android/i.test(ua) || (navigator.maxTouchPoints > 0 && /Macintosh/.test(ua));
+        };
+        const deviceKey = isMobileDevice() ? 'mobile' : 'pc';
+        const prefix = `${deviceKey}_`;
+
         const currentStatus = userData.permissions?.[type]?.status;
         const newStatus = currentStatus === 'granted' ? 'denied' : 'granted';
 
         // If trying to grant, we should probably ask browser again
         if (newStatus === 'granted') {
             if (type === 'notifications') {
+                if (typeof Notification === 'undefined') {
+                    toast.error("Notificaciones no soportadas");
+                    return;
+                }
                 const p = await Notification.requestPermission();
                 if (p !== 'granted') {
                     toast.error("Permiso bloqueado en el navegador");
@@ -314,7 +326,9 @@ export const ClientProfilePage = () => {
 
         try {
             await updateDoc(doc(db, 'users', userAuth.uid), {
-                [`permissions.${type}.status`]: newStatus
+                [`permissions.${type}.status`]: newStatus,
+                [`permissions.${type}.${prefix}status`]: newStatus,
+                [`permissions.${type}.updatedAt`]: new Date().getTime()
             });
             toast.success(`${type === 'notifications' ? 'Notificaciones' : 'Ubicación'} ${newStatus === 'granted' ? 'activadas' : 'desactivadas'}`);
         } catch (e) {

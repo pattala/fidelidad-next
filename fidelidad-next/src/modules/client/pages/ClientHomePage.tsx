@@ -189,6 +189,30 @@ export const ClientHomePage = () => {
     const [gloriaMode, setGloriaMode] = useState<'permissions' | 'install'>('install');
     const [isIOS, setIsIOS] = useState(false);
 
+    const [swState, setSwState] = useState<string>('checking...');
+
+    useEffect(() => {
+        if (!('serviceWorker' in navigator)) {
+            setSwState('unsupported');
+            return;
+        }
+        const check = async () => {
+            try {
+                const reg = await navigator.serviceWorker.getRegistration();
+                if (!reg) setSwState('none');
+                else if (reg.installing) setSwState('installing');
+                else if (reg.waiting) setSwState('waiting');
+                else if (reg.active) setSwState('activated');
+                else setSwState('unknown');
+            } catch (e) {
+                setSwState('error');
+            }
+        };
+        check();
+        const interval = setInterval(check, 3000);
+        return () => clearInterval(interval);
+    }, []);
+
     // --- DIAGNOSTIC DATA (For Test Users) ---
     const diagnostic = useMemo(() => {
         if (!userData || !config) return null;
@@ -206,14 +230,14 @@ export const ClientHomePage = () => {
         const permissions = userData.permissions || {};
         const notif = permissions.notifications || {};
         const geo = permissions.geolocation || {};
-        const maxBanner = config.pwaPromptLimits?.maxAttempts || 3;
         
         const fcmDebug = userData[`fcmDebug_${dk}`] || {};
 
         return {
             device: dk.toUpperCase(),
-            version: 'v4.3-STABLE-DIAG',
+            version: 'v4.4-FORCED-PUSH',
             browserPerm: typeof Notification !== 'undefined' ? Notification.permission : 'unsupported',
+            swState: swState,
             notifStatus: notif[`${prefix}status`] || 'pending',
             fcmTime: fcmDebug.timestamp 
                 ? new Date(fcmDebug.timestamp).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
@@ -222,7 +246,7 @@ export const ClientHomePage = () => {
             token: token ? `${token.substring(0, 8)}...${token.substring(token.length - 8)}` : 'VACÍO',
             fcmError: userData.lastFcmError || null
         };
-    }, [userData, config, isMobileDevice, token]);
+    }, [userData, config, isMobileDevice, token, swState]);
 
     // Track PWA installation in Firestore
     useEffect(() => {
@@ -252,17 +276,38 @@ export const ClientHomePage = () => {
             toast.error('Este navegador no soporta notificaciones.');
             return;
         }
+
         try {
+            toast.loading('Preparando motor...', { id: 'native-perm' });
+            
+            // 1. Asegurar SW Ready
+            const registration = await navigator.serviceWorker.ready;
+            
+            toast.loading('Solicitando permiso...', { id: 'native-perm' });
+            
+            // 2. Intento de suscripción directa (fuerza el cartel en Android)
+            try {
+                const sub = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: 'BHmqZhSCc-QcEmLflzdu228dg_dkTRmUm3jRb7mQjlw05sMTio0uc_MdZg0D_u1bHtAHegsNrkRziYNQIAuwirk'
+                });
+                console.log('[PUSH] Subscribed successfully:', sub);
+            } catch (pushErr) {
+                console.warn('[PUSH] Subscription failed, falling back to basic permission:', pushErr);
+            }
+
+            // 3. Chequeo final
             const permission = await Notification.requestPermission();
+            
             if (permission === 'granted') {
-                toast.success('¡Permiso otorgado!');
+                toast.success('¡Permiso otorgado!', { id: 'native-perm' });
                 retrieveToken();
             } else {
-                toast.error(`Permiso: ${permission}`);
+                toast.error(`Permiso: ${permission}`, { id: 'native-perm' });
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
-            toast.error('Error al pedir permiso.');
+            toast.error(`Error: ${err.message || 'Error al pedir permiso'}`, { id: 'native-perm' });
         }
     };
 
@@ -678,7 +723,13 @@ export const ClientHomePage = () => {
                             <div>
                                 <p className="text-[7px] font-bold text-blue-300 uppercase tracking-widest mb-0.5 text-orange-400">Browser Perm</p>
                                 <p className="text-[10px] font-black uppercase text-orange-300">{diagnostic.browserPerm}</p>
-                                                      <div className="col-span-2 space-y-2">
+                            </div>
+                            <div>
+                                <p className="text-[7px] font-bold text-blue-300 uppercase tracking-widest mb-0.5 text-emerald-400">SW State</p>
+                                <p className="text-[10px] font-black uppercase text-emerald-300">{diagnostic.swState}</p>
+                            </div>
+                            
+                            <div className="col-span-2 space-y-2">
                                 <div className="bg-white/5 p-2 rounded-xl">
                                     <p className="text-[7px] font-bold text-blue-300 uppercase tracking-widest mb-1">Detección UA:</p>
                                     <p className="text-[8px] font-mono break-all opacity-80 leading-tight">{diagnostic.ua}</p>

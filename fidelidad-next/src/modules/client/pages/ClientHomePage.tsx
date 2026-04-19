@@ -133,7 +133,7 @@ export const ClientHomePage = () => {
     const [currentTimeStore, setCurrentTimeStore] = useState(new Date());
     const [activeBannerPhase, setActiveBannerPhase] = useState<'none' | 'large'>('none');
     const [zoomedPhoto, setZoomedPhoto] = useState<string | null>(null);
-    const { retrieveToken } = useFcmToken();
+    const { token, retrieveToken } = useFcmToken();
 
     // Helper for dynamic pet age
     const getPetAge = (pet: any) => {

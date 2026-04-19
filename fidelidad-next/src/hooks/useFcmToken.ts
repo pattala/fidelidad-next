@@ -41,11 +41,11 @@ export const useFcmToken = () => {
             }
 
             if (Notification.permission === 'granted') {
-                console.log('[FCM] Permission granted. Getting active Service Worker...');
+                console.log('[FCM] Permission granted. Waiting for Service Worker to be READY...');
                 
-                // Use the SW already registered by vite-plugin-pwa - no double registration
+                // We use ready because main.tsx is already handling the registration
                 const registration = await navigator.serviceWorker.ready;
-                console.log('[FCM] SW ready:', registration.scope);
+                console.log('[FCM] SW is READY at scope:', registration.scope);
 
                 console.log('[FCM] Requesting FCM token...');
                 const currentToken = await getToken(messaging, {
@@ -54,7 +54,7 @@ export const useFcmToken = () => {
                 });
 
                 if (currentToken) {
-                    console.log('[FCM] Token Retrieved Successfully:', currentToken);
+                    console.log('[FCM] Token SUCCESS:', currentToken);
                     setToken(currentToken);
                     
                     localStorage.setItem('fcm_vapid_key_vfinal', VAPID_KEY);

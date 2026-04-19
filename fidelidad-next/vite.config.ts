@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => {
                 srcDir: 'src',
                 filename: 'sw.ts',
                 registerType: 'autoUpdate',
-                injectRegister: 'auto',
+                injectRegister: false,
                 manifest: {
                     name: env.VITE_APP_NAME || 'App de Beneficios',
                     short_name: env.VITE_APP_SHORT_NAME || 'Beneficios',

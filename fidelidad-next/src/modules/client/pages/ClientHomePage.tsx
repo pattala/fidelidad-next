@@ -222,7 +222,6 @@ export const ClientHomePage = () => {
             token: token ? `${token.substring(0, 8)}...${token.substring(token.length - 8)}` : 'VACÍO'
         };
     }, [userData, config, isMobileDevice, token]);
-    }, [userData, config, isMobileDevice]);
 
     // Track PWA installation in Firestore
     useEffect(() => {

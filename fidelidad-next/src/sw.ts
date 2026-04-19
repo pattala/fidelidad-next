@@ -69,6 +69,14 @@ self.addEventListener('push', (event) => {
         }
     }
 
+    // 3.5 Broadcast successful receipt to the UI
+    try {
+        const channel = new BroadcastChannel('fcm_diagnostic');
+        channel.postMessage({ type: 'PUSH_RECEIVED', timestamp: new Date().toISOString() });
+    } catch (e) {
+        // Silently ignore if BroadcastChannel not supported
+    }
+
     event.waitUntil(
         self.registration.showNotification(title, options)
             .then(() => console.log('[SW] showNotification SUCCESS'))

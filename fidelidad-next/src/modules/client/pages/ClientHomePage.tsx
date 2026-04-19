@@ -188,6 +188,27 @@ export const ClientHomePage = () => {
     const [showPWAAdvantages, setShowPWAAdvantages] = useState(false);
     const [gloriaMode, setGloriaMode] = useState<'permissions' | 'install'>('install');
     const [isIOS, setIsIOS] = useState(false);
+    const [lastPushRx, setLastPushRx] = useState<string | null>(() => {
+        if (typeof localStorage === 'undefined') return null;
+        return localStorage.getItem('rampet_last_push_rx');
+    });
+
+    useEffect(() => {
+        try {
+            const channel = new BroadcastChannel('fcm_diagnostic');
+            channel.onmessage = (event) => {
+                if (event.data?.type === 'PUSH_RECEIVED') {
+                    const ts = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    setLastPushRx(ts);
+                    localStorage.setItem('rampet_last_push_rx', ts);
+                    toast.success('¡Mensaje Push recibido!');
+                }
+            };
+            return () => channel.close();
+        } catch (e) {
+            return () => {};
+        }
+    }, []);
 
     const [swState, setSwState] = useState<string>('checking...');
 
@@ -244,9 +265,10 @@ export const ClientHomePage = () => {
                 : null,
             ua: typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A',
             token: token ? `${token.substring(0, 8)}...${token.substring(token.length - 8)}` : 'VACÍO',
-            fcmError: userData.lastFcmError || null
+            fcmError: userData.lastFcmError || null,
+            lastPush: lastPushRx
         };
-    }, [userData, config, isMobileDevice, token, swState]);
+    }, [userData, config, isMobileDevice, token, swState, lastPushRx]);
 
     // Track PWA installation in Firestore
     useEffect(() => {
@@ -727,6 +749,10 @@ export const ClientHomePage = () => {
                             <div>
                                 <p className="text-[7px] font-bold text-blue-300 uppercase tracking-widest mb-0.5 text-emerald-400">SW State</p>
                                 <p className="text-[10px] font-black uppercase text-emerald-300">{diagnostic.swState}</p>
+                            </div>
+                            <div>
+                                <p className="text-[7px] font-bold text-blue-300 uppercase tracking-widest mb-0.5 text-purple-400">Last Push</p>
+                                <p className="text-[10px] font-black uppercase text-purple-300">{diagnostic.lastPush || 'NINGUNO'}</p>
                             </div>
                             
                             <div className="col-span-2 space-y-2">

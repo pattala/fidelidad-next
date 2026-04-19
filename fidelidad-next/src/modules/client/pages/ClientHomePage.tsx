@@ -212,7 +212,7 @@ export const ClientHomePage = () => {
 
         return {
             device: dk.toUpperCase(),
-            version: 'v4.1-DEBUG-UA',
+            version: 'v4.3-STABLE-DIAG',
             browserPerm: typeof Notification !== 'undefined' ? Notification.permission : 'unsupported',
             notifStatus: notif[`${prefix}status`] || 'pending',
             fcmTime: fcmDebug.timestamp 

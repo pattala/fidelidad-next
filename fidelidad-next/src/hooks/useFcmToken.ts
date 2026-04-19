@@ -10,115 +10,72 @@ export const useFcmToken = () => {
     const [token, setToken] = useState<string | null>(null);
     const isRetrieving = useRef(false);
 
+    const getDeviceKey = () => {
+        if (typeof window === 'undefined') return 'pc';
+        const ua = navigator.userAgent;
+        const isMobileUA = /iPhone|iPad|iPod|Android/i.test(ua);
+        const isIPadOS = (navigator.maxTouchPoints > 0 && /Macintosh/.test(ua));
+        return (isMobileUA || isIPadOS) ? 'mobile' : 'pc';
+    };
+
     const retrieveToken = async (retryCount = 0) => {
         if (!messaging || typeof window === 'undefined' || isRetrieving.current) return;
 
         const user = auth.currentUser;
-        if (!user) {
-            console.log('[FCM] No user, skipping.');
-            return;
-        }
+        if (!user) return;
 
-        const isMobileDevice = () => {
-            if (typeof window === 'undefined') return false;
-            const ua = navigator.userAgent;
-            return /iPhone|iPad|iPod|Android/i.test(ua) || (navigator.maxTouchPoints > 0 && /Macintosh/.test(ua));
-        };
-        const deviceKey = isMobileDevice() ? 'mobile' : 'pc';
-
+        const deviceKey = getDeviceKey();
         isRetrieving.current = true;
+
         try {
-            // SILENT REFRESH MECHANISM (Safety Layer)
             const storedVapid = localStorage.getItem('fcm_vapid_key_vfinal');
             if (storedVapid && storedVapid !== VAPID_KEY) {
-                console.log('[FCM] VAPID Key Mismatch detected. Forcing silent refresh...');
                 try {
                     await deleteToken(messaging);
-                    console.log('[FCM] Old token deleted successfully.');
-                } catch (err) {
-                    console.warn('[FCM] Error deleting old token:', err);
-                }
+                    localStorage.removeItem('fcm_vapid_key_vfinal');
+                } catch (err) { console.warn('[FCM] Token cleanup failed:', err); }
             }
 
             if (Notification.permission === 'granted') {
-                console.log('[FCM] Permission granted. Waiting for Service Worker to be READY...');
-                
-                // We use ready because main.tsx is already handling the registration
                 const registration = await navigator.serviceWorker.ready;
-                console.log('[FCM] SW is READY at scope:', registration.scope);
-
-                console.log('[FCM] Requesting FCM token...');
                 const currentToken = await getToken(messaging, {
                     vapidKey: VAPID_KEY,
                     serviceWorkerRegistration: registration
                 });
 
                 if (currentToken) {
-                    console.log('[FCM] Token SUCCESS:', currentToken);
                     setToken(currentToken);
-                    
                     localStorage.setItem('fcm_vapid_key_vfinal', VAPID_KEY);
 
+                    const { getDoc } = await import('firebase/firestore');
                     const userRef = doc(db, 'users', user.uid);
+                    const userSnap = await getDoc(userRef);
                     
-                    try {
-                        await updateDoc(userRef, {
-                            fcmToken: currentToken,
-                            fcmTokens: arrayUnion(currentToken),
-                            [`fcmToken_${deviceKey}`]: currentToken,
-                            lastFcmUpdate: serverTimestamp(),
-                            fcmState: 'registered_final_ok',
-                            'permissions.notifications.status': 'granted',
-                            [`permissions.notifications.${deviceKey}_status`]: 'granted',
-                            lastActive: serverTimestamp()
-                        });
-                    } catch (err: any) {
-                        if (err.code === 'not-found') {
-                            const { setDoc } = await import('firebase/firestore');
-                            await setDoc(userRef, {
+                    if (userSnap.exists()) {
+                        const userData = userSnap.data();
+                        const storedToken = userData[`fcmToken_${deviceKey}`];
+                        const currentStatus = userData.permissions?.notifications?.[`${deviceKey}_status`];
+                        
+                        if (storedToken !== currentToken || currentStatus !== 'granted') {
+                            console.log(`[FCM] Token changed or status desync on ${deviceKey}. Updating...`);
+                            await updateDoc(userRef, {
                                 fcmToken: currentToken,
-                                fcmTokens: [currentToken],
                                 [`fcmToken_${deviceKey}`]: currentToken,
                                 lastFcmUpdate: serverTimestamp(),
-                                permissions: {
-                                    notifications: {
-                                        status: 'granted',
-                                        updatedAt: new Date()
-                                    }
-                                },
-                                fcmState: 'registered_final_ok'
-                            }, { merge: true });
-                        } else {
-                            throw err;
+                                fcmState: `registered_${deviceKey}_ok`,
+                                'permissions.notifications.status': 'granted',
+                                [`permissions.notifications.${deviceKey}_status`]: 'granted',
+                                lastActive: serverTimestamp()
+                            });
                         }
                     }
-                } else {
-                    console.log('[FCM] No token returned.');
-                    await updateDoc(doc(db, 'users', user.uid), { fcmState: 'token_null' }).catch(() => { });
                 }
-            } else if (Notification.permission === 'denied') {
-                console.log('[FCM] Permission denied.');
-                const deviceKey = (() => {
-                    if (typeof window === 'undefined') return 'pc';
-                    const ua = navigator.userAgent;
-                    return /iPhone|iPad|iPod|Android/i.test(ua) || (navigator.maxTouchPoints > 0 && /Macintosh/.test(ua)) ? 'mobile' : 'pc';
-                })();
-                await updateDoc(doc(db, 'users', user.uid), {
-                    fcmState: `denied_on_${deviceKey}`,
-                    'permissions.notifications.status': 'denied',
-                    lastFcmUpdate: serverTimestamp()
-                }).catch(() => { });
+            } else {
+                console.log(`[FCM] Permission is ${Notification.permission}. Skipping auto-sync.`);
             }
         } catch (e: any) {
             console.error(`[FCM] Error (Attempt ${retryCount}):`, e);
-
-                await updateDoc(doc(db, 'users', user.uid), {
-                    fcmState: 'client_error',
-                    lastFcmError: e.message
-                }).catch(() => { });
-
             if (retryCount < 2) {
-                console.log('[FCM] Retrying in 3s...');
                 setTimeout(() => {
                     isRetrieving.current = false;
                     retrieveToken(retryCount + 1);

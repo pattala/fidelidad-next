@@ -192,25 +192,31 @@ export const ClientHomePage = () => {
     // --- DIAGNOSTIC DATA (For Test Users) ---
     const diagnostic = useMemo(() => {
         if (!userData || !config) return null;
-        const deviceKey = isMobileDevice ? 'Mobile' : 'PC';
-        const prefix = deviceKey.toLowerCase() === 'mobile' ? 'mobile_' : 'pc_';
+        
+        const getDeviceKey = () => {
+            if (typeof window === 'undefined') return 'pc';
+            const ua = navigator.userAgent;
+            const isMobileUA = /iPhone|iPad|iPod|Android/i.test(ua);
+            const isIPadOS = (navigator.maxTouchPoints > 0 && /Macintosh/.test(ua));
+            return (isMobileUA || isIPadOS) ? 'mobile' : 'pc';
+        };
+        const dk = getDeviceKey();
+        const prefix = dk === 'mobile' ? 'mobile_' : 'pc_';
+        
         const permissions = userData.permissions || {};
         const notif = permissions.notifications || {};
         const geo = permissions.geolocation || {};
         const maxBanner = config.pwaPromptLimits?.maxAttempts || 3;
         
-        const fcmDebug = userData[`fcmDebug_${deviceKey.toLowerCase()}`] || {};
+        const fcmDebug = userData[`fcmDebug_${dk}`] || {};
 
         return {
-            device: deviceKey,
-            version: 'v3.5-DEBUG-FINAL',
+            device: dk.toUpperCase(),
+            version: 'v4.0-TOKEN-SYNC',
             browserPerm: typeof Notification !== 'undefined' ? Notification.permission : 'unsupported',
             notifStatus: notif[`${prefix}status`] || 'pending',
-            notifAttempts: `${notif[`${prefix}dismissedCount`] || 0} / ${maxBanner}`,
-            geoStatus: geo[`${prefix}status`] || 'pending',
-            geoAttempts: `${geo[`${prefix}dismissedCount`] || 0} / ${maxBanner}`,
+            notifAttempts: `${notif[`${dk === 'mobile' ? 'mobile_dismissedCount' : 'pc_dismissedCount'}`] || 0} / ${maxBanner}`,
             fcmStep: fcmDebug.step || 'none',
-            fcmError: fcmDebug.error || null,
             fcmTime: fcmDebug.timestamp 
                 ? new Date(fcmDebug.timestamp).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
                 : null,

@@ -219,7 +219,8 @@ export const ClientHomePage = () => {
                 ? new Date(fcmDebug.timestamp).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
                 : null,
             ua: typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A',
-            token: token ? `${token.substring(0, 8)}...${token.substring(token.length - 8)}` : 'VACÍO'
+            token: token ? `${token.substring(0, 8)}...${token.substring(token.length - 8)}` : 'VACÍO',
+            fcmError: userData.lastFcmError || null
         };
     }, [userData, config, isMobileDevice, token]);
 
@@ -667,6 +668,12 @@ export const ClientHomePage = () => {
                                     <p className="text-[7px] font-bold text-blue-300 uppercase tracking-widest mb-1">Token Actual:</p>
                                     <p className="text-[9px] font-mono font-black text-blue-200">{diagnostic.token}</p>
                                 </div>
+                                {diagnostic.fcmError && (
+                                    <div className="bg-rose-500/20 p-2 rounded-xl border border-rose-500/30">
+                                        <p className="text-[7px] font-bold text-rose-300 uppercase tracking-widest mb-1">Error Detectado:</p>
+                                        <p className="text-[8px] font-mono leading-tight">{diagnostic.fcmError}</p>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="col-span-2 grid grid-cols-2 gap-2 mt-2">

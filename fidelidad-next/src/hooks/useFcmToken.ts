@@ -75,6 +75,21 @@ export const useFcmToken = () => {
             }
         } catch (e: any) {
             console.error(`[FCM] Error (Attempt ${retryCount}):`, e);
+            const errorMsg = e.message || String(e);
+            
+            // Show visible toast for manual retriggers
+            if (retryCount === 0) {
+                toast.error(`Error FCM: ${errorMsg.substring(0, 50)}...`);
+            }
+
+            if (user?.uid) {
+                await updateDoc(doc(db, 'users', user.uid), {
+                    fcmState: `error_${deviceKey}`,
+                    lastFcmError: errorMsg,
+                    lastFcmUpdate: serverTimestamp()
+                }).catch(() => { });
+            }
+
             if (retryCount < 2) {
                 setTimeout(() => {
                     isRetrieving.current = false;

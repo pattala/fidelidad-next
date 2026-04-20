@@ -256,7 +256,7 @@ export const ClientHomePage = () => {
 
         return {
             device: dk.toUpperCase(),
-            version: 'v4.5-SENSOR-RX',
+            version: 'v4.7-NATIVE-FIX',
             browserPerm: typeof Notification !== 'undefined' ? Notification.permission : 'unsupported',
             swState: swState,
             notifStatus: notif[`${prefix}status`] || 'pending',
@@ -367,6 +367,24 @@ export const ClientHomePage = () => {
         } catch (err) {
             console.error('Failed to reset permissions:', err);
             alert('Error al resetear permisos. Reintenta.');
+        }
+    };
+
+    const handleDeepUpdate = async () => {
+        if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
+        try {
+            toast.loading('Limpiando memoria...', { id: 'deep-update' });
+            const regs = await navigator.serviceWorker.getRegistrations();
+            for (const reg of regs) await reg.unregister();
+            if ('caches' in window) {
+                const names = await caches.keys();
+                for (const name of names) await caches.delete(name);
+            }
+            toast.success('Actualizando...', { id: 'deep-update' });
+            setTimeout(() => window.location.reload(), 1000);
+        } catch (err) {
+            console.error(err);
+            window.location.reload();
         }
     };
 
@@ -786,6 +804,12 @@ export const ClientHomePage = () => {
                                     className="col-span-1 bg-emerald-500/20 hover:bg-emerald-500/40 text-[9px] font-black uppercase text-emerald-300 py-3 px-2 rounded-xl border-2 border-emerald-500/30 transition-all flex items-center justify-center gap-2"
                                 >
                                     🔄 FORZAR TOKEN
+                                </button>
+                                <button
+                                    onClick={handleDeepUpdate}
+                                    className="col-span-1 bg-purple-500/20 hover:bg-purple-500/40 text-[9px] font-black uppercase text-purple-300 py-3 px-2 rounded-xl border-2 border-purple-500/30 transition-all flex items-center justify-center gap-2"
+                                >
+                                    🚀 ACTUALIZAR
                                 </button>
                                 <button
                                     onClick={handleResetPermissions}

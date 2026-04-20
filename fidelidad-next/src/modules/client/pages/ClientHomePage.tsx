@@ -256,7 +256,7 @@ export const ClientHomePage = () => {
 
         return {
             device: dk.toUpperCase(),
-            version: 'v5.5-NUCLEAR-RESET',
+            version: 'v5.6.1-MASTER-FIX',
             browserPerm: typeof Notification !== 'undefined' ? Notification.permission : 'unsupported',
             swState: swState,
             notifStatus: notif[`${prefix}status`] || 'pending',
@@ -324,8 +324,6 @@ export const ClientHomePage = () => {
             updateDoc(doc(db, 'users', user.uid), {
                 lastFcmError: errorMsg
             }).catch(() => {});
-        }
-    };
         }
     };
 

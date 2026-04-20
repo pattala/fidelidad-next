@@ -243,6 +243,40 @@ export const AdminLayout = () => {
                                 <span>{simulatedDate.toLocaleDateString()}</span>
                             </div>
                         </div>
+
+                        {/* Modulos a afectar */}
+                        <div className="space-y-1 mb-3 pt-2 border-t border-purple-100">
+                            {[
+                                { id: 'birthdays', label: 'Cumpleaños' },
+                                { id: 'expirations', label: 'Puntos/Venc.' },
+                                { id: 'petAlerts', label: 'Mascotas' },
+                                { id: 'campaigns', label: 'Campañas' }
+                            ].map(mod => (
+                                <label key={mod.id} className="flex items-center gap-2 cursor-pointer group">
+                                    <input
+                                        type="checkbox"
+                                        checked={config.simulationConfig?.[mod.id] ?? true}
+                                        onChange={async (e) => {
+                                            try {
+                                                const newConfig = {
+                                                    ...(config.simulationConfig || { birthdays: true, expirations: true, petAlerts: true, campaigns: true }),
+                                                    [mod.id]: e.target.checked
+                                                };
+                                                await updateDoc(doc(db, 'config', 'general'), {
+                                                    simulationConfig: newConfig
+                                                });
+                                                toast.success(`${mod.label} ${e.target.checked ? 'activado' : 'desactivado'}`);
+                                            } catch (err) {
+                                                toast.error("Error al actualizar");
+                                            }
+                                        }}
+                                        className="rounded border-purple-300 text-purple-600 focus:ring-purple-500 w-3 h-3"
+                                    />
+                                    <span className="text-[10px] text-purple-900 font-medium group-hover:text-purple-700 transition-colors uppercase tracking-tight">{mod.label}</span>
+                                </label>
+                            ))}
+                        </div>
+
                         <div className="flex gap-2">
                             <button onClick={() => updateSimulation(-1)} className="flex-1 bg-white border border-purple-200 text-purple-700 rounded px-2 py-1 text-xs hover:bg-purple-100">-1 Día</button>
                             <button onClick={() => updateSimulation(1)} className="flex-1 bg-white border border-purple-200 text-purple-700 rounded px-2 py-1 text-xs hover:bg-purple-100">+1 Día</button>

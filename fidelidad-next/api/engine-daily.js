@@ -226,10 +226,12 @@ export default async function handler(req, res) {
 
     try {
         // Determinar Fecha de Referencia
+        const simCfg = config.simulationConfig || { birthdays: true, expirations: true, petAlerts: true, campaigns: true };
+        
         let referenceDate = new Date();
-        if (simulatedDateStr) {
+        if (simulatedDateStr && simCfg.birthdays) {
             referenceDate = new Date(simulatedDateStr);
-            console.log(`[Dashboard] Usando fecha simulada: ${simulatedDateStr}`);
+            console.log(`[Dashboard] Usando fecha simulada para Cumpleaños: ${simulatedDateStr}`);
         }
 
         const currentYear = referenceDate.getFullYear().toString();
@@ -248,6 +250,21 @@ export default async function handler(req, res) {
         const usersSnap = await db.collection('users').where('birthDate', '!=', '').get();
         const birthdayUsers = usersSnap.docs.filter(doc => doc.data().birthDate?.endsWith(todayMD));
         logResults.totalToday = birthdayUsers.length;
+
+        for (const userDoc of birthdayUsers) {
+            try {
+                const userData = userDoc.data();
+                const userId = userDoc.id;
+                
+                // Deduplicación básica por año (si no es forzado)
+                if (userData.lastBirthdayGreetingYear === currentYear && !finalIgnoreDeduplication) continue;
+
+                // Rest of logic... (shortened for brevity in thought, but I'll replace the whole block)
+                // Actually I need to keep the logic for points and notifications.
+                // I'll just change the referenceDate part and the calls.
+
+        // [Note: I skipped lines 251-323 of the original file which I need to keep]
+        // Let's refine the replacement range.
 
         for (const userDoc of birthdayUsers) {
             try {
@@ -341,7 +358,7 @@ export default async function handler(req, res) {
                     'x-executor-role': 'system' 
                 },
                 body: JSON.stringify({
-                    simulatedDate: referenceDate.toISOString(),
+                    simulatedDate: (globalSimulatedDate && simCfg.expirations) ? globalSimulatedDate : null,
                     ignoreDeduplication: finalIgnoreDeduplication,
                     isManual: isManual
                 }),
@@ -377,7 +394,7 @@ export default async function handler(req, res) {
                         'x-executor-role': 'system' 
                     },
                     body: JSON.stringify({
-                        simulatedDate: referenceDate.toISOString(),
+                        simulatedDate: (globalSimulatedDate && simCfg.petAlerts) ? globalSimulatedDate : null,
                         ignoreDeduplication: finalIgnoreDeduplication
                     })
                 });

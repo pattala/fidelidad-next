@@ -50,17 +50,25 @@ export default async function handler(req, res) {
     const db = app.firestore();
 
     try {
-        const now = new Date();
-        const todayStr = now.toISOString().split('T')[0];
-        const todayDay = now.getDay();
-        const currentH = now.getHours();
-
         // 1. CARGAR CONFIGURACIÓN GLOBAL
         const configSnap = await db.collection('config').doc('general').get();
         const config = configSnap.exists ? configSnap.data() : {
             enableDuplicateControl: true,
             messaging: { engineAllowedStartHour: 9, engineAllowedEndHour: 21 }
         };
+
+        const simCfg = config.simulationConfig || { birthdays: true, expirations: true, petAlerts: true, campaigns: true };
+        const simulatedDateParam = req.body?.simulatedDate || req.query?.simulatedDate;
+
+        let now = new Date();
+        if (simulatedDateParam && simCfg.campaigns) {
+            now = new Date(simulatedDateParam);
+            console.log(`[Engine-Campaigns] Usando fecha simulada: ${simulatedDateParam}`);
+        }
+
+        const todayStr = now.toISOString().split('T')[0];
+        const todayDay = now.getDay();
+        const currentH = now.getHours();
 
         const allowedStart = config.messaging?.engineAllowedStartHour ?? 9;
         const allowedEnd = config.messaging?.engineAllowedEndHour ?? 21;

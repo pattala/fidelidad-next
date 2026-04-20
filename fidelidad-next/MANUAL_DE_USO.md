@@ -23,6 +23,7 @@ Este documento es la guía definitiva para la operación, configuración y estra
 7. [Gestión de Roles y Permisos](#7-gestión-de-roles-y-permisos)
 8. [Mantenimiento Avanzado: Reset Maestro](#8-mantenimiento-avanzado-reset-maestro)
 9. [Anexo: Automatización con la Extensión](#9-anexo-automatización-con-la-extensión)
+10. [Guía de Migración: Cambio de URL y Dominio](#10-guía-de-migración-cambio-de-url-y-dominio)
 
 ---
 
@@ -464,4 +465,32 @@ Si en el futuro aparecen nuevos tipos de combos o descuentos, un técnico puede 
 3. Añadir la nueva palabra siguiendo el formato: `|| rowText.includes('NUEVA_PALABRA')`.
 
 ---
-*Manual Operativo v2.3 (Extension Automation Update)*
+
+## 10. 🌐 Guía de Migración: Cambio de URL y Dominio
+
+Cambiar la dirección web del sistema (ej. pasar de `test.vercel.app` a `franccesca.martinez.com`) es un proceso que requiere actualizar 3 puntos clave para evitar que el sistema se "rompa" o que los clientes no puedan entrar.
+
+### 📋 Checklist de Migración
+
+#### 1. 🔑 Firebase (Paso más importante)
+Si no haces esto, nadie podrá iniciar sesión en la nueva URL.
+1. Entra a tu [Consola de Firebase](https://console.firebase.google.com/).
+2. Ve a **Authentication > Settings > Authorized Domains**.
+3. Haz clic en **"Add Domain"** y escribe tu nueva dirección (ej. `franccesca.martinez.com`).
+
+#### 2. 🌍 Vercel (Configuración de Red)
+1. En el dashboard de Vercel, ve a la pestaña **Domains**.
+2. Agrega tu nuevo dominio y sigue los pasos para configurar los DNS si es un dominio propio.
+
+#### 3. ⚙️ Panel Administrador (Configuración Interna)
+Para que los correos, códigos QR y el "Buzón" funcionen correctamente, el sistema debe saber su nueva identidad:
+1. Ve a **Configuración > Contacto y Redes**.
+2. Busca el campo **"URL de la App (Bandera Blanca)"**.
+3. Escribe la nueva URL completa (ej. `https://franccesca.martinez.com`).
+4. Haz clic en **Guardar**. *Esto regenerará automáticamente el código QR de registro que tienes en esa misma pantalla.*
+
+#### 4. 🧪 Variables de Entorno (Técnico)
+Si usas notificaciones push automáticas desde el servidor, asegúrate de actualizar la variable `PWA_URL` en los **Environment Variables** de Vercel para que los clics en las notificaciones redirijan al sitio correcto.
+
+---
+*Documentación v2.4 (URL Migration Checklist Update)*

@@ -67,8 +67,9 @@ export default async function handler(req, res) {
         return res.status(200).json({ ok: true, message: "Pet module is disabled" });
     }
 
+    const simCfg = config.simulationConfig || { birthdays: true, expirations: true, petAlerts: true, campaigns: true };
     const simulatedDateStr = req.body?.simulatedDate || req.query?.simulatedDate;
-    const referenceDate = simulatedDateStr ? new Date(simulatedDateStr) : new Date();
+    const referenceDate = (simulatedDateStr && simCfg.petAlerts) ? new Date(simulatedDateStr) : new Date();
     const todayStr = referenceDate.toISOString().split('T')[0];
 
     const results = {

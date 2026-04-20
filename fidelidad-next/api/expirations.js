@@ -79,12 +79,14 @@ async function handleCheck(req, res, db) {
         const simulatedDateBody = req.body?.simulatedDate || req.query?.simulatedDate;
         const isFromUI = req.body?.isManual === true || req.query?.isManual === 'true';
 
+        const simCfg = config.simulationConfig || { birthdays: true, expirations: true, petAlerts: true, campaigns: true };
+
         const todayStr = new Date().toISOString().split('T')[0];
-        const simulatedStr = simulatedDateBody ? new Date(simulatedDateBody).toISOString().split('T')[0] : null;
+        const simulatedStr = (simulatedDateBody && simCfg.expirations) ? new Date(simulatedDateBody).toISOString().split('T')[0] : null;
         const isSimulation = simulatedStr && simulatedStr !== todayStr;
         const ignoreDeduplication = req.body?.ignoreDeduplication === true || req.query?.ignoreDeduplication === 'true';
 
-        if (simulatedDateBody) referenceDate = new Date(simulatedDateBody);
+        if (simulatedDateBody && simCfg.expirations) referenceDate = new Date(simulatedDateBody);
         const triggerSource = req.query?.trigger || req.body?.trigger || "unknown";
         const sourceLabelMap = {
             'dashboard': 'Ejecución en Dashboard',

@@ -256,7 +256,7 @@ export const ClientHomePage = () => {
 
         return {
             device: dk.toUpperCase(),
-            version: 'v4.8-GESTURE-FIX',
+            version: 'v5.0-DIAGNOSTIC',
             browserPerm: typeof Notification !== 'undefined' ? Notification.permission : 'unsupported',
             swState: swState,
             notifStatus: notif[`${prefix}status`] || 'pending',
@@ -324,10 +324,21 @@ export const ClientHomePage = () => {
             const result = Notification.requestPermission(handlePermissionResult);
             if (result && (result as any).then) {
                 (result as any).then(handlePermissionResult);
-            }
         } catch (err: any) {
             console.error(err);
-            toast.error('Error al pedir permiso');
+            const errorMsg = err.message || String(err);
+            toast.error(`Error: ${errorMsg.substring(0, 30)}...`, { id: 'native-perm' });
+            
+            // Log to Firestore for remote diagnosis
+            if (user?.uid) {
+                const deviceKey = isMobileDevice ? 'mobile' : 'pc';
+                updateDoc(doc(db, 'users', user.uid), {
+                    [`fcmDebug_${deviceKey}.step`]: 'permission_error',
+                    [`fcmDebug_${deviceKey}.error`]: errorMsg,
+                    [`fcmDebug_${deviceKey}.timestamp`]: new Date().toISOString(),
+                    lastFcmError: errorMsg // Show in diagnostic panel
+                }).catch(() => {});
+            }
         }
     };
 

@@ -263,7 +263,7 @@ export const ClientHomePage = () => {
 
         return {
             device: dk.toUpperCase(),
-            version: 'v5.8-SMART-DETECTION',
+            version: 'v5.8.1-INSTALL-HINT',
             browserPerm: typeof Notification !== 'undefined' ? Notification.permission : 'unsupported',
             swState: swState,
             notifStatus: notif[`${prefix}status`] || 'pending',
@@ -273,7 +273,8 @@ export const ClientHomePage = () => {
             ua: typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A',
             token: token ? `${token.substring(0, 8)}...${token.substring(token.length - 8)}` : 'VACÍO',
             fcmError: userData.lastFcmError || null,
-            lastPush: lastPushRx
+            lastPush: lastPushRx,
+            pwaPrompt: deferredPrompt ? 'LISTO' : (isStandalone ? 'INSTALADA' : 'BLOQUEADO')
         };
     }, [userData, config, isMobileDevice, token, swState, lastPushRx]);
 
@@ -833,6 +834,10 @@ export const ClientHomePage = () => {
                                 <p className="text-[7px] font-bold text-blue-300 uppercase tracking-widest mb-0.5 text-purple-400">Last Push</p>
                                 <p className="text-[10px] font-black uppercase text-purple-300">{diagnostic.lastPush || 'NINGUNO'}</p>
                             </div>
+                            <div>
+                                <p className="text-[7px] font-bold text-blue-300 uppercase tracking-widest mb-0.5 text-pink-400">PWA Prompt</p>
+                                <p className="text-[10px] font-black uppercase text-pink-300">{diagnostic.pwaPrompt}</p>
+                            </div>
                             
                             <div className="col-span-2 space-y-2">
                                 <div className="bg-white/5 p-2 rounded-xl">
@@ -1349,17 +1354,15 @@ export const ClientHomePage = () => {
                         if (isIOS) {
                             toast('Para instalar: Toca "Compartir" y luego "Agregar a Inicio"', { icon: '📲' });
                         } else {
-                            handleInstall();
+                            const success = await handleInstall();
+                            if (!success) {
+                                toast('Toca el menú de tu navegador (3 líneas o puntos) y selecciona "Instalar Aplicación"', { 
+                                    icon: '📲',
+                                    duration: 6000
+                                });
+                            }
                         }
-                        
-                        // REGLA DE ORO: Si acepta instalar, marcamos éxito total y reseteamos
-                        if (user?.uid) {
-                            updateDoc(doc(db, 'users', user.uid), {
-                                pwaInstalled: true,
-                                pwaInstalledAt: now,
-                                [`${dbFieldStats}.currentCycleCount`]: 0,
-                                [`${dbFieldStats}.lastUpdate`]: now
-                            }).catch(console.error);
+                    }
                         }
                     }
                     setShowPWAAdvantages(false);

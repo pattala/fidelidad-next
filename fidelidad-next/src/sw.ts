@@ -49,11 +49,12 @@ self.addEventListener('push', (event) => {
 
             if (data.icon && (data.icon.startsWith('http') || data.icon.startsWith('/'))) {
                 options.icon = data.icon;
-                options.badge = data.icon;
             } else if (notification.icon) {
                  options.icon = notification.icon;
-                 options.badge = notification.icon;
             }
+            
+            // Delete badge to let the system use the default (avoiding white blob masking)
+            delete options.badge;
 
             options.requireInteraction = true;
             options.tag = data.tag || data.id || 'fidelidad-notif';

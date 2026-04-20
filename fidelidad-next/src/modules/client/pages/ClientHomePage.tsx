@@ -263,7 +263,7 @@ export const ClientHomePage = () => {
 
         return {
             device: dk.toUpperCase(),
-            version: 'v5.8.1-INSTALL-HINT',
+            version: 'v5.9-VISUAL-PARITY',
             browserPerm: typeof Notification !== 'undefined' ? Notification.permission : 'unsupported',
             swState: swState,
             notifStatus: notif[`${prefix}status`] || 'pending',
@@ -1356,13 +1356,11 @@ export const ClientHomePage = () => {
                         } else {
                             const success = await handleInstall();
                             if (!success) {
-                                toast('Toca el menú de tu navegador (3 líneas o puntos) y selecciona "Instalar Aplicación"', { 
+                                toast('Busca el icono de flecha (⬇️) arriba en tu navegador o selecciona "Instalar Aplicación" en el menú', { 
                                     icon: '📲',
-                                    duration: 6000
+                                    duration: 7000
                                 });
                             }
-                        }
-                    }
                         }
                     }
                     setShowPWAAdvantages(false);

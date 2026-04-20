@@ -109,6 +109,13 @@ export const PWAInstallAdvantageModal: React.FC<PWAInstallAdvantageModalProps> =
                         </p>
                     </div>
                 )}
+
+                {/* HELP TIP FOR BLOCKED PERMISSIONS v6.0.5 */}
+                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 mt-2">
+                    <p className="text-[9px] text-gray-500 font-medium leading-tight">
+                        <span className="font-bold text-gray-700">¿Permiso bloqueado?</span> Tocá el icono del candado 🔒 o los tres puntos **⋮** en la barra de tu navegador para "Resetear permisos" y volver a intentar.
+                    </p>
+                </div>
             </div>
         </ModernConfirmModal>
     );

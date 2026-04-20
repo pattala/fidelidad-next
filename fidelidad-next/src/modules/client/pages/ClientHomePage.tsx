@@ -331,12 +331,17 @@ export const ClientHomePage = () => {
 
         console.log(`[FCM] Processing Unified Result: ${resultStatus}`, ctx);
 
-        // 🔄 FALLBACK AGRESIVO: Si no hay prompt o no hay token, forzamos instalación
-        if (resultStatus === 'NO_PROMPT' || resultStatus === 'NO_TOKEN') {
+        // 🔄 FALLBACK AGRESIVO: Forzamos instalación si hay bloqueo, sin prompt o sin token
+        if (resultStatus === 'NO_PROMPT' || resultStatus === 'NO_TOKEN' || resultStatus === 'DENIED') {
             const isSamsung = ctx.isSamsung;
-            const msg = isSamsung 
-                ? 'Samsung bloqueó el aviso. Usa la App instalada ⬇️'
-                : 'Tu navegador bloqueó el aviso. Instala la App para activar.';
+            
+            let msg = 'Tu navegador bloqueó el aviso. Instala la App para activar.';
+            if (isSamsung) {
+                msg = 'Samsung bloqueó el aviso. Usa la App instalada ⬇️';
+            }
+            if (resultStatus === 'DENIED') {
+                msg = 'Permisos denegados. Instala la App para saltear el bloqueo 📲';
+            }
             
             toast.error(msg, { duration: 8000, icon: '📲' });
             
@@ -912,9 +917,9 @@ export const ClientHomePage = () => {
                                 {diagnostic.browserPerm !== 'granted' && (
                                     <button
                                         onClick={handleRequestNativePermission}
-                                        className="col-span-2 bg-blue-500 hover:bg-blue-600 text-[10px] font-black uppercase text-white py-4 px-2 rounded-xl shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2 animate-bounce-slow"
+                                        className={`col-span-2 ${diagnostic.browserPerm === 'denied' ? 'bg-amber-600 hover:bg-amber-700' : 'bg-blue-500 hover:bg-blue-600'} text-[10px] font-black uppercase text-white py-4 px-2 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 animate-bounce-slow`}
                                     >
-                                        🔔 PEDIR PERMISO NATIVO
+                                        {diagnostic.browserPerm === 'denied' ? '🛠️ AYUDA: PERMISO BLOQUEADO' : '🔔 PEDIR PERMISO NATIVO'}
                                     </button>
                                 )}
                                 <button

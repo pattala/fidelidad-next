@@ -299,47 +299,33 @@ export const ClientHomePage = () => {
             return;
         }
 
-        // 1. GESTO PURO: Pedimos permiso como primera acción síncrona
+        // --- 🧪 SOLUCIÓN MAESTRA v5.6 (Directa, limpia y sin redundancias) ---
         try {
-            const handlePermissionResult = async (permission: NotificationPermission) => {
-                if (permission === 'granted') {
-                    toast.success('¡Activado!', { id: 'native-perm' });
-                    // Solo después de tener el permiso, procesamos lo técnico
-                    try {
-                        const registration = await navigator.serviceWorker.ready;
-                        await registration.pushManager.subscribe({
-                            userVisibleOnly: true,
-                            applicationServerKey: 'BHmqZhSCc-QcEmLflzdu228dg_dkTRmUm3jRb7mQjlw05sMTio0uc_MdZg0D_u1bHtAHegsNrkRziYNQIAuwirk'
-                        });
-                    } catch (e) { console.warn('[FCM] Push sub error:', e); }
-                    retrieveToken();
-                } else if (permission === 'denied') {
-                    toast.error('Permiso denegado.', { id: 'native-perm' });
-                } else {
-                    toast.error('Acción cancelada.', { id: 'native-perm' });
-                }
-            };
-
-            console.log('[FCM] Requesting native permission (Pure Gesture)...');
-            const result = Notification.requestPermission(handlePermissionResult);
-            if (result && (result as any).then) {
-                (result as any).then(handlePermissionResult);
-            }
-        } catch (err: any) {
-            console.error(err);
-            const errorMsg = err.message || String(err);
-            toast.error(`Error: ${errorMsg.substring(0, 30)}...`, { id: 'native-perm' });
+            // 1. Pedir permiso DIRECTO (Promise-based) como primera acción tras el clic
+            console.log('[FCM] Solicitando permiso (Master Fix)...');
+            const permission = await Notification.requestPermission();
             
-            // Log to Firestore for remote diagnosis
-            if (user?.uid) {
-                const deviceKey = isMobileDevice ? 'mobile' : 'pc';
-                updateDoc(doc(db, 'users', user.uid), {
-                    [`fcmDebug_${deviceKey}.step`]: 'permission_error',
-                    [`fcmDebug_${deviceKey}.error`]: errorMsg,
-                    [`fcmDebug_${deviceKey}.timestamp`]: new Date().toISOString(),
-                    lastFcmError: errorMsg // Show in diagnostic panel
-                }).catch(() => {});
+            console.log('[FCM] Resultado de permiso:', permission);
+
+            if (permission !== 'granted') {
+                if (permission === 'denied') toast.error('Permiso denegado.', { id: 'native-perm' });
+                return;
             }
+
+            // 2. Solo después del permiso, hacemos lo async
+            toast.success('¡Activado!', { id: 'native-perm' });
+            
+            // 3. Dejamos que Firebase Messaging maneje el subscribe internamente
+            await retrieveToken();
+
+        } catch (err: any) {
+            console.error("Error en requestPermission:", err);
+            const errorMsg = err.message || String(err);
+            updateDoc(doc(db, 'users', user.uid), {
+                lastFcmError: errorMsg
+            }).catch(() => {});
+        }
+    };
         }
     };
 

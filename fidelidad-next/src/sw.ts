@@ -24,7 +24,7 @@ self.addEventListener('push', (event) => {
     console.log('[SW Unified] Push event received');
     const BASE_URL = self.location.origin;
 
-    let title = import.meta.env.VITE_APP_NAME || 'App de Beneficios';
+    let title = 'Club de Fidelidad';
     let options: any = {
         body: 'Tienes una novedad en tu cuenta',
         icon: `${BASE_URL}/pwa-192x192.png`,

@@ -191,7 +191,7 @@ export async function sendNotificationInternal({ db, title, body: msgBody, token
                 }
             },
             webpush: {
-                headers: { Urgency: "high" },
+                headers: { Urgent: "high" },
                 fcmOptions: { link: data.url || "/inbox" }
             }
         };

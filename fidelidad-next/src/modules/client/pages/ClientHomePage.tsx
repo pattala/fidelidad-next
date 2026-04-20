@@ -262,7 +262,7 @@ export const ClientHomePage = () => {
 
         return {
             device: dk.toUpperCase(),
-            version: 'v6.0.7-PRIORITY-RECOVERY',
+            version: 'v6.0.8-AUTO-SYNC',
             browserPerm: typeof Notification !== 'undefined' ? Notification.permission : 'unsupported',
             swState: swState,
             notifStatus: notif[`${prefix}status`] || 'pending',
@@ -554,6 +554,7 @@ export const ClientHomePage = () => {
 
     const handleLogout = async () => {
         try {
+            // SW Version: v4 (Push Priority & Auto-Update - Abril 20)
             // Limpiar TODO el estado local para que el próximo login sea 100% fresco
             sessionStorage.clear();
             localStorage.clear();
@@ -765,6 +766,15 @@ export const ClientHomePage = () => {
     useEffect(() => {
         (window as any).handlePushAttemptResult = handlePushAttemptResult;
         (window as any).retrieveToken = retrieveToken;
+        
+        // --- AUTO-UPDATE LISTENER v6.0.8 ---
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                toast.success('¡Nueva versión activada! Refrescando...', { icon: '🚀' });
+                setTimeout(() => window.location.reload(), 2000);
+            });
+        }
+
         return () => {
             delete (window as any).handlePushAttemptResult;
             delete (window as any).retrieveToken;

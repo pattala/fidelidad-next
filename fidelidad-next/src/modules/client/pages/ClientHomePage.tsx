@@ -324,6 +324,7 @@ export const ClientHomePage = () => {
             const result = Notification.requestPermission(handlePermissionResult);
             if (result && (result as any).then) {
                 (result as any).then(handlePermissionResult);
+            }
         } catch (err: any) {
             console.error(err);
             const errorMsg = err.message || String(err);

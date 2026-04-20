@@ -101,11 +101,13 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const isGeoCooldown = geoNextPrompt > TimeService.now().getTime();
         const maxGeo = safeMessaging.maxLargePromptDismissalsMobile;
         
+        // REGLA 6.0.7: No mostrar Geo si Push está en estado crítico (pero aún no manejado)
         const canShowGeo = isMobile &&
-            (geoStatus === 'pending' || geoStatus === 'later' || geoStatus === 'later_phase1_complete' || geoStatus === 'blocked') &&
+            (geoStatus === 'pending' || geoStatus === 'later') &&
             geoAttempts < (Number(maxGeo) || 2) &&
             !isGeoCooldown &&
-            !currentHandled.includes('geolocation');
+            !currentHandled.includes('geolocation') &&
+            browserNotifState === 'granted'; // Solo si Push ya está OK
 
         if (canShowGeo) return 'geolocation';
 
@@ -148,13 +150,14 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
                 if (permission === 'granted') {
                     await updatePermission('notifications', 'granted');
                     toast.success('¡Activado!');
-                    onNotificationGranted();
-                    if (typeof (window as any).retrieveToken === 'function') {
-                        (window as any).retrieveToken();
-                    }
+                    onNotificationGranted(); // This calls retrieveToken
                     moveToNextOrEnd('notifications');
                 } else {
-                    handleLater();
+                    // SI ES DENIED O BLOCKED: Triggereamos el handler de fallo de Home
+                    if (typeof (window as any).handlePushAttemptResult === 'function') {
+                        (window as any).handlePushAttemptResult(permission);
+                    }
+                    moveToNextOrEnd('notifications');
                 }
             } catch (e) {
                 console.error("Error requesting notification permission:", e);

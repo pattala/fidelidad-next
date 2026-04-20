@@ -262,7 +262,7 @@ export const ClientHomePage = () => {
 
         return {
             device: dk.toUpperCase(),
-            version: 'v6.0.6-IN-APP-RECOVERY',
+            version: 'v6.0.7-PRIORITY-RECOVERY',
             browserPerm: typeof Notification !== 'undefined' ? Notification.permission : 'unsupported',
             swState: swState,
             notifStatus: notif[`${prefix}status`] || 'pending',
@@ -760,6 +760,16 @@ export const ClientHomePage = () => {
     const handlePermissionGranted = () => {
         handlePushAttemptResult('granted');
     };
+
+    // --- EXPOSE HANDLERS TO WINDOW v6.0.7 ---
+    useEffect(() => {
+        (window as any).handlePushAttemptResult = handlePushAttemptResult;
+        (window as any).retrieveToken = retrieveToken;
+        return () => {
+            delete (window as any).handlePushAttemptResult;
+            delete (window as any).retrieveToken;
+        };
+    }, [userData]);
 
     // --- CENTRAL BANNER ORCHESTRATOR ---
     useEffect(() => {

@@ -359,7 +359,13 @@ export const ClientHomePage = () => {
                     step: 'reset_manual', 
                     timestamp: new Date().toISOString(),
                     ua: navigator.userAgent
-                }
+                },
+                // Clear all token tracks for a truly clean test
+                fcmToken: null,
+                fcmTokens: [],
+                fcmToken_mobile: null,
+                fcmToken_pc: null,
+                fcmState: 'reset_manual'
             });
             window.location.reload();
         } catch (err) {

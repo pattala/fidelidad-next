@@ -184,12 +184,7 @@ export const ClientHomePage = () => {
         return isMobileUA || isIPadOS;
     }, []);
 
-    // --- 🔍 ROBUST SAMSUNG DETECTION ---
-    const isSamsungInternet = () => /SamsungBrowser\/\d+/i.test(navigator.userAgent);
-    const getSamsungVersion = () => {
-        const match = navigator.userAgent.match(/SamsungBrowser\/(\d+)/i);
-        return match ? parseInt(match[1], 10) : null;
-    };
+    // Detección unificada v6.0.3 (Motor centralizado)
 
     // --- PWA INSTALL LOGIC ---
     const { deferredPrompt, isStandalone, handleInstall, isIOS: isIOSHook, isInstalled } = usePWAInstall();
@@ -267,7 +262,7 @@ export const ClientHomePage = () => {
 
         return {
             device: dk.toUpperCase(),
-            version: 'v6.0-UNIFIED-STRATEGY',
+            version: 'v6.0.3-AUTO-SYNC',
             browserPerm: typeof Notification !== 'undefined' ? Notification.permission : 'unsupported',
             swState: swState,
             notifStatus: notif[`${prefix}status`] || 'pending',
@@ -299,7 +294,27 @@ export const ClientHomePage = () => {
             const dbField = `pwaPromptStats${deviceKey}`;
             // Removed obsolete migration logic to fix ReferenceError
         }
-    }, [isInstalled, user?.uid, userData?.pwaInstalled, isAdmin, isMobileDevice]);
+
+        // --- 📊 AUTO-SYNC DEVICE CONTEXT v6.0.3 ---
+        if (user?.uid && !isAdmin && userData) {
+            const ctx = getDeviceContext();
+            const strategy = getPushStrategy();
+
+            const shouldUpdate = 
+                !userData.deviceContext || 
+                userData.deviceContext.ua !== ctx.ua ||
+                userData.deviceContext.isSamsung !== ctx.isSamsung;
+
+            if (shouldUpdate) {
+                console.log('[FCM] Auto-syncing device context to Firestore...');
+                updateDoc(doc(db, 'users', user.uid), {
+                    deviceContext: ctx,
+                    pushStrategy: strategy,
+                    lastSeen: new Date().toISOString()
+                }).catch(() => {});
+            }
+        }
+    }, [isInstalled, user?.uid, userData?.pwaInstalled, isAdmin, isMobileDevice, userData?.deviceContext]);
 
     const isCondensed = useMemo(() => {
         if (typeof window === 'undefined') return false;
@@ -348,13 +363,22 @@ export const ClientHomePage = () => {
             if (resultStatus === 'SUCCESS') {
                 toast.success('¡Permiso concedido!');
                 const fcmToken = await retrieveToken();
-                if (!fcmToken) resultStatus = 'NO_TOKEN';
+                if (!fcmToken) {
+                    console.warn('[FCM] Permiso OK pero token falló.');
+                    resultStatus = 'NO_TOKEN';
+                }
             }
 
-            // Fallback automático para Samsung o fallos de token
+            // --- 🔄 FALLBACK AGRESIVO v6.0.3 ---
             if (resultStatus === 'NO_PROMPT' || resultStatus === 'NO_TOKEN') {
-                console.warn(`[FCM] Fallback activado: ${resultStatus}`);
-                toast.error('Navegador bloqueado. Usa la App instalada.', { duration: 5000 });
+                const isSamsung = ctx.isSamsung;
+                const msg = isSamsung 
+                    ? 'Samsung bloqueó el aviso. Usa la App instalada ⬇️'
+                    : 'Tu navegador bloqueó el aviso. Instala la App para continuar.';
+                
+                toast.error(msg, { duration: 7000, icon: '📲' });
+                
+                // Forzamos visibilidad de Gloria con modo instalación
                 setGloriaMode('install');
                 setShowPWAAdvantages(true);
             }

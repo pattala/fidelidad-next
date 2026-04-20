@@ -1,6 +1,6 @@
 /**
  * UNIFIED SMART DETECTOR & PUSH STRATEGY ENGINE
- * Version 1.0 - Fidelidad-Next Unified Logic
+ * Version 1.1 - Enhanced Samsung & iPadOS Detection
  */
 
 export function getDeviceContext() {
@@ -9,19 +9,24 @@ export function getDeviceContext() {
   }
 
   const ua = navigator.userAgent || "";
+  const platform = navigator.platform || "";
+  const maxTouchPoints = navigator.maxTouchPoints || 0;
 
-  // 📱 iOS (includes iPadOS 13+ which presents as MacIntel)
+  // 📱 iOS (Strict & iPadOS 13+ support)
   const isIOS =
     /iPhone|iPad|iPod/i.test(ua) ||
-    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    (platform === "MacIntel" && maxTouchPoints > 1);
 
   // 🍏 Specific iPhone
   const isIPhone = /iPhone/i.test(ua);
 
-  // 📱 Samsung Internet
-  const isSamsung = /SamsungBrowser\//i.test(ua);
+  // 📱 Samsung Internet (More robust versioning)
+  // UA examples: "SamsungBrowser/29.0", "SamsungBrowser/20.0"
+  const isSamsung = /SamsungBrowser/i.test(ua);
+  const samsungMatch = ua.match(/SamsungBrowser\/(\d+)/i);
+  const samsungVersion = samsungMatch ? parseInt(samsungMatch[1], 10) : null;
 
-  // 🌐 Chrome (excluding Samsung)
+  // 🌐 Chrome (standard)
   const isChrome = /Chrome/i.test(ua) && !isSamsung;
 
   // ⚙️ Real API Support
@@ -38,9 +43,12 @@ export function getDeviceContext() {
     isIOS,
     isIPhone,
     isSamsung,
+    samsungVersion,
     isChrome,
     isPushSupported,
-    ua
+    ua,
+    platform,
+    maxTouchPoints
   };
 }
 
@@ -54,31 +62,27 @@ export interface PushStrategy {
 export function getPushStrategy(): PushStrategy {
   const ctx = getDeviceContext();
 
-  // ❌ iOS -> Installation mandatory for Push
   if (ctx.isIOS) {
     return {
       mode: "INSTALL_REQUIRED",
-      reason: "iOS requiere instalar PWA para activar notificaciones"
+      reason: "iOS requiere instalación para Push"
     };
   }
 
-  // ⚠️ Samsung -> Try with Fallback logic
   if (ctx.isSamsung) {
     return {
       mode: "TRY_WITH_FALLBACK",
-      reason: "Samsung Browser detectado (probabilidad de bloqueo silencioso)"
+      reason: `Samsung Internet v${ctx.samsungVersion || '?'}`
     };
   }
 
-  // ❌ API not supported
   if (!ctx.isPushSupported) {
     return {
       mode: "UNSUPPORTED",
-      reason: "El navegador no soporta las APIs de Notificaciones"
+      reason: "API Not Supported"
     };
   }
 
-  // ✅ Optimal Case
   return {
     mode: "DIRECT",
     reason: "Soporte completo detectado"

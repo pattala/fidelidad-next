@@ -256,7 +256,7 @@ export const ClientHomePage = () => {
 
         return {
             device: dk.toUpperCase(),
-            version: 'v5.3-PREHEAT',
+            version: 'v5.4-PURE-GESTURE',
             browserPerm: typeof Notification !== 'undefined' ? Notification.permission : 'unsupported',
             swState: swState,
             notifStatus: notif[`${prefix}status`] || 'pending',
@@ -299,18 +299,12 @@ export const ClientHomePage = () => {
             return;
         }
 
-        // 1. "Pre-calentamos" el motor (Engine Preheat)
+        // 1. GESTO PURO: Pedimos permiso como primera acción síncrona
         try {
-            toast.loading('Sincronizando motor...', { id: 'native-perm' });
-            if ('serviceWorker' in navigator) {
-                const registration = await navigator.serviceWorker.ready;
-                console.log('[FCM] SW Ready for permission:', registration.scope);
-            }
-
             const handlePermissionResult = async (permission: NotificationPermission) => {
                 if (permission === 'granted') {
                     toast.success('¡Activado!', { id: 'native-perm' });
-                    // Proceso técnico de suscripción
+                    // Solo después de tener el permiso, procesamos lo técnico
                     try {
                         const registration = await navigator.serviceWorker.ready;
                         await registration.pushManager.subscribe({
@@ -326,6 +320,7 @@ export const ClientHomePage = () => {
                 }
             };
 
+            console.log('[FCM] Requesting native permission (Pure Gesture)...');
             const result = Notification.requestPermission(handlePermissionResult);
             if (result && (result as any).then) {
                 (result as any).then(handlePermissionResult);

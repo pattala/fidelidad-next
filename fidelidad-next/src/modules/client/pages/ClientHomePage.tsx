@@ -262,7 +262,7 @@ export const ClientHomePage = () => {
 
         return {
             device: dk.toUpperCase(),
-            version: 'v6.0.4-ROBUST-DETECTION',
+            version: 'v6.0.6-IN-APP-RECOVERY',
             browserPerm: typeof Notification !== 'undefined' ? Notification.permission : 'unsupported',
             swState: swState,
             notifStatus: notif[`${prefix}status`] || 'pending',
@@ -341,11 +341,15 @@ export const ClientHomePage = () => {
             }
             if (resultStatus === 'DENIED') {
                 msg = 'Permisos denegados. Instala la App para saltear el bloqueo 📲';
+                if (isStandalone) {
+                    msg = 'Permisos bloqueados en el sistema. Sigue la guía ⚙️';
+                }
             }
             
             toast.error(msg, { duration: 8000, icon: '📲' });
             
-            setGloriaMode('install');
+            // Si ya está instalada, mostramos modo 'system_settings', si no 'install'
+            setGloriaMode(isStandalone ? 'system_settings' : 'install');
             setShowPWAAdvantages(true);
         }
 

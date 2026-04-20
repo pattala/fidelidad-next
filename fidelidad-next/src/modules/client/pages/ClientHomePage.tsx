@@ -256,7 +256,7 @@ export const ClientHomePage = () => {
 
         return {
             device: dk.toUpperCase(),
-            version: 'v5.0-DIAGNOSTIC',
+            version: 'v5.1-AGGRESSIVE-RESET',
             browserPerm: typeof Notification !== 'undefined' ? Notification.permission : 'unsupported',
             swState: swState,
             notifStatus: notif[`${prefix}status`] || 'pending',
@@ -396,7 +396,11 @@ export const ClientHomePage = () => {
                 for (const name of names) await caches.delete(name);
             }
             toast.success('Actualizando...', { id: 'deep-update' });
-            setTimeout(() => window.location.reload(), 1000);
+            // Forzado agresivo con Query Param para saltar cache de ISP/Navegador
+            setTimeout(() => {
+                const cleanUrl = window.location.origin + window.location.pathname;
+                window.location.href = `${cleanUrl}?upd=${Date.now()}`;
+            }, 1000);
         } catch (err) {
             console.error(err);
             window.location.reload();

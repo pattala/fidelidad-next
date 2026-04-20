@@ -256,7 +256,7 @@ export const ClientHomePage = () => {
 
         return {
             device: dk.toUpperCase(),
-            version: 'v5.4-PURE-GESTURE',
+            version: 'v5.5-NUCLEAR-RESET',
             browserPerm: typeof Notification !== 'undefined' ? Notification.permission : 'unsupported',
             swState: swState,
             notifStatus: notif[`${prefix}status`] || 'pending',
@@ -377,9 +377,20 @@ export const ClientHomePage = () => {
                 fcmTokens: [],
                 fcmToken_mobile: null,
                 fcmToken_pc: null,
-                fcmState: 'reset_manual'
+                fcmState: 'reset_manual',
+                
+                // Clear Global Cooldowns (IMPORTANT for Banners to show again)
+                'permissions.global_lastMobileDismissal': 0,
+                'permissions.global_lastPcDismissal': 0,
+                'permissions.notifications.updatedAt': 0,
+                'permissions.geolocation.updatedAt': 0
             });
-            window.location.reload();
+            
+            // Clear Browser memory
+            sessionStorage.clear();
+            localStorage.clear();
+            
+            window.location.href = window.location.origin + window.location.pathname + '?reset=' + Date.now();
         } catch (err) {
             console.error('Failed to reset permissions:', err);
             alert('Error al resetear permisos. Reintenta.');

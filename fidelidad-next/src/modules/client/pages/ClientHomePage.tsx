@@ -262,7 +262,7 @@ export const ClientHomePage = () => {
 
         return {
             device: dk.toUpperCase(),
-            version: 'v6.0.3-AUTO-SYNC',
+            version: 'v6.0.4-ROBUST-DETECTION',
             browserPerm: typeof Notification !== 'undefined' ? Notification.permission : 'unsupported',
             swState: swState,
             notifStatus: notif[`${prefix}status`] || 'pending',
@@ -270,6 +270,7 @@ export const ClientHomePage = () => {
                 ? new Date(fcmDebug.timestamp).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
                 : null,
             ua: ctx.ua || 'N/A',
+            vendor: ctx.vendor || 'Desconocido',
             token: token ? `${token.substring(0, 8)}...${token.substring(token.length - 8)}` : 'VACÍO',
             fcmError: userData.lastFcmError || null,
             lastPush: lastPushRx,
@@ -322,6 +323,39 @@ export const ClientHomePage = () => {
     }, []);
     const isMobile = isMobileDevice || isCondensed;
 
+    // --- 🎯 UNIFIED PUSH RESULT HANDLER v6.0.4 ---
+    const processPushResult = async (resultStatus: 'SUCCESS' | 'DENIED' | 'NO_PROMPT' | 'NO_TOKEN' | 'ERROR', extraCtx?: any) => {
+        const ctx = extraCtx || getDeviceContext();
+        const strategy = getPushStrategy();
+        const now = new Date().toISOString();
+
+        console.log(`[FCM] Processing Unified Result: ${resultStatus}`, ctx);
+
+        // 🔄 FALLBACK AGRESIVO: Si no hay prompt o no hay token, forzamos instalación
+        if (resultStatus === 'NO_PROMPT' || resultStatus === 'NO_TOKEN') {
+            const isSamsung = ctx.isSamsung;
+            const msg = isSamsung 
+                ? 'Samsung bloqueó el aviso. Usa la App instalada ⬇️'
+                : 'Tu navegador bloqueó el aviso. Instala la App para activar.';
+            
+            toast.error(msg, { duration: 8000, icon: '📲' });
+            
+            setGloriaMode('install');
+            setShowPWAAdvantages(true);
+        }
+
+        // 📊 PERSISTENCIA CENTRALIZADA
+        if (user?.uid) {
+            await updateDoc(doc(db, 'users', user.uid), {
+                lastPushResult: resultStatus,
+                lastPushDate: now,
+                deviceContext: ctx,
+                pushStrategy: strategy,
+                lastSeen: now
+            }).catch(() => {});
+        }
+    };
+
     const handleRequestNativePermission = async () => {
         const strategy = getPushStrategy();
         const ctx = getDeviceContext();
@@ -345,17 +379,17 @@ export const ClientHomePage = () => {
         try {
             const initialPermission = typeof Notification !== 'undefined' ? Notification.permission : 'default';
 
-            // 1. Pedir permiso DIRECTO (Gesto puro)
+            // 1. Pedir permiso DIRECTO
             const permission = await Notification.requestPermission();
-            console.log('[FCM] Resultado Permiso:', permission);
+            console.log('[FCM] Resultado Permiso Manual:', permission);
 
             let resultStatus: 'SUCCESS' | 'DENIED' | 'NO_PROMPT' | 'NO_TOKEN' | 'ERROR' = 'SUCCESS';
 
             if (permission === 'denied') {
                 resultStatus = 'DENIED';
-                toast.error('Permiso denegado por el usuario.');
+                toast.error('Permiso denegado.');
             } else if (permission === 'default' && initialPermission === 'default') {
-                resultStatus = 'NO_PROMPT'; // Bloqueo silencioso Samsung
+                resultStatus = 'NO_PROMPT'; 
             } else if (permission !== 'granted') {
                 resultStatus = 'NO_PROMPT';
             }
@@ -363,45 +397,15 @@ export const ClientHomePage = () => {
             if (resultStatus === 'SUCCESS') {
                 toast.success('¡Permiso concedido!');
                 const fcmToken = await retrieveToken();
-                if (!fcmToken) {
-                    console.warn('[FCM] Permiso OK pero token falló.');
-                    resultStatus = 'NO_TOKEN';
-                }
+                if (!fcmToken) resultStatus = 'NO_TOKEN';
             }
 
-            // --- 🔄 FALLBACK AGRESIVO v6.0.3 ---
-            if (resultStatus === 'NO_PROMPT' || resultStatus === 'NO_TOKEN') {
-                const isSamsung = ctx.isSamsung;
-                const msg = isSamsung 
-                    ? 'Samsung bloqueó el aviso. Usa la App instalada ⬇️'
-                    : 'Tu navegador bloqueó el aviso. Instala la App para continuar.';
-                
-                toast.error(msg, { duration: 7000, icon: '📲' });
-                
-                // Forzamos visibilidad de Gloria con modo instalación
-                setGloriaMode('install');
-                setShowPWAAdvantages(true);
-            }
-
-            // 📊 PERSISTENCIA Y AUDITORÍA v6.0
-            if (user?.uid) {
-                updateDoc(doc(db, 'users', user.uid), {
-                    lastPushResult: resultStatus,
-                    lastPushDate: new Date().toISOString(),
-                    deviceContext: ctx,
-                    pushStrategy: strategy
-                }).catch(() => {});
-            }
+            // Delegamos al handler unificado
+            await processPushResult(resultStatus, ctx);
 
         } catch (err: any) {
             console.error("Error en flujo de detección:", err);
-            if (user?.uid) {
-                updateDoc(doc(db, 'users', user.uid), {
-                    lastPushResult: 'ERROR',
-                    lastFcmError: err.message || String(err),
-                    deviceContext: ctx
-                }).catch(() => {});
-            }
+            await processPushResult('ERROR', ctx);
         }
     };
 
@@ -727,9 +731,25 @@ export const ClientHomePage = () => {
 
     // Prompt Logic
 
-    // Prompt Logic
+    // --- CENTRAL BANNER ORCHESTRATOR ---
+    const handlePushAttemptResult = async (permission: NotificationPermission) => {
+        const ctx = getDeviceContext();
+        let resultStatus: 'SUCCESS' | 'DENIED' | 'NO_PROMPT' | 'NO_TOKEN' = 'SUCCESS';
+
+        if (permission === 'granted') {
+            const fcmToken = await retrieveToken();
+            if (!fcmToken) resultStatus = 'NO_TOKEN';
+        } else if (permission === 'denied') {
+            resultStatus = 'DENIED';
+        } else {
+            resultStatus = 'NO_PROMPT';
+        }
+
+        await processPushResult(resultStatus, ctx);
+    };
+
     const handlePermissionGranted = () => {
-        retrieveToken();
+        handlePushAttemptResult('granted');
     };
 
     // --- CENTRAL BANNER ORCHESTRATOR ---
@@ -874,6 +894,7 @@ export const ClientHomePage = () => {
                                 <div className="bg-white/5 p-2 rounded-xl">
                                     <p className="text-[7px] font-bold text-blue-300 uppercase tracking-widest mb-1">Detección UA:</p>
                                     <p className="text-[8px] font-mono break-all opacity-80 leading-tight">{diagnostic.ua}</p>
+                                    <p className="text-[7px] text-gray-400 mt-1 uppercase">Vendor: {diagnostic.vendor}</p>
                                 </div>
                                 <div className="bg-white/5 p-2 rounded-xl">
                                     <p className="text-[7px] font-bold text-blue-300 uppercase tracking-widest mb-1">Token Actual:</p>

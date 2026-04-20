@@ -1,6 +1,6 @@
 /**
  * UNIFIED SMART DETECTOR & PUSH STRATEGY ENGINE
- * Version 1.1 - Enhanced Samsung & iPadOS Detection
+ * Version 1.2 - Ultra Robust & Multi-Layer Detection
  */
 
 export function getDeviceContext() {
@@ -9,20 +9,24 @@ export function getDeviceContext() {
   }
 
   const ua = navigator.userAgent || "";
+  const vendor = navigator.vendor || "";
   const platform = navigator.platform || "";
   const maxTouchPoints = navigator.maxTouchPoints || 0;
 
-  // 📱 iOS (Strict & iPadOS 13+ support)
+  // 🍏 iOS / Apple (Multi-check)
+  const isApple = /Apple/i.test(vendor);
   const isIOS =
     /iPhone|iPad|iPod/i.test(ua) ||
-    (platform === "MacIntel" && maxTouchPoints > 1);
+    (platform === "MacIntel" && maxTouchPoints > 1) ||
+    isApple && /Mobile/i.test(ua);
 
-  // 🍏 Specific iPhone
-  const isIPhone = /iPhone/i.test(ua);
+  // 📱 Samsung Internet (Ultra Robust)
+  // Check for SamsungBrowser string OR Samsung vendor + Android
+  const isSamsung = 
+    /SamsungBrowser/i.test(ua) || 
+    (/Samsung/i.test(vendor) && /Android/i.test(ua)) ||
+    (/SAMSUNG/i.test(ua) && /Chrome/i.test(ua));
 
-  // 📱 Samsung Internet (More robust versioning)
-  // UA examples: "SamsungBrowser/29.0", "SamsungBrowser/20.0"
-  const isSamsung = /SamsungBrowser/i.test(ua);
   const samsungMatch = ua.match(/SamsungBrowser\/(\d+)/i);
   const samsungVersion = samsungMatch ? parseInt(samsungMatch[1], 10) : null;
 
@@ -41,12 +45,12 @@ export function getDeviceContext() {
 
   return {
     isIOS,
-    isIPhone,
     isSamsung,
     samsungVersion,
     isChrome,
     isPushSupported,
     ua,
+    vendor,
     platform,
     maxTouchPoints
   };
@@ -54,37 +58,32 @@ export function getDeviceContext() {
 
 export type PushStrategyMode = "INSTALL_REQUIRED" | "TRY_WITH_FALLBACK" | "DIRECT" | "UNSUPPORTED";
 
-export interface PushStrategy {
-  mode: PushStrategyMode;
-  reason: string;
-}
-
-export function getPushStrategy(): PushStrategy {
+export function getPushStrategy() {
   const ctx = getDeviceContext();
 
   if (ctx.isIOS) {
     return {
-      mode: "INSTALL_REQUIRED",
-      reason: "iOS requiere instalación para Push"
+      mode: "INSTALL_REQUIRED" as const,
+      reason: "iOS detectado (Requiere instalación)"
     };
   }
 
   if (ctx.isSamsung) {
     return {
-      mode: "TRY_WITH_FALLBACK",
-      reason: `Samsung Internet v${ctx.samsungVersion || '?'}`
+      mode: "TRY_WITH_FALLBACK" as const,
+      reason: `Samsung Internet ${ctx.samsungVersion || ''} detectado`
     };
   }
 
   if (!ctx.isPushSupported) {
     return {
-      mode: "UNSUPPORTED",
-      reason: "API Not Supported"
+      mode: "UNSUPPORTED" as const,
+      reason: "Navegador sin soporte de API Push"
     };
   }
 
   return {
-    mode: "DIRECT",
-    reason: "Soporte completo detectado"
+    mode: "DIRECT" as const,
+    reason: "Browser compatible (Chrome/Android)"
   };
 }

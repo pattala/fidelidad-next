@@ -299,37 +299,35 @@ export const ClientHomePage = () => {
             return;
         }
 
+        // 1. Petición INMEDIATA (Sin toasts previos para no romper el gesto del usuario)
         try {
-            toast.loading('Solicitando permiso...', { id: 'native-perm' });
-            
-            // 1. Petición PURA de permiso (Más compatible con Samsung)
-            const permission = await Notification.requestPermission();
-            
-            if (permission === 'granted') {
-                toast.loading('Configurando avisos...', { id: 'native-perm' });
-                
-                // 2. Solo si hay permiso, intentamos el motor de fondo
-                try {
-                    const registration = await navigator.serviceWorker.ready;
-                    const sub = await registration.pushManager.subscribe({
-                        userVisibleOnly: true,
-                        applicationServerKey: 'BHmqZhSCc-QcEmLflzdu228dg_dkTRmUm3jRb7mQjlw05sMTio0uc_MdZg0D_u1bHtAHegsNrkRziYNQIAuwirk'
-                    });
-                    console.log('[PUSH] Subscribed successfully:', sub);
-                } catch (pushErr) {
-                    console.warn('[PUSH] Subscription engine delayed:', pushErr);
+            const handlePermissionResult = async (permission: NotificationPermission) => {
+                if (permission === 'granted') {
+                    toast.success('¡Activado!', { id: 'native-perm' });
+                    // Solo después de tener el permiso, procesamos lo técnico
+                    try {
+                        const registration = await navigator.serviceWorker.ready;
+                        await registration.pushManager.subscribe({
+                            userVisibleOnly: true,
+                            applicationServerKey: 'BHmqZhSCc-QcEmLflzdu228dg_dkTRmUm3jRb7mQjlw05sMTio0uc_MdZg0D_u1bHtAHegsNrkRziYNQIAuwirk'
+                        });
+                    } catch (e) { console.warn('[FCM] Push sub error:', e); }
+                    retrieveToken();
+                } else if (permission === 'denied') {
+                    toast.error('Permiso denegado.', { id: 'native-perm' });
+                } else {
+                    toast.error('Acción cancelada.', { id: 'native-perm' });
                 }
+            };
 
-                toast.success('¡Activado con éxito!', { id: 'native-perm' });
-                retrieveToken();
-            } else if (permission === 'denied') {
-                toast.error('Permiso denegado en ajustes.', { id: 'native-perm' });
-            } else {
-                toast.error('Petición cancelada o bloqueada.', { id: 'native-perm' });
+            // Soporte para Promesa y Callback (Max compatibilidad Samsung/iOS)
+            const result = Notification.requestPermission(handlePermissionResult);
+            if (result && (result as any).then) {
+                (result as any).then(handlePermissionResult);
             }
         } catch (err: any) {
             console.error(err);
-            toast.error(`Error: ${err.message || 'Error al pedir permiso'}`, { id: 'native-perm' });
+            toast.error('Error al pedir permiso');
         }
     };
 

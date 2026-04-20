@@ -35,6 +35,7 @@ export const DashboardPage = () => {
     const [activityLimit, setActivityLimit] = useState(10);
     const [birthdaysOfToday, setBirthdaysOfToday] = useState<any[]>([]);
     const [expiringUsers, setExpiringUsers] = useState<any[]>([]);
+    const [clients, setClients] = useState<any[]>([]);
     const [config, setConfig] = useState<any>(null);
     const navigate = useNavigate();
     const [isBirthdayAlertVisible, setIsBirthdayAlertVisible] = useState(() => {
@@ -110,10 +111,12 @@ export const DashboardPage = () => {
             const currentYear = today.getFullYear().toString();
 
             let totalAccumulatedBalance = 0;
+            const allClients: any[] = [];
             snap.forEach(d => {
                 const data = d.data();
                 const isGhost = !data.name && !data.nombre && !data.dni;
                 if (data.role !== 'admin' && !isGhost) {
+                    allClients.push({ id: d.id, ...data });
                     clientCount++;
                     const userPoints = Number(data.points ?? data.puntos ?? 0);
                     if (!isNaN(userPoints)) points += userPoints;
@@ -150,6 +153,7 @@ export const DashboardPage = () => {
 
             setBirthdaysOfToday(todaysSelectedBirthdays);
             setExpiringUsers(usersExpiring);
+            setClients(allClients);
             setStats(prev => ({ ...prev, usersCount: clientCount, totalPoints: points, totalAccumulatedBalance }));
             setLoading(false);
         });

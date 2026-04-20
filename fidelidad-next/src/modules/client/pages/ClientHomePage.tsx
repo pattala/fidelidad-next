@@ -192,7 +192,7 @@ export const ClientHomePage = () => {
     };
 
     // --- PWA INSTALL LOGIC ---
-    const { isStandalone, handleInstall, isIOS: isIOSHook, isInstalled } = usePWAInstall();
+    const { deferredPrompt, isStandalone, handleInstall, isIOS: isIOSHook, isInstalled } = usePWAInstall();
     const [showPWAAdvantages, setShowPWAAdvantages] = useState(false);
     const [gloriaMode, setGloriaMode] = useState<'permissions' | 'install'>('install');
     const [isIOS, setIsIOS] = useState(false);

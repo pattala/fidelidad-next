@@ -300,32 +300,32 @@ export const ClientHomePage = () => {
         }
 
         try {
-            toast.loading('Preparando motor...', { id: 'native-perm' });
-            
-            // 1. Asegurar SW Ready
-            const registration = await navigator.serviceWorker.ready;
-            
             toast.loading('Solicitando permiso...', { id: 'native-perm' });
             
-            // 2. Intento de suscripción directa (fuerza el cartel en Android)
-            try {
-                const sub = await registration.pushManager.subscribe({
-                    userVisibleOnly: true,
-                    applicationServerKey: 'BHmqZhSCc-QcEmLflzdu228dg_dkTRmUm3jRb7mQjlw05sMTio0uc_MdZg0D_u1bHtAHegsNrkRziYNQIAuwirk'
-                });
-                console.log('[PUSH] Subscribed successfully:', sub);
-            } catch (pushErr) {
-                console.warn('[PUSH] Subscription failed, falling back to basic permission:', pushErr);
-            }
-
-            // 3. Chequeo final
+            // 1. Petición PURA de permiso (Más compatible con Samsung)
             const permission = await Notification.requestPermission();
             
             if (permission === 'granted') {
-                toast.success('¡Permiso otorgado!', { id: 'native-perm' });
+                toast.loading('Configurando avisos...', { id: 'native-perm' });
+                
+                // 2. Solo si hay permiso, intentamos el motor de fondo
+                try {
+                    const registration = await navigator.serviceWorker.ready;
+                    const sub = await registration.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: 'BHmqZhSCc-QcEmLflzdu228dg_dkTRmUm3jRb7mQjlw05sMTio0uc_MdZg0D_u1bHtAHegsNrkRziYNQIAuwirk'
+                    });
+                    console.log('[PUSH] Subscribed successfully:', sub);
+                } catch (pushErr) {
+                    console.warn('[PUSH] Subscription engine delayed:', pushErr);
+                }
+
+                toast.success('¡Activado con éxito!', { id: 'native-perm' });
                 retrieveToken();
+            } else if (permission === 'denied') {
+                toast.error('Permiso denegado en ajustes.', { id: 'native-perm' });
             } else {
-                toast.error(`Permiso: ${permission}`, { id: 'native-perm' });
+                toast.error('Petición cancelada o bloqueada.', { id: 'native-perm' });
             }
         } catch (err: any) {
             console.error(err);

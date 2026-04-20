@@ -183,6 +183,13 @@ export const ClientHomePage = () => {
         return isMobileUA || isIPadOS;
     }, []);
 
+    // --- 🔍 ROBUST SAMSUNG DETECTION ---
+    const isSamsungInternet = () => /SamsungBrowser\/\d+/i.test(navigator.userAgent);
+    const getSamsungVersion = () => {
+        const match = navigator.userAgent.match(/SamsungBrowser\/(\d+)/i);
+        return match ? parseInt(match[1], 10) : null;
+    };
+
     // --- PWA INSTALL LOGIC ---
     const { isStandalone, handleInstall, isIOS: isIOSHook, isInstalled } = usePWAInstall();
     const [showPWAAdvantages, setShowPWAAdvantages] = useState(false);
@@ -256,7 +263,7 @@ export const ClientHomePage = () => {
 
         return {
             device: dk.toUpperCase(),
-            version: 'v5.7-PROTOCOL-Z',
+            version: 'v5.8-SMART-DETECTION',
             browserPerm: typeof Notification !== 'undefined' ? Notification.permission : 'unsupported',
             swState: swState,
             notifStatus: notif[`${prefix}status`] || 'pending',
@@ -299,31 +306,70 @@ export const ClientHomePage = () => {
             return;
         }
 
-        // --- 🧪 SOLUCIÓN MAESTRA v5.6 (Directa, limpia y sin redundancias) ---
+        // --- 🧪 SISTEMA DE DETECCIÓN INTELIGENTE v5.8 ---
         try {
-            // 1. Pedir permiso DIRECTO (Promise-based) como primera acción tras el clic
-            console.log('[FCM] Solicitando permiso (Master Fix)...');
-            const permission = await Notification.requestPermission();
-            
-            console.log('[FCM] Resultado de permiso:', permission);
+            const isSamsung = isSamsungInternet();
+            const version = getSamsungVersion();
+            const initialPermission = typeof Notification !== 'undefined' ? Notification.permission : 'default';
 
-            if (permission !== 'granted') {
-                if (permission === 'denied') toast.error('Permiso denegado.', { id: 'native-perm' });
-                return;
+            console.log('[FCM] Detección:', { isSamsung, version, initialPermission });
+
+            // 1. Pedir permiso DIRECTO
+            const permission = await Notification.requestPermission();
+            console.log('[FCM] Resultado Real:', permission);
+
+            // ANALIZAR RESULTADO
+            let resultStatus: 'SUCCESS' | 'DENIED' | 'NO_PROMPT' | 'NO_TOKEN' | 'ERROR' = 'SUCCESS';
+
+            if (permission === 'denied') {
+                resultStatus = 'DENIED';
+                toast.error('Permiso denegado por el usuario.', { id: 'native-perm' });
+            } else if (permission === 'default' && initialPermission === 'default') {
+                // El navegador ignoró el pedido (Silencio de Samsung v29)
+                resultStatus = 'NO_PROMPT';
+            } else if (permission !== 'granted') {
+                resultStatus = 'NO_PROMPT';
             }
 
-            // 2. Solo después del permiso, hacemos lo async
-            toast.success('¡Activado!', { id: 'native-perm' });
-            
-            // 3. Dejamos que Firebase Messaging maneje el subscribe internamente
-            await retrieveToken();
+            if (resultStatus === 'SUCCESS') {
+                toast.success('¡Permiso concedido!', { id: 'native-perm' });
+                
+                // Intentar obtener Token
+                const fcmToken = await retrieveToken();
+                if (!fcmToken) {
+                    resultStatus = 'NO_TOKEN';
+                }
+            }
+
+            // --- 🔄 GESTIÓN DE FALLBACKS ---
+            if (resultStatus === 'NO_PROMPT' || resultStatus === 'NO_TOKEN') {
+                const reason = resultStatus === 'NO_PROMPT' ? 'bloqueó el cartel' : 'falló el token';
+                console.warn(`[FCM] Fallback activado: El navegador ${reason}.`);
+                
+                toast.error('Tu navegador bloqueó el aviso. Usa la App instalada.', { id: 'native-perm', duration: 5000 });
+                
+                // Disparamos el modal de PWA con modo específico
+                setGloriaMode('install');
+                setShowPWAAdvantages(true);
+            }
+
+            // Log de métricas en Firestore
+            if (user?.uid) {
+                updateDoc(doc(db, 'users', user.uid), {
+                    lastPushResult: resultStatus,
+                    lastPushUA: navigator.userAgent,
+                    lastPushDate: new Date().toISOString()
+                }).catch(() => {});
+            }
 
         } catch (err: any) {
-            console.error("Error en requestPermission:", err);
-            const errorMsg = err.message || String(err);
-            updateDoc(doc(db, 'users', user.uid), {
-                lastFcmError: errorMsg
-            }).catch(() => {});
+            console.error("Error en flujo de detección:", err);
+            if (user?.uid) {
+                updateDoc(doc(db, 'users', user.uid), {
+                    lastPushResult: 'ERROR',
+                    lastFcmError: err.message || String(err)
+                }).catch(() => {});
+            }
         }
     };
 

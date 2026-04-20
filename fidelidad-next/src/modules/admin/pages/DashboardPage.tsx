@@ -436,6 +436,38 @@ export const DashboardPage = () => {
                     </div>
                 </div>
 
+                {/* v6.0 - KPI DE NOTIFICACIONES PUSH */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between transition hover:shadow-md cursor-pointer group" onClick={() => navigate('/admin/clients')}>
+                    <div className="flex-1">
+                        <h3 className="text-gray-500 text-sm font-medium mb-1">Salud Push</h3>
+                        {loading ? <p className="text-lg font-bold">...</p> : (
+                            <div className="flex flex-col">
+                                <div className="flex items-center gap-2">
+                                    <p className="text-2xl font-black text-gray-800">
+                                        {(() => {
+                                            const totalWithToken = clients.filter(c => (c.fcmTokens?.length || 0) > 0).length;
+                                            return stats.usersCount > 0 ? Math.round((totalWithToken / stats.usersCount) * 100) : 0;
+                                        })()}%
+                                    </p>
+                                    <span className="text-[10px] bg-green-50 text-green-600 px-1.5 py-0.5 rounded-full font-black">ACTIVOS</span>
+                                </div>
+                                <div className="mt-1 w-full bg-gray-100 h-1 rounded-full overflow-hidden">
+                                     <div 
+                                        className="bg-green-500 h-full transition-all duration-1000" 
+                                        style={{ width: `${(() => {
+                                            const totalWithToken = clients.filter(c => (c.fcmTokens?.length || 0) > 0).length;
+                                            return stats.usersCount > 0 ? (totalWithToken / stats.usersCount) * 100 : 0;
+                                        })()}%` }} 
+                                    />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    <div className="bg-orange-50 p-3 rounded-xl text-orange-600 group-hover:scale-110 transition-transform">
+                        <CheckCircle size={24} />
+                    </div>
+                </div>
+
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between transition hover:shadow-md">
                     <div>
                         <h3 className="text-gray-500 text-sm font-medium mb-1">Puntos en Circulación</h3>

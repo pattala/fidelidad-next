@@ -34,6 +34,7 @@ import { CampaignActionModal } from '../components/CampaignActionModal';
 import { useClientAuth } from '../contexts/ClientAuthContext';
 import { usePWAInstall } from '../../../hooks/usePWAInstall';
 import { PWAInstallAdvantageModal } from '../components/PWAInstallAdvantageModal';
+import { getDeviceContext, getPushStrategy } from '../../../utils/deviceUtils';
 const RecentActivityList = ({ uid }: { uid?: string }) => {
     const [activities, setActivities] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -261,22 +262,27 @@ export const ClientHomePage = () => {
         
         const fcmDebug = userData[`fcmDebug_${dk}`] || {};
 
+        const ctx = getDeviceContext();
+        const strategy = getPushStrategy();
+
         return {
             device: dk.toUpperCase(),
-            version: 'v5.9-VISUAL-PARITY',
+            version: 'v6.0-UNIFIED-STRATEGY',
             browserPerm: typeof Notification !== 'undefined' ? Notification.permission : 'unsupported',
             swState: swState,
             notifStatus: notif[`${prefix}status`] || 'pending',
             fcmTime: fcmDebug.timestamp 
                 ? new Date(fcmDebug.timestamp).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
                 : null,
-            ua: typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A',
+            ua: ctx.ua || 'N/A',
             token: token ? `${token.substring(0, 8)}...${token.substring(token.length - 8)}` : 'VACÍO',
             fcmError: userData.lastFcmError || null,
             lastPush: lastPushRx,
-            pwaPrompt: deferredPrompt ? 'LISTO' : (isStandalone ? 'INSTALADA' : 'BLOQUEADO')
+            pwaPrompt: deferredPrompt ? 'LISTO' : (isStandalone ? 'INSTALADA' : 'BLOQUEADO'),
+            strategy: strategy.mode,
+            strategyReason: strategy.reason
         };
-    }, [userData, config, isMobileDevice, token, swState, lastPushRx]);
+    }, [userData, config, isMobileDevice, token, swState, lastPushRx, deferredPrompt, isStandalone]);
 
     // Track PWA installation in Firestore
     useEffect(() => {
@@ -302,64 +308,64 @@ export const ClientHomePage = () => {
     const isMobile = isMobileDevice || isCondensed;
 
     const handleRequestNativePermission = async () => {
-        if (typeof Notification === 'undefined') {
-            toast.error('Este navegador no soporta notificaciones.');
+        const strategy = getPushStrategy();
+        const ctx = getDeviceContext();
+        
+        console.log('[FCM] Iniciando flujo con estrategia:', strategy);
+
+        // 🧠 MOTOR DE DECISIÓN v6.0
+        if (strategy.mode === 'UNSUPPORTED') {
+            toast.error('Tu navegador no soporta notificaciones.');
             return;
         }
 
-        // --- 🧪 SISTEMA DE DETECCIÓN INTELIGENTE v5.8 ---
+        if (strategy.mode === 'INSTALL_REQUIRED') {
+            toast('En iPhone debes instalar la App para activar notificaciones', { icon: '📲', duration: 5000 });
+            setGloriaMode('install');
+            setShowPWAAdvantages(true);
+            return;
+        }
+
+        // --- FLUJO ACTIVO (Chrome / Samsung fallback) ---
         try {
-            const isSamsung = isSamsungInternet();
-            const version = getSamsungVersion();
             const initialPermission = typeof Notification !== 'undefined' ? Notification.permission : 'default';
 
-            console.log('[FCM] Detección:', { isSamsung, version, initialPermission });
-
-            // 1. Pedir permiso DIRECTO
+            // 1. Pedir permiso DIRECTO (Gesto puro)
             const permission = await Notification.requestPermission();
-            console.log('[FCM] Resultado Real:', permission);
+            console.log('[FCM] Resultado Permiso:', permission);
 
-            // ANALIZAR RESULTADO
             let resultStatus: 'SUCCESS' | 'DENIED' | 'NO_PROMPT' | 'NO_TOKEN' | 'ERROR' = 'SUCCESS';
 
             if (permission === 'denied') {
                 resultStatus = 'DENIED';
-                toast.error('Permiso denegado por el usuario.', { id: 'native-perm' });
+                toast.error('Permiso denegado por el usuario.');
             } else if (permission === 'default' && initialPermission === 'default') {
-                // El navegador ignoró el pedido (Silencio de Samsung v29)
-                resultStatus = 'NO_PROMPT';
+                resultStatus = 'NO_PROMPT'; // Bloqueo silencioso Samsung
             } else if (permission !== 'granted') {
                 resultStatus = 'NO_PROMPT';
             }
 
             if (resultStatus === 'SUCCESS') {
-                toast.success('¡Permiso concedido!', { id: 'native-perm' });
-                
-                // Intentar obtener Token
+                toast.success('¡Permiso concedido!');
                 const fcmToken = await retrieveToken();
-                if (!fcmToken) {
-                    resultStatus = 'NO_TOKEN';
-                }
+                if (!fcmToken) resultStatus = 'NO_TOKEN';
             }
 
-            // --- 🔄 GESTIÓN DE FALLBACKS ---
+            // Fallback automático para Samsung o fallos de token
             if (resultStatus === 'NO_PROMPT' || resultStatus === 'NO_TOKEN') {
-                const reason = resultStatus === 'NO_PROMPT' ? 'bloqueó el cartel' : 'falló el token';
-                console.warn(`[FCM] Fallback activado: El navegador ${reason}.`);
-                
-                toast.error('Tu navegador bloqueó el aviso. Usa la App instalada.', { id: 'native-perm', duration: 5000 });
-                
-                // Disparamos el modal de PWA con modo específico
+                console.warn(`[FCM] Fallback activado: ${resultStatus}`);
+                toast.error('Navegador bloqueado. Usa la App instalada.', { duration: 5000 });
                 setGloriaMode('install');
                 setShowPWAAdvantages(true);
             }
 
-            // Log de métricas en Firestore
+            // 📊 PERSISTENCIA Y AUDITORÍA v6.0
             if (user?.uid) {
                 updateDoc(doc(db, 'users', user.uid), {
                     lastPushResult: resultStatus,
-                    lastPushUA: navigator.userAgent,
-                    lastPushDate: new Date().toISOString()
+                    lastPushDate: new Date().toISOString(),
+                    deviceContext: ctx,
+                    pushStrategy: strategy
                 }).catch(() => {});
             }
 
@@ -368,7 +374,8 @@ export const ClientHomePage = () => {
             if (user?.uid) {
                 updateDoc(doc(db, 'users', user.uid), {
                     lastPushResult: 'ERROR',
-                    lastFcmError: err.message || String(err)
+                    lastFcmError: err.message || String(err),
+                    deviceContext: ctx
                 }).catch(() => {});
             }
         }

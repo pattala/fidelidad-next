@@ -932,7 +932,7 @@ export const ClientsPage = () => {
                                 <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Socio / Perfil</th>
                                 <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Contacto</th>
                                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Dirección / Maps</th>
-                                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">Permisos</th>
+                                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">Dispositivo / Push</th>
                                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">Actividad / Visitas</th>
                                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">Puntos</th>
                                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">Dinero a Favor</th>
@@ -1056,7 +1056,7 @@ export const ClientsPage = () => {
                                                 <span className={`text-[7px] font-black uppercase ${
                                                     (() => {
                                                         const hasToken = !!(client.fcmToken || (client.fcmTokens && client.fcmTokens.length > 0));
-                                                        const s = client.permissions?.notifications?.status;
+                                                        const s = client.permissions?.notifications?.status || (client.permissions?.notifications as any)?.mobile_status || (client.permissions?.notifications as any)?.pc_status;
                                                         if (s === 'granted' && hasToken) return 'text-purple-600';
                                                         if (s === 'granted' && !hasToken) return 'text-orange-500';
                                                         if (s === 'blocked') return 'text-red-400';
@@ -1072,6 +1072,22 @@ export const ClientsPage = () => {
                                                         if (s === 'later' || s === 'later_phase1_complete') return 'ESPERA';
                                                         return 'PEND';
                                                     })()}
+                                                </span>
+                                            </div>
+
+                                            {/* v6.0 - Detalle de Dispositivo y Estrategia */}
+                                            <div className="flex flex-col items-center gap-1 border-l border-gray-100 pl-2 ml-1" title={client.deviceContext?.ua || 'UA Desconocido'}>
+                                                <div className={`p-1.5 rounded-md text-gray-500 bg-gray-50 flex items-center justify-center font-bold text-[10px]`}>
+                                                    {client.deviceContext?.isIOS ? (
+                                                        <span className="text-gray-900" title="iPhone/iPad">🍎</span>
+                                                    ) : client.deviceContext?.isSamsung ? (
+                                                        <span className="text-blue-600" title="Samsung Internet">S</span>
+                                                    ) : (
+                                                        <span className="text-gray-400" title="Chrome/Otros">C</span>
+                                                    )}
+                                                </div>
+                                                <span className={`text-[7px] font-black uppercase ${client.lastPushResult === 'SUCCESS' ? 'text-green-600' : (client.lastPushResult === 'NO_PROMPT' ? 'text-orange-500' : 'text-gray-400')}`}>
+                                                    {client.lastPushResult || 'N/A'}
                                                 </span>
                                             </div>
 

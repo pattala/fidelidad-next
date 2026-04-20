@@ -173,15 +173,25 @@ export async function sendNotificationInternal({ db, title, body: msgBody, token
         // Si se incluye 'notification', Chrome bypasea el SW en background y no muestra la alerta.
         // Con data-only, el SW siempre procesa el push y showNotification() funciona en todos los estados.
         const message = {
+            notification: {
+                title: data.title,
+                body: data.body
+            },
             data: {
                 ...data,
                 icon: iconUrl,
                 badge: iconUrl,
                 image: extraData?.image ? getAbsoluteUrl(extraData.image, PWA_URL) : ""
             },
-            android: { priority: "high" },
+            android: { 
+                priority: "high",
+                notification: {
+                    sound: "default",
+                    channelId: "fidelidad-notif-channel"
+                }
+            },
             webpush: {
-                headers: { Urgency: "high" },   // Nota: el header correcto es "Urgency" (no "Urgent")
+                headers: { Urgency: "high" },
                 fcmOptions: { link: data.url || "/inbox" }
             }
         };

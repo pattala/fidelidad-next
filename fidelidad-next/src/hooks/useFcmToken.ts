@@ -56,18 +56,19 @@ export const useFcmToken = () => {
                         const storedToken = userData[`fcmToken_${deviceKey}`];
                         const currentStatus = userData.permissions?.notifications?.[`${deviceKey}_status`];
                         
-                        if (storedToken !== currentToken || currentStatus !== 'granted') {
-                            console.log(`[FCM] Token changed or status desync on ${deviceKey}. Updating...`);
-                            await updateDoc(userRef, {
-                                fcmToken: currentToken,
-                                [`fcmToken_${deviceKey}`]: currentToken,
-                                lastFcmUpdate: serverTimestamp(),
-                                fcmState: `registered_${deviceKey}_ok`,
-                                'permissions.notifications.status': 'granted',
-                                [`permissions.notifications.${deviceKey}_status`]: 'granted',
-                                lastActive: serverTimestamp()
-                            });
-                        }
+                         if (storedToken !== currentToken || currentStatus !== 'granted') {
+                             console.log(`[FCM] Token changed or status desync on ${deviceKey}. Updating...`);
+                             await updateDoc(userRef, {
+                                 fcmToken: currentToken,
+                                 fcmTokens: arrayUnion(currentToken),
+                                 [`fcmToken_${deviceKey}`]: currentToken,
+                                 lastFcmUpdate: serverTimestamp(),
+                                 fcmState: `registered_${deviceKey}_ok`,
+                                 'permissions.notifications.status': 'granted',
+                                 [`permissions.notifications.${deviceKey}_status`]: 'granted',
+                                 lastActive: serverTimestamp()
+                             });
+                         }
                     }
                 }
             } else {

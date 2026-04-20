@@ -256,7 +256,7 @@ export const ClientHomePage = () => {
 
         return {
             device: dk.toUpperCase(),
-            version: 'v5.2-LEGACY-STABILITY',
+            version: 'v5.3-PREHEAT',
             browserPerm: typeof Notification !== 'undefined' ? Notification.permission : 'unsupported',
             swState: swState,
             notifStatus: notif[`${prefix}status`] || 'pending',
@@ -299,12 +299,18 @@ export const ClientHomePage = () => {
             return;
         }
 
-        // 1. Petición INMEDIATA (Sin toasts previos para no romper el gesto del usuario)
+        // 1. "Pre-calentamos" el motor (Engine Preheat)
         try {
+            toast.loading('Sincronizando motor...', { id: 'native-perm' });
+            if ('serviceWorker' in navigator) {
+                const registration = await navigator.serviceWorker.ready;
+                console.log('[FCM] SW Ready for permission:', registration.scope);
+            }
+
             const handlePermissionResult = async (permission: NotificationPermission) => {
                 if (permission === 'granted') {
                     toast.success('¡Activado!', { id: 'native-perm' });
-                    // Solo después de tener el permiso, procesamos lo técnico
+                    // Proceso técnico de suscripción
                     try {
                         const registration = await navigator.serviceWorker.ready;
                         await registration.pushManager.subscribe({
@@ -320,7 +326,6 @@ export const ClientHomePage = () => {
                 }
             };
 
-            // Soporte para Promesa y Callback (Max compatibilidad Samsung/iOS)
             const result = Notification.requestPermission(handlePermissionResult);
             if (result && (result as any).then) {
                 (result as any).then(handlePermissionResult);

@@ -162,6 +162,16 @@ export const ClientHomePage = () => {
     const lastActionTs = useRef<number>(0);
     const initialLoadTs = useRef<number>(Date.now());
     const [readyForBanner, setReadyForBanner] = useState(false);
+    useEffect(() => {
+        if (wasJustInstalled) {
+            console.log('🎉 PWA Just Installed! Showing success modal.');
+            setGloriaMode('install'); // Reuse install mode or we could add 'success'
+            setShowPWAAdvantages(true);
+            toast.success('¡App instalada! Ábrela desde tu inicio.', { icon: '📲', duration: 8000 });
+            // reset it so it doesn't keep popping up
+            setWasJustInstalled(false);
+        }
+    }, [wasJustInstalled]);
     const [hideDiagnostic, setHideDiagnostic] = useState(() => {
         if (typeof sessionStorage === 'undefined') return false;
         return sessionStorage.getItem('rampet_hide_diagnostic') === 'true';
@@ -187,10 +197,9 @@ export const ClientHomePage = () => {
     // Detección unificada v6.0.3 (Motor centralizado)
 
     // --- PWA INSTALL LOGIC ---
-    const { deferredPrompt, isStandalone, handleInstall, isIOS: isIOSHook, isInstalled } = usePWAInstall();
+    const { deferredPrompt, handleInstall, isIOS, isStandalone, isMobile, isInstalled, wasJustInstalled, setWasJustInstalled } = usePWAInstall();
     const [showPWAAdvantages, setShowPWAAdvantages] = useState(false);
     const [gloriaMode, setGloriaMode] = useState<'permissions' | 'install'>('install');
-    const [isIOS, setIsIOS] = useState(false);
     const [lastPushRx, setLastPushRx] = useState<string | null>(() => {
         if (typeof localStorage === 'undefined') return null;
         return localStorage.getItem('rampet_last_push_rx');

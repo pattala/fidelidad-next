@@ -20,6 +20,8 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
     const [handledSteps, setHandledSteps] = useState<string[]>([]);
     const [alreadyHandledInSession, setAlreadyHandledInSession] = useState(false);
     const [simTrigger, setSimTrigger] = useState(0);
+    const [loading, setLoading] = useState(false);
+    const [isRepairMode, setIsRepairMode] = useState(false);
 
     // Listen for simulation changes (Date Simulator)
     useEffect(() => {
@@ -86,14 +88,22 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const maxNotif = isMobile ? (safeMessaging.maxLargePromptDismissalsMobile) : (safeMessaging.maxLargePromptDismissalsPC);
         const notifNextPrompt = permissions.notifications?.[`${prefix}nextPrompt`] || 0;
         const isNotifCooldown = notifNextPrompt > TimeService.now().getTime();
+        
+        // --- 🛡️ ROBUST SYNC CHECK v6.1 ---
+        // If browser says "granted" but DB has no token for this prefix, it's a desync.
+        const tokenInDb = userData[`fcmToken_${isMobile ? 'mobile' : 'pc'}`];
+        const isDesynced = browserNotifState === 'granted' && !tokenInDb;
 
-        const canShowNotif = (notifStatus === 'pending' || notifStatus === 'later' || notifStatus === 'later_phase1_complete' || notifStatus === 'blocked') &&
+        const canShowNotif = (notifStatus === 'pending' || notifStatus === 'later' || notifStatus === 'later_phase1_complete' || notifStatus === 'blocked' || isDesynced) &&
             notifAttempts < (Number(maxNotif) || 2) &&
             !isNotifCooldown &&
-            browserNotifState === 'default' &&
+            (browserNotifState === 'default' || isDesynced) &&
             !currentHandled.includes('notifications');
 
-        if (canShowNotif) return 'notifications';
+        if (canShowNotif) {
+            if (isDesynced) setIsRepairMode(true);
+            return 'notifications';
+        }
 
         const geoStatus = permissions.geolocation?.[`${prefix}status`] || 'pending';
         const geoAttempts = permissions.geolocation?.[counterKey] || 0;
@@ -101,13 +111,12 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
         const isGeoCooldown = geoNextPrompt > TimeService.now().getTime();
         const maxGeo = safeMessaging.maxLargePromptDismissalsMobile;
         
-        // REGLA 6.0.7: No mostrar Geo si Push está en estado crítico (pero aún no manejado)
+        // DECOUPLED GEO: No longer requires Notification.permission === 'granted'
         const canShowGeo = isMobile &&
             (geoStatus === 'pending' || geoStatus === 'later') &&
             geoAttempts < (Number(maxGeo) || 2) &&
             !isGeoCooldown &&
-            !currentHandled.includes('geolocation') &&
-            browserNotifState === 'granted'; // Solo si Push ya está OK
+            !currentHandled.includes('geolocation');
 
         if (canShowGeo) return 'geolocation';
 
@@ -140,17 +149,31 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
     const handleYes = async () => {
         const currentStep = step;
         if (currentStep === 'notifications') {
+            setLoading(true);
             try {
                 if (typeof Notification === 'undefined') {
                     console.warn("Notifications API not available.");
                     moveToNextOrEnd('notifications');
                     return;
                 }
-                const permission = await Notification.requestPermission();
+                
+                let permission = Notification.permission;
+                if (permission !== 'granted') {
+                    permission = await Notification.requestPermission();
+                }
+
                 if (permission === 'granted') {
                     await updatePermission('notifications', 'granted');
-                    toast.success('¡Activado!');
-                    onNotificationGranted(); // This calls retrieveToken
+                    
+                    // --- 🔄 WAIT FOR TOKEN LOGIC ---
+                    const resultToken = await (onNotificationGranted() as any);
+                    
+                    if (resultToken) {
+                        toast.success('¡Conectado correctamente!');
+                    } else {
+                        toast.error('Permiso OK, pero no se pudo sincronizar el dispositivo. Intenta instalando la App.', { duration: 5000 });
+                        // If it fails, we still move on to Geo so we don't block the onboarding
+                    }
                     moveToNextOrEnd('notifications');
                 } else {
                     // SI ES DENIED O BLOCKED: Triggereamos el handler de fallo de Home
@@ -162,8 +185,11 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
             } catch (e) {
                 console.error("Error requesting notification permission:", e);
                 moveToNextOrEnd('notifications');
+            } finally {
+                setLoading(false);
             }
         } else if (currentStep === 'geolocation') {
+            setLoading(true);
             if ('geolocation' in navigator) {
                 navigator.geolocation.getCurrentPosition(
                     async (pos) => {
@@ -176,14 +202,17 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
                             lastLocation: { lat: pos.coords.latitude, lng: pos.coords.longitude, timestamp: new Date(ts) }
                         });
                         toast.success('Ubicación activada');
+                        setLoading(false);
                         moveToNextOrEnd('geolocation');
                     },
                     async () => {
+                        setLoading(false);
                         handleLater();
                     },
                     { enableHighAccuracy: false, timeout: 6000, maximumAge: 60000 }
                 );
             } else {
+                setLoading(false);
                 moveToNextOrEnd('geolocation');
             }
         }
@@ -244,28 +273,49 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
             <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl animate-in-up relative overflow-hidden border border-gray-100">
                 <div className={`absolute -top-12 -right-12 w-32 h-32 rounded-full blur-3xl opacity-20 ${isGeo ? 'bg-emerald-500' : 'bg-purple-500'}`}></div>
                 <div className="text-center relative z-10">
-                    <div className={`w-20 h-20 mx-auto rounded-3xl shadow-xl flex items-center justify-center mb-6 transition-transform transform rotate-3 ${isGeo ? 'bg-emerald-600 text-white shadow-emerald-200' : 'bg-purple-600 text-white shadow-purple-200'}`}>
-                        {isGeo ? <MapPin size={38} className="animate-bounce-slow" /> : <Bell size={38} className="animate-bounce-slow" />}
+                    <div className={`w-20 h-20 mx-auto rounded-3xl shadow-xl flex items-center justify-center mb-6 transition-transform transform rotate-3 ${isGeo ? 'bg-emerald-600 text-white shadow-emerald-200' : (isRepairMode ? 'bg-amber-500 text-white shadow-amber-200' : 'bg-purple-600 text-white shadow-purple-200')}`}>
+                        {loading ? (
+                            <div className="w-10 h-10 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        ) : (
+                            isGeo ? <MapPin size={38} className="animate-bounce-slow" /> : <Bell size={38} className="animate-bounce-slow" />
+                        )}
                     </div>
+                    
                     <h3 className="text-2xl font-black text-gray-800 leading-tight mb-3 uppercase tracking-tight">
-                        {isGeo ? 'Ubicación' : 'Avisos de Premios'}
+                        {isGeo ? 'Ubicación' : (isRepairMode ? 'Sincronizar avisos' : 'Avisos de Premios')}
                     </h3>
+                    
                     <p className="text-sm text-gray-500 font-medium leading-relaxed mb-6 px-2">
-                        {isGeo ? 'Descubre beneficios exclusivos cerca tuyo.' : 'Entérate al instante cuando ganes puntos o premios exclusivos.'}
+                        {loading ? 'Procesando, espera un momento...' : (
+                            isGeo 
+                                ? 'Descubre beneficios exclusivos cerca tuyo.' 
+                                : (isRepairMode 
+                                    ? 'Detectamos que tu dispositivo no está recibiendo los avisos correctamente. Vamos a re-conectarlo.'
+                                    : 'Entérate al instante cuando ganes puntos o premios exclusivos.')
+                        )}
                         <br />
-                        <span className="text-[10px] opacity-70 mt-1 block italic font-bold">También podés activarlo desde tu Perfil.</span>
+                        {!loading && <span className="text-[10px] opacity-70 mt-1 block italic font-bold">También podés activarlo desde tu Perfil.</span>}
                     </p>
 
                     <div className="space-y-3">
-                        <button onClick={handleYes} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2 ${isGeo ? 'bg-emerald-600 text-white shadow-emerald-200' : 'bg-purple-600 text-white shadow-purple-200'}`}>
-                            {isGeo ? 'Activar ahora' : 'Sí, activar avisos'}
+                        <button 
+                            disabled={loading}
+                            onClick={handleYes} 
+                            className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2 ${loading ? 'bg-gray-300 text-white shadow-none' : (isGeo ? 'bg-emerald-600 text-white shadow-emerald-200' : (isRepairMode ? 'bg-amber-600 text-white shadow-amber-200' : 'bg-purple-600 text-white shadow-purple-200'))}`}
+                        >
+                            {loading ? 'Cargando...' : (isGeo ? 'Activar ahora' : (isRepairMode ? 'Sincronizar ahora' : 'Sí, activar avisos'))}
                         </button>
-                        <button onClick={handleLater} className="w-full py-4 text-xs font-black text-gray-400 border border-gray-100 rounded-2xl uppercase tracking-widest bg-gray-50/30">
-                            Quizás luego
-                        </button>
-                        <button onClick={handleNo} className="w-full py-2 text-[10px] font-bold text-gray-300 uppercase tracking-[0.2em] hover:text-red-400 transition">
-                            No me interesa
-                        </button>
+                        
+                        {!loading && (
+                            <>
+                                <button onClick={handleLater} className="w-full py-4 text-xs font-black text-gray-400 border border-gray-100 rounded-2xl uppercase tracking-widest bg-gray-50/30">
+                                    Quizás luego
+                                </button>
+                                <button onClick={handleNo} className="w-full py-2 text-[10px] font-bold text-gray-300 uppercase tracking-[0.2em] hover:text-red-400 transition">
+                                    No me interesa
+                                </button>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>

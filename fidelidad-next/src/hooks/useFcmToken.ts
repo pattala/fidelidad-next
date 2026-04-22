@@ -18,11 +18,11 @@ export const useFcmToken = () => {
         return (isMobileUA || isIPadOS) ? 'mobile' : 'pc';
     };
 
-    const retrieveToken = async (retryCount = 0) => {
-        if (!messaging || typeof window === 'undefined' || isRetrieving.current) return;
+    const retrieveToken = async (retryCount = 0): Promise<string | null> => {
+        if (!messaging || typeof window === 'undefined' || isRetrieving.current) return null;
 
         const user = auth.currentUser;
-        if (!user) return;
+        if (!user) return null;
 
         const deviceKey = getDeviceKey();
         isRetrieving.current = true;
@@ -70,10 +70,12 @@ export const useFcmToken = () => {
                              });
                          }
                     }
+                    return currentToken;
                 }
             } else {
                 console.log(`[FCM] Permission is ${Notification.permission}. Skipping auto-sync.`);
             }
+            return null;
         } catch (e: any) {
             console.error(`[FCM] Error (Attempt ${retryCount}):`, e);
             const errorMsg = e.message || String(e);
@@ -87,16 +89,21 @@ export const useFcmToken = () => {
                 await updateDoc(doc(db, 'users', user.uid), {
                     fcmState: `error_${deviceKey}`,
                     lastFcmError: errorMsg,
-                    lastFcmUpdate: serverTimestamp()
+                    lastFcmUpdate: serverTimestamp(),
+                    [`fcmDebug_${deviceKey}`]: {
+                        step: 'token_fetch_fail',
+                        error: errorMsg,
+                        timestamp: new Date().toISOString()
+                    }
                 }).catch(() => { });
             }
 
             if (retryCount < 2) {
-                setTimeout(() => {
-                    isRetrieving.current = false;
-                    retrieveToken(retryCount + 1);
-                }, 3000);
+                await new Promise(r => setTimeout(r, 3000));
+                isRetrieving.current = false;
+                return retrieveToken(retryCount + 1);
             }
+            return null;
         } finally {
             isRetrieving.current = false;
         }

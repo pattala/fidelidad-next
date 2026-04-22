@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 
 export const usePWAInstall = () => {
-    const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
     const [isInstalled, setIsInstalled] = useState(false);
+    const [wasJustInstalled, setWasJustInstalled] = useState(false);
 
     useEffect(() => {
         const handler = (e: any) => {
@@ -14,6 +14,7 @@ export const usePWAInstall = () => {
         const installedHandler = () => {
             console.log('PWA: Apple/Android App installed successfully');
             setIsInstalled(true);
+            setWasJustInstalled(true);
             setDeferredPrompt(null);
         };
 
@@ -53,5 +54,5 @@ export const usePWAInstall = () => {
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
     const isMobile = isIOS || /Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-    return { deferredPrompt, handleInstall, isIOS, isStandalone, isMobile, isInstalled };
+    return { deferredPrompt, handleInstall, isIOS, isStandalone, isMobile, isInstalled, wasJustInstalled, setWasJustInstalled };
 };

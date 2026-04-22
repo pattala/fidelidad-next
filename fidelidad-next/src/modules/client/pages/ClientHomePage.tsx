@@ -162,16 +162,6 @@ export const ClientHomePage = () => {
     const lastActionTs = useRef<number>(0);
     const initialLoadTs = useRef<number>(Date.now());
     const [readyForBanner, setReadyForBanner] = useState(false);
-    useEffect(() => {
-        if (wasJustInstalled) {
-            console.log('🎉 PWA Just Installed! Showing success modal.');
-            setGloriaMode('success'); 
-            setShowPWAAdvantages(true);
-            toast.success('¡App instalada! Ábrela desde tu inicio.', { icon: '📲', duration: 8000 });
-            // reset it so it doesn't keep popping up
-            setWasJustInstalled(false);
-        }
-    }, [wasJustInstalled]);
     const [hideDiagnostic, setHideDiagnostic] = useState(() => {
         if (typeof sessionStorage === 'undefined') return false;
         return sessionStorage.getItem('rampet_hide_diagnostic') === 'true';
@@ -183,9 +173,9 @@ export const ClientHomePage = () => {
     }, []);
 
     const PC_PROMPT_SESSION_KEY = 'rampet_pc_prompt_shown';
-    
-    const { config } = useOutletContext<{ config: any }>();
 
+    // Detección unificada v6.0.3 (Motor centralizado)
+    const { config } = useOutletContext<{ config: any }>();
     const isMobileDevice = useMemo(() => {
         if (typeof window === 'undefined') return false;
         const ua = navigator.userAgent;
@@ -194,16 +184,24 @@ export const ClientHomePage = () => {
         return isMobileUA || isIPadOS;
     }, []);
 
-    // Detección unificada v6.0.3 (Motor centralizado)
-
     // --- PWA INSTALL LOGIC ---
     const { deferredPrompt, handleInstall, isIOS, isStandalone, isMobile: isMobileHook, isInstalled, wasJustInstalled, setWasJustInstalled } = usePWAInstall();
     const [showPWAAdvantages, setShowPWAAdvantages] = useState(false);
-    const [gloriaMode, setGloriaMode] = useState<'permissions' | 'install'>('install');
+    const [gloriaMode, setGloriaMode] = useState<'permissions' | 'install' | 'success'>('install');
     const [lastPushRx, setLastPushRx] = useState<string | null>(() => {
         if (typeof localStorage === 'undefined') return null;
         return localStorage.getItem('rampet_last_push_rx');
     });
+
+    useEffect(() => {
+        if (wasJustInstalled) {
+            console.log('🎉 PWA Just Installed! Showing success modal.');
+            setGloriaMode('success'); 
+            setShowPWAAdvantages(true);
+            toast.success('¡App instalada! Ábrela desde tu inicio.', { icon: '📲', duration: 8000 });
+            setWasJustInstalled(false);
+        }
+    }, [wasJustInstalled]);
 
     useEffect(() => {
         try {

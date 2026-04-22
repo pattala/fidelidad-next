@@ -7,7 +7,7 @@ interface PWAInstallAdvantageModalProps {
     onClose: () => void;
     onInstall: () => void;
     isIOS: boolean;
-    mode?: 'permissions' | 'install' | 'system_settings'; 
+    mode?: 'permissions' | 'install' | 'system_settings' | 'success'; 
 }
 
 export const PWAInstallAdvantageModal: React.FC<PWAInstallAdvantageModalProps> = ({
@@ -19,17 +19,18 @@ export const PWAInstallAdvantageModal: React.FC<PWAInstallAdvantageModalProps> =
 }) => {
     const isPermissionMode = mode === 'permissions';
     const isSystemMode = mode === 'system_settings';
+    const isSuccessMode = mode === 'success';
 
     return (
         <ModernConfirmModal
             isOpen={isOpen}
-            title={isSystemMode ? "Ajustes de Notificaciones ⚙️" : (isPermissionMode ? "¡Tu cuenta está creciendo! 📈" : "¡Vuelve tu App una Super-App! 🚀")}
+            title={isSystemMode ? "Ajustes de Notificaciones ⚙️" : (isSuccessMode ? "¡Instalación Exitosa! 🎉" : (isPermissionMode ? "¡Tu cuenta está creciendo! 📈" : "¡Vuelve tu App una Super-App! 🚀"))}
             message=""
-            onConfirm={isSystemMode ? onClose : onInstall}
+            onConfirm={isSuccessMode || isSystemMode ? onClose : onInstall}
             onCancel={onClose}
-            confirmText={isSystemMode ? "Entendido" : (isPermissionMode ? "Activar ahora" : (isIOS ? "Ver cómo instalar" : "Instalar ahora"))}
-            cancelText={isSystemMode ? "Cerrar" : "Quizás luego"}
-            type={isSystemMode ? "info" : (isPermissionMode ? "warning" : "info")}
+            confirmText={isSuccessMode ? "¡Listo! La abriré" : (isSystemMode ? "Entendido" : (isPermissionMode ? "Activar ahora" : (isIOS ? "Ver cómo instalar" : "Instalar ahora")))}
+            cancelText={isSystemMode || isSuccessMode ? "Cerrar" : "Quizás luego"}
+            type={isSuccessMode ? "success" : (isSystemMode ? "info" : (isPermissionMode ? "warning" : "info"))}
         >
             <div className="space-y-6 py-2">
                 <div className={`${isSystemMode ? 'bg-amber-50 border-amber-100' : 'bg-emerald-50 border-emerald-100'} p-4 rounded-2xl border flex items-start gap-4`}>
@@ -43,9 +44,11 @@ export const PWAInstallAdvantageModal: React.FC<PWAInstallAdvantageModalProps> =
                         <p className={`text-[11px] font-medium ${isSystemMode ? 'text-amber-700' : 'text-emerald-700'}`}>
                             {isSystemMode 
                                 ? "Para recibir notificaciones, debes habilitarlas en los ajustes de tu teléfono."
-                                : (isPermissionMode 
-                                    ? "Activá las notificaciones para que nunca te pierdas el aviso de un premio o regalo."
-                                    : "Instalá la App para acceder más rápido y no perderte los próximos premios.")
+                                : (isSuccessMode 
+                                    ? "¡Ya podés disfrutar de la App! Buscá el ícono en tu pantalla de inicio."
+                                    : (isPermissionMode 
+                                        ? "Activá las notificaciones para que nunca te pierdas el aviso de un premio o regalo."
+                                        : "Instalá la App para acceder más rápido y no perderte los próximos premios."))
                             }
                         </p>
                     </div>

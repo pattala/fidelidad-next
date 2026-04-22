@@ -165,7 +165,7 @@ export const ClientHomePage = () => {
     useEffect(() => {
         if (wasJustInstalled) {
             console.log('🎉 PWA Just Installed! Showing success modal.');
-            setGloriaMode('install'); // Reuse install mode or we could add 'success'
+            setGloriaMode('success'); 
             setShowPWAAdvantages(true);
             toast.success('¡App instalada! Ábrela desde tu inicio.', { icon: '📲', duration: 8000 });
             // reset it so it doesn't keep popping up

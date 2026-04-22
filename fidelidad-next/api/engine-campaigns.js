@@ -93,17 +93,22 @@ export default async function handler(req, res) {
 
             // Si ya corrió hoy, verificamos si hubo cambios administrativos
             if (lastRunDate === todayAR && lastRunTimestamp) {
-                const recentAudits = await db.collection('audit_logs')
-                    .where('timestamp', '>', lastRunTimestamp)
-                    .where('type', 'in', ['campaign_mgmt', 'config_updated'])
-                    .limit(1)
-                    .get();
+                try {
+                    const recentAudits = await db.collection('audit_logs')
+                        .where('timestamp', '>', lastRunTimestamp)
+                        .where('type', 'in', ['campaign_mgmt', 'config_updated'])
+                        .limit(1)
+                        .get();
 
-                if (recentAudits.empty) {
-                    console.log(`[Engine-Campaigns] Todo al día. Gatillo ${triggerSource} saltado para ahorrar cuota.`);
-                    return res.status(200).json({ ok: true, skipped: true, message: "Todo al día" });
+                    if (recentAudits.empty) {
+                        console.log(`[Engine-Campaigns] Todo al día. Gatillo ${triggerSource} saltado para ahorrar cuota.`);
+                        return res.status(200).json({ ok: true, skipped: true, message: "Todo al día" });
+                    }
+                    console.log(`[Engine-Campaigns] Detectados cambios en campañas. Forzando ejecución para gatillo ${triggerSource}.`);
+                } catch (auditErr) {
+                    // Si el índice falla o hay otro error, continuamos de todas formas como Red de Seguridad
+                    console.warn(`[Engine-Campaigns] Error consultando auditoría (posible falta de índice): ${auditErr.message}. Continuando ejecución por seguridad.`);
                 }
-                console.log(`[Engine-Campaigns] Detectados cambios en campañas. Forzando ejecución para gatillo ${triggerSource}.`);
             }
         }
 

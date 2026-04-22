@@ -49,6 +49,12 @@ service cloud.firestore {
 }
 ```
 
+### 1.3 Índices de Base de Datos (Performance y Consultas Complejas)
+El sistema utiliza consultas avanzadas que requieren índices compuestos. Estos se instalan automáticamente con el script del paso 2, pero si desea hacerlo manualmente:
+1. Vaya a **Firestore** > **Indexes**.
+2. Asegúrese de que el índice compuesto para la colección `audit_logs` (Campos: `type` Asc, `timestamp` Asc, Ámbito: Grupo de colecciones) esté activo.
+3. El archivo `firestore.indexes.json` en la raíz contiene las definiciones necesarias.
+
 ---
 
 ## 📖 Diccionario de Obtención de Keys (Paso a Paso)

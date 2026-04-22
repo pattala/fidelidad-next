@@ -258,20 +258,6 @@ export default async function handler(req, res) {
                 
                 // Deduplicación básica por año (si no es forzado)
                 if (userData.lastBirthdayGreetingYear === currentYear && !finalIgnoreDeduplication) continue;
-
-                // Rest of logic... (shortened for brevity in thought, but I'll replace the whole block)
-                // Actually I need to keep the logic for points and notifications.
-                // I'll just change the referenceDate part and the calls.
-
-        // [Note: I skipped lines 251-323 of the original file which I need to keep]
-        // Let's refine the replacement range.
-
-        for (const userDoc of birthdayUsers) {
-            try {
-                const userData = userDoc.data();
-                const userId = userDoc.id;
-                if (userData.lastBirthdayGreetingYear === currentYear && !finalIgnoreDeduplication) continue;
-
                 const birthdayPoints = config?.birthdayPoints || 100;
                 const autoBonusEnabled = config?.enableBirthdayBonus === true;
                 const autoMessageEnabled = config?.enableBirthdayMessage !== false;
@@ -358,7 +344,7 @@ export default async function handler(req, res) {
                     'x-executor-role': 'system' 
                 },
                 body: JSON.stringify({
-                    simulatedDate: (globalSimulatedDate && simCfg.expirations) ? globalSimulatedDate : null,
+                    simulatedDate: (simulatedDateStr && simCfg.expirations) ? simulatedDateStr : null,
                     ignoreDeduplication: finalIgnoreDeduplication,
                     isManual: isManual
                 }),
@@ -394,7 +380,7 @@ export default async function handler(req, res) {
                         'x-executor-role': 'system' 
                     },
                     body: JSON.stringify({
-                        simulatedDate: (globalSimulatedDate && simCfg.petAlerts) ? globalSimulatedDate : null,
+                        simulatedDate: (simulatedDateStr && simCfg.petAlerts) ? simulatedDateStr : null,
                         ignoreDeduplication: finalIgnoreDeduplication
                     })
                 });

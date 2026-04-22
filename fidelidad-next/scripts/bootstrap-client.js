@@ -26,7 +26,7 @@ async function main() {
         const firebaseProject = await ask(`${bold}1. Ingresa el Project ID de Firebase:${reset} `);
         if (!firebaseProject) throw new Error("Se requiere el Project ID.");
 
-        console.log(`\n${blue}🔄 Conectando con Firebase...${reset}`);
+        console.log(`\n${blue}🔄 Conectando con Firebase (Reglas e Índices)...${reset}`);
         execSync(`firebase deploy --only firestore --project ${firebaseProject}`, { stdio: 'inherit' });
 
         console.log(`\n${bold}2. Configuración de Vercel${reset}`);

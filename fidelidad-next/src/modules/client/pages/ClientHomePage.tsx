@@ -197,7 +197,7 @@ export const ClientHomePage = () => {
     // Detección unificada v6.0.3 (Motor centralizado)
 
     // --- PWA INSTALL LOGIC ---
-    const { deferredPrompt, handleInstall, isIOS, isStandalone, isMobile, isInstalled, wasJustInstalled, setWasJustInstalled } = usePWAInstall();
+    const { deferredPrompt, handleInstall, isIOS, isStandalone, isMobile: isMobileHook, isInstalled, wasJustInstalled, setWasJustInstalled } = usePWAInstall();
     const [showPWAAdvantages, setShowPWAAdvantages] = useState(false);
     const [gloriaMode, setGloriaMode] = useState<'permissions' | 'install'>('install');
     const [lastPushRx, setLastPushRx] = useState<string | null>(() => {

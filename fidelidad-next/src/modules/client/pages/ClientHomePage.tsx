@@ -168,7 +168,7 @@ export const ClientHomePage = () => {
     });
 
     useEffect(() => {
-        const timer = setTimeout(() => setReadyForBanner(true), 1600);
+        const timer = setTimeout(() => setReadyForBanner(true), 5000);
         return () => clearTimeout(timer);
     }, []);
 
@@ -763,10 +763,11 @@ export const ClientHomePage = () => {
         }
 
         await processPushResult(resultStatus, ctx);
+        return resultStatus === 'SUCCESS';
     };
 
-    const handlePermissionGranted = () => {
-        handlePushAttemptResult('granted');
+    const handlePermissionGranted = async () => {
+        return await handlePushAttemptResult('granted');
     };
 
     // --- EXPOSE HANDLERS TO WINDOW v6.0.7 ---

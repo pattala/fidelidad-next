@@ -260,8 +260,11 @@ async function handleAssignSocio(req, res, db) {
                         templateId: 'bienvenida',
                         templateData: {
                             nombre: userName,
+                            nombre_completo: userName, // Alias
                             numero_socio: assignedNumber,
+                            socio: assignedNumber, // Alias
                             puntos_ganados: totalBonus,
+                            puntos: totalBonus, // Alias
                             fecha_vencimiento: expirationDateStr,
                             siteName
                         }

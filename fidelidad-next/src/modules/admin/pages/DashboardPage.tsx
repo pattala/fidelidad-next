@@ -25,7 +25,8 @@ export const DashboardPage = () => {
         pointValueConfigured: 0,
         pointValueReal: 0,
         referralCount: 0,
-        totalAccumulatedBalance: 0
+        totalAccumulatedBalance: 0,
+        pushEnabledCount: 0
     });
     const [forecastSummary, setForecastSummary] = useState<any>(null);
     const [recentActivity, setRecentActivity] = useState<any[]>([]);
@@ -52,15 +53,17 @@ export const DashboardPage = () => {
             let points = 0;
             let clientCount = 0;
             let totalAccumulatedBalance = 0;
+            let pushEnabledCount = 0;
             snap.forEach(d => {
                 const data = d.data();
                 if (data.role !== 'admin') {
                     clientCount++;
                     points += Number(data.points ?? data.puntos ?? 0);
                     totalAccumulatedBalance += Number(data.accumulated_balance || 0);
+                    if ((data.fcmTokens?.length || 0) > 0) pushEnabledCount++;
                 }
             });
-            setStats(prev => ({ ...prev, usersCount: clientCount, totalPoints: points, totalAccumulatedBalance }));
+            setStats(prev => ({ ...prev, usersCount: clientCount, totalPoints: points, totalAccumulatedBalance, pushEnabledCount }));
             setLoading(false);
         });
 
@@ -354,20 +357,14 @@ export const DashboardPage = () => {
                             <div className="flex flex-col">
                                 <div className="flex items-center gap-2">
                                     <p className="text-2xl font-black text-gray-800">
-                                        {(() => {
-                                            const totalWithToken = clients.filter(c => (c.fcmTokens?.length || 0) > 0).length;
-                                            return stats.usersCount > 0 ? Math.round((totalWithToken / stats.usersCount) * 100) : 0;
-                                        })()}%
+                                        {stats.usersCount > 0 ? Math.round((stats.pushEnabledCount / stats.usersCount) * 100) : 0}%
                                     </p>
                                     <span className="text-[10px] bg-green-50 text-green-600 px-1.5 py-0.5 rounded-full font-black">ACTIVOS</span>
                                 </div>
                                 <div className="mt-1 w-full bg-gray-100 h-1 rounded-full overflow-hidden">
                                      <div 
                                         className="bg-green-500 h-full transition-all duration-1000" 
-                                        style={{ width: `${(() => {
-                                            const totalWithToken = clients.filter(c => (c.fcmTokens?.length || 0) > 0).length;
-                                            return stats.usersCount > 0 ? (totalWithToken / stats.usersCount) * 100 : 0;
-                                        })()}%` }} 
+                                        style={{ width: `${stats.usersCount > 0 ? (stats.pushEnabledCount / stats.usersCount) * 100 : 0}%` }} 
                                     />
                                 </div>
                             </div>

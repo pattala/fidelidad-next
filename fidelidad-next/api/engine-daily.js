@@ -333,7 +333,10 @@ export default async function handler(req, res) {
                     id: userId,
                     name: userData.nombre || userData.name || 'Socio',
                     phone: userData.phone || userData.telefono || '',
+                    dni: userData.dni || '',
                     socioNumber: userData.socioNumber || '',
+                    lastBirthdayPointsYear: userData.lastBirthdayPointsYear || '',
+                    lastBirthdayGreetingYear: userData.lastBirthdayGreetingYear || '',
                     greeted: userData.lastBirthdayGreetingYear === currentYear
                 });
                 

@@ -9,6 +9,7 @@ import { ConfigService } from '../../../services/configService';
 import { TimeService } from '../../../services/timeService';
 import { useAdminAuth } from '../contexts/AdminAuthContext';
 import { VersionUpdater } from '../../../components/VersionUpdater';
+import { GlobalAlerts } from './GlobalAlerts';
 
 export const AdminLayout = () => {
     const navigate = useNavigate();
@@ -131,6 +132,7 @@ export const AdminLayout = () => {
     return (
         <div className="flex h-screen bg-gray-100 relative overflow-hidden">
             <VersionUpdater />
+            <GlobalAlerts />
             {/* Mobile Overlay */}
             {isMobileMenuOpen && (
                 <div

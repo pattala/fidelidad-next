@@ -7,8 +7,7 @@
         "storage"
     ],
     "host_permissions": [
-        "https://*.facturacion.com.ar/*",
-        "https://*.vercel.app/*"
+        "<all_urls>"
     ],
     "action": {
         "default_popup": "popup.html"
@@ -16,7 +15,7 @@
     "content_scripts": [
         {
             "matches": [
-                "https://*.facturacion.com.ar/*"
+                "<all_urls>"
             ],
             "js": [
                 "content.js"

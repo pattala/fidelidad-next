@@ -35,14 +35,21 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey'], (res) => {
             body: JSON.stringify({ simulatedDate: now.toISOString() })
         }).then(r => r.json())
         .then(data => {
-            if (!data?.ok) return;
+            console.log("📦 [Club Fidelidad] Respuesta Engine:", data);
+            if (!data?.ok) {
+                console.warn("⚠️ [Club Fidelidad] Engine respondió con error o no OK");
+                return;
+            }
             const bCount = data.birthdays?.totalToday || 0;
             const eCount = data.expirations?.totalInWindow || data.expirations?.summary?.totalInWindow || 0;
             const pCount = data.petAlerts?.results?.notified || 0;
 
+            console.log(`📊 [Club Fidelidad] Pendientes: ${bCount} Cumples, ${eCount} Vencim, ${pCount} Mascotas`);
+
             if (bCount > 0 || eCount > 0 || pCount > 0) {
                 showGlobalAlert(data, res.apiUrl);
             } else {
+                console.log("✅ [Club Fidelidad] No hay alertas pendientes para hoy.");
                 const existingWidget = document.getElementById('cf-floating-alert');
                 if (existingWidget) existingWidget.remove();
             }

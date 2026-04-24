@@ -53,9 +53,12 @@ export const GlobalAlerts = () => {
 
                 // 1. Birthdays
                 if (data.birthDate?.endsWith(todayMD) || data.fechaNacimiento?.endsWith(todayMD)) {
-                    if (data.lastBirthdayGreetingYear !== currentYear) {
-                        births.push({ id: d.id, ...data });
-                    }
+                    // Los mostramos siempre si es HOY, incluso si ya fueron saludados automáticamente
+                    births.push({ 
+                        id: d.id, 
+                        ...data,
+                        alreadyGreetedAuto: data.lastBirthdayGreetingYear === currentYear
+                    });
                 }
 
                 // 2. Expirations
@@ -192,6 +195,7 @@ export const GlobalAlerts = () => {
                                                     <p className="text-xs font-bold text-gray-800 truncate">{user.name}</p>
                                                     <p className={`text-[10px] font-black ${alreadyPaid ? 'text-green-500' : 'text-pink-400'}`}>
                                                         {alreadyPaid ? 'Puntos ya acreditados ✅' : (isSelected ? 'Se acreditarán puntos 🎁' : 'Saludo sin regalo ⚪')}
+                                                        {user.alreadyGreetedAuto && ' · (Mensaje Auto OK ✉️)'}
                                                     </p>
                                                 </div>
                                                 <div className="flex items-center gap-2">

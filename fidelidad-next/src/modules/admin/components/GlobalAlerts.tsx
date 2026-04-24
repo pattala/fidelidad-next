@@ -79,6 +79,9 @@ export const GlobalAlerts = () => {
             setBirthdaysOfToday(births);
             setExpiringUsers(exps);
             setPetAlerts(pets);
+            
+            console.log(`[GlobalAlerts Debug] Date: ${todayStr}, MD: ${todayMD}`);
+            console.log(`[GlobalAlerts Debug] Counts -> Birthdays: ${births.length}, Expirations: ${exps.length}, Pets: ${pets.length}`);
         });
 
         return () => { unsubConfig(); unsubUsers(); };

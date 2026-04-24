@@ -179,20 +179,28 @@ export const GlobalAlerts = () => {
                                                         <span>ID: {user.socioNumber || 'N/A'}</span>
                                                     </div>
                                                 </div>
-                                                {bonusActive && (
-                                                    <input type="checkbox" disabled={gifted} checked={isSelected} 
+                                                <div className="flex items-center gap-3">
+                                                    <div className="text-right">
+                                                        <p className="text-[10px] font-bold text-violet-300 uppercase tracking-widest">¿Enviar Regalo?</p>
+                                                        <p className="text-[9px] text-white/40">{bonusActive ? 'Automático' : 'Manual'}</p>
+                                                    </div>
+                                                    <input 
+                                                        type="checkbox" 
+                                                        disabled={gifted || bonusActive} 
+                                                        checked={isSelected} 
                                                         onChange={(e) => setIncludeGift(prev => ({ ...prev, [user.id]: e.target.checked }))} 
-                                                        className="w-7 h-7 rounded-xl border-white/10 bg-black/40 text-violet-500 cursor-pointer focus:ring-0 focus:ring-offset-0" />
-                                                )}
+                                                        className={`w-7 h-7 rounded-xl border-white/20 bg-black/40 text-violet-500 focus:ring-0 ${gifted || bonusActive ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`} 
+                                                    />
+                                                </div>
                                             </div>
                                             
                                             <div className="flex flex-wrap gap-2 mb-5">
                                                 {gifted ? (
-                                                    <span className="text-[10px] font-black uppercase px-3 py-1.5 bg-green-500/20 text-green-400 rounded-xl border border-green-500/30">REGALO ENVIADO ✅</span>
+                                                    <span className="text-[10px] font-black uppercase px-3 py-1.5 bg-green-500/20 text-green-400 rounded-xl border border-green-500/30">REGALO YA ACREDITADO ✅</span>
                                                 ) : (
-                                                    bonusActive && <span className="text-[10px] font-black uppercase px-3 py-1.5 bg-orange-500/20 text-orange-400 rounded-xl border border-orange-500/30">REGALO PENDIENTE 🎁</span>
+                                                    isSelected && <span className="text-[10px] font-black uppercase px-3 py-1.5 bg-orange-500/20 text-orange-400 rounded-xl border border-orange-500/30">SE ENVIARÁ REGALO 🎁</span>
                                                 )}
-                                                {!bonusActive && <span className="text-[10px] font-black uppercase px-3 py-1.5 bg-indigo-500/20 text-indigo-300 rounded-xl border border-indigo-500/30">GREETING ONLY ✉️</span>}
+                                                {!isSelected && !gifted && <span className="text-[10px] font-black uppercase px-3 py-1.5 bg-gray-500/20 text-gray-400 rounded-xl border border-gray-500/30">SOLO SALUDO (Sín Regalo)</span>}
                                             </div>
 
                                             <button onClick={() => openWhatsApp(user, 'birthday')} className="w-full bg-gradient-to-r from-[#25D366] to-[#128C7E] text-white text-[12px] font-black py-4 rounded-[1.5rem] flex items-center justify-center gap-3 shadow-xl hover:brightness-110 active:scale-95 transition-all">

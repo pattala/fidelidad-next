@@ -134,7 +134,7 @@ export default async function handler(req, res) {
             (triggerSource === 'qstash' && (messagingConfig.enableQStashTrigger ?? true)) ||
             (triggerSource === 'unknown');
 
-        if (!isTriggerEnabled) {
+        if (!isTriggerEnabled && triggerSource !== 'extension') {
             console.log(`[DailyCheck] Gatillo '${triggerSource}' desactivado por configuración.`);
             if (triggerSource !== 'pwa') {
                 await db.collection('audit_logs').add({
@@ -149,27 +149,40 @@ export default async function handler(req, res) {
             return res.status(200).json({ ok: true, skipped: true, message: `Gatillo '${triggerSource}' desactivado` });
         }
 
-        // 2. Check Time Window
-        const currentHour = new Date().toLocaleString("en-US", { timeZone: "America/Argentina/Buenos_Aires", hour: '2-digit', hour12: false });
-        const hourInt = parseInt(currentHour, 10);
-        const minHour = messagingConfig.engineAllowedStartHour ?? 9;
-        const maxHour = messagingConfig.engineAllowedEndHour ?? 22;
+        // 2. Check Time Window (Except for Extension which only fetches list)
+        if (triggerSource !== 'extension') {
+            const currentHour = new Date().toLocaleString("en-US", { timeZone: "America/Argentina/Buenos_Aires", hour: '2-digit', hour12: false });
+            const hourInt = parseInt(currentHour, 10);
+            const minHour = messagingConfig.engineAllowedStartHour ?? 9;
+            const maxHour = messagingConfig.engineAllowedEndHour ?? 22;
 
-        if (hourInt < minHour || hourInt >= maxHour) {
-            console.log(`[DailyCheck] Fuera de horario permitido (${minHour} - ${maxHour} hs). Hora actual AR: ${hourInt}`);
-            if (triggerSource !== 'pwa') {
-                await db.collection('audit_logs').add({
-                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                    type: 'system_skip',
-                    status: 'skipped',
-                    summary: `Motor Diario Salteado: Fuera de ventana horaria (${minHour}-${maxHour} hs). Gatillo: ${triggerSource}.`,
-                    executor: triggerSource,
-                    role: 'system'
-                });
+            if (hourInt < minHour || hourInt >= maxHour) {
+                console.log(`[DailyCheck] Fuera de horario permitido (${minHour} - ${maxHour} hs). Hora actual AR: ${hourInt}`);
+                if (triggerSource !== 'pwa') {
+                    await db.collection('audit_logs').add({
+                        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                        type: 'system_skip',
+                        status: 'skipped',
+                        summary: `Motor Diario Salteado: Fuera de ventana horaria (${minHour}-${maxHour} hs). Gatillo: ${triggerSource}.`,
+                        executor: triggerSource,
+                        role: 'system'
+                    });
+                }
+                return res.status(200).json({ ok: true, skipped: true, message: "Fuera de horario permitido", currentHour: hourInt, minHour, maxHour });
             }
-            return res.status(200).json({ ok: true, skipped: true, message: "Fuera de horario permitido", currentHour: hourInt, minHour, maxHour });
         }
     }
+
+    // --- MANEJO DE SIMULACIÓN GLOBAL ---
+    let effectiveSimulatedDate = simulatedDateStr;
+    if (!effectiveSimulatedDate && config.enableDateSimulator && config.simulatedOffsetDays) {
+        const simDate = new Date();
+        simDate.setDate(simDate.getDate() + config.simulatedOffsetDays);
+        effectiveSimulatedDate = simDate.toISOString().split('T')[0];
+        console.log(`[DailyEngine] Aplicando Simulación Global: ${effectiveSimulatedDate}`);
+    }
+    const isSimulation = !!effectiveSimulatedDate;
+    let shouldSkipExecution = false;
 
     const sourceLabelMap = {
         'dashboard': 'Ejecución en Dashboard',
@@ -212,15 +225,9 @@ export default async function handler(req, res) {
                 }
             }
 
-            if (!hasAdministrativeChanges) {
-                console.log(`[DailyCheck] Todo al día y sin cambios (${todayAR}). Gatillo: ${triggerSource}. SALTANDO LECTURAS.`);
-                return res.status(200).json({
-                    ok: true,
-                    skipped: true,
-                    message: `Todo al día (${todayAR})`,
-                    lastRun: todayAR,
-                    trigger: triggerSource
-                });
+            if (!hasAdministrativeChanges && !isSimulation) {
+                console.log(`[DailyCheck] Todo al día y sin cambios (${todayAR}). Gatillo: ${triggerSource}. SALTANDO ENVÍOS (pero extrayendo listas).`);
+                shouldSkipExecution = true;
             }
         }
     }
@@ -233,19 +240,18 @@ export default async function handler(req, res) {
         let todayMD = `${String(referenceDate.getMonth() + 1).padStart(2, '0')}-${String(referenceDate.getDate()).padStart(2, '0')}`;
         let todayStr = referenceDate.toISOString().split('T')[0];
 
-        if (simulatedDateStr && simCfg.birthdays) {
-            // FIX: Manuel parsing to avoid timezone shifts (e.g. 23:00 AR -> 02:00 Next Day UTC)
-            if (simulatedDateStr.includes('T')) {
-                // If ISO, we must adjust to local (assume AR timezone -3 or just use the local day representation)
-                // The safest is to use split and avoid full Date object for the MD match
-                const [datePart] = simulatedDateStr.split('T');
+        if (effectiveSimulatedDate && simCfg.birthdays) {
+            const simulatedDateStrVal = effectiveSimulatedDate;
+            // FIX: Manuel parsing to avoid timezone shifts
+            if (simulatedDateStrVal.includes('T')) {
+                const [datePart] = simulatedDateStrVal.split('T');
                 const [y, m, d] = datePart.split('-');
                 todayMD = `${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
                 todayStr = datePart;
                 referenceDate = new Date(datePart + 'T12:00:00'); // Midday to be safe
                 console.log(`[Dashboard] Usando fecha simulada (ISO Parse): ${todayStr} (MD: ${todayMD})`);
             } else {
-                const [y, m, d] = simulatedDateStr.split(/[-/]/);
+                const [y, m, d] = simulatedDateStrVal.split(/[-/]/);
                 todayMD = `${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
                 todayStr = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
                 referenceDate = new Date(todayStr + 'T12:00:00');
@@ -259,6 +265,7 @@ export default async function handler(req, res) {
             totalToday: 0,
             processed: 0,
             pointsGivenTotal: 0,
+            list: [],
             details: [],
             errors: []
         };
@@ -321,88 +328,99 @@ export default async function handler(req, res) {
                 const userData = userDoc.data();
                 const userId = userDoc.id;
                 
-                // Deduplicación básica por año (si no es forzado)
-                if (userData.lastBirthdayGreetingYear === currentYear && !finalIgnoreDeduplication) continue;
-                const birthdayPoints = config?.birthdayPoints || 100;
-                const autoBonusEnabled = config?.enableBirthdayBonus === true;
-                const autoMessageEnabled = config?.enableBirthdayMessage !== false;
-
-                let pointsAdded = 0;
-                let actionsTaken = [];
-
-                if (autoBonusEnabled && (userData.lastBirthdayPointsYear !== currentYear || finalIgnoreDeduplication)) {
-                    const historyRef = userDoc.ref.collection('points_history');
-                    let expirationDate = new Date(referenceDate);
-                    expirationDate.setDate(expirationDate.getDate() + 365);
-
-                    await historyRef.add({
-                        amount: birthdayPoints,
-                        concept: '🎂 ¡Feliz Cumpleaños! Regalo del Club',
-                        date: admin.firestore.Timestamp.fromDate(referenceDate),
-                        type: 'credit',
-                        expiresAt: admin.firestore.Timestamp.fromDate(expirationDate),
-                        remainingPoints: birthdayPoints,
-                        balanceAfter: (Number(userData.points) || 0) + birthdayPoints
-                    });
-                    await userDoc.ref.update({
-                        points: admin.firestore.FieldValue.increment(birthdayPoints),
-                        lastBirthdayPointsYear: currentYear
-                    });
-                    pointsAdded = birthdayPoints;
-                    logResults.pointsGivenTotal += birthdayPoints;
-                    actionsTaken.push("puntos");
-                }
-
-                if (autoMessageEnabled) {
-                    const userName = (userData.nombre || userData.name || '').split(' ')[0];
-                    const template = (pointsAdded > 0) ? (config?.messaging?.templates?.birthday || "¡Feliz cumple {nombre}! 🎂 +{puntos} pts.") : (config?.messaging?.templates?.birthdaySimple || "¡Feliz cumple {nombre}! 🎂");
-                    const msg = template.replace(/{nombre}/g, userName).replace(/{puntos}/g, birthdayPoints.toString());
-                    const title = "¡Feliz Cumpleaños! 🎂";
-
-                    if (userData.fcmTokens?.length) {
-                        try {
-                            const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
-                            const icon = getAbsoluteUrl(config.logoUrl || "/pwa-192x192.png", PWA_URL);
-                            const uniqueTokens = Array.from(new Set(userData.fcmTokens));
-                            await app.messaging().sendEachForMulticast({
-                                tokens: uniqueTokens,
-                                data: { title, body: msg, url: "/", icon: icon, type: "birthday" }
-                            });
-                            actionsTaken.push("push");
-                        } catch (e) { }
-                    }
-                    if (userData.email && process.env.SMTP_USER) {
-                        try {
-                            const innerHtml = `<div style="color: #333;"><h2 style="color: #db2777;">${title}</h2><p>${msg}</p></div>`;
-                            await transporter.sendMail({ from: `"${config.siteName || 'Club Fidelidad'}" <${process.env.SMTP_USER}>`, to: userData.email, subject: title, html: buildHtmlLayout(innerHtml, config) });
-                            actionsTaken.push("email");
-                        } catch (e) { }
-                    }
-                    await userDoc.ref.collection('inbox').add({ title, body: msg, url: "/", type: "birthday", read: false, date: admin.firestore.FieldValue.serverTimestamp() });
-                    actionsTaken.push("inbox");
-                    if (!finalIgnoreDeduplication) await userDoc.ref.update({ lastBirthdayGreetingYear: currentYear });
-                }
-                logResults.processed++;
-                logResults.details.push({
-                    userId, userName: userData.name || 'Socio',
-                    action: 'birthday', status: 'success', info: `${actionsTaken.join(', ')} (${pointsAdded} pts)`
+                // Add to list for extension/dashboard representation
+                logResults.list.push({
+                    id: userId,
+                    name: userData.nombre || userData.name || 'Socio',
+                    phone: userData.phone || userData.telefono || '',
+                    socioNumber: userData.socioNumber || '',
+                    greeted: userData.lastBirthdayGreetingYear === currentYear
                 });
+                logResults.totalToday++;
+
+                // Lógica de EJECUCIÓN (Solo si no saltamos)
+                if (!shouldSkipExecution) {
+                    // Deduplicación básica por año (si no es forzado)
+                    if (userData.lastBirthdayGreetingYear === currentYear && !finalIgnoreDeduplication) continue;
+                    
+                    const birthdayPoints = config?.birthdayPoints || 100;
+                    const autoBonusEnabled = config?.enableBirthdayBonus === true;
+                    const autoMessageEnabled = config?.enableBirthdayMessage !== false;
+
+                    let pointsAdded = 0;
+                    let actionsTaken = [];
+
+                    if (autoBonusEnabled && (userData.lastBirthdayPointsYear !== currentYear || finalIgnoreDeduplication)) {
+                        const historyRef = userDoc.ref.collection('points_history');
+                        let expirationDate = new Date(referenceDate);
+                        expirationDate.setDate(expirationDate.getDate() + 365);
+
+                        await historyRef.add({
+                            amount: birthdayPoints,
+                            concept: '🎂 ¡Feliz Cumpleaños! Regalo del Club',
+                            date: admin.firestore.Timestamp.fromDate(referenceDate),
+                            type: 'credit',
+                            expiresAt: admin.firestore.Timestamp.fromDate(expirationDate),
+                            remainingPoints: birthdayPoints,
+                            balanceAfter: (Number(userData.points) || 0) + birthdayPoints
+                        });
+                        await userDoc.ref.update({
+                            points: admin.firestore.FieldValue.increment(birthdayPoints),
+                            lastBirthdayPointsYear: currentYear
+                        });
+                        pointsAdded = birthdayPoints;
+                        logResults.pointsGivenTotal += birthdayPoints;
+                        actionsTaken.push("puntos");
+                    }
+
+                    if (autoMessageEnabled) {
+                        const userName = (userData.nombre || userData.name || '').split(' ')[0];
+                        const template = (pointsAdded > 0) ? (config?.messaging?.templates?.birthday || "¡Feliz cumple {nombre}! 🎂 +{puntos} pts.") : (config?.messaging?.templates?.birthdaySimple || "¡Feliz cumple {nombre}! 🎂");
+                        const msg = template.replace(/{nombre}/g, userName).replace(/{puntos}/g, birthdayPoints.toString());
+                        const title = "¡Feliz Cumpleaños! 🎂";
+
+                        if (userData.fcmTokens?.length) {
+                            try {
+                                const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
+                                const icon = getAbsoluteUrl(config.logoUrl || "/pwa-192x192.png", PWA_URL);
+                                const uniqueTokens = Array.from(new Set(userData.fcmTokens));
+                                await app.messaging().sendEachForMulticast({
+                                    tokens: uniqueTokens,
+                                    data: { title, body: msg, url: "/", icon: icon, type: "birthday" }
+                                });
+                                actionsTaken.push("push");
+                            } catch (e) { }
+                        }
+                        if (userData.email && process.env.SMTP_USER) {
+                            try {
+                                const innerHtml = `<div style="color: #333;"><h2 style="color: #db2777;">${title}</h2><p>${msg}</p></div>`;
+                                await transporter.sendMail({ from: `"${config.siteName || 'Club Fidelidad'}" <${process.env.SMTP_USER}>`, to: userData.email, subject: title, html: buildHtmlLayout(innerHtml, config) });
+                                actionsTaken.push("email");
+                            } catch (e) { }
+                        }
+                        await userDoc.ref.collection('inbox').add({ title, body: msg, url: "/", type: "birthday", read: false, date: admin.firestore.FieldValue.serverTimestamp() });
+                        actionsTaken.push("inbox");
+                        if (!finalIgnoreDeduplication) await userDoc.ref.update({ lastBirthdayGreetingYear: currentYear });
+                    }
+                    logResults.processed++;
+                    logResults.details.push({
+                        userId, userName: userData.name || 'Socio',
+                        action: 'birthday', status: 'success', info: `${actionsTaken.join(', ')} (${pointsAdded} pts)`
+                    });
+                }
             } catch (userError) { logResults.errors.push(`${userDoc.id}: ${userError.message}`); }
         }
 
         // --- PASO 2: VENCIMIENTOS (CALL SILENT) ---
-        // Nota: se ejecuta siempre (modo diario Y manual/simulación) para que el simulador de fechas funcione
+        // Se ejecuta siempre para obtener la lista, pero solo envía si no saltamos ejecución
+        const expAction = shouldSkipExecution ? 'forecast' : 'check';
         let expirationsResult = { ok: true, summary: { notified: 0, expiredPoints: 0, details: [] } };
         try {
             const currentHost = req.headers.host;
             const proto = req.headers['x-forwarded-proto'] || (currentHost?.includes('localhost') ? 'http' : 'https');
-            const baseUrl = currentHost ? `${proto}://${currentHost}` : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+            const apiBase = currentHost ? `${proto}://${currentHost}` : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
             
-            // Red de seguridad: Timeout para evitar que Vercel mate el proceso por una llamada lenta
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s timeout
-
-            const eRes = await fetch(`${baseUrl}/api/expirations?action=check&trigger=${triggerSource}&silent=true`, {
+            const eRes = await fetch(`${apiBase}/api/expirations?action=${expAction}&trigger=${triggerSource}&silent=true`, {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json', 
@@ -411,14 +429,11 @@ export default async function handler(req, res) {
                     'x-executor-role': 'system' 
                 },
                 body: JSON.stringify({
-                    simulatedDate: (simulatedDateStr && simCfg.expirations) ? simulatedDateStr : null,
+                    simulatedDate: (effectiveSimulatedDate && simCfg.expirations) ? effectiveSimulatedDate : null,
                     ignoreDeduplication: finalIgnoreDeduplication,
                     isManual: isManual
-                }),
-                signal: controller.signal
+                })
             });
-            
-            clearTimeout(timeoutId);
             
             if (eRes.ok) {
                 expirationsResult = await eRes.json();
@@ -479,7 +494,8 @@ export default async function handler(req, res) {
         });
 
         // Marcar como ejecutado
-        if (!isManualSim && isDailyMode) {
+        // Marcar como ejecutado
+        if (!shouldSkipExecution && !isManualSim && isDailyMode) {
             const arFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires', year: 'numeric', month: '2-digit', day: '2-digit' });
             await db.collection('config').doc('dailyCheck').set({
                 lastRunDate: arFormatter.format(new Date()),
@@ -490,6 +506,7 @@ export default async function handler(req, res) {
 
         return res.status(200).json({
             ok: true,
+            skipped: shouldSkipExecution,
             summary: auditSummary,
             birthdays: logResults,
             expirations: expirationsResult,

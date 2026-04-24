@@ -31,8 +31,7 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey'], (res) => {
 
         fetch(`${res.apiUrl}/api/engine-daily?mode=daily&trigger=extension`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-api-key': res.apiKey },
-            body: JSON.stringify({ simulatedDate: now.toISOString() })
+            headers: { 'Content-Type': 'application/json', 'x-api-key': res.apiKey }
         }).then(r => r.json())
         .then(data => {
             console.log("📦 [Club Fidelidad] Respuesta Engine:", data);

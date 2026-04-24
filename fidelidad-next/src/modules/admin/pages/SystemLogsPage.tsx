@@ -63,7 +63,7 @@ export const SystemLogsPage = () => {
                     'x-executor-role': (auth.currentUser as any)?.reloadUserInfo?.customAttributes?.includes('editor') ? 'editor' : 'admin'
                 },
                 body: JSON.stringify({
-                    simulatedDate: TimeService.now().toISOString(),
+                    simulatedDate: TimeService.now().toLocaleDateString('en-CA'), // YYYY-MM-DD local
                     isManual: true,
                     ignoreDeduplication: ignoreDeduplication
                 })
@@ -99,7 +99,7 @@ export const SystemLogsPage = () => {
                     'x-executor-role': (auth.currentUser as any)?.reloadUserInfo?.customAttributes?.includes('editor') ? 'editor' : 'admin'
                 },
                 body: JSON.stringify({
-                    simulatedDate: TimeService.now().toISOString(),
+                    simulatedDate: TimeService.now().toLocaleDateString('en-CA'), // YYYY-MM-DD local
                     isManual: true,
                     ignoreDeduplication: ignoreDeduplication
                 })

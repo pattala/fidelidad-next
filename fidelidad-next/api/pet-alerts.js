@@ -68,9 +68,21 @@ export default async function handler(req, res) {
     }
 
     const simCfg = config.simulationConfig || { birthdays: true, expirations: true, petAlerts: true, campaigns: true };
-    const simulatedDateStr = req.body?.simulatedDate || req.query?.simulatedDate;
-    const referenceDate = (simulatedDateStr && simCfg.petAlerts) ? new Date(simulatedDateStr) : new Date();
-    const todayStr = referenceDate.toISOString().split('T')[0];
+    let referenceDate = new Date();
+    let todayStr = referenceDate.toISOString().split('T')[0];
+
+    if (simulatedDateStr && simCfg.petAlerts) {
+        if (simulatedDateStr.includes('T')) {
+            const [datePart] = simulatedDateStr.split('T');
+            todayStr = datePart;
+            referenceDate = new Date(datePart + 'T12:00:00');
+        } else {
+            const [y, m, d] = simulatedDateStr.split(/[-/]/);
+            todayStr = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+            referenceDate = new Date(todayStr + 'T12:00:00');
+        }
+        console.log(`[PetAlerts] Usando fecha simulada: ${todayStr}`);
+    }
 
     const results = {
         scanned: 0,

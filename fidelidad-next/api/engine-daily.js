@@ -230,14 +230,30 @@ export default async function handler(req, res) {
         const simCfg = config.simulationConfig || { birthdays: true, expirations: true, petAlerts: true, campaigns: true };
         
         let referenceDate = new Date();
+        let todayMD = `${String(referenceDate.getMonth() + 1).padStart(2, '0')}-${String(referenceDate.getDate()).padStart(2, '0')}`;
+        let todayStr = referenceDate.toISOString().split('T')[0];
+
         if (simulatedDateStr && simCfg.birthdays) {
-            referenceDate = new Date(simulatedDateStr);
-            console.log(`[Dashboard] Usando fecha simulada para Cumpleaños: ${simulatedDateStr}`);
+            // FIX: Manuel parsing to avoid timezone shifts (e.g. 23:00 AR -> 02:00 Next Day UTC)
+            if (simulatedDateStr.includes('T')) {
+                // If ISO, we must adjust to local (assume AR timezone -3 or just use the local day representation)
+                // The safest is to use split and avoid full Date object for the MD match
+                const [datePart] = simulatedDateStr.split('T');
+                const [y, m, d] = datePart.split('-');
+                todayMD = `${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+                todayStr = datePart;
+                referenceDate = new Date(datePart + 'T12:00:00'); // Midday to be safe
+                console.log(`[Dashboard] Usando fecha simulada (ISO Parse): ${todayStr} (MD: ${todayMD})`);
+            } else {
+                const [y, m, d] = simulatedDateStr.split(/[-/]/);
+                todayMD = `${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+                todayStr = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+                referenceDate = new Date(todayStr + 'T12:00:00');
+                console.log(`[Dashboard] Usando fecha simulada (String Parse): ${todayStr} (MD: ${todayMD})`);
+            }
         }
 
         const currentYear = referenceDate.getFullYear().toString();
-        const todayMD = `${String(referenceDate.getMonth() + 1).padStart(2, '0')}-${String(referenceDate.getDate()).padStart(2, '0')}`;
-        const todayStr = referenceDate.toISOString().split('T')[0];
 
         const logResults = {
             totalToday: 0,

@@ -76,17 +76,23 @@ async function handleCheck(req, res, db) {
         const config = configSnap.data();
 
         let referenceDate = new Date();
-        const simulatedDateBody = req.body?.simulatedDate || req.query?.simulatedDate;
-        const isFromUI = req.body?.isManual === true || req.query?.isManual === 'true';
+        let todayStr = referenceDate.toISOString().split('T')[0]; // Real today
+        let refStr = todayStr; // Effective today (simulation or real)
 
-        const simCfg = config.simulationConfig || { birthdays: true, expirations: true, petAlerts: true, campaigns: true };
-
-        const todayStr = new Date().toISOString().split('T')[0];
-        const simulatedStr = (simulatedDateBody && simCfg.expirations) ? new Date(simulatedDateBody).toISOString().split('T')[0] : null;
-        const isSimulation = simulatedStr && simulatedStr !== todayStr;
+        if (simulatedDateBody && simCfg.expirations) {
+            if (simulatedDateBody.includes('T')) {
+                const [datePart] = simulatedDateBody.split('T');
+                refStr = datePart;
+                referenceDate = new Date(datePart + 'T12:00:00');
+            } else {
+                const [y, m, d] = simulatedDateBody.split(/[-/]/);
+                refStr = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+                referenceDate = new Date(refStr + 'T12:00:00');
+            }
+        }
+        
+        const isSimulation = refStr !== todayStr;
         const ignoreDeduplication = req.body?.ignoreDeduplication === true || req.query?.ignoreDeduplication === 'true';
-
-        if (simulatedDateBody && simCfg.expirations) referenceDate = new Date(simulatedDateBody);
         const triggerSource = req.query?.trigger || req.body?.trigger || "unknown";
         const sourceLabelMap = {
             'dashboard': 'Ejecución en Dashboard',

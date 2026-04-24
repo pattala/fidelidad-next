@@ -140,8 +140,15 @@ export const GlobalAlerts = () => {
                 const templates = config?.messaging?.templates || {};
                 let msg = '';
                 if (type === 'expiration') {
-                    msg = (templates.expirationWarning || "¡Hola {nombre}! 📢 Próximo vencimiento de {puntos} pts.")
-                        .replace(/{nombre}/g, user.name?.split(' ')[0] || 'Socio').replace(/{puntos}/g, user.points?.toString());
+                    const breakdown = user.breakdown || [];
+                    if (breakdown.length > 1) {
+                        const listStr = breakdown.map((b: any) => `\n• ${b.date}: ${b.rem} pts`).join('');
+                        msg = `¡Hola {nombre}! 📢 Tus puntos vencen próximamente:${listStr}\n\n🔥 Total a vencer: ${user.points} pts.`
+                            .replace(/{nombre}/g, user.name?.split(' ')[0] || 'Socio');
+                    } else {
+                        msg = (templates.expirationWarning || "¡Hola {nombre}! 📢 Próximo vencimiento de {puntos} pts.")
+                            .replace(/{nombre}/g, user.name?.split(' ')[0] || 'Socio').replace(/{puntos}/g, user.points?.toString());
+                    }
                 } else if (type === 'pet') {
                     msg = (templates.petFoodAlert || "¡Hola {nombre}! 🐾 Reposición de {mascota}.")
                         .replace(/{nombre}/g, user.name?.split(' ')[0] || 'Socio').replace(/{mascota}/g, user.petName);

@@ -230,7 +230,8 @@ async function handleCheck(req, res, db) {
                             name: userData.nombre || userData.name || 'Socio',
                             phone: userData.phone || userData.telefono || '',
                             points: totalImpendingAmount,
-                            nextExpirationDate: userData.nextExpirationDate
+                            nextExpirationDate: userData.nextExpirationDate,
+                            breakdown: validCredits // Envíamos el desglose ordenado
                         });
                     }
 

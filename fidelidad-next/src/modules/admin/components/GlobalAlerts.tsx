@@ -160,29 +160,33 @@ export const GlobalAlerts = () => {
                             <Bell size={18} />
                         </div>
                         <div>
-                            <p className={`text-xs font-black uppercase tracking-widest ${isExpanded ? 'text-white' : 'text-amber-800'}`}>Avisos Críticos</p>
-                            {!isExpanded && (
-                                <p className="text-[10px] font-bold text-amber-600/80">
-                                    {birthdaysOfToday.length > 0 && `🎂 ${birthdaysOfToday.length} `}
-                                    {expiringUsers.length > 0 && `⏳ ${expiringUsers.length} `}
-                                    {petAlerts.length > 0 && `🐾 ${petAlerts.length}`}
-                                </p>
-                            )}
+        <div className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end gap-3 pointer-events-none">
+            {/* Main Widget Panel */}
+            {isExpanded && (
+                <div className="w-80 max-h-[500px] bg-indigo-950/80 backdrop-blur-xl border border-white/20 rounded-[2rem] shadow-2xl shadow-indigo-500/20 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300 pointer-events-auto ring-1 ring-white/10">
+                    {/* Header */}
+                    <div className="p-4 bg-gradient-to-r from-indigo-600/40 to-violet-600/40 border-b border-white/10 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-white/10 p-2 rounded-xl backdrop-blur-md">
+                                <Sparkles size={18} className="text-indigo-200" />
+                            </div>
+                            <div>
+                                <h4 className="text-sm font-black text-white uppercase tracking-tighter">Centro de Avisos</h4>
+                                <p className="text-[10px] text-indigo-200 font-bold uppercase tracking-widest opacity-70">Rampet Fidelidad</p>
+                            </div>
                         </div>
+                        <button onClick={toggleMinimized} className="text-white/50 hover:text-white p-1 hover:bg-white/10 rounded-full transition-colors">
+                            <ChevronDown size={20} />
+                        </button>
                     </div>
-                    <div className="flex items-center gap-1">
-                        <button onClick={(e) => { e.stopPropagation(); toggleMinimized(); }} className="p-1 hover:bg-black/10 rounded-full transition-colors"><ChevronDown size={18} /></button>
-                    </div>
-                </div>
 
-                {/* Expanded Content */}
-                {isExpanded && (
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-transparent to-amber-50/30">
+                    {/* Content Scroll Area */}
+                    <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
                         {/* Section: Birthdays */}
                         {birthdaysOfToday.length > 0 && (
                             <div className="space-y-2">
-                                <h5 className="text-[9px] font-black text-pink-600 uppercase tracking-tighter flex items-center gap-1">
-                                    <Cake size={10} /> Cumpleaños Hoy
+                                <h5 className="text-[10px] font-black text-indigo-300 uppercase tracking-widest flex items-center gap-2 mb-3">
+                                    <Cake size={12} /> Cumpleaños de hoy
                                 </h5>
                                 {birthdaysOfToday.map(user => {
                                     const currentYear = TimeService.now().getFullYear().toString();
@@ -190,30 +194,34 @@ export const GlobalAlerts = () => {
                                     const isSelected = includeGift[user.id] ?? (alreadyPaid || config.enableBirthdayBonus);
                                     
                                     return (
-                                        <div key={user.id} className="bg-white p-3 rounded-2xl border border-pink-50 shadow-sm group">
-                                            <div className="flex items-center justify-between mb-2">
+                                        <div key={user.id} className="bg-white/5 backdrop-blur-sm p-4 rounded-[1.5rem] border border-white/10 hover:border-indigo-400/30 transition-all group">
+                                            <div className="flex items-center justify-between mb-3">
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="text-xs font-bold text-gray-800 truncate">{user.name}</p>
-                                                    <p className={`text-[10px] font-black ${alreadyPaid ? 'text-green-500' : 'text-pink-400'}`}>
-                                                        {alreadyPaid ? 'Puntos ya acreditados ✅' : (isSelected ? 'Se acreditarán puntos 🎁' : 'Saludo sin regalo ⚪')}
-                                                        {user.alreadyGreetedAuto && ' · (Mensaje Auto OK ✉️)'}
-                                                    </p>
+                                                    <p className="text-xs font-black text-white truncate group-hover:text-indigo-200 transition-colors">{user.name}</p>
+                                                    <div className="flex flex-wrap items-center gap-1 mt-1">
+                                                        <p className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${alreadyPaid ? 'bg-green-500/20 text-green-400' : 'bg-indigo-500/20 text-indigo-300'}`}>
+                                                            {alreadyPaid ? 'Puntos Acreditados' : (isSelected ? 'Acreditar Puntos' : 'Sin Regalo')}
+                                                        </p>
+                                                        {user.alreadyGreetedAuto && (
+                                                            <span className="text-[9px] font-black bg-white/10 text-white/50 px-2 py-0.5 rounded-full">Auto OK</span>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                <div className="flex items-center gap-2">
+                                                <div className="flex items-center">
                                                     <input 
                                                         type="checkbox" 
                                                         disabled={alreadyPaid}
                                                         checked={isSelected}
                                                         onChange={(e) => setIncludeGift(prev => ({ ...prev, [user.id]: e.target.checked }))}
-                                                        className={`w-4 h-4 rounded border-gray-300 ${alreadyPaid ? 'opacity-50 cursor-not-allowed text-green-500' : 'text-pink-500 focus:ring-pink-400'}`}
+                                                        className={`w-5 h-5 rounded-lg border-white/10 bg-black/20 ${alreadyPaid ? 'opacity-30 cursor-not-allowed' : 'text-indigo-500 focus:ring-indigo-400 cursor-pointer hover:border-indigo-400'}`}
                                                     />
                                                 </div>
                                             </div>
                                             <button 
                                                 onClick={() => openWhatsApp(user, 'birthday')}
-                                                className="w-full bg-[#25D366] hover:bg-[#20ba5a] text-white text-[10px] font-black py-2 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-green-200 transition-all"
+                                                className="w-full bg-gradient-to-r from-[#25D366] to-[#128C7E] hover:from-[#20ba5a] hover:to-[#075E54] text-white text-[11px] font-black py-2.5 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-green-900/20 transition-all active:scale-95"
                                             >
-                                                <MessageCircle size={14} /> WHATSAPP {(isSelected || alreadyPaid) ? '+ REGALO' : ''}
+                                                <MessageCircle size={14} /> ENVIAR WHATSAPP
                                             </button>
                                         </div>
                                     );
@@ -224,20 +232,24 @@ export const GlobalAlerts = () => {
                         {/* Section: Expirations */}
                         {expiringUsers.length > 0 && (
                             <div className="space-y-2">
-                                <h5 className="text-[9px] font-black text-amber-600 uppercase tracking-tighter flex items-center gap-1">
-                                    <Clock size={10} /> Vencimientos Próximos
+                                <h5 className="text-[10px] font-black text-indigo-300 uppercase tracking-widest flex items-center gap-2 mb-3">
+                                    <Clock size={12} /> Vencimientos Próximos
                                 </h5>
                                 {expiringUsers.map(user => (
-                                    <div key={user.id} className="bg-white p-3 rounded-2xl border border-amber-50 shadow-sm">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className="text-xs font-bold text-gray-800 truncate flex-1">{user.name}</span>
-                                            <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">{user.points} pts</span>
+                                    <div key={user.id} className="bg-white/5 backdrop-blur-sm p-4 rounded-[1.5rem] border border-white/10">
+                                        <div className="flex justify-between items-start mb-3">
+                                            <div>
+                                                <p className="text-xs font-black text-white">{user.name}</p>
+                                                <p className="text-[10px] font-black text-orange-400 uppercase mt-0.5">
+                                                    {user.points} pts a vencer
+                                                </p>
+                                            </div>
                                         </div>
                                         <button 
                                             onClick={() => openWhatsApp(user, 'expiration')}
-                                            className="w-full bg-[#25D366] hover:bg-[#20ba5a] text-white text-[10px] font-black py-2 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-green-200 transition-all"
+                                            className="w-full bg-white/10 hover:bg-white/20 text-white text-[10px] font-black py-2.5 rounded-xl border border-white/10 transition-all"
                                         >
-                                            <MessageCircle size={14} /> AVISAR VENCIMIENTO
+                                            AVISAR VENCIMIENTO
                                         </button>
                                     </div>
                                 ))}
@@ -247,40 +259,47 @@ export const GlobalAlerts = () => {
                         {/* Section: Pet Alerts */}
                         {petAlerts.length > 0 && (
                             <div className="space-y-2">
-                                <h5 className="text-[9px] font-black text-orange-600 uppercase tracking-tighter flex items-center gap-1">
-                                    <PawPrint size={10} /> Reposición Alimento
+                                <h5 className="text-[10px] font-black text-indigo-300 uppercase tracking-widest flex items-center gap-2 mb-3">
+                                    <Sparkles size={12} /> Reposición Alimento
                                 </h5>
-                                {petAlerts.map(user => (
-                                    <div key={user.id} className="bg-white p-3 rounded-2xl border border-orange-50 shadow-sm">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className="text-xs font-bold text-gray-800 truncate flex-1">{user.petName}</span>
-                                            <span className="text-[9px] font-medium text-gray-500">de {user.name.split(' ')[0]}</span>
+                                {petAlerts.map((pet, idx) => (
+                                    <div key={`${pet.id}-${idx}`} className="bg-white/5 backdrop-blur-sm p-4 rounded-[1.5rem] border border-white/10">
+                                        <div className="flex justify-between items-start mb-3">
+                                            <div>
+                                                <p className="text-[10px] font-black text-indigo-200 uppercase tracking-widest">{pet.petName}</p>
+                                                <p className="text-xs font-bold text-white mt-0.5">{pet.name}</p>
+                                            </div>
                                         </div>
                                         <button 
-                                            onClick={() => openWhatsApp(user, 'pet')}
-                                            className="w-full bg-[#25D366] hover:bg-[#20ba5a] text-white text-[10px] font-black py-2 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-green-200 transition-all"
+                                            onClick={() => openWhatsApp(pet, 'pet')}
+                                            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black py-2.5 rounded-xl transition-all shadow-lg shadow-indigo-900/20"
                                         >
-                                            <MessageCircle size={14} /> RECORDAR COMPRA
+                                            RECORDAR COMPRA
                                         </button>
                                     </div>
                                 ))}
                             </div>
                         )}
                     </div>
-                )}
-
-                {/* Footer Link */}
-                {isExpanded && (
-                    <div className="p-3 border-t border-gray-100 bg-white text-center">
-                        <button 
-                            onClick={() => setIsExpanded(false)}
-                            className="text-[10px] font-bold text-gray-400 hover:text-amber-600 flex items-center justify-center gap-1 mx-auto"
-                        >
-                            Cerrar detalle <X size={12} />
-                        </button>
+                    {/* Footer */}
+                    <div className="p-3 bg-black/20 text-center">
+                        <p className="text-[8px] font-bold text-white/30 uppercase tracking-[0.2em]">Rampet v6.0 System</p>
                     </div>
-                )}
-            </div>
+                </div>
+            )}
+
+            {/* Floating Bubble Icon */}
+            {!isExpanded && (
+                <button
+                    onClick={toggleMinimized}
+                    className="w-16 h-16 bg-gradient-to-tr from-indigo-600 to-violet-600 rounded-full shadow-2xl shadow-indigo-500/40 flex items-center justify-center text-white border-2 border-white/20 hover:scale-110 active:scale-95 transition-all animate-bounce-subtle pointer-events-auto relative group"
+                >
+                    <div className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center border-2 border-white animate-pulse">
+                        {total}
+                    </div>
+                    <Sparkles className="group-hover:rotate-12 transition-transform" />
+                </button>
+            )}
         </div>
     );
 };

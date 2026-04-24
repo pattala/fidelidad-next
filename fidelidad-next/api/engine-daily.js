@@ -492,7 +492,9 @@ export default async function handler(req, res) {
             ok: true,
             summary: auditSummary,
             birthdays: logResults,
-            expirations: expirationsResult
+            expirations: expirationsResult,
+            petAlerts: petAlertsResult,
+            config: { messaging: config.messaging, appName: config.siteName || config.appName }
         });
 
     } catch (error) {

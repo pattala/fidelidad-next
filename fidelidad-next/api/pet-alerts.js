@@ -88,6 +88,7 @@ export default async function handler(req, res) {
         scanned: 0,
         notified: 0,
         details: [],
+        list: [],
         errors: []
     };
 
@@ -166,6 +167,15 @@ export default async function handler(req, res) {
 
                         results.notified++;
                         results.details.push({ user: userData.name, pet: pet.name, status: "sent" });
+                        results.list.push({
+                            id: userDoc.id,
+                            name: userData.nombre || userData.name || 'Socio',
+                            phone: userData.phone || userData.telefono || '',
+                            petName: pet.name,
+                            category: pet.category || 'Mascota',
+                            lastPurchaseDate: pet.lastPurchaseDate,
+                            frequencyDays: pet.frequencyDays
+                        });
 
                     } catch (err) {
                         results.errors.push(`${userDoc.id}-${pet.name}: ${err.message}`);

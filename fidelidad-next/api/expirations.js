@@ -139,7 +139,7 @@ async function handleCheck(req, res, db) {
         warningDate.setHours(23, 59, 59, 999);
 
         const warningDateStr = warningDate.toISOString().split('T')[0];
-        const logResults = { processed: 0, expiredPoints: 0, expiredUsersCount: 0, notified: 0, totalInWindow: 0, details: [], errors: [] };
+        const logResults = { processed: 0, expiredPoints: 0, expiredUsersCount: 0, notified: 0, totalInWindow: 0, details: [], list: [], errors: [] };
 
         // --- PASO A: PROCESAR DESCUENTOS ---
         const toExpireSnap = await db.collection('users').where('nextExpirationDate', '<=', referenceDateStr).get();
@@ -223,8 +223,16 @@ async function handleCheck(req, res, db) {
                             return new Date(ya, ma - 1, da) - new Date(yb, mb - 1, db);
                         });
 
-                    // El usuario tiene puntos por vencer, por lo tanto suma al contador de la extensión
-                    if (userData.nextExpirationDate <= proactivePinStr) logResults.totalInWindow++;
+                    if (userData.nextExpirationDate <= proactivePinStr) {
+                        logResults.totalInWindow++;
+                        logResults.list.push({
+                            id: userId,
+                            name: userData.nombre || userData.name || 'Socio',
+                            phone: userData.phone || userData.telefono || '',
+                            points: totalImpendingAmount,
+                            nextExpirationDate: userData.nextExpirationDate
+                        });
+                    }
 
                     const isItinerancyEnabled = config.messaging?.repeatExpirationWarnings === true;
                     const rawInterval = config.messaging?.expirationReminderIntervalDays ?? config.messaging?.expirationItinerancyDays;

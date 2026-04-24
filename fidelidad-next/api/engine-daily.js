@@ -510,7 +510,13 @@ export default async function handler(req, res) {
             birthdays: logResults,
             expirations: expirationsResult,
             petAlerts: petAlertsResult,
-            config: { messaging: config.messaging, appName: config.siteName || config.appName }
+            config: { 
+                messaging: config.messaging, 
+                appName: config.siteName || config.appName,
+                siteName: config.siteName,
+                enableBirthdayBonus: config.enableBirthdayBonus,
+                birthdayPoints: config.birthdayPoints
+            }
         });
 
     } catch (error) {

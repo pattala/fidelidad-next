@@ -316,7 +316,7 @@ export default async function handler(req, res) {
                 matches = date.endsWith(todayMD);
             }
 
-            if (simulatedDateStr || matches) {
+            if (effectiveSimulatedDate || matches) {
                 console.log(`[Birthdays] Checking user ${data.nombre || data.email}: date="${date}", todayMD="${todayMD}". Match=${matches}`);
             }
             return matches;
@@ -465,7 +465,7 @@ export default async function handler(req, res) {
                         'x-executor-role': 'system' 
                     },
                     body: JSON.stringify({
-                        simulatedDate: (simulatedDateStr && simCfg.petAlerts) ? simulatedDateStr : null,
+                        simulatedDate: (effectiveSimulatedDate && simCfg.petAlerts) ? effectiveSimulatedDate : null,
                         ignoreDeduplication: finalIgnoreDeduplication
                     })
                 });

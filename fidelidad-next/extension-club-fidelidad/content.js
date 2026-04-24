@@ -64,182 +64,145 @@ function showGlobalAlert(fullData, adminUrl) {
     const total = birthdays + expirations + petAlerts;
 
     if (total === 0) {
-        const w = document.getElementById('cf-floating-alert');
+        const w = document.getElementById('cf-floating-bubble');
         if (w) w.remove();
         return;
     }
 
-    const existingWidget = document.getElementById('cf-floating-alert');
-    if (existingWidget) {
-        const countEl = existingWidget.querySelector('#cf-alert-counts');
-        if (countEl) {
-            countEl.innerHTML = `${birthdays > 0 ? `🎂 C: ${birthdays}` : ''} ${expirations > 0 ? `⏳ V: ${expirations}` : ''} ${petAlerts > 0 ? `🐾 P: ${petAlerts}` : ''}`;
-        }
-        return;
+    let existingBubble = document.getElementById('cf-floating-bubble');
+    if (existingBubble) return;
+
+    let isExpanded = false;
+    let pos = { x: 0, y: 0 };
+    let dragStart = { x: 0, y: 0 };
+    let isDragging = false;
+
+    if (!document.getElementById('cf-modern-styles')) {
+        const style = document.createElement('style');
+        style.id = 'cf-modern-styles';
+        style.textContent = `
+            .cf-violet-glass {
+                background: rgba(17, 10, 45, 0.9);
+                backdrop-filter: blur(24px);
+                -webkit-backdrop-filter: blur(24px);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 32px;
+                box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.6);
+                color: white; font-family: system-ui, -apple-system, sans-serif;
+                pointer-events: auto;
+            }
+            .cf-bubble {
+                width: 68px; height: 68px;
+                background: linear-gradient(135deg, #6366f1, #8b5cf6);
+                border-radius: 50%; display: flex; align-items:center; justify-content:center;
+                cursor: grab; border: 3px solid rgba(255,255,255,0.2);
+                box-shadow: 0 15px 45px rgba(99, 102, 241, 0.4);
+                transition: transform 0.2s; animation: cf-float 4s infinite ease-in-out;
+            }
+            @keyframes cf-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+            .cf-panel { width: 340px; max-height: 550px; display: flex; flex-direction: column; overflow: hidden; animation: cf-pop 0.3s cubic-bezier(0,1,0,1); }
+            @keyframes cf-pop { from { opacity:0; transform:scale(0.8) translateY(40px); } to { opacity:1; transform:scale(1) translateY(0); } }
+            .cf-btn-wa {
+                background: linear-gradient(135deg, #25D366, #128C7E); color: white; border: none;
+                border-radius: 16px; padding: 12px; font-weight: 800; font-size: 11px;
+                text-transform: uppercase; cursor: pointer; width: 100%; margin-top: 10px;
+            }
+            .cf-scrollbar::-webkit-scrollbar { width: 4px; }
+            .cf-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+        `;
+        document.head.appendChild(style);
     }
 
-    chrome.storage.local.get(['cf_alert_minimized'], (result) => {
-        let isMinimized = result.cf_alert_minimized || false;
-        let isExpanded = false;
-        let isDraggingActive = false;
+    const container = document.createElement('div');
+    container.id = 'cf-floating-bubble';
+    container.style.cssText = `position:fixed; bottom:30px; right:30px; z-index:2147483647; pointer-events:none;`;
+    
+    const updatePosition = (ex, ey) => {
+        pos.x = ex - dragStart.x; pos.y = ey - dragStart.y;
+        container.style.transform = `translate(${pos.x}px, ${pos.y}px)`;
+    };
 
-        const widget = document.createElement('div');
-        widget.id = 'cf-floating-alert';
-        widget.style.cssText = `
-            position: fixed; bottom: 20px; left: 20px; z-index: 2147483647;
-            font-family: system-ui, -apple-system, sans-serif;
-            display: flex; flex-direction: column; transition: opacity 0.3s ease, transform 0.3s ease;
-            user-select: none;
-        `;
+    const mouseMove = (e) => { if (isDragging) updatePosition(e.clientX, e.clientY); };
+    const mouseUp = () => { 
+        isDragging = false; 
+        document.removeEventListener('mousemove', mouseMove); 
+        document.removeEventListener('mouseup', mouseUp); 
+    };
 
-        const renderContent = () => {
-            if (isMinimized) {
-                widget.innerHTML = `
-                    <div id="cf-alert-min" style="background:#f59e0b; color:white; width:48px; height:48px; border-radius:50%; box-shadow:0 10px 25px rgba(245,158,11,0.4); display:flex; align-items:center; justify-content:center; cursor:grab; position:relative; border:2px solid white;">
-                        <span style="font-size:24px;">📢</span>
-                        <span style="position:absolute; top:-5px; right:-5px; background:white; color:#b45309; font-size:10px; font-weight:900; width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 5px rgba(0,0,0,0.2);">${total}</span>
-                    </div>
-                `;
-                widget.onclick = (e) => { if (!isDraggingActive) { isMinimized = false; chrome.storage.local.set({ cf_alert_minimized: false }); renderContent(); } };
-            } else if (isExpanded) {
-                // --- VISTA EXPANDIDA (DETALLE) ---
-                widget.innerHTML = `
-                    <div id="cf-alert-expanded" style="background:white; border-radius:20px; box-shadow:0 20px 50px rgba(0,0,0,0.3); border:1px solid #fee2e2; width:340px; overflow:hidden; display:flex; flex-direction:column; max-height:80vh;">
-                        <div style="background:#f59e0b; color:white; padding:12px 16px; display:flex; justify-content:between; align-items:center;">
-                            <span style="font-weight:900; font-size:13px; text-transform:uppercase; letter-spacing:1px; flex:1;">Pendientes de Hoy</span>
-                            <button id="cf-alert-collapse" style="background:none; border:none; color:white; cursor:pointer; font-size:18px; font-weight:bold; padding:0 5px;">↙</button>
-                        </div>
-                        <div style="overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:8px; background:#fffbfb;">
-                            ${renderList('birthdays', '🎂 Cumpleaños', fullData.birthdays?.list, '#db2777', '#fdf2f8')}
-                            ${renderList('expirations', '⏳ Vencimientos', fullData.expirations?.list, '#d97706', '#fffbeb')}
-                            ${renderList('petAlerts', '🐾 Mascotas', fullData.petAlerts?.list, '#c2410c', '#fff7ed')}
-                        </div>
-                        <div style="background:#f9fafb; padding:10px; border-top:1px solid #f3f4f6; text-align:center;">
-                            <a href="${adminUrl}/admin/dashboard" target="_blank" style="color:#6b7280; font-size:10px; font-weight:bold; text-decoration:none; text-transform:uppercase; letter-spacing:0.5px;">Ir al Panel Completo</a>
-                        </div>
-                    </div>
-                `;
-                widget.querySelector('#cf-alert-collapse').onclick = (e) => { e.stopPropagation(); isExpanded = false; renderContent(); };
-                // Bind WhatsApp buttons
-                widget.querySelectorAll('.cf-wa-btn').forEach(btn => {
-                    btn.onclick = (e) => {
-                        e.stopPropagation();
-                        const type = btn.dataset.type;
-                        const phone = btn.dataset.phone;
-                        const name = btn.dataset.name;
-                        const extra = btn.dataset.extra;
-                        const waUrl = generateWhatsApp(type, phone, name, extra, fullData.config);
-                        if (waUrl) window.open(waUrl, '_blank');
-                    };
-                });
-            } else {
-                // --- VISTA RESUMEN ---
-                widget.innerHTML = `
-                    <div id="cf-alert-main" style="background:white; padding:12px 16px; border-radius:16px; box-shadow:0 10px 25px rgba(0,0,0,0.15); border:1px solid #fee2e2; display:flex; align-items:center; gap:12px; min-width:200px;">
-                        <div id="cf-drag-handle" style="cursor:grab; background:#fef3c7; width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius:50%;"><span style="font-size:18px;">📢</span></div>
-                        <div id="cf-alert-expand-trigger" style="flex:1; cursor:pointer;">
-                            <h4 style="margin:0; font-size:13px; font-weight:800; color:#92400e;">${fullData.config?.appName || 'Sistema'}</h4>
-                            <p id="cf-alert-counts" style="margin:0; font-size:11px; color:#b45309; line-height:1.2;">
-                                ${birthdays > 0 ? `🎂 C: ${birthdays}` : ''} ${expirations > 0 ? `⏳ V: ${expirations}` : ''} ${petAlerts > 0 ? `🐾 P: ${petAlerts}` : ''}
-                            </p>
-                        </div>
-                        <div style="display:flex; gap:4px; align-items:center;">
-                            <button id="cf-alert-minimize" title="Minimizar" style="background:none; border:none; color:#d1d5db; cursor:pointer; font-size:20px;">–</button>
-                            <button id="cf-alert-close" title="Cerrar" style="background:none; border:none; color:#d1d5db; cursor:pointer; font-size:20px;">×</button>
-                        </div>
-                    </div>
-                `;
-                widget.querySelector('#cf-alert-expand-trigger').onclick = (e) => { isExpanded = true; renderContent(); };
-                widget.querySelector('#cf-alert-close').onclick = (e) => { e.stopPropagation(); widget.remove(); };
-                widget.querySelector('#cf-alert-minimize').onclick = (e) => { e.stopPropagation(); isMinimized = true; chrome.storage.local.set({ cf_alert_minimized: true }); renderContent(); };
-            }
-            setupDragging();
-        };
+    const render = () => {
+        container.innerHTML = '';
+        const ui = document.createElement('div');
+        ui.style.pointerEvents = 'auto';
 
-        const renderList = (type, title, list, color, bgColor) => {
-            if (!list || list.length === 0) return '';
-            return `
-                <div style="margin-bottom:5px;">
-                    <h5 style="margin:0 0 5px 0; font-size:10px; font-weight:900; color:${color}; text-transform:uppercase;">${title}</h5>
-                    <div style="display:flex; flex-direction:column; gap:4px;">
-                        ${list.map(item => `
-                            <div style="background:${bgColor}; padding:8px; border-radius:12px; display:flex; align-items:center; justify-content:between; gap:10px; border:1px solid ${color}20;">
-                                <div style="flex:1; min-width:0;">
-                                    <div style="font-size:11px; font-weight:800; color:#111827; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.name}</div>
-                                    <div style="font-size:9px; font-weight:700; color:${color}; opacity:0.8;">
-                                        ${type === 'birthdays' ? '¡Cumpleaños Hoy!' : (type === 'expirations' ? `${item.points} pts por vencer` : `${item.petName} (${item.category})`)}
-                                    </div>
-                                </div>
-                                <button class="cf-wa-btn" data-type="${type}" data-phone="${item.phone}" data-name="${item.name}" data-extra="${type === 'expirations' ? item.points : (type === 'petAlerts' ? item.petName : '')}" style="background:#25D366; color:white; border:none; border-radius:8px; padding:5px 8px; font-size:10px; font-weight:900; cursor:pointer; display:flex; align-items:center; gap:4px;">
-                                    WA ↗
-                                </button>
-                            </div>
-                        `).join('')}
+        if (isExpanded) {
+            ui.className = 'cf-violet-glass cf-panel';
+            ui.innerHTML = `
+                <div style="padding:20px; background:rgba(255,255,255,0.05); cursor:grab; display:flex; justify-content:space-between; align-items:center;" id="cf-drag">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <span style="font-size:22px;">🚀</span>
+                        <div>
+                            <div style="font-weight:900; font-size:12px; text-transform:uppercase; letter-spacing:1px;">Avisos Smart</div>
+                            <div style="font-size:9px; opacity:0.5; font-weight:700;">Panel Rampet</div>
+                        </div>
                     </div>
+                    <button id="cf-close" style="background:none; border:none; color:white; font-size:24px; cursor:pointer; opacity:0.3;">×</button>
+                </div>
+                <div style="padding:20px; overflow-y:auto; flex:1;" class="cf-scrollbar">
+                    ${renderList('birthdays', '🎂 Cumpleaños', fullData.birthdays?.list, '#ec4899')}
+                    ${renderList('expirations', '⏳ Vencimientos', fullData.expirations?.list, '#f59e0b')}
+                    ${renderList('petAlerts', '🐾 Mascotas', fullData.petAlerts?.list, '#6366f1')}
                 </div>
             `;
-        };
-
-        const generateWhatsApp = (type, phone, name, extra, cfg) => {
-            if (!phone) return null;
-            let p = phone.replace(/\D/g, '');
-            if (!p.startsWith('54') && p.length === 10) p = '549' + p;
-            
-            const templates = cfg?.messaging?.templates || {};
-            let msg = "";
-            const firstName = name.split(' ')[0];
-
-            if (type === 'birthdays') {
-                // Si el bonus está activo Y tenemos puntos configurados, usamos el template completo
-                const points = cfg?.birthdayPoints || 100;
-                const hasBonus = cfg?.enableBirthdayBonus !== false;
-                
-                if (hasBonus) {
-                    msg = templates.birthday || "¡Feliz cumpleaños, {nombre}! 🎂🎉 Te regalamos {puntos} puntos para que los disfrutes. ¡Que pases un gran día! ✨";
-                    msg = msg.replace(/{puntos}/g, points.toString());
-                } else {
-                    msg = templates.birthdaySimple || "¡Feliz cumpleaños, {nombre}! 🎂🎉 Esperamos que pases un día increíble. ¡Te enviamos un gran saludo! ✨";
-                }
-            } else if (type === 'expirations') {
-                msg = templates.expirationWarning || "¡Hola {nombre}! 📢 Tienes {puntos} puntos próximos a vencer. ⏳ Entrá a la App para ver el detalle y aprovecharlos antes de que se venzan. 🎁";
-                msg = msg.replace(/{puntos}/g, extra);
-            } else if (type === 'petAlerts') {
-                msg = templates.petFoodAlert || "¡Hola {nombre}! 🐾 Vemos que el alimento de {mascota} está por terminarse. ¿Querés que te separemos una bolsa para retirar? 🛍️";
-                msg = msg.replace(/{mascota}/g, extra);
-            }
-
-            msg = msg.replace(/{nombre}/g, firstName)
-                     .replace(/{tienda}/g, cfg?.siteName || cfg?.appName || 'la tienda')
-                     .replace(/{siteName}/g, cfg?.siteName || 'el Club');
-                     
-            return `https://api.whatsapp.com/send?phone=${p}&text=${encodeURIComponent(msg)}`;
-        };
-
-        const setupDragging = () => {
-            const handle = isMinimized ? widget : widget.querySelector('#cf-drag-handle');
-            if (!handle) return;
-            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-            handle.onmousedown = (e) => {
-                e.preventDefault(); isDraggingActive = false;
-                pos3 = e.clientX; pos4 = e.clientY;
-                document.onmouseup = () => { document.onmouseup = null; document.onmousemove = null; if (handle.style) handle.style.cursor = 'grab'; };
-                document.onmousemove = (me) => {
-                    me.preventDefault(); isDraggingActive = true;
-                    if (handle.style) handle.style.cursor = 'grabbing';
-                    pos1 = pos3 - me.clientX; pos2 = pos4 - me.clientY;
-                    pos3 = me.clientX; pos4 = me.clientY;
-                    widget.style.top = (widget.offsetTop - pos2) + "px";
-                    widget.style.left = (widget.offsetLeft - pos1) + "px";
-                    widget.style.bottom = 'auto';
-                };
+            ui.querySelector('#cf-drag').onmousedown = (e) => {
+                isDragging = true;
+                dragStart.x = e.clientX - pos.x; dragStart.y = e.clientY - pos.y;
+                document.addEventListener('mousemove', mouseMove);
+                document.addEventListener('mouseup', mouseUp);
             };
-        };
+            ui.querySelector('#cf-close').onclick = () => { isExpanded = false; render(); };
+            ui.querySelectorAll('.cf-btn-wa').forEach(b => {
+                b.onclick = () => {
+                    const url = generateWhatsApp(b.dataset.type, b.dataset.phone, b.dataset.name, b.dataset.extra, fullData.config);
+                    if (url) window.open(url, '_blank');
+                };
+            });
+        } else {
+            ui.className = 'cf-bubble';
+            ui.innerHTML = `
+                <span style="font-size:28px;">🔔</span>
+                <div style="position:absolute; top:-5px; right:-5px; background:#ef4444; color:white; font-size:11px; font-weight:900; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:2px solid white; box-shadow:0 10px 20px rgba(0,0,0,0.2);">${total}</div>
+            `;
+            ui.onmousedown = (e) => {
+                isDragging = true;
+                dragStart.x = e.clientX - pos.x; dragStart.y = e.clientY - pos.y;
+                document.addEventListener('mousemove', mouseMove);
+                document.addEventListener('mouseup', mouseUp);
+            };
+            ui.onclick = (e) => { if (Math.abs(e.clientX - (pos.x + dragStart.x)) < 5) { isExpanded = true; render(); } };
+        }
+        container.appendChild(ui);
+    };
 
-        renderContent();
-        document.body.appendChild(widget);
-        widget.style.opacity = '0'; widget.style.transform = 'translateY(20px)';
-        setTimeout(() => { widget.style.opacity = '1'; widget.style.transform = 'translateY(0)'; }, 100);
-    });
+    const renderList = (type, title, list, color) => {
+        if (!list || list.length === 0) return '';
+        return `
+            <div style="margin-bottom:25px;">
+                <div style="font-size:10px; font-weight:900; color:${color}; text-transform:uppercase; margin-bottom:12px; letter-spacing:1.5px;">${title}</div>
+                ${list.map(item => `
+                    <div style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:24px; padding:16px; margin-bottom:12px;">
+                        <div style="font-weight:800; font-size:13px; color:white;">${item.name}</div>
+                        <div style="font-size:10px; color:${color}; font-weight:700; margin-top:4px; opacity:0.8;">
+                             ${type === 'birthdays' ? '¡Cumpleaños Hoy!' : (type === 'expirations' ? `${item.points} pts próximos` : `${item.petName}`)}
+                        </div>
+                        <button class="cf-btn-wa" data-type="${type}" data-phone="${item.phone}" data-name="${item.name}" data-extra="${type === 'expirations' ? item.points : (type === 'petAlerts' ? item.petName : '')}">Enviar WhatsApp</button>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    };
+
+    render();
+    document.body.appendChild(container);
 }
 
 // Refresca el contador C/V del widget si ya está visible

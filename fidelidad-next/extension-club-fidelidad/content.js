@@ -233,17 +233,26 @@ function showGlobalAlert(fullData, adminUrl) {
 
 // Refresca el contador C/V del widget si ya está visible
 async function refreshAlertCounts() {
-    if (!config.apiUrl || !config.apiKey) return;
+    if (!config.apiUrl || !config.apiKey) {
+        console.warn('⚠️ [Club Fidelidad] No hay configuración para refrescar contadores.');
+        return;
+    }
+    const targetUrl = `${config.apiUrl}/api/engine-daily?mode=daily&trigger=extension`;
     try {
-        const r = await fetch(`${config.apiUrl}/api/engine-daily?mode=daily&trigger=extension`, {
+        console.log(`🔄 [Club Fidelidad] Refrescando contadores desde: ${targetUrl}`);
+        const r = await fetch(targetUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey }
         });
+        if (!r.ok) throw new Error(`HTTP Error: ${r.status}`);
         const data = await r.json();
         if (data.ok) {
+            console.log("✅ [Club Fidelidad] Contadores refrescados con éxito.");
             showGlobalAlert(data, config.apiUrl);
         }
-    } catch (e) { console.warn('[Club Fidelidad] Error refrescando contadores:', e.message); }
+    } catch (e) { 
+        console.warn(`❌ [Club Fidelidad] Error refrescando contadores en ${targetUrl}:`, e.message);
+    }
 }
 
 // Auto-refresh when regaining focus (e.g. returning from Admin Panel)

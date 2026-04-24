@@ -336,8 +336,7 @@ export default async function handler(req, res) {
                     socioNumber: userData.socioNumber || '',
                     greeted: userData.lastBirthdayGreetingYear === currentYear
                 });
-                logResults.totalToday++;
-
+                
                 // Lógica de EJECUCIÓN (Solo si no saltamos)
                 if (!shouldSkipExecution) {
                     // Deduplicación básica por año (si no es forzado)

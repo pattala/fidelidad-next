@@ -190,7 +190,16 @@ function showGlobalAlert(fullData, adminUrl) {
             const firstName = name.split(' ')[0];
 
             if (type === 'birthdays') {
-                msg = templates.birthdayGreeting || "¡Hola {nombre}! 🎉 Muy feliz cumpleaños te desea {tienda}. ¡Pasa por el local que tenemos un regalo para vos! 🎁";
+                // Si el bonus está activo Y tenemos puntos configurados, usamos el template completo
+                const points = cfg?.birthdayPoints || 100;
+                const hasBonus = cfg?.enableBirthdayBonus !== false;
+                
+                if (hasBonus) {
+                    msg = templates.birthday || "¡Feliz cumpleaños, {nombre}! 🎂🎉 Te regalamos {puntos} puntos para que los disfrutes. ¡Que pases un gran día! ✨";
+                    msg = msg.replace(/{puntos}/g, points.toString());
+                } else {
+                    msg = templates.birthdaySimple || "¡Feliz cumpleaños, {nombre}! 🎂🎉 Esperamos que pases un día increíble. ¡Te enviamos un gran saludo! ✨";
+                }
             } else if (type === 'expirations') {
                 msg = templates.expirationWarning || "¡Hola {nombre}! 📢 Tienes {puntos} puntos próximos a vencer. ⏳ Entrá a la App para ver el detalle y aprovecharlos antes de que se venzan. 🎁";
                 msg = msg.replace(/{puntos}/g, extra);
@@ -199,7 +208,10 @@ function showGlobalAlert(fullData, adminUrl) {
                 msg = msg.replace(/{mascota}/g, extra);
             }
 
-            msg = msg.replace(/{nombre}/g, firstName).replace(/{tienda}/g, cfg?.appName || 'la tienda');
+            msg = msg.replace(/{nombre}/g, firstName)
+                     .replace(/{tienda}/g, cfg?.siteName || cfg?.appName || 'la tienda')
+                     .replace(/{siteName}/g, cfg?.siteName || 'el Club');
+                     
             return `https://api.whatsapp.com/send?phone=${p}&text=${encodeURIComponent(msg)}`;
         };
 

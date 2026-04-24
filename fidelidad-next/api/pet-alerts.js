@@ -112,9 +112,10 @@ export default async function handler(req, res) {
                     // (Optional: Implement a log check to avoid duplicates)
                     
                     try {
+                        const userName = (userData.nombre || userData.name || '').split(' ')[0];
                         const template = config.messaging?.templates?.petFoodAlert || "¡Hola {nombre}! 🐾 Notamos que a {mascota} se le debe estar terminando su {marca}. ¡No olvides pasar por {siteName}!";
                         const msg = template
-                            .replace(/{nombre}/g, (userData.name || '').split(' ')[0])
+                            .replace(/{nombre}/g, userName)
                             .replace(/{mascota}/g, pet.name)
                             .replace(/{marca}/g, pet.foodBrand || pet.brand || 'alimento')
                             .replace(/{siteName}/g, config.siteName || 'Petshop');

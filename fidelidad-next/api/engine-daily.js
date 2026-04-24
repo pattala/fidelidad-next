@@ -247,8 +247,22 @@ export default async function handler(req, res) {
         };
 
         // --- PASO 1: CUMPLEAÑOS ---
-        const usersSnap = await db.collection('users').where('birthDate', '!=', '').get();
-        const birthdayUsers = usersSnap.docs.filter(doc => doc.data().birthDate?.endsWith(todayMD));
+        // Fetch users who have either birthDate or fechaNacimiento
+        const [snap1, snap2] = await Promise.all([
+            db.collection('users').where('birthDate', '!=', '').get(),
+            db.collection('users').where('fechaNacimiento', '!=', '').get()
+        ]);
+        
+        // Merge results (avoiding duplicates)
+        const combinedDocs = new Map();
+        snap1.docs.forEach(d => combinedDocs.set(d.id, d));
+        snap2.docs.forEach(d => combinedDocs.set(d.id, d));
+
+        const birthdayUsers = Array.from(combinedDocs.values()).filter(doc => {
+            const data = doc.data();
+            const date = data.birthDate || data.fechaNacimiento;
+            return date?.endsWith(todayMD);
+        });
         logResults.totalToday = birthdayUsers.length;
 
         for (const userDoc of birthdayUsers) {
@@ -289,8 +303,9 @@ export default async function handler(req, res) {
                 }
 
                 if (autoMessageEnabled) {
+                    const userName = (userData.nombre || userData.name || '').split(' ')[0];
                     const template = (pointsAdded > 0) ? (config?.messaging?.templates?.birthday || "¡Feliz cumple {nombre}! 🎂 +{puntos} pts.") : (config?.messaging?.templates?.birthdaySimple || "¡Feliz cumple {nombre}! 🎂");
-                    const msg = template.replace(/{nombre}/g, (userData.name || '').split(' ')[0]).replace(/{puntos}/g, birthdayPoints.toString());
+                    const msg = template.replace(/{nombre}/g, userName).replace(/{puntos}/g, birthdayPoints.toString());
                     const title = "¡Feliz Cumpleaños! 🎂";
 
                     if (userData.fcmTokens?.length) {
@@ -329,7 +344,8 @@ export default async function handler(req, res) {
         let expirationsResult = { ok: true, summary: { notified: 0, expiredPoints: 0, details: [] } };
         try {
             const currentHost = req.headers.host;
-            const baseUrl = currentHost ? `https://${currentHost}` : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+            const proto = req.headers['x-forwarded-proto'] || (currentHost?.includes('localhost') ? 'http' : 'https');
+            const baseUrl = currentHost ? `${proto}://${currentHost}` : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
             
             // Red de seguridad: Timeout para evitar que Vercel mate el proceso por una llamada lenta
             const controller = new AbortController();
@@ -369,7 +385,8 @@ export default async function handler(req, res) {
         if (isDailyMode && config.enablePetModule) {
             try {
                 const currentHost = req.headers.host;
-                const baseUrl = currentHost ? `https://${currentHost}` : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+                const proto = req.headers['x-forwarded-proto'] || (currentHost?.includes('localhost') ? 'http' : 'https');
+                const baseUrl = currentHost ? `${proto}://${currentHost}` : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
                 
                 const pRes = await fetch(`${baseUrl}/api/pet-alerts?trigger=${triggerSource}&silent=true`, {
                     method: 'POST',

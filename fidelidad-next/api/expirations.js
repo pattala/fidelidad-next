@@ -259,7 +259,8 @@ async function handleCheck(req, res, db) {
                     const [y, m, d] = userData.nextExpirationDate.split('-');
                     let displayDate = `${d}/${m}/${y}`;
                     
-                    let msg = template.replace(/{nombre}/g, userData.name || 'Socio').replace(/{puntos}/g, totalImpendingAmount.toString());
+                    const userName = (userData.nombre || userData.name || 'Socio').split(' ')[0];
+                    let msg = template.replace(/{nombre}/g, userName).replace(/{puntos}/g, totalImpendingAmount.toString());
 
                     // Refinement: If there are multiple dates, avoid suggesting all points expire on a single date
                     if (validCredits.length > 1) {

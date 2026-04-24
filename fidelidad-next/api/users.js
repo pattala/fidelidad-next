@@ -46,8 +46,10 @@ function applyCors(req, res) {
 async function handleCreate(req, res, db) {
     let payload = req.body;
     try {
-        let { email, dni, nombre, telefono, numeroSocio, fechaNacimiento, fechaInscripcion, domicilio, docId, termsAccepted, termsAcceptedAt } = payload || {};
+        let { email, dni, nombre, telefono, numeroSocio, fechaNacimiento, birthDate, fechaInscripcion, domicilio, docId, termsAccepted, termsAcceptedAt } = payload || {};
         if (!email || !dni) return res.status(400).json({ ok: false, error: "Faltan email y dni" });
+
+        const finalBirthDate = birthDate || fechaNacimiento || "";
 
         email = String(email).toLowerCase().trim();
         dni = String(dni).trim();
@@ -78,13 +80,14 @@ async function handleCreate(req, res, db) {
             email, dni, nombre: nombre || "", telefono: telefono || "",
             numeroSocio: numeroSocio ? Number(numeroSocio) : null,
             socioNumber: numeroSocio ? Number(numeroSocio) : null,
+            birthDate: finalBirthDate, // Canonical name
+            fechaNacimiento: finalBirthDate, // Alias for legacy or specific modules
             authUID, role: "client", estado: "activo",
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
         };
 
         if (termsAccepted !== undefined) fsPayload.termsAccepted = termsAccepted;
         if (termsAcceptedAt) fsPayload.termsAcceptedAt = termsAcceptedAt;
-        if (fechaNacimiento) fsPayload.fechaNacimiento = fechaNacimiento;
         if (fechaInscripcion) fsPayload.fechaInscripcion = fechaInscripcion;
         if (domicilio) fsPayload.domicilio = { ...domicilio, updatedAt: new Date() };
 

@@ -141,22 +141,26 @@ export const GlobalAlerts = () => {
             style={{ bottom: '24px', right: '24px', transform: `translate(${position.x}px, ${position.y}px)` }}>
             
             {isExpanded && !isMinimized && (
-                <div className="w-[360px] max-h-[550px] bg-indigo-950/90 backdrop-blur-3xl border border-white/20 rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden pointer-events-auto ring-1 ring-white/10 animate-in zoom-in-95">
-                    <div onMouseDown={handleMouseDown} className="p-6 bg-gradient-to-r from-violet-600/50 to-indigo-600/50 border-b border-white/10 flex items-center justify-between cursor-grab active:cursor-grabbing">
+                <div className="w-[420px] max-h-[600px] bg-indigo-950/95 backdrop-blur-3xl border border-white/20 rounded-[3rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden pointer-events-auto ring-1 ring-white/10 animate-in zoom-in-95 duration-200">
+                    <div onMouseDown={handleMouseDown} className="p-7 bg-gradient-to-r from-violet-600/60 to-indigo-600/60 border-b border-white/10 flex items-center justify-between cursor-grab active:cursor-grabbing">
                         <div className="flex items-center gap-4">
-                            <Sparkles size={22} className="text-violet-200 animate-pulse" />
+                            <div className="bg-white/10 p-2.5 rounded-2xl">
+                                <Sparkles size={24} className="text-violet-100 animate-pulse" />
+                            </div>
                             <div>
-                                <h4 className="text-sm font-black text-white uppercase tracking-wider">Avisos Smart</h4>
-                                <p className="text-[10px] text-violet-200/60 font-bold uppercase tracking-widest">Gestión de Socios</p>
+                                <h4 className="text-base font-black text-white uppercase tracking-wider">Centro de Avisos</h4>
+                                <p className="text-[11px] text-violet-200/70 font-bold uppercase tracking-widest">Rampet Fidelidad Pro</p>
                             </div>
                         </div>
-                        <button onClick={() => setIsExpanded(false)} className="text-white/40 hover:text-white p-1 hover:bg-white/10 rounded-full transition-colors"><ChevronDown size={24} /></button>
+                        <button onClick={() => setIsExpanded(false)} className="text-white/40 hover:text-white p-2 hover:bg-white/10 rounded-full transition-all hover:scale-110"><ChevronDown size={28} /></button>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar text-white bg-black/10">
+                    <div className="flex-1 overflow-y-auto p-7 space-y-7 custom-scrollbar text-white bg-black/5">
                         {birthdaysOfToday.length > 0 && (
-                            <div className="space-y-4">
-                                <h5 className="text-[10px] font-black text-violet-300 uppercase tracking-widest px-2">🎂 Cumpleaños Hoy</h5>
+                            <div className="space-y-5">
+                                <h5 className="text-[11px] font-black text-violet-400 uppercase tracking-[0.2em] px-2 flex items-center gap-2">
+                                    <Cake size={14} /> Cumpleaños Hoy
+                                </h5>
                                 {birthdaysOfToday.map(user => {
                                     const currentYear = TimeService.now().getFullYear().toString();
                                     const gifted = user.lastBirthdayPointsYear === currentYear;
@@ -164,32 +168,35 @@ export const GlobalAlerts = () => {
                                     const isSelected = includeGift[user.id] ?? (gifted || bonusActive);
                                     
                                     return (
-                                        <div key={user.id} className="bg-white/5 p-5 rounded-[2rem] border border-white/10 hover:bg-white/10 transition-colors">
-                                            <div className="flex items-start justify-between mb-4">
+                                        <div key={user.id} className="bg-white/5 p-6 rounded-[2.5rem] border border-white/10 hover:bg-white/10 transition-all hover:translate-y-[-2px] shadow-sm">
+                                            <div className="flex items-start justify-between mb-5">
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-black truncate">{user.name || 'Socio'}</p>
-                                                    <p className="text-[10px] font-bold text-white/50 mt-1 uppercase tracking-tighter">
-                                                        DNI: {user.dni || 'S/D'} | Nro: {user.socioNumber || 'N/A'}
-                                                    </p>
+                                                    <p className="text-lg font-black tracking-tight leading-none mb-2">{user.name || 'Socio'}</p>
+                                                    <div className="flex items-center gap-2 text-[11px] font-bold text-white/40 uppercase">
+                                                        <User size={12} />
+                                                        <span>DNI: {user.dni || 'S/D'}</span>
+                                                        <span className="opacity-30">|</span>
+                                                        <span>ID: {user.socioNumber || 'N/A'}</span>
+                                                    </div>
                                                 </div>
                                                 {bonusActive && (
                                                     <input type="checkbox" disabled={gifted} checked={isSelected} 
                                                         onChange={(e) => setIncludeGift(prev => ({ ...prev, [user.id]: e.target.checked }))} 
-                                                        className="w-6 h-6 rounded-lg border-white/20 bg-black/40 text-violet-500 cursor-pointer" />
+                                                        className="w-7 h-7 rounded-xl border-white/10 bg-black/40 text-violet-500 cursor-pointer focus:ring-0 focus:ring-offset-0" />
                                                 )}
                                             </div>
                                             
-                                            <div className="flex gap-2 mb-4">
+                                            <div className="flex flex-wrap gap-2 mb-5">
                                                 {gifted ? (
-                                                    <span className="text-[9px] font-black uppercase px-2 py-1 bg-green-500/20 text-green-300 rounded-lg border border-green-500/30">REGALO ENVIADO ✅</span>
+                                                    <span className="text-[10px] font-black uppercase px-3 py-1.5 bg-green-500/20 text-green-400 rounded-xl border border-green-500/30">REGALO ENVIADO ✅</span>
                                                 ) : (
-                                                    bonusActive && <span className="text-[9px] font-black uppercase px-2 py-1 bg-orange-500/20 text-orange-300 rounded-lg border border-orange-500/30">PENDIENTE DE REGALO 🎁</span>
+                                                    bonusActive && <span className="text-[10px] font-black uppercase px-3 py-1.5 bg-orange-500/20 text-orange-400 rounded-xl border border-orange-500/30">REGALO PENDIENTE 🎁</span>
                                                 )}
-                                                {!bonusActive && <span className="text-[9px] font-black uppercase px-2 py-1 bg-blue-500/20 text-blue-300 rounded-lg border border-blue-500/30">SOLO SALUDO (Config)</span>}
+                                                {!bonusActive && <span className="text-[10px] font-black uppercase px-3 py-1.5 bg-indigo-500/20 text-indigo-300 rounded-xl border border-indigo-500/30">GREETING ONLY ✉️</span>}
                                             </div>
 
-                                            <button onClick={() => openWhatsApp(user, 'birthday')} className="w-full bg-gradient-to-r from-[#25D366] to-[#128C7E] text-white text-[11px] font-black py-3 rounded-2xl flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
-                                                <MessageCircle size={16} /> {(!gifted && bonusActive && isSelected) ? 'ACREDITAR Y SALUDAR' : 'ENVIAR SALUDO'}
+                                            <button onClick={() => openWhatsApp(user, 'birthday')} className="w-full bg-gradient-to-r from-[#25D366] to-[#128C7E] text-white text-[12px] font-black py-4 rounded-[1.5rem] flex items-center justify-center gap-3 shadow-xl hover:brightness-110 active:scale-95 transition-all">
+                                                <MessageCircle size={20} /> {(!gifted && bonusActive && isSelected) ? 'ACREDITAR + SALUDAR' : 'ENVIAR SALUDO'}
                                             </button>
                                         </div>
                                     );

@@ -1,43 +1,25 @@
-// background.js - Club Fidelidad
-// Este script corre en el navegador y no tiene problemas de CORS
-console.log("🚀 [Club Fidelidad] Service Worker iniciado");
+// Background Service Worker para la extensión
+// Maneja las peticiones API para evitar bloqueos por CSP (Content Security Policy)
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.type === 'API_CALL') {
-        const { url, method, headers, body } = request.params;
-
-        const safeSendResponse = (data) => {
-            try {
-                sendResponse(data);
-            } catch (e) {
-                console.warn("[Extension] Channel closed before response could be sent.");
-            }
-        };
-
-        fetch(url, {
-            method: method || 'GET',
+    if (request.action === "fetchAlerts") {
+        fetch(request.url, {
             headers: {
-                'Content-Type': 'application/json',
-                ...headers
-            },
-            body: body ? JSON.stringify(body) : undefined
+                'x-api-key': request.apiKey
+            }
         })
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(errData => {
-                        safeSendResponse({ ok: false, error: errData.message || response.statusText });
-                    }).catch(() => {
-                        safeSendResponse({ ok: false, error: `Error HTTP: ${response.status}` });
-                    });
-                }
-                return response.json().then(data => safeSendResponse({ ok: true, data }));
-            })
-            .catch(error => {
-                console.error("❌ Error en Proxy API:", error);
-                safeSendResponse({ ok: false, error: error.message });
-            });
-
-        return true; // Keep channel open
+        .then(response => {
+            if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+            return response.json();
+        })
+        .then(data => {
+            sendResponse({ success: true, data: data });
+        })
+        .catch(error => {
+            console.error("[Background] Fetch Error:", error);
+            sendResponse({ success: false, error: error.message });
+        });
+        
+        return true; // Indica que la respuesta será asíncrona
     }
-    // No devolvemos true para otros mensajes, cerrando el canal inmediatamente
 });

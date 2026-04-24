@@ -248,22 +248,34 @@ async function refreshAlertCounts() {
         console.warn('⚠️ [Club Fidelidad] No hay configuración para refrescar contadores.');
         return;
     }
-    const targetUrl = `${config.apiUrl}/api/engine-daily?mode=daily&trigger=extension`;
-    try {
-        console.log(`🔄 [Club Fidelidad] Refrescando contadores desde: ${targetUrl}`);
-        const r = await fetch(targetUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey }
-        });
-        if (!r.ok) throw new Error(`HTTP Error: ${r.status}`);
-        const data = await r.json();
-        if (data.ok) {
+    const url = `${config.apiUrl}/api/engine-daily?mode=daily&trigger=extension`;
+    // El fetch se delega al background.js para evitar bloqueos por CSP (Content Security Policy)
+    chrome.runtime.sendMessage({
+        action: "fetchAlerts",
+        url: url,
+        apiKey: config.apiKey
+    }, (response) => {
+        if (chrome.runtime.lastError) {
+            console.error("[Club Fidelidad] Runtime Error:", chrome.runtime.lastError.message);
+            return;
+        }
+
+        if (response && response.success) {
+            const data = response.data;
+            
+            // Actualizar config compartida si viene del servidor
+            if (data.config) {
+                config.appName = data.config.appName;
+                // Mezclamos la configuración extendida (bonus, etc)
+                config.serverConfig = data.config;
+            }
+
             console.log("✅ [Club Fidelidad] Contadores refrescados con éxito.");
             showGlobalAlert(data, config.apiUrl);
+        } else {
+            console.warn('[Club Fidelidad] Error en respuesta background:', response?.error);
         }
-    } catch (e) { 
-        console.warn(`❌ [Club Fidelidad] Error refrescando contadores en ${targetUrl}:`, e.message);
-    }
+    });
 }
 
 // Auto-refresh when regaining focus (e.g. returning from Admin Panel)

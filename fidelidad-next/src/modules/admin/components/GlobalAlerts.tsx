@@ -59,6 +59,7 @@ export const GlobalAlerts = () => {
                         ...data,
                         alreadyGreetedAuto: data.lastBirthdayGreetingYear === currentYear
                     });
+                    console.log(`[GlobalAlerts Birthday Debug] User ${data.name} (${d.id}) -> lastGiftYear: ${data.lastBirthdayPointsYear}, greetedYear: ${data.lastBirthdayGreetingYear}`);
                 }
 
                 // 2. Expirations

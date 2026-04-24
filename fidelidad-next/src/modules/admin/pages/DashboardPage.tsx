@@ -54,15 +54,18 @@ export const DashboardPage = () => {
             let clientCount = 0;
             let totalAccumulatedBalance = 0;
             let pushEnabledCount = 0;
+            const clientsFound: string[] = [];
             snap.forEach(d => {
                 const data = d.data();
                 if (data.role !== 'admin') {
                     clientCount++;
+                    clientsFound.push(`${data.name || 'Sin Nombre'} (${d.id})`);
                     points += Number(data.points ?? data.puntos ?? 0);
                     totalAccumulatedBalance += Number(data.accumulated_balance || 0);
                     if ((data.fcmTokens?.length || 0) > 0) pushEnabledCount++;
                 }
             });
+            console.log(`[Dashboard Debug] Usuarios contados (${clientCount}):`, clientsFound);
             setStats(prev => ({ ...prev, usersCount: clientCount, totalPoints: points, totalAccumulatedBalance, pushEnabledCount }));
             setLoading(false);
         });

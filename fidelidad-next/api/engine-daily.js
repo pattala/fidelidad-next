@@ -119,7 +119,8 @@ export default async function handler(req, res) {
     // isManualSim define si "saltamos" los guards de seguridad (horario, deduplicación, etc)
     const isManualSim = !!simulatedDateStr || isManual || finalIgnoreDeduplication;
 
-    const triggerSource = req.query?.trigger || req.body?.trigger || "unknown"; // dashboard, pwa, extension, qstash
+    const triggerSource = req.query?.trigger || req.body?.trigger || "unknown";
+    console.log(`[DailyEngine] Start: mode=${req.query?.mode || req.body?.mode}, trigger=${triggerSource}, simDate=${simulatedDateStr}, ignoreDeduplication=${finalIgnoreDeduplication}`);
 
     // --- TIME WINDOW & TOGGLE GUARDS (Solo automático diario) ---
     if (isDailyMode && !isManualSim) {
@@ -247,21 +248,55 @@ export default async function handler(req, res) {
         };
 
         // --- PASO 1: CUMPLEAÑOS ---
-        // Fetch users who have either birthDate or fechaNacimiento
-        const [snap1, snap2] = await Promise.all([
-            db.collection('users').where('birthDate', '!=', '').get(),
-            db.collection('users').where('fechaNacimiento', '!=', '').get()
-        ]);
-        
-        // Merge results (avoiding duplicates)
+        // Fetch all users for processing (safer during debugging of complex filters)
+        const allUsersSnap = await db.collection('users').get();
         const combinedDocs = new Map();
-        snap1.docs.forEach(d => combinedDocs.set(d.id, d));
-        snap2.docs.forEach(d => combinedDocs.set(d.id, d));
+        allUsersSnap.docs.forEach(d => {
+            const data = d.data();
+            if (data.birthDate || data.fechaNacimiento) {
+                combinedDocs.set(d.id, d);
+            }
+        });
 
         const birthdayUsers = Array.from(combinedDocs.values()).filter(doc => {
             const data = doc.data();
             const date = data.birthDate || data.fechaNacimiento;
-            return date?.endsWith(todayMD);
+            if (!date || typeof date !== 'string') return false;
+
+            // Normalizar comparación: extraer MM y DD
+            // Soporta YYYY-MM-DD, DD/MM/YYYY, MM-DD, etc.
+            const parts = date.split(/[-/]/).filter(p => p.length > 0);
+            let matches = false;
+
+            if (parts.length >= 2) {
+                // Si tiene 3 partes (ej YYYY-MM-DD), el mes es el 2do y el día el 3ro
+                // Si tiene 3 partes (ej DD/MM/YYYY), el mes es el 2do y el día el 1ro
+                // Intentamos detectar por posición (el año suele ser > 31)
+                let dMonth = "";
+                let dDay = "";
+
+                if (parts[0].length === 4) { // YYYY-MM-DD
+                    dMonth = parts[1].padStart(2, '0');
+                    dDay = parts[2].padStart(2, '0');
+                } else if (parts[2]?.length === 4) { // DD/MM/YYYY
+                    dMonth = parts[1].padStart(2, '0');
+                    dDay = parts[0].padStart(2, '0');
+                } else {
+                    // Fallback a endsWith si es un formato raro
+                    matches = date.endsWith(todayMD);
+                }
+
+                if (dMonth && dDay) {
+                    matches = `${dMonth}-${dDay}` === todayMD;
+                }
+            } else {
+                matches = date.endsWith(todayMD);
+            }
+
+            if (simulatedDateStr || matches) {
+                console.log(`[Birthdays] Checking user ${data.nombre || data.email}: date="${date}", todayMD="${todayMD}". Match=${matches}`);
+            }
+            return matches;
         });
         logResults.totalToday = birthdayUsers.length;
 

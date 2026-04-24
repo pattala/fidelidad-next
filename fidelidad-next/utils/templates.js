@@ -52,7 +52,8 @@ export function applyBlocksAndVars(str, data = {}) {
  * @returns {Promise<{titulo: string, cuerpo: string}>}
  */
 export async function resolveTemplate(db, templateId, channel) {
-    // 0) Mapeo de IDs (Compatibilidad entre nombres en español e inglés)
+    // CRITICAL: Template ID Mapping (English Admin Panel UI vs Spanish Backend Logic)
+    // Do not modify without verifying all API callers.
     const idMap = {
         'bienvenida': 'welcome',
         'puntos_sumados': 'pointsAdded',

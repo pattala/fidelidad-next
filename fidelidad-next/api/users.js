@@ -258,6 +258,8 @@ async function handleAssignSocio(req, res, db) {
                     body: JSON.stringify({
                         to: userEmail,
                         templateId: 'bienvenida',
+                        // CRITICAL: Welcome email variables mapping.
+                        // Do not modify these aliases (puntos, socio) as they are used in Admin Panel templates.
                         templateData: {
                             nombre: userName,
                             nombre_completo: userName, // Alias

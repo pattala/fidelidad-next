@@ -161,12 +161,14 @@ export const ClientHomePage = () => {
     const prevPointsRef = useRef<number | null>(null);
     const lastActionTs = useRef<number>(0);
     const initialLoadTs = useRef<number>(Date.now());
+    // CRITICAL: PWA Permission Prompt State. 
     const [readyForBanner, setReadyForBanner] = useState(false);
     const [hideDiagnostic, setHideDiagnostic] = useState(() => {
         if (typeof sessionStorage === 'undefined') return false;
         return sessionStorage.getItem('rampet_hide_diagnostic') === 'true';
     });
 
+    // CRITICAL: Initial Delay for Permissons (Fixed at 5000ms for SW stability)
     useEffect(() => {
         const timer = setTimeout(() => setReadyForBanner(true), 5000);
         return () => clearTimeout(timer);

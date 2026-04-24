@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { collection, query, onSnapshot, doc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import { TimeService } from '../../../services/timeService';
-import { Cake, ChevronDown, MessageCircle, Sparkles, Bell, Gift, EyeOff } from 'lucide-react';
+import { Cake, ChevronDown, MessageCircle, Sparkles, Bell, Gift, EyeOff, Calendar } from 'lucide-react';
 import { BirthdayService } from '../../../services/birthdayService';
 import toast from 'react-hot-toast';
 
@@ -49,16 +49,26 @@ export const GlobalAlerts = () => {
         });
 
         const unsubUsers = onSnapshot(query(collection(db, 'users')), (snap) => {
+            if (!config) return;
+
             const today = TimeService.now();
             let effectiveDate = today;
-            if (config?.enableDateSimulator && config?.simulatedOffsetDays) {
+            if (config.enableDateSimulator && config.simulatedOffsetDays) {
                 effectiveDate = new Date(today);
                 effectiveDate.setDate(effectiveDate.getDate() + config.simulatedOffsetDays);
             }
 
-            const dMD = `${String(effectiveDate.getMonth() + 1).padStart(2, '0')}-${String(effectiveDate.getDate()).padStart(2, '0')}`;
-            const todayStr = effectiveDate.toISOString().split('T')[0];
-            const currentYear = effectiveDate.getFullYear().toString();
+            // Formato robusto para evitar errores de zona horaria
+            const dY = effectiveDate.getFullYear();
+            const dM = String(effectiveDate.getMonth() + 1).padStart(2, '0');
+            const dD = String(effectiveDate.getDate()).padStart(2, '0');
+            const dMD = `${dM}-${dD}`;
+            const todayStr = `${dY}-${dM}-${dD}`;
+            
+            // Ventana de 30 días para avisos de vencimiento
+            const winEnd = new Date(effectiveDate);
+            winEnd.setDate(winEnd.getDate() + 30);
+            const winEndStr = `${winEnd.getFullYear()}-${String(winEnd.getMonth() + 1).padStart(2, '0')}-${String(winEnd.getDate()).padStart(2, '0')}`;
             
             const births: any[] = [];
             const exps: any[] = [];
@@ -68,15 +78,18 @@ export const GlobalAlerts = () => {
                 const data = d.data();
                 if (data.role === 'admin') return;
                 
-                // BIRTHDAYS: Matches Date (Ignore if already processed is NOT what we want for simulation clarity)
+                // BIRTHDAYS
                 const userBD = data.birthDate || data.fechaNacimiento;
                 if (userBD && userBD.endsWith(dMD)) {
                     births.push({ id: d.id, ...data });
                 }
                 
-                // EXPIRATIONS
-                if (data.nextExpirationDate && data.nextExpirationDate === todayStr) {
-                    exps.push({ id: d.id, ...data });
+                // EXPIRATIONS (Ventana de aviso)
+                if (data.nextExpirationDate && data.nextExpirationDate >= todayStr && data.nextExpirationDate <= winEndStr) {
+                    // Solo si tiene puntos y no se notificó hoy real
+                    if ((data.points || 0) > 0) {
+                        exps.push({ id: d.id, ...data });
+                    }
                 }
                 
                 // PETS
@@ -97,8 +110,16 @@ export const GlobalAlerts = () => {
     }, [config]);
 
     const handleAction = async (user: any, type: 'birthday' | 'expiration' | 'pet') => {
-        const currentYear = TimeService.now().getFullYear().toString();
+        const today = TimeService.now();
+        let effectiveDate = today;
+        if (config?.enableDateSimulator && config?.simulatedOffsetDays) {
+            effectiveDate = new Date(today);
+            effectiveDate.setDate(effectiveDate.getDate() + config.simulatedOffsetDays);
+        }
+        const currentYear = effectiveDate.getFullYear().toString();
+        
         const notify = shouldNotify[user.id] ?? true;
+        // El default de regalo ahora respeta estrictamente la config si no se eligió nada manualmente
         const gift = includeGift[user.id] ?? (config?.enableBirthdayBonus && user.lastBirthdayPointsYear !== currentYear);
 
         if (type === 'birthday') {
@@ -121,8 +142,13 @@ export const GlobalAlerts = () => {
                 const p = phone.startsWith('54') ? phone : (phone.length === 10 ? '549' + phone : phone);
                 let msg = "";
                 if(type === 'expiration') {
-                    const list = user.breakdown ? user.breakdown.map((b:any)=>`\n• ${b.date}: ${b.rem} pts`).join('') : '';
-                    msg = `¡Hola ${user.name?.split(' ')[0]}! 📢 Vencimientos próximos:${list}\n\n🔥 Total: ${user.points} pts.`;
+                    // Discriminación de puntos por fecha
+                    if (user.breakdown && user.breakdown.length > 1) {
+                        const list = user.breakdown.map((b:any)=>`\n• ${b.date}: ${b.rem} pts`).join('');
+                        msg = `¡Hola ${user.name?.split(' ')[0]}! 📢 Vencimientos próximos:${list}\n\n🔥 Total: ${user.points} pts.`;
+                    } else {
+                        msg = `¡Hola ${user.name?.split(' ')[0]}! 📢 Tus puntos (${user.points} pts) están por vencer el ${user.nextExpirationDate?.split('-').reverse().join('/')}.`;
+                    }
                 } else {
                     msg = `¡Hola ${user.name?.split(' ')[0]}! 🐾 Avisamos que se termina el alimento de ${user.petName}.`;
                 }
@@ -141,56 +167,103 @@ export const GlobalAlerts = () => {
             style={{ bottom: '30px', right: '30px', transform: `translate(${position.x}px, ${position.y}px)` }}>
             
             {isExpanded && (
-                <div className="w-[380px] bg-[#1a0b36]/90 backdrop-blur-2xl border border-white/10 rounded-[40px] shadow-[0_40px_100px_rgba(0,0,0,0.8)] overflow-hidden pointer-events-auto animate-in zoom-in-95 duration-200">
-                    {/* Header Arrastrable */}
-                    <div onMouseDown={handleMouseDown} className="p-6 cursor-grab active:cursor-grabbing border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-violet-600/20 to-transparent">
+                <div className="w-[390px] bg-[#0c051a]/95 backdrop-blur-3xl border border-white/10 rounded-[45px] shadow-[0_50px_120px_rgba(0,0,0,0.9)] overflow-hidden pointer-events-auto animate-in zoom-in-95 duration-300">
+                    <div onMouseDown={handleMouseDown} className="p-7 cursor-grab active:cursor-grabbing border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-indigo-600/30 to-transparent">
                         <div className="flex items-center gap-3">
-                            <Sparkles className="text-violet-400" size={20} />
-                            <span className="text-[12px] font-black uppercase tracking-widest text-white/80">Avisos del Día</span>
+                            <Sparkles className="text-violet-400" size={24} />
+                            <div>
+                                <span className="block text-[13px] font-black uppercase tracking-[0.2em] text-white">Alertas Smart</span>
+                                <span className="text-[9px] text-violet-300/60 font-bold uppercase tracking-widest">{config?.enableDateSimulator ? 'Modo Simulación' : 'Tiempo Real'}</span>
+                            </div>
                         </div>
-                        <button onClick={() => setIsExpanded(false)} className="text-white/20 hover:text-white transition-colors"><ChevronDown size={24}/></button>
+                        <button onClick={() => setIsExpanded(false)} className="bg-white/5 hover:bg-white/10 p-2 rounded-full transition-all"><ChevronDown size={28} className="text-white/40"/></button>
                     </div>
 
-                    <div className="p-6 max-h-[500px] overflow-y-auto space-y-6 scroll-smooth custom-scrollbar">
-                        {birthdaysOfToday.map(u => (
-                            <div key={u.id} className="bg-white/5 p-5 rounded-[28px] border border-white/10 flex flex-col gap-4">
-                                <div>
-                                    <h5 className="font-bold text-white flex items-center gap-2">🎂 {u.name}</h5>
-                                    <p className="text-[10px] text-white/40 mt-1 uppercase font-bold tracking-tighter">DNI: {u.dni} | NRO: {u.socioNumber}</p>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <button onClick={() => setIncludeGift(prev => ({...prev, [u.id]: !(includeGift[u.id] ?? !!config?.enableBirthdayBonus)}))} 
-                                        className={`flex-1 py-2 px-3 rounded-xl text-[10px] font-black border transition-all flex items-center justify-center gap-2 ${ (includeGift[u.id]??true) ? 'bg-violet-500/20 border-violet-500/50 text-violet-200' : 'bg-white/5 border-white/10 text-white/40'}`}>
-                                        <Gift size={12}/> GIFT: {(includeGift[u.id]??true) ? 'SÍ' : 'NO'}
-                                    </button>
-                                    <button onClick={() => setShouldNotify(prev => ({...prev, [u.id]: !(shouldNotify[u.id] ?? true)}))} 
-                                        className={`flex-1 py-2 px-3 rounded-xl text-[10px] font-black border transition-all flex items-center justify-center gap-2 ${ (shouldNotify[u.id]??true) ? 'bg-green-500/20 border-green-500/50 text-green-200' : 'bg-red-500/20 border-red-500/50 text-red-200'}`}>
-                                        <MessageCircle size={12}/> MSG: {(shouldNotify[u.id]??true) ? 'SÍ' : 'NO'}
-                                    </button>
-                                </div>
-                                <button onClick={() => handleAction(u, 'birthday')} className="bg-white text-black font-black text-[11px] py-4 rounded-2xl hover:scale-[0.98] transition-transform active:scale-90">
-                                    {(shouldNotify[u.id]??true) ? 'ENVIAR WHATSAPP' : 'PROCESAR SILENCIOSAMENTE'}
-                                </button>
-                            </div>
-                        ))}
-
-                        {[...expiringUsers, ...petAlerts].map((u, i) => (
-                            <div key={i} className="bg-white/5 p-5 rounded-[28px] border border-white/10 flex flex-col gap-4">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <h5 className="font-bold text-white tracking-tight">{u.name || u.petName}</h5>
-                                        <p className="text-[10px] text-violet-400 font-bold uppercase mt-1">{u.points ? `⏳ Vence: ${u.points} pts` : `🐾 Alimento: ${u.petName}`}</p>
+                    <div className="p-7 max-h-[520px] overflow-y-auto space-y-7 custom-scrollbar bg-black/20">
+                        {birthdaysOfToday.map(u => {
+                            const bonusActive = config?.enableBirthdayBonus;
+                            const isSelected = includeGift[u.id] ?? !!bonusActive; // Aquí se aplica el default configurado
+                            const isMsg = shouldNotify[u.id] ?? true;
+                            
+                            return (
+                                <div key={u.id} className="bg-white/[0.03] p-6 rounded-[35px] border border-white/10 flex flex-col gap-5 hover:bg-white/[0.06] transition-all">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <h5 className="font-black text-white text-lg tracking-tight">🎂 {u.name}</h5>
+                                            <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider mt-1">DNI: {u.dni} | NRO: {u.socioNumber}</p>
+                                        </div>
+                                        <div className="bg-violet-500/20 px-3 py-1 rounded-full border border-violet-500/20">
+                                            <span className="text-[9px] font-black text-violet-300 uppercase">Cumpleaños</span>
+                                        </div>
                                     </div>
-                                    <button onClick={() => setShouldNotify(prev => ({...prev, [u.id]: !(shouldNotify[u.id] ?? true)}))} 
-                                        className={`p-2 rounded-xl transition-all ${ (shouldNotify[u.id]??true) ? 'text-green-400 bg-green-400/10' : 'text-red-400 bg-red-400/10'}`}>
-                                        { (shouldNotify[u.id]??true) ? <MessageCircle size={18}/> : <EyeOff size={18}/>}
+                                    <div className="flex items-center gap-3">
+                                        <button onClick={() => setIncludeGift(prev => ({...prev, [u.id]: !isSelected}))} 
+                                            className={`flex-1 py-3 px-4 rounded-2xl text-[10px] font-black border transition-all flex items-center justify-center gap-2 ${ isSelected ? 'bg-violet-600/30 border-violet-500/40 text-violet-200' : 'bg-white/5 border-white/5 text-white/20'}`}>
+                                            <Gift size={14}/> REGALO: {isSelected ? 'SÍ' : 'NO'}
+                                        </button>
+                                        <button onClick={() => setShouldNotify(prev => ({...prev, [u.id]: !isMsg}))} 
+                                            className={`flex-1 py-3 px-4 rounded-2xl text-[10px] font-black border transition-all flex items-center justify-center gap-2 ${ isMsg ? 'bg-green-600/30 border-green-500/40 text-green-200' : 'bg-red-600/30 border-red-500/40 text-red-200'}`}>
+                                            <MessageCircle size={14}/> MSG: {isMsg ? 'SÍ' : 'NO'}
+                                        </button>
+                                    </div>
+                                    <button onClick={() => handleAction(u, 'birthday')} className="bg-white text-black font-black text-[12px] py-4.5 rounded-2xl shadow-xl hover:scale-[1.02] active:scale-95 transition-all">
+                                        {isMsg ? 'ENVIAR WHATSAPP' : 'PROCESAR SIN MENSAJE'}
                                     </button>
                                 </div>
-                                <button onClick={() => handleAction(u, u.points ? 'expiration' : 'pet')} className="bg-white/10 text-white font-bold text-[11px] py-3 rounded-xl hover:bg-white/20 transition-colors">
-                                    {(shouldNotify[u.id]??true) ? 'ENVIAR AVISO' : 'MARCAR COMO VISTO'}
-                                </button>
-                            </div>
-                        ))}
+                            );
+                        })}
+
+                        {expiringUsers.map((u, i) => {
+                            const isMsg = shouldNotify[u.id] ?? true;
+                            return (
+                                <div key={`exp-${i}`} className="bg-white/[0.03] p-6 rounded-[35px] border border-white/10 flex flex-col gap-5">
+                                    <div className="flex justify-between items-center">
+                                        <div className="flex-1">
+                                            <h5 className="font-extrabold text-white text-lg tracking-tight">{u.name}</h5>
+                                            <p className="text-[11px] text-orange-400 font-black uppercase flex items-center gap-2 mt-1"><Calendar size={12}/> Vence: {u.nextExpirationDate?.split('-').reverse().join('/')}</p>
+                                        </div>
+                                        <button onClick={() => setShouldNotify(prev => ({...prev, [u.id]: !isMsg}))} 
+                                            className={`p-3 rounded-2xl transition-all ${ isMsg ? 'text-green-400 bg-green-400/10 border border-green-400/20' : 'text-red-400 bg-red-400/10 border border-red-400/20'}`}>
+                                            { isMsg ? <MessageCircle size={20}/> : <EyeOff size={20}/>}
+                                        </button>
+                                    </div>
+                                    <div className="bg-black/20 p-4 rounded-2xl border border-white/5">
+                                        <p className="text-[11px] font-black text-white/90">⚠️ {u.points} puntos por expirar</p>
+                                        {u.breakdown && u.breakdown.length > 1 && (
+                                            <div className="mt-2 space-y-1 opacity-50">
+                                                {u.breakdown.map((b:any,idx:number)=>(
+                                                    <p key={idx} className="text-[9px] font-bold">• {b.date}: {b.rem} pts</p>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <button onClick={() => handleAction(u, 'expiration')} className="bg-white/10 text-white font-black text-[12px] py-3.5 rounded-2xl hover:bg-white/20 transition-all">
+                                        {isMsg ? 'ENVIAR AVISO' : 'ARCHIVAR AVISO'}
+                                    </button>
+                                </div>
+                            );
+                        })}
+
+                        {petAlerts.map((u, i) => {
+                            const isMsg = shouldNotify[u.id] ?? true;
+                            return (
+                                <div key={`pet-${i}`} className="bg-white/[0.03] p-6 rounded-[35px] border border-white/10 flex flex-col gap-5">
+                                    <div className="flex justify-between items-center">
+                                        <div className="flex-1">
+                                            <h5 className="font-extrabold text-white text-lg tracking-tight">{u.name}</h5>
+                                            <p className="text-[11px] text-indigo-400 font-black uppercase mt-1">🐾 Alimento: {u.petName}</p>
+                                        </div>
+                                        <button onClick={() => setShouldNotify(prev => ({...prev, [u.id]: !isMsg}))} 
+                                            className={`p-3 rounded-2xl transition-all ${ isMsg ? 'text-green-400 bg-green-400/10' : 'text-red-400 bg-red-400/10'}`}>
+                                            { isMsg ? <MessageCircle size={20}/> : <EyeOff size={20}/>}
+                                        </button>
+                                    </div>
+                                    <button onClick={() => handleAction(u, 'pet')} className="bg-indigo-500/20 text-indigo-200 font-black text-[12px] py-3.5 rounded-2xl border border-indigo-500/20 hover:bg-indigo-500/30 transition-all">
+                                        {isMsg ? 'AVISAR AL CLIENTE' : 'DESCARTAR AVISO'}
+                                    </button>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             )}
@@ -198,9 +271,9 @@ export const GlobalAlerts = () => {
             {!isExpanded && (
                 <button onMouseDown={handleMouseDown}
                     onClick={() => setIsExpanded(true)}
-                    className="w-20 h-20 bg-gradient-to-tr from-violet-600 to-indigo-600 rounded-full shadow-[0_20px_50px_rgba(99,102,241,0.5)] flex items-center justify-center text-white border-4 border-white/20 hover:scale-110 active:scale-95 transition-all pointer-events-auto relative cursor-grab active:cursor-grabbing">
-                    <div className="absolute -top-1 -right-1 bg-red-500 text-white text-[12px] font-black w-7 h-7 rounded-full flex items-center justify-center border-2 border-white shadow-lg">{total}</div>
-                    <Bell size={30} />
+                    className="w-20 h-20 bg-gradient-to-tr from-violet-600 to-indigo-700 rounded-full shadow-[0_20px_60px_rgba(99,102,241,0.6)] flex items-center justify-center text-white border-4 border-white/20 hover:scale-110 active:scale-95 transition-all pointer-events-auto relative cursor-grab active:cursor-grabbing">
+                    <div className="absolute -top-1 -right-1 bg-red-500 text-white text-[13px] font-black w-8 h-8 rounded-full flex items-center justify-center border-2 border-white shadow-lg">{total}</div>
+                    <Bell size={32} />
                 </button>
             )}
         </div>

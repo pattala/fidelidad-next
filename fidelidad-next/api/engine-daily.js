@@ -13,7 +13,7 @@ function initFirebase() {
             }),
         });
     }
-    return admin.firestore();
+    return admin;
 }
 
 export default async function handler(req, res) {
@@ -35,6 +35,28 @@ export default async function handler(req, res) {
         const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
         const target = req.query?.target || 'all'; // 'birthdays', 'expirations', 'pet-alerts', 'all'
         
+        const app = initFirebaseAdmin();
+        const db = app.firestore();
+        
+        // --- CONTROL DE DUPLICIDAD (Safety Wall) ---
+        if (!ignoreDeduplication) {
+            const arFormatter = new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'America/Argentina/Buenos_Aires',
+                year: 'numeric', month: '2-digit', day: '2-digit'
+            });
+            const todayAR = arFormatter.format(new Date());
+            const checkSnap = await db.collection('config').doc('dailyCheck').get();
+            const lastRunDate = checkSnap.exists ? checkSnap.data()?.[`lastRun_${target}`] : null;
+
+            if (lastRunDate === todayAR) {
+                return res.status(200).json({
+                    ok: true,
+                    skipped: true,
+                    message: `Proceso '${target}' ya fue ejecutado exitosamente hoy (${todayAR}). Control de duplicidad activo.`
+                });
+            }
+        }
+
         const results = { birthdays: null, expirations: null, petAlerts: null };
 
         // 1. Ejecutar Cumpleaños
@@ -72,6 +94,18 @@ export default async function handler(req, res) {
                 results.petAlerts = await petRes.json();
             } catch (e) { console.error("Error calling pet-alerts:", e); }
         }
+
+        // --- GUARDAR ESTADO DE EJECUCIÓN (Si no fue skippeado) ---
+        try {
+            const arFormatter = new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'America/Argentina/Buenos_Aires',
+                year: 'numeric', month: '2-digit', day: '2-digit'
+            });
+            await db.collection('config').doc('dailyCheck').set({
+                [`lastRun_${target}`]: arFormatter.format(new Date()),
+                [`lastRunTimestamp_${target}`]: admin.firestore.FieldValue.serverTimestamp(),
+            }, { merge: true });
+        } catch (e) { console.error("Could not set daily check lock", e); }
 
         return res.status(200).json({ ok: true, results });
 

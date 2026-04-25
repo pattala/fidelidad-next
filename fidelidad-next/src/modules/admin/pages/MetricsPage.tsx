@@ -215,37 +215,50 @@ export const MetricsPage = () => {
                 const currentNetEmitted = currentResults.tEmitted - currentResults.tExpired;
                 const prevNetEmitted = prevResults.tEmitted - prevResults.tExpired;
 
-                // Saldo en circulación para este periodo: lo que se emitió - lo que ya salió (canje o vencimiento)
-                const currentInCirculation = Math.max(0, currentResults.tEmitted - currentResults.tRedeemed - currentResults.tExpired);
-                const prevInCirculation = Math.max(0, prevResults.tEmitted - prevResults.tRedeemed - prevResults.tExpired);
+                // --- MEJORA: BALANCE GLOBAL REAL (Proyección) ---
+                // Para el "Pasivo Potencial" y "Circulación Real", necesitamos el estado actual de los usuarios.
+                const allUsersSnap = await getDocs(query(collection(db, 'users'), where('points', '>', 0)));
+                let totalSystemPoints = 0;
+                let totalVirtualExpired = 0;
+                let totalProjectedNext30 = 0;
+                const startOfToday = TimeService.startOfToday();
+                const next30Days = new Date(startOfToday);
+                next30Days.setDate(next30Days.getDate() + 30);
+                const next30Str = next30Days.toISOString().split('T')[0];
 
-                setTotalStats({ emitted: currentNetEmitted, redeemed: currentResults.tRedeemed, expired: currentResults.tExpired });
+                allUsersSnap.forEach(uDoc => {
+                    const u = uDoc.data();
+                    const uPoints = Number(u.points || 0);
+                    totalSystemPoints += uPoints;
+                    
+                    // Si tiene fecha de vencimiento cacheada y es pasada, es "Virtualmente Vencido"
+                    if (u.nextExpirationDate) {
+                        if (u.nextExpirationDate < startOfToday.toISOString().split('T')[0]) {
+                            totalVirtualExpired += Math.min(uPoints, Number(u.nextExpirationAmount || 0));
+                        } else if (u.nextExpirationDate <= next30Str) {
+                            totalProjectedNext30 += Number(u.nextExpirationAmount || 0);
+                        }
+                    }
+                });
+
+                const realCirculation = Math.max(0, totalSystemPoints - totalVirtualExpired);
+
+                setTotalStats({ 
+                    emitted: currentNetEmitted, 
+                    redeemed: currentResults.tRedeemed, 
+                    expired: currentResults.tExpired + (isTotal ? totalVirtualExpired : 0) 
+                });
                 setPrevTotalStats({ emitted: prevNetEmitted, redeemed: prevResults.tRedeemed, expired: prevResults.tExpired });
-                setChartData(Array.from(currentResults.grouped.entries()).map(([name, data]) => ({ 
-                    name, 
-                    ...data,
-                    emitted: data.emitted - data.expired // Reflejar Neto en el gráfico también
-                })));
-                setHeatmapData(currentResults.heatmap);
 
                 setAdvancedStats({
                     averageTicket: currentResults.creditCount > 0 ? currentResults.totalMoneySpent / currentResults.creditCount : 0,
                     frequency: currentResults.activeUids.size > 0 ? currentResults.creditCount / currentResults.activeUids.size : 0,
                     activeCustomers: currentResults.activeUids.size,
                     totalCustomers: currentResults.activeUids.size, 
-                    potentialRevenue: currentInCirculation * realPV,
+                    potentialRevenue: realCirculation * realPV,
                     creditCount: currentResults.creditCount,
-                    referralCount: currentResults.referralCount
-                });
-
-                setPrevAdvancedStats({
-                    averageTicket: prevResults.creditCount > 0 ? prevResults.totalMoneySpent / prevResults.creditCount : 0,
-                    frequency: prevResults.activeUids.size > 0 ? prevResults.creditCount / prevResults.activeUids.size : 0,
-                    activeCustomers: prevResults.activeUids.size,
-                    totalCustomers: prevResults.activeUids.size,
-                    potentialRevenue: prevResults.tEmitted * realPV,
-                    creditCount: prevResults.creditCount,
-                    referralCount: prevResults.referralCount
+                    referralCount: currentResults.referralCount,
+                    projectedExpirations: totalProjectedNext30
                 });
 
                 // PARALELIZACIÓN DE CONSULTAS DE USUARIOS (SPEED BOOST)

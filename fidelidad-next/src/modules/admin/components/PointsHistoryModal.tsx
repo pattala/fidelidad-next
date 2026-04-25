@@ -582,24 +582,27 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
                                         </td>
                                         <td className="p-4 text-right">
                                             <div className="flex flex-col items-end">
-                                                {item.type === 'credit' && item.remainingPoints !== undefined ? (
-                                                    /* Logic for Tracked Credits: Show Current Balance of Batch */
+                                                {item.type === 'credit' ? (
                                                     <>
-                                                        <div className={`inline-flex items-center gap-1 font-bold ${item.remainingPoints > 0 ? 'text-green-600' : 'text-gray-400'}`}>
-                                                            {item.remainingPoints > 0 ? <ArrowUpRight size={14} /> : <Check size={14} />}
-                                                            +{item.remainingPoints}
+                                                        <div className={`inline-flex items-center gap-1 font-bold ${Number(item.remainingPoints || 0) > 0 ? 'text-emerald-600' : 'text-gray-400'}`}>
+                                                            {Number(item.remainingPoints || 0) > 0 ? <Plus size={14} /> : <Check size={14} />}
+                                                            +{item.remainingPoints || 0}
                                                         </div>
                                                         {item.remainingPoints !== item.amount && (
                                                             <span className="text-[10px] text-gray-400 font-medium">
                                                                 de {item.amount}
                                                             </span>
                                                         )}
+                                                        {item.expiresAt && (
+                                                            <span className={`text-[9px] font-bold mt-0.5 ${Number(item.remainingPoints || 0) > 0 ? 'text-orange-500' : 'text-gray-300'}`}>
+                                                                Vence: {new Date(item.expiresAt.toDate ? item.expiresAt.toDate() : item.expiresAt).toLocaleDateString()}
+                                                            </span>
+                                                        )}
                                                     </>
                                                 ) : (
-                                                    /* Logic for Debits or Legacy Credits */
-                                                    <div className={`inline-flex items-center gap-1 font-bold ${item.amount > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                                                        {item.amount > 0 ? <ArrowUpRight size={14} /> : <ArrowDownLeft size={14} />}
-                                                        {item.amount > 0 ? '+' : ''}{item.amount}
+                                                    <div className="text-blue-600 font-bold flex items-center gap-1">
+                                                        <Minus size={14} />
+                                                        {Math.abs(item.amount)}
                                                     </div>
                                                 )}
                                             </div>

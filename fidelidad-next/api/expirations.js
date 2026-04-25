@@ -45,10 +45,24 @@ export default async function handler(req, res) {
         // Eliminada auditoría inicial para unificarla al final.
 
         // --- PASO A: RESTAR PUNTOS VENCIDOS ---
-        const toExpireSnap = await db.collection('users').where('nextExpirationDate', '<=', referenceDateStr).get();
+        // Buscamos usuarios que:
+        // 1. Tengan una fecha de vencimiento menor o igual a hoy (Caché).
+        // 2. O usuarios con puntos > 0 que NO tengan fecha de vencimiento seteada (para forzar revisión).
+        const toExpireSnap = await db.collection('users')
+            .where('points', '>', 0)
+            .get();
         
         for (const userDoc of toExpireSnap.docs) {
             try {
+                const userData = userDoc.data();
+                const nextExp = userData.nextExpirationDate;
+
+                // Si tiene fecha cacheada y es futura (según el simulador), saltamos para ahorrar lectura de subcoleccion.
+                // PERO si no tiene fecha o es pasada/hoy, debemos entrar a revisar.
+                if (nextExp && nextExp > referenceDateStr) {
+                    continue; 
+                }
+
                 const userId = userDoc.id;
                 const historyRef = userDoc.ref.collection('points_history');
                 const expiredItemsSnap = await historyRef.where('expiresAt', '<', admin.firestore.Timestamp.fromDate(startOfToday)).get();

@@ -173,41 +173,48 @@ export const ExpirationService = {
             const snap = await getDocs(historyRef);
 
             let expiring = 0;
+            let virtualExpired = 0;
             let totalspent = 0;
             let redeemedPoints = 0;
             let redeemedValue = 0;
             const expDates: { [key: string]: number } = {};
-            const now = TimeService.now();
+            const startOfToday = TimeService.startOfToday();
 
             snap.docs.forEach(d => {
                 const hData = d.data();
+                if (hData.status === 'expired' || hData.isExpirationAdjustment) return;
+
                 const rawAmount = hData.amount ?? hData.puntos ?? 0;
                 const amount = Number(rawAmount);
                 const type = (hData.type || '').toLowerCase();
 
                 if (type === 'credit') {
+                    const remaining = hData.remainingPoints !== undefined ? Number(hData.remainingPoints) : amount;
+                    
                     // Money Spent
                     if (hData.moneySpent !== undefined) {
                         totalspent += Number(hData.moneySpent);
                     }
 
-                    // Expiring?
+                    // Expiration Logic
                     if (hData.expiresAt) {
                         const expiresAt = hData.expiresAt.toDate ? hData.expiresAt.toDate() : new Date(hData.expiresAt);
-                        if (expiresAt > now) {
-                            const remaining = hData.remainingPoints !== undefined ? Number(hData.remainingPoints) : amount;
-                            expiring += remaining;
-
-                            // Group for the detail array
-                            const dateKey = expiresAt.toISOString().split('T')[0];
-                            expDates[dateKey] = (expDates[dateKey] || 0) + remaining;
+                        
+                        if (expiresAt < startOfToday) {
+                            // Deberían estar vencidos pero están activos (Virtual Expiry)
+                            virtualExpired += remaining;
+                        } else {
+                            // Vencen hoy o en el futuro (Expiring soon)
+                            if (remaining > 0) {
+                                expiring += remaining;
+                                const dateKey = expiresAt.toISOString().split('T')[0];
+                                expDates[dateKey] = (expDates[dateKey] || 0) + remaining;
+                            }
                         }
                     }
                 } else if (type === 'debit') {
-                    if (!hData.isExpirationAdjustment && hData.status !== 'expired') {
-                        redeemedPoints += Math.abs(amount);
-                        redeemedValue += Number(hData.redeemedValue || 0);
-                    }
+                    redeemedPoints += Math.abs(amount);
+                    redeemedValue += Number(hData.redeemedValue || 0);
                 }
             });
 
@@ -216,7 +223,7 @@ export const ExpirationService = {
                 points
             }));
 
-            return { expiring, totalspent, redeemedPoints, redeemedValue, expirations };
+            return { expiring, virtualExpired, totalspent, redeemedPoints, redeemedValue, expirations };
         } catch (error) {
             console.error("[ExpirationService] Error getting client metrics:", error);
             return { expiring: 0, totalspent: 0, redeemedPoints: 0, redeemedValue: 0, expirations: [] };

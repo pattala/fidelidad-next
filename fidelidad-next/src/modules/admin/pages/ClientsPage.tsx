@@ -178,9 +178,10 @@ export const ClientsPage = () => {
                     email: data.email || '',
                     dni: data.dni || '',
                     phone: data.phone || data.telefono || '',
-                    points: data.points ?? data.puntos ?? 0,
+                    points: Math.max(0, (data.points ?? data.puntos ?? 0) - (metrics.virtualExpired || 0)),
                     socioNumber: String(data.socioNumber || data.numeroSocio || ''),
                     expiringPoints: metrics.expiring || data.nextExpirationAmount || 0,
+                    virtualExpired: metrics.virtualExpired || 0,
                     expirationDetails: sortedExpirations,
                     totalSpent: metrics.totalspent,
                     redeemedPoints: metrics.redeemedPoints,
@@ -1134,22 +1135,71 @@ export const ClientsPage = () => {
                                         </button>
                                     </td>
                                     <td className="px-6 py-4 text-center">
-                                        <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 rounded-full font-black mb-1">
-                                            <History size={14} />
-                                            {client.points || 0}
-                                        </div>
+                                        {(client.points || 0) > 0 ? (
+                                            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 rounded-full font-black mb-1">
+                                                <History size={14} />
+                                                {client.points}
+                                            </div>
+                                        ) : (
+                                            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-50 text-gray-400 rounded-full font-black mb-1 opacity-50">
+                                                <History size={14} />
+                                                0
+                                            </div>
+                                        )}
+
+                                        {/* DETALLE DE VENCIMIENTOS (BADGES NARANJAS - ESTILO ESTABLE) */}
+                                        {client.expirationDetails && client.expirationDetails.filter((e: any) => e.points > 0).length > 0 ? (
+                                            <div className="space-y-1 mt-1">
+                                                {client.expirationDetails.filter((e: any) => e.points > 0).slice(0, 3).map((exp: any, idx: number) => {
+                                                    const todayStr = TimeService.startOfToday().toISOString().split('T')[0];
+                                                    const expStr = exp.date.toISOString().split('T')[0];
+                                                    const isToday = expStr === todayStr;
+
+                                                    return (
+                                                        <div
+                                                            key={idx}
+                                                            className={`flex items-center justify-center gap-1 text-[9px] font-bold py-0.5 px-1.5 rounded border ${isToday
+                                                                ? 'text-red-600 bg-red-50 border-red-100 animate-pulse'
+                                                                : 'text-orange-600 bg-orange-50 border-orange-100'
+                                                                }`}
+                                                            title={isToday ? "VENCE HOY" : "Próximo vencimiento"}
+                                                        >
+                                                            <Calendar size={10} />
+                                                            {exp.points} ({exp.date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })})
+                                                        </div>
+                                                    );
+                                                })}
+                                                {client.expirationDetails.filter((e: any) => e.points > 0).length > 3 && (
+                                                    <div className="text-[8px] font-black text-orange-400 uppercase tracking-tighter mt-1">
+                                                        + {client.expirationDetails.filter((e: any) => e.points > 0).length - 3} vencimientos más
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <div className="text-[9px] text-gray-300 font-bold mt-1">Sin vencimientos</div>
+                                        )}
+
+                                        {(client.accumulated_balance || 0) > 0 && (
+                                            <div className="text-[10px] font-bold text-gray-400 mt-0.5 mb-1 opacity-80" title="Monto remanente para el próximo punto">
+                                                +${(client.accumulated_balance || 0).toLocaleString('es-AR')} a favor
+                                            </div>
+                                        )}
+
                                         {client.expirationDetails && client.expirationDetails.filter(e => e.points > 0).length > 0 ? (
                                             <div className="space-y-1 mt-1">
-                                                {client.expirationDetails.filter(e => e.points > 0).slice(0, 3).map((exp, idx) => (
-                                                    <div
-                                                        key={idx}
-                                                        className="flex items-center justify-center gap-1 text-[9px] font-bold text-orange-600 bg-orange-50 py-0.5 px-1.5 rounded border border-orange-100"
-                                                        title={`Vencimiento`}
-                                                    >
-                                                        <Calendar size={10} />
-                                                        {exp.points} ({exp.date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })})
-                                                    </div>
-                                                ))}
+                                                {client.expirationDetails.filter(e => e.points > 0).slice(0, 3).map((exp, idx) => {
+                                                    const isToday = exp.date.toDateString() === TimeService.now().toDateString();
+                                                    return (
+                                                        <div
+                                                            key={idx}
+                                                            className={`flex items-center justify-center gap-1 text-[9px] font-bold py-0.5 px-1.5 rounded border ${isToday ? 'bg-red-50 text-red-600 border-red-100 animate-pulse' : 'bg-orange-50 text-orange-600 border-orange-100'}`}
+                                                            title={isToday ? 'Vence HOY' : 'Vencimiento próximo'}
+                                                        >
+                                                            {isToday ? <AlertTriangle size={10} /> : <Calendar size={10} />}
+                                                            {exp.points} ({exp.date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })})
+                                                        </div>
+                                                    );
+                                                })}
                                                 {client.expirationDetails.filter(e => e.points > 0).length > 3 && (
                                                     <div className="text-[8px] font-black text-orange-400 uppercase tracking-tighter mt-1">
                                                         + {client.expirationDetails.filter(e => e.points > 0).length - 3} vencimientos más

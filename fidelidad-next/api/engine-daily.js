@@ -59,7 +59,7 @@ async function buildExtensionLists(db, simulatedDate) {
         }
 
         // Vencimientos (ventana 30 días)
-        if (data.nextExpirationDate && data.nextExpirationDate > todayStr && data.nextExpirationDate <= winEndStr) {
+        if (data.nextExpirationDate && data.nextExpirationDate >= todayStr && data.nextExpirationDate <= winEndStr) {
             if ((data.points || 0) > 0) {
                 expirationList.push({
                     id: d.id,

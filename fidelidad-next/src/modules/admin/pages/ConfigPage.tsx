@@ -3015,18 +3015,6 @@ export const ConfigPage = () => {
                                             </label>
                                             <label className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-50 hover:bg-blue-50/50 transition-colors cursor-pointer">
                                                 <div>
-                                                    <span className="text-sm font-bold text-gray-700 block">Ejecución en PWA</span>
-                                                    <span className="text-[10px] text-gray-500">Un cliente real puede despabilar el motor.</span>
-                                                </div>
-                                                <input
-                                                    type="checkbox"
-                                                    className="w-5 h-5 text-blue-600 rounded"
-                                                    checked={config.messaging?.enableClientTrigger !== false}
-                                                    onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, enableClientTrigger: e.target.checked } })}
-                                                />
-                                            </label>
-                                            <label className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-50 hover:bg-blue-50/50 transition-colors cursor-pointer">
-                                                <div>
                                                     <span className="text-sm font-bold text-gray-700 block">Ejecución en Extensión</span>
                                                     <span className="text-[10px] text-gray-500">El plugin de Chrome arranca el motor.</span>
                                                 </div>

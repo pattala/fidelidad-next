@@ -675,10 +675,15 @@ function showFidelidadPanel() {
             return;
         }
         try {
-            console.log("🔍 [Club Fidelidad] Buscando en:", `${config.apiUrl}/api/assign-points?q=${encodeURIComponent(q)}`);
-            const res = await fetch(`${config.apiUrl}/api/assign-points?q=${encodeURIComponent(q)}`, {
+                        const res = await fetch(`${config.apiUrl}/api/assign-points?q=${encodeURIComponent(q)}`, {
                 headers: { 'x-api-key': config.apiKey }
             });
+            
+            if (!res.ok) {
+                statusDiv.innerText = `\u274C Error API (${res.status})`;
+                return;
+            }
+
             const data = await res.json();
             if (data.ok) {
                 apiRatios.base = data.pointsMoneyBase || 100;
@@ -695,9 +700,10 @@ function showFidelidadPanel() {
                     resultsDiv.style.display = 'block';
                 }
             } else {
-                statusDiv.innerText = '\u274C Error de conexión';
+                statusDiv.innerText = `\u274C Error: ${data.error || 'Respuesta inválida'}`;
             }
         } catch (e) {
+            console.error("🔍 [Club Fidelidad] Error en fetch:", e);
             statusDiv.innerText = '\u274C Error de conexión';
         }
     }

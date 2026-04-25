@@ -222,4 +222,4 @@ Para garantizar la integridad de los datos sin molestar a los clientes, el motor
 > Si disparás los motores **manualmente** desde la pestaña de Auditoría, el sistema ignorará los bloqueos de horario y enviará los mensajes de inmediato.
 
 ---
-*Manual Operativo Rampet v2.6 (Maintenance & Robustness Update)*
+*Manual Operativo Avanzado v2.6 (Audit Auto-Purge update)*

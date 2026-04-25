@@ -1,488 +1,66 @@
-// /api/check-birthdays.js
-// Tarea programada (Cron Job) para saludar y bonificar a los socios en su cumpleaños.
-
 import admin from "firebase-admin";
-import nodemailer from 'nodemailer';
-import { buildHtmlLayout } from "../utils/emailLayout.js";
 
-// ---------- Inicialización Firebase Admin ----------
-function initFirebaseAdmin() {
-    try {
-        if (!admin.apps.length) {
-            const credsRaw = process.env.GOOGLE_CREDENTIALS_JSON || "";
-            if (!credsRaw) {
-                console.error("[Firebase Admin] MISSING GOOGLE_CREDENTIALS_JSON");
-                throw new Error("Missing environment credentials.");
-            }
-            
-            let creds;
-            try { 
-                creds = JSON.parse(credsRaw); 
-            } catch (err) { 
-                // Fallback for double-escaped newlines in some ENV environments
-                creds = JSON.parse(credsRaw.replace(/\\n/g, "\n")); 
-            }
-            
-            admin.initializeApp({
-                credential: admin.credential.cert({
-                    projectId: creds.project_id,
-                    clientEmail: creds.client_email,
-                    privateKey: creds.private_key?.replace(/\\n/g, "\n"),
-                }),
-            });
-            console.log("[Firebase Admin] Initialized successfully");
-        }
-        return admin;
-    } catch (error) {
-        console.error("[Firebase Admin] Init Error:", error.message);
-        throw error;
+function initFirebase() {
+    if (!admin.apps.length) {
+        const credsRaw = process.env.GOOGLE_CREDENTIALS_JSON || "";
+        let creds;
+        try { creds = JSON.parse(credsRaw); } catch { creds = JSON.parse(credsRaw.replace(/\\n/g, "\n")); }
+        admin.initializeApp({
+            credential: admin.credential.cert({
+                projectId: creds.project_id,
+                clientEmail: creds.client_email,
+                privateKey: creds.private_key?.replace(/\\n/g, "\n"),
+            }),
+        });
     }
-}
-
-// ---------- Nodemailer ----------
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-    },
-});
-
-function getAbsoluteUrl(url, baseUrl) {
-    if (!url) return "";
-    if (url.startsWith("http")) return url;
-    const base = (baseUrl || "").replace(/\/$/, "");
-    const path = url.startsWith("/") ? url : `/${url}`;
-    return `${base}${path}`;
+    return admin.firestore();
 }
 
 export default async function handler(req, res) {
-    // 0. CORS Preflight
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-    }
+    if (req.method === 'OPTIONS') return res.status(200).end();
 
-    // Seguridad: Obtener identidad y verificar acceso
-    const authHeader = req.headers["x-api-key"] || req.headers["authorization"] || req.headers["X-API-Key"];
-    const cronHeader = req.headers["x-vercel-cron"] || req.headers["X-Vercel-Cron"];
-    const executorRole = req.headers["x-executor-role"] || 'system';
-    const SECRET = (process.env.API_SECRET_KEY || "").trim();
+    const authHeader = req.headers["x-api-key"] || req.headers["authorization"];
+    const cronHeader = req.headers["x-vercel-cron"];
+    const SECRET = process.env.API_SECRET_KEY;
 
-    let executorEmail = 'system';
-    let isAuthorized = false;
-
-    // 1. Priorizar TOKEN de Usuario (Bearer)
-    const bearerHeader = req.headers["authorization"] || "";
-    if (bearerHeader.startsWith("Bearer ")) {
-        const token = bearerHeader.split("Bearer ")[1];
-        try {
-            const decoded = await initFirebaseAdmin().auth().verifyIdToken(token);
-            executorEmail = decoded.email || decoded.uid;
-            isAuthorized = true;
-        } catch (e) {
-            console.error("[Cron Birthdays] Token verification failed:", e.message);
-        }
-    }
-
-    // 2. Fallback a API KEY / Cron
-    if (!isAuthorized) {
-        if (cronHeader) {
-            isAuthorized = true;
-            executorEmail = 'system';
-        } else if (authHeader && SECRET && authHeader.includes(SECRET)) {
-            isAuthorized = true;
-            executorEmail = 'admin';
-        }
-    }
-
-    if (!isAuthorized) {
-        console.warn("[Cron Birthdays] Unauthorized access");
-        return res.status(401).json({ ok: false, error: "Unauthorized" });
-    }
-
-    const app = initFirebaseAdmin();
-    const db = app.firestore();
-
-    // --- 1. CARGAR CONFIGURACIÓN ---
-    const configSnap = await db.collection('config').doc('general').get();
-    if (!configSnap.exists) return res.status(404).json({ ok: false, error: "Config not found" });
-    const config = configSnap.data();
-
-    // --- 2. PARÁMETROS DE CONTROL ---
-    const isDailyMode = req.query?.mode === 'daily' || req.body?.mode === 'daily';
-    const simulatedDateStr = req.body?.simulatedDate || req.query?.simulatedDate;
-    const isManual = req.body?.isManual === true || req.query?.isManual === 'true';
-    const reqIgnoreDeduplication = req.body?.ignoreDeduplication === true || req.query?.ignoreDeduplication === 'true';
-    const triggerSource = req.query?.trigger || req.body?.trigger || "unknown";
-
-    // --- 3. LÓGICA DE SIMULACIÓN GLOBAL ---
-    let effectiveSimulatedDate = simulatedDateStr;
-    if (effectiveSimulatedDate) {
-        const parts = effectiveSimulatedDate.split(/[-/]/);
-        if (parts.length === 3) {
-            let y, m, d;
-            if (parts[0].length === 4) { [y, m, d] = parts; }
-            else { [d, m, y] = parts; }
-            effectiveSimulatedDate = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-        }
-    }
-    
-    if (!effectiveSimulatedDate && config.enableDateSimulator && config.simulatedOffsetDays) {
-        const simDate = new Date();
-        simDate.setDate(simDate.getDate() + config.simulatedOffsetDays);
-        effectiveSimulatedDate = `${simDate.getFullYear()}-${String(simDate.getMonth() + 1).padStart(2, '0')}-${String(simDate.getDate()).padStart(2, '0')}`;
-    }
-
-    const isSimulation = !!effectiveSimulatedDate;
-    const now = new Date();
-    const today = new Date((effectiveSimulatedDate || now.toISOString().split('T')[0]) + 'T12:00:00');
-    const isManualSim = isSimulation || isManual || reqIgnoreDeduplication;
-
-    // --- 4. MANTENIMIENTO INTERNO (SIEMPRE EJECUTADO) ---
-    // A. Limpieza de usuarios fantasma
-    try {
-        const ghostsSnap = await db.collection('users').where('name', 'in', ['', 'Sin Nombre', 'Socio']).get();
-        for (const ghostDoc of ghostsSnap.docs) {
-            const gData = ghostDoc.data();
-            if ((gData.points || 0) <= 0) {
-                 await ghostDoc.ref.delete();
-                 console.log(`[GhostCleanup] Registro eliminado: ${ghostDoc.id}`);
-            }
-        }
-    } catch (e) { console.error("[GhostCleanup] Error:", e); }
-
-    // B. Procesar restas silenciosas (Power Repair)
-    try {
-        const currentHost = req.headers.host;
-        const proto = req.headers['x-forwarded-proto'] || (currentHost?.includes('localhost') ? 'http' : 'https');
-        const apiBase = currentHost ? `${proto}://${currentHost}` : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
-        await fetch(`${apiBase}/api/expirations?silent=true&simulatedDate=${effectiveSimulatedDate || ''}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET, 'x-executor-role': 'system' },
-            body: JSON.stringify({ simulatedDate: effectiveSimulatedDate })
-        });
-    } catch (e) { console.error("[SilentExpirations] Error:", e); }
-
-    // --- 5. COMUNICACIÓN (RESPETA HORARIO) ---
-    let skipMessaging = false;
-    if (triggerSource !== 'dashboard' && !isManualSim) {
-        const arHour = new Date().toLocaleString("en-US", { timeZone: "America/Argentina/Buenos_Aires", hour: '2-digit', hour12: false });
-        const hourInt = parseInt(arHour, 10);
-        const minHour = config.executionSchedule?.min || config.messaging?.engineAllowedStartHour || 10;
-        const maxHour = config.executionSchedule?.max || config.messaging?.engineAllowedEndHour || 20;
-
-        if (hourInt < minHour || hourInt >= maxHour) {
-            skipMessaging = true;
-            console.log(`[DailyEngine] Fuera de horario para avisos (${hourInt}hs).`);
-        }
-    }
-
-    if (skipMessaging) {
-        try {
-            await db.collection('audit_logs').add({
-                timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                type: 'maintenance_auto',
-                status: 'success',
-                summary: `Mantenimiento Automático: Puntos restados y registros limpiados. (Avisos saltados por horario).`,
-                executor: 'system',
-                role: 'system'
-            });
-        } catch (e) {}
-        return res.status(200).json({ ok: true, maintenanceOnly: true, message: "Mantenimiento completado. Avisos saltados por horario." });
-    }
-
-    // --- 6. DEDUPLICACIÓN Y SELECCIÓN DE FECHA ---
-    const sourceLabelMap = { 'dashboard': 'Ejecución en Dashboard', 'pwa': 'Ejecución en PWA', 'extension': 'Ejecución en Extensión', 'qstash': 'Ejecución vía QStash' };
-    const logSourceLabel = sourceLabelMap[triggerSource] || 'Auto';
-    let shouldSkipExecution = false;
-
-    if (isDailyMode && !isManualSim) {
-        const arFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires', year: 'numeric', month: '2-digit', day: '2-digit' });
-        const todayAR = arFormatter.format(new Date());
-        const checkSnap = await db.collection('config').doc('dailyCheck').get();
-        if (checkSnap.exists && checkSnap.data().lastRunDate === todayAR && triggerSource !== 'dashboard') {
-            shouldSkipExecution = true;
-        }
+    if (!cronHeader && (!authHeader || !authHeader.includes(SECRET))) {
+        return res.status(401).json({ error: "Unauthorized" });
     }
 
     try {
-        const simCfg = config.simulationConfig || { birthdays: true, expirations: true, petAlerts: true, campaigns: true };
-        let referenceDate = new Date();
-        let todayMD = `${String(referenceDate.getMonth() + 1).padStart(2, '0')}-${String(referenceDate.getDate()).padStart(2, '0')}`;
-        let todayStr = referenceDate.toISOString().split('T')[0];
+        const db = initFirebase();
+        const simulatedDate = req.body?.simulatedDate || req.query?.simulatedDate;
+        const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
 
-        if (effectiveSimulatedDate) {
-            const [y, m, d] = effectiveSimulatedDate.split('-');
-            todayMD = `${m}-${d}`;
-            todayStr = effectiveSimulatedDate;
-            referenceDate = new Date(todayStr + 'T12:00:00');
-        }
+        // 1. Ejecutar Vencimientos de Puntos (Importación directa de lógica)
+        // Nota: Por simplicidad y evitar fetch internos, llamamos a los endpoints o ejecutamos su lógica.
+        // En esta versión limpia, el motor diario es el coordinador.
+        
+        const results = { expirations: null, petAlerts: null };
 
-        const currentYear = referenceDate.getFullYear().toString();
-
-        const logResults = {
-            totalToday: 0,
-            processed: 0,
-            pointsGivenTotal: 0,
-            list: [],
-            details: [],
-            errors: []
-        };
-
-        // --- PASO 1: CUMPLEAÑOS ---
-        // Fetch all users for processing (safer during debugging of complex filters)
-        const allUsersSnap = await db.collection('users').get();
-        const combinedDocs = new Map();
-        allUsersSnap.docs.forEach(d => {
-            const data = d.data();
-            if (data.birthDate || data.fechaNacimiento) {
-                combinedDocs.set(d.id, d);
-            }
-        });
-
-        const birthdayUsers = Array.from(combinedDocs.values()).filter(doc => {
-            const data = doc.data();
-            const date = data.birthDate || data.fechaNacimiento;
-            if (!date || typeof date !== 'string') return false;
-
-            // Normalizar comparación: extraer MM y DD
-            // Soporta YYYY-MM-DD, DD/MM/YYYY, MM-DD, etc.
-            const parts = date.split(/[-/]/).filter(p => p.length > 0);
-            let matches = false;
-
-            if (parts.length >= 2) {
-                // Si tiene 3 partes (ej YYYY-MM-DD), el mes es el 2do y el día el 3ro
-                // Si tiene 3 partes (ej DD/MM/YYYY), el mes es el 2do y el día el 1ro
-                // Intentamos detectar por posición (el año suele ser > 31)
-                let dMonth = "";
-                let dDay = "";
-
-                if (parts[0].length === 4) { // YYYY-MM-DD
-                    dMonth = parts[1].padStart(2, '0');
-                    dDay = parts[2].padStart(2, '0');
-                } else if (parts[2]?.length === 4) { // DD/MM/YYYY
-                    dMonth = parts[1].padStart(2, '0');
-                    dDay = parts[0].padStart(2, '0');
-                } else {
-                    // Fallback a endsWith si es un formato raro
-                    matches = date.endsWith(todayMD);
-                }
-
-                if (dMonth && dDay) {
-                    matches = `${dMonth}-${dDay}` === todayMD;
-                }
-            } else {
-                matches = date.endsWith(todayMD);
-            }
-
-            if (effectiveSimulatedDate || matches) {
-                console.log(`[Birthdays] Checking user ${data.nombre || data.email}: date="${date}", todayMD="${todayMD}". Match=${matches}`);
-            }
-            return matches;
-        });
-        logResults.totalToday = birthdayUsers.length;
-
-        for (const userDoc of birthdayUsers) {
-            try {
-                const userData = userDoc.data();
-                const userId = userDoc.id;
-                
-                // Add to list for extension/dashboard representation
-                logResults.list.push({
-                    id: userId,
-                    name: userData.nombre || userData.name || 'Socio',
-                    phone: userData.phone || userData.telefono || '',
-                    dni: userData.dni || '',
-                    socioNumber: userData.socioNumber || '',
-                    lastBirthdayPointsYear: userData.lastBirthdayPointsYear || '',
-                    lastBirthdayGreetingYear: userData.lastBirthdayGreetingYear || '',
-                    greeted: userData.lastBirthdayGreetingYear === currentYear
-                });
-                
-                // Lógica de EJECUCIÓN (Solo si no saltamos)
-                if (!shouldSkipExecution) {
-                    // Deduplicación básica por año (si no es forzado)
-                    if (userData.lastBirthdayGreetingYear === currentYear && !finalIgnoreDeduplication) continue;
-                    
-                    const birthdayPoints = config?.birthdayPoints || 100;
-                    const autoBonusEnabled = config?.enableBirthdayBonus === true;
-                    const autoMessageEnabled = config?.enableBirthdayMessage !== false;
-
-                    let pointsAdded = 0;
-                    let actionsTaken = [];
-
-                    if (autoBonusEnabled && (userData.lastBirthdayPointsYear !== currentYear || finalIgnoreDeduplication)) {
-                        const historyRef = userDoc.ref.collection('points_history');
-                        let expirationDate = new Date(referenceDate);
-                        expirationDate.setDate(expirationDate.getDate() + 365);
-
-                        await historyRef.add({
-                            amount: birthdayPoints,
-                            concept: '🎂 ¡Feliz Cumpleaños! Regalo del Club',
-                            date: admin.firestore.Timestamp.fromDate(referenceDate),
-                            type: 'credit',
-                            expiresAt: admin.firestore.Timestamp.fromDate(expirationDate),
-                            remainingPoints: birthdayPoints,
-                            balanceAfter: (Number(userData.points) || 0) + birthdayPoints
-                        });
-                        await userDoc.ref.update({
-                            points: admin.firestore.FieldValue.increment(birthdayPoints),
-                            lastBirthdayPointsYear: currentYear
-                        });
-                        pointsAdded = birthdayPoints;
-                        logResults.pointsGivenTotal += birthdayPoints;
-                        actionsTaken.push("puntos");
-                    }
-
-                    if (autoMessageEnabled) {
-                        const userName = (userData.nombre || userData.name || '').split(' ')[0];
-                        const template = (pointsAdded > 0) ? (config?.messaging?.templates?.birthday || "¡Feliz cumple {nombre}! 🎂 +{puntos} pts.") : (config?.messaging?.templates?.birthdaySimple || "¡Feliz cumple {nombre}! 🎂");
-                        const msg = template.replace(/{nombre}/g, userName).replace(/{puntos}/g, birthdayPoints.toString());
-                        const title = "¡Feliz Cumpleaños! 🎂";
-
-                        if (userData.fcmTokens?.length) {
-                            try {
-                                const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
-                                const icon = getAbsoluteUrl(config.logoUrl || "/pwa-192x192.png", PWA_URL);
-                                const uniqueTokens = Array.from(new Set(userData.fcmTokens));
-                                await app.messaging().sendEachForMulticast({
-                                    tokens: uniqueTokens,
-                                    data: { title, body: msg, url: "/", icon: icon, type: "birthday" }
-                                });
-                                actionsTaken.push("push");
-                            } catch (e) { }
-                        }
-                        if (userData.email && process.env.SMTP_USER) {
-                            try {
-                                const innerHtml = `<div style="color: #333;"><h2 style="color: #db2777;">${title}</h2><p>${msg}</p></div>`;
-                                await transporter.sendMail({ from: `"${config.siteName || 'Club Fidelidad'}" <${process.env.SMTP_USER}>`, to: userData.email, subject: title, html: buildHtmlLayout(innerHtml, config) });
-                                actionsTaken.push("email");
-                            } catch (e) { }
-                        }
-                        await userDoc.ref.collection('inbox').add({ title, body: msg, url: "/", type: "birthday", read: false, date: admin.firestore.FieldValue.serverTimestamp() });
-                        actionsTaken.push("inbox");
-                        if (!finalIgnoreDeduplication) await userDoc.ref.update({ lastBirthdayGreetingYear: currentYear });
-                    }
-                    logResults.processed++;
-                    logResults.details.push({
-                        userId, userName: userData.name || 'Socio',
-                        action: 'birthday', status: 'success', info: `${actionsTaken.join(', ')} (${pointsAdded} pts)`
-                    });
-                }
-            } catch (userError) { logResults.errors.push(`${userDoc.id}: ${userError.message}`); }
-        }
-
-        // --- PASO 2: VENCIMIENTOS (CALL SILENT) ---
-        // Se ejecuta siempre para obtener la lista, pero solo envía si no saltamos ejecución
-        const expAction = shouldSkipExecution ? 'forecast' : 'check';
-        let expirationsResult = { ok: true, summary: { notified: 0, expiredPoints: 0, details: [] } };
+        // Llamada simple al motor de expiraciones (vía fetch interno para mantener desacople)
         try {
-            const currentHost = req.headers.host;
-            const proto = req.headers['x-forwarded-proto'] || (currentHost?.includes('localhost') ? 'http' : 'https');
-            const apiBase = currentHost ? `${proto}://${currentHost}` : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
-            
-            const eRes = await fetch(`${apiBase}/api/expirations?action=${expAction}&trigger=${triggerSource}&silent=true`, {
+            const expRes = await fetch(`${PWA_URL}/api/expirations`, {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json', 
-                    'x-api-key': SECRET, 
-                    'x-api-secret': SECRET, 
-                    'x-executor-role': 'system' 
-                },
-                body: JSON.stringify({
-                    simulatedDate: (effectiveSimulatedDate && simCfg.expirations) ? effectiveSimulatedDate : null,
-                    ignoreDeduplication: finalIgnoreDeduplication,
-                    isManual: isManual
-                })
+                headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET },
+                body: JSON.stringify({ simulatedDate })
             });
-            
-            if (eRes.ok) {
-                expirationsResult = await eRes.json();
-            } else {
-                console.error(`[DailyCheck] Expirations API returned status ${eRes.status}`);
-                expirationsResult = { ok: false, error: `Status ${eRes.status}` };
-            }
-        } catch (e) { 
-            console.error("[DailyCheck] Error calling expirations API:", e.message); 
-            expirationsResult = { ok: false, error: e.message };
-        }
+            results.expirations = await expRes.json();
+        } catch (e) { console.error("Error calling expirations:", e); }
 
-        // --- PASO 3: ALERTAS PETSHOP (CALL SILENT) ---
-        let petAlertsResult = { ok: true, summary: { notified: 0, details: [] } };
-        if (isDailyMode && config.enablePetModule) {
-            try {
-                const currentHost = req.headers.host;
-                const proto = req.headers['x-forwarded-proto'] || (currentHost?.includes('localhost') ? 'http' : 'https');
-                const baseUrl = currentHost ? `${proto}://${currentHost}` : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
-                
-                const pRes = await fetch(`${baseUrl}/api/pet-alerts?trigger=${triggerSource}&silent=true`, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json', 
-                        'x-api-key': SECRET, 
-                        'x-api-secret': SECRET, 
-                        'x-executor-role': 'system' 
-                    },
-                    body: JSON.stringify({
-                        simulatedDate: (effectiveSimulatedDate && simCfg.petAlerts) ? effectiveSimulatedDate : null,
-                        ignoreDeduplication: finalIgnoreDeduplication
-                    })
-                });
-                
-                if (pRes.ok) {
-                    petAlertsResult = await pRes.json();
-                }
-            } catch (e) { 
-                console.error("[DailyCheck] Error calling pet-alerts API:", e.message); 
-            }
-        }
+        // 2. Ejecutar Alertas de Alimento (Pet Shop)
+        try {
+            const petRes = await fetch(`${PWA_URL}/api/pet-alerts`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET },
+                body: JSON.stringify({ simulatedDate })
+            });
+            results.petAlerts = await petRes.json();
+        } catch (e) { console.error("Error calling pet-alerts:", e); }
 
-        // --- AUDITORIA CONSOLIDADA ---
-        const totalNotified = logResults.processed + (expirationsResult.summary?.notified || 0) + (petAlertsResult.results?.notified || 0);
-        const auditSummary = `Motor Diario Ejecutado. Gatillo: ${logSourceLabel}. Total Notificaciones: ${totalNotified}. 
-            (Cumpleaños: ${logResults.processed}, Vencimientos: ${expirationsResult.summary?.notified || 0}, Petshop: ${petAlertsResult.results?.notified || 0})`;
-
-        await db.collection('audit_logs').add({
-            timestamp: admin.firestore.FieldValue.serverTimestamp(),
-            type: 'daily_engine_run',
-            status: 'success',
-            summary: auditSummary,
-            details: [
-                ...logResults.details.map(d => ({ ...d, category: 'cumpleaños' })),
-                ...(expirationsResult.summary?.details || []).map(d => ({ ...d, category: 'vencimientos' }))
-            ].slice(0, 500),
-            executor: logSourceLabel
-        });
-
-        // Marcar como ejecutado
-        // Marcar como ejecutado
-        if (!shouldSkipExecution && !isManualSim && isDailyMode) {
-            const arFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires', year: 'numeric', month: '2-digit', day: '2-digit' });
-            await db.collection('config').doc('dailyCheck').set({
-                lastRunDate: arFormatter.format(new Date()),
-                lastRunTimestamp: admin.firestore.FieldValue.serverTimestamp(),
-                executor: logSourceLabel
-            }, { merge: true });
-        }
-
-        return res.status(200).json({
-            ok: true,
-            skipped: shouldSkipExecution,
-            summary: auditSummary,
-            birthdays: logResults,
-            expirations: expirationsResult,
-            petAlerts: petAlertsResult,
-            config: { 
-                messaging: config.messaging, 
-                appName: config.siteName || config.appName,
-                siteName: config.siteName,
-                enableBirthdayBonus: config.enableBirthdayBonus,
-                birthdayPoints: config.birthdayPoints
-            }
-        });
+        return res.status(200).json({ ok: true, results });
 
     } catch (error) {
-        console.error("[Birthdays Cron] Fatal Error:", error);
-        return res.status(500).json({ ok: false, error: error.message });
+        return res.status(500).json({ error: error.message });
     }
 }

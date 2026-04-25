@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { BarChart3, TrendingUp, Users, DollarSign, Award, Sparkles, Download, Clock, Calendar, RefreshCw } from 'lucide-react';
 import { collection, query, where, getDocs, orderBy, limit, documentId } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
@@ -185,16 +185,38 @@ export const MetricsPage = () => {
                     return { grouped, spenders, tEmitted, tRedeemed, tExpired, tMoneyRedeemed, totalMoneySpent, creditCount, activeUids, heatmap, referralCount };
                 };
 
-                // OPTIMIZACIÓN: No bajamos a todos los usuarios.
-                // Estimamos totales y orígenes basados en queries rápidas si es posible, 
-                // o mantenemos el conteo si la base es pequeña (pero sin el censo masivo de campos).
-                const totalClientsSnap = await getDocs(query(collection(db, 'users'), limit(1))); // Solo para ver si hay alguien
-                let totalClientsInSystem = advancedStats.totalCustomers; // Usamos el valor anterior si existe
-                
-                // Si realmente necesitamos el censo para orígenes, lo hacemos más liviano
-                // Para no romper la lógica actual de golpe, vamos a simplificar el procesamiento.
-                let pwaCount = registrationSources.pwa;
-                let localCount = registrationSources.local;
+                // Get Census of existing UIDs to filter out deleted users from activity stats
+                const userCensusSnap = await getDocs(collection(db, 'users'));
+                const existingClientUids = new Set<string>();
+                let totalClientsInSystem = 0;
+                let pwaCount = 0;
+                let localCount = 0;
+
+                userCensusSnap.forEach(d => {
+                    const ud = d.data();
+                    // Filtro consistente con ClientsPage: deben tener nombre o DNI.
+                    const name = ud.name || ud.nombre || '';
+                    const dni = ud.dni || '';
+                    const hasBasicInfo = name.trim() !== '' || dni.trim() !== '';
+                    const isAdmin = ud.role === 'admin' || ud.isAdmin === true;
+
+                    if (!isAdmin && hasBasicInfo) {
+                        existingClientUids.add(d.id);
+                        totalClientsInSystem++;
+
+                        // Contar origen de registro
+                        const src = ud.source || ud.metadata?.createdFrom || '';
+                        if (src === 'pwa') pwaCount++;
+                        else if (src === 'local') localCount++;
+                        else {
+                            // Heur├¡stica: si tiene authUID y no tiene socioNumber probablemente vino por PWA
+                            if (ud.authUID && !ud.socioNumber && !ud.numeroSocio) pwaCount++;
+                            else localCount++;
+                        }
+                    }
+                });
+
+                setRegistrationSources({ pwa: pwaCount, local: localCount });
 
                 const currentResults = processStats(currentMovements);
                 const prevResults = processStats(prevMovements);
@@ -271,7 +293,7 @@ export const MetricsPage = () => {
                     setTopSpenders([]);
                 }
 
-                // 3. Clientes más Fieles (APP)
+                // 3. Clientes m├ís Fieles (APP)
                 const qVisitors = query(collection(db, 'users'), orderBy('visitCount', 'desc'), limit(15));
                 const snapVisitors = await getDocs(qVisitors);
                 const filteredVisitors = snapVisitors.docs
@@ -283,7 +305,7 @@ export const MetricsPage = () => {
                     return { id: user.id, ...user, name: user.name || user.nombre || 'Socio', count: user.visitCount || 0, socioNumber: user.socioNumber || user.numeroSocio || '' };
                 }));
 
-                // 4. Ranking de Referidores (Desafío)
+                // 4. Ranking de Referidores (Desaf├¡o)
                 const challenge = appConfig?.referrals?.challenge;
                 if (challenge?.enabled) {
                     const start = new Date(challenge.startDate);
@@ -328,7 +350,7 @@ export const MetricsPage = () => {
                         setTopReferrers([]);
                     }
                 } else {
-                    // Si no hay desafío, mostrar top históricos
+                    // Si no hay desaf├¡o, mostrar top hist├│ricos
                     const qTopHistory = query(collection(db, 'users'), orderBy('referralStats.count', 'desc'), limit(5));
                     const snapTopHistory = await getDocs(qTopHistory);
                     setTopReferrers(snapTopHistory.docs.map(d => {
@@ -347,7 +369,7 @@ export const MetricsPage = () => {
 
             } catch (error) {
                 console.error("Error metrics:", error);
-                toast.error("Error al cargar las métricas");
+                toast.error("Error al cargar las m├®tricas");
             } finally {
                 setLoading(false);
             }
@@ -363,7 +385,7 @@ export const MetricsPage = () => {
 
         const headers = ["Fecha", "Cliente", "Socio #", "Tipo", "Concepto", "Puntos", "Monto $"];
 
-        // Formateador para números en español (Argentina)
+        // Formateador para n├║meros en espa├▒ol (Argentina)
         const numFormat = new Intl.NumberFormat('es-AR', {
             minimumFractionDigits: 0,
             maximumFractionDigits: 2
@@ -379,7 +401,7 @@ export const MetricsPage = () => {
             numFormat.format(m.amount || 0)
         ]);
 
-        // Usamos punto y coma (;) para compatibilidad con Excel en español
+        // Usamos punto y coma (;) para compatibilidad con Excel en espa├▒ol
         const csvContent = [headers, ...rows].map(e => e.join(";")).join("\n");
 
         // Agregar BOM para que Excel reconozca UTF-8 correctamente
@@ -398,7 +420,7 @@ export const MetricsPage = () => {
     };
 
     if (loading) {
-        return <div className="p-10 text-center text-gray-400">Cargando métricas...</div>;
+        return <div className="p-10 text-center text-gray-400">Cargando m├®tricas...</div>;
     }
 
     return (
@@ -406,7 +428,7 @@ export const MetricsPage = () => {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-100 pb-6">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
-                        <BarChart3 className="text-purple-600" /> Métricas y Reportes
+                        <BarChart3 className="text-purple-600" /> M├®tricas y Reportes
                     </h1>
                     <p className="text-gray-500 mt-1">Analiza el rendimiento de tu programa de fidelidad.</p>
                 </div>
@@ -417,7 +439,7 @@ export const MetricsPage = () => {
                     <div className="flex bg-white rounded-xl shadow-sm border border-gray-200 p-1">
                         {[
                             { id: 'today', label: 'Hoy' },
-                            { id: '30_days', label: '30 Días' },
+                            { id: '30_days', label: '30 D├¡as' },
                             { id: '6_months', label: '6 Meses' },
                             { id: 'total', label: 'Acumulado' },
                             { id: 'custom', label: 'Personalizado' }
@@ -464,8 +486,8 @@ export const MetricsPage = () => {
                     </div>
                     <h3 className="text-xl font-bold text-gray-700">No hay datos suficientes</h3>
                     <p className="text-gray-500 max-w-md mx-auto">
-                        Aún no se han registrado transacciones en la nueva colección global para este periodo.
-                        Comience a sumar puntos a sus clientes para ver las estadísticas aquí.
+                        A├║n no se han registrado transacciones en la nueva colecci├│n global para este periodo.
+                        Comience a sumar puntos a sus clientes para ver las estad├¡sticas aqu├¡.
                     </p>
                 </div>
             ) : (
@@ -479,7 +501,7 @@ export const MetricsPage = () => {
                                 const colorClass = isRed ? (isPositive ? 'text-red-500' : 'text-green-500') : (isPositive ? 'text-green-500' : 'text-red-500');
                                 return (
                                     <div className={`flex items-center gap-1 text-[11px] font-bold ${colorClass} mt-1`}>
-                                        {isPositive ? '↑' : '↓'} {Math.abs(Math.round(diff))}% <span className="text-gray-400 font-normal">vs anterior</span>
+                                        {isPositive ? 'Ôåæ' : 'Ôåô'} {Math.abs(Math.round(diff))}% <span className="text-gray-400 font-normal">vs anterior</span>
                                     </div>
                                 );
                             };
@@ -524,7 +546,7 @@ export const MetricsPage = () => {
                                 const isPositive = diff > 0;
                                 return (
                                     <div className={`flex items-center gap-1 text-[10px] font-bold ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
-                                        {isPositive ? '↑' : '↓'} {Math.abs(Math.round(diff))}%
+                                        {isPositive ? 'Ôåæ' : 'Ôåô'} {Math.abs(Math.round(diff))}%
                                     </div>
                                 );
                             };
@@ -574,12 +596,12 @@ export const MetricsPage = () => {
                                     </div>
                                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 transition hover:shadow-md">
                                         <div className="flex justify-between items-start mb-1">
-                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Costo de Emisión</p>
+                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Costo de Emisi├│n</p>
                                             <TrendIndicator current={advancedStats.potentialRevenue} prev={prevAdvancedStats.potentialRevenue} />
                                         </div>
                                         <div className="flex items-baseline gap-2">
                                             <span className="text-2xl font-black text-red-500">${Math.round(advancedStats.potentialRevenue).toLocaleString('es-AR')}</span>
-                                            <span title="Costo teórico basado en el valor real de tus premios activos." className="text-[10px] text-gray-400 cursor-help">ℹ️</span>
+                                            <span title="Costo te├│rico basado en el valor real de tus premios activos." className="text-[10px] text-gray-400 cursor-help">Ôä╣´©Å</span>
                                         </div>
                                     </div>
                                 </>
@@ -587,19 +609,19 @@ export const MetricsPage = () => {
                         })()}
                     </div>
 
-                    {/* PRONÓSTICO DE VENCIMIENTOS (CASH FLOW) */}
+                    {/* PRON├ôSTICO DE VENCIMIENTOS (CASH FLOW) */}
                     <div className="bg-gradient-to-br from-gray-50 to-white p-8 rounded-3xl border border-gray-100 shadow-sm mb-8">
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                             <div>
                                 <h3 className="text-xl font-black text-gray-800 flex items-center gap-2">
-                                    <Clock className="text-orange-500" /> Pronóstico de Vencimientos (Cash Flow)
+                                    <Clock className="text-orange-500" /> Pron├│stico de Vencimientos (Cash Flow)
                                 </h3>
-                                <p className="text-sm text-gray-500 mt-1">Estimación de puntos por vencer y su impacto financiero en el corto, mediano y largo plazo.</p>
+                                <p className="text-sm text-gray-500 mt-1">Estimaci├│n de puntos por vencer y su impacto financiero en el corto, mediano y largo plazo.</p>
                             </div>
                             <div className="flex items-center gap-3">
                                 <div className="flex items-center gap-2 bg-white rounded-xl shadow-sm border border-gray-200 p-2">
                                     <div className="flex items-center gap-2">
-                                        <label className="text-[9px] font-black text-gray-400 uppercase ml-1">Análisis Desde</label>
+                                        <label className="text-[9px] font-black text-gray-400 uppercase ml-1">An├ílisis Desde</label>
                                         <input
                                             type="date"
                                             className="px-1 py-0.5 text-xs border-none focus:ring-0 outline-none font-bold text-gray-700"
@@ -621,7 +643,7 @@ export const MetricsPage = () => {
                                         onClick={fetchForecast}
                                         disabled={fetchingForecast}
                                         className="ml-2 bg-orange-100 text-orange-600 p-1.5 rounded-lg hover:bg-orange-200 transition disabled:opacity-50"
-                                        title="Recalcular análisis"
+                                        title="Recalcular an├ílisis"
                                     >
                                         {fetchingForecast ? <RefreshCw className="animate-spin" size={14} /> : <Calendar size={14} />}
                                     </button>
@@ -647,7 +669,7 @@ export const MetricsPage = () => {
                                             {forecastData.customRange.points.toLocaleString()} <span className="text-xs font-bold opacity-70">pts</span>
                                         </p>
                                         <p className="text-sm font-bold opacity-90">
-                                            ≈ ${Math.round(forecastData.customRange.money).toLocaleString('es-AR')}
+                                            Ôëê ${Math.round(forecastData.customRange.money).toLocaleString('es-AR')}
                                         </p>
                                     </div>
                                     <div className="mt-4 pt-4 border-t border-white/20 flex items-center justify-between">
@@ -667,7 +689,7 @@ export const MetricsPage = () => {
                                             {interval.points.toLocaleString()} <span className="text-xs font-bold text-gray-400">pts</span>
                                         </p>
                                         <p className="text-sm font-bold text-orange-600">
-                                            ≈ ${Math.round(interval.money).toLocaleString('es-AR')}
+                                            Ôëê ${Math.round(interval.money).toLocaleString('es-AR')}
                                         </p>
                                     </div>
                                     <div className="mt-4 pt-4 border-t border-gray-50 flex items-center justify-between">
@@ -686,8 +708,8 @@ export const MetricsPage = () => {
 
                         <div className="mt-6 p-4 bg-blue-50/50 rounded-2xl border border-blue-100/50">
                             <p className="text-xs text-blue-700 leading-relaxed">
-                                💡 <b>Consejo:</b> Si notas un volumen alto en "Próximos 7 días", considera lanzar una campaña de canje flash para que los socios aprovechen sus puntos antes de perderlos.
-                                El valor monetario está calculado a un ratio de <b>${Math.round(forecastData?.pointValue || config?.pointValue || 10)} por punto</b> (promedio de tus premios actuales).
+                                ­ƒÆí <b>Consejo:</b> Si notas un volumen alto en "Pr├│ximos 7 d├¡as", considera lanzar una campa├▒a de canje flash para que los socios aprovechen sus puntos antes de perderlos.
+                                El valor monetario est├í calculado a un ratio de <b>${Math.round(forecastData?.pointValue || config?.pointValue || 10)} por punto</b> (promedio de tus premios actuales).
                             </p>
                         </div>
                     </div>
@@ -697,9 +719,9 @@ export const MetricsPage = () => {
                         <div className="flex justify-between items-center mb-8">
                             <div>
                                 <h3 className="text-xl font-black text-gray-800 flex items-center gap-2">
-                                    <Clock className="text-purple-600" /> Mapa de Calor: Actividad por Día y Hora
+                                    <Clock className="text-purple-600" /> Mapa de Calor: Actividad por D├¡a y Hora
                                 </h3>
-                                <p className="text-sm text-gray-500">Detecta tus momentos de mayor tráfico de ventas.</p>
+                                <p className="text-sm text-gray-500">Detecta tus momentos de mayor tr├ífico de ventas.</p>
                             </div>
                             <div className="flex items-center gap-2 text-xs font-bold text-gray-400">
                                 <span>Menos</span>
@@ -709,7 +731,7 @@ export const MetricsPage = () => {
                                     <div className="w-3 h-3 rounded bg-purple-600 opacity-80"></div>
                                     <div className="w-3 h-3 rounded bg-purple-600 opacity-100"></div>
                                 </div>
-                                <span>Más ({Math.max(...heatmapData.flat()) || 0} máx)</span>
+                                <span>M├ís ({Math.max(...heatmapData.flat()) || 0} m├íx)</span>
                             </div>
                         </div>
 
@@ -722,8 +744,8 @@ export const MetricsPage = () => {
                                         <div key={h} className="text-[10px] font-bold text-gray-400 text-center">{h}h</div>
                                     ))}
 
-                                    {/* Filas Días */}
-                                    {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map((day, dIdx) => (
+                                    {/* Filas D├¡as */}
+                                    {['Dom', 'Lun', 'Mar', 'Mi├®', 'Jue', 'Vie', 'S├íb'].map((day, dIdx) => (
                                         <>
                                             <div key={day} className="flex items-center text-sm font-bold text-gray-500 h-8">{day}</div>
                                             {heatmapData[dIdx].map((val, hIdx) => {
@@ -793,7 +815,7 @@ export const MetricsPage = () => {
                         </h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                             <div className="space-y-4">
-                                <div className="flex justify-between items-end"><span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Altas vía PWA</span><span className="text-2xl font-black text-purple-600">{registrationSources.pwa}</span></div>
+                                <div className="flex justify-between items-end"><span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Altas v├¡a PWA</span><span className="text-2xl font-black text-purple-600">{registrationSources.pwa}</span></div>
                                 <div className="w-full bg-gray-100 h-3 rounded-full overflow-hidden">
                                     <div className="bg-purple-500 h-full transition-all duration-1000" style={{ width: `${(registrationSources.pwa / (registrationSources.pwa + registrationSources.local || 1)) * 100}%` }}></div>
                                 </div>
@@ -811,17 +833,17 @@ export const MetricsPage = () => {
                         <div className="bg-white rounded-2xl shadow-sm border border-orange-100 overflow-hidden flex flex-col h-full">
                             <div className="p-6 border-b border-orange-50 bg-orange-50/30">
                                 <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                                    <Sparkles size={18} className="text-orange-500" /> Ranking de Referidores (Desafío)
+                                    <Sparkles size={18} className="text-orange-500" /> Ranking de Referidores (Desaf├¡o)
                                 </h3>
                                 <p className="text-xs text-orange-600 font-medium mt-1">
-                                    {config?.referrals?.challenge?.enabled ? `Contando amigos del ${new Date(config.referrals.challenge.startDate).toLocaleDateString()} al ${new Date(config.referrals.challenge.endDate).toLocaleDateString()}` : 'Top histórico de invitaciones'}
+                                    {config?.referrals?.challenge?.enabled ? `Contando amigos del ${new Date(config.referrals.challenge.startDate).toLocaleDateString()} al ${new Date(config.referrals.challenge.endDate).toLocaleDateString()}` : 'Top hist├│rico de invitaciones'}
                                 </p>
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-sm">
                                     <thead className="bg-orange-50/50 text-gray-500 font-semibold"><tr><th className="p-4 pl-6">Socio</th><th className="p-4 text-right pr-6">Invitados</th></tr></thead>
                                     <tbody className="divide-y divide-gray-50">
-                                        {topReferrers.length === 0 ? (<tr><td colSpan={2} className="p-8 text-center text-gray-400 italic">No hay invitaciones registradas aún</td></tr>) : (
+                                        {topReferrers.length === 0 ? (<tr><td colSpan={2} className="p-8 text-center text-gray-400 italic">No hay invitaciones registradas a├║n</td></tr>) : (
                                             topReferrers.map((user: any, i: number) => (
                                                 <tr key={user.id} className="hover:bg-orange-50/30 transition">
                                                     <td className="p-4 pl-6 font-medium text-gray-700 flex items-center gap-3">
@@ -839,8 +861,8 @@ export const MetricsPage = () => {
 
                         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full">
                             <div className="p-6 border-b border-gray-100 bg-gray-50/50">
-                                <h3 className="font-bold text-gray-800 flex items-center gap-2"><Sparkles size={18} className="text-orange-500" /> Clientes más Fieles (APP)</h3>
-                                <p className="text-xs text-gray-400 mt-1">Socios con más aperturas de la app</p>
+                                <h3 className="font-bold text-gray-800 flex items-center gap-2"><Sparkles size={18} className="text-orange-500" /> Clientes m├ís Fieles (APP)</h3>
+                                <p className="text-xs text-gray-400 mt-1">Socios con m├ís aperturas de la app</p>
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-sm">
@@ -888,7 +910,7 @@ export const MetricsPage = () => {
                         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full">
                             <div className="p-6 border-b border-gray-100 bg-gray-50/50">
                                 <h3 className="font-bold text-gray-800 flex items-center gap-2"><Award size={18} className="text-green-500" /> Top Generadores (COMPRA)</h3>
-                                <p className="text-xs text-gray-400 mt-1">Más puntos generados en este periodo</p>
+                                <p className="text-xs text-gray-400 mt-1">M├ís puntos generados en este periodo</p>
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-sm">

@@ -98,32 +98,75 @@ export default async function handler(req, res) {
         const inWindow = hr >= startHr && hr < endHr;
 
         if (!isSilent && inWindow && config.messaging?.enableExpirationWarnings !== false) {
-             // Lógica de avisos 7 días antes...
              const warningDays = config.warnings?.expirationDays || 7;
              const warningDate = new Date(referenceDate);
              warningDate.setDate(warningDate.getDate() + warningDays);
              const warningDateStr = warningDate.toISOString().split('T')[0];
 
+             // Buscamos socios que tengan SU PRÓXIMO vencimiento en la ventana de aviso
              const proactiveSnap = await db.collection('users')
-                .where('nextExpirationDate', '==', warningDateStr)
+                .where('nextExpirationDate', '<=', warningDateStr)
+                .where('nextExpirationDate', '>', referenceDateStr)
                 .get();
 
              for (const userDoc of proactiveSnap.docs) {
-                 const userData = userDoc.data();
-                 const userName = (userData.nombre || userData.name || 'Socio').split(' ')[0];
-                 const msg = (config.messaging?.templates?.expiration || "Hola {nombre}, tus puntos vencen el {fecha}!")
-                    .replace(/{nombre}/g, userName)
-                    .replace(/{puntos}/g, (userData.points || 0).toString())
-                    .replace(/{fecha}/g, warningDateStr);
-                 
-                 // Enviar Push/WhatsApp...
-                 if (userData.fcmTokens?.length) {
-                     await admin.messaging().sendEachForMulticast({
-                        tokens: userData.fcmTokens,
-                        data: { title: "⚠️ Vencimiento de puntos", body: msg, url: "/rewards" }
-                     }).catch(() => {});
+                 try {
+                     const userData = userDoc.data();
+                     const historyRef = userDoc.ref.collection('points_history');
+                     
+                     // Escaneamos qué vence en esta ventana de 7 días
+                     const impendingSnap = await historyRef
+                        .where('type', '==', 'credit')
+                        .where('expiresAt', '>', admin.firestore.Timestamp.fromDate(startOfToday))
+                        .where('expiresAt', '<=', admin.firestore.Timestamp.fromDate(warningDate))
+                        .get();
+
+                     let breakdown = [];
+                     let totalImpending = 0;
+
+                     impendingSnap.docs.forEach(d => {
+                         const dData = d.data();
+                         if (dData.status === 'expired') return;
+                         const rem = dData.remainingPoints !== undefined ? Number(dData.remainingPoints) : Number(dData.amount);
+                         if (rem > 0) {
+                             totalImpending += rem;
+                             const dateObj = dData.expiresAt.toDate();
+                             const dStr = `${dateObj.getDate()}/${dateObj.getMonth() + 1}`;
+                             breakdown.push(`${rem} pts el ${dStr}`);
+                         }
+                     });
+
+                     if (totalImpending > 0) {
+                         const userName = (userData.nombre || userData.name || 'Socio').split(' ')[0];
+                         const breakdownStr = breakdown.join(', ');
+                         const title = "⚠️ Tus puntos están por vencer";
+                         const msg = `¡Hola ${userName}! 📢 Tenés puntos próximos a vencer: ${breakdownStr}. Total a vencer: ${totalImpending} pts. ¡Aprovechalos pronto! 🎁`;
+
+                         // Notificación Push
+                         if (userData.fcmTokens?.length) {
+                             await admin.messaging().sendEachForMulticast({
+                                tokens: userData.fcmTokens,
+                                notification: { title, body: msg },
+                                data: { url: "/rewards" }
+                             }).catch(() => {});
+                         }
+                         
+                         // Email (si aplica)
+                         // Inbox
+                         await userDoc.ref.collection('inbox').add({
+                             title,
+                             body: msg,
+                             date: admin.firestore.FieldValue.serverTimestamp(),
+                             read: false,
+                             type: 'system'
+                         });
+
+                         logResults.notified++;
+                         logResults.details.push({ userId: userDoc.id, userName, action: 'notified', info: msg });
+                     }
+                 } catch (err) {
+                     console.error("Error notifying user:", userDoc.id, err);
                  }
-                 logResults.notified++;
              }
         }
 

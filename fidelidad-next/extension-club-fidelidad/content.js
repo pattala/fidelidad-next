@@ -454,8 +454,17 @@ function showFidelidadPanel() {
         </div>
     `;
 
-    // --- SIEMPRE FLOTANTE (v36) ---
-    document.body.appendChild(panel);
+    // --- ESTRATEGIA DE INFILTRACIÓN (v29) ---
+    const modalSelectors = ['.modal-content', '.modal-body', '.bootbox', '.ui-dialog-content', '.sky-modal', '[role="dialog"]'];
+    let injector = document.body;
+    for (let sel of modalSelectors) {
+        const found = document.querySelector(sel);
+        if (found) {
+            injector = found;
+            break;
+        }
+    }
+    injector.appendChild(panel);
 
     // --- DRAGGABLE LOGIC ---
     let isDragging = false;

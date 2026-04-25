@@ -160,20 +160,7 @@ export default async function handler(req, res) {
                 console.log(`[DailyCheck] Fuera de horario permitido (${minHour} - ${maxHour} hs). Hora actual AR: ${hourInt}`);
                 if (triggerSource !== 'pwa') {
                     await db.collection('audit_logs').add({
-                        timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                        type: 'system_skip',
-                        status: 'skipped',
-                        summary: `Motor Diario Salteado: Fuera de ventana horaria (${minHour}-${maxHour} hs). Gatillo: ${triggerSource}.`,
-                        executor: triggerSource,
-                        role: 'system'
-                    });
-                }
-                return res.status(200).json({ ok: true, skipped: true, message: "Fuera de horario permitido", currentHour: hourInt, minHour, maxHour });
-            }
-        }
-    }
-
-    // --- MANEJO DE SIMULACIÓN GLOBAL ---
+    // --- LÓGICA DE SIMULACIÓN Y CONFIGURACIÓN ---
     let effectiveSimulatedDate = simulatedDateStr;
     if (effectiveSimulatedDate) {
         const parts = effectiveSimulatedDate.split(/[-/]/);
@@ -189,9 +176,49 @@ export default async function handler(req, res) {
         const simDate = new Date();
         simDate.setDate(simDate.getDate() + config.simulatedOffsetDays);
         effectiveSimulatedDate = `${simDate.getFullYear()}-${String(simDate.getMonth() + 1).padStart(2, '0')}-${String(simDate.getDate()).padStart(2, '0')}`;
-        console.log(`[DailyEngine] Aplicando Simulación Global: ${effectiveSimulatedDate}`);
     }
+
     const isSimulation = !!effectiveSimulatedDate;
+    const now = new Date();
+    const today = new Date((effectiveSimulatedDate || now.toISOString().split('T')[0]) + 'T12:00:00');
+    
+    // --- 1. MANTENIMIENTO INTERNO (SIEMPRE EJECUTADO) ---
+    // A. Limpieza de usuarios fantasma (Sin nombre, sin puntos, inactivos)
+    try {
+        const thirtyDaysAgo = new Date(today);
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const ghostsSnap = await db.collection('users').where('name', 'in', ['', 'Sin Nombre', 'Socio']).get();
+        for (const ghostDoc of ghostsSnap.docs) {
+            const gData = ghostDoc.data();
+            if ((gData.points || 0) <= 0) {
+                 await ghostDoc.ref.delete();
+                 console.log(`[GhostCleanup] Registro eliminado: ${ghostDoc.id}`);
+            }
+        }
+    } catch (e) { console.error("[GhostCleanup] Error:", e); }
+
+    // B. Procesar restas de puntos (Paso A de Expirations en modo silencioso)
+    // Esto asegura que el saldo sea real 24/7 incluso fuera de horario de avisos.
+    try {
+        await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'https://' + req.headers.host}/api/expirations?silent=true&simulatedDate=${effectiveSimulatedDate || ''}`);
+    } catch (e) { console.error("[SilentExpirations] Error:", e); }
+
+    // --- 2. COMUNICACIÓN (RESPETA HORARIO DEL PANEL) ---
+    let skipMessaging = false;
+    if (triggerSource !== 'dashboard' && !isSimulation) {
+        const hourInt = now.getHours();
+        const minHour = parseInt(config.executionSchedule?.min) || 10;
+        const maxHour = parseInt(config.executionSchedule?.max) || 20;
+        if (hourInt < minHour || hourInt >= maxHour) {
+            skipMessaging = true;
+            console.log(`[DailyEngine] Fuera de horario para avisos (${hourInt}hs).`);
+        }
+    }
+
+    if (skipMessaging) {
+        return res.status(200).json({ ok: true, maintenanceOnly: true, message: "Mantenimiento completado. Avisos saltados por horario." });
+    }
+
     let shouldSkipExecution = false;
 
     const sourceLabelMap = {

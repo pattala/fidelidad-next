@@ -120,48 +120,56 @@ async function handleCheck(req, res, db) {
         const proactivePinStr = `${proactivePin.getFullYear()}-${(proactivePin.getMonth()+1).toString().padStart(2, '0')}-${proactivePin.getDate().toString().padStart(2, '0')}`;
 
         const logResults = { processed: 0, expiredPoints: 0, expiredUsersCount: 0, notified: 0, totalInWindow: 0, details: [], list: [], errors: [] };
+        const isSilent = req.query?.silent === 'true' || req.body?.silent === true;
 
-        // --- PASO A: PROCESAR DESCUENTOS ---
+        // --- PASO A: PROCESAR DESCUENTOS (SIEMPRE ACTIVO) ---
         const toExpireSnap = await db.collection('users').where('nextExpirationDate', '<=', referenceDateStr).get();
         for (const userDoc of toExpireSnap.docs) {
             try {
                 const userId = userDoc.id;
                 const userData = userDoc.data();
                 const historyRef = userDoc.ref.collection('points_history');
+                
+                // REPARACIÓN DE EMERGENCIA: Buscamos cualquier crédito previo a hoy que no esté marcado como expirado
                 const expiredItemsSnap = await historyRef.where('expiresAt', '<', admin.firestore.Timestamp.fromDate(startOfToday)).get();
                 
-                if (expiredItemsSnap.empty) { 
-                    await updateNextExpirationDate(db, userId, startOfToday); 
-                    continue; 
-                }
-
                 let totalExpired = 0;
                 const batch = db.batch();
-                const now = admin.firestore.FieldValue.serverTimestamp();
+                const nowTimestamp = admin.firestore.FieldValue.serverTimestamp();
+
                 expiredItemsSnap.docs.forEach(d => {
                     const data = d.data();
+                    // Si ya está marcado como expired y el remanente es 0, no hacemos nada extra
                     if (data.status === 'expired') return;
-                    const rem = data.remainingPoints !== undefined ? data.remainingPoints : data.amount;
+                    
+                    const rem = data.remainingPoints !== undefined ? Number(data.remainingPoints) : Number(data.amount);
                     if (data.type === 'credit' && rem > 0) {
                         totalExpired += rem;
-                        batch.update(d.ref, { status: 'expired', remainingPoints: 0, expiredAmount: rem, processedAt: now });
+                        batch.update(d.ref, { status: 'expired', remainingPoints: 0, expiredAmount: rem, processedAt: nowTimestamp });
                     }
                 });
+
                 if (totalExpired > 0) {
                     logResults.expiredPoints += totalExpired;
                     logResults.expiredUsersCount++;
-                    logResults.details.push({ userId, userName: userData?.name || 'Socio', action: 'points_subtracted', status: 'success', info: `${totalExpired} pts vencidos en fecha ${referenceDateStr}` });
-                    batch.set(historyRef.doc(), { amount: -totalExpired, concept: 'Vencimiento de puntos acumulados (Auto)', date: now, type: 'debit', isExpirationAdjustment: true });
+                    logResults.details.push({ userId, userName: userData?.name || 'Socio', action: 'points_subtracted', status: 'success', info: `${totalExpired} pts vencidos (REPARACIÓN AUTOMÁTICA)` });
+                    
+                    batch.set(historyRef.doc(), { amount: -totalExpired, concept: 'Vencimiento de puntos acumulados (Auto)', date: nowTimestamp, type: 'debit', isExpirationAdjustment: true });
                     batch.update(userDoc.ref, { points: admin.firestore.FieldValue.increment(-totalExpired) });
                     await batch.commit();
+                    console.log(`[ExpirationRepair] Restados ${totalExpired} pts a ${userId}`);
                 }
-                await updateNextExpirationDate(db, userId, referenceDate);
+                
+                await updateNextExpirationDate(db, userId, startOfToday); 
                 logResults.processed++;
-            } catch (e) { logResults.errors.push({ id: userDoc.id, error: e.message }); }
+            } catch (e) { 
+                console.error(`[ExpirationSubStep] Error en usuario ${userDoc.id}:`, e);
+                logResults.errors.push({ id: userDoc.id, error: e.message }); 
+            }
         }
 
         // --- PASO B: ENVIAR AVISOS ---
-        if (config.messaging?.enableExpirationWarnings !== false) {
+        if (!isSilent && config.messaging?.enableExpirationWarnings !== false) {
             const proactiveSnap = await db.collection('users')
                 .where('nextExpirationDate', '<=', proactivePinStr)
                 .where('nextExpirationDate', '>=', referenceDateStr)

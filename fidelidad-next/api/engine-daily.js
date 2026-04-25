@@ -103,64 +103,19 @@ export default async function handler(req, res) {
     const app = initFirebaseAdmin();
     const db = app.firestore();
 
-    // 1. CARGAR CONFIGURACIÓN (CENTRALIZADO)
+    // --- 1. CARGAR CONFIGURACIÓN ---
     const configSnap = await db.collection('config').doc('general').get();
     if (!configSnap.exists) return res.status(404).json({ ok: false, error: "Config not found" });
     const config = configSnap.data();
 
-    // 2. PARÁMETROS DE CONTROL
+    // --- 2. PARÁMETROS DE CONTROL ---
     const isDailyMode = req.query?.mode === 'daily' || req.body?.mode === 'daily';
     const simulatedDateStr = req.body?.simulatedDate || req.query?.simulatedDate;
     const isManual = req.body?.isManual === true || req.query?.isManual === 'true';
     const reqIgnoreDeduplication = req.body?.ignoreDeduplication === true || req.query?.ignoreDeduplication === 'true';
-
-    // El control de duplicidad es ignorado si se pide por request O si está desactivado globalmente
-    const finalIgnoreDeduplication = reqIgnoreDeduplication || (config.enableDuplicateControl === false);
-    // isManualSim define si "saltamos" los guards de seguridad (horario, deduplicación, etc)
-    const isManualSim = !!simulatedDateStr || isManual || finalIgnoreDeduplication;
-
     const triggerSource = req.query?.trigger || req.body?.trigger || "unknown";
-    console.log(`[DailyEngine] Start: mode=${req.query?.mode || req.body?.mode}, trigger=${triggerSource}, simDate=${simulatedDateStr}, ignoreDeduplication=${finalIgnoreDeduplication}`);
 
-    // --- TIME WINDOW & TOGGLE GUARDS (Solo automático diario) ---
-    if (isDailyMode && !isManualSim) {
-        const messagingConfig = config.messaging || {};
-
-        // 1. Check if the specific trigger is enabled
-        const isTriggerEnabled =
-            (triggerSource === 'dashboard' && (messagingConfig.enableDashboardTrigger ?? true)) ||
-            (triggerSource === 'pwa' && (messagingConfig.enableClientTrigger ?? true)) ||
-            (triggerSource === 'extension' && (messagingConfig.enableExtensionTrigger ?? true)) ||
-            (triggerSource === 'qstash' && (messagingConfig.enableQStashTrigger ?? true)) ||
-            (triggerSource === 'unknown');
-
-        if (!isTriggerEnabled && triggerSource !== 'extension') {
-            console.log(`[DailyCheck] Gatillo '${triggerSource}' desactivado por configuración.`);
-            if (triggerSource !== 'pwa') {
-                await db.collection('audit_logs').add({
-                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                    type: 'system_skip',
-                    status: 'skipped',
-                    summary: `Motor Diario Salteado: Gatillo '${triggerSource}' desactivado por configuración.`,
-                    executor: triggerSource,
-                    role: 'system'
-                });
-            }
-            return res.status(200).json({ ok: true, skipped: true, message: `Gatillo '${triggerSource}' desactivado` });
-        }
-
-        // 2. Check Time Window (Except for Extension which only fetches list)
-        if (triggerSource !== 'extension') {
-            const currentHour = new Date().toLocaleString("en-US", { timeZone: "America/Argentina/Buenos_Aires", hour: '2-digit', hour12: false });
-            const hourInt = parseInt(currentHour, 10);
-            const minHour = messagingConfig.engineAllowedStartHour ?? 9;
-            const maxHour = messagingConfig.engineAllowedEndHour ?? 22;
-
-            if (hourInt < minHour || hourInt >= maxHour) {
-                console.log(`[DailyCheck] Fuera de horario permitido (${minHour} - ${maxHour} hs). Hora actual AR: ${hourInt}`);
-                if (triggerSource !== 'pwa') {
-                    await db.collection('audit_logs').add({
-    // --- LÓGICA DE SIMULACIÓN Y CONFIGURACIÓN ---
+    // --- 3. LÓGICA DE SIMULACIÓN GLOBAL ---
     let effectiveSimulatedDate = simulatedDateStr;
     if (effectiveSimulatedDate) {
         const parts = effectiveSimulatedDate.split(/[-/]/);
@@ -181,12 +136,11 @@ export default async function handler(req, res) {
     const isSimulation = !!effectiveSimulatedDate;
     const now = new Date();
     const today = new Date((effectiveSimulatedDate || now.toISOString().split('T')[0]) + 'T12:00:00');
-    
-    // --- 1. MANTENIMIENTO INTERNO (SIEMPRE EJECUTADO) ---
-    // A. Limpieza de usuarios fantasma (Sin nombre, sin puntos, inactivos)
+    const isManualSim = isSimulation || isManual || reqIgnoreDeduplication;
+
+    // --- 4. MANTENIMIENTO INTERNO (SIEMPRE EJECUTADO) ---
+    // A. Limpieza de usuarios fantasma
     try {
-        const thirtyDaysAgo = new Date(today);
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         const ghostsSnap = await db.collection('users').where('name', 'in', ['', 'Sin Nombre', 'Socio']).get();
         for (const ghostDoc of ghostsSnap.docs) {
             const gData = ghostDoc.data();
@@ -197,18 +151,26 @@ export default async function handler(req, res) {
         }
     } catch (e) { console.error("[GhostCleanup] Error:", e); }
 
-    // B. Procesar restas de puntos (Paso A de Expirations en modo silencioso)
-    // Esto asegura que el saldo sea real 24/7 incluso fuera de horario de avisos.
+    // B. Procesar restas silenciosas (Power Repair)
     try {
-        await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'https://' + req.headers.host}/api/expirations?silent=true&simulatedDate=${effectiveSimulatedDate || ''}`);
+        const currentHost = req.headers.host;
+        const proto = req.headers['x-forwarded-proto'] || (currentHost?.includes('localhost') ? 'http' : 'https');
+        const apiBase = currentHost ? `${proto}://${currentHost}` : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+        await fetch(`${apiBase}/api/expirations?silent=true&simulatedDate=${effectiveSimulatedDate || ''}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET, 'x-executor-role': 'system' },
+            body: JSON.stringify({ simulatedDate: effectiveSimulatedDate })
+        });
     } catch (e) { console.error("[SilentExpirations] Error:", e); }
 
-    // --- 2. COMUNICACIÓN (RESPETA HORARIO DEL PANEL) ---
+    // --- 5. COMUNICACIÓN (RESPETA HORARIO) ---
     let skipMessaging = false;
-    if (triggerSource !== 'dashboard' && !isSimulation) {
-        const hourInt = now.getHours();
-        const minHour = parseInt(config.executionSchedule?.min) || 10;
-        const maxHour = parseInt(config.executionSchedule?.max) || 20;
+    if (triggerSource !== 'dashboard' && !isManualSim) {
+        const arHour = new Date().toLocaleString("en-US", { timeZone: "America/Argentina/Buenos_Aires", hour: '2-digit', hour12: false });
+        const hourInt = parseInt(arHour, 10);
+        const minHour = config.executionSchedule?.min || config.messaging?.engineAllowedStartHour || 10;
+        const maxHour = config.executionSchedule?.max || config.messaging?.engineAllowedEndHour || 20;
+
         if (hourInt < minHour || hourInt >= maxHour) {
             skipMessaging = true;
             console.log(`[DailyEngine] Fuera de horario para avisos (${hourInt}hs).`);
@@ -221,90 +183,39 @@ export default async function handler(req, res) {
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
                 type: 'maintenance_auto',
                 status: 'success',
-                summary: `Mantenimiento Automático: Puntos restados y registros limpiados. (Avisos saltados por horario ${now.getHours()}hs).`,
+                summary: `Mantenimiento Automático: Puntos restados y registros limpiados. (Avisos saltados por horario).`,
                 executor: 'system',
                 role: 'system'
             });
-        } catch (e) { console.error("[AuditLogMaintenance] Error:", e); }
-        
+        } catch (e) {}
         return res.status(200).json({ ok: true, maintenanceOnly: true, message: "Mantenimiento completado. Avisos saltados por horario." });
     }
 
+    // --- 6. DEDUPLICACIÓN Y SELECCIÓN DE FECHA ---
+    const sourceLabelMap = { 'dashboard': 'Ejecución en Dashboard', 'pwa': 'Ejecución en PWA', 'extension': 'Ejecución en Extensión', 'qstash': 'Ejecución vía QStash' };
+    const logSourceLabel = sourceLabelMap[triggerSource] || 'Auto';
     let shouldSkipExecution = false;
 
-    const sourceLabelMap = {
-        'dashboard': 'Ejecución en Dashboard',
-        'pwa': 'Ejecución en PWA',
-        'extension': 'Ejecución en Extensión',
-        'qstash': 'Ejecución vía QStash',
-        'unknown': 'Auto'
-    };
-    const logSourceLabel = sourceLabelMap[triggerSource] || 'Auto';
-
-    // --- DEDUPLICACIÓN INTELIGENTE (RED DE SEGURIDAD) ---
     if (isDailyMode && !isManualSim) {
-        const arFormatter = new Intl.DateTimeFormat('en-CA', {
-            timeZone: 'America/Argentina/Buenos_Aires',
-            year: 'numeric', month: '2-digit', day: '2-digit'
-        });
+        const arFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires', year: 'numeric', month: '2-digit', day: '2-digit' });
         const todayAR = arFormatter.format(new Date());
-        
-        // Cargar marcador de última ejecución
         const checkSnap = await db.collection('config').doc('dailyCheck').get();
-        const dailyCheckData = checkSnap.exists ? checkSnap.data() : {};
-        const lastRun = dailyCheckData.lastRunDate;
-        const lastRunTimestamp = dailyCheckData.lastRunTimestamp || null;
-
-        // Lógica de salto para gatillos automáticos (PWA, Extensión, QStash)
-        if (lastRun === todayAR && triggerSource !== 'dashboard' && !finalIgnoreDeduplication) {
-            
-            // RED DE SEGURIDAD: ¿Hubo cambios administrativos después de la última ejecución?
-            let hasAdministrativeChanges = false;
-            if (lastRunTimestamp) {
-                const recentAudits = await db.collection('audit_logs')
-                    .where('timestamp', '>', lastRunTimestamp)
-                    .where('type', 'in', ['config_mgmt', 'campaign_mgmt', 'prize_updated'])
-                    .limit(1)
-                    .get();
-                
-                if (!recentAudits.empty) {
-                    hasAdministrativeChanges = true;
-                    console.log(`[DailyCheck] Detectados cambios administrativos recientes (${triggerSource}). Forzando ejecución.`);
-                }
-            }
-
-            if (!hasAdministrativeChanges && !isSimulation) {
-                console.log(`[DailyCheck] Todo al día y sin cambios (${todayAR}). Gatillo: ${triggerSource}. SALTANDO ENVÍOS (pero extrayendo listas).`);
-                shouldSkipExecution = true;
-            }
+        if (checkSnap.exists && checkSnap.data().lastRunDate === todayAR && triggerSource !== 'dashboard') {
+            shouldSkipExecution = true;
         }
     }
 
     try {
-        // Determinar Fecha de Referencia
         const simCfg = config.simulationConfig || { birthdays: true, expirations: true, petAlerts: true, campaigns: true };
-        
         let referenceDate = new Date();
         let todayMD = `${String(referenceDate.getMonth() + 1).padStart(2, '0')}-${String(referenceDate.getDate()).padStart(2, '0')}`;
         let todayStr = referenceDate.toISOString().split('T')[0];
 
-        if (effectiveSimulatedDate && simCfg.birthdays) {
-            const simulatedDateStrVal = effectiveSimulatedDate;
-            // FIX: Manuel parsing to avoid timezone shifts
-            if (simulatedDateStrVal.includes('T')) {
-                const [datePart] = simulatedDateStrVal.split('T');
-                const [y, m, d] = datePart.split('-');
-                todayMD = `${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-                todayStr = datePart;
-                referenceDate = new Date(datePart + 'T12:00:00'); // Midday to be safe
-                console.log(`[Dashboard] Usando fecha simulada (ISO Parse): ${todayStr} (MD: ${todayMD})`);
-            } else {
-                const [y, m, d] = simulatedDateStrVal.split(/[-/]/);
-                todayMD = `${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-                todayStr = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-                referenceDate = new Date(todayStr + 'T12:00:00');
-                console.log(`[Dashboard] Usando fecha simulada (String Parse): ${todayStr} (MD: ${todayMD})`);
-            }
+        if (effectiveSimulatedDate) {
+            const [y, m, d] = effectiveSimulatedDate.split('-');
+            todayMD = `${m}-${d}`;
+            todayStr = effectiveSimulatedDate;
+            referenceDate = new Date(todayStr + 'T12:00:00');
         }
 
         const currentYear = referenceDate.getFullYear().toString();

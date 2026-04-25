@@ -9,6 +9,7 @@ import {
 import toast from 'react-hot-toast';
 
 import { ConfigService } from '../../../services/configService';
+import { TimeService } from '../../../services/timeService';
 
 export const MetricsPage = () => {
     const [timeRange, setTimeRange] = useState<'today' | '30_days' | '6_months' | 'year' | 'total' | 'custom'>('30_days');

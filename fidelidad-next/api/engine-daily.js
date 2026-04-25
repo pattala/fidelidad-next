@@ -150,44 +150,54 @@ export default async function handler(req, res) {
             }
         }
 
-        // --- PROCESAMIENTO NORMAL ---
+        // --- PROCESAMIENTO CONCURRENTE (Previene Vercel Timeout) ---
         const results = { birthdays: null, expirations: null, petAlerts: null };
+        const promises = [];
 
         // 1. Cumpleaños
         if (target === 'all' || target === 'birthdays') {
-            try {
-                const bRes = await fetch(`${PWA_URL}/api/birthdays`, {
+            promises.push(
+                fetch(`${PWA_URL}/api/birthdays`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET },
                     body: JSON.stringify({ simulatedDate, source: triggerSource, silent: isSilent, ignoreDeduplication })
-                });
-                results.birthdays = await bRes.json();
-            } catch (e) { console.error("Error calling birthdays:", e); }
+                })
+                .then(res => res.json())
+                .then(data => { results.birthdays = data; })
+                .catch(e => console.error("Error calling birthdays:", e))
+            );
         }
 
         // 2. Expiraciones
         if (target === 'all' || target === 'expirations') {
-            try {
-                const expRes = await fetch(`${PWA_URL}/api/expirations`, {
+            promises.push(
+                fetch(`${PWA_URL}/api/expirations`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET },
                     body: JSON.stringify({ simulatedDate, source: triggerSource, silent: isSilent, ignoreDeduplication })
-                });
-                results.expirations = await expRes.json();
-            } catch (e) { console.error("Error calling expirations:", e); }
+                })
+                .then(res => res.json())
+                .then(data => { results.expirations = data; })
+                .catch(e => console.error("Error calling expirations:", e))
+            );
         }
 
         // 3. Alertas Pet
         if (target === 'all' || target === 'pet-alerts') {
-            try {
-                const petRes = await fetch(`${PWA_URL}/api/pet-alerts`, {
+            promises.push(
+                fetch(`${PWA_URL}/api/pet-alerts`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET },
                     body: JSON.stringify({ simulatedDate, source: triggerSource, silent: isSilent, ignoreDeduplication })
-                });
-                results.petAlerts = await petRes.json();
-            } catch (e) { console.error("Error calling pet-alerts:", e); }
+                })
+                .then(res => res.json())
+                .then(data => { results.petAlerts = data; })
+                .catch(e => console.error("Error calling pet-alerts:", e))
+            );
         }
+
+        // Ejecutar todo en paralelo
+        await Promise.all(promises);
 
         // --- GUARDAR ESTADO DE EJECUCIÓN ---
         try {

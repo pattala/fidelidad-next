@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { X, Calendar, ArrowUpRight, ArrowDownLeft, Clock, History, AlertTriangle, TrendingUp, Trash2, DollarSign, Check } from 'lucide-react';
+import { X, Calendar, ArrowUpRight, ArrowDownLeft, Clock, History, AlertTriangle, TrendingUp, Trash2, DollarSign, Check, Minus } from 'lucide-react';
 import { collection, query, orderBy, getDocs, limit, where, doc, writeBatch, increment, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import toast from 'react-hot-toast';

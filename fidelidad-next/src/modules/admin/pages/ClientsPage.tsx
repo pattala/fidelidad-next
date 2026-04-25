@@ -144,10 +144,8 @@ export const ClientsPage = () => {
             const freshConfig = await ConfigService.get();
             setConfig(freshConfig);
 
-            const loadedClientsPromises = snapshot.docs.map(async (doc) => {
+            const loadedClients = snapshot.docs.map((doc) => {
                 const data = doc.data();
-                // Calcular métricas complejas (vencimientos, etc.)
-                const metrics = await ExpirationService.getClientMetrics(doc.id);
 
                 // Address Normalization (Flattening)
                 const provincia = data.domicilio?.components?.provincia || data.provincia || '';
@@ -158,9 +156,16 @@ export const ClientsPage = () => {
                 const depto = data.domicilio?.components?.depto || data.depto || '';
                 const cp = data.domicilio?.components?.zipCode || data.cp || '';
 
-                const liveExpirations = metrics.expirations || [];
+                // Usamos los detalles cacheados en utils/_expiration-utils.js 
+                let liveExpirations = [];
+                if (data.expirationDetails && Array.isArray(data.expirationDetails)) {
+                    liveExpirations = data.expirationDetails.map((e: any) => ({
+                        date: e.date?.toDate ? e.date.toDate() : new Date(e.date),
+                        points: e.points
+                    }));
+                }
                 
-                // FALLBACK: Si no hay detalle en vivo pero el socio tiene puntos y una fecha de vencimiento guardada en el perfil, usarla como respaldo.
+                // FALLBACK: Si no hay detalle pero el socio tiene puntos y una fecha de vencimiento guardada en el perfil, usarla como respaldo.
                 let finalExpirations = [...liveExpirations];
                 if (finalExpirations.length === 0 && (data.points || data.puntos) > 0 && data.nextExpirationDate) {
                     finalExpirations.push({
@@ -178,21 +183,19 @@ export const ClientsPage = () => {
                     email: data.email || '',
                     dni: data.dni || '',
                     phone: data.phone || data.telefono || '',
-                    points: Math.max(0, (data.points ?? data.puntos ?? 0) - (metrics.virtualExpired || 0)),
+                    points: Math.max(0, (data.points ?? data.puntos ?? 0)),
                     socioNumber: String(data.socioNumber || data.numeroSocio || ''),
-                    expiringPoints: metrics.expiring || data.nextExpirationAmount || 0,
-                    virtualExpired: metrics.virtualExpired || 0,
+                    expiringPoints: data.nextExpirationAmount || 0,
+                    virtualExpired: 0,
                     expirationDetails: sortedExpirations,
-                    totalSpent: metrics.totalspent,
-                    redeemedPoints: metrics.redeemedPoints,
-                    redeemedValue: metrics.redeemedValue,
+                    totalSpent: 0, // Calculado on-demand en historial
+                    redeemedPoints: 0,
+                    redeemedValue: 0,
                     registrationDate: data.createdAt || data.fechaInscripcion || null,
                     provincia, partido, localidad, calle, piso, depto, cp,
                     createdAt: data.createdAt // Preservar para sort
                 } as Client;
             });
-
-            const loadedClients = await Promise.all(loadedClientsPromises);
 
             // Ordenar en memoria por createdAt desc (clientes más nuevos primero)
             const sortedAndFiltered = loadedClients

@@ -16,6 +16,92 @@ function initFirebaseAdmin() {
     return admin;
 }
 
+/**
+ * Construye las listas de alertas para la extensión de Chrome directamente
+ * desde Firestore, SIN modificar nada. Solo lectura.
+ * Se llama tanto en ejecución normal como cuando hay deduplicación activa.
+ */
+async function buildExtensionLists(db, simulatedDate) {
+    const configSnap = await db.collection('config').doc('general').get();
+    const config = configSnap.data() || {};
+
+    const today = new Date();
+    let effectiveDate = today;
+    if (simulatedDate) {
+        effectiveDate = new Date(simulatedDate + 'T12:00:00');
+    } else if (config.enableDateSimulator && config.simulatedOffsetDays) {
+        effectiveDate = new Date(today);
+        effectiveDate.setDate(effectiveDate.getDate() + config.simulatedOffsetDays);
+    }
+
+    const arMD = `${String(effectiveDate.getMonth() + 1).padStart(2, '0')}-${String(effectiveDate.getDate()).padStart(2, '0')}`;
+    const currentYear = effectiveDate.getFullYear().toString();
+    const todayStr = effectiveDate.toISOString().split('T')[0];
+    const winEnd = new Date(effectiveDate);
+    winEnd.setDate(winEnd.getDate() + 30);
+    const winEndStr = winEnd.toISOString().split('T')[0];
+
+    const usersSnap = await db.collection('users').get();
+
+    const birthdayList = [];
+    const expirationList = [];
+    const petAlertList = [];
+
+    usersSnap.forEach(d => {
+        const data = d.data();
+        if (data.role === 'admin') return;
+
+        // Cumpleaños
+        const bd = data.birthDate || data.fechaNacimiento;
+        if (bd && bd.endsWith(arMD)) {
+            birthdayList.push({
+                id: d.id,
+                name: data.name || data.nombre || 'Socio',
+                phone: data.phone || data.telefono || '',
+                dni: data.dni || '',
+                socioNumber: data.socioNumber || data.numeroSocio || '',
+                lastBirthdayPointsYear: data.lastBirthdayPointsYear || '',
+            });
+        }
+
+        // Vencimientos (ventana 30 días)
+        if (data.nextExpirationDate && data.nextExpirationDate > todayStr && data.nextExpirationDate <= winEndStr) {
+            if ((data.points || 0) > 0) {
+                expirationList.push({
+                    id: d.id,
+                    name: data.name || data.nombre || 'Socio',
+                    phone: data.phone || data.telefono || '',
+                    points: data.points || 0,
+                    nextExpirationDate: data.nextExpirationDate,
+                    breakdown: data.pointsBreakdown || [],
+                });
+            }
+        }
+
+        // Alertas pet
+        if (data.pets) {
+            data.pets.forEach(p => {
+                if (p.nextFoodAlertDate === todayStr) {
+                    petAlertList.push({
+                        id: d.id,
+                        name: data.name || data.nombre || 'Socio',
+                        phone: data.phone || data.telefono || '',
+                        petName: p.name,
+                        category: p.category || 'Mascota',
+                    });
+                }
+            });
+        }
+    });
+
+    return {
+        birthdayList,
+        expirationList,
+        petAlertList,
+        config,
+    };
+}
+
 export default async function handler(req, res) {
     if (req.method === 'OPTIONS') return res.status(200).end();
 
@@ -33,16 +119,17 @@ export default async function handler(req, res) {
         const isSilent = req.body?.silent === true || req.query?.silent === 'true';
         const ignoreDeduplication = req.body?.ignoreDeduplication === true;
         const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
-        const target = req.query?.target || 'all'; // 'birthdays', 'expirations', 'pet-alerts', 'all'
-        
+        const target = req.query?.target || 'all';
+
         const app = initFirebaseAdmin();
         const db = app.firestore();
-        
+
         const configSnap = await db.collection('config').doc('general').get();
         const systemEnableDuplicateControl = configSnap.data()?.enableDuplicateControl !== false;
 
         // --- CONTROL DE DUPLICIDAD (Safety Wall) ---
-        // Se respeta la orden por request manual, o el default global si es cron (systemEnableDuplicateControl)
+        // Protege el RE-PROCESAMIENTO automático (puntos, push, email).
+        // NUNCA bloquea la lectura de listas para la extensión de Chrome.
         if (!ignoreDeduplication && systemEnableDuplicateControl) {
             const arFormatter = new Intl.DateTimeFormat('en-CA', {
                 timeZone: 'America/Argentina/Buenos_Aires',
@@ -53,17 +140,24 @@ export default async function handler(req, res) {
             const lastRunDate = checkSnap.exists ? checkSnap.data()?.[`lastRun_${target}`] : null;
 
             if (lastRunDate === todayAR) {
+                // Ya se ejecutó hoy → skip del procesamiento, PERO igual devolver listas para la burbuja
+                const { birthdayList, expirationList, petAlertList, config } = await buildExtensionLists(db, simulatedDate);
                 return res.status(200).json({
                     ok: true,
                     skipped: true,
-                    message: `Proceso '${target}' ya fue ejecutado exitosamente hoy (${todayAR}). Control de duplicidad activo.`
+                    message: `Proceso '${target}' ya ejecutado hoy (${todayAR}). Solo modo lectura.`,
+                    birthdays:   { list: birthdayList },
+                    expirations: { list: expirationList },
+                    petAlerts:   { list: petAlertList },
+                    config,
                 });
             }
         }
 
+        // --- PROCESAMIENTO NORMAL ---
         const results = { birthdays: null, expirations: null, petAlerts: null };
 
-        // 1. Ejecutar Cumpleaños
+        // 1. Cumpleaños
         if (target === 'all' || target === 'birthdays') {
             try {
                 const bRes = await fetch(`${PWA_URL}/api/birthdays`, {
@@ -75,7 +169,7 @@ export default async function handler(req, res) {
             } catch (e) { console.error("Error calling birthdays:", e); }
         }
 
-        // 2. Ejecutar Expiraciones
+        // 2. Expiraciones
         if (target === 'all' || target === 'expirations') {
             try {
                 const expRes = await fetch(`${PWA_URL}/api/expirations`, {
@@ -87,8 +181,8 @@ export default async function handler(req, res) {
             } catch (e) { console.error("Error calling expirations:", e); }
         }
 
-        // 3. Ejecutar Alertas de Alimento (Pet Shop)
-        if (target === 'all' || target === 'pet-alerts' || target === 'expirations') {
+        // 3. Alertas Pet
+        if (target === 'all' || target === 'pet-alerts') {
             try {
                 const petRes = await fetch(`${PWA_URL}/api/pet-alerts`, {
                     method: 'POST',
@@ -99,7 +193,7 @@ export default async function handler(req, res) {
             } catch (e) { console.error("Error calling pet-alerts:", e); }
         }
 
-        // --- GUARDAR ESTADO DE EJECUCIÓN (Si no fue skippeado) ---
+        // --- GUARDAR ESTADO DE EJECUCIÓN ---
         try {
             const arFormatter = new Intl.DateTimeFormat('en-CA', {
                 timeZone: 'America/Argentina/Buenos_Aires',
@@ -111,19 +205,17 @@ export default async function handler(req, res) {
             }, { merge: true });
         } catch (e) { console.error("Could not set daily check lock", e); }
 
-        // Remapear al formato que espera la extensión de Chrome:
-        // data.birthdays.list, data.expirations.list, data.petAlerts.list, data.config
-        const configSnap2 = await db.collection('config').doc('general').get();
-        const extensionConfig = configSnap2.data() || {};
+        // --- RESPUESTA FORMATO EXTENSIÓN ---
+        // La extensión de Chrome espera: data.birthdays.list, data.expirations.list, data.petAlerts.list, data.config
+        const { birthdayList, expirationList, petAlertList, config } = await buildExtensionLists(db, simulatedDate);
 
         return res.status(200).json({
             ok: true,
             results,
-            // Formato legible por la extensión
-            birthdays:  { list: results.birthdays?.summary?.list  || [] },
-            expirations:{ list: results.expirations?.summary?.list || [] },
-            petAlerts:  { list: results.petAlerts?.results?.list  || [] },
-            config: extensionConfig,
+            birthdays:   { list: birthdayList },
+            expirations: { list: expirationList },
+            petAlerts:   { list: petAlertList },
+            config,
         });
 
     } catch (error) {

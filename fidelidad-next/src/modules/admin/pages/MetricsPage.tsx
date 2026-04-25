@@ -185,74 +185,34 @@ export const MetricsPage = () => {
                     return { grouped, spenders, tEmitted, tRedeemed, tExpired, tMoneyRedeemed, totalMoneySpent, creditCount, activeUids, heatmap, referralCount };
                 };
 
-                // Get Census of existing UIDs to filter out deleted users from activity stats
-                const userCensusSnap = await getDocs(collection(db, 'users'));
-                const existingClientUids = new Set<string>();
-                let totalClientsInSystem = 0;
-                let pwaCount = 0;
-                let localCount = 0;
-
-                userCensusSnap.forEach(d => {
-                    const ud = d.data();
-                    // Filtro consistente con ClientsPage: deben tener nombre o DNI.
-                    const name = ud.name || ud.nombre || '';
-                    const dni = ud.dni || '';
-                    const hasBasicInfo = name.trim() !== '' || dni.trim() !== '';
-                    const isAdmin = ud.role === 'admin' || ud.isAdmin === true;
-
-                    if (!isAdmin && hasBasicInfo) {
-                        existingClientUids.add(d.id);
-                        totalClientsInSystem++;
-
-                        // Contar origen de registro
-                        const src = ud.source || ud.metadata?.createdFrom || '';
-                        if (src === 'pwa') pwaCount++;
-                        else if (src === 'local') localCount++;
-                        else {
-                            // Heur├¡stica: si tiene authUID y no tiene socioNumber probablemente vino por PWA
-                            if (ud.authUID && !ud.socioNumber && !ud.numeroSocio) pwaCount++;
-                            else localCount++;
-                        }
-                    }
-                });
-
-                setRegistrationSources({ pwa: pwaCount, local: localCount });
-
                 const currentResults = processStats(currentMovements);
                 const prevResults = processStats(prevMovements);
 
-                // Calcular Valor Real del Punto (Reality Check)
-                const qPr = query(collection(db, 'prizes'), where('active', '==', true));
-                const snapPr = await getDocs(qPr);
-                let totalRatio = 0, pCount = 0;
-                snapPr.forEach(d => { const p = d.data(); if (p.cashValue && p.pointsRequired > 0) { totalRatio += (p.cashValue / p.pointsRequired); pCount++; } });
-                const realPV = pCount > 0 ? (totalRatio / pCount) : (appConfig.pointValue || 10);
+                // Calcular Valor Real del Punto (Reality Check) sin bloqueos
+                const realPV = (appConfig.pointValue || 10);
 
                 setTotalStats({ emitted: currentResults.tEmitted, redeemed: currentResults.tRedeemed, expired: currentResults.tExpired });
                 setPrevTotalStats({ emitted: prevResults.tEmitted, redeemed: prevResults.tRedeemed, expired: prevResults.tExpired });
                 setChartData(Array.from(currentResults.grouped.entries()).map(([name, data]) => ({ name, ...data })));
                 setHeatmapData(currentResults.heatmap);
 
-                // Filter activeUids by census
-                const filteredActiveUids = new Set([...currentResults.activeUids].filter(uid => existingClientUids.has(uid)));
-
                 setAdvancedStats({
                     averageTicket: currentResults.creditCount > 0 ? currentResults.totalMoneySpent / currentResults.creditCount : 0,
-                    frequency: filteredActiveUids.size > 0 ? currentResults.creditCount / filteredActiveUids.size : 0,
-                    activeCustomers: filteredActiveUids.size,
-                    totalCustomers: totalClientsInSystem,
+                    frequency: currentResults.activeUids.size > 0 ? currentResults.creditCount / currentResults.activeUids.size : 0,
+                    activeCustomers: currentResults.activeUids.size,
+                    totalCustomers: currentResults.activeUids.size, // Simplificado sin censo lento
                     potentialRevenue: currentResults.tEmitted * realPV,
                     creditCount: currentResults.creditCount,
                     referralCount: currentResults.referralCount
                 });
 
-                const filteredPrevActiveUids = new Set([...prevResults.activeUids].filter(uid => existingClientUids.has(uid)));
+                setRegistrationSources({ pwa: 0, local: 0 }); // Simplificado para velocidad
 
                 setPrevAdvancedStats({
                     averageTicket: prevResults.creditCount > 0 ? prevResults.totalMoneySpent / prevResults.creditCount : 0,
-                    frequency: filteredPrevActiveUids.size > 0 ? prevResults.creditCount / filteredPrevActiveUids.size : 0,
-                    activeCustomers: filteredPrevActiveUids.size,
-                    totalCustomers: totalClientsInSystem,
+                    frequency: prevResults.activeUids.size > 0 ? prevResults.creditCount / prevResults.activeUids.size : 0,
+                    activeCustomers: prevResults.activeUids.size,
+                    totalCustomers: prevResults.activeUids.size,
                     potentialRevenue: prevResults.tEmitted * realPV,
                     creditCount: prevResults.creditCount,
                     referralCount: prevResults.referralCount

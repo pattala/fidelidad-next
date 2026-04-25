@@ -54,7 +54,7 @@ export const SystemLogsPage = () => {
         const toastId = toast.loading('Ejecutando proceso de cumpleaños...');
         try {
             const token = await auth.currentUser?.getIdToken();
-            const res = await fetch('/api/engine-daily?mode=daily&trigger=dashboard', {
+            const res = await fetch('/api/engine-daily?mode=daily&trigger=dashboard&target=birthdays', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -90,7 +90,7 @@ export const SystemLogsPage = () => {
         const toastId = toast.loading('Ejecutando revisión de vencimientos...');
         try {
             const token = await auth.currentUser?.getIdToken();
-            const res = await fetch('/api/engine-daily?mode=daily&trigger=dashboard', {
+            const res = await fetch('/api/engine-daily?mode=daily&trigger=dashboard&target=expirations', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

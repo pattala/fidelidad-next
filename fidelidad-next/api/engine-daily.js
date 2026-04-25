@@ -33,38 +33,45 @@ export default async function handler(req, res) {
         const isSilent = req.body?.silent === true || req.query?.silent === 'true';
         const ignoreDeduplication = req.body?.ignoreDeduplication === true;
         const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
-
+        const target = req.query?.target || 'all'; // 'birthdays', 'expirations', 'pet-alerts', 'all'
+        
         const results = { birthdays: null, expirations: null, petAlerts: null };
 
         // 1. Ejecutar Cumpleaños
-        try {
-            const bRes = await fetch(`${PWA_URL}/api/birthdays`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET },
-                body: JSON.stringify({ simulatedDate, source: triggerSource, silent: isSilent, ignoreDeduplication })
-            });
-            results.birthdays = await bRes.json();
-        } catch (e) { console.error("Error calling birthdays:", e); }
+        if (target === 'all' || target === 'birthdays') {
+            try {
+                const bRes = await fetch(`${PWA_URL}/api/birthdays`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET },
+                    body: JSON.stringify({ simulatedDate, source: triggerSource, silent: isSilent, ignoreDeduplication })
+                });
+                results.birthdays = await bRes.json();
+            } catch (e) { console.error("Error calling birthdays:", e); }
+        }
 
-        // 2. Llamada simple al motor de expiraciones con el gatillo (source)
-        try {
-            const expRes = await fetch(`${PWA_URL}/api/expirations`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET },
-                body: JSON.stringify({ simulatedDate, source: triggerSource })
-            });
-            results.expirations = await expRes.json();
-        } catch (e) { console.error("Error calling expirations:", e); }
+        // 2. Ejecutar Expiraciones
+        if (target === 'all' || target === 'expirations') {
+            try {
+                const expRes = await fetch(`${PWA_URL}/api/expirations`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET },
+                    body: JSON.stringify({ simulatedDate, source: triggerSource, silent: isSilent, ignoreDeduplication })
+                });
+                results.expirations = await expRes.json();
+            } catch (e) { console.error("Error calling expirations:", e); }
+        }
 
         // 3. Ejecutar Alertas de Alimento (Pet Shop)
-        try {
-            const petRes = await fetch(`${PWA_URL}/api/pet-alerts`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET },
-                body: JSON.stringify({ simulatedDate, source: triggerSource })
-            });
-            results.petAlerts = await petRes.json();
-        } catch (e) { console.error("Error calling pet-alerts:", e); }
+        if (target === 'all' || target === 'pet-alerts' || target === 'expirations') {
+            try {
+                const petRes = await fetch(`${PWA_URL}/api/pet-alerts`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET },
+                    body: JSON.stringify({ simulatedDate, source: triggerSource, silent: isSilent, ignoreDeduplication })
+                });
+                results.petAlerts = await petRes.json();
+            } catch (e) { console.error("Error calling pet-alerts:", e); }
+        }
 
         return res.status(200).json({ ok: true, results });
 

@@ -211,7 +211,7 @@ A continuación, se listan todos los mensajes de estado y qué significan:
 #### 1. Casos con Novedades (Procesamiento Activo)
 | Proceso (Tipo) | Título Principal | Detalle Desplegable |
 | :--- | :--- | :--- |
-| **Vencimientos** | `Revisión finalizada: 2 procesados, 230 pts restados.` | Nombre del socio, cantidad restada y canales notificados (Inbox/Push). |
+| **Vencimientos** | `Revisión finalizada: 2 procesados, 230 pts restados.` | Nombre del socio, cantidad restada y canales notificados (Inbox/Push/Email). |
 | **Cumpleaños** | `Proceso de Cumpleaños: 1 socio detectado hoy.` | Nombre del cumpleañero y adjudicación asignada. |
 | **Alertas PetShop** | `Alertas PetShop: 1 aviso enviado hoy.` | Nombre del socio, mascota y alimento correspondiente. |
 | **Campañas** | `Difusión automática: Promo 2x1` | Cantidad total de socios alertados por Push/Email. |
@@ -254,7 +254,7 @@ Para mantener la PWA rápida y ágil en todos los dispositivos móviles, se reco
     *   **Banners Principales:** < 200KB
 *   **Dimensiones:** No es necesario cargar imágenes de más de 1200px de ancho. Los celulares optimizan mejor archivos pequeños.
 
-### ⏱️ Carga Diferida (Lazy Loading)![alt text](image.png)
+### ⏱️ Carga Diferida (Lazy Loading)
 El sistema ha sido optimizado con **Carga Inteligente**. Esto significa que el código pesado de administración (gráficos, métricas, reportes) no es descargado por los celulares de tus socios. Solo vos, cuando entres como Administrador, descargarás esos componentes adicionales.
 
 ---

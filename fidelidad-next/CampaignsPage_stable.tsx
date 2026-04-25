@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
     Plus, Trash2, Calendar, Target, Award, Save, X, Megaphone, Sparkles,
     ToggleLeft, ToggleRight, Edit, Send, Monitor, Layout, Clock, Image as ImageIcon,
@@ -68,64 +68,6 @@ export const CampaignsPage = () => {
         return () => clearInterval(timer);
     }, []);
 
-    // COMPONENTE AISLADO PARA EL RELOJ (EVITA RE-RENDER GLOBAL)
-    const FlashStatusTag = ({ bonus }: { bonus: BonusRule }) => {
-        const currentDay = now.getDay();
-        const currentTime = now.getHours() * 100 + now.getMinutes();
-        const isDayMatch = bonus.flashDays?.includes(currentDay);
-        const startTimeInt = parseInt((bonus.startTime || '00:00').replace(':', ''));
-        const endTimeInt = parseInt((bonus.endTime || '23:59').replace(':', ''));
-
-        const graceMins = bonus.flashGraceMins || 15;
-        const endDateTime = new Date(`1970-01-01T${bonus.endTime || '23:59'}:00`);
-        endDateTime.setMinutes(endDateTime.getMinutes() + graceMins);
-        const extendedEndTimeInt = endDateTime.getHours() * 100 + endDateTime.getMinutes();
-
-        const isCurrentlyOn = isDayMatch && currentTime >= startTimeInt && currentTime <= endTimeInt && bonus.active;
-        const isGracePeriod = isDayMatch && currentTime > endTimeInt && currentTime <= extendedEndTimeInt && bonus.active;
-        const isFinishedToday = isDayMatch && currentTime > extendedEndTimeInt;
-        const isFutureDay = bonus.active && !isDayMatch;
-        const isFutureTime = bonus.active && isDayMatch && currentTime < startTimeInt;
-
-        if (isCurrentlyOn) {
-            return (
-                <span className="bg-green-500 text-white text-[11px] font-black px-4 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg shadow-green-200 animate-pulse border-2 border-green-400 ring-2 ring-green-500/20">
-                    <Zap size={12} fill="white" className="animate-bounce" /> FLASH ACTIVA
-                    <div className="w-2 h-2 bg-white rounded-full animate-ping" />
-                </span>
-            );
-        } else if (isGracePeriod) {
-            const nowSecs = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-            const endSecs = endDateTime.getHours() * 3600 + endDateTime.getMinutes() * 60;
-            const diff = Math.max(0, endSecs - nowSecs);
-            const mm = Math.floor(diff / 60);
-            const ss = diff % 60;
-            return (
-                <span className="bg-orange-500 text-white text-[11px] font-black px-4 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg shadow-orange-200 border-2 border-orange-400">
-                    <Clock size={12} /> EN TOLERANCIA {mm}:{ss.toString().padStart(2, '0')}
-                    <div className="w-2 h-2 bg-white/50 rounded-full animate-pulse" />
-                </span>
-            );
-        } else if (isFutureDay || isFutureTime) {
-            return (
-                <span className="bg-indigo-500 text-white text-[11px] font-black px-4 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg shadow-indigo-200 border-2 border-indigo-400">
-                    <Calendar size={12} /> PROGRAMADA
-                </span>
-            );
-        } else if (isFinishedToday) {
-            return (
-                <span className="bg-red-600 text-white text-[11px] font-black px-4 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg shadow-red-200 border-2 border-red-400">
-                    <Clock size={12} /> FLASH TERMINADA
-                </span>
-            );
-        }
-        return (
-            <span className="bg-gray-500 text-white text-[11px] font-black px-4 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg shadow-gray-200 border-2 border-gray-400">
-                <Zap size={12} fill="white" /> FLASH PROGRAMADA
-            </span>
-        );
-    };
-
     const fetchBonuses = async () => {
         const data = await CampaignService.getAll();
         setBonuses(data);
@@ -171,9 +113,9 @@ export const CampaignsPage = () => {
         e.preventDefault();
         try {
             if (isFlashMode) {
-                // Validación estricta
+                // Validaci├│n estricta
                 if (!formData.flashDays || formData.flashDays.length === 0) {
-                    toast.error('Debes seleccionar al menos un día para la oferta flash');
+                    toast.error('Debes seleccionar al menos un d├¡a para la oferta flash');
                     return;
                 }
                 if (!formData.startTime || !formData.endTime) {
@@ -182,15 +124,15 @@ export const CampaignsPage = () => {
                 }
 
                 if (editingId) {
-                    // Si estamos editando y activando una campaña en el guardado (no debería pasar por el nuevo flujo, 
+                    // Si estamos editando y activando una campa├▒a en el guardado (no deber├¡a pasar por el nuevo flujo, 
                     // pero mantenemos consistencia), el check de solapamiento ya no bloquea, solo previene si se intenta guardar activa.
-                    // Sin embargo, según el nuevo flujo, Flash SIEMPRE se guarda inactiva.
+                    // Sin embargo, seg├║n el nuevo flujo, Flash SIEMPRE se guarda inactiva.
                     formData.active = false;
                 }
             }
 
             if (!isFlashMode && formData.rewardType === 'INFO' && !formData.imageUrl && !formData.description) {
-                toast.error('Un anuncio debe tener imagen o descripción');
+                toast.error('Un anuncio debe tener imagen o descripci├│n');
                 return;
             }
             // @ts-ignore
@@ -204,7 +146,7 @@ export const CampaignsPage = () => {
                 name: formData.name || 'Sin Nombre',
                 active: !!formData.active,
                 isFlash: isFlashMode,
-                // Mutua exclusión: Limpiar campos según el tipo elegido
+                // Mutua exclusi├│n: Limpiar campos seg├║n el tipo elegido
                 rewardType: isFlashMode ? 'INFO' : formData.rewardType,
                 rewardValue: isFlashMode ? 0 : ((formData.rewardType === 'INFO' || formData.rewardType === 'TEXT') ? 0 : formData.rewardValue),
                 rewardText: isFlashMode ? '' : (formData.rewardText || ''),
@@ -225,14 +167,14 @@ export const CampaignsPage = () => {
             };
             if (editingId) {
                 await CampaignService.update(editingId, payload);
-                toast.success('Campaña actualizada');
-                await AuditService.log('campaign_updated', `Actualización de campaña: ${payload.name}`, [
+                toast.success('Campa├▒a actualizada');
+                await AuditService.log('campaign_updated', `Actualizaci├│n de campa├▒a: ${payload.name}`, [
                     { action: 'campaign_update', campaignId: editingId, name: payload.name }
                 ]);
             } else {
                 const newId = await CampaignService.create(payload);
-                toast.success('Campaña creada');
-                await AuditService.log('campaign_created', `Nueva campaña: ${payload.name}`, [
+                toast.success('Campa├▒a creada');
+                await AuditService.log('campaign_created', `Nueva campa├▒a: ${payload.name}`, [
                     { action: 'campaign_create', name: payload.name }
                 ]);
             }
@@ -258,7 +200,7 @@ export const CampaignsPage = () => {
             const overlapping = bonuses.find(b => {
                 if (b.id === bonus.id || !b.isFlash || !b.active) return false;
 
-                // Días
+                // D├¡as
                 const daysIntersect = bonus.flashDays?.some(d => (b as any).flashDays?.includes(d));
                 if (!daysIntersect) return false;
 
@@ -272,21 +214,21 @@ export const CampaignsPage = () => {
             });
 
             if (overlapping) {
-                if (confirm(`La oferta "${bonus.name}" se solapa con "${overlapping.name}", que ya está activa.\n\n¿Deseas desactivar "${overlapping.name}" y activar esta ahora?`)) {
+                if (confirm(`La oferta "${bonus.name}" se solapa con "${overlapping.name}", que ya est├í activa.\n\n┬┐Deseas desactivar "${overlapping.name}" y activar esta ahora?`)) {
                     try {
                         // 1. Desactivar la previa
                         await CampaignService.update(overlapping.id, { active: false });
-                        await AuditService.log('campaign_mgmt', `Alternancia automática: Desactivación de "${overlapping.name}" por solapamiento con "${bonus.name}"`, [
+                        await AuditService.log('campaign_mgmt', `Alternancia autom├ítica: Desactivaci├│n de "${overlapping.name}" por solapamiento con "${bonus.name}"`, [
                             { action: 'campaign_auto_toggle_off', campaignId: overlapping.id, reason: 'overlap_switching', targetCampaignId: bonus.id }
                         ]);
 
                         // 2. Activar la nueva
                         await CampaignService.update(bonus.id, { active: true });
-                        await AuditService.log('campaign_mgmt', `Alternancia automática: Activación de "${bonus.name}" (reemplaza a "${overlapping.name}")`, [
+                        await AuditService.log('campaign_mgmt', `Alternancia autom├ítica: Activaci├│n de "${bonus.name}" (reemplaza a "${overlapping.name}")`, [
                             { action: 'campaign_auto_toggle_on', campaignId: bonus.id, replacedId: overlapping.id }
                         ]);
 
-                        toast.success(`Campaña "${bonus.name}" activada correctamente.`);
+                        toast.success(`Campa├▒a "${bonus.name}" activada correctamente.`);
                         fetchBonuses();
                         return;
                     } catch (e) {
@@ -301,8 +243,8 @@ export const CampaignsPage = () => {
         try {
             const newStatus = !bonus.active;
             await CampaignService.update(bonus.id, { active: newStatus });
-            toast.success(newStatus ? 'Campaña activada' : 'Campaña desactivada');
-            await AuditService.log('campaign_mgmt', `${newStatus ? 'Activación' : 'Desactivación'} de campaña: ${bonus.name}`, [
+            toast.success(newStatus ? 'Campa├▒a activada' : 'Campa├▒a desactivada');
+            await AuditService.log('campaign_mgmt', `${newStatus ? 'Activaci├│n' : 'Desactivaci├│n'} de campa├▒a: ${bonus.name}`, [
                 { action: 'campaign_toggle', campaignId: bonus.id, active: newStatus }
             ]);
             fetchBonuses();
@@ -310,11 +252,11 @@ export const CampaignsPage = () => {
     };
 
     const handleDelete = async (id: string, name?: string) => {
-        if (!confirm('¿Eliminar esta campaña?')) return;
+        if (!confirm('┬┐Eliminar esta campa├▒a?')) return;
         try {
             await CampaignService.delete(id);
             toast.success('Eliminada');
-            await AuditService.log('campaign_deleted', `Campaña eliminada: ${name || id}`, [
+            await AuditService.log('campaign_deleted', `Campa├▒a eliminada: ${name || id}`, [
                 { action: 'campaign_delete', campaignId: id, name }
             ]);
             fetchBonuses();
@@ -323,7 +265,7 @@ export const CampaignsPage = () => {
 
     const handleDuplicate = async (bonus: BonusRule) => {
         if (isReadOnly) return;
-        const load = toast.loading('Duplicando campaña...');
+        const load = toast.loading('Duplicando campa├▒a...');
         try {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { id, ...rest } = bonus;
@@ -333,10 +275,10 @@ export const CampaignsPage = () => {
                 active: false // Requested by user
             };
             await CampaignService.create(newBonus as Omit<BonusRule, 'id'>);
-            toast.success('Campaña duplicada correctamente', { id: load });
+            toast.success('Campa├▒a duplicada correctamente', { id: load });
             fetchBonuses();
         } catch (error) {
-            toast.error('Error al duplicar la campaña', { id: load });
+            toast.error('Error al duplicar la campa├▒a', { id: load });
             console.error(error);
         }
     };
@@ -355,7 +297,7 @@ export const CampaignsPage = () => {
                 const horario = bonus.endTime || '23:59';
                 msg = template
                     .replace(/{titulo}/g, bonus.flashTitle || bonus.title || bonus.name)
-                    .replace(/{detalle}/g, bonus.flashDescription || bonus.description || (bonus.rewardText ? `¡${bonus.rewardText}!` : 'Consultanos.'))
+                    .replace(/{detalle}/g, bonus.flashDescription || bonus.description || (bonus.rewardText ? `┬í${bonus.rewardText}!` : 'Consultanos.'))
                     .replace(/{horario}/g, horario);
             } else if (bonus.rewardType === 'INFO' || (bonus.rewardType as any) === 'TEXT') {
                 template = config?.messaging?.templates?.offer || DEFAULT_TEMPLATES.offer;
@@ -364,13 +306,13 @@ export const CampaignsPage = () => {
                     : 'agotar stock';
                 msg = template
                     .replace(/{titulo}/g, bonus.title || bonus.name)
-                    .replace(/{detalle}/g, bonus.description || (bonus.rewardText ? `¡${bonus.rewardText}!` : 'Consultanos.'))
+                    .replace(/{detalle}/g, bonus.description || (bonus.rewardText ? `┬í${bonus.rewardText}!` : 'Consultanos.'))
                     .replace(/{vencimiento}/g, vencimiento);
             } else {
                 template = config?.messaging?.templates?.campaign || DEFAULT_TEMPLATES.campaign;
                 msg = template
                     .replace(/{titulo}/g, bonus.title || bonus.name)
-                    .replace(/{descripcion}/g, bonus.description || '¡Sumá más puntos!');
+                    .replace(/{descripcion}/g, bonus.description || '┬íSum├í m├ís puntos!');
             }
 
             setBroadcastData({ bonus, msg, eventType, config });
@@ -381,7 +323,7 @@ export const CampaignsPage = () => {
             });
             setIsBroadcastModalOpen(true);
         } catch (error) {
-            toast.error('Error al preparar difusión');
+            toast.error('Error al preparar difusi├│n');
         }
     };
 
@@ -400,7 +342,7 @@ export const CampaignsPage = () => {
                     const userName = data.name || '';
                     const personalizedMsg = msg.replace(/{nombre}/g, userName.split(' ')[0]).replace(/{nombre_completo}/g, userName);
                     return NotificationService.sendToClient(doc.id, {
-                        title: bonus.rewardType === 'INFO' ? '¡Nueva Oferta!' : '¡Nueva Campaña!',
+                        title: bonus.rewardType === 'INFO' ? '┬íNueva Oferta!' : '┬íNueva Campa├▒a!',
                         body: personalizedMsg,
                         type: eventType,
                         icon: config?.logoUrl
@@ -419,8 +361,8 @@ export const CampaignsPage = () => {
                     if (data.email) {
                         const userName = data.name || '';
                         const personalizedMsg = msg.replace(/{nombre}/g, userName.split(' ')[0]).replace(/{nombre_completo}/g, userName);
-                        const htmlContent = EmailService.generateBrandedTemplate(config, bonus.rewardType === 'INFO' ? '¡Oferta Especial!' : '¡Nueva Campaña!', personalizedMsg);
-                        return EmailService.sendEmail(data.email, bonus.rewardType === 'INFO' ? '¡Oferta Especial!' : '¡Nueva Campaña!', htmlContent);
+                        const htmlContent = EmailService.generateBrandedTemplate(config, bonus.rewardType === 'INFO' ? '┬íOferta Especial!' : '┬íNueva Campa├▒a!', personalizedMsg);
+                        return EmailService.sendEmail(data.email, bonus.rewardType === 'INFO' ? '┬íOferta Especial!' : '┬íNueva Campa├▒a!', htmlContent);
                     }
                     return null;
                 }).filter(Boolean);
@@ -433,15 +375,15 @@ export const CampaignsPage = () => {
             }
 
             // --- AUDITORIA ---
-            await AuditService.log('campaign_diffusion', `Difusión masiva de campaña: ${bonus.name}`, [
+            await AuditService.log('campaign_diffusion', `Difusi├│n masiva de campa├▒a: ${bonus.name}`, [
                 {
                     action: 'broadcast_executed',
                     status: 'success',
-                    info: `Canales: ${Object.entries(selectedChannels).filter(([_, v]) => v).map(([k]) => k).join(', ')} | Tipo: ${bonus.isFlash ? 'Flash' : 'Estándar'}`
+                    info: `Canales: ${Object.entries(selectedChannels).filter(([_, v]) => v).map(([k]) => k).join(', ')} | Tipo: ${bonus.isFlash ? 'Flash' : 'Est├índar'}`
                 }
             ]);
         } catch (error) {
-            toast.error('Error durante la difusión');
+            toast.error('Error durante la difusi├│n');
             console.error(error);
         }
     };
@@ -512,12 +454,12 @@ export const CampaignsPage = () => {
             <div className={`relative z-10 w-full h-full p-6 flex flex-col pointer-events-none ${getPositionClasses(formData.textPosition)}`}>
                 {formData.showTitle && (
                     <h4 className={`leading-[1.1] mb-1 uppercase tracking-tight drop-shadow-md ${getFontFamily(formData.titleFont)} ${getFontWeight(formData.titleWeight)} text-${formData.titleSize || '2xl'}`} style={{ color: formData.titleColor || formData.textColor }}>
-                        {formData.title || 'Título de la Campaña'}
+                        {formData.title || 'T├¡tulo de la Campa├▒a'}
                     </h4>
                 )}
                 {formData.showDescription && (
                     <p className={`opacity-90 leading-snug whitespace-pre-wrap drop-shadow-sm line-clamp-3 ${getFontFamily(formData.descFont)} ${getFontWeight(formData.descWeight)} text-${formData.descriptionSize || 'sm'}`} style={{ color: formData.descriptionColor || formData.textColor }}>
-                        {formData.description || 'Descripción breve de la promoción...'}
+                        {formData.description || 'Descripci├│n breve de la promoci├│n...'}
                     </p>
                 )}
             </div>
@@ -554,7 +496,7 @@ export const CampaignsPage = () => {
                                 <span className="text-[7px] font-black uppercase tracking-widest">Oferta Flash Activa</span>
                             </div>
                             <h3 className="text-xs font-black truncate leading-tight mb-2 italic">
-                                {formData.flashTitle || 'Título Flash'}
+                                {formData.flashTitle || 'T├¡tulo Flash'}
                             </h3>
                             <div className="flex items-center gap-2">
                                 <div className="bg-white/20 backdrop-blur-md px-2 py-1 rounded-lg border border-white/10 shrink-0">
@@ -567,7 +509,7 @@ export const CampaignsPage = () => {
                                             formData.flashRewardType === 'MULTIPLIER' ? `x${formData.flashRewardValue} Puntos` :
                                                 `+${formData.flashRewardValue} Puntos`}
                                     </span>
-                                    <span className="text-[6px] font-bold opacity-80 uppercase leading-none mt-0.5 truncate tracking-tighter">¡Aprovechala ahora!</span>
+                                    <span className="text-[6px] font-bold opacity-80 uppercase leading-none mt-0.5 truncate tracking-tighter">┬íAprovechala ahora!</span>
                                 </div>
                             </div>
                         </div>
@@ -581,7 +523,7 @@ export const CampaignsPage = () => {
                         <PreviewCard className="animate-fade-in" />
                     ) : (
                         <div className="h-32 bg-gray-200 rounded-[1.5rem] flex items-center justify-center border-2 border-dashed border-gray-300">
-                            <p className="text-[9px] text-gray-400 font-bold uppercase text-center px-4">Esta campaña NO aparecerá aquí</p>
+                            <p className="text-[9px] text-gray-400 font-bold uppercase text-center px-4">Esta campa├▒a NO aparecer├í aqu├¡</p>
                         </div>
                     )}
                 </div>
@@ -613,17 +555,17 @@ export const CampaignsPage = () => {
                             </div>
                             <div className="flex-1 min-w-0">
                                 <h4 className="font-bold text-gray-800 text-xs truncate leading-tight mb-1">
-                                    {formData.title || 'Título'}
+                                    {formData.title || 'T├¡tulo'}
                                 </h4>
                                 <p className="text-[10px] text-gray-400 font-medium line-clamp-2 leading-relaxed">
-                                    {formData.description || 'Descripción...'}
+                                    {formData.description || 'Descripci├│n...'}
                                 </p>
                                 <button className="mt-2 text-[9px] font-black text-purple-600 bg-purple-50 px-2 py-1 rounded inline-block">VER DETALLES</button>
                             </div>
                         </div>
                     ) : (
                         <div className="h-20 bg-gray-200 rounded-[1.5rem] flex items-center justify-center border-2 border-dashed border-gray-300">
-                            <p className="text-[8px] text-gray-400 font-bold uppercase text-center px-4">No aparecerá en lista</p>
+                            <p className="text-[8px] text-gray-400 font-bold uppercase text-center px-4">No aparecer├í en lista</p>
                         </div>
                     )}
 
@@ -659,8 +601,8 @@ export const CampaignsPage = () => {
                         <Target size={28} />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-black text-gray-800 tracking-tight">Gestión de Campañas</h1>
-                        <p className="text-sm text-gray-500 font-medium italic">Gestión avanzada de beneficios y anuncios</p>
+                        <h1 className="text-2xl font-black text-gray-800 tracking-tight">Gesti├│n de Campa├▒as</h1>
+                        <p className="text-sm text-gray-500 font-medium italic">Gesti├│n avanzada de beneficios y anuncios</p>
                     </div>
                 </div>
                 {!isReadOnly && (
@@ -668,7 +610,7 @@ export const CampaignsPage = () => {
                         <button
                             onClick={async () => {
                                 if (isRunningEngine) return;
-                                const confirmRun = confirm("¿Deseas ejecutar el motor de campañas manualmente ahora?\n\nEsto desactivará las expiradas e intentará enviar difusiones programadas (ignorando el control de duplicidad de hoy).");
+                                const confirmRun = confirm("┬┐Deseas ejecutar el motor de campa├▒as manualmente ahora?\n\nEsto desactivar├í las expiradas e intentar├í enviar difusiones programadas (ignorando el control de duplicidad de hoy).");
                                 if (!confirmRun) return;
 
                                 setIsRunningEngine(true);
@@ -685,7 +627,7 @@ export const CampaignsPage = () => {
                             }}
                             disabled={isRunningEngine}
                             className={`px-4 py-3 rounded-2xl font-bold flex items-center gap-2 transition-all active:scale-95 ${isRunningEngine ? 'bg-gray-100 text-gray-400' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
-                            title="Mantenimiento y Difusión Manual"
+                            title="Mantenimiento y Difusi├│n Manual"
                         >
                             <Play size={18} className={isRunningEngine ? 'animate-pulse' : ''} />
                             <span className="hidden md:inline">Ejecutar Motor</span>
@@ -695,7 +637,7 @@ export const CampaignsPage = () => {
                             onClick={() => { resetForm(); setIsModalOpen(true); }}
                             className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-purple-200 transition-all active:scale-95 flex items-center gap-2"
                         >
-                            <Plus size={20} /> Nueva Campaña
+                            <Plus size={20} /> Nueva Campa├▒a
                         </button>
                     </div>
                 )}
@@ -743,13 +685,103 @@ export const CampaignsPage = () => {
 
                             {bonus.isInternal && (
                                 <div className="absolute top-4 left-4 bg-blue-600 text-white text-[9px] font-black px-2 py-0.5 rounded shadow-lg z-20 flex items-center gap-1 uppercase">
-                                    <Shield size={10} /> Sólo Testers
+                                    <Shield size={10} /> S├│lo Testers
                                 </div>
                             )}
 
+                            {(() => {
+                                if (!bonus.isFlash) return null;
+
+                                // Calcular estado din├ímico
+                                const currentDay = now.getDay();
+                                const currentTime = now.getHours() * 100 + now.getMinutes();
+
+                                const isDayMatch = bonus.flashDays?.includes(currentDay);
+                                const startTimeInt = parseInt((bonus.startTime || '00:00').replace(':', ''));
+                                const endTimeInt = parseInt((bonus.endTime || '23:59').replace(':', ''));
+
+                                const isTimeMatch = currentTime >= startTimeInt && currentTime <= endTimeInt;
+                                const isCurrentlyOn = isDayMatch && isTimeMatch && bonus.active;
+                                const isFinishedToday = isDayMatch && currentTime > endTimeInt;
+
+                                if (isCurrentlyOn) {
+                                    return (
+                                        <div className="absolute inset-0 bg-gradient-to-t from-green-500/20 to-transparent pointer-events-none" />
+                                    );
+                                }
+                                if (isFinishedToday) {
+                                    return (
+                                        <div className="absolute inset-0 bg-gradient-to-t from-red-900/40 to-transparent pointer-events-none" />
+                                    );
+                                }
+                                return null;
+                            })()}
+
                             {/* Tags de Tipo */}
                             <div className="absolute bottom-4 left-4 flex flex-wrap gap-2">
-                                <FlashStatusTag bonus={bonus} />
+                                {(() => {
+                                    if (!bonus.isFlash) return null;
+
+                                    const currentDay = now.getDay();
+                                    const currentTime = now.getHours() * 100 + now.getMinutes();
+                                    const isDayMatch = bonus.flashDays?.includes(currentDay);
+                                    const startTimeInt = parseInt((bonus.startTime || '00:00').replace(':', ''));
+                                    const endTimeInt = parseInt((bonus.endTime || '23:59').replace(':', ''));
+
+                                    // Tolerancia extendida
+                                    const graceMins = bonus.flashGraceMins || 0;
+                                    const endDateTime = new Date(`1970-01-01T${bonus.endTime || '23:59'}:00`);
+                                    endDateTime.setMinutes(endDateTime.getMinutes() + graceMins);
+                                    const extendedEndTimeInt = endDateTime.getHours() * 100 + endDateTime.getMinutes();
+
+                                    const isCurrentlyOn = isDayMatch && currentTime >= startTimeInt && currentTime <= endTimeInt && bonus.active;
+                                    const isGracePeriod = isDayMatch && currentTime > endTimeInt && currentTime <= extendedEndTimeInt && bonus.active;
+                                    const isFinishedToday = isDayMatch && currentTime > extendedEndTimeInt;
+                                    const isFutureDay = bonus.active && !isDayMatch;
+                                    const isFutureTime = bonus.active && isDayMatch && currentTime < startTimeInt;
+
+                                    if (isCurrentlyOn) {
+                                        return (
+                                            <span className="bg-green-500 text-white text-[11px] font-black px-4 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg shadow-green-200 animate-pulse border-2 border-green-400 ring-2 ring-green-500/20">
+                                                <Zap size={12} fill="white" className="animate-bounce" /> FLASH ACTIVA
+                                                <div className="w-2 h-2 bg-white rounded-full animate-ping" />
+                                            </span>
+                                        );
+                                    } else if (isGracePeriod) {
+                                        // Cuenta regresiva live
+                                        const nowSecs = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+                                        const endSecs = endDateTime.getHours() * 3600 + endDateTime.getMinutes() * 60;
+                                        const diff = Math.max(0, endSecs - nowSecs);
+                                        const mm = Math.floor(diff / 60);
+                                        const ss = diff % 60;
+                                        const countdown = `${mm}:${ss.toString().padStart(2, '0')}`;
+
+                                        return (
+                                            <span className="bg-orange-500 text-white text-[11px] font-black px-4 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg shadow-orange-200 border-2 border-orange-400">
+                                                <Clock size={12} /> EN TOLERANCIA {countdown}
+                                                <div className="w-2 h-2 bg-white/50 rounded-full animate-pulse" />
+                                            </span>
+                                        );
+                                    } else if (isFutureDay || isFutureTime) {
+                                        return (
+                                            <span className="bg-indigo-500 text-white text-[11px] font-black px-4 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg shadow-indigo-200 border-2 border-indigo-400">
+                                                <Calendar size={12} /> PROGRAMADA
+                                            </span>
+                                        );
+                                    } else if (isFinishedToday) {
+                                        return (
+                                            <span className="bg-red-600 text-white text-[11px] font-black px-4 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg shadow-red-200 border-2 border-red-400 grayscale-0">
+                                                <Clock size={12} /> FLASH TERMINADA
+                                            </span>
+                                        );
+                                    } else {
+                                        return (
+                                            <span className="bg-gray-500 text-white text-[11px] font-black px-4 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg shadow-gray-200 border-2 border-gray-400">
+                                                <Zap size={12} fill="white" /> FLASH PROGRAMADA
+                                            </span>
+                                        );
+                                    }
+                                })()}
                                 {bonus.isFlash && (bonus.flashRewardType === 'TEXT' ? (
                                     <span className="bg-orange-500 text-white text-[10px] font-black px-3 py-1 rounded-full flex items-center gap-1 shadow-lg shadow-orange-200">
                                         <Type size={10} fill="white" /> {bonus.flashRewardText || 'PROMO'}
@@ -796,7 +828,7 @@ export const CampaignsPage = () => {
                                 {bonus.isFlash ? (bonus.flashTitle || bonus.title || bonus.name) : bonus.name}
                             </h3>
                             <p className={`text-[11px] line-clamp-2 h-8 leading-relaxed mb-4 font-medium flex-1 ${bonus.active ? 'text-gray-500' : 'text-gray-400'}`}>
-                                {bonus.isFlash ? (bonus.flashDescription || bonus.description || 'Sin descripción flash.') : (bonus.description || 'Sin descripción pública configurada.')}
+                                {bonus.isFlash ? (bonus.flashDescription || bonus.description || 'Sin descripci├│n flash.') : (bonus.description || 'Sin descripci├│n p├║blica configurada.')}
                             </p>
 
                             <div className="flex items-center justify-between pt-3 border-t border-gray-50">
@@ -861,7 +893,7 @@ export const CampaignsPage = () => {
                 ))}
             </div>
 
-            {/* MODAL REDISEÑADO */}
+            {/* MODAL REDISE├æADO */}
             {
                 isModalOpen && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8">
@@ -875,8 +907,8 @@ export const CampaignsPage = () => {
                                         <div className="w-20 h-20 bg-purple-100 text-purple-600 rounded-3xl mx-auto flex items-center justify-center mb-4">
                                             <Plus size={40} />
                                         </div>
-                                        <h2 className="text-3xl font-black text-gray-800 tracking-tighter uppercase">Nueva Campaña</h2>
-                                        <p className="text-gray-500 font-medium">¿Qué tipo de campaña deseas crear hoy?</p>
+                                        <h2 className="text-3xl font-black text-gray-800 tracking-tighter uppercase">Nueva Campa├▒a</h2>
+                                        <p className="text-gray-500 font-medium">┬┐Qu├® tipo de campa├▒a deseas crear hoy?</p>
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
@@ -889,7 +921,7 @@ export const CampaignsPage = () => {
                                             </div>
                                             <div>
                                                 <h3 className="text-xl font-black text-gray-800 uppercase tracking-tighter">Tradicional</h3>
-                                                <p className="text-sm text-gray-500 font-medium leading-relaxed">Campaños de puntos fijos, multiplicadores semanales y anuncios de larga duración.</p>
+                                                <p className="text-sm text-gray-500 font-medium leading-relaxed">Campa├▒os de puntos fijos, multiplicadores semanales y anuncios de larga duraci├│n.</p>
                                             </div>
                                         </button>
 
@@ -902,7 +934,7 @@ export const CampaignsPage = () => {
                                             </div>
                                             <div>
                                                 <h3 className="text-xl font-black text-gray-800 uppercase tracking-tighter">Oferta Flash</h3>
-                                                <p className="text-sm text-gray-500 font-medium leading-relaxed">Promociones urgentes con horario específico, cronómetro y notificaciones de alta prioridad.</p>
+                                                <p className="text-sm text-gray-500 font-medium leading-relaxed">Promociones urgentes con horario espec├¡fico, cron├│metro y notificaciones de alta prioridad.</p>
                                             </div>
                                         </button>
                                     </div>
@@ -924,7 +956,7 @@ export const CampaignsPage = () => {
                                                 <ChevronRight size={14} className="rotate-180" />
                                             </button>
                                             <h2 className="text-lg font-black text-gray-800 uppercase tracking-tighter leading-tight">
-                                                {editingId ? 'Editar' : 'Crear'} {isFlashMode ? 'Flash' : 'Campaña'}
+                                                {editingId ? 'Editar' : 'Crear'} {isFlashMode ? 'Flash' : 'Campa├▒a'}
                                             </h2>
                                             <div className={`text-[10px] font-black uppercase py-0.5 px-2 w-fit rounded mt-1 shadow-sm ${isFlashMode ? 'bg-red-500 text-white' : 'bg-purple-600 text-white'}`}>
                                                 {isFlashMode ? 'OFERTA FLASH' : 'TRADICIONAL'}
@@ -933,11 +965,11 @@ export const CampaignsPage = () => {
 
                                         <nav className="space-y-2 flex-1">
                                             {[
-                                                { id: 'BASIC', label: 'Básico', icon: <Target size={18} />, desc: 'Identificación' },
+                                                { id: 'BASIC', label: 'B├ísico', icon: <Target size={18} />, desc: 'Identificaci├│n' },
                                                 { id: 'CONTENT', label: 'Mensajes', icon: <Type size={18} />, desc: 'Textos y Canales' },
-                                                { id: 'SCHEDULE', label: 'Programación', icon: <Calendar size={18} />, desc: isFlashMode ? 'Horarios Flash' : 'Fechas' },
+                                                { id: 'SCHEDULE', label: 'Programaci├│n', icon: <Calendar size={18} />, desc: isFlashMode ? 'Horarios Flash' : 'Fechas' },
                                                 { id: 'RULES', label: 'Beneficio', icon: <Sparkles size={18} />, desc: 'Premio de Puntos' },
-                                                { id: 'VISUAL', label: 'Diseño', icon: <ImageIcon size={18} />, desc: 'Imagen y Estilo' },
+                                                { id: 'VISUAL', label: 'Dise├▒o', icon: <ImageIcon size={18} />, desc: 'Imagen y Estilo' },
                                             ].filter(tab => !isFlashMode || tab.id !== 'VISUAL').map(tab => (
                                                 <button
                                                     key={tab.id}
@@ -970,7 +1002,7 @@ export const CampaignsPage = () => {
                                                         <section>
                                                             <div className="flex items-center gap-2 mb-2">
                                                                 <Target size={14} className="text-purple-600" />
-                                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Identificación Interna</label>
+                                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Identificaci├│n Interna</label>
                                                             </div>
                                                             <input
                                                                 type="text" required placeholder="Nombre Interno (Ej: Promo Lunes Locos)"
@@ -983,8 +1015,8 @@ export const CampaignsPage = () => {
                                                         {!isFlashMode && (
                                                             <section className="pt-4 border-t border-gray-100 flex items-center justify-between">
                                                                 <div>
-                                                                    <label className="text-xs font-black text-gray-500 uppercase block">Estado de Publicación</label>
-                                                                    <p className="text-[9px] text-gray-400 font-bold uppercase mt-0.5 italic">Determina si la campaña está al aire</p>
+                                                                    <label className="text-xs font-black text-gray-500 uppercase block">Estado de Publicaci├│n</label>
+                                                                    <p className="text-[9px] text-gray-400 font-bold uppercase mt-0.5 italic">Determina si la campa├▒a est├í al aire</p>
                                                                 </div>
                                                                 <label className="flex items-center gap-3 cursor-pointer group">
                                                                     <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${formData.active ? 'text-green-600' : 'text-gray-400'}`}>
@@ -1002,8 +1034,8 @@ export const CampaignsPage = () => {
 
                                                         <section className="pt-4 border-t border-gray-100">
                                                             <div className="mb-4">
-                                                                <label className="text-xs font-black text-gray-500 uppercase block">Canales de Notificación Sugeridos</label>
-                                                                <p className="text-[9px] text-gray-400 font-bold uppercase mt-0.5 italic">Se proponen automáticamente al difundir</p>
+                                                                <label className="text-xs font-black text-gray-500 uppercase block">Canales de Notificaci├│n Sugeridos</label>
+                                                                <p className="text-[9px] text-gray-400 font-bold uppercase mt-0.5 italic">Se proponen autom├íticamente al difundir</p>
                                                             </div>
                                                             <div className="flex gap-3">
                                                                 {['push', 'email', 'whatsapp'].map(channel => (
@@ -1038,8 +1070,8 @@ export const CampaignsPage = () => {
                                                                     <Shield size={24} />
                                                                 </div>
                                                                 <div>
-                                                                    <label className="text-xs font-black text-blue-900 uppercase block">Campaña Interna (Modo Test)</label>
-                                                                    <p className="text-[9px] text-blue-600 font-bold uppercase mt-0.5 italic">Sólo visible para "Usuarios de Prueba"</p>
+                                                                    <label className="text-xs font-black text-blue-900 uppercase block">Campa├▒a Interna (Modo Test)</label>
+                                                                    <p className="text-[9px] text-blue-600 font-bold uppercase mt-0.5 italic">S├│lo visible para "Usuarios de Prueba"</p>
                                                                 </div>
                                                             </div>
                                                             <label className="relative inline-flex items-center cursor-pointer">
@@ -1063,16 +1095,16 @@ export const CampaignsPage = () => {
                                                                     <div className="flex justify-between items-center mb-2">
                                                                         <div className="flex items-center gap-2">
                                                                             <Zap size={14} className="text-red-600" />
-                                                                            <label className="text-xs font-black text-red-900 uppercase">Título Flash Especial</label>
+                                                                            <label className="text-xs font-black text-red-900 uppercase">T├¡tulo Flash Especial</label>
                                                                         </div>
                                                                     </div>
                                                                     <textarea
-                                                                        rows={2} placeholder="Ej: ¡SOLO POR HOY: DOBLE PUNTOS EN TODO EL LOCAL!"
+                                                                        rows={2} placeholder="Ej: ┬íSOLO POR HOY: DOBLE PUNTOS EN TODO EL LOCAL!"
                                                                         className="w-full p-4 rounded-xl bg-white shadow-sm border border-red-100 focus:ring-2 focus:ring-red-200 outline-none transition-all text-sm font-black text-red-700 placeholder:text-red-200 uppercase resize-none"
                                                                         value={formData.flashTitle}
                                                                         onChange={e => setFormData({ ...formData, flashTitle: e.target.value })}
                                                                     />
-                                                                    <p className="text-[10px] text-red-400 font-bold uppercase tracking-tight">Este título aparecerá con el cronómetro y efectos visuales de urgencia.</p>
+                                                                    <p className="text-[10px] text-red-400 font-bold uppercase tracking-tight">Este t├¡tulo aparecer├í con el cron├│metro y efectos visuales de urgencia.</p>
                                                                 </section>
                                                             </div>
                                                         ) : (
@@ -1081,7 +1113,7 @@ export const CampaignsPage = () => {
                                                                     <div className="flex justify-between items-center mb-2">
                                                                         <div className="flex items-center gap-2">
                                                                             <Type size={14} className="text-purple-600" />
-                                                                            <label className="text-xs font-black text-gray-800 uppercase">Título Público Tradicional</label>
+                                                                            <label className="text-xs font-black text-gray-800 uppercase">T├¡tulo P├║blico Tradicional</label>
                                                                         </div>
                                                                         <label className="flex items-center gap-1 cursor-pointer">
                                                                             <input type="checkbox" className="w-3 h-3 text-purple-600" checked={formData.showTitle} onChange={e => setFormData({ ...formData, showTitle: e.target.checked })} />
@@ -1089,7 +1121,7 @@ export const CampaignsPage = () => {
                                                                         </label>
                                                                     </div>
                                                                     <input
-                                                                        type="text" placeholder="Ej: ¡Acumulá 500 puntos y canjeá!"
+                                                                        type="text" placeholder="Ej: ┬íAcumul├í 500 puntos y canje├í!"
                                                                         className="w-full p-4 rounded-xl bg-gray-50 border border-gray-100 focus:bg-white focus:ring-2 focus:ring-purple-100 outline-none transition-all text-sm font-bold"
                                                                         value={formData.title}
                                                                         onChange={e => setFormData({ ...formData, title: e.target.value })}
@@ -1100,7 +1132,7 @@ export const CampaignsPage = () => {
                                                                     <div className="flex justify-between items-center mb-2">
                                                                         <div className="flex items-center gap-2">
                                                                             <AlignLeft size={14} className="text-purple-600" />
-                                                                            <label className="text-xs font-black text-gray-800 uppercase">Descripción Pública</label>
+                                                                            <label className="text-xs font-black text-gray-800 uppercase">Descripci├│n P├║blica</label>
                                                                         </div>
                                                                         <label className="flex items-center gap-1 cursor-pointer">
                                                                             <input type="checkbox" className="w-3 h-3 text-purple-600" checked={formData.showDescription} onChange={e => setFormData({ ...formData, showDescription: e.target.checked })} />
@@ -1118,7 +1150,7 @@ export const CampaignsPage = () => {
                                                                 <section className="bg-blue-50 p-6 rounded-[2rem] border border-blue-100">
                                                                     <div className="flex justify-between items-center mb-4">
                                                                         <div>
-                                                                            <label className="text-xs font-black text-blue-900 uppercase">Enlace de Acción</label>
+                                                                            <label className="text-xs font-black text-blue-900 uppercase">Enlace de Acci├│n</label>
                                                                             <p className="text-[9px] text-blue-400 font-bold uppercase mt-0.5">Exclusivo para el Banner (Promos Vigentes)</p>
                                                                         </div>
                                                                         <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-bold italic">Opcional</span>
@@ -1147,12 +1179,12 @@ export const CampaignsPage = () => {
                                                             <div className="flex items-center gap-2 mb-2">
                                                                 <ImageIcon size={14} className="text-purple-600" />
                                                                 <label className="text-xs font-black text-gray-600 uppercase tracking-widest">
-                                                                    {isFlashMode ? 'Identidad Visual (Tarjeta Flash)' : 'Configuración de Imagen (Carrusel / Banner)'}
+                                                                    {isFlashMode ? 'Identidad Visual (Tarjeta Flash)' : 'Configuraci├│n de Imagen (Carrusel / Banner)'}
                                                                 </label>
                                                             </div>
                                                             <div className="flex gap-4">
                                                                 <input
-                                                                    type="url" placeholder="Pega el enlace de la imagen aquí..."
+                                                                    type="url" placeholder="Pega el enlace de la imagen aqu├¡..."
                                                                     className={`flex-1 p-4 rounded-2xl bg-gray-50 border outline-none transition-all text-sm font-medium ${isFlashMode ? 'border-red-100 focus:ring-2 focus:ring-red-100' : 'border-gray-100 focus:bg-white focus:ring-2 focus:ring-purple-100'}`}
                                                                     value={formData.imageUrl} onChange={e => setFormData({ ...formData, imageUrl: e.target.value })}
                                                                 />
@@ -1207,7 +1239,7 @@ export const CampaignsPage = () => {
                                                             <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-3">
                                                                 <div className="flex items-center gap-2 border-b border-gray-50 pb-2">
                                                                     <Type size={14} className="text-purple-600" />
-                                                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tipografía Título</span>
+                                                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tipograf├¡a T├¡tulo</span>
                                                                 </div>
                                                                 <div className="grid grid-cols-3 gap-3">
                                                                     <div className="space-y-1">
@@ -1218,7 +1250,7 @@ export const CampaignsPage = () => {
                                                                         >
                                                                             <option value="sans">Moderna</option>
                                                                             <option value="serif">Elegante</option>
-                                                                            <option value="mono">Técnica</option>
+                                                                            <option value="mono">T├®cnica</option>
                                                                         </select>
                                                                     </div>
                                                                     <div className="space-y-1">
@@ -1234,12 +1266,12 @@ export const CampaignsPage = () => {
                                                                         </select>
                                                                     </div>
                                                                     <div className="space-y-1">
-                                                                        <label className="text-[9px] font-black text-gray-400 uppercase">Tamaño</label>
+                                                                        <label className="text-[9px] font-black text-gray-400 uppercase">Tama├▒o</label>
                                                                         <select
                                                                             className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-100 text-[11px] font-bold outline-none"
                                                                             value={formData.titleSize} onChange={e => setFormData({ ...formData, titleSize: e.target.value as any })}
                                                                         >
-                                                                            <option value="lg">Pequeño</option>
+                                                                            <option value="lg">Peque├▒o</option>
                                                                             <option value="xl">Mediano</option>
                                                                             <option value="2xl">Grande</option>
                                                                             <option value="4xl">Extra</option>
@@ -1251,7 +1283,7 @@ export const CampaignsPage = () => {
                                                             <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-3">
                                                                 <div className="flex items-center gap-2 border-b border-gray-50 pb-2">
                                                                     <AlignLeft size={14} className="text-gray-400" />
-                                                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tipografía Descripción</span>
+                                                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tipograf├¡a Descripci├│n</span>
                                                                 </div>
                                                                 <div className="grid grid-cols-3 gap-3">
                                                                     <div className="space-y-1">
@@ -1262,7 +1294,7 @@ export const CampaignsPage = () => {
                                                                         >
                                                                             <option value="sans">Moderna</option>
                                                                             <option value="serif">Elegante</option>
-                                                                            <option value="mono">Técnica</option>
+                                                                            <option value="mono">T├®cnica</option>
                                                                         </select>
                                                                     </div>
                                                                     <div className="space-y-1">
@@ -1277,7 +1309,7 @@ export const CampaignsPage = () => {
                                                                         </select>
                                                                     </div>
                                                                     <div className="space-y-1">
-                                                                        <label className="text-[9px] font-black text-gray-400 uppercase">Tamaño</label>
+                                                                        <label className="text-[9px] font-black text-gray-400 uppercase">Tama├▒o</label>
                                                                         <select
                                                                             className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-100 text-[11px] font-bold outline-none"
                                                                             value={formData.descriptionSize} onChange={e => setFormData({ ...formData, descriptionSize: e.target.value as any })}
@@ -1301,7 +1333,7 @@ export const CampaignsPage = () => {
                                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                                         <div className="space-y-4">
                                                                             <div className="space-y-1">
-                                                                                <label className="text-[9px] font-black text-gray-400 uppercase">Posición del Texto</label>
+                                                                                <label className="text-[9px] font-black text-gray-400 uppercase">Posici├│n del Texto</label>
                                                                                 <select
                                                                                     className="w-full p-2.5 rounded-xl bg-white border border-gray-100 text-[11px] font-bold outline-none shadow-sm"
                                                                                     value={formData.textPosition} onChange={e => setFormData({ ...formData, textPosition: e.target.value as any })}
@@ -1321,11 +1353,11 @@ export const CampaignsPage = () => {
                                                                                     <input type="color" className="w-full h-10 rounded-xl cursor-pointer border-2 border-white shadow-sm" value={formData.backgroundColor} onChange={e => setFormData({ ...formData, backgroundColor: e.target.value })} />
                                                                                 </div>
                                                                                 <div className="space-y-1">
-                                                                                    <label className="text-[9px] font-black text-gray-400 uppercase">Color Título</label>
+                                                                                    <label className="text-[9px] font-black text-gray-400 uppercase">Color T├¡tulo</label>
                                                                                     <input type="color" className="w-full h-10 rounded-xl cursor-pointer border-2 border-white shadow-sm" value={formData.titleColor || formData.textColor} onChange={e => setFormData({ ...formData, titleColor: e.target.value })} />
                                                                                 </div>
                                                                                 <div className="space-y-1 col-span-2">
-                                                                                    <label className="text-[9px] font-black text-gray-400 uppercase">Color Descripción</label>
+                                                                                    <label className="text-[9px] font-black text-gray-400 uppercase">Color Descripci├│n</label>
                                                                                     <input type="color" className="w-full h-10 rounded-xl cursor-pointer border-2 border-white shadow-sm" value={formData.descriptionColor || formData.textColor} onChange={e => setFormData({ ...formData, descriptionColor: e.target.value })} />
                                                                                 </div>
                                                                             </div>
@@ -1377,7 +1409,7 @@ export const CampaignsPage = () => {
                                                                     </div>
                                                                 </div>
 
-                                                                {/* Preview inline para móviles/tablets (se oculta en lg donde está el sidebar) */}
+                                                                {/* Preview inline para m├│viles/tablets (se oculta en lg donde est├í el sidebar) */}
                                                                 <section className="lg:hidden space-y-4 pt-4 border-t border-gray-100">
                                                                     <label className="text-xs font-black text-gray-600 uppercase">Vista Previa PWA</label>
                                                                     <div className="flex justify-center bg-gray-100 p-6 rounded-[2rem]">
@@ -1473,7 +1505,7 @@ export const CampaignsPage = () => {
                                                                             value={formData.rewardText || ''}
                                                                             onChange={e => setFormData({ ...formData, rewardText: e.target.value })}
                                                                         />
-                                                                        <p className="text-[10px] text-pink-400 mt-2 font-bold uppercase">Este texto reemplazará a los puntos en la visualización</p>
+                                                                        <p className="text-[10px] text-pink-400 mt-2 font-bold uppercase">Este texto reemplazar├í a los puntos en la visualizaci├│n</p>
                                                                     </section>
                                                                 )}
 
@@ -1508,8 +1540,8 @@ export const CampaignsPage = () => {
                                                                     <Calendar size={24} />
                                                                 </div>
                                                                 <div>
-                                                                    <h4 className={`font-black ${isFlashMode ? 'text-red-900' : 'text-purple-900'} text-lg uppercase tracking-tight`}>Vigencia de la Campaña</h4>
-                                                                    <p className={`text-[10px] ${isFlashMode ? 'text-red-600' : 'text-purple-600'} font-bold opacity-60 uppercase tracking-widest`}>Periodo total de la campaña (Vacio = Permanente)</p>
+                                                                    <h4 className={`font-black ${isFlashMode ? 'text-red-900' : 'text-purple-900'} text-lg uppercase tracking-tight`}>Vigencia de la Campa├▒a</h4>
+                                                                    <p className={`text-[10px] ${isFlashMode ? 'text-red-600' : 'text-purple-600'} font-bold opacity-60 uppercase tracking-widest`}>Periodo total de la campa├▒a (Vacio = Permanente)</p>
                                                                 </div>
                                                             </div>
                                                             <div className="grid grid-cols-2 gap-4">
@@ -1531,7 +1563,7 @@ export const CampaignsPage = () => {
                                                                         <div className="p-2 bg-red-50 rounded-xl text-red-600">
                                                                             <Clock size={20} />
                                                                         </div>
-                                                                        <label className="text-xs font-black text-gray-500 uppercase tracking-widest">Horario de Activación</label>
+                                                                        <label className="text-xs font-black text-gray-500 uppercase tracking-widest">Horario de Activaci├│n</label>
                                                                     </div>
                                                                     <div className="grid grid-cols-2 gap-6">
                                                                         <div className="space-y-2">
@@ -1559,7 +1591,7 @@ export const CampaignsPage = () => {
                                                                             </div>
                                                                             <div>
                                                                                 <label className="text-xs font-black text-red-900 uppercase block leading-none">Margen Interno</label>
-                                                                                <span className="text-[9px] font-bold text-red-400 uppercase tracking-tighter italic">Tolerancia para validación externa</span>
+                                                                                <span className="text-[9px] font-bold text-red-400 uppercase tracking-tighter italic">Tolerancia para validaci├│n externa</span>
                                                                             </div>
                                                                         </div>
                                                                         <div className="bg-white px-4 py-2 rounded-2xl shadow-sm border border-red-100">
@@ -1574,7 +1606,7 @@ export const CampaignsPage = () => {
                                                                         />
                                                                     </div>
                                                                     <p className="text-[10px] text-red-400 font-bold italic leading-tight text-center px-4">
-                                                                        Este margen permite validar puntos unos minutos después del cierre nominal. No afecta la visibilidad en la App.
+                                                                        Este margen permite validar puntos unos minutos despu├®s del cierre nominal. No afecta la visibilidad en la App.
                                                                     </p>
                                                                 </section>
                                                             </div>
@@ -1587,8 +1619,8 @@ export const CampaignsPage = () => {
                                                                         <Megaphone size={24} />
                                                                     </div>
                                                                     <div>
-                                                                        <h4 className="font-black text-blue-900 text-lg uppercase tracking-tight">Difusión Automática</h4>
-                                                                        <p className="text-[10px] text-blue-600 font-bold opacity-60 uppercase tracking-widest">Enviar Push/Email solo al iniciar la campaña</p>
+                                                                        <h4 className="font-black text-blue-900 text-lg uppercase tracking-tight">Difusi├│n Autom├ítica</h4>
+                                                                        <p className="text-[10px] text-blue-600 font-bold opacity-60 uppercase tracking-widest">Enviar Push/Email solo al iniciar la campa├▒a</p>
                                                                     </div>
                                                                 </div>
                                                                 <button
@@ -1602,11 +1634,11 @@ export const CampaignsPage = () => {
                                                             {formData.autoBroadcast && (
                                                                 <>
                                                                     <p className="mt-4 text-[10px] text-blue-800 font-medium bg-white/50 p-3 rounded-xl border border-blue-200/50 italic">
-                                                                        ✨ El sistema enviará automáticamente las notificaciones a todos los socios unos minutos antes de que la campaña comience (o al inicio si eliges 0).
+                                                                        Ô£¿ El sistema enviar├í autom├íticamente las notificaciones a todos los socios unos minutos antes de que la campa├▒a comience (o al inicio si eliges 0).
                                                                     </p>
                                                                     <div className="mt-4 bg-white/40 p-4 rounded-2xl border border-blue-200/30 space-y-3">
                                                                         <div className="flex justify-between items-center">
-                                                                            <label className="text-[10px] font-black text-blue-900 uppercase">Antelación del Mensaje</label>
+                                                                            <label className="text-[10px] font-black text-blue-900 uppercase">Antelaci├│n del Mensaje</label>
                                                                             <span className="text-xs font-black text-blue-600 bg-white px-3 py-1 rounded-full shadow-sm">{formData.broadcastLeadMins || 0} Min</span>
                                                                         </div>
                                                                         <input
@@ -1617,8 +1649,8 @@ export const CampaignsPage = () => {
                                                                         />
                                                                         <p className="text-[9px] text-blue-400 font-bold italic text-center">
                                                                             {formData.broadcastLeadMins === 0
-                                                                                ? "El mensaje saldrá exactamente al inicio."
-                                                                                : `El mensaje saldrá ${formData.broadcastLeadMins} minutos antes del inicio.`}
+                                                                                ? "El mensaje saldr├í exactamente al inicio."
+                                                                                : `El mensaje saldr├í ${formData.broadcastLeadMins} minutos antes del inicio.`}
                                                                         </p>
                                                                     </div>
                                                                 </>
@@ -1626,7 +1658,7 @@ export const CampaignsPage = () => {
                                                         </section>
 
                                                         <section className="space-y-4">
-                                                            <label className={`text-xs font-black ${isFlashMode ? 'text-red-500' : 'text-gray-500'} uppercase px-2`}>Días de la semana</label>
+                                                            <label className={`text-xs font-black ${isFlashMode ? 'text-red-500' : 'text-gray-500'} uppercase px-2`}>D├¡as de la semana</label>
                                                             <div className="flex flex-wrap gap-2">
                                                                 {DAYS.map(day => {
                                                                     const isActive = isFlashMode
@@ -1652,13 +1684,13 @@ export const CampaignsPage = () => {
                                                                 })}
                                                             </div>
                                                             <p className="text-[10px] text-gray-400 font-bold uppercase italic text-center">
-                                                                {isFlashMode ? 'La oferta flash solo se activará en los días y horarios seleccionados' : 'La campaña tradicional solo estará visible los días seleccionados'}
+                                                                {isFlashMode ? 'La oferta flash solo se activar├í en los d├¡as y horarios seleccionados' : 'La campa├▒a tradicional solo estar├í visible los d├¡as seleccionados'}
                                                             </p>
                                                         </section>
                                                     </div>
                                                 )}
 
-                                                {/* Eliminado el tab FLASH antiguo para evitar duplicados, ahora todo está en CONTENT y SCHEDULE */}
+                                                {/* Eliminado el tab FLASH antiguo para evitar duplicados, ahora todo est├í en CONTENT y SCHEDULE */}
                                             </div>
                                         </div>
 
@@ -1678,7 +1710,7 @@ export const CampaignsPage = () => {
                                                 </div>
 
                                                 <div className="p-4 bg-purple-50 text-purple-800 rounded-xl text-xs font-medium leading-relaxed border border-purple-100">
-                                                    💡 Usa el simulador para ver cómo se integrará tu campaña en el flujo de la aplicación.
+                                                    ­ƒÆí Usa el simulador para ver c├│mo se integrar├í tu campa├▒a en el flujo de la aplicaci├│n.
                                                 </div>
                                             </div>
                                         </div>
@@ -1686,7 +1718,7 @@ export const CampaignsPage = () => {
                                 </>
                             )}
 
-                            {/* Botón Cerrar */}
+                            {/* Bot├│n Cerrar */}
                             <button
                                 onClick={() => setIsModalOpen(false)}
                                 className="absolute top-8 right-8 text-gray-400 hover:text-black transition-colors p-2 rounded-full hover:bg-gray-100"
@@ -1709,8 +1741,8 @@ export const CampaignsPage = () => {
                                     <Megaphone size={28} />
                                 </div>
                                 <div>
-                                    <h2 className="text-xl font-black text-gray-800 uppercase tracking-tighter">Confirmar Difusión</h2>
-                                    <p className="text-xs text-gray-400 font-bold uppercase">Selecciona los canales de envío</p>
+                                    <h2 className="text-xl font-black text-gray-800 uppercase tracking-tighter">Confirmar Difusi├│n</h2>
+                                    <p className="text-xs text-gray-400 font-bold uppercase">Selecciona los canales de env├¡o</p>
                                 </div>
                             </div>
 
@@ -1733,7 +1765,7 @@ export const CampaignsPage = () => {
                                             />
                                             <div className="flex-1">
                                                 <p className="font-bold text-gray-800 flex items-center gap-2">
-                                                    <Monitor size={16} className="text-purple-500" /> Notificación PUSH
+                                                    <Monitor size={16} className="text-purple-500" /> Notificaci├│n PUSH
                                                 </p>
                                                 <p className="text-[10px] text-gray-500 font-medium">Llega directo al celular del cliente</p>
                                             </div>
@@ -1750,7 +1782,7 @@ export const CampaignsPage = () => {
                                             />
                                             <div className="flex-1">
                                                 <p className="font-bold text-gray-800 flex items-center gap-2">
-                                                    <Sparkles size={16} className="text-blue-500" /> Correo Electrónico
+                                                    <Sparkles size={16} className="text-blue-500" /> Correo Electr├│nico
                                                 </p>
                                                 <p className="text-[10px] text-gray-500 font-medium">Bandeja de entrada personalizada</p>
                                             </div>
@@ -1769,7 +1801,7 @@ export const CampaignsPage = () => {
                                                 <p className="font-bold text-gray-800 flex items-center gap-2">
                                                     <Megaphone size={16} className="text-green-500" /> WhatsApp
                                                 </p>
-                                                <p className="text-[10px] text-gray-500 font-medium">Redirige para envío manual/secuencial</p>
+                                                <p className="text-[10px] text-gray-500 font-medium">Redirige para env├¡o manual/secuencial</p>
                                             </div>
                                         </label>
                                     )}
@@ -1780,7 +1812,7 @@ export const CampaignsPage = () => {
                                     className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 rounded-2xl shadow-xl shadow-purple-200 flex items-center justify-center gap-2 text-lg transition active:scale-95"
                                 >
                                     <Send size={20} />
-                                    ¡Lanzar Difusión!
+                                    ┬íLanzar Difusi├│n!
                                 </button>
                                 <button
                                     onClick={() => setIsBroadcastModalOpen(false)}

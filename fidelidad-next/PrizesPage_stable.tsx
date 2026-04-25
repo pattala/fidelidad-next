@@ -1,6 +1,6 @@
-
+﻿
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Gift, Ticket, Edit, Package, X, Save, Image as ImageIcon, Shield, RefreshCw } from 'lucide-react';
+import { Plus, Trash2, Gift, Ticket, Edit, Package, X, Save, Image as ImageIcon, Shield } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { PrizeService } from '../../../services/prizeService';
 import type { Prize } from '../../../types';
@@ -12,17 +12,6 @@ export const PrizesPage = () => {
     const { isReadOnly } = useAdminAuth();
     const [prizes, setPrizes] = useState<Prize[]>([]);
     const [loading, setLoading] = useState(false);
-    const [isUpdating, setIsUpdating] = useState(false);
-
-    // PERSISTENCIA DE CATÁLOGO (CARGA INSTANTÁNEA)
-    useEffect(() => {
-        const cached = localStorage.getItem('catalog_cache_v2');
-        if (cached) {
-            try {
-                setPrizes(JSON.parse(cached));
-            } catch (e) { console.error("Catalog cache error", e); }
-        }
-    }, []);
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -42,18 +31,14 @@ export const PrizesPage = () => {
     const [formData, setFormData] = useState(INITIAL_FORM);
 
     const fetchPrizes = async () => {
-        setIsUpdating(true);
-        if (prizes.length === 0) setLoading(true);
+        setLoading(true);
         try {
             const data = await PrizeService.getAll();
             setPrizes(data);
-            // Guardar en caché
-            localStorage.setItem('catalog_cache_v2', JSON.stringify(data));
         } catch (error) {
             toast.error("Error cargando premios");
         } finally {
             setLoading(false);
-            setIsUpdating(false);
         }
     };
 
@@ -94,7 +79,7 @@ export const PrizesPage = () => {
 
     const handleDelete = async (id: string, name: string) => {
         if (isReadOnly) return;
-        if (!confirm(`¿Eliminar "${name}" ?\nEsta acción es irreversible.`)) return;
+        if (!confirm(`┬┐Eliminar "${name}" ?\nEsta acci├│n es irreversible.`)) return;
         try {
             await PrizeService.delete(id);
             toast.success('Premio eliminado');
@@ -140,19 +125,10 @@ export const PrizesPage = () => {
             <div className="flex justify-between items-center border-b border-gray-100 pb-6">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
-                        <Gift className="text-pink-500" /> Catálogo de Premios
+                        <Gift className="text-pink-500" /> Cat├ílogo de Premios
                     </h1>
                     <p className="text-gray-500 mt-1">Administra los productos y vouchers disponibles para canje.</p>
                 </div>
-
-                {/* CARTEL DE ACTUALIZACIÓN DE STOCK */}
-                {isUpdating && (
-                    <div className="flex items-center gap-3 bg-pink-500 text-white px-6 py-3 rounded-2xl shadow-xl shadow-pink-200 animate-pulse transition-all">
-                        <RefreshCw className="animate-spin" size={18} />
-                        <span className="font-black text-sm tracking-widest uppercase">🔄 Sincronizando Stock y Premios...</span>
-                    </div>
-                )}
-
                 {!isReadOnly && (
                     <button
                         onClick={openCreateModal}
@@ -170,7 +146,7 @@ export const PrizesPage = () => {
                         <thead>
                             <tr className="bg-gray-50/50 border-b border-gray-100 text-xs uppercase tracking-wider text-gray-400 font-semibold">
                                 <th className="p-4 pl-6">Premio / Producto</th>
-                                <th className="p-4">Descripción</th>
+                                <th className="p-4">Descripci├│n</th>
                                 <th className="p-4 text-center">Pts. Req.</th>
                                 <th className="p-4 text-center">Stock</th>
                                 <th className="p-4 text-center">Vencimiento</th>
@@ -258,8 +234,8 @@ export const PrizesPage = () => {
                                     <td colSpan={6} className="p-12 text-center text-gray-400">
                                         <div className="flex flex-col items-center justify-center">
                                             <Gift size={48} className="mb-4 opacity-20" />
-                                            <p className="font-medium">Lista de premios vacía</p>
-                                            <p className="text-xs">Crea el primer ítem para comenzar.</p>
+                                            <p className="font-medium">Lista de premios vac├¡a</p>
+                                            <p className="text-xs">Crea el primer ├¡tem para comenzar.</p>
                                         </div>
                                     </td>
                                 </tr>
@@ -295,7 +271,7 @@ export const PrizesPage = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Descripción (Opcional)</label>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Descripci├│n (Opcional)</label>
                                     <textarea
                                         rows={2}
                                         placeholder="Detalles del canje..."
@@ -376,7 +352,7 @@ export const PrizesPage = () => {
                                         onChange={e => setFormData({ ...formData, expirationDate: e.target.value })}
                                     />
                                 </div>
-                                <p className="text-[10px] text-gray-400 mt-1 ml-1">El premio dejará de ser visible después de esta fecha.</p>
+                                <p className="text-[10px] text-gray-400 mt-1 ml-1">El premio dejar├í de ser visible despu├®s de esta fecha.</p>
                             </div>
 
                             {/* Internal Toggle */}
@@ -386,7 +362,7 @@ export const PrizesPage = () => {
                                         <Shield size={16} /> Premio de Prueba
                                     </h4>
                                     <p className="text-[10px] text-blue-600 mt-0.5">
-                                        Sólo visible para usuarios con "Modo Test" activo.
+                                        S├│lo visible para usuarios con "Modo Test" activo.
                                     </p>
                                 </div>
                                 <div className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.isInternal ? 'bg-blue-600' : 'bg-gray-200'}`}>

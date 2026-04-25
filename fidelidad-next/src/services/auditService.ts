@@ -15,7 +15,8 @@ export const AuditService = {
             const token = await user?.getIdToken();
             const executor = user?.email || user?.uid || 'admin';
 
-            await fetch('/api/log-audit', {
+            // Disparar en segundo plano para no bloquear al usuario
+            fetch('/api/log-audit', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -30,9 +31,9 @@ export const AuditService = {
                     details,
                     executor
                 })
-            });
+            }).catch(e => console.error('Error logging audit background:', e));
         } catch (error) {
-            console.error('Error logging audit via API:', error);
+            console.error('Error logging audit prep:', error);
         }
     }
 };

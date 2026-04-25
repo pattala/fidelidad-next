@@ -67,6 +67,7 @@ export default async function handler(req, res) {
             totalToday: 0,
             processed: 0,
             pointsGivenTotal: 0,
+            list: [],       // Para la extensión de Chrome: socios cumpleañeros con sus datos de contacto
             details: [],
             errors: []
         };
@@ -162,6 +163,15 @@ export default async function handler(req, res) {
                 }
 
                 logResults.processed++;
+                logResults.list.push({
+                    id: userId,
+                    name: userData.name || userData.nombre || 'Socio',
+                    phone: userData.phone || userData.telefono || '',
+                    dni: userData.dni || '',
+                    socioNumber: userData.socioNumber || userData.numeroSocio || userData.socio_number || '',
+                    lastBirthdayPointsYear: userData.lastBirthdayPointsYear || '',
+                    pointsAdded
+                });
                 logResults.details.push({
                     userId,
                     userName: userData.name || userData.nombre || 'Socio',

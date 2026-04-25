@@ -111,7 +111,20 @@ export default async function handler(req, res) {
             }, { merge: true });
         } catch (e) { console.error("Could not set daily check lock", e); }
 
-        return res.status(200).json({ ok: true, results });
+        // Remapear al formato que espera la extensión de Chrome:
+        // data.birthdays.list, data.expirations.list, data.petAlerts.list, data.config
+        const configSnap2 = await db.collection('config').doc('general').get();
+        const extensionConfig = configSnap2.data() || {};
+
+        return res.status(200).json({
+            ok: true,
+            results,
+            // Formato legible por la extensión
+            birthdays:  { list: results.birthdays?.summary?.list  || [] },
+            expirations:{ list: results.expirations?.summary?.list || [] },
+            petAlerts:  { list: results.petAlerts?.results?.list  || [] },
+            config: extensionConfig,
+        });
 
     } catch (error) {
         return res.status(500).json({ error: error.message });

@@ -48,7 +48,7 @@ export default async function handler(req, res) {
         startOfToday.setHours(0, 0, 0, 0);
 
         const isSilent = req.query?.silent === 'true' || req.body?.silent === true;
-        const logResults = { processed: 0, expired: 0, notified: 0, details: [], errors: [] };
+        const logResults = { processed: 0, expired: 0, notified: 0, list: [], details: [], errors: [] };
 
         // Eliminada auditoría inicial para unificarla al final.
 
@@ -166,6 +166,14 @@ export default async function handler(req, res) {
                          });
 
                          logResults.notified++;
+                         logResults.list.push({
+                             id: userDoc.id,
+                             name: userData.nombre || userData.name || 'Socio',
+                             phone: userData.phone || userData.telefono || '',
+                             points: totalImpending,
+                             nextExpirationDate: userData.nextExpirationDate || referenceDateStr,
+                             breakdown: breakdown.map(b => ({ date: b.split(' pts el ')[1], rem: parseInt(b.split(' pts')[0]) }))
+                         });
                          logResults.details.push({ userId: userDoc.id, userName, action: 'notified', info: msg });
                      }
                  } catch (err) {

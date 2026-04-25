@@ -73,7 +73,13 @@ async function handleCheck(req, res, db) {
                 refStr = datePart;
                 referenceDate = new Date(datePart + 'T12:00:00');
             } else {
-                const [y, m, d] = simulatedDateBody.split(/[-/]/);
+                const parts = simulatedDateBody.split(/[-/]/);
+                let y, m, d;
+                if (parts[0].length === 4) { // YYYY-MM-DD
+                    [y, m, d] = parts;
+                } else { // DD-MM-YYYY
+                    [d, m, y] = parts;
+                }
                 refStr = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
                 referenceDate = new Date(refStr + 'T12:00:00');
             }

@@ -175,6 +175,16 @@ export default async function handler(req, res) {
 
     // --- MANEJO DE SIMULACIÓN GLOBAL ---
     let effectiveSimulatedDate = simulatedDateStr;
+    if (effectiveSimulatedDate) {
+        const parts = effectiveSimulatedDate.split(/[-/]/);
+        if (parts.length === 3) {
+            let y, m, d;
+            if (parts[0].length === 4) { [y, m, d] = parts; }
+            else { [d, m, y] = parts; }
+            effectiveSimulatedDate = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+        }
+    }
+    
     if (!effectiveSimulatedDate && config.enableDateSimulator && config.simulatedOffsetDays) {
         const simDate = new Date();
         simDate.setDate(simDate.getDate() + config.simulatedOffsetDays);

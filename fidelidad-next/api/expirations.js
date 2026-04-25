@@ -21,12 +21,105 @@ function initFirebaseAdmin() {
     return admin.firestore();
 }
 
+// --- SUB-HANDLER: FORECAST (Cash Flow de Vencimientos) ---
+async function handleForecast(req, res, db) {
+    const authHeader = req.headers["x-api-key"] || req.headers["authorization"] || req.headers["X-API-Key"];
+    const SECRET = (process.env.API_SECRET_KEY || "").trim();
+    if (!authHeader || !authHeader.includes(SECRET)) {
+        return res.status(401).json({ ok: false, error: "Unauthorized" });
+    }
+
+    try {
+        const customStartStr = req.query?.startDate || req.body?.startDate;
+        const customEndStr = req.query?.endDate || req.body?.endDate;
+        const hasCustom = !!(customStartStr && customEndStr);
+
+        const configSnap = await db.collection('config').doc('general').get();
+        const config = configSnap.exists ? configSnap.data() : {};
+
+        const prizesSnap = await db.collection('prizes').where('active', '==', true).get();
+        let totalRatio = 0, pCount = 0;
+        prizesSnap.forEach(d => {
+            const p = d.data();
+            if (p.cashValue && p.pointsRequired > 0) { totalRatio += (p.cashValue / p.pointsRequired); pCount++; }
+        });
+        const pointValue = pCount > 0 ? (totalRatio / pCount) : (config.pointValue || 10);
+
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+
+        const intervals = {
+            short:  { label: 'Próximos 7 días', maxDays: 7,    points: 0, money: 0, count: 0 },
+            medium: { label: '8 a 30 días',      maxDays: 30,   points: 0, money: 0, count: 0 },
+            long:   { label: '31 a 90 días',      maxDays: 90,   points: 0, money: 0, count: 0 },
+            future: { label: 'Más de 90 días',    maxDays: 9999, points: 0, money: 0, count: 0 }
+        };
+
+        const customRange = {
+            active: hasCustom,
+            start: hasCustom ? new Date(customStartStr) : null,
+            end:   hasCustom ? new Date(customEndStr)   : null,
+            points: 0, money: 0, count: 0
+        };
+        if (customRange.end) customRange.end.setHours(23, 59, 59, 999);
+
+        const creditsSnap = await db.collectionGroup('points_history').where('type', '==', 'credit').get();
+
+        creditsSnap.forEach(doc => {
+            const data = doc.data();
+            if (!data.expiresAt) return;
+            if (data.status === 'expired' || !(data.remainingPoints > 0)) return;
+
+            const expiresAt = data.expiresAt.toDate();
+            const diffDays = Math.ceil((expiresAt.getTime() - startOfToday.getTime()) / 86400000);
+
+            if (diffDays > 0) {
+                let bucket;
+                if (diffDays <= 7)  bucket = intervals.short;
+                else if (diffDays <= 30) bucket = intervals.medium;
+                else if (diffDays <= 90) bucket = intervals.long;
+                else bucket = intervals.future;
+                bucket.points += Number(data.remainingPoints);
+                bucket.money  += (Number(data.remainingPoints) * pointValue);
+                bucket.count++;
+            }
+            if (customRange.active && expiresAt >= customRange.start && expiresAt <= customRange.end) {
+                customRange.points += Number(data.remainingPoints);
+                customRange.money  += (Number(data.remainingPoints) * pointValue);
+                customRange.count++;
+            }
+        });
+
+        const summary = {
+            totalPoints: Object.values(intervals).reduce((acc, b) => acc + b.points, 0),
+            totalMoney:  Object.values(intervals).reduce((acc, b) => acc + b.money,  0),
+            intervals:   Object.entries(intervals).map(([key, val]) => ({ key, ...val })),
+            customRange: customRange.active
+                ? { points: customRange.points, money: customRange.money, count: customRange.count, start: customStartStr, end: customEndStr }
+                : null,
+            pointValue
+        };
+
+        return res.status(200).json({ ok: true, summary, pointValue });
+    } catch (error) {
+        console.error("Forecast Error:", error);
+        return res.status(500).json({ ok: false, error: error.message });
+    }
+}
+
 // ---------- Handler Principal ----------
 export default async function handler(req, res) {
     if (req.method === 'OPTIONS') return res.status(200).end();
 
+    const db = initFirebaseAdmin();
+
+    // Routing por acción
+    const action = req.query?.action || req.body?.action || 'check';
+    if (action === 'forecast') {
+        return handleForecast(req, res, db);
+    }
+
     try {
-        const db = initFirebaseAdmin();
         const configSnap = await db.collection('config').doc('general').get();
         const config = configSnap.data() || {};
         

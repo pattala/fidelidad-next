@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BarChart3, TrendingUp, Users, DollarSign, Award, Sparkles, Download, Clock, Calendar, RefreshCw } from 'lucide-react';
-import { collection, query, where, getDocs, orderBy, limit, documentId } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, limit, documentId, getCountFromServer } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -206,16 +206,6 @@ export const MetricsPage = () => {
                     referralCount: currentResults.referralCount
                 });
 
-                // Conteo liviano de orígenes (PWA vs Local)
-                const [pwaSnap, localSnap] = await Promise.all([
-                    getDocs(query(collection(db, 'users'), where('source', '==', 'pwa'))),
-                    getDocs(query(collection(db, 'users'), where('source', '==', 'local')))
-                ]);
-                setRegistrationSources({ 
-                    pwa: pwaSnap.size, 
-                    local: localSnap.size 
-                });
-
                 setPrevAdvancedStats({
                     averageTicket: prevResults.creditCount > 0 ? prevResults.totalMoneySpent / prevResults.creditCount : 0,
                     frequency: prevResults.activeUids.size > 0 ? prevResults.creditCount / prevResults.activeUids.size : 0,
@@ -226,110 +216,91 @@ export const MetricsPage = () => {
                     referralCount: prevResults.referralCount
                 });
 
-                // 1. Clientes con Mayor Saldo
-                const qTopBalance = query(collection(db, 'users'), orderBy('points', 'desc'), limit(15)); // Fetch more to filter ghosts
-                const snapTopBalance = await getDocs(qTopBalance);
+                // PARALELIZACIÓN DE CONSULTAS DE USUARIOS (SPEED BOOST)
+                const [pwaCount, localCount, snapTopBalance, snapVisitors, snapTopHistoryOrReferrals] = await Promise.all([
+                    getCountFromServer(query(collection(db, 'users'), where('source', '==', 'pwa'))),
+                    getCountFromServer(query(collection(db, 'users'), where('source', '==', 'local'))),
+                    getDocs(query(collection(db, 'users'), orderBy('points', 'desc'), limit(15))),
+                    getDocs(query(collection(db, 'users'), orderBy('visitCount', 'desc'), limit(15))),
+                    appConfig?.referrals?.challenge?.enabled ? 
+                        getDocs(query(collection(db, 'users'), where('createdAt', '>=', new Date(appConfig.referrals.challenge.startDate)), where('createdAt', '<=', new Date(new Date(appConfig.referrals.challenge.endDate).setHours(23, 59, 59, 999))))) :
+                        getDocs(query(collection(db, 'users'), orderBy('referralStats.count', 'desc'), limit(5)))
+                ]);
+
+                // 1. Procesar Orígenes
+                setRegistrationSources({ 
+                    pwa: pwaCount.data().count, 
+                    local: localCount.data().count 
+                });
+
+                // 2. Procesar Saldo
                 const filteredTopBalance = snapTopBalance.docs
                     .map(d => ({ id: d.id, ...d.data() } as any))
                     .filter(u => u.name || u.nombre || u.dni)
                     ?.slice(0, 5);
+                setTopUsers(filteredTopBalance.map(user => ({
+                    id: user.id, ...user, 
+                    name: user.name || user.nombre || 'Socio sin nombre', 
+                    points: user.points || 0, 
+                    socioNumber: user.socioNumber || user.numeroSocio || '' 
+                })));
 
-                setTopUsers(filteredTopBalance.map(user => {
-                    return { id: user.id, ...user, name: user.name || user.nombre || 'Socio sin nombre', points: user.points || 0, socioNumber: user.socioNumber || user.numeroSocio || '' };
-                }));
-
-                // 2. Top Generadores (COMPRA) - Procesar spenders del periodo
-                const sortedSpenders = Array.from(currentResults.spenders.entries())
-                    .sort((a, b) => b[1] - a[1])
-                    ?.slice(0, 5);
-
-                if (sortedSpenders.length > 0) {
-                    const uids = sortedSpenders.map(s => s[0]);
-                    const usersSnap = await getDocs(query(collection(db, 'users'), where(documentId(), 'in', uids)));
-                    const usersMap = new Map();
-                    usersSnap.forEach(d => usersMap.set(d.id, d.data()));
-
-                    const spenderDetails = sortedSpenders.map(([uid, total]) => {
-                        const uData = usersMap.get(uid);
-                        if (uData) {
-                            return { id: uid, name: uData.name || uData.nombre || 'Socio', total, socioNumber: uData.socioNumber || uData.numeroSocio || '', dni: uData.dni || '' };
-                        }
-                        return { id: uid, name: 'Socio Desconocido', total, socioNumber: '', dni: '' };
-                    });
-                    setTopSpenders(spenderDetails);
-                } else {
-                    setTopSpenders([]);
-                }
-
-                // 3. Clientes más Fieles (APP)
-                const qVisitors = query(collection(db, 'users'), orderBy('visitCount', 'desc'), limit(15));
-                const snapVisitors = await getDocs(qVisitors);
+                // 3. Procesar Visitas
                 const filteredVisitors = snapVisitors.docs
                     .map(d => ({ id: d.id, ...d.data() } as any))
                     .filter(u => u.name || u.nombre || u.dni)
                     ?.slice(0, 5);
+                setTopVisitors(filteredVisitors.map(user => ({
+                    id: user.id, ...user, 
+                    name: user.name || user.nombre || 'Socio', 
+                    count: user.visitCount || 0, 
+                    socioNumber: user.socioNumber || user.numeroSocio || '' 
+                })));
 
-                setTopVisitors(filteredVisitors.map(user => {
-                    return { id: user.id, ...user, name: user.name || user.nombre || 'Socio', count: user.visitCount || 0, socioNumber: user.socioNumber || user.numeroSocio || '' };
-                }));
-
-                // 4. Ranking de Referidores (Desafío)
+                // 4. Procesar Referidos
                 const challenge = appConfig?.referrals?.challenge;
                 if (challenge?.enabled) {
-                    const start = new Date(challenge.startDate);
-                    const end = new Date(challenge.endDate);
-                    end.setHours(23, 59, 59, 999);
-
-                    // Buscamos usuarios creados en este periodo
-                    const qReferrals = query(
-                        collection(db, 'users'),
-                        where('createdAt', '>=', start),
-                        where('createdAt', '<=', end)
-                    );
-                    const snapReferrals = await getDocs(qReferrals);
-
                     const refCounts = new Map<string, number>();
-                    snapReferrals.docs.forEach(d => {
+                    snapTopHistoryOrReferrals.docs.forEach(d => {
                         const data = d.data();
                         const refUid = data.referrerUid;
                         if (refUid) refCounts.set(refUid, (refCounts.get(refUid) || 0) + 1);
                     });
-
-                    const sortedRefs = Array.from(refCounts.entries())
-                        .sort((a, b) => b[1] - a[1])
-                        ?.slice(0, 5);
-
+                    const sortedRefs = Array.from(refCounts.entries()).sort((a, b) => b[1] - a[1])?.slice(0, 5);
                     if (sortedRefs.length > 0) {
                         const uids = sortedRefs.map(s => s[0]);
                         const usersSnap = await getDocs(query(collection(db, 'users'), where(documentId(), 'in', uids)));
                         const usersMap = new Map();
                         usersSnap.forEach(d => usersMap.set(d.id, d.data()));
-
                         setTopReferrers(sortedRefs.map(([uid, count]) => {
                             const uData = usersMap.get(uid);
-                            return {
-                                id: uid,
-                                name: uData?.name || uData?.nombre || 'Socio',
-                                count,
-                                socioNumber: uData?.socioNumber || uData?.numeroSocio || ''
-                            };
+                            return { id: uid, name: uData?.name || uData?.nombre || 'Socio', count, socioNumber: uData?.socioNumber || uData?.numeroSocio || '' };
                         }));
                     } else {
                         setTopReferrers([]);
                     }
                 } else {
-                    // Si no hay desafío, mostrar top históricos
-                    const qTopHistory = query(collection(db, 'users'), orderBy('referralStats.count', 'desc'), limit(5));
-                    const snapTopHistory = await getDocs(qTopHistory);
-                    setTopReferrers(snapTopHistory.docs.map(d => {
+                    setTopReferrers(snapTopHistoryOrReferrals.docs.map(d => {
                         const data = d.data();
-                        return {
-                            id: d.id,
-                            name: data.name || data.nombre || 'Socio',
-                            count: data.referralStats?.count || 0,
-                            socioNumber: data.socioNumber || data.numeroSocio || ''
-                        };
+                        return { id: d.id, name: data.name || data.nombre || 'Socio', count: data.referralStats?.count || 0, socioNumber: data.socioNumber || data.numeroSocio || '' };
                     }));
+                }
+
+                // 5. Top Generadores (COMPRA) - Procesar spenders del periodo
+                const sortedSpenders = Array.from(currentResults.spenders.entries()).sort((a, b) => b[1] - a[1])?.slice(0, 5);
+                if (sortedSpenders.length > 0) {
+                    const uids = sortedSpenders.map(s => s[0]);
+                    const usersSnap = await getDocs(query(collection(db, 'users'), where(documentId(), 'in', uids)));
+                    const usersMap = new Map();
+                    usersSnap.forEach(d => usersMap.set(d.id, d.data()));
+                    setTopSpenders(sortedSpenders.map(([uid, total]) => {
+                        const uData = usersMap.get(uid);
+                        return uData ? 
+                        { id: uid, name: uData.name || uData.nombre || 'Socio', total, socioNumber: uData.socioNumber || uData.numeroSocio || '', dni: uData.dni || '' } :
+                        { id: uid, name: 'Socio Desconocido', total, socioNumber: '', dni: '' };
+                    }));
+                } else {
+                    setTopSpenders([]);
                 }
 
                 if (currentMovements.length > 0) {

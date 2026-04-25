@@ -216,6 +216,17 @@ export default async function handler(req, res) {
     }
 
     if (skipMessaging) {
+        try {
+            await db.collection('audit_logs').add({
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                type: 'maintenance_auto',
+                status: 'success',
+                summary: `Mantenimiento Automático: Puntos restados y registros limpiados. (Avisos saltados por horario ${now.getHours()}hs).`,
+                executor: 'system',
+                role: 'system'
+            });
+        } catch (e) { console.error("[AuditLogMaintenance] Error:", e); }
+        
         return res.status(200).json({ ok: true, maintenanceOnly: true, message: "Mantenimiento completado. Avisos saltados por horario." });
     }
 

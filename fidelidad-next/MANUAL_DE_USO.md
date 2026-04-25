@@ -205,10 +205,21 @@ En la sección de **Auditoría del Sistema**, existen dos botones para disparar 
     3. **Mascotas:** Revisa consumos y envía alertas de alimento (Petshop).
 *   **Uso Recomendado:** Es el que debes presionar cuando usás el **Simulador de Fechas** para ver qué pasaría en un día normal del sistema.
 
-### 🟠 Botón Naranja: "Ejecutar Revisión de Vencimientos"
-*   **Alcance:** **Específico de Puntos**.
-*   **Qué hace:** Solo procesa la lógica de fidelidad (vencimientos y avisos). No revisa mascotas ni saluda por cumpleaños.
-*   **Uso Recomendado:** Para limpiezas rápidas de puntos o pruebas aisladas de caducidad.
+### 🔄 Ciclos de Ejecución (Mantenimiento vs. Comunicación)
+Para garantizar la integridad de los datos sin molestar a los clientes, el motor opera en dos fases:
+
+1. **Fase de Mantenimiento (Zarandeo Silencioso):**
+   - **Cuándo:** Se ejecuta automáticamente apenas cambia el día (medianoche).
+   - **Qué hace:** Resta puntos vencidos, re-calcula fechas próximas y elimina registros "Fantasma" (Sin nombre y con 0 pts).
+   - **Impacto:** Interno. El cliente ve su saldo actualizado apenas abre la App, pero no es despertado por notificaciones.
+
+2. **Fase de Comunicación (Ventana Horaria):**
+   - **Cuándo:** Solo se activa dentro del rango configurado en **Panel > Configuración** (ej: 10:00 a 20:00 hs).
+   - **Qué hace:** Dispara los WhatsApps, Emails y Notificaciones Push.
+   - **Nota:** Si el motor corre fuera de hora, verás un registro en Auditoría que dice: "Mantenimiento Automático (Avisos saltados)".
+
+> [!TIP]
+> Si disparás los motores **manualmente** desde la pestaña de Auditoría, el sistema ignorará los bloqueos de horario y enviará los mensajes de inmediato.
 
 ---
-*Manual Operativo Rampet v2.5 (Motor & Auditoría Update)*
+*Manual Operativo Rampet v2.6 (Maintenance & Robustness Update)*

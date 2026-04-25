@@ -53,7 +53,7 @@ export async function updateNextExpirationDate(db, userId, referenceDate = null)
             }
         });
 
-        const isoDate = nextDate ? nextDate.toISOString().split('T')[0] : null; // YYYY-MM-DD
+        const isoDate = nextDate ? `${nextDate.getFullYear()}-${(nextDate.getMonth()+1).toString().padStart(2, '0')}-${nextDate.getDate().toString().padStart(2, '0')}` : null;
 
         // Actualizamos el documento del usuario (metadata para queries rápidas)
         await db.collection('users').doc(userId).update({

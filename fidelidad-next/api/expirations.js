@@ -111,7 +111,7 @@ async function handleCheck(req, res, db) {
 
         const proactivePin = new Date(referenceDate);
         proactivePin.setDate(proactivePin.getDate() + 30);
-        const proactivePinStr = proactivePin.toISOString().split('T')[0];
+        const proactivePinStr = `${proactivePin.getFullYear()}-${(proactivePin.getMonth()+1).toString().padStart(2, '0')}-${proactivePin.getDate().toString().padStart(2, '0')}`;
 
         const logResults = { processed: 0, expiredPoints: 0, expiredUsersCount: 0, notified: 0, totalInWindow: 0, details: [], list: [], errors: [] };
 

@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { BarChart3, TrendingUp, Users, DollarSign, Award, Sparkles, Download, Clock, Calendar, RefreshCw } from 'lucide-react';
 import { collection, query, where, getDocs, orderBy, limit, documentId } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
@@ -264,7 +264,7 @@ export const MetricsPage = () => {
                 const filteredTopBalance = snapTopBalance.docs
                     .map(d => ({ id: d.id, ...d.data() } as any))
                     .filter(u => u.name || u.nombre || u.dni)
-                    .slice(0, 5);
+                    ?.slice(0, 5);
 
                 setTopUsers(filteredTopBalance.map(user => {
                     return { id: user.id, ...user, name: user.name || user.nombre || 'Socio sin nombre', points: user.points || 0, socioNumber: user.socioNumber || user.numeroSocio || '' };
@@ -273,7 +273,7 @@ export const MetricsPage = () => {
                 // 2. Top Generadores (COMPRA) - Procesar spenders del periodo
                 const sortedSpenders = Array.from(currentResults.spenders.entries())
                     .sort((a, b) => b[1] - a[1])
-                    .slice(0, 5);
+                    ?.slice(0, 5);
 
                 if (sortedSpenders.length > 0) {
                     const uids = sortedSpenders.map(s => s[0]);
@@ -299,7 +299,7 @@ export const MetricsPage = () => {
                 const filteredVisitors = snapVisitors.docs
                     .map(d => ({ id: d.id, ...d.data() } as any))
                     .filter(u => u.name || u.nombre || u.dni)
-                    .slice(0, 5);
+                    ?.slice(0, 5);
 
                 setTopVisitors(filteredVisitors.map(user => {
                     return { id: user.id, ...user, name: user.name || user.nombre || 'Socio', count: user.visitCount || 0, socioNumber: user.socioNumber || user.numeroSocio || '' };
@@ -329,7 +329,7 @@ export const MetricsPage = () => {
 
                     const sortedRefs = Array.from(refCounts.entries())
                         .sort((a, b) => b[1] - a[1])
-                        .slice(0, 5);
+                        ?.slice(0, 5);
 
                     if (sortedRefs.length > 0) {
                         const uids = sortedRefs.map(s => s[0]);

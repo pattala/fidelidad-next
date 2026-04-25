@@ -520,7 +520,7 @@ export const DashboardPage = () => {
                         </div>
 
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 w-full md:w-auto">
-                            {forecastSummary.intervals.slice(0, 4).map((interval: any) => (
+                            {forecastSummary?.intervals?.slice(0, 4).map((interval: any) => (
                                 <div key={interval.key} className="relative group cursor-pointer" onClick={() => navigate('/admin/metrics')}>
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 group-hover:text-orange-500 transition-colors">
                                         {interval.label}

@@ -122,7 +122,7 @@ export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) 
                         setIsProfileMissing(false);
                         setLoading(false);
                     }
-                }, 4000); 
+                }, 1500); 
             }
         });
 
@@ -133,35 +133,11 @@ export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) 
         };
     }, []);
 
-    // --- GATILLO INTELIGENTE (PWA Autónoma) ---
-    // Este efecto avisa al motor de cambios, pero el motor decide si trabajar o no.
+    // --- GATILLO DEL MOTOR (Desactivado en PWA para optimizar recursos) ---
+    // El motor ahora solo corre por QStash o disparos manuales del Admin.
     useEffect(() => {
-        if (!user || isAdmin || isProfileMissing) return;
-
-        const triggerEngine = async () => {
-            try {
-                const token = await auth.currentUser?.getIdToken();
-                const API_KEY = import.meta.env.VITE_API_KEY || '';
-                
-                // Llamada silenciosa al motor diario
-                // Usamos trigger=pwa para que el servidor sepa que puede aplicar deduplicación
-                fetch('/api/engine-daily?mode=daily&trigger=pwa', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-api-key': API_KEY,
-                        'Authorization': `Bearer ${token}`
-                    }
-                }).catch(() => {});
-            } catch (e) {
-                // Silencioso, no queremos interrumpir la UI
-            }
-        };
-
-        // Debounce simple para no saturar ante cambios rápidos
-        const timer = setTimeout(triggerEngine, 2000);
-        return () => clearTimeout(timer);
-    }, [userData?.points, userData?.accumulated_balance, userData?.lastPointsUpdate]);
+        // Gatillo removido para ahorrar bateria y datos del socio.
+    }, []);
 
     // --- SINCRONIZACIÓN GLOBAL DE TIEMPO ---
     useEffect(() => {

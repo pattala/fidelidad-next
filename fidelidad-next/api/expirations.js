@@ -35,6 +35,8 @@ export default async function handler(req, res) {
         const argentinaDate = new Date(todayRaw.toLocaleString("en-US", { timeZone: "America/Argentina/Buenos_Aires" }));
         
         const simulatedDateStr = req.body?.simulatedDate || req.query?.simulatedDate;
+        const triggerSource = req.body?.source || req.query?.source || 'Sistema (QStash)';
+
         let referenceDate = argentinaDate;
         if (simulatedDateStr) {
             const [y, m, d] = simulatedDateStr.split(/[-/]/);
@@ -47,6 +49,14 @@ export default async function handler(req, res) {
 
         const isSilent = req.query?.silent === 'true' || req.body?.silent === true;
         const logResults = { processed: 0, expired: 0, notified: 0, details: [], errors: [] };
+
+        // Auditoría Inicial
+        await db.collection('audit_logs').add({
+            action: 'check_expirations',
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            trigger: triggerSource,
+            details: `Inicio de procesamiento. Fecha Ref: ${referenceDateStr}`
+        });
 
         // --- PASO A: RESTAR PUNTOS VENCIDOS ---
         const toExpireSnap = await db.collection('users').where('nextExpirationDate', '<=', referenceDateStr).get();

@@ -222,4 +222,21 @@ Para garantizar la integridad de los datos sin molestar a los clientes, el motor
 > Si disparás los motores **manualmente** desde la pestaña de Auditoría, el sistema ignorará los bloqueos de horario y enviará los mensajes de inmediato.
 
 ---
-*Manual Operativo Avanzado v2.6 (Audit Auto-Purge update)*
+
+## 12. 🚀 Optimización y Performance
+
+Para mantener la PWA rápida y ágil en todos los dispositivos móviles, se recomienda seguir estos estándares al cargar contenido:
+
+### 🖼️ Estándar de Imágenes
+*   **Formato:** Utilizar preferentemente **WebP** para fotografías y **SVG** para logos o iconos. El formato WebP reduce el peso hasta un 70% comparado con el JPG tradicional.
+*   **Peso Máximo Sugerido:** 
+    *   **Logos e Iconos:** < 40KB
+    *   **Premios y Promociones:** < 100KB
+    *   **Banners Principales:** < 200KB
+*   **Dimensiones:** No es necesario cargar imágenes de más de 1200px de ancho. Los celulares optimizan mejor archivos pequeños.
+
+### ⏱️ Carga Diferida (Lazy Loading)
+El sistema ha sido optimizado con **Carga Inteligente**. Esto significa que el código pesado de administración (gráficos, métricas, reportes) no es descargado por los celulares de tus socios. Solo vos, cuando entres como Administrador, descargarás esos componentes adicionales.
+
+---
+*Manual Operativo Avanzado v2.7 (Performance & PWA Optimization)*

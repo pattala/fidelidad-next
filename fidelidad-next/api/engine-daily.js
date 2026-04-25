@@ -28,22 +28,18 @@ export default async function handler(req, res) {
     }
 
     try {
-        const db = initFirebase();
         const simulatedDate = req.body?.simulatedDate || req.query?.simulatedDate;
+        const triggerSource = req.body?.source || req.query?.source || 'Sistema (QStash)';
         const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
 
-        // 1. Ejecutar Vencimientos de Puntos (Importación directa de lógica)
-        // Nota: Por simplicidad y evitar fetch internos, llamamos a los endpoints o ejecutamos su lógica.
-        // En esta versión limpia, el motor diario es el coordinador.
-        
         const results = { expirations: null, petAlerts: null };
 
-        // Llamada simple al motor de expiraciones (vía fetch interno para mantener desacople)
+        // Llamada simple al motor de expiraciones con el gatillo (source)
         try {
             const expRes = await fetch(`${PWA_URL}/api/expirations`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET },
-                body: JSON.stringify({ simulatedDate })
+                body: JSON.stringify({ simulatedDate, source: triggerSource })
             });
             results.expirations = await expRes.json();
         } catch (e) { console.error("Error calling expirations:", e); }
@@ -53,7 +49,7 @@ export default async function handler(req, res) {
             const petRes = await fetch(`${PWA_URL}/api/pet-alerts`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET },
-                body: JSON.stringify({ simulatedDate })
+                body: JSON.stringify({ simulatedDate, source: triggerSource })
             });
             results.petAlerts = await petRes.json();
         } catch (e) { console.error("Error calling pet-alerts:", e); }

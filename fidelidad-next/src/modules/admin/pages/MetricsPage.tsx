@@ -206,7 +206,15 @@ export const MetricsPage = () => {
                     referralCount: currentResults.referralCount
                 });
 
-                setRegistrationSources({ pwa: 0, local: 0 }); // Simplificado para velocidad
+                // Conteo liviano de orígenes (PWA vs Local)
+                const [pwaSnap, localSnap] = await Promise.all([
+                    getDocs(query(collection(db, 'users'), where('source', '==', 'pwa'))),
+                    getDocs(query(collection(db, 'users'), where('source', '==', 'local')))
+                ]);
+                setRegistrationSources({ 
+                    pwa: pwaSnap.size, 
+                    local: localSnap.size 
+                });
 
                 setPrevAdvancedStats({
                     averageTicket: prevResults.creditCount > 0 ? prevResults.totalMoneySpent / prevResults.creditCount : 0,

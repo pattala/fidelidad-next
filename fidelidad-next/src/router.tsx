@@ -1,16 +1,8 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
+import React, { lazy, Suspense } from "react";
 import { LoginPage } from "./modules/admin/pages/LoginPage";
 import { AdminLayout } from "./modules/admin/components/AdminLayout";
-import { DashboardPage } from "./modules/admin/pages/DashboardPage";
-import { ConfigPage } from "./modules/admin/pages/ConfigPage";
-import { ClientsPage } from "./modules/admin/pages/ClientsPage";
 import { AuthGuard } from "./modules/admin/components/AuthGuard";
-import { CampaignsPage } from "./modules/admin/pages/CampaignsPage";
-import { PrizesPage } from "./modules/admin/pages/PrizesPage";
-import { MetricsPage } from "./modules/admin/pages/MetricsPage";
-import { WhatsAppPage } from "./modules/admin/pages/WhatsAppPage";
-import { PushPage } from "./modules/admin/pages/PushPage";
-import { AdminProfilePage } from "./modules/admin/pages/AdminProfilePage";
 import { ClientLayout } from "./modules/client/components/ClientLayout";
 import { ClientHomePage } from "./modules/client/pages/ClientHomePage";
 import { ClientRewardsPage } from "./modules/client/pages/ClientRewardsPage";
@@ -22,8 +14,26 @@ import { ClientInboxPage } from "./modules/client/pages/ClientInboxPage";
 import { ClientPromosPage } from "./modules/client/pages/ClientPromosPage";
 import { ClientReferralsPage } from "./modules/client/pages/ClientReferralsPage";
 import { ClientAuthGuard } from "./modules/client/components/ClientAuthGuard";
-import { SystemLogsPage } from "./modules/admin/pages/SystemLogsPage";
 import { ClientAuthProvider } from "./modules/client/contexts/ClientAuthContext";
+
+// Lazy Loading para Módulos de Administración (Pesados)
+const DashboardPage = lazy(() => import("./modules/admin/pages/DashboardPage").then(m => ({ default: m.DashboardPage })));
+const ConfigPage = lazy(() => import("./modules/admin/pages/ConfigPage").then(m => ({ default: m.ConfigPage })));
+const ClientsPage = lazy(() => import("./modules/admin/pages/ClientsPage").then(m => ({ default: m.ClientsPage })));
+const CampaignsPage = lazy(() => import("./modules/admin/pages/CampaignsPage").then(m => ({ default: m.CampaignsPage })));
+const PrizesPage = lazy(() => import("./modules/admin/pages/PrizesPage").then(m => ({ default: m.PrizesPage })));
+const MetricsPage = lazy(() => import("./modules/admin/pages/MetricsPage").then(m => ({ default: m.MetricsPage })));
+const WhatsAppPage = lazy(() => import("./modules/admin/pages/WhatsAppPage").then(m => ({ default: m.WhatsAppPage })));
+const PushPage = lazy(() => import("./modules/admin/pages/PushPage").then(m => ({ default: m.PushPage })));
+const AdminProfilePage = lazy(() => import("./modules/admin/pages/AdminProfilePage").then(m => ({ default: m.AdminProfilePage })));
+const SystemLogsPage = lazy(() => import("./modules/admin/pages/SystemLogsPage").then(m => ({ default: m.SystemLogsPage })));
+
+// Componente para manejar la carga de los módulos lazy
+const PageLoader = () => (
+    <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+    </div>
+);
 
 export const router = createBrowserRouter([
     // Client App (PWA)
@@ -89,43 +99,43 @@ export const router = createBrowserRouter([
         children: [
             {
                 path: "dashboard",
-                element: <DashboardPage />
+                element: <Suspense fallback={<PageLoader />}><DashboardPage /></Suspense>
             },
             {
                 path: "clients",
-                element: <ClientsPage />
+                element: <Suspense fallback={<PageLoader />}><ClientsPage /></Suspense>
             },
             {
                 path: "campaigns",
-                element: <CampaignsPage />
+                element: <Suspense fallback={<PageLoader />}><CampaignsPage /></Suspense>
             },
             {
                 path: "prizes",
-                element: <PrizesPage />
+                element: <Suspense fallback={<PageLoader />}><PrizesPage /></Suspense>
             },
             {
                 path: "metrics",
-                element: <MetricsPage />
+                element: <Suspense fallback={<PageLoader />}><MetricsPage /></Suspense>
             },
             {
                 path: "config",
-                element: <ConfigPage />
+                element: <Suspense fallback={<PageLoader />}><ConfigPage /></Suspense>
             },
             {
                 path: "logs",
-                element: <SystemLogsPage />
+                element: <Suspense fallback={<PageLoader />}><SystemLogsPage /></Suspense>
             },
             {
                 path: "whatsapp",
-                element: <WhatsAppPage />
+                element: <Suspense fallback={<PageLoader />}><WhatsAppPage /></Suspense>
             },
             {
                 path: "push",
-                element: <PushPage />
+                element: <Suspense fallback={<PageLoader />}><PushPage /></Suspense>
             },
             {
                 path: "profile",
-                element: <AdminProfilePage />
+                element: <Suspense fallback={<PageLoader />}><AdminProfilePage /></Suspense>
             }
         ]
     }

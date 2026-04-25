@@ -675,6 +675,7 @@ function showFidelidadPanel() {
             return;
         }
         try {
+            console.log("🔍 [Club Fidelidad] Buscando en:", `${config.apiUrl}/api/assign-points?q=${encodeURIComponent(q)}`);
             const res = await fetch(`${config.apiUrl}/api/assign-points?q=${encodeURIComponent(q)}`, {
                 headers: { 'x-api-key': config.apiKey }
             });

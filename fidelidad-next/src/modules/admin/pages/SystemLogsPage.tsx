@@ -248,7 +248,7 @@ export const SystemLogsPage = () => {
             case 'prize_created': return 'Premio Creado';
             case 'prize_updated': return 'Premio Actualizado';
             case 'prize_deleted': return 'Premio Eliminado';
-            default: return type.replace(/_/g, ' ');
+            default: return (type || 'Acción').replace(/_/g, ' ');
         }
     };
 
@@ -586,7 +586,7 @@ export const SystemLogsPage = () => {
                                                                                                                                 detail.status === 'link_ready' ? 'bg-blue-100 text-blue-700 border-blue-200' :
                                                                                                                                     'bg-gray-100 text-gray-600 border-gray-200'
                                                                                                                     }`}>
-                                                                                                                    {detail.action ? detail.action.replace(/_/g, ' ') : 'Proceso'}
+                                                                                                                    {detail.action ? String(detail.action).replace(/_/g, ' ') : 'Proceso'}
                                                                                                                 </span>
                                                                                                             )}
                                                                                                             <div className="flex gap-1">

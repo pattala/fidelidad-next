@@ -1,5 +1,5 @@
-﻿// Club Fidelidad - Content Script (VERSI├ôN 31 - DRAG & LOGS FIX)
-console.log("­ƒÜÇ [Club Fidelidad] V31: Iniciando script con arreglos de arrastre y nuevos logs.");
+// Club Fidelidad - Content Script (VERSIÓN 31 - DRAG & LOGS FIX)
+console.log("🚀 [Club Fidelidad] V31: Iniciando script con arreglos de arrastre y nuevos logs.");
 
 let config = { apiUrl: '', apiKey: '' };
 let apiRatios = { base: 100, perPeso: 1, discountK: 0 };
@@ -7,27 +7,27 @@ let detectedAmount = 0;
 let detectedDiscounts = 0;
 let selectedClient = null;
 let currentPromos = []; // Store calculable promos globally for this context
-let enablePetModule = false; // Se actualiza desde la API seg├║n la instancia
+let enablePetModule = false; // Se actualiza desde la API según la instancia
 
-// Cargar configuraci├│n de storage
+// Cargar configuración de storage
 chrome.storage.local.get(['appName', 'apiUrl', 'apiKey'], (res) => {
     config = res;
-    console.log("ÔÜÖ´©Å [Integrador] Configura-Check:", res.apiUrl ? `URL: ${res.apiUrl}` : "ÔØî URL NO ENCONTRADA", res.apiKey ? "Ô£à API KEY OK" : "ÔØî KEY NO ENCONTRADA");
+    console.log("⚙️ [Integrador] Configura-Check:", res.apiUrl ? `URL: ${res.apiUrl}` : "❌ URL NO ENCONTRADA", res.apiKey ? "✅ API KEY OK" : "❌ KEY NO ENCONTRADA");
 
-    // --- DAILY CHECK: cumplea├▒os + vencimientos (1x/d├¡a, silencioso) ---
+    // --- DAILY CHECK: cumpleaños + vencimientos (1x/día, silencioso) ---
     if (res.apiUrl && res.apiKey) {
-        console.log("­ƒöì [Club Fidelidad] Consultando pendientes a servidor...");
+        console.log("🔍 [Club Fidelidad] Consultando pendientes a servidor...");
         const offsetStored = localStorage.getItem('fiddle_simulated_date_offset');
         const offset = offsetStored ? parseInt(offsetStored, 10) : 0;
         const now = new Date();
         if (offset !== 0) {
             now.setTime(now.getTime() + (offset * 24 * 60 * 60 * 1000));
         }
-        // --- EXPLICIT TRIGGER: CAMPAIGN ENGINE (Mantenimiento y Difusi├│n) ---
+        // --- EXPLICIT TRIGGER: CAMPAIGN ENGINE (Mantenimiento y Difusión) ---
         fetch(`${res.apiUrl}/api/engine-campaigns?trigger=extension`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-api-key': res.apiKey }
-        }).catch(e => console.error("ÔØî [Club Fidelidad] Error en trigger campa├▒as:", e.message));
+        }).catch(e => console.error("❌ [Club Fidelidad] Error en trigger campañas:", e.message));
 
         fetch(`${res.apiUrl}/api/engine-daily?mode=daily&trigger=extension`, {
             method: 'POST',
@@ -42,10 +42,10 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey'], (res) => {
             .then(data => {
                 if (!data) return;
 
-                // Si el motor ya corri├│ hoy (skip), pero avisa que los pending son 0,
-                // de todos modos hay que limpiar la pantalla si hab├¡a widget viejo.
+                // Si el motor ya corrió hoy (skip), pero avisa que los pending son 0,
+                // de todos modos hay que limpiar la pantalla si había widget viejo.
                 if (data.skip) {
-                    console.log("Ôä╣´©Å [Club Fidelidad] Motor ya ejecutado hoy. Validando pendientes...");
+                    console.log("ℹ️ [Club Fidelidad] Motor ya ejecutado hoy. Validando pendientes...");
                     const bCount = data.summary?.totalToday || 0;
                     const eCount = data.expirations?.summary?.totalInWindow || 0;
                     if (bCount === 0 && eCount === 0) {
@@ -57,7 +57,7 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey'], (res) => {
                     return;
                 }
 
-                console.log("­ƒôè [Club Fidelidad] Respuesta de pendientes:", data);
+                console.log("📊 [Club Fidelidad] Respuesta de pendientes:", data);
                 if (data.ok) {
                     const birthdayCount = data.birthdays?.totalToday || 0;
                     const expirationCount = data.expirations?.summary?.totalInWindow || 0;
@@ -65,13 +65,13 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey'], (res) => {
                     if (birthdayCount > 0 || expirationCount > 0) {
                         showGlobalAlert(birthdayCount, expirationCount, res.apiUrl);
                     } else {
-                        console.log("Ôä╣´©Å [Club Fidelidad] Nada pendiente para alertar hoy.");
+                        console.log("ℹ️ [Club Fidelidad] Nada pendiente para alertar hoy.");
                         const existingWidget = document.getElementById('cf-floating-alert');
                         if (existingWidget) existingWidget.remove();
                     }
                 }
             })
-            .catch(e => console.error("ÔØî [Club Fidelidad] Error en check diario:", e.message));
+            .catch(e => console.error("❌ [Club Fidelidad] Error en check diario:", e.message));
     }
 });
 
@@ -81,7 +81,7 @@ function showGlobalAlert(birthdays, expirations, adminUrl) {
     if (existingWidget) {
         const countEl = existingWidget.querySelector('#cf-alert-counts');
         if (countEl) {
-            countEl.innerHTML = `${birthdays > 0 ? `­ƒÄé C: ${birthdays}` : ''} ${expirations > 0 ? `ÔÅ│ V: ${expirations}` : ''}`;
+            countEl.innerHTML = `${birthdays > 0 ? `🎂 C: ${birthdays}` : ''} ${expirations > 0 ? `⏳ V: ${expirations}` : ''}`;
         }
         if (birthdays === 0 && expirations === 0) existingWidget.remove();
         return;
@@ -113,7 +113,7 @@ function showGlobalAlert(birthdays, expirations, adminUrl) {
                         box-shadow: 0 10px 25px rgba(245, 158, 11, 0.4); display: flex; align-items: center; justify-content: center;
                         cursor: grab; position: relative; border: 2px solid white;
                     ">
-                        <span style="font-size: 24px;">­ƒôó</span>
+                        <span style="font-size: 24px;">📢</span>
                         <span style="position: absolute; top: -5px; right: -5px; background: white; color: #b45309; font-size: 10px; font-weight: 900; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
                             ${birthdays + expirations}
                         </span>
@@ -133,13 +133,13 @@ function showGlobalAlert(birthdays, expirations, adminUrl) {
                         display: flex; align-items: center; gap: 12px; min-width: 200px;
                     ">
                         <div id="cf-drag-handle" style="cursor: grab; background: #fef3c7; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%;">
-                            <span style="font-size: 18px;">­ƒôó</span>
+                            <span style="font-size: 18px;">📢</span>
                         </div>
                         <div style="flex: 1;">
                             <h4 style="margin: 0; font-size: 13px; font-weight: 800; color: #92400e;">${config.appName || 'Sistema de Beneficios'}</h4>
                             <p id="cf-alert-counts" style="margin: 0; font-size: 11px; color: #b45309; line-height: 1.2;">
-                                ${birthdays > 0 ? `­ƒÄé C: ${birthdays}` : ''} 
-                                ${expirations > 0 ? `ÔÅ│ V: ${expirations}` : ''}
+                                ${birthdays > 0 ? `🎂 C: ${birthdays}` : ''} 
+                                ${expirations > 0 ? `⏳ V: ${expirations}` : ''}
                             </p>
                         </div>
                         <div style="display: flex; gap: 4px; align-items: center;">
@@ -147,8 +147,8 @@ function showGlobalAlert(birthdays, expirations, adminUrl) {
                                 background: #f59e0b; color: white; padding: 6px 12px; border-radius: 8px;
                                 text-decoration: none; font-size: 10px; font-weight: bold; text-transform: uppercase;
                             ">Panel</a>
-                            <button id="cf-alert-minimize" title="Minimizar" style="background:none; border:none; color:#d1d5db; cursor:pointer; font-size:20px;">ÔÇô</button>
-                            <button id="cf-alert-close" title="Cerrar" style="background:none; border:none; color:#d1d5db; cursor:pointer; font-size:20px;">├ù</button>
+                            <button id="cf-alert-minimize" title="Minimizar" style="background:none; border:none; color:#d1d5db; cursor:pointer; font-size:20px;">–</button>
+                            <button id="cf-alert-close" title="Cerrar" style="background:none; border:none; color:#d1d5db; cursor:pointer; font-size:20px;">×</button>
                         </div>
                     </div>
                 `;
@@ -204,7 +204,7 @@ function showGlobalAlert(birthdays, expirations, adminUrl) {
     });
 }
 
-// Refresca el contador C/V del widget si ya est├í visible
+// Refresca el contador C/V del widget si ya está visible
 async function refreshAlertCounts() {
     if (!config.apiUrl || !config.apiKey) return;
     try {
@@ -238,7 +238,7 @@ window.addEventListener('focus', () => {
     setTimeout(() => detectAmount(), 500);
 });
 
-// Funci├│n para buscar el monto en el sitio
+// Función para buscar el monto en el sitio
 function detectAmount() {
     const selectors = [
         '#cpbtc_total',
@@ -272,21 +272,21 @@ function detectAmount() {
         }
     }
 
-    // --- NUEVO: DETECCI├ôN DE DESCUENTOS (ITEMS NEGATIVOS) ---
+    // --- NUEVO: DETECCIÓN DE DESCUENTOS (ITEMS NEGATIVOS) ---
     let discountSum = 0;
     try {
         const rows = document.querySelectorAll('table tbody tr');
         rows.forEach(row => {
             const cells = row.querySelectorAll('td');
-            // La columna 6 (├¡ndice 5) suele ser el Total por ├¡tem
+            // La columna 6 (índice 5) suele ser el Total por ítem
             if (cells.length >= 6) {
                 const rowText = row.innerText.toUpperCase();
                 const totalText = cells[5].innerText.trim();
                 
                 // Detectamos por signo menos o por palabras clave de descuento/combo
                 const isNegative = totalText.startsWith('-') || totalText.includes('(');
-                // --- CONFIGURACI├ôN DE PALABRAS CLAVE ---
-                // Si necesitas agregar m├ís palabras, agr├®galas aqu├¡ abajo usando || rowText.includes('NUEVA_PALABRA')
+                // --- CONFIGURACIÓN DE PALABRAS CLAVE ---
+                // Si necesitas agregar más palabras, agrégalas aquí abajo usando || rowText.includes('NUEVA_PALABRA')
                 const hasDiscountKeyword = rowText.includes('DESCUENTO') || 
                                            rowText.includes('PROMO') || 
                                            rowText.includes('COMBO') || 
@@ -299,11 +299,11 @@ function detectAmount() {
             }
         });
         
-        // B├║squeda gen├®rica refinada si la tabla no dio resultados
+        // Búsqueda genérica refinada si la tabla no dio resultados
         if (discountSum === 0) {
             document.querySelectorAll('td, span, div').forEach(el => {
                 const text = el.innerText.trim();
-                // Regex mejorado para capturar montos negativos o entre par├®ntesis
+                // Regex mejorado para capturar montos negativos o entre paréntesis
                 if (((text.startsWith('-') || (text.startsWith('(') && text.endsWith(')'))) && text.length > 1 && text.length < 20 && !el.children.length)) {
                     const numeric = Math.abs(parseFloat(text.replace(/[^0-9.,-]/g, '').replace(',', '.')));
                     if (!isNaN(numeric) && numeric > 1) { 
@@ -320,7 +320,7 @@ function detectAmount() {
     if (!isNaN(val) && val > 0) {
         const panelExists = document.getElementById('fidelidad-panel');
         if (val !== detectedAmount || !panelExists) {
-            console.log(`­ƒÆ░ [Club Fidelidad] Monto detectado: ${val}`);
+            console.log(`💰 [Club Fidelidad] Monto detectado: ${val}`);
             detectedAmount = val;
             showFidelidadPanel();
         }
@@ -332,7 +332,7 @@ function detectAmount() {
 
 let detectTimeout = null;
 const observer = new MutationObserver(() => {
-    // Debounce reducido para activaci├│n m├ís r├ípida
+    // Debounce reducido para activación más rápida
     if (detectTimeout) clearTimeout(detectTimeout);
     detectTimeout = setTimeout(() => detectAmount(), 150);
 });
@@ -352,7 +352,7 @@ function showFidelidadPanel() {
             amountEl.innerHTML = `$ ${detectedAmount.toLocaleString('es-AR')} ${detectedDiscounts > 0 ? `<span style="font-size: 10px; color: #ef4444; font-weight: normal; margin-left:8px;">(Base: $${baseActual.toLocaleString('es-AR')})</span>` : ''}`;
         }
         
-        // Solo actualizar si el input est├í vac├¡o o a├║n no tiene el monto detectado (para no pisar cambios manuales)
+        // Solo actualizar si el input está vacío o aún no tiene el monto detectado (para no pisar cambios manuales)
         if (inputMonto && (!inputMonto.value || inputMonto.dataset.autoFilled === 'true')) {
             inputMonto.value = baseActual;
             inputMonto.dataset.autoFilled = 'true';
@@ -372,7 +372,7 @@ function showFidelidadPanel() {
                 <h1 id="cf-main-title">Sumar Puntos <span style="font-size: 10px; color: #e5e7eb; font-weight: normal; margin-left: 8px; opacity: 0.9;">(${config.appName || config.apiUrl || 'Configurando...'})</span></h1>
                 <span id="cf-client-name-header" style="font-size: 10px; opacity: 0.8; display: block;">Seleccione un cliente</span>
             </div>
-            <span class="fidelidad-close" id="fidelidad-close">├ù</span>
+            <span class="fidelidad-close" id="fidelidad-close">×</span>
         </div>
         <div class="fidelidad-body">
             <!-- BUSCADOR PREDICTIVO -->
@@ -422,15 +422,15 @@ function showFidelidadPanel() {
                             <input type="checkbox" id="cf-apply-promos" checked> Aplicar Promociones / Bonus
                         </label>
                         <div id="cf-promos-list" class="cf-promos-list">
-                            <!-- Se llena v├¡a API -->
+                            <!-- Se llena vía API -->
                         </div>
                         <label class="cf-checkbox-label" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #f3f4f6;">
                             <input type="checkbox" id="cf-notify-wa"> Notificar por WhatsApp
                         </label>
-                        <!-- Secci├│n Pet: se renderiza din├ímicamente si enablePetModule=true y el cliente tiene mascotas -->
+                        <!-- Sección Pet: se renderiza dinámicamente si enablePetModule=true y el cliente tiene mascotas -->
                         <div id="cf-pet-food-section" style="display:none; margin-top: 12px; padding-top: 12px; border-top: 1px solid #f3f4f6;">
                             <label class="cf-checkbox-label" style="color: #c2410c; font-weight: 700;">
-                                <input type="checkbox" id="cf-pet-food-check"> ­ƒÉ¥ Reposici├│n de Alimento
+                                <input type="checkbox" id="cf-pet-food-check"> 🐾 Reposición de Alimento
                             </label>
                             <div id="cf-pet-list" style="display:none; padding-left: 20px; margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px;"></div>
                         </div>
@@ -446,7 +446,7 @@ function showFidelidadPanel() {
                     <span style="font-size: 11px; color: #4b5563; font-weight: 700;">Saldo disponible: <strong id="cf-client-points-balance" style="color: #16a34a; font-size: 14px;">0</strong> pts</span>
                 </div>
                 <div id="cf-prizes-list" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 2px;">
-                    <!-- Se llena v├¡a API -->
+                    <!-- Se llena vía API -->
                 </div>
             </div>
 
@@ -454,17 +454,8 @@ function showFidelidadPanel() {
         </div>
     `;
 
-    // --- ESTRATEGIA DE INFILTRACI├ôN (v29) ---
-    const modalSelectors = ['.modal-content', '.modal-body', '.bootbox', '.ui-dialog-content', '.sky-modal', '[role="dialog"]'];
-    let injector = document.body;
-    for (let sel of modalSelectors) {
-        const found = document.querySelector(sel);
-        if (found) {
-            injector = found;
-            break;
-        }
-    }
-    injector.appendChild(panel);
+    // --- SIEMPRE FLOTANTE (v36) ---
+    document.body.appendChild(panel);
 
     // --- DRAGGABLE LOGIC ---
     let isDragging = false;
@@ -508,7 +499,7 @@ function showFidelidadPanel() {
     const tabCanjes = document.getElementById('cf-tab-content-canjes');
     const prizesList = document.getElementById('cf-prizes-list');
     const mainTitle = document.getElementById('cf-main-title');
-    // MANTENER SIEMPRE EN PESOS EN LA EXTENSI├ôN
+    // MANTENER SIEMPRE EN PESOS EN LA EXTENSIÓN
     let isPesos = true;
 
     inputMonto.oninput = () => updatePointsPreview();
@@ -553,7 +544,7 @@ function showFidelidadPanel() {
             });
         }
 
-        // --- FACTOR K: RECUPERACI├ôN POR DESCUENTO ---
+        // --- FACTOR K: RECUPERACIÓN POR DESCUENTO ---
         let bonusK = 0;
         if (isPesos && detectedDiscounts > 0 && apiRatios.discountK > 0) {
             const ptsPerCurrency = (apiRatios.perPeso || 1) / (apiRatios.base || 100);
@@ -566,13 +557,13 @@ function showFidelidadPanel() {
         previewContainer.style.display = 'block';
         
         previewContainer.innerHTML = `
-            <div style="font-weight: bold; color: #374151;">Ô£¿ Se asignar├ín: <strong style="color: #059669;">${totalFinal} puntos</strong></div>
+            <div style="font-weight: bold; color: #374151;">✨ Se asignarán: <strong style="color: #059669;">${totalFinal} puntos</strong></div>
             <div style="font-size: 10px; color: #6b7280; margin-top: 2px;">
-                C├ílculo: $${val.toLocaleString('es-AR')} / ${apiRatios.base} x ${apiRatios.perPeso}
+                Cálculo: $${val.toLocaleString('es-AR')} / ${apiRatios.base} x ${apiRatios.perPeso}
                 ${(bonus - bonusK) > 0 ? ` + ${bonus - bonusK} pts promos` : ''}
                 ${bonusK > 0 ? ` + ${bonusK} pts Bono Descuento (K)` : ''}
             </div>
-            ${(detectedDiscounts > 0) ? `<div style="font-size: 10px; color: #ef4444; font-weight: 700;">­ƒôë El sistema rest├│ $${detectedDiscounts.toLocaleString('es-AR')} de descuentos detectados.</div>` : ''}
+            ${(detectedDiscounts > 0) ? `<div style="font-size: 10px; color: #ef4444; font-weight: 700;">📉 El sistema restó $${detectedDiscounts.toLocaleString('es-AR')} de descuentos detectados.</div>` : ''}
         `;
     }
 
@@ -645,7 +636,7 @@ function showFidelidadPanel() {
 
     async function searchClients(q) {
         if (!config.apiUrl || !config.apiKey) {
-            statusDiv.innerText = 'ÔÜá´©Å Configura la API';
+            statusDiv.innerText = '⚠️ Configura la API';
             return;
         }
         try {
@@ -657,21 +648,21 @@ function showFidelidadPanel() {
                 apiRatios.base = data.pointsMoneyBase || 100;
                 apiRatios.perPeso = data.pointsPerPeso || 1;
                 apiRatios.discountK = data.discountRecoveryRatio || 0;
-                enablePetModule = data.enablePetModule === true; // Flag din├ímico de la instancia
+                enablePetModule = data.enablePetModule === true; // Flag dinámico de la instancia
 
                 if (data.clients && data.clients.length > 0) {
                     renderResults(data.clients, data.activePromotions || [], data.activePrizes || []);
-                    // Refrescar contador C/V del widget (igual que promos: datos frescos en cada b├║squeda)
+                    // Refrescar contador C/V del widget (igual que promos: datos frescos en cada búsqueda)
                     refreshAlertCounts();
                 } else {
                     resultsDiv.innerHTML = '<div class="fidelidad-result-item" style="cursor:default; color:#666; text-align:center;">No se encontraron socios</div>';
                     resultsDiv.style.display = 'block';
                 }
             } else {
-                statusDiv.innerText = 'ÔØî Error de conexi├│n';
+                statusDiv.innerText = '❌ Error de conexión';
             }
         } catch (e) {
-            statusDiv.innerText = 'ÔØî Error de conexi├│n';
+            statusDiv.innerText = '❌ Error de conexión';
         }
     }
 
@@ -702,11 +693,11 @@ function showFidelidadPanel() {
                 tabsContainer.style.display = 'flex';
                 statusDiv.innerText = '';
 
-                // Actualizar balance en pesta├▒a canjes
+                // Actualizar balance en pestaña canjes
                 const balanceEl = document.getElementById('cf-client-points-balance');
                 if (balanceEl) balanceEl.innerText = c.accumulated_points ?? (c.points ?? (c.puntos ?? 0));
 
-                // --- SECCI├ôN PET FOOD: Mostrar solo si el m├│dulo est├í activo y el cliente tiene mascotas ---
+                // --- SECCIÓN PET FOOD: Mostrar solo si el módulo está activo y el cliente tiene mascotas ---
                 const petFoodSection = document.getElementById('cf-pet-food-section');
                 const petListDiv = document.getElementById('cf-pet-list');
                 const petFoodCheck = document.getElementById('cf-pet-food-check');
@@ -715,7 +706,7 @@ function showFidelidadPanel() {
                 if (petFoodSection) {
                     if (enablePetModule && clientPets.length > 0) {
                         petFoodSection.style.display = 'block';
-                        // Renderizar checkboxes de mascotas si hay m├ís de una
+                        // Renderizar checkboxes de mascotas si hay más de una
                         if (petListDiv) {
                             if (clientPets.length > 1) {
                                 petListDiv.style.display = 'flex';
@@ -746,7 +737,7 @@ function showFidelidadPanel() {
                 // --- TAB CANJES: Renderizar Premios ---
                 renderPrizes(allPrizes, (c.accumulated_points ?? (c.points ?? (c.puntos ?? 0))));
 
-                // Renderizar Promos con L├│gica de Horarios (Paridad con Admin)
+                // Renderizar Promos con Lógica de Horarios (Paridad con Admin)
                 currentPromos = promotions || [];
                 const activePromos = currentPromos.filter(p => p.rewardType === 'FIXED' || p.rewardType === 'MULTIPLIER' || p.rewardType === 'TEXT' || p.rewardType === 'INFO');
 
@@ -785,7 +776,7 @@ function showFidelidadPanel() {
                         const label = rType === 'MULTIPLIER' ? `Multiplicador x${rValue}` : (rType === 'FIXED' ? `Bonus +${rValue} pts` : (rText || 'Promo activa'));
                         const title = p.title || p.name;
                         const timeRange = (p.startTime || p.endTime) ?
-                            `<span class="cf-promo-time">ÔÅ░ ${p.startTime || '00:00'} a ${p.endTime || '23:59'} hs</span>` : '';
+                            `<span class="cf-promo-time">⏰ ${p.startTime || '00:00'} a ${p.endTime || '23:59'} hs</span>` : '';
 
                         return `
                             <label class="cf-promo-item" data-promo-id="${p.id}">
@@ -794,7 +785,7 @@ function showFidelidadPanel() {
                                     <div style="display: flex; align-items: center; gap: 4px;">
                                         <span class="cf-promo-name">${title}</span>
                                         <div class="cf-promo-status-container" data-id="${p.id}"></div>
-                                        ${isFlash ? '<span class="cf-promo-status" style="background:#fef3c7; color:#92400e; font-size: 7px; border: 1px solid #f59e0b;">ÔÜí FLASH</span>' : ''}
+                                        ${isFlash ? '<span class="cf-promo-status" style="background:#fef3c7; color:#92400e; font-size: 7px; border: 1px solid #f59e0b;">⚡ FLASH</span>' : ''}
                                     </div>
                                     <div style="display: flex; align-items: center; gap: 6px; margin-top: 2px;">
                                         <span class="cf-promo-desc">${label}</span>
@@ -805,7 +796,7 @@ function showFidelidadPanel() {
                         `;
                     }).join('');
 
-                    // Funci├│n de actualizaci├│n de contadores
+                    // Función de actualización de contadores
                     if (window.cfTimerInterval) clearInterval(window.cfTimerInterval);
 
                     const updateTimers = () => {
@@ -848,7 +839,7 @@ function showFidelidadPanel() {
                                 } else {
                                     const isNotStartedYet = p.startTime && curHHmm < p.startTime;
                                     if (isNotStartedYet) {
-                                        statusHtml = `<span class="cf-promo-status" style="background:#f3f4f6; color:#6b7280;">PR├ôXIMAMENTE</span>`;
+                                        statusHtml = `<span class="cf-promo-status" style="background:#f3f4f6; color:#6b7280;">PRÓXIMAMENTE</span>`;
                                     } else {
                                         // Active: Show countdown until the end time
                                         const [endH, endM] = (p.endTime || '23:59').split(':').map(Number);
@@ -864,7 +855,7 @@ function showFidelidadPanel() {
                                         const timeStr = `${mm}:${ss.toString().padStart(2, '0')}`;
 
                                         statusHtml = `
-                                            <span class="cf-promo-status active">┬íACTIVA!</span>
+                                            <span class="cf-promo-status active">¡ACTIVA!</span>
                                             <span class="cf-promo-time" style="color:#166534; font-weight:900;">TERMINA EN: ${timeStr}</span>
                                         `;
                                     }
@@ -904,7 +895,7 @@ function showFidelidadPanel() {
 
         const amount = parseFloat(document.getElementById('cf-input-amount').value);
         if (isNaN(amount) || amount <= 0) {
-            statusDiv.innerText = 'ÔØî Ingrese un monto v├ílido';
+            statusDiv.innerText = '❌ Ingrese un monto válido';
             return;
         }
 
@@ -914,14 +905,14 @@ function showFidelidadPanel() {
         const applyWhatsApp = document.getElementById('cf-notify-wa').checked;
         const applyPromos = document.getElementById('cf-apply-promos').checked;
 
-        // Pet Food Data (solo si el m├│dulo esta activo en esta instancia)
+        // Pet Food Data (solo si el módulo esta activo en esta instancia)
         const petFoodCheck = document.getElementById('cf-pet-food-check');
         const isPetFood = petFoodCheck ? petFoodCheck.checked : false;
         const petIds = isPetFood
             ? Array.from(document.querySelectorAll('.cf-pet-check:checked')).map(el => el.value)
             : [];
 
-        // Si no seleccion├│ ninguna mascota pero marc├│ el check, tomar todas
+        // Si no seleccionó ninguna mascota pero marcó el check, tomar todas
         const finalPetIds = (isPetFood && petIds.length === 0 && selectedClient.pets?.length > 0)
             ? selectedClient.pets.map(p => p.id)
             : petIds;
@@ -961,12 +952,12 @@ function showFidelidadPanel() {
                 }
                 renderSuccess(data);
             } else {
-                statusDiv.innerText = `ÔØî Error: ${data.error}`;
+                statusDiv.innerText = `❌ Error: ${data.error}`;
                 submitBtn.disabled = false;
                 submitBtn.innerText = 'REINTENTAR';
             }
         } catch (e) {
-            statusDiv.innerText = 'ÔØî Error de conexi├│n';
+            statusDiv.innerText = '❌ Error de conexión';
             submitBtn.disabled = false;
         }
     };
@@ -975,14 +966,14 @@ function showFidelidadPanel() {
         const body = document.querySelector('.fidelidad-body');
         body.innerHTML = `
             <div class="fidelidad-success" style="text-align: center; color: #16a34a; padding: 10px;">
-                <div style="font-size: 40px;">Ô£à</div>
-                <div style="font-weight: bold; font-size: 18px; margin: 5px 0;">┬íPuntos Asignados!</div>
+                <div style="font-size: 40px;">✅</div>
+                <div style="font-weight: bold; font-size: 18px; margin: 5px 0;">¡Puntos Asignados!</div>
                 <div style="font-size: 14px; color: #666; margin-bottom: 15px;">Se sumaron ${data.pointsAdded} puntos a ${selectedClient.name}.</div>
                 ${data.whatsappLink ? `<a href="${data.whatsappLink}" target="_blank" class="fidelidad-wa-link" id="cf-wa-link-success">RE-ENVIAR WHATSAPP</a>` : ''}
                 <button class="fidelidad-button" style="background:#f3f4f6; color:#374151; margin-top:15px; border: 1px solid #d1d5db;" id="cf-final-close">CERRAR</button>
             </div>
         `;
-        // Auto-open WhatsApp si hay link (misma l├│gica que el panel admin)
+        // Auto-open WhatsApp si hay link (misma lógica que el panel admin)
         if (data.whatsappLink) {
             setTimeout(() => {
                 const link = document.createElement('a');
@@ -1025,7 +1016,7 @@ function showFidelidadPanel() {
 
             card.innerHTML = `
                 <div style="height: 60px; background: #f9fafb; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
-                    ${p.image ? `<img src="${p.image}" style="width: 100%; height: 100%; object-fit: cover;">` : '<span style="font-size: 24px;">­ƒÄü</span>'}
+                    ${p.image ? `<img src="${p.image}" style="width: 100%; height: 100%; object-fit: cover;">` : '<span style="font-size: 24px;">🎁</span>'}
                 </div>
                 <div style="flex: 1;">
                     <div style="font-size: 11px; font-weight: 800; color: #1f2937; line-height: 1.2; height: 26px; overflow: hidden;">${p.name}</div>
@@ -1048,7 +1039,7 @@ function showFidelidadPanel() {
     }
 
     async function redeemPrize(prize) {
-        if (!confirm(`┬┐Canjear "${prize.name}" por ${prize.pointsRequired} puntos para ${selectedClient.name}?`)) return;
+        if (!confirm(`¿Canjear "${prize.name}" por ${prize.pointsRequired} puntos para ${selectedClient.name}?`)) return;
 
         const prizesList = document.getElementById('cf-prizes-list');
         const originalContent = prizesList.innerHTML;
@@ -1072,7 +1063,7 @@ function showFidelidadPanel() {
                 prizesList.innerHTML = originalContent;
             }
         } catch (e) {
-            alert("Error de conexi├│n al procesar canje");
+            alert("Error de conexión al procesar canje");
             prizesList.innerHTML = originalContent;
         }
     }
@@ -1081,10 +1072,10 @@ function showFidelidadPanel() {
         const body = document.querySelector('.fidelidad-body');
         body.innerHTML = `
             <div class="fidelidad-success" style="text-align: center; color: #16a34a; padding: 10px;">
-                <div style="font-size: 40px;">­ƒÄü</div>
-                <div style="font-weight: bold; font-size: 18px; margin: 5px 0;">┬íCanje Exitoso!</div>
+                <div style="font-size: 40px;">🎁</div>
+                <div style="font-weight: bold; font-size: 18px; margin: 5px 0;">¡Canje Exitoso!</div>
                 <div style="font-size: 14px; color: #666; margin-bottom: 15px;">
-                    ${selectedClient.name} canje├│ <strong>${prize.name}</strong>.<br>
+                    ${selectedClient.name} canjeó <strong>${prize.name}</strong>.<br>
                     Nuevo saldo: <strong>${data.newBalance} pts</strong>.
                 </div>
                 ${data.whatsappLink ? `<a href="${data.whatsappLink}" target="_blank" class="fidelidad-wa-link">ENVIAR WHATSAPP</a>` : ''}

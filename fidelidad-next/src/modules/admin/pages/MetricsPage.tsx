@@ -404,9 +404,8 @@ export const MetricsPage = () => {
         toast.success("CSV exportado correctamente");
     };
 
-    if (loading) {
-        return <div className="p-10 text-center text-gray-400">Cargando métricas...</div>;
-    }
+    // Eliminamos el early return para que siempre se vea la estructura y el cartel de "Actualizando"
+    const showSkeleton = loading && !chartData.length;
 
     return (
         <div className="space-y-8 animate-fade-in text-gray-800 pb-12">
@@ -418,11 +417,14 @@ export const MetricsPage = () => {
                     <p className="text-gray-500 mt-1">Analiza el rendimiento de tu programa de fidelidad.</p>
                 </div>
 
-                {/* CARTEL DE ACTUALIZACIÓN LLAMATIVO */}
+                {/* CARTEL DE ACTUALIZACIÓN LLAMATIVO - POSICIÓN FIJA O DESTACADA */}
                 {isUpdating && (
-                    <div className="flex items-center gap-3 bg-orange-500 text-white px-6 py-3 rounded-2xl shadow-xl shadow-orange-200 animate-bounce transition-all">
-                        <div className="w-3 h-3 bg-white rounded-full animate-ping"></div>
-                        <span className="font-black text-sm tracking-widest">🔄 ACTUALIZANDO DATOS...</span>
+                    <div className="flex items-center gap-3 bg-gradient-to-r from-orange-600 to-orange-400 text-white px-8 py-4 rounded-3xl shadow-2xl shadow-orange-300/50 animate-pulse transition-all border-2 border-white/20">
+                        <div className="relative flex h-3 w-3">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+                        </div>
+                        <span className="font-extrabold text-sm tracking-[0.2em] uppercase">Sincronizando Métricas en Tiempo Real...</span>
                     </div>
                 )}
                 <div className="flex flex-wrap items-center gap-4">
@@ -472,8 +474,12 @@ export const MetricsPage = () => {
                 </div>
             </div>
 
-            {false ? (
-                null
+            {showSkeleton ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {[1, 2, 3].map(i => (
+                        <div key={i} className="bg-gray-100 h-32 rounded-2xl animate-pulse" />
+                    ))}
+                </div>
             ) : (
                 <>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -760,18 +766,20 @@ export const MetricsPage = () => {
                                 <TrendingUp size={20} className="text-blue-500" /> Puntos Emitidos vs Canjeados
                             </h3>
                             <div style={{ width: '100%', height: 350 }}>
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <LineChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                                        <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                                        <XAxis dataKey="name" fontSize={12} tickMargin={10} />
-                                        <YAxis fontSize={12} />
-                                        <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-                                        <Legend />
-                                        <Line type="monotone" dataKey="emitted" name="Emitidos" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                                        <Line type="monotone" dataKey="redeemed" name="Canjeados" stroke="#f97316" strokeWidth={3} dot={{ r: 4 }} />
-                                        <Line type="monotone" dataKey="expired" name="Vencidos" stroke="#ef4444" strokeWidth={3} dot={{ r: 4 }} />
-                                    </LineChart>
-                                </ResponsiveContainer>
+                                {!showSkeleton ? (
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <LineChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                            <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                                            <XAxis dataKey="name" fontSize={12} tickMargin={10} />
+                                            <YAxis fontSize={12} />
+                                            <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                                            <Legend />
+                                            <Line type="monotone" dataKey="emitted" name="Emitidos" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                                            <Line type="monotone" dataKey="redeemed" name="Canjeados" stroke="#f97316" strokeWidth={3} dot={{ r: 4 }} />
+                                            <Line type="monotone" dataKey="expired" name="Vencidos" stroke="#ef4444" strokeWidth={3} dot={{ r: 4 }} />
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                ) : <div className="w-full h-full bg-gray-50 rounded-xl animate-pulse" /> }
                             </div>
                         </div>
                         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 min-w-0">
@@ -779,16 +787,18 @@ export const MetricsPage = () => {
                                 <DollarSign size={20} className="text-green-500" /> Dinero Devuelto (Estimado)
                             </h3>
                             <div style={{ width: '100%', height: 350 }}>
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                                        <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                                        <XAxis dataKey="name" fontSize={12} />
-                                        <YAxis fontSize={12} />
-                                        <Tooltip cursor={{ fill: '#f3f4f6' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-                                        <Legend />
-                                        <Bar dataKey="money" name="Dinero ($)" fill="#22c55e" radius={[4, 4, 0, 0]} barSize={40} />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                                {!showSkeleton ? (
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                            <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                                            <XAxis dataKey="name" fontSize={12} />
+                                            <YAxis fontSize={12} />
+                                            <Tooltip cursor={{ fill: '#f3f4f6' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                                            <Legend />
+                                            <Bar dataKey="money" name="Dinero ($)" fill="#22c55e" radius={[4, 4, 0, 0]} barSize={40} />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                ) : <div className="w-full h-full bg-gray-50 rounded-xl animate-pulse" /> }
                             </div>
                         </div>
                     </div>

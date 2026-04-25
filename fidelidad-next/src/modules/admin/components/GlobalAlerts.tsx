@@ -220,6 +220,7 @@ export const GlobalAlerts = () => {
                                     <div className="flex justify-between items-center">
                                         <div className="flex-1">
                                             <h5 className="font-extrabold text-white text-lg tracking-tight">{u.name || u.nombre || 'Socio'}</h5>
+                                            <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider mt-0.5">Socio N°: {u.socioNumber || 'S/N'}</p>
                                             <p className="text-[11px] text-orange-400 font-black uppercase flex items-center gap-2 mt-1"><Calendar size={12}/> Vence: {u.nextExpirationDate?.split('-').reverse().join('/')}</p>
                                         </div>
                                         <button onClick={() => setShouldNotify(prev => ({...prev, [u.id]: !isMsg}))} 

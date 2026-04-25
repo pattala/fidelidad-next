@@ -134,16 +134,19 @@ export const MetricsPage = () => {
                     if (!isTotalMode) {
                         constraints.push(where('date', '>=', start), where('date', '<=', end));
                     }
-                    const q = query(collection(db, 'transactions'), ...constraints);
+                    // Usamos collectionGroup para agarrar el historial real de todos los usuarios
+                    const q = query(collectionGroup(db, 'points_history'), ...constraints);
                     const snap = await getDocs(q);
                     return snap.docs.map(d => {
                         const data = d.data();
+                        const date = data.date?.toDate ? data.date.toDate() : (data.date ? new Date(data.date) : new Date());
                         return {
                             ...data,
                             id: d.id,
-                            date: data.date?.toDate ? data.date.toDate() : new Date(),
-                            points: data.points || 0,
-                            moneySpent: data.moneySpent || (data.type === 'credit' ? data.amount : 0) || 0
+                            uid: d.ref.parent.parent?.id, // ID del usuario (padre del historial)
+                            date,
+                            points: Math.abs(data.amount || 0),
+                            moneySpent: data.moneySpent || 0
                         };
                     });
                 };
@@ -171,7 +174,7 @@ export const MetricsPage = () => {
                         const current = grouped.get(key) || { emitted: 0, redeemed: 0, expired: 0, money: 0, referrals: 0 };
 
                         if (mov.type === 'credit') {
-                            const pts = Number(mov.points || 0);
+                            const pts = Number(mov.amount || mov.points || 0);
                             current.emitted += pts;
                             tEmitted += pts;
 
@@ -186,13 +189,20 @@ export const MetricsPage = () => {
                                 creditCount++;
                                 const userId = mov.uid || mov.userId;
                                 if (userId) spenders.set(userId, (spenders.get(userId) || 0) + money);
-                                heatmap[mov.date.getDay()][mov.date.getHours()]++;
+                                // Siempre asegurar que mov.date es Date antes de getDay
+                                if (mov.date instanceof Date) {
+                                    heatmap[mov.date.getDay()][mov.date.getHours()]++;
+                                }
                             }
                             activeUids.add(mov.uid || mov.userId);
                         } else {
                             const pts = Math.abs(Number(mov.points || 0));
                             const concept = (mov.concept || '').toLowerCase();
-                            const isEx = concept.includes('vencimiento') || concept.includes('vencidos') || concept.includes('expirados');
+                            const isEx = mov.isExpirationAdjustment === true || 
+                                         concept.includes('vencimiento') || 
+                                         concept.includes('vencidos') || 
+                                         concept.includes('expirados') ||
+                                         concept.includes('vencieron');
 
                             if (isEx) { current.expired += pts; tExpired += pts; }
                             else {
@@ -229,6 +239,7 @@ export const MetricsPage = () => {
 
                 allUsersSnap.forEach(uDoc => {
                     const u = uDoc.data();
+                    if (u.role === 'admin') return; // NO CONTAR ADMINS
                     const uPoints = Number(u.points || 0);
                     totalSystemPoints += uPoints;
                     
@@ -259,13 +270,14 @@ export const MetricsPage = () => {
                     potentialRevenue: realCirculation * realPV,
                     creditCount: currentResults.creditCount,
                     referralCount: currentResults.referralCount,
-                    projectedExpirations: totalProjectedNext30
+                    projectedExpirations: totalProjectedNext30,
+                    circulatingPoints: realCirculation
                 });
 
                 // PARALELIZACIÓN DE CONSULTAS DE USUARIOS (SPEED BOOST)
                 const [pwaCount, localCount, snapTopBalance, snapVisitors, snapTopHistoryOrReferrals] = await Promise.all([
-                    getCountFromServer(query(collection(db, 'users'), where('source', '==', 'pwa'))),
-                    getCountFromServer(query(collection(db, 'users'), where('source', '==', 'local'))),
+                    getCountFromServer(query(collection(db, 'users'), where('source', '==', 'pwa'), where('role', '!=', 'admin'))),
+                    getCountFromServer(query(collection(db, 'users'), where('source', '==', 'local'), where('role', '!=', 'admin'))),
                     getDocs(query(collection(db, 'users'), orderBy('points', 'desc'), limit(15))),
                     getDocs(query(collection(db, 'users'), orderBy('visitCount', 'desc'), limit(15))),
                     appConfig?.referrals?.challenge?.enabled ? 
@@ -547,6 +559,14 @@ export const MetricsPage = () => {
                                             <TrendIndicator current={totalStats.expired} prev={prevTotalStats.expired} isRed />
                                         </div>
                                         <div className="p-3 bg-red-50 text-red-600 rounded-xl"><TrendingUp size={24} className="rotate-180" /></div>
+                                    </div>
+                                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-indigo-100 flex items-center justify-between">
+                                        <div>
+                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Puntos Circulando</p>
+                                            <p className="text-2xl font-black text-indigo-600">{advancedStats.circulatingPoints?.toLocaleString() || '...'}</p>
+                                            <p className="text-[10px] text-gray-400 mt-1 italic">Pasivo real descontando expirados</p>
+                                        </div>
+                                        <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl"><Sparkles size={24} /></div>
                                     </div>
                                 </>
                             );

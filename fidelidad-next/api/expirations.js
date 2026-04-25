@@ -220,7 +220,7 @@ export default async function handler(req, res) {
         const inWindow = (hr >= startHr && hr < endHr) || isManual || !!simulatedDateStr;
 
         if (!isSilent && inWindow && config.messaging?.enableExpirationWarnings !== false) {
-             const warningDays = config.warnings?.expirationDays || 7;
+             const warningDays = config.messaging?.expirationWarningDays || 7;
              const warningDate = new Date(referenceDate);
              warningDate.setDate(warningDate.getDate() + warningDays);
              const warningDateStr = warningDate.toISOString().split('T')[0];
@@ -228,12 +228,20 @@ export default async function handler(req, res) {
              // Buscamos socios que tengan SU PRÓXIMO vencimiento en la ventana de aviso
              const proactiveSnap = await db.collection('users')
                 .where('nextExpirationDate', '<=', warningDateStr)
-                .where('nextExpirationDate', '>', referenceDateStr)
+                .where('nextExpirationDate', '>=', referenceDateStr)
                 .get();
 
              for (const userDoc of proactiveSnap.docs) {
                  try {
                      const userData = userDoc.data();
+                     const userId = userDoc.id;
+
+                     // EVITAR SPAM: Si ya notificamos a este usuario para esta fecha de vencimiento, saltar.
+                     // Guardamos el 'nextExpirationDate' para el cual ya avisamos.
+                     if (userData.lastExpirationNoticeDate === userData.nextExpirationDate) {
+                         continue;
+                     }
+
                      const historyRef = userDoc.ref.collection('points_history');
                      
                      // Escaneamos qué vence en esta ventana de 7 días
@@ -281,6 +289,12 @@ export default async function handler(req, res) {
                              date: admin.firestore.Timestamp.fromDate(referenceDate),
                              read: false,
                              type: 'system'
+                         });
+
+                         // Marcar como notificado para esta fecha
+                         await userDoc.ref.update({
+                             lastExpirationNoticeDate: userData.nextExpirationDate,
+                             lastExpirationNoticeAt: admin.firestore.Timestamp.fromDate(referenceDate)
                          });
 
                          logResults.notified++;

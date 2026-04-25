@@ -134,17 +134,20 @@ export const ClientsPage = () => {
 
 
     // 1. Cargar Clientes y Config
-    const fetchData = async () => {
+    const fetchData = async (cachedSnapshot?: any) => {
         try {
-            // Clientes
-            const q = query(collection(db, 'users'));
-            const snapshot = await getDocs(q);
-
             // 1. Fetch Config first to use it in calculations
-            const freshConfig = await ConfigService.get();
-            setConfig(freshConfig);
+            const freshConfig = config || await ConfigService.get();
+            if (!config) setConfig(freshConfig);
 
-            const loadedClients = snapshot.docs.map((doc) => {
+            // Si no tenemos snapshot, lo buscamos
+            let snapshot = cachedSnapshot;
+            if (!snapshot) {
+                const q = query(collection(db, 'users'), where('role', '!=', 'admin'));
+                snapshot = await getDocs(q);
+            }
+
+            const loadedClients = snapshot.docs.map((doc: any) => {
                 const data = doc.data();
 
                 // Address Normalization (Flattening)
@@ -199,7 +202,7 @@ export const ClientsPage = () => {
 
             // Ordenar en memoria por createdAt desc (clientes más nuevos primero)
             const sortedAndFiltered = loadedClients
-                .filter((c: Client) => (c.name || c.dni) && c.role !== 'admin')
+                .filter((c: Client) => (c.name || c.dni))
                 .sort((a: Client, b: Client) => {
                     const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
                     const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
@@ -222,13 +225,10 @@ export const ClientsPage = () => {
             if (snap.exists()) setConfig(snap.data());
         });
 
-        // Clients listener (Real-time). Quitamos orderBy para no excluir docs que no tengan el campo 'createdAt'
-        const q = query(collection(db, 'users'));
-        const unsubscribe = onSnapshot(q, async (snapshot) => {
-            // We still need the complex calculations, so we call fetchData but optimized
-            // To avoid flickering, we'll do the fetch and then set. 
-            // In a real app we'd subscribe to history too, but that's heavy.
-            fetchData();
+        // Clients listener (Real-time) con filtro de rol en el servidor
+        const q = query(collection(db, 'users'), where('role', '!=', 'admin'));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            fetchData(snapshot);
         });
 
         return () => {

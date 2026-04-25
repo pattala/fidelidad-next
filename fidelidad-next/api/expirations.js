@@ -79,6 +79,9 @@ async function handleCheck(req, res, db) {
         let todayStr = referenceDate.toISOString().split('T')[0]; // Real today
         let refStr = todayStr; // Effective today (simulation or real)
 
+        const simCfg = config.dateSimulatorConfigs || {};
+        const simulatedDateBody = req.body?.simulatedDate || req.query?.simulatedDate;
+
         if (simulatedDateBody && simCfg.expirations) {
             if (simulatedDateBody.includes('T')) {
                 const [datePart] = simulatedDateBody.split('T');

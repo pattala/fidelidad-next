@@ -341,7 +341,7 @@ export const MetricsPage = () => {
             numFormat.format(m.amount || 0)
         ]);
 
-        // Usamos punto y coma (;) para compatibilidad con Excel en espa├▒ol
+        // Usamos punto y coma (;) para compatibilidad con Excel en español
         const csvContent = [headers, ...rows].map(e => e.join(";")).join("\n");
 
         // Agregar BOM para que Excel reconozca UTF-8 correctamente
@@ -379,7 +379,7 @@ export const MetricsPage = () => {
                     <div className="flex bg-white rounded-xl shadow-sm border border-gray-200 p-1">
                         {[
                             { id: 'today', label: 'Hoy' },
-                            { id: '30_days', label: '30 D├¡as' },
+                            { id: '30_days', label: '30 Días' },
                             { id: '6_months', label: '6 Meses' },
                             { id: 'total', label: 'Acumulado' },
                             { id: 'custom', label: 'Personalizado' }

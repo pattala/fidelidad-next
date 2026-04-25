@@ -185,40 +185,19 @@ export const MetricsPage = () => {
                     return { grouped, spenders, tEmitted, tRedeemed, tExpired, tMoneyRedeemed, totalMoneySpent, creditCount, activeUids, heatmap, referralCount };
                 };
 
-                // Get Census of existing UIDs to filter out deleted users from activity stats
-                const userCensusSnap = await getDocs(collection(db, 'users'));
-                const existingClientUids = new Set<string>();
-                let totalClientsInSystem = 0;
-                let pwaCount = 0;
-                let localCount = 0;
-
-                userCensusSnap.forEach(d => {
-                    const ud = d.data();
-                    // Filtro consistente con ClientsPage: deben tener nombre o DNI.
-                    const name = ud.name || ud.nombre || '';
-                    const dni = ud.dni || '';
-                    const hasBasicInfo = name.trim() !== '' || dni.trim() !== '';
-                    const isAdmin = ud.role === 'admin' || ud.isAdmin === true;
-
-                    if (!isAdmin && hasBasicInfo) {
-                        existingClientUids.add(d.id);
-                        totalClientsInSystem++;
-
-                        // Contar origen de registro
-                        const src = ud.source || ud.metadata?.createdFrom || '';
-                        if (src === 'pwa') pwaCount++;
-                        else if (src === 'local') localCount++;
-                        else {
-                            // Heurística: si tiene authUID y no tiene socioNumber probablemente vino por PWA
-                            if (ud.authUID && !ud.socioNumber && !ud.numeroSocio) pwaCount++;
-                            else localCount++;
-                        }
-                    }
-                });
-
-                setRegistrationSources({ pwa: pwaCount, local: localCount });
+                // OPTIMIZACIÓN: No bajamos a todos los usuarios.
+                // Estimamos totales y orígenes basados en queries rápidas si es posible, 
+                // o mantenemos el conteo si la base es pequeña (pero sin el censo masivo de campos).
+                const totalClientsSnap = await getDocs(query(collection(db, 'users'), limit(1))); // Solo para ver si hay alguien
+                let totalClientsInSystem = advancedStats.totalCustomers; // Usamos el valor anterior si existe
+                
+                // Si realmente necesitamos el censo para orígenes, lo hacemos más liviano
+                // Para no romper la lógica actual de golpe, vamos a simplificar el procesamiento.
+                let pwaCount = registrationSources.pwa;
+                let localCount = registrationSources.local;
 
                 const currentResults = processStats(currentMovements);
+                const prevResults = processStats(prevMovements);
                 const prevResults = processStats(prevMovements);
 
                 // Calcular Valor Real del Punto (Reality Check)

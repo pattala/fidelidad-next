@@ -229,7 +229,7 @@ export const PrizesPage = () => {
                                         </button>
                                     </td>
                                     <td className="p-4 text-right pr-6">
-                                        <div className="flex justify-end gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                                        <div className="flex justify-end gap-2">
                                             {!isReadOnly && (
                                                 <>
                                                     <button

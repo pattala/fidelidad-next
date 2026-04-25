@@ -195,31 +195,50 @@ La extensión busca las palabras **DESCUENTO, PROMO, COMBO, BONIF** en la descri
 
 ## 11. ⏱️ Motor de Notificaciones y Auditoría
 
-En la sección de **Auditoría del Sistema**, existen dos botones para disparar procesos manualmente que son fundamentales para las pruebas con el Simulador de Fechas:
+El sistema registra de forma minuciosa y estricta todas las acciones automáticas y manuales en la pantalla **Auditoría**.
 
-### 🟢 Botón Rosa: "Ejecutar Proceso de Cumpleaños"
-*   **Alcance:** **General / Maestro**.
-*   **Qué hace:** Dispara el ciclo diario completo. Procesa:
-    1. **Cumpleaños:** Saluda y asigna puntos de regalo.
-    2. **Vencimientos:** Resta puntos caducados y envía avisos de próxima expiración.
-    3. **Mascotas:** Revisa consumos y envía alertas de alimento (Petshop).
-*   **Uso Recomendado:** Es el que debes presionar cuando usás el **Simulador de Fechas** para ver qué pasaría en un día normal del sistema.
+### Gatillos de Ejecución y Origen
+En la columna de cada registro verá exactamente quién disparó el proceso:
+*   **`Sistema (QStash)`**: Procesos disparados automáticamente de madrugada o por eventos del reloj interno.
+*   **`Ejecución Manual (Admin)`**: Ejecución forzada al presionar botones en el tablero por un administrador.
+*   **`[Nombre del Admin]`**: Ediciones específicas a la base de datos (premios, configuración, carga manual de puntos).
+*   **`Ejecución (Extensión)`**: Acciones originadas desde la extensión de Chrome.
 
-### 🔄 Ciclos de Ejecución (Mantenimiento vs. Comunicación)
-Para garantizar la integridad de los datos sin molestar a los clientes, el motor opera en dos fases:
+### Diccionario de Mensajes de Auditoría
 
-1. **Fase de Mantenimiento (Zarandeo Silencioso):**
-   - **Cuándo:** Se ejecuta automáticamente apenas cambia el día (medianoche).
-   - **Qué hace:** Resta puntos vencidos, re-calcula fechas próximas y elimina registros "Fantasma" (Sin nombre y con 0 pts).
-   - **Impacto:** Interno. El cliente ve su saldo actualizado apenas abre la App, pero no es despertado por notificaciones.
+A continuación, se listan todos los mensajes de estado y qué significan:
 
-2. **Fase de Comunicación (Ventana Horaria):**
-   - **Cuándo:** Solo se activa dentro del rango configurado en **Panel > Configuración** (ej: 10:00 a 20:00 hs).
-   - **Qué hace:** Dispara los WhatsApps, Emails y Notificaciones Push.
-   - **Nota:** Si el motor corre fuera de hora, verás un registro en Auditoría que dice: "Mantenimiento Automático (Avisos saltados)".
+#### 1. Casos con Novedades (Procesamiento Activo)
+| Proceso (Tipo) | Título Principal | Detalle Desplegable |
+| :--- | :--- | :--- |
+| **Vencimientos** | `Revisión finalizada: 2 procesados, 230 pts restados.` | Nombre del socio, cantidad restada y canales notificados (Inbox/Push). |
+| **Cumpleaños** | `Proceso de Cumpleaños: 1 socio detectado hoy.` | Nombre del cumpleañero y adjudicación asignada. |
+| **Alertas PetShop** | `Alertas PetShop: 1 aviso enviado hoy.` | Nombre del socio, mascota y alimento correspondiente. |
+| **Campañas** | `Difusión automática: Promo 2x1` | Cantidad total de socios alertados por Push/Email. |
+
+#### 2. Días sin Novedades (Casos en Cero)
+Cuando el sistema escanea y no encuentra acciones necesarias, no da error, sino que deja estos marcadores explícitos:
+| Proceso (Tipo) | Título Principal | Detalle Desplegable |
+| :--- | :--- | :--- |
+| **Vencimientos** | `Revisión ejecutada: 0 registros para procesar hoy.` | ⚙️ PROCESO DE SISTEMA: Todo al día. No se requirieron acciones. |
+| **Cumpleaños** | `Revisión ejecutada: 0 cumpleañeros detectados hoy.` | ⚙️ PROCESO DE SISTEMA: Ningún socio cumple años en la fecha. |
+| **Alertas PetShop**| `Alertas PetShop: 0 avisos necesarios hoy.` | ⚙️ PROCESO DE SISTEMA: No se encontraron alertas pendientes de envío hoy. |
+
+#### 3. Auditoría de Mantenimiento Manual
+| Acción | Título de Ejemplo |
+| :--- | :--- |
+| **Crear Premio** | `Premio creado: "Voucher 15% OFF"` |
+| **Canjear** | `Canje de Premio para María García` |
+| **Regalar Puntos**| `Carga Manual a María García` |
+
+### 🚨 Botones de Ejecución Manual
+En la sección de Auditoría, existen botones para disparar procesos manualmente que son fundamentales (sobre todo si usa el Simulador de Fechas):
+
+*   **Botón Rosa (Cumpleaños):** Fuerza la lectura manual de los cumplen hoy, reparte premios y archiva la notificación.  
+*   **Botón Naranja (Vencimientos):** Fuerza la revisión de los vencimientos diarios calculados, resta los puntos maduros y archiva la notificación preventiva.
 
 > [!TIP]
-> Si disparás los motores **manualmente** desde la pestaña de Auditoría, el sistema ignorará los bloqueos de horario y enviará los mensajes de inmediato.
+> Si dispara los motores **manualmente** desde la pestaña de Auditoría, el sistema pasará por alto los controles estándar de reloj y operará inmediatamente según la fecha que tenga seteada en el simulador.
 
 ---
 
@@ -235,7 +254,7 @@ Para mantener la PWA rápida y ágil en todos los dispositivos móviles, se reco
     *   **Banners Principales:** < 200KB
 *   **Dimensiones:** No es necesario cargar imágenes de más de 1200px de ancho. Los celulares optimizan mejor archivos pequeños.
 
-### ⏱️ Carga Diferida (Lazy Loading)
+### ⏱️ Carga Diferida (Lazy Loading)![alt text](image.png)
 El sistema ha sido optimizado con **Carga Inteligente**. Esto significa que el código pesado de administración (gráficos, métricas, reportes) no es descargado por los celulares de tus socios. Solo vos, cuando entres como Administrador, descargarás esos componentes adicionales.
 
 ---

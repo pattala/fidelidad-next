@@ -29,12 +29,24 @@ export default async function handler(req, res) {
 
     try {
         const simulatedDate = req.body?.simulatedDate || req.query?.simulatedDate;
-        const triggerSource = req.body?.source || req.query?.source || 'Sistema (QStash)';
+        const triggerSource = req.body?.source || req.query?.source || req.query?.trigger || 'Sistema (QStash)';
+        const isSilent = req.body?.silent === true || req.query?.silent === 'true';
+        const ignoreDeduplication = req.body?.ignoreDeduplication === true;
         const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
 
-        const results = { expirations: null, petAlerts: null };
+        const results = { birthdays: null, expirations: null, petAlerts: null };
 
-        // Llamada simple al motor de expiraciones con el gatillo (source)
+        // 1. Ejecutar Cumpleaños
+        try {
+            const bRes = await fetch(`${PWA_URL}/api/birthdays`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET },
+                body: JSON.stringify({ simulatedDate, source: triggerSource, silent: isSilent, ignoreDeduplication })
+            });
+            results.birthdays = await bRes.json();
+        } catch (e) { console.error("Error calling birthdays:", e); }
+
+        // 2. Llamada simple al motor de expiraciones con el gatillo (source)
         try {
             const expRes = await fetch(`${PWA_URL}/api/expirations`, {
                 method: 'POST',
@@ -44,7 +56,7 @@ export default async function handler(req, res) {
             results.expirations = await expRes.json();
         } catch (e) { console.error("Error calling expirations:", e); }
 
-        // 2. Ejecutar Alertas de Alimento (Pet Shop)
+        // 3. Ejecutar Alertas de Alimento (Pet Shop)
         try {
             const petRes = await fetch(`${PWA_URL}/api/pet-alerts`, {
                 method: 'POST',

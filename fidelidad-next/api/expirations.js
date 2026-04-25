@@ -50,13 +50,7 @@ export default async function handler(req, res) {
         const isSilent = req.query?.silent === 'true' || req.body?.silent === true;
         const logResults = { processed: 0, expired: 0, notified: 0, details: [], errors: [] };
 
-        // Auditoría Inicial
-        await db.collection('audit_logs').add({
-            action: 'check_expirations',
-            timestamp: admin.firestore.FieldValue.serverTimestamp(),
-            trigger: triggerSource,
-            details: `Inicio de procesamiento. Fecha Ref: ${referenceDateStr}`
-        });
+        // Eliminada auditoría inicial para unificarla al final.
 
         // --- PASO A: RESTAR PUNTOS VENCIDOS ---
         const toExpireSnap = await db.collection('users').where('nextExpirationDate', '<=', referenceDateStr).get();
@@ -192,6 +186,30 @@ export default async function handler(req, res) {
             const purgeBatch = db.batch();
             oldLogsSnap.docs.forEach(d => purgeBatch.delete(d.ref));
             await purgeBatch.commit();
+        }
+
+        // --- PASO D: LOG DE AUDITORÍA UNIFICADO ---
+        if (!isSilent) {
+            const isManual = triggerSource === 'dashboard';
+            const logType = isManual ? 'manual_expiration' : 'expiration_engine';
+            
+            const summaryText = logResults.processed > 0 || logResults.notified > 0
+                ? `Revisión finalizada: ${logResults.processed} procesados, ${logResults.expired} puntos restados, ${logResults.notified} avisos enviados.`
+                : `Revisión ejecutada: 0 registros para procesar en fecha ${referenceDateStr}.`;
+                
+            await db.collection('audit_logs').add({
+                type: logType,
+                status: logResults.errors.length > 0 ? 'partial' : 'success',
+                summary: summaryText,
+                executor: isManual ? 'Ejecución Manual (Admin)' : 'Ejecución Automática (Sistema)',
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                details: logResults.details.length > 0 ? logResults.details : [{
+                    userId: 'system',
+                    action: 'check_finished',
+                    status: 'skipped',
+                    info: 'Todo al día. No se requirieron acciones ni vencimientos en esta fecha.'
+                }]
+            });
         }
 
         return res.status(200).json({ ok: true, summary: logResults });

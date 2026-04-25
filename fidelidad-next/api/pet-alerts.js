@@ -70,6 +70,9 @@ export default async function handler(req, res) {
     const simCfg = config.simulationConfig || { birthdays: true, expirations: true, petAlerts: true, campaigns: true };
     let referenceDate = new Date();
     let todayStr = referenceDate.toISOString().split('T')[0];
+    const simulatedDateStr = req.body?.simulatedDate || req.query?.simulatedDate;
+    const triggerSource = req.body?.source || req.query?.source || 'Sistema (QStash)';
+    const isSilent = req.query?.silent === 'true' || req.body?.silent === true;
 
     if (simulatedDateStr && simCfg.petAlerts) {
         if (simulatedDateStr.includes('T')) {
@@ -182,6 +185,29 @@ export default async function handler(req, res) {
                     }
                 }
             }
+        }
+
+        if (!isSilent) {
+            const isManual = triggerSource === 'dashboard';
+            const logType = isManual ? 'manual_pet_alerts' : 'pet_alerts_engine';
+            
+            const summaryText = results.notified > 0
+                ? `Alertas PetShop: ${results.notified} avisos enviados de ${results.scanned} mascotas evaluadas.`
+                : `Alertas PetShop: 0 avisos necesarios hoy (Evaluadas: ${results.scanned}).`;
+                
+            await app.firestore().collection('audit_logs').add({
+                type: logType,
+                status: results.errors.length > 0 ? 'partial' : 'success',
+                summary: summaryText,
+                executor: isManual ? 'Ejecución Manual (Admin)' : 'Ejecución Automática (Sistema)',
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                details: results.details.length > 0 ? results.details : [{
+                    userId: 'system',
+                    action: 'check_finished',
+                    status: 'skipped',
+                    info: 'No se encontraron alertas pendientes de envío para hoy.'
+                }]
+            });
         }
 
         return res.status(200).json({ ok: true, results });

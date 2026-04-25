@@ -4,6 +4,9 @@ console.log("\u{1F680} [Club Fidelidad] V35: Implementando itinerario de vencimi
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;
 let detectedDiscounts = 0;
+let apiRatios = { base: 100, perPeso: 1, discountK: 0 };
+let currentPromos = [];
+let enablePetModule = false;
 
 // Cargar configuración de storage
 chrome.storage.local.get(['appName', 'apiUrl', 'apiKey'], (res) => {

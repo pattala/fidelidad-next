@@ -1135,80 +1135,74 @@ export const ClientsPage = () => {
                                         </button>
                                     </td>
                                     <td className="px-6 py-4 text-center">
-                                        {(client.points || 0) > 0 ? (
-                                            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 rounded-full font-black mb-1">
-                                                <History size={14} />
-                                                {client.points}
-                                            </div>
-                                        ) : (
-                                            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-50 text-gray-400 rounded-full font-black mb-1 opacity-50">
-                                                <History size={14} />
-                                                0
-                                            </div>
-                                        )}
+                                        {(() => {
+                                            const todayStr = TimeService.startOfToday().toISOString().split('T')[0];
+                                            let totalPoints = client.points || 0;
+                                            
+                                            // 1. Calcular puntos vencidos virtualmente según simulador
+                                            let virtualExpired = 0;
+                                            if (client.expirationDetails) {
+                                                client.expirationDetails.forEach((e: any) => {
+                                                    const expStr = e.date.toISOString().split('T')[0];
+                                                    if (expStr < todayStr) virtualExpired += e.points;
+                                                });
+                                            }
+                                            
+                                            const realPoints = Math.max(0, totalPoints - virtualExpired);
 
-                                        {/* DETALLE DE VENCIMIENTOS (BADGES NARANJAS - ESTILO ESTABLE) */}
-                                        {client.expirationDetails && client.expirationDetails.filter((e: any) => e.points > 0).length > 0 ? (
-                                            <div className="space-y-1 mt-1">
-                                                {client.expirationDetails.filter((e: any) => e.points > 0).slice(0, 3).map((exp: any, idx: number) => {
-                                                    const todayStr = TimeService.startOfToday().toISOString().split('T')[0];
-                                                    const expStr = exp.date.toISOString().split('T')[0];
-                                                    const isToday = expStr === todayStr;
-
-                                                    return (
-                                                        <div
-                                                            key={idx}
-                                                            className={`flex items-center justify-center gap-1 text-[9px] font-bold py-0.5 px-1.5 rounded border ${isToday
-                                                                ? 'text-red-600 bg-red-50 border-red-100 animate-pulse'
-                                                                : 'text-orange-600 bg-orange-50 border-orange-100'
-                                                                }`}
-                                                            title={isToday ? "VENCE HOY" : "Próximo vencimiento"}
-                                                        >
-                                                            <Calendar size={10} />
-                                                            {exp.points} ({exp.date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })})
+                                            return (
+                                                <>
+                                                    {/* SALDO ACTUALIZADO (SMART) */}
+                                                    {realPoints > 0 ? (
+                                                        <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 rounded-full font-black mb-1">
+                                                            <History size={14} />
+                                                            {realPoints}
                                                         </div>
-                                                    );
-                                                })}
-                                                {client.expirationDetails.filter((e: any) => e.points > 0).length > 3 && (
-                                                    <div className="text-[8px] font-black text-orange-400 uppercase tracking-tighter mt-1">
-                                                        + {client.expirationDetails.filter((e: any) => e.points > 0).length - 3} vencimientos más
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ) : (
-                                            <div className="text-[9px] text-gray-300 font-bold mt-1">Sin vencimientos</div>
-                                        )}
-
-                                        {(client.accumulated_balance || 0) > 0 && (
-                                            <div className="text-[10px] font-bold text-gray-400 mt-0.5 mb-1 opacity-80" title="Monto remanente para el próximo punto">
-                                                +${(client.accumulated_balance || 0).toLocaleString('es-AR')} a favor
-                                            </div>
-                                        )}
-
-                                        {client.expirationDetails && client.expirationDetails.filter(e => e.points > 0).length > 0 ? (
-                                            <div className="space-y-1 mt-1">
-                                                {client.expirationDetails.filter(e => e.points > 0).slice(0, 3).map((exp, idx) => {
-                                                    const isToday = exp.date.toDateString() === TimeService.now().toDateString();
-                                                    return (
-                                                        <div
-                                                            key={idx}
-                                                            className={`flex items-center justify-center gap-1 text-[9px] font-bold py-0.5 px-1.5 rounded border ${isToday ? 'bg-red-50 text-red-600 border-red-100 animate-pulse' : 'bg-orange-50 text-orange-600 border-orange-100'}`}
-                                                            title={isToday ? 'Vence HOY' : 'Vencimiento próximo'}
-                                                        >
-                                                            {isToday ? <AlertTriangle size={10} /> : <Calendar size={10} />}
-                                                            {exp.points} ({exp.date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })})
+                                                    ) : (
+                                                        <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-50 text-gray-400 rounded-full font-black mb-1 opacity-50">
+                                                            <History size={14} />
+                                                            0
                                                         </div>
-                                                    );
-                                                })}
-                                                {client.expirationDetails.filter(e => e.points > 0).length > 3 && (
-                                                    <div className="text-[8px] font-black text-orange-400 uppercase tracking-tighter mt-1">
-                                                        + {client.expirationDetails.filter(e => e.points > 0).length - 3} vencimientos más
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ) : (
-                                            <div className="text-[9px] text-gray-300 font-bold mt-1">Sin vencimientos</div>
-                                        )}
+                                                    )}
+
+                                                    {/* BADGES: SOLO HOY O FUTUROS (VENCIDOS DESAPARECEN DEL DASH) */}
+                                                    {client.expirationDetails && client.expirationDetails.filter((e: any) => e.points > 0 && e.date.toISOString().split('T')[0] >= todayStr).length > 0 ? (
+                                                        <div className="space-y-1 mt-1">
+                                                            {client.expirationDetails
+                                                                .filter((e: any) => e.points > 0 && e.date.toISOString().split('T')[0] >= todayStr)
+                                                                .slice(0, 3)
+                                                                .map((exp: any, idx: number) => {
+                                                                    const expStr = exp.date.toISOString().split('T')[0];
+                                                                    const isToday = expStr === todayStr;
+
+                                                                    return (
+                                                                        <div
+                                                                            key={idx}
+                                                                            className={`flex items-center justify-center gap-1 text-[9px] font-bold py-0.5 px-1.5 rounded border ${isToday
+                                                                                ? 'text-red-600 bg-red-50 border-red-100 animate-pulse'
+                                                                                : 'text-orange-600 bg-orange-50 border-orange-100'
+                                                                                }`}
+                                                                            title={isToday ? "VENCE HOY" : "Próximo vencimiento"}
+                                                                        >
+                                                                            <Calendar size={10} />
+                                                                            {exp.points} ({exp.date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })})
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                        </div>
+                                                    ) : realPoints > 0 ? (
+                                                        <div className="text-[9px] text-gray-300 font-bold mt-1">Sin vencimientos</div>
+                                                    ) : null}
+
+                                                    {/* SALDO A FAVOR (OPCIONAL) */}
+                                                    {(client.accumulated_balance || 0) > 0 && (
+                                                        <div className="text-[10px] font-bold text-gray-400 mt-0.5 mb-1 opacity-80" title="Monto remanente para el próximo punto">
+                                                            +${(client.accumulated_balance || 0).toLocaleString('es-AR')} a favor
+                                                        </div>
+                                                    )}
+                                                </>
+                                            );
+                                        })()}
                                     </td>
                                     <td className="px-6 py-4 text-center">
                                         <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-black ${(client.accumulated_balance || 0) > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-50 text-gray-400 opacity-50'}`}>

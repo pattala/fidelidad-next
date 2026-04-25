@@ -122,29 +122,31 @@ export default async function handler(req, res) {
         const systemEnableDuplicateControl = configSnap.data()?.enableDuplicateControl !== false;
 
         // --- CONTROL DE DUPLICIDAD (Safety Wall) ---
-        // Protege el RE-PROCESAMIENTO automático (puntos, push, email).
-        // NUNCA bloquea la lectura de listas para la extensión de Chrome.
         if (!ignoreDeduplication && systemEnableDuplicateControl) {
-            const arFormatter = new Intl.DateTimeFormat('en-CA', {
-                timeZone: 'America/Argentina/Buenos_Aires',
-                year: 'numeric', month: '2-digit', day: '2-digit'
-            });
-            const todayAR = arFormatter.format(new Date());
-            const checkSnap = await db.collection('config').doc('dailyCheck').get();
-            const lastRunDate = checkSnap.exists ? checkSnap.data()?.[`lastRun_${target}`] : null;
-
-            if (lastRunDate === todayAR) {
-                // Ya se ejecutó hoy → skip del procesamiento, PERO igual devolver listas para la burbuja
-                const { birthdayList, expirationList, petAlertList, config } = await buildExtensionLists(db, simulatedDate);
-                return res.status(200).json({
-                    ok: true,
-                    skipped: true,
-                    message: `Proceso '${target}' ya ejecutado hoy (${todayAR}). Solo modo lectura.`,
-                    birthdays:   { list: birthdayList },
-                    expirations: { list: expirationList },
-                    petAlerts:   { list: petAlertList },
-                    config,
+            try {
+                const arFormatter = new Intl.DateTimeFormat('en-CA', {
+                    timeZone: 'America/Argentina/Buenos_Aires',
+                    year: 'numeric', month: '2-digit', day: '2-digit'
                 });
+                const todayAR = arFormatter.format(new Date());
+                const checkSnap = await db.collection('config').doc('dailyCheck').get();
+                const lastRunDate = checkSnap.exists ? checkSnap.data()?.[`lastRun_${target}`] : null;
+
+                // Si hay fecha simulada, saltamos el bloqueo para permitir pruebas
+                if (lastRunDate === todayAR && !simulatedDate) {
+                    const { birthdayList, expirationList, petAlertList, config } = await buildExtensionLists(db, simulatedDate);
+                    return res.status(200).json({
+                        ok: true,
+                        skipped: true,
+                        message: `Proceso '${target}' ya ejecutado hoy (${todayAR}). Solo modo lectura.`,
+                        birthdays:   { list: birthdayList },
+                        expirations: { list: expirationList },
+                        petAlerts:   { list: petAlertList },
+                        config,
+                    });
+                }
+            } catch (e) {
+                console.warn("[Engine] Deduplication check failed, proceeding anyway:", e);
             }
         }
 

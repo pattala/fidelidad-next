@@ -185,19 +185,26 @@ async function handleCheck(req, res, db) {
         const proactivePinStr = proactivePin.toISOString().split('T')[0];
 
         if (config.messaging?.enableExpirationWarnings !== false) {
-            const proactiveSnap = await db.collection('users').where('nextExpirationDate', '<=', proactivePinStr).where('nextExpirationDate', '>', referenceDateStr).get();
+            // Unificamos con el panel: buscamos hasta 30 días adelante (proactivePinStr)
+            const proactiveSnap = await db.collection('users')
+                .where('nextExpirationDate', '<=', proactivePinStr)
+                .where('nextExpirationDate', '>=', referenceDateStr) // Incluimos hoy
+                .get();
+
             for (const userDoc of proactiveSnap.docs) {
                 try {
+                    const userId = userDoc.id;
                     const userData = userDoc.data();
                     const userPoints = userData.points || 0;
                     if (userPoints <= 0 && (userData.nextExpirationAmount || 0) <= 0) continue;
 
-                    // Si ya se gestionó manualmente hoy (o en el futuro de una simulación), lo ignoramos para los contadores y notificaciones
+                    // Si ya se gestionó manualmente hoy, lo ignoramos
                     if (userData.lastWhatsAppManualDate && userData.lastWhatsAppManualDate >= referenceDateStr) continue;
-                    if (userData.nextExpirationDate > warningDateStr) continue;
+                    
+                    // Eliminamos el filtro restrictivo de 'warningDateStr' (7 días) para que coincida con la ventana de 30 días del panel
 
                     const historyRef = userDoc.ref.collection('points_history');
-                    const impendingCreditsSnap = await historyRef.where('type', '==', 'credit').where('expiresAt', '>', admin.firestore.Timestamp.fromDate(startOfToday)).where('expiresAt', '<=', admin.firestore.Timestamp.fromDate(warningDate)).get();
+                    const impendingCreditsSnap = await historyRef.where('type', '==', 'credit').where('expiresAt', '>', admin.firestore.Timestamp.fromDate(startOfToday)).where('expiresAt', '<=', admin.firestore.Timestamp.fromDate(proactivePin)).get();
                     
                     let totalImpendingAmount = 0;
                     const creditsByDate = {}; // { 'dd/mm/yyyy': totalPoints }

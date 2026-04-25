@@ -232,13 +232,187 @@ function showGlobalAlert(fullData, adminUrl) {
     document.body.appendChild(container);
 }
 
-// RESTO DE LÓGICA (DETECCIÓN DE MONTOS, etc.) SE MANTIENE V34
+// PANEL DE CARGA DE PUNTOS (integrado desde V35)
 function detectAmount() {
     const s = ['#cpbtc_total','input[name="cpbtc_total"]','#total_pago','input[name="total_pago"]','#monto_pago','input[name="monto_pago"]','#importe_total','input[name="importe_total"]','.total-import'];
     let i = null; for (let x of s) { i = document.querySelector(x); if (i) break; }
-    let v = 0; if (i && i.value) v = parseFloat(i.value.replace(/[^0-9.,]/g, '').replace(',', '.'));
-    if (!isNaN(v) && v > 0 && v !== detectedAmount) { detectedAmount = v; showFidelidadPanel(); }
+    let v = 0;
+    if (i && i.value) {
+        v = parseFloat(i.value.replace(/[^0-9.,]/g, '').replace(',', '.'));
+    } else {
+        const bodyContent = document.body.innerText;
+        const match = bodyContent.match(/Total a pagar \$:\s*([0-9.,]+)/i) ||
+            bodyContent.match(/Total a pagar\s*\$?:\s*([0-9.,]+)/i) ||
+            bodyContent.match(/Monto Total\s*\$?:\s*([0-9.,]+)/i);
+        if (match && match[1]) v = parseFloat(match[1].replace(/[^0-9.,]/g, '').replace(',', '.'));
+    }
+    const panelExists = document.getElementById('fidelidad-panel');
+    if (!isNaN(v) && v > 0 && (v !== detectedAmount || !panelExists)) { detectedAmount = v; showFidelidadPanel(); }
 }
 const o = new MutationObserver(() => detectAmount());
 o.observe(document.body, { childList: true, subtree: true });
 detectAmount();
+
+function showFidelidadPanel() {
+    if (document.getElementById('fidelidad-panel')) {
+        const amountEl = document.querySelector('.fidelidad-amount');
+        if (amountEl) amountEl.innerText = `$ ${detectedAmount.toLocaleString('es-AR')}`;
+        return;
+    }
+
+    const panel = document.createElement('div');
+    panel.id = 'fidelidad-panel';
+    panel.className = 'fidelidad-panel';
+    panel.innerHTML = `
+        <div class="fidelidad-header">
+            <h1>Sumar Puntos</h1>
+            <span class="fidelidad-close" id="fidelidad-close">×</span>
+        </div>
+        <div class="fidelidad-body">
+            <div class="fidelidad-amount">$ ${detectedAmount.toLocaleString('es-AR')}</div>
+            <div class="fidelidad-search-container" style="position:relative;">
+                <input type="text" id="fidelidad-search" class="fidelidad-input" placeholder="Buscar por Nombre o DNI..." autocomplete="off">
+                <div id="fidelidad-results" class="fidelidad-results" style="display:none;"></div>
+            </div>
+            <div id="fidelidad-selected-info" style="display:none; margin-bottom: 10px; font-size: 13px; color: #6200ee; font-weight: bold;"></div>
+            <button id="fidelidad-submit" class="fidelidad-button" disabled>SUMAR PUNTOS</button>
+            <div id="fidelidad-status" style="margin-top:10px; font-size: 12px; text-align: center;"></div>
+        </div>
+    `;
+
+    // Estrategia de infiltración: intentar injetarnos dentro del modal activo
+    const modalSelectors = ['.modal-content', '.modal-body', '.bootbox', '.ui-dialog-content', '.sky-modal', '[role="dialog"]'];
+    let injector = document.body;
+    for (let sel of modalSelectors) {
+        const found = document.querySelector(sel);
+        if (found) { injector = found; break; }
+    }
+    injector.appendChild(panel);
+
+    const searchInput = document.getElementById('fidelidad-search');
+    const resultsDiv  = document.getElementById('fidelidad-results');
+    const submitBtn   = document.getElementById('fidelidad-submit');
+    const selectedInfo = document.getElementById('fidelidad-selected-info');
+    const statusDiv   = document.getElementById('fidelidad-status');
+    let selectedClient = null;
+
+    function killEvent(e) {
+        if (document.activeElement === searchInput) { e.stopPropagation(); e.stopImmediatePropagation(); }
+    }
+    window.addEventListener('keydown',  killEvent, true);
+    window.addEventListener('keyup',    killEvent, true);
+    window.addEventListener('keypress', killEvent, true);
+
+    document.getElementById('fidelidad-close').onclick = () => {
+        window.removeEventListener('keydown',  killEvent, true);
+        window.removeEventListener('keyup',    killEvent, true);
+        window.removeEventListener('keypress', killEvent, true);
+        panel.remove();
+    };
+
+    let focusInterval;
+    searchInput.onfocus = () => {
+        focusInterval = setInterval(() => {
+            if (document.activeElement !== searchInput && document.getElementById('fidelidad-panel')) searchInput.focus();
+        }, 50);
+    };
+    searchInput.onblur = () => clearInterval(focusInterval);
+    setTimeout(() => searchInput.focus(), 300);
+
+    let searchTimeout;
+    searchInput.oninput = (e) => {
+        clearTimeout(searchTimeout);
+        const q = e.target.value;
+        if (q.length < 3) { resultsDiv.style.display = 'none'; return; }
+        searchTimeout = setTimeout(() => searchClients(q), 500);
+    };
+
+    async function searchClients(q) {
+        if (!config.apiUrl || !config.apiKey) { statusDiv.innerText = '⚠️ Configura la API'; return; }
+        try {
+            const res = await fetch(`${config.apiUrl}/api/assign-points?q=${encodeURIComponent(q)}`, {
+                headers: { 'x-api-key': config.apiKey }
+            });
+            const data = await res.json();
+            if (data.ok && data.clients.length > 0) {
+                renderResults(data.clients);
+            } else {
+                resultsDiv.innerHTML = '<div class="fidelidad-result-item">No se encontraron clientes</div>';
+                resultsDiv.style.display = 'block';
+            }
+        } catch (e) { statusDiv.innerText = '❌ Error de conexión'; }
+    }
+
+    function renderResults(clients) {
+        resultsDiv.innerHTML = clients.map(c => `
+            <div class="fidelidad-result-item" data-id="${c.id}" data-name="${c.name}" data-dni="${c.dni}">
+                <div>${c.name}</div>
+                <div class="dni">DNI: ${c.dni} | Pts: ${c.points ?? '—'}</div>
+            </div>
+        `).join('');
+        resultsDiv.style.display = 'block';
+
+        resultsDiv.querySelectorAll('.fidelidad-result-item').forEach(item => {
+            item.onclick = (e) => {
+                e.stopPropagation();
+                selectedClient = { id: item.dataset.id, name: item.dataset.name };
+                selectedInfo.innerText = `Cliente: ${selectedClient.name}`;
+                selectedInfo.style.display = 'block';
+                resultsDiv.style.display = 'none';
+                searchInput.value = selectedClient.name;
+                submitBtn.disabled = false;
+            };
+        });
+    }
+
+    submitBtn.onclick = async () => {
+        if (!selectedClient) return;
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'PROCESANDO...';
+        try {
+            const res = await fetch(`${config.apiUrl}/api/assign-points`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey },
+                body: JSON.stringify({
+                    uid: selectedClient.id,
+                    amount: detectedAmount,
+                    reason: 'external_integration',
+                    concept: 'Compra en local',
+                    applyWhatsApp: true
+                })
+            });
+            const data = await res.json();
+            if (data.ok) {
+                renderSuccess(data);
+            } else {
+                statusDiv.innerText = `❌ Error: ${data.error}`;
+                submitBtn.disabled = false;
+                submitBtn.innerText = 'REINTENTAR';
+            }
+        } catch (e) {
+            statusDiv.innerText = '❌ Error de conexión';
+            submitBtn.disabled = false;
+        }
+    };
+
+    function renderSuccess(data) {
+        const body = document.querySelector('.fidelidad-body');
+        body.innerHTML = `
+            <div style="text-align: center; color: #16a34a; padding: 10px;">
+                <div style="font-size: 40px;">✅</div>
+                <div style="font-weight: bold; font-size: 18px; margin: 5px 0;">¡Puntos Asignados!</div>
+                <div style="font-size: 14px; color: #666; margin-bottom: 15px;">Se sumaron ${data.pointsAdded} puntos a ${selectedClient.name}.</div>
+                ${data.whatsappLink ? `<a href="${data.whatsappLink}" target="_blank" class="fidelidad-wa-link">ENVIAR WHATSAPP</a>` : ''}
+                <button class="fidelidad-button" style="background:#f3f4f6; color:#374151; margin-top:15px; border: 1px solid #d1d5db;" id="cf-final-close">CERRAR</button>
+            </div>
+        `;
+        document.getElementById('cf-final-close').onclick = () => {
+            window.removeEventListener('keydown',  killEvent, true);
+            window.removeEventListener('keyup',    killEvent, true);
+            window.removeEventListener('keypress', killEvent, true);
+            panel.remove();
+        };
+        if (data.whatsappLink) window.open(data.whatsappLink, '_blank');
+    }
+}
+

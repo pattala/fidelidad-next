@@ -55,10 +55,29 @@ export async function updateNextExpirationDate(db, userId, referenceDate = null)
 
         const isoDate = nextDate ? `${nextDate.getFullYear()}-${(nextDate.getMonth()+1).toString().padStart(2, '0')}-${nextDate.getDate().toString().padStart(2, '0')}` : null;
 
+        // --- NUEVO: Agrupar por fecha para la lista detallada (Dashboard Badges) ---
+        const expirationMap = new Map();
+        creditsSnap.docs.forEach(doc => {
+            const data = doc.data();
+            if (data.status === 'expired') return;
+            const rem = data.remainingPoints !== undefined ? Number(data.remainingPoints) : Number(data.amount);
+            if (rem > 0 && data.expiresAt) {
+                const dateKey = data.expiresAt.toDate().toISOString().split('T')[0];
+                expirationMap.set(dateKey, (expirationMap.get(dateKey) || 0) + rem);
+            }
+        });
+
+        // Ordenar y tomar los top 3
+        const expirationDetails = Array.from(expirationMap.entries())
+            .map(([date, points]) => ({ date: admin.firestore.Timestamp.fromDate(new Date(date + 'T12:00:00')), points }))
+            .sort((a, b) => a.date.toMillis() - b.date.toMillis())
+            .slice(0, 3);
+
         // Actualizamos el documento del usuario (metadata para queries rápidas)
         await db.collection('users').doc(userId).update({
             nextExpirationDate: isoDate,
             nextExpirationAmount: nextDate ? nextAmount : 0,
+            expirationDetails: expirationDetails,
             metadataUpdatedAt: admin.firestore.FieldValue.serverTimestamp()
         });
 

@@ -155,7 +155,7 @@ export default async function handler(req, res) {
 
                     await userDoc.ref.collection('inbox').add({
                         title, body: msg, url: "/profile", type: "birthday", read: false,
-                        date: admin.firestore.FieldValue.serverTimestamp(),
+                        date: admin.firestore.Timestamp.fromDate(referenceDate),
                         expireAt: admin.firestore.Timestamp.fromDate(new Date(referenceDate.getTime() + 30 * 24 * 60 * 60 * 1000))
                     });
                     actionsTaken.push("inbox_saved");
@@ -202,7 +202,7 @@ export default async function handler(req, res) {
                 status: logResults.errors.length > 0 ? 'partial' : 'success',
                 summary: summaryText,
                 executor: isManual ? 'Ejecución Manual (Admin)' : 'Ejecución Automática (Sistema)',
-                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                timestamp: admin.firestore.Timestamp.fromDate(referenceDate),
                 details: logResults.details.length > 0 ? logResults.details : [{
                     userId: 'system',
                     action: 'check_finished',

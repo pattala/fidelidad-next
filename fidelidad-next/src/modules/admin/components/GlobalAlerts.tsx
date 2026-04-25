@@ -189,7 +189,7 @@ export const GlobalAlerts = () => {
                                 <div key={u.id} className="bg-white/[0.03] p-6 rounded-[35px] border border-white/10 flex flex-col gap-5 hover:bg-white/[0.06] transition-all">
                                     <div className="flex justify-between items-start">
                                         <div>
-                                            <h5 className="font-black text-white text-lg tracking-tight">🎂 {u.name}</h5>
+                                            <h5 className="font-black text-white text-lg tracking-tight">🎂 {u.name || u.nombre || 'Socio'}</h5>
                                             <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider mt-1">DNI: {u.dni} | NRO: {u.socioNumber}</p>
                                         </div>
                                         <div className="bg-violet-500/20 px-3 py-1 rounded-full border border-violet-500/20">
@@ -219,7 +219,7 @@ export const GlobalAlerts = () => {
                                 <div key={`exp-${i}`} className="bg-white/[0.03] p-6 rounded-[35px] border border-white/10 flex flex-col gap-5">
                                     <div className="flex justify-between items-center">
                                         <div className="flex-1">
-                                            <h5 className="font-extrabold text-white text-lg tracking-tight">{u.name}</h5>
+                                            <h5 className="font-extrabold text-white text-lg tracking-tight">{u.name || u.nombre || 'Socio'}</h5>
                                             <p className="text-[11px] text-orange-400 font-black uppercase flex items-center gap-2 mt-1"><Calendar size={12}/> Vence: {u.nextExpirationDate?.split('-').reverse().join('/')}</p>
                                         </div>
                                         <button onClick={() => setShouldNotify(prev => ({...prev, [u.id]: !isMsg}))} 
@@ -250,7 +250,7 @@ export const GlobalAlerts = () => {
                                 <div key={`pet-${i}`} className="bg-white/[0.03] p-6 rounded-[35px] border border-white/10 flex flex-col gap-5">
                                     <div className="flex justify-between items-center">
                                         <div className="flex-1">
-                                            <h5 className="font-extrabold text-white text-lg tracking-tight">{u.name}</h5>
+                                            <h5 className="font-extrabold text-white text-lg tracking-tight">{u.name || u.nombre || 'Socio'}</h5>
                                             <p className="text-[11px] text-indigo-400 font-black uppercase mt-1">🐾 Alimento: {u.petName}</p>
                                         </div>
                                         <button onClick={() => setShouldNotify(prev => ({...prev, [u.id]: !isMsg}))} 

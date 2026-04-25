@@ -69,7 +69,7 @@ export default async function handler(req, res) {
                 
                 let totalToSubtract = 0;
                 const batch = db.batch();
-                const nowTimestamp = admin.firestore.FieldValue.serverTimestamp();
+                const nowTimestamp = admin.firestore.Timestamp.fromDate(referenceDate);
 
                 expiredItemsSnap.docs.forEach(d => {
                     const data = d.data();
@@ -83,13 +83,31 @@ export default async function handler(req, res) {
 
                 if (totalToSubtract > 0) {
                     logResults.expired += totalToSubtract;
-                    batch.set(historyRef.doc(), { 
+                    
+                    // 1. Registro en el historial del usuario
+                    const historyDocRef = historyRef.doc();
+                    batch.set(historyDocRef, { 
                         amount: -totalToSubtract, 
                         concept: 'Vencimiento de puntos acumulados (Auto)', 
                         date: nowTimestamp, 
                         type: 'debit', 
                         isExpirationAdjustment: true 
                     });
+
+                    // 2. Registro en la colección GLOBAL para Métricas
+                    const globalTxRef = db.collection('transactions').doc();
+                    batch.set(globalTxRef, {
+                        uid: userId,
+                        clientName: userData.nombre || userData.name || 'Socio',
+                        points: -totalToSubtract,
+                        amount: 0,
+                        type: 'debit',
+                        reason: 'expiration',
+                        concept: 'Vencimiento automático de puntos',
+                        date: nowTimestamp,
+                        isExpirationAdjustment: true
+                    });
+
                     batch.update(userDoc.ref, { points: admin.firestore.FieldValue.increment(-totalToSubtract) });
                     await batch.commit();
                 }
@@ -105,7 +123,8 @@ export default async function handler(req, res) {
         const hr = referenceDate.getHours();
         const startHr = config.messaging?.startHour || 10;
         const endHr = config.messaging?.endHour || 20;
-        const inWindow = hr >= startHr && hr < endHr;
+        const isManual = triggerSource === 'dashboard' || triggerSource === 'extension';
+        const inWindow = (hr >= startHr && hr < endHr) || isManual || !!simulatedDateStr;
 
         if (!isSilent && inWindow && config.messaging?.enableExpirationWarnings !== false) {
              const warningDays = config.warnings?.expirationDays || 7;
@@ -166,7 +185,7 @@ export default async function handler(req, res) {
                          await userDoc.ref.collection('inbox').add({
                              title,
                              body: msg,
-                             date: admin.firestore.FieldValue.serverTimestamp(),
+                             date: admin.firestore.Timestamp.fromDate(referenceDate),
                              read: false,
                              type: 'system'
                          });
@@ -216,7 +235,7 @@ export default async function handler(req, res) {
                 status: logResults.errors.length > 0 ? 'partial' : 'success',
                 summary: summaryText,
                 executor: isManual ? 'Ejecución Manual (Admin)' : 'Ejecución Automática (Sistema)',
-                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                timestamp: admin.firestore.Timestamp.fromDate(referenceDate),
                 details: logResults.details.length > 0 ? logResults.details : [{
                     userId: 'system',
                     action: 'check_finished',

@@ -324,8 +324,9 @@ export const MetricsPage = () => {
                     }));
                 }
 
-                // 5. Forecast (Cash Flow)
-                fetchForecast();
+                if (currentMovements.length > 0) {
+                    fetchForecast();
+                }
 
             } catch (error) {
                 console.error("Error metrics:", error);
@@ -439,17 +440,8 @@ export const MetricsPage = () => {
                 </div>
             </div>
 
-            {movementsData.length === 0 ? (
-                <div className="bg-white p-16 rounded-2xl shadow-sm border border-gray-100 text-center space-y-4">
-                    <div className="w-20 h-20 bg-purple-50 rounded-full flex items-center justify-center mx-auto">
-                        <BarChart3 size={40} className="text-purple-300" />
-                    </div>
-                    <h3 className="text-xl font-bold text-gray-700">No hay datos suficientes</h3>
-                    <p className="text-gray-500 max-w-md mx-auto">
-                        A├║n no se han registrado transacciones en la nueva colecci├│n global para este periodo.
-                        Comience a sumar puntos a sus clientes para ver las estad├¡sticas aqu├¡.
-                    </p>
-                </div>
+            {false ? (
+                null
             ) : (
                 <>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

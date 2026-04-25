@@ -1136,14 +1136,18 @@ export const ClientsPage = () => {
                                     </td>
                                     <td className="px-6 py-4 text-center">
                                         {(() => {
-                                            const todayStr = TimeService.startOfToday().toISOString().split('T')[0];
+                                            const todayLocal = TimeService.startOfToday();
+                                            const todayStr = todayLocal.toISOString().split('T')[0];
                                             let totalPoints = client.points || 0;
                                             
                                             // 1. Calcular puntos vencidos virtualmente según simulador
                                             let virtualExpired = 0;
                                             if (client.expirationDetails) {
                                                 client.expirationDetails.forEach((e: any) => {
-                                                    const expStr = e.date.toISOString().split('T')[0];
+                                                    if (!e.date) return;
+                                                    // Convertir Firebase Timestamp a Date si es necesario
+                                                    const d = e.date.toDate ? e.date.toDate() : new Date(e.date);
+                                                    const expStr = d.toISOString().split('T')[0];
                                                     if (expStr < todayStr) virtualExpired += e.points;
                                                 });
                                             }
@@ -1166,13 +1170,22 @@ export const ClientsPage = () => {
                                                     )}
 
                                                     {/* BADGES: SOLO HOY O FUTUROS (VENCIDOS DESAPARECEN DEL DASH) */}
-                                                    {client.expirationDetails && client.expirationDetails.filter((e: any) => e.points > 0 && e.date.toISOString().split('T')[0] >= todayStr).length > 0 ? (
+                                                    {client.expirationDetails && client.expirationDetails.filter((e: any) => {
+                                                        if (!e.date || e.points <= 0) return false;
+                                                        const d = e.date.toDate ? e.date.toDate() : new Date(e.date);
+                                                        return d.toISOString().split('T')[0] >= todayStr;
+                                                    }).length > 0 ? (
                                                         <div className="space-y-1 mt-1">
                                                             {client.expirationDetails
-                                                                .filter((e: any) => e.points > 0 && e.date.toISOString().split('T')[0] >= todayStr)
+                                                                .filter((e: any) => {
+                                                                    if (!e.date || e.points <= 0) return false;
+                                                                    const d = e.date.toDate ? e.date.toDate() : new Date(e.date);
+                                                                    return d.toISOString().split('T')[0] >= todayStr;
+                                                                })
                                                                 .slice(0, 3)
                                                                 .map((exp: any, idx: number) => {
-                                                                    const expStr = exp.date.toISOString().split('T')[0];
+                                                                    const d = exp.date.toDate ? exp.date.toDate() : new Date(exp.date);
+                                                                    const expStr = d.toISOString().split('T')[0];
                                                                     const isToday = expStr === todayStr;
 
                                                                     return (
@@ -1185,7 +1198,7 @@ export const ClientsPage = () => {
                                                                             title={isToday ? "VENCE HOY" : "Próximo vencimiento"}
                                                                         >
                                                                             <Calendar size={10} />
-                                                                            {exp.points} ({exp.date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })})
+                                                                            {exp.points} ({d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })})
                                                                         </div>
                                                                     );
                                                                 })}

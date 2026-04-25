@@ -1,6 +1,6 @@
 import admin from "firebase-admin";
 
-function initFirebase() {
+function initFirebaseAdmin() {
     if (!admin.apps.length) {
         const credsRaw = process.env.GOOGLE_CREDENTIALS_JSON || "";
         let creds;

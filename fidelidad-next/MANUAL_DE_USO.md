@@ -240,6 +240,15 @@ En la sección de Auditoría, existen botones para disparar procesos manualmente
 > [!TIP]
 > Si dispara los motores **manualmente** desde la pestaña de Auditoría, el sistema pasará por alto los controles estándar de reloj y operará inmediatamente según la fecha que tenga seteada en el simulador.
 
+### 🛡️ Muro de Contención: Control de Duplicidad
+
+El sistema posee un mecanismo estricto para evitar que los procesos envíen correos, mensajes o resten puntos múltiples veces en un mismo día por error de sistema o doble click. Existen dos lugares donde usted interactúa con esta barrera:
+
+1. **En la Configuración General (Panel > Ajustes):** Aquí encuentra el control **Maestro**. Si está activado (Verde), el motor automático de QStash (el que se dispara a la madrugada) está bloqueado por el "Muro". Esto garantiza que si el robot se despierta dos veces el mismo día, la segunda vez rebote pacíficamente.
+2. **En la Pantalla de Auditoría (El Switch de Duplicidad):** Este botón rojo/verde **es exactamente la misma variable** que el anterior, pero puesto aquí para su comodidad. Al disparar pruebas manuales, lo usará de la siguiente forma:
+   - **Verde (Seguro):** Protegerá las acciones manuales. Si usted aprieta el botón Rosa (Cumpleaños) dos veces seguidas, la segunda fallará discretamente.
+   - **Rojo (Ignorarla temporalmente):** Suaviza el escudo temporalmente y le permite a usted (como administrador) presionar los motores múltiples veces en el mismo día. Esto es exclusivo y obligatorio cuando usa el **Simulador de Fechas** y necesita viajar en el tiempo simulando múltiples cierres de mes en una sola tarde de trabajo.
+
 ---
 
 ## 12. 🚀 Optimización y Performance

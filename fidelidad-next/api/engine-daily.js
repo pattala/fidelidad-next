@@ -38,8 +38,12 @@ export default async function handler(req, res) {
         const app = initFirebaseAdmin();
         const db = app.firestore();
         
+        const configSnap = await db.collection('config').doc('general').get();
+        const systemEnableDuplicateControl = configSnap.data()?.enableDuplicateControl !== false;
+
         // --- CONTROL DE DUPLICIDAD (Safety Wall) ---
-        if (!ignoreDeduplication) {
+        // Se respeta la orden por request manual, o el default global si es cron (systemEnableDuplicateControl)
+        if (!ignoreDeduplication && systemEnableDuplicateControl) {
             const arFormatter = new Intl.DateTimeFormat('en-CA', {
                 timeZone: 'America/Argentina/Buenos_Aires',
                 year: 'numeric', month: '2-digit', day: '2-digit'

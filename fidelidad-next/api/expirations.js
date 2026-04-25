@@ -132,7 +132,7 @@ async function handleCheck(req, res, db) {
             });
         }
 
-        const referenceDateStr = referenceDate.toISOString().split('T')[0];
+        const referenceDateStr = refStr;
         const startOfToday = new Date(referenceDate);
         startOfToday.setHours(0, 0, 0, 0);
 

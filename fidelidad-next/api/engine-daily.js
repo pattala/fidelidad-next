@@ -178,7 +178,7 @@ export default async function handler(req, res) {
     if (!effectiveSimulatedDate && config.enableDateSimulator && config.simulatedOffsetDays) {
         const simDate = new Date();
         simDate.setDate(simDate.getDate() + config.simulatedOffsetDays);
-        effectiveSimulatedDate = simDate.toISOString().split('T')[0];
+        effectiveSimulatedDate = `${simDate.getFullYear()}-${String(simDate.getMonth() + 1).padStart(2, '0')}-${String(simDate.getDate()).padStart(2, '0')}`;
         console.log(`[DailyEngine] Aplicando Simulación Global: ${effectiveSimulatedDate}`);
     }
     const isSimulation = !!effectiveSimulatedDate;

@@ -1,5 +1,5 @@
 // Club Fidelidad - Content Script (VERSI├ôN EMPLEADO V35 - EXPIRATION ITINERARY)
-console.log("­ƒÜÇ [Club Fidelidad] V35: Implementando itinerario de vencimientos detallado.");
+console.log("&#128640; [Club Fidelidad] V35: Implementando itinerario de vencimientos detallado.");
 
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;
@@ -21,7 +21,7 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey'], (res) => {
                 const total = (data.birthdays?.list?.length || 0) + (data.expirations?.list?.length || 0) + (data.petAlerts?.list?.length || 0);
                 if (total > 0) showGlobalAlert(data, res.apiUrl);
             }
-        }).catch(e => console.error("ÔØî [Club Fidelidad] Error:", e.message));
+        }).catch(e => console.error("&#10060; [Club Fidelidad] Error:", e.message));
     }
 });
 
@@ -95,17 +95,17 @@ function showGlobalAlert(fullData, adminUrl) {
         if (type === 'birthdays') {
             const points = cfg?.birthdayPoints || 100;
             if (cfg?.enableBirthdayBonus !== false) {
-                msg = (templates.birthday || "¡Feliz cumple {nombre}! 🎂­ƒÄë Te regalamos {puntos} puntos. Ô£¿").replace(/{puntos}/g, points.toString());
-            } else { msg = templates.birthdaySimple || "¡Feliz cumple {nombre}! 🎂­ƒÄë Ô£¿"; }
+                msg = (templates.birthday || "¡Feliz cumple {nombre}! &#127874;­ƒÄë Te regalamos {puntos} puntos. Ô£¿").replace(/{puntos}/g, points.toString());
+            } else { msg = templates.birthdaySimple || "¡Feliz cumple {nombre}! &#127874;­ƒÄë Ô£¿"; }
         } else if (type === 'expirations') {
             if (breakdownStr && breakdownStr.includes('|')) {
                 const list = breakdownStr.split('|').map(s => `\nÔÇó ${s}`).join('');
                 msg = `¡Hola ${firstName}! ­ƒôó Tus puntos vencen próximamente:${list}\n\n­ƒöÑ Total a vencer: ${extra} pts.`;
             } else {
-                msg = (templates.expirationWarning || "¡Hola {nombre}! ­ƒôó {puntos} pts por vencer. ⏳").replace(/{puntos}/g, extra);
+                msg = (templates.expirationWarning || "¡Hola {nombre}! ­ƒôó {puntos} pts por vencer. &#8987;").replace(/{puntos}/g, extra);
             }
         } else if (type === 'petAlerts') {
-            msg = (templates.petFoodAlert || "¡Hola {nombre}! 🐾 Reposición de {mascota}.").replace(/{mascota}/g, extra);
+            msg = (templates.petFoodAlert || "¡Hola {nombre}! &#128062; Reposición de {mascota}.").replace(/{mascota}/g, extra);
         }
         msg = msg.replace(/{nombre}/g, firstName).replace(/{tienda}/g, cfg?.siteName || cfg?.appName || 'la tienda');
         return `https://api.whatsapp.com/send?phone=${p}&text=${encodeURIComponent(msg)}`;
@@ -127,7 +127,7 @@ function showGlobalAlert(fullData, adminUrl) {
             ui.innerHTML = `
                 <div style="padding:24px; cursor:grab; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center;" id="cf-v35-drag">
                     <div style="display:flex; align-items:center; gap:12px;">
-                        <span style="font-size:28px;">⭐</span>
+                        <span style="font-size:28px;">&#11088;</span>
                         <div>
                             <div style="font-weight:900; font-size:13px; text-transform:uppercase;">Centro de Avisos</div>
                             <div style="font-size:10px; opacity:0.5; font-weight:700;">Gestión de Vencimientos</div>
@@ -138,7 +138,7 @@ function showGlobalAlert(fullData, adminUrl) {
                 <div style="padding:22px; overflow-y:auto; flex:1;" class="cf-scrollbar">
                     ${renderBirthdays()}
                     ${renderExpirations()}
-                    ${renderGroup('petAlerts', '🐾 Mascotas', petAlerts, '#6366f1')}
+                    ${renderGroup('petAlerts', '&#128062; Mascotas', petAlerts, '#6366f1')}
                 </div>
             `;
             ui.querySelector('#cf-v35-drag').onmousedown = (e) => {
@@ -153,7 +153,7 @@ function showGlobalAlert(fullData, adminUrl) {
                 
                 checkWA.onchange = () => {
                     const active = checkWA.checked;
-                    btn.innerText = active ? '📱 Enviar WhatsApp' : '✅ Marcar como visto';
+                    btn.innerText = active ? '&#128241; Enviar WhatsApp' : '&#9989; Marcar como visto';
                     if (!active) btn.classList.add('no-msg');
                     else btn.classList.remove('no-msg');
                 };
@@ -168,7 +168,7 @@ function showGlobalAlert(fullData, adminUrl) {
             });
         } else {
             ui.className = 'cf-v35-bubble';
-            ui.innerHTML = `<span style="font-size:36px;">­ƒöö</span><div style="position:absolute; top:-5px; right:-5px; background:#ef4444; color:white; font-size:11px; font-weight:900; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:2.5px solid white;">${total}</div>`;
+            ui.innerHTML = `<span style="font-size:36px;">&#128227;</span><div style="position:absolute; top:-5px; right:-5px; background:#ef4444; color:white; font-size:11px; font-weight:900; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:2.5px solid white;">${total}</div>`;
             ui.onmousedown = (e) => {
                 isDragging = true; dragStart.x = e.clientX - pos.x; dragStart.y = e.clientY - pos.y;
                 document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', mouseUp);
@@ -182,14 +182,14 @@ function showGlobalAlert(fullData, adminUrl) {
         if (birthdays.length === 0) return '';
         const curY = new Date().getFullYear().toString();
         return `<div style="margin-bottom:25px;">
-            <div style="font-size:11px; font-weight:900; color:#ec4899; text-transform:uppercase; margin-bottom:12px;">🎂 Cumpleaños Hoy</div>
+            <div style="font-size:11px; font-weight:900; color:#ec4899; text-transform:uppercase; margin-bottom:12px;">&#127874; Cumpleaños Hoy</div>
             ${birthdays.map(c => `<div class="cf-v35-card">
                 <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:12px;">
                     <div><div style="font-weight:900; font-size:16px;">${c.name}</div><div style="font-size:10px; opacity:0.5;">DNI: ${c.dni} | Nro: ${c.socioNumber}</div></div>
                     <div style="text-align:center"><span style="font-size:8px; opacity:0.6; display:block">MSG</span><input type="checkbox" class="cf-v35-checkbox cf-v34-wa-toggle" checked></div>
                 </div>
-                <div style="color:${c.lastBirthdayPointsYear === curY ? '#4ade80' : '#fb923c'}; font-size:9px; font-weight:900;">${c.lastBirthdayPointsYear === curY ? '✅ REGALO ENVIADO' : '­ƒÄü REGALO PENDIENTE'}</div>
-                <button class="cf-v35-btn-wa" data-type="birthdays" data-phone="${c.phone}" data-name="${c.name}">📱 Enviar WhatsApp</button>
+                <div style="color:${c.lastBirthdayPointsYear === curY ? '#4ade80' : '#fb923c'}; font-size:9px; font-weight:900;">${c.lastBirthdayPointsYear === curY ? '&#9989; REGALO ENVIADO' : '­ƒÄü REGALO PENDIENTE'}</div>
+                <button class="cf-v35-btn-wa" data-type="birthdays" data-phone="${c.phone}" data-name="${c.name}">&#128241; Enviar WhatsApp</button>
             </div>`).join('')}
         </div>`;
     };
@@ -197,19 +197,19 @@ function showGlobalAlert(fullData, adminUrl) {
     const renderExpirations = () => {
         if (expirations.length === 0) return '';
         return `<div style="margin-bottom:25px;">
-            <div style="font-size:11px; font-weight:900; color:#f59e0b; text-transform:uppercase; margin-bottom:12px;">⏳ Vencimientos Próximos</div>
+            <div style="font-size:11px; font-weight:900; color:#f59e0b; text-transform:uppercase; margin-bottom:12px;">&#8987; Vencimientos Próximos</div>
             ${expirations.map(item => {
                 const bStr = item.breakdown ? item.breakdown.map(b => `${b.date}: ${b.rem} pts`).join('|') : '';
                 return `<div class="cf-v35-card">
                 <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:12px;">
                     <div style="flex:1;">
                         <div style="font-weight:900; font-size:16px; margin-bottom:4px;">${item.name}</div>
-                        <div style="font-size:11px; color:#f59e0b; font-weight:800;">⚠️ ${item.points} pts por vencer</div>
+                        <div style="font-size:11px; color:#f59e0b; font-weight:800;">&#9888; ${item.points} pts por vencer</div>
                     </div>
                     <div style="text-align:center"><span style="font-size:8px; opacity:0.6; display:block">MSG</span><input type="checkbox" class="cf-v35-checkbox cf-v34-wa-toggle" checked></div>
                 </div>
                 ${item.breakdown && item.breakdown.length > 1 ? `<div style="font-size:9px; opacity:0.6; font-weight:700; background:rgba(0,0,0,0.2); padding:8px; border-radius:12px;">${item.breakdown.map(b => `ÔÇó ${b.date}: ${b.rem} pts`).join('<br>')}</div>` : ''}
-                <button class="cf-v35-btn-wa" data-type="expirations" data-phone="${item.phone}" data-name="${item.name}" data-extra="${item.points}" data-breakdown="${bStr}">📱 Enviar WhatsApp</button>
+                <button class="cf-v35-btn-wa" data-type="expirations" data-phone="${item.phone}" data-name="${item.name}" data-extra="${item.points}" data-breakdown="${bStr}">&#128241; Enviar WhatsApp</button>
             </div>`;
             }).join('')}
         </div>`;
@@ -220,10 +220,10 @@ function showGlobalAlert(fullData, adminUrl) {
         return `<div style="margin-bottom:25px;"><div style="font-size:11px; font-weight:900; color:${color}; text-transform:uppercase; margin-bottom:12px;">${title}</div>
             ${list.map(item => `<div class="cf-v35-card">
                 <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:12px;">
-                    <div style="flex:1;"><div style="font-weight:900; font-size:16px;">${item.name}</div><div style="font-size:11px; color:${color}; font-weight:800;">🐾 Alimento: ${item.petName}</div></div>
+                    <div style="flex:1;"><div style="font-weight:900; font-size:16px;">${item.name}</div><div style="font-size:11px; color:${color}; font-weight:800;">&#128062; Alimento: ${item.petName}</div></div>
                     <div style="text-align:center"><span style="font-size:8px; opacity:0.6; display:block">MSG</span><input type="checkbox" class="cf-v35-checkbox cf-v34-wa-toggle" checked></div>
                 </div>
-                <button class="cf-v35-btn-wa" data-type="${type}" data-phone="${item.phone}" data-name="${item.name}" data-extra="${item.petName}">📱 Enviar WhatsApp</button>
+                <button class="cf-v35-btn-wa" data-type="${type}" data-phone="${item.phone}" data-name="${item.name}" data-extra="${item.petName}">&#128241; Enviar WhatsApp</button>
             </div>`).join('')}
         </div>`;
     };
@@ -456,7 +456,7 @@ function showFidelidadPanel() {
                         <!-- Sección Pet: se renderiza dinámicamente si enablePetModule=true y el cliente tiene mascotas -->
                         <div id="cf-pet-food-section" style="display:none; margin-top: 12px; padding-top: 12px; border-top: 1px solid #f3f4f6;">
                             <label class="cf-checkbox-label" style="color: #c2410c; font-weight: 700;">
-                                <input type="checkbox" id="cf-pet-food-check"> 🐾 Reposición de Alimento
+                                <input type="checkbox" id="cf-pet-food-check"> &#128062; Reposición de Alimento
                             </label>
                             <div id="cf-pet-list" style="display:none; padding-left: 20px; margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px;"></div>
                         </div>
@@ -592,7 +592,7 @@ function showFidelidadPanel() {
         previewContainer.style.display = 'block';
         
         previewContainer.innerHTML = `
-            <div style="font-weight: bold; color: #374151;">✨ Se asignarán: <strong style="color: #059669;">${totalFinal} puntos</strong></div>
+            <div style="font-weight: bold; color: #374151;">&#10024; Se asignarán: <strong style="color: #059669;">${totalFinal} puntos</strong></div>
             <div style="font-size: 10px; color: #6b7280; margin-top: 2px;">
                 Cálculo: $${val.toLocaleString('es-AR')} / ${apiRatios.base} x ${apiRatios.perPeso}
                 ${(bonus - bonusK) > 0 ? ` + ${bonus - bonusK} pts promos` : ''}
@@ -671,7 +671,7 @@ function showFidelidadPanel() {
 
     async function searchClients(q) {
         if (!config.apiUrl || !config.apiKey) {
-            statusDiv.innerText = '⚠️ Configura la API';
+            statusDiv.innerText = '&#9888; Configura la API';
             return;
         }
         try {
@@ -694,10 +694,10 @@ function showFidelidadPanel() {
                     resultsDiv.style.display = 'block';
                 }
             } else {
-                statusDiv.innerText = '❌ Error de conexión';
+                statusDiv.innerText = '&#10060; Error de conexión';
             }
         } catch (e) {
-            statusDiv.innerText = '❌ Error de conexión';
+            statusDiv.innerText = '&#10060; Error de conexión';
         }
     }
 
@@ -930,7 +930,7 @@ function showFidelidadPanel() {
 
         const amount = parseFloat(document.getElementById('cf-input-amount').value);
         if (isNaN(amount) || amount <= 0) {
-            statusDiv.innerText = '❌ Ingrese un monto válido';
+            statusDiv.innerText = '&#10060; Ingrese un monto válido';
             return;
         }
 
@@ -987,12 +987,12 @@ function showFidelidadPanel() {
                 }
                 renderSuccess(data);
             } else {
-                statusDiv.innerText = `❌ Error: ${data.error}`;
+                statusDiv.innerText = `&#10060; Error: ${data.error}`;
                 submitBtn.disabled = false;
                 submitBtn.innerText = 'REINTENTAR';
             }
         } catch (e) {
-            statusDiv.innerText = '❌ Error de conexión';
+            statusDiv.innerText = '&#10060; Error de conexión';
             submitBtn.disabled = false;
         }
     };
@@ -1001,7 +1001,7 @@ function showFidelidadPanel() {
         const body = document.querySelector('.fidelidad-body');
         body.innerHTML = `
             <div class="fidelidad-success" style="text-align: center; color: #16a34a; padding: 10px;">
-                <div style="font-size: 40px;">✅</div>
+                <div style="font-size: 40px;">&#9989;</div>
                 <div style="font-weight: bold; font-size: 18px; margin: 5px 0;">¡Puntos Asignados!</div>
                 <div style="font-size: 14px; color: #666; margin-bottom: 15px;">Se sumaron ${data.pointsAdded} puntos a ${selectedClient.name}.</div>
                 ${data.whatsappLink ? `<a href="${data.whatsappLink}" target="_blank" class="fidelidad-wa-link" id="cf-wa-link-success">RE-ENVIAR WHATSAPP</a>` : ''}
@@ -1051,7 +1051,7 @@ function showFidelidadPanel() {
 
             card.innerHTML = `
                 <div style="height: 60px; background: #f9fafb; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
-                    ${p.image ? `<img src="${p.image}" style="width: 100%; height: 100%; object-fit: cover;">` : '<span style="font-size: 24px;">🎁</span>'}
+                    ${p.image ? `<img src="${p.image}" style="width: 100%; height: 100%; object-fit: cover;">` : '<span style="font-size: 24px;">&#127873;</span>'}
                 </div>
                 <div style="flex: 1;">
                     <div style="font-size: 11px; font-weight: 800; color: #1f2937; line-height: 1.2; height: 26px; overflow: hidden;">${p.name}</div>
@@ -1107,7 +1107,7 @@ function showFidelidadPanel() {
         const body = document.querySelector('.fidelidad-body');
         body.innerHTML = `
             <div class="fidelidad-success" style="text-align: center; color: #16a34a; padding: 10px;">
-                <div style="font-size: 40px;">🎁</div>
+                <div style="font-size: 40px;">&#127873;</div>
                 <div style="font-weight: bold; font-size: 18px; margin: 5px 0;">¡Canje Exitoso!</div>
                 <div style="font-size: 14px; color: #666; margin-bottom: 15px;">
                     ${selectedClient.name} canjeó <strong>${prize.name}</strong>.<br>

@@ -198,7 +198,6 @@ export const MetricsPage = () => {
 
                 const currentResults = processStats(currentMovements);
                 const prevResults = processStats(prevMovements);
-                const prevResults = processStats(prevMovements);
 
                 // Calcular Valor Real del Punto (Reality Check)
                 const qPr = query(collection(db, 'prizes'), where('active', '==', true));

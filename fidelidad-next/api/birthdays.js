@@ -1,6 +1,7 @@
 import admin from "firebase-admin";
 import nodemailer from 'nodemailer';
 import { buildHtmlLayout } from "../utils/emailLayout.js";
+import { getEffectiveDate } from "../utils/timeUtils.js";
 
 // ---------- Inicialización Firebase Admin ----------
 function initFirebaseAdmin() {
@@ -53,10 +54,10 @@ export default async function handler(req, res) {
         if (!configSnap.exists) return res.status(404).json({ ok: false, error: "Config not found" });
         const config = configSnap.data();
 
-        let referenceDate = new Date();
-        if (simulatedDateStr) {
-            referenceDate = new Date(simulatedDateStr + 'T12:00:00');
-            console.log(`[Birthdays] Usando fecha simulada: ${simulatedDateStr}`);
+        // Usamos la utilidad centralizada para respetar el Simulador
+        const referenceDate = await getEffectiveDate(db, simulatedDateStr);
+        if (simulatedDateStr || (config.enableDateSimulator && config.simulatedOffsetDays)) {
+            console.log(`[Birthdays] Usando fecha efectiva (simulada): ${referenceDate.toISOString().split('T')[0]}`);
         }
 
         const currentYear = referenceDate.getFullYear().toString();

@@ -2,6 +2,7 @@
 import admin from "firebase-admin";
 import nodemailer from 'nodemailer';
 import { buildHtmlLayout } from "../utils/emailLayout.js";
+import { getEffectiveDate } from "../utils/timeUtils.js";
 
 // ---------- Inicialización Firebase Admin ----------
 function initFirebaseAdmin() {
@@ -67,24 +68,16 @@ export default async function handler(req, res) {
         return res.status(200).json({ ok: true, message: "Pet module is disabled" });
     }
 
-    const simCfg = config.simulationConfig || { birthdays: true, expirations: true, petAlerts: true, campaigns: true };
-    let referenceDate = new Date();
-    let todayStr = referenceDate.toISOString().split('T')[0];
     const simulatedDateStr = req.body?.simulatedDate || req.query?.simulatedDate;
     const triggerSource = req.body?.source || req.query?.source || 'Sistema (QStash)';
     const isSilent = req.query?.silent === 'true' || req.body?.silent === true;
 
-    if (simulatedDateStr && simCfg.petAlerts) {
-        if (simulatedDateStr.includes('T')) {
-            const [datePart] = simulatedDateStr.split('T');
-            todayStr = datePart;
-            referenceDate = new Date(datePart + 'T12:00:00');
-        } else {
-            const [y, m, d] = simulatedDateStr.split(/[-/]/);
-            todayStr = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-            referenceDate = new Date(todayStr + 'T12:00:00');
-        }
-        console.log(`[PetAlerts] Usando fecha simulada: ${todayStr}`);
+    // Usamos la utilidad centralizada para respetar el Simulador
+    const referenceDate = await getEffectiveDate(db, simulatedDateStr);
+    const todayStr = referenceDate.toISOString().split('T')[0];
+
+    if (simulatedDateStr || (config.enableDateSimulator && config.simulatedOffsetDays)) {
+        console.log(`[PetAlerts] Usando fecha efectiva (simulada): ${todayStr}`);
     }
 
     const results = {

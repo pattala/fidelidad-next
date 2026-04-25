@@ -2,6 +2,7 @@
 // Gestor de campañas: Maneja el auto-despacho (broadcast) y mantenimiento de campañas activas.
 
 import admin from "firebase-admin";
+import { getEffectiveDate } from "../utils/timeUtils.js";
 
 function initFirebaseAdmin() {
     try {
@@ -57,13 +58,13 @@ export default async function handler(req, res) {
             messaging: { engineAllowedStartHour: 9, engineAllowedEndHour: 21 }
         };
 
-        const simCfg = config.simulationConfig || { birthdays: true, expirations: true, petAlerts: true, campaigns: true };
         const simulatedDateParam = req.body?.simulatedDate || req.query?.simulatedDate;
 
-        let now = new Date();
-        if (simulatedDateParam && simCfg.campaigns) {
-            now = new Date(simulatedDateParam);
-            console.log(`[Engine-Campaigns] Usando fecha simulada: ${simulatedDateParam}`);
+        // Usamos la utilidad centralizada para respetar el Simulador
+        const now = await getEffectiveDate(db, simulatedDateParam);
+        
+        if (simulatedDateParam || (config.enableDateSimulator && config.simulatedOffsetDays)) {
+            console.log(`[Engine-Campaigns] Usando fecha efectiva (simulada): ${now.toISOString().split('T')[0]}`);
         }
 
         const todayStr = now.toISOString().split('T')[0];

@@ -5,6 +5,7 @@
 
 import admin from "firebase-admin";
 import { updateNextExpirationDate } from "../utils/_expiration-utils.js";
+import { getEffectiveDate } from "../utils/timeUtils.js";
 
 // ---------- Firebase Admin ----------
 function initFirebaseAdmin() {
@@ -257,6 +258,11 @@ export default async function handler(req, res) {
         let newAccumulatedBalance = 0;
         const finalAmount = amountOverride || amount;
 
+        // --- RELOJ SIMULADO ---
+        // Se define aquí arriba para usar en todos los modos (Admin, Usuario, Reglas)
+        const now = await getEffectiveDate(db, req.body?.simulatedDate);
+        const todayStr = now.toISOString().split('T')[0];
+
         if (isAdmin && finalAmount) {
             // Obtener saldo acumulado actual del cliente para el cálculo
             const clientSnap = await db.collection('users').doc(targetUid).get();
@@ -292,9 +298,8 @@ export default async function handler(req, res) {
                         // Lógica de Recompensa Flash (Autónoma y sensible al tiempo)
                         let useFlashReward = b.isFlash;
                         if (b.isFlash && (b.startTime || b.endTime)) {
-                            const now = new Date();
-                            const nowArg = new Date(now.getTime() - (3 * 60 * 60 * 1000));
-                            const curHHmm = `${String(nowArg.getUTCHours()).padStart(2, '0')}:${String(nowArg.getUTCMinutes()).padStart(2, '0')}`;
+                            // Usamos el 'now' simulado
+                            const curHHmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
                             const isAfterStart = !b.startTime || b.startTime <= curHHmm;
 
@@ -303,10 +308,10 @@ export default async function handler(req, res) {
                             if (b.endTime) {
                                 const [endH, endM] = b.endTime.split(':').map(Number);
                                 const flashGrace = Number(b.flashGraceMins) || 0;
-                                const endTimestamp = new Date(nowArg);
-                                endTimestamp.setUTCHours(endH, endM + flashGrace, 0, 0);
+                                const endTimestamp = new Date(now);
+                                endTimestamp.setHours(endH, endM + flashGrace, 0, 0);
 
-                                if (nowArg > endTimestamp) {
+                                if (now > endTimestamp) {
                                     isBeforeEnd = false;
                                 }
                             }
@@ -366,14 +371,11 @@ export default async function handler(req, res) {
         const clientRef = db.collection("users").doc(targetUid);
         let result = { ok: false, debug: {}, auditDetails: [] };
 
-        const now = new Date();
-        const argentinaOffset = -3 * 60 * 60 * 1000;
-        const nowArg = new Date(now.getTime() + argentinaOffset);
-        const todayStr = nowArg.toISOString().split('T')[0];
+        // (now y todayStr ya definidos arriba)
 
-        let recordDate = new Date();
+        let recordDate = now;
         if (req.body?.date) {
-            if (req.body.date === todayStr) recordDate = new Date();
+            if (req.body.date === todayStr) recordDate = now;
             else recordDate = new Date(req.body.date + 'T12:00:00');
         }
 

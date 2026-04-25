@@ -212,17 +212,28 @@ export const MetricsPage = () => {
                 // Calcular Valor Real del Punto (Reality Check) sin bloqueos
                 const realPV = (appConfig.pointValue || 10);
 
-                setTotalStats({ emitted: currentResults.tEmitted, redeemed: currentResults.tRedeemed, expired: currentResults.tExpired });
-                setPrevTotalStats({ emitted: prevResults.tEmitted, redeemed: prevResults.tRedeemed, expired: prevResults.tExpired });
-                setChartData(Array.from(currentResults.grouped.entries()).map(([name, data]) => ({ name, ...data })));
+                const currentNetEmitted = currentResults.tEmitted - currentResults.tExpired;
+                const prevNetEmitted = prevResults.tEmitted - prevResults.tExpired;
+
+                // Saldo en circulación para este periodo: lo que se emitió - lo que ya salió (canje o vencimiento)
+                const currentInCirculation = Math.max(0, currentResults.tEmitted - currentResults.tRedeemed - currentResults.tExpired);
+                const prevInCirculation = Math.max(0, prevResults.tEmitted - prevResults.tRedeemed - prevResults.tExpired);
+
+                setTotalStats({ emitted: currentNetEmitted, redeemed: currentResults.tRedeemed, expired: currentResults.tExpired });
+                setPrevTotalStats({ emitted: prevNetEmitted, redeemed: prevResults.tRedeemed, expired: prevResults.tExpired });
+                setChartData(Array.from(currentResults.grouped.entries()).map(([name, data]) => ({ 
+                    name, 
+                    ...data,
+                    emitted: data.emitted - data.expired // Reflejar Neto en el gráfico también
+                })));
                 setHeatmapData(currentResults.heatmap);
 
                 setAdvancedStats({
                     averageTicket: currentResults.creditCount > 0 ? currentResults.totalMoneySpent / currentResults.creditCount : 0,
                     frequency: currentResults.activeUids.size > 0 ? currentResults.creditCount / currentResults.activeUids.size : 0,
                     activeCustomers: currentResults.activeUids.size,
-                    totalCustomers: currentResults.activeUids.size, // Simplificado sin censo lento
-                    potentialRevenue: currentResults.tEmitted * realPV,
+                    totalCustomers: currentResults.activeUids.size, 
+                    potentialRevenue: currentInCirculation * realPV,
                     creditCount: currentResults.creditCount,
                     referralCount: currentResults.referralCount
                 });
@@ -330,17 +341,17 @@ export const MetricsPage = () => {
 
                 // GUARDAR EN CACHE PARA LA PRÓXIMA VEZ
                 localStorage.setItem('metrics_cache_v2', JSON.stringify({
-                    totalStats: { emitted: currentResults.tEmitted, redeemed: currentResults.tRedeemed, expired: currentResults.tExpired },
+                    totalStats: { emitted: currentNetEmitted, redeemed: currentResults.tRedeemed, expired: currentResults.tExpired },
                     advancedStats: {
                         averageTicket: currentResults.creditCount > 0 ? currentResults.totalMoneySpent / currentResults.creditCount : 0,
                         frequency: currentResults.activeUids.size > 0 ? currentResults.creditCount / currentResults.activeUids.size : 0,
                         activeCustomers: currentResults.activeUids.size,
                         totalCustomers: currentResults.activeUids.size,
-                        potentialRevenue: currentResults.tEmitted * realPV,
+                        potentialRevenue: currentInCirculation * realPV,
                         creditCount: currentResults.creditCount,
                         referralCount: currentResults.referralCount
                     },
-                    chartData: Array.from(currentResults.grouped.entries()).map(([name, data]) => ({ name, ...data })),
+                    chartData: Array.from(currentResults.grouped.entries()).map(([name, data]) => ({ name, ...data, emitted: data.emitted - data.expired })),
                     topUsers: filteredTopBalance.map(user => ({ id: user.id, ...user, name: user.name || user.nombre || 'Socio sin nombre', points: user.points || 0, socioNumber: user.socioNumber || user.numeroSocio || '' })),
                     topSpenders: sortedSpenders.map(([uid, total]) => {
                         const uData = usersMap.get(uid);
@@ -500,9 +511,10 @@ export const MetricsPage = () => {
                                 <>
                                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-blue-100 flex items-center justify-between">
                                         <div>
-                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Puntos Emitidos</p>
+                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Puntos Emitidos (Neto)</p>
                                             <p className="text-2xl font-black text-blue-600">{totalStats.emitted.toLocaleString()}</p>
                                             <TrendIndicator current={totalStats.emitted} prev={prevTotalStats.emitted} />
+                                            <p className="text-[10px] text-gray-400 mt-1 italic">* Descontando puntos vencidos</p>
                                         </div>
                                         <div className="p-3 bg-blue-50 text-blue-600 rounded-xl"><TrendingUp size={24} /></div>
                                     </div>

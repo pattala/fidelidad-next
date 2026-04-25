@@ -1,4 +1,5 @@
 import admin from "firebase-admin";
+import { getEffectiveDate } from "../utils/timeUtils.js";
 
 function initFirebaseAdmin() {
     if (!admin.apps.length) {
@@ -25,14 +26,7 @@ async function buildExtensionLists(db, simulatedDate) {
     const configSnap = await db.collection('config').doc('general').get();
     const config = configSnap.data() || {};
 
-    const today = new Date();
-    let effectiveDate = today;
-    if (simulatedDate) {
-        effectiveDate = new Date(simulatedDate + 'T12:00:00');
-    } else if (config.enableDateSimulator && config.simulatedOffsetDays) {
-        effectiveDate = new Date(today);
-        effectiveDate.setDate(effectiveDate.getDate() + config.simulatedOffsetDays);
-    }
+    const effectiveDate = await getEffectiveDate(db, simulatedDate);
 
     const arMD = `${String(effectiveDate.getMonth() + 1).padStart(2, '0')}-${String(effectiveDate.getDate()).padStart(2, '0')}`;
     const currentYear = effectiveDate.getFullYear().toString();

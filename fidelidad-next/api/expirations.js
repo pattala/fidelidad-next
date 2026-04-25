@@ -2,6 +2,7 @@ import admin from "firebase-admin";
 import nodemailer from 'nodemailer';
 import { updateNextExpirationDate } from "../utils/_expiration-utils.js";
 import { buildHtmlLayout } from "../utils/emailLayout.js";
+import { getEffectiveDate } from "../utils/timeUtils.js";
 
 // ---------- Inicialización Firebase Admin ----------
 function initFirebaseAdmin() {
@@ -29,20 +30,11 @@ export default async function handler(req, res) {
         const configSnap = await db.collection('config').doc('general').get();
         const config = configSnap.data() || {};
         
-        // --- RELOJ ARGENTINA (FIJO) ---
-        // Forzamos que el sistema siempre piense en hora de Buenos Aires
-        const todayRaw = new Date();
-        const argentinaDate = new Date(todayRaw.toLocaleString("en-US", { timeZone: "America/Argentina/Buenos_Aires" }));
-        
         const simulatedDateStr = req.body?.simulatedDate || req.query?.simulatedDate;
         const triggerSource = req.body?.source || req.query?.source || 'Sistema (QStash)';
 
-        let referenceDate = argentinaDate;
-        if (simulatedDateStr) {
-            const [y, m, d] = simulatedDateStr.split(/[-/]/);
-            referenceDate = new Date(`${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}T12:00:00`);
-        }
-
+        // Usamos la utilidad centralizada para respetar el Simulador
+        const referenceDate = await getEffectiveDate(db, simulatedDateStr);
         const referenceDateStr = referenceDate.toISOString().split('T')[0];
         const startOfToday = new Date(referenceDate);
         startOfToday.setHours(0, 0, 0, 0);

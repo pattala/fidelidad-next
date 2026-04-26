@@ -118,8 +118,12 @@ export default async function handler(req, res) {
         const app = initFirebaseAdmin();
         const db = app.firestore();
 
+        console.log(`[Engine] Triggered by ${triggerSource} with mode ${target}. Simulated Date: ${simulatedDate || 'None'}`);
+
         const configSnap = await db.collection('config').doc('general').get();
-        const systemEnableDuplicateControl = configSnap.data()?.enableDuplicateControl !== false;
+        if (!configSnap.exists) throw new Error("General config not found");
+        const configData = configSnap.data();
+        const systemEnableDuplicateControl = configData?.enableDuplicateControl !== false;
 
         // --- CONTROL DE DUPLICIDAD (Safety Wall) ---
         if (!ignoreDeduplication && systemEnableDuplicateControl) {
@@ -134,6 +138,7 @@ export default async function handler(req, res) {
 
                 // Si hay fecha simulada, saltamos el bloqueo para permitir pruebas
                 if (lastRunDate === todayAR && !simulatedDate) {
+                    console.log(`[Engine] Skip: Already run today (${todayAR}) for target ${target}`);
                     const { birthdayList, expirationList, petAlertList, config } = await buildExtensionLists(db, simulatedDate);
                     return res.status(200).json({
                         ok: true,
@@ -146,58 +151,61 @@ export default async function handler(req, res) {
                     });
                 }
             } catch (e) {
-                console.warn("[Engine] Deduplication check failed, proceeding anyway:", e);
+                console.warn("[Engine] Deduplication check failed, proceeding anyway:", e.message);
             }
         }
 
         // --- PROCESAMIENTO CONCURRENTE (Previene Vercel Timeout) ---
         const results = { birthdays: null, expirations: null, petAlerts: null };
-        const promises = [];
+        const subRequests = [];
+
+        const requestHeaders = { 
+            'Content-Type': 'application/json', 
+            'x-api-key': SECRET 
+        };
+        const requestBody = JSON.stringify({ simulatedDate, source: triggerSource, silent: isSilent, ignoreDeduplication });
+
+        // Helper to fetch and catch
+        const callSubApi = async (path, key) => {
+            const url = `${PWA_URL}${path}`;
+            console.log(`[Engine] Calling sub-api: ${url}`);
+            try {
+                const subRes = await fetch(url, {
+                    method: 'POST',
+                    headers: requestHeaders,
+                    body: requestBody
+                });
+                const contentType = subRes.headers.get("content-type");
+                if (contentType && contentType.includes("application/json")) {
+                    results[key] = await subRes.json();
+                } else {
+                    const text = await subRes.text();
+                    results[key] = { ok: false, error: "Non-JSON response", status: subRes.status, body: text.substring(0, 200) };
+                    console.error(`[Engine] Sub-API ${key} returned non-JSON (${subRes.status}):`, text.substring(0, 100));
+                }
+            } catch (err) {
+                console.error(`[Engine] Failed to call ${key} at ${url}:`, err.message);
+                results[key] = { ok: false, error: err.message };
+            }
+        };
 
         // 1. Cumpleaños
         if (target === 'all' || target === 'birthdays') {
-            promises.push(
-                fetch(`${PWA_URL}/api/birthdays`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET },
-                    body: JSON.stringify({ simulatedDate, source: triggerSource, silent: isSilent, ignoreDeduplication })
-                })
-                .then(res => res.json())
-                .then(data => { results.birthdays = data; })
-                .catch(e => console.error("Error calling birthdays:", e))
-            );
+            subRequests.push(callSubApi('/api/birthdays', 'birthdays'));
         }
 
         // 2. Expiraciones
         if (target === 'all' || target === 'expirations') {
-            promises.push(
-                fetch(`${PWA_URL}/api/expirations`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET },
-                    body: JSON.stringify({ simulatedDate, source: triggerSource, silent: isSilent, ignoreDeduplication })
-                })
-                .then(res => res.json())
-                .then(data => { results.expirations = data; })
-                .catch(e => console.error("Error calling expirations:", e))
-            );
+            subRequests.push(callSubApi('/api/expirations', 'expirations'));
         }
 
         // 3. Alertas Pet
         if (target === 'all' || target === 'pet-alerts') {
-            promises.push(
-                fetch(`${PWA_URL}/api/pet-alerts`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET },
-                    body: JSON.stringify({ simulatedDate, source: triggerSource, silent: isSilent, ignoreDeduplication })
-                })
-                .then(res => res.json())
-                .then(data => { results.petAlerts = data; })
-                .catch(e => console.error("Error calling pet-alerts:", e))
-            );
+            subRequests.push(callSubApi('/api/pet-alerts', 'petAlerts'));
         }
 
         // Ejecutar todo en paralelo
-        await Promise.all(promises);
+        await Promise.all(subRequests);
 
         // --- GUARDAR ESTADO DE EJECUCIÓN ---
         try {
@@ -209,10 +217,9 @@ export default async function handler(req, res) {
                 [`lastRun_${target}`]: arFormatter.format(new Date()),
                 [`lastRunTimestamp_${target}`]: admin.firestore.FieldValue.serverTimestamp(),
             }, { merge: true });
-        } catch (e) { console.error("Could not set daily check lock", e); }
+        } catch (e) { console.error("[Engine] Could not set daily check lock", e.message); }
 
         // --- RESPUESTA FORMATO EXTENSIÓN ---
-        // La extensión de Chrome espera: data.birthdays.list, data.expirations.list, data.petAlerts.list, data.config
         const { birthdayList, expirationList, petAlertList, config } = await buildExtensionLists(db, simulatedDate);
 
         return res.status(200).json({
@@ -225,6 +232,7 @@ export default async function handler(req, res) {
         });
 
     } catch (error) {
-        return res.status(500).json({ error: error.message });
+        console.error("[Engine] Fatal Error:", error);
+        return res.status(500).json({ error: error.message, stack: error.stack });
     }
 }

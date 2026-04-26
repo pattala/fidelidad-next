@@ -23,77 +23,76 @@ function initFirebaseAdmin() {
  * Se llama tanto en ejecución normal como cuando hay deduplicación activa.
  */
 async function buildExtensionLists(db, simulatedDate) {
-    const configSnap = await db.collection('config').doc('general').get();
-    const config = configSnap.data() || {};
+    try {
+        const configSnap = await db.collection('config').doc('general').get();
+        const config = configSnap.data() || {};
 
-    const effectiveDate = await getEffectiveDate(db, simulatedDate);
+        const effectiveDate = await getEffectiveDate(db, simulatedDate);
+        const arMD = `${String(effectiveDate.getMonth() + 1).padStart(2, '0')}-${String(effectiveDate.getDate()).padStart(2, '0')}`;
+        const todayStr = effectiveDate.toISOString().split('T')[0];
+        
+        const winEnd = new Date(effectiveDate);
+        winEnd.setDate(winEnd.getDate() + 30);
+        const winEndStr = winEnd.toISOString().split('T')[0];
 
-    const arMD = `${String(effectiveDate.getMonth() + 1).padStart(2, '0')}-${String(effectiveDate.getDate()).padStart(2, '0')}`;
-    const currentYear = effectiveDate.getFullYear().toString();
-    const todayStr = effectiveDate.toISOString().split('T')[0];
-    const winEnd = new Date(effectiveDate);
-    winEnd.setDate(winEnd.getDate() + 30);
-    const winEndStr = winEnd.toISOString().split('T')[0];
+        // Optimization: Try to filter by points > 0 to reduce scan size for expirations
+        // But birthday needs full scan unless we have an index on birthDate.
+        const usersSnap = await db.collection('users').get();
 
-    const usersSnap = await db.collection('users').get();
+        const birthdayList = [];
+        const expirationList = [];
+        const petAlertList = [];
 
-    const birthdayList = [];
-    const expirationList = [];
-    const petAlertList = [];
+        usersSnap.forEach(d => {
+            const data = d.data();
+            if (data.role === 'admin' || data.isTestUser) return;
 
-    usersSnap.forEach(d => {
-        const data = d.data();
-        if (data.role === 'admin') return;
-
-        // Cumpleaños
-        const bd = data.birthDate || data.fechaNacimiento;
-        if (bd && bd.endsWith(arMD)) {
-            birthdayList.push({
-                id: d.id,
-                name: data.name || data.nombre || 'Socio',
-                phone: data.phone || data.telefono || '',
-                dni: data.dni || '',
-                socioNumber: data.socioNumber || data.numeroSocio || '',
-                lastBirthdayPointsYear: data.lastBirthdayPointsYear || '',
-            });
-        }
-
-        // Vencimientos (ventana 30 días)
-        if (data.nextExpirationDate && data.nextExpirationDate >= todayStr && data.nextExpirationDate <= winEndStr) {
-            if ((data.points || 0) > 0) {
-                expirationList.push({
+            // Cumpleaños
+            const bd = data.birthDate || data.fechaNacimiento;
+            if (bd && bd.endsWith(arMD)) {
+                birthdayList.push({
                     id: d.id,
                     name: data.name || data.nombre || 'Socio',
                     phone: data.phone || data.telefono || '',
-                    points: data.points || 0,
-                    nextExpirationDate: data.nextExpirationDate,
-                    breakdown: data.pointsBreakdown || [],
+                    dni: data.dni || '',
+                    socioNumber: data.socioNumber || data.numeroSocio || '',
                 });
             }
-        }
 
-        // Alertas pet
-        if (data.pets) {
-            data.pets.forEach(p => {
-                if (p.nextFoodAlertDate === todayStr) {
-                    petAlertList.push({
+            // Vencimientos (ventana 30 días)
+            if (data.nextExpirationDate && data.nextExpirationDate >= todayStr && data.nextExpirationDate <= winEndStr) {
+                if ((data.points || 0) > 0) {
+                    expirationList.push({
                         id: d.id,
                         name: data.name || data.nombre || 'Socio',
                         phone: data.phone || data.telefono || '',
-                        petName: p.name,
-                        category: p.category || 'Mascota',
+                        points: data.points || 0,
+                        nextExpirationDate: data.nextExpirationDate,
                     });
                 }
-            });
-        }
-    });
+            }
 
-    return {
-        birthdayList,
-        expirationList,
-        petAlertList,
-        config,
-    };
+            // Alertas pet
+            if (data.pets && Array.isArray(data.pets)) {
+                data.pets.forEach(p => {
+                    if (p.nextFoodAlertDate === todayStr) {
+                        petAlertList.push({
+                            id: d.id,
+                            name: data.name || data.nombre || 'Socio',
+                            phone: data.phone || data.telefono || '',
+                            petName: p.name,
+                            category: p.category || 'Mascota',
+                        });
+                    }
+                });
+            }
+        });
+
+        return { birthdayList, expirationList, petAlertList, config };
+    } catch (error) {
+        console.error("[Engine] buildExtensionLists error:", error.message);
+        return { birthdayList: [], expirationList: [], petAlertList: [], config: {} };
+    }
 }
 
 export default async function handler(req, res) {

@@ -133,11 +133,24 @@ export const AdminLayout = () => {
                 headers: { 'Content-Type': 'application/json', 'x-api-key': import.meta.env.VITE_API_KEY || '' },
                 body: JSON.stringify(body)
             });
-            const data = await res.json();
-            if (data.ok) {
-                toast.success(`Ejecutado: ${data.birthdays?.summary?.processed || 0} cumples y ${data.expirations?.summary?.notified || 0} vencimientos.`, { id: toastId });
-            } else { toast.error("Error en el motor", { id: toastId }); }
-        } catch (e) { toast.error("Error de conexión", { id: toastId }); }
+
+            const contentType = res.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                const data = await res.json();
+                if (data.ok) {
+                    toast.success(`Ejecutado: ${data.birthdays?.summary?.processed || 0} cumples y ${data.expirations?.summary?.notified || 0} vencimientos.`, { id: toastId });
+                } else { 
+                    toast.error(`Error: ${data.error || 'Desconocido'}`, { id: toastId }); 
+                    console.error("Engine Error Detail:", data);
+                }
+            } else {
+                const errorText = await res.text();
+                toast.error(`Error del Servidor (500). Revisar consola.`, { id: toastId });
+                console.error("Non-JSON Engine Error:", errorText);
+            }
+        } catch (e: any) { 
+            toast.error(`Error de conexión: ${e.message}`, { id: toastId }); 
+        }
         finally { setEngineRunning(false); }
     };
 

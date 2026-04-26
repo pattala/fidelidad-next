@@ -107,11 +107,28 @@ async function handleForecast(req, res, db) {
     }
 }
 
+// ---------- Nodemailer ----------
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+    },
+});
+
+function getAbsoluteUrl(url, baseUrl) {
+    if (!url) return "";
+    if (url.startsWith("http")) return url;
+    const base = (baseUrl || "").replace(/\/$/, "");
+    return `${base}${url.startsWith("/") ? url : `/${url}`}`;
+}
+
 // ---------- Handler Principal ----------
 export default async function handler(req, res) {
     if (req.method === 'OPTIONS') return res.status(200).end();
 
     const db = initFirebaseAdmin();
+    const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
 
     // Routing por acción
     const action = req.query?.action || req.body?.action || 'check';
@@ -282,6 +299,32 @@ export default async function handler(req, res) {
                          }
                          
                          // Email (si aplica)
+                         if (userData.email && process.env.SMTP_USER) {
+                             try {
+                                 const innerHtml = `
+                                     <div style="color: #333;">
+                                         <h2 style="color: #e11d48; margin-top: 0;">${title}</h2>
+                                         <p style="font-size: 16px; line-height: 1.6;">
+                                             ${msg}
+                                         </p>
+                                         <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
+                                         <p style="font-size: 14px; color: #666;">
+                                             No pierdas tus beneficios. ¡Entrá a la App y aprovechá tus puntos hoy mismo!
+                                         </p>
+                                     </div>
+                                 `;
+                                 const html = buildHtmlLayout(innerHtml, config);
+                                 await transporter.sendMail({
+                                     from: `"${config.siteName || 'Club Fidelidad'}" <${process.env.SMTP_USER}>`,
+                                     to: userData.email,
+                                     subject: title,
+                                     html
+                                 });
+                             } catch (e) {
+                                 console.error("[Expirations] Error sending email to:", userData.email, e.message);
+                             }
+                         }
+
                          // Inbox
                          await userDoc.ref.collection('inbox').add({
                              title,

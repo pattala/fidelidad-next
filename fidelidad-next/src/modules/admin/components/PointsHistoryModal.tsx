@@ -289,6 +289,14 @@ export const PointsHistoryModal = ({ isOpen, onClose, client, onClientUpdated }:
                 lastExpirationNoticeAmount: null,
                 nextExpirationDate: null,
                 nextExpirationAmount: 0,
+                expiringPoints: 0,
+                expirationDetails: [],
+                totalSpent: 0,
+                redeemedPoints: 0,
+                redeemedValue: 0,
+                // Legacy fields sync
+                proximaExpiracion: null,
+                vencimiento: null,
                 historialPuntos: [],
                 historialCanjes: []
             });

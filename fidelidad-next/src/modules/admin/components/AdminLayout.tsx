@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Home, Users, User, Gift, Settings, LogOut, MessageCircle, BarChart3, ChevronDown, ChevronRight, Clock, Menu, X, Sparkles } from 'lucide-react';
+import { Home, Users, User, Gift, Settings, LogOut, MessageCircle, BarChart3, ChevronDown, ChevronRight, Clock, Menu, X, Sparkles, RefreshCw } from 'lucide-react';
 import { auth, db } from '../../../lib/firebase';
 import { signOut } from 'firebase/auth';
 import { onSnapshot, doc, updateDoc } from 'firebase/firestore';
@@ -19,6 +19,8 @@ export const AdminLayout = () => {
     const [currentTime, setCurrentTime] = useState(new Date());
     const [config, setConfig] = useState<any>(null);
     const [simulatedOffset, setSimulatedOffset] = useState(0);
+    const [engineRunning, setEngineRunning] = useState(false);
+    const [ignoreDeduplication, setIgnoreDeduplication] = useState(true);
 
     // Mobile Sidebar State
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -117,6 +119,26 @@ export const AdminLayout = () => {
         } catch (e) {
             console.error(e);
         }
+    };
+
+    const runEngineManual = async () => {
+        setEngineRunning(true);
+        const toastId = toast.loading("Ejecutando motor de notificaciones...");
+        try {
+            const body: any = { source: 'sidebar_manual', ignoreDeduplication };
+            if (TimeService.getOffsetInDays() !== 0) body.simulatedDate = TimeService.now().toISOString();
+
+            const res = await fetch(`/api/engine-daily?mode=all&trigger=sidebar_manual&ignoreDeduplication=${ignoreDeduplication}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-api-key': import.meta.env.VITE_API_KEY || '' },
+                body: JSON.stringify(body)
+            });
+            const data = await res.json();
+            if (data.ok) {
+                toast.success(`Ejecutado: ${data.birthdays?.summary?.processed || 0} cumples y ${data.expirations?.summary?.notified || 0} vencimientos.`, { id: toastId });
+            } else { toast.error("Error en el motor", { id: toastId }); }
+        } catch (e) { toast.error("Error de conexión", { id: toastId }); }
+        finally { setEngineRunning(false); }
     };
 
     const simulatedDate = TimeService.now();
@@ -288,6 +310,28 @@ export const AdminLayout = () => {
                                 Resetear Fecha
                             </button>
                         )}
+
+                        <div className="mt-4 pt-4 border-t border-purple-100 space-y-3">
+                            <label className="flex items-center gap-2 cursor-pointer group">
+                                <input
+                                    type="checkbox"
+                                    checked={ignoreDeduplication}
+                                    onChange={(e) => setIgnoreDeduplication(e.target.checked)}
+                                    className="rounded border-purple-300 text-purple-600 focus:ring-purple-500 w-3 h-3"
+                                />
+                                <span className="text-[10px] text-purple-900 font-bold uppercase tracking-tighter">Ignorar bloqueo diario</span>
+                            </label>
+
+                            <button
+                                onClick={runEngineManual}
+                                disabled={engineRunning}
+                                className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg font-bold text-[10px] uppercase tracking-wider transition-all ${engineRunning ? 'bg-gray-200 text-gray-400' : 'bg-purple-600 text-white hover:bg-purple-700 shadow-sm hover:shadow-md'
+                                    }`}
+                            >
+                                <RefreshCw size={14} className={engineRunning ? 'animate-spin' : ''} />
+                                {engineRunning ? 'Procesando...' : 'Ejecutar Motor Diario'}
+                            </button>
+                        </div>
                     </div>
                 )}
 

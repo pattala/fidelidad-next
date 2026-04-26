@@ -3,7 +3,7 @@ import { collection, getDocs, query, where, collectionGroup, orderBy, limit, doc
 import { db, auth } from '../../../lib/firebase';
 import { ConfigService } from '../../../services/configService';
 import { TimeService } from '../../../services/timeService';
-import { ArrowUpRight, ArrowDownLeft, TrendingUp, Gift, User, Clock, RefreshCw, Cake, X, ChevronDown, CheckCircle, MessageCircle, AlertTriangle } from 'lucide-react';
+import { ArrowUpRight, ArrowDownLeft, TrendingUp, Gift, User, Clock, Cake, X, ChevronDown, CheckCircle, MessageCircle, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { BirthdayService } from '../../../services/birthdayService';
 import toast from 'react-hot-toast';
@@ -31,12 +31,9 @@ export const DashboardPage = () => {
     const [forecastSummary, setForecastSummary] = useState<any>(null);
     const [recentActivity, setRecentActivity] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [refreshing, setRefreshing] = useState(false);
     const [fetchingForecast, setFetchingForecast] = useState(false);
     const [activityLimit, setActivityLimit] = useState(10);
     const [config, setConfig] = useState<any>(null);
-    const [engineRunning, setEngineRunning] = useState(false);
-    const [ignoreDeduplication, setIgnoreDeduplication] = useState(true);
     const [expiringUsers, setExpiringUsers] = useState<any[]>([]);
     const navigate = useNavigate();
 
@@ -169,25 +166,6 @@ export const DashboardPage = () => {
         fetchForecast();
     }, [config?.simulatedOffsetDays, stats.usersCount]);
 
-    const runEngineManual = async () => {
-        setEngineRunning(true);
-        const toastId = toast.loading("Ejecutando motor de notificaciones...");
-        try {
-            const body: any = { source: 'dashboard_manual', ignoreDeduplication };
-            if (TimeService.getOffsetInDays() !== 0) body.simulatedDate = TimeService.now().toISOString();
-
-            const res = await fetch(`/api/engine-daily?mode=all&trigger=dashboard_manual&ignoreDeduplication=${ignoreDeduplication}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-api-key': import.meta.env.VITE_API_KEY || '' },
-                body: JSON.stringify(body)
-            });
-            const data = await res.json();
-            if (data.ok) {
-                toast.success(`Ejecutado: ${data.birthdays?.summary?.processed || 0} cumples y ${data.expirations?.summary?.notified || 0} vencimientos.`, { id: toastId });
-            } else { toast.error("Error en el motor", { id: toastId }); }
-        } catch (e) { toast.error("Error de conexión", { id: toastId }); }
-        finally { setEngineRunning(false); }
-    };
 
     useEffect(() => {
         if (!config) return;
@@ -237,20 +215,6 @@ export const DashboardPage = () => {
                             <Clock size={14} className="text-orange-500" />
                             <span className="text-[10px] font-bold text-orange-600 uppercase tracking-tighter">Modo Simulación Activo</span>
                         </div>
-                    )}
-                </div>
-                <div className="flex items-center gap-4">
-                    {config?.enableDateSimulator && (config?.simulatedOffsetDays || 0) !== 0 && (
-                        <>
-                            <label className="flex items-center gap-2 cursor-pointer bg-white px-3 py-2 rounded-xl border border-gray-200 shadow-sm hover:bg-gray-50 transition">
-                                <input type="checkbox" checked={ignoreDeduplication} onChange={(e) => setIgnoreDeduplication(e.target.checked)} className="w-4 h-4 text-purple-600 rounded border-gray-300" />
-                                <span className="text-[10px] font-bold text-gray-600 uppercase">Ignorar bloqueo diario</span>
-                            </label>
-                            <button onClick={runEngineManual} disabled={engineRunning} className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all ${engineRunning ? 'bg-gray-100 text-gray-400' : 'bg-purple-600 text-white hover:bg-purple-700'}`}>
-                                <RefreshCw size={18} className={engineRunning ? 'animate-spin' : ''} />
-                                {engineRunning ? 'Procesando...' : 'Ejecutar Motor Diario'}
-                            </button>
-                        </>
                     )}
                 </div>
             </div>

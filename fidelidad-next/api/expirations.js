@@ -68,7 +68,8 @@ async function handleForecast(req, res, db) {
         creditsSnap.forEach(doc => {
             const data = doc.data();
             if (!data.expiresAt) return;
-            if (data.status === 'expired' || !(data.remainingPoints > 0)) return;
+            const rem = data.remainingPoints !== undefined ? Number(data.remainingPoints) : Number(data.amount);
+            if (data.status === 'expired' || !(rem > 0)) return;
 
             const expiresAt = data.expiresAt.toDate();
             const diffDays = Math.ceil((expiresAt.getTime() - startOfToday.getTime()) / 86400000);
@@ -79,13 +80,13 @@ async function handleForecast(req, res, db) {
                 else if (diffDays <= 30) bucket = intervals.medium;
                 else if (diffDays <= 90) bucket = intervals.long;
                 else bucket = intervals.future;
-                bucket.points += Number(data.remainingPoints);
-                bucket.money  += (Number(data.remainingPoints) * pointValue);
+                bucket.points += Number(rem);
+                bucket.money  += (Number(rem) * pointValue);
                 bucket.count++;
             }
             if (customRange.active && expiresAt >= customRange.start && expiresAt <= customRange.end) {
-                customRange.points += Number(data.remainingPoints);
-                customRange.money  += (Number(data.remainingPoints) * pointValue);
+                customRange.points += Number(rem);
+                customRange.money  += (Number(rem) * pointValue);
                 customRange.count++;
             }
         });
@@ -220,6 +221,33 @@ export default async function handler(req, res) {
 
                     batch.update(userDoc.ref, { points: admin.firestore.FieldValue.increment(-totalToSubtract) });
                     await batch.commit();
+
+                    // --- NOTIFICACIÓN DE VENCIMIENTO CONSUMADO ---
+                    if (!isSilent) {
+                        const userName = (userData.nombre || userData.name || 'Socio').split(' ')[0];
+                        const title = "📉 Tus puntos han vencido";
+                        const msg = `¡Hola ${userName}! 📢 Se han vencido ${totalToSubtract} puntos de tu cuenta por falta de uso. ¡No dejes que vuelva a pasar! 🎁`;
+                        
+                        // Push
+                        if (userData.fcmTokens?.length) {
+                            await admin.messaging().sendEachForMulticast({
+                                tokens: userData.fcmTokens,
+                                notification: { title, body: msg },
+                                data: { url: "/rewards" }
+                            }).catch(() => {});
+                        }
+                        
+                        // Inbox
+                        await userDoc.ref.collection('inbox').add({
+                            title,
+                            body: msg,
+                            date: nowTimestamp,
+                            read: false,
+                            type: 'points_expired'
+                        });
+                        
+                        logResults.details.push({ userId: userDoc.id, userName, action: 'expired_notification', info: msg });
+                    }
                 }
                 
                 await updateNextExpirationDate(db, userId, referenceDate);

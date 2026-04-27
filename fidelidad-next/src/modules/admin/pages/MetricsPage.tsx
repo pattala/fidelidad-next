@@ -204,10 +204,11 @@ export const MetricsPage = () => {
                                          concept.includes('expirados') ||
                                          concept.includes('vencieron');
 
-                            if (isEx) { current.expired += pts; tExpired += pts; }
-                            else {
+                            if (isEx) {
+                                current.expired += pts; tExpired += pts;
+                            } else {
                                 current.redeemed += pts; tRedeemed += pts;
-                                const val = (mov.redeemedValue || 0);
+                                const val = mov.redeemedValue || (pts * realPV);
                                 current.money += val; tMoneyRedeemed += val;
                             }
                         }
@@ -217,11 +218,11 @@ export const MetricsPage = () => {
                     return { grouped, spenders, tEmitted, tRedeemed, tExpired, tMoneyRedeemed, totalMoneySpent, creditCount, activeUids, heatmap, referralCount };
                 };
 
-                const currentResults = processStats(currentMovements);
-                const prevResults = processStats(prevMovements);
-
                 // Calcular Valor Real del Punto (Reality Check) sin bloqueos
                 const realPV = (appConfig.pointValue || 10);
+
+                const currentResults = processStats(currentMovements);
+                const prevResults = processStats(prevMovements);
 
                 const currentNetEmitted = currentResults.tEmitted - currentResults.tExpired;
                 const prevNetEmitted = prevResults.tEmitted - prevResults.tExpired;
@@ -262,6 +263,8 @@ export const MetricsPage = () => {
                 });
                 setPrevTotalStats({ emitted: prevNetEmitted, redeemed: prevResults.tRedeemed, expired: prevResults.tExpired });
 
+                setHeatmapData(currentResults.heatmap);
+
                 setAdvancedStats({
                     averageTicket: currentResults.creditCount > 0 ? currentResults.totalMoneySpent / currentResults.creditCount : 0,
                     frequency: currentResults.activeUids.size > 0 ? currentResults.creditCount / currentResults.activeUids.size : 0,
@@ -274,10 +277,16 @@ export const MetricsPage = () => {
                     circulatingPoints: realCirculation
                 });
 
+                // 0. Preparar filtros de fecha para orígenes (si aplica)
+                const sourceConstraints: any[] = [where('role', '!=', 'admin')];
+                if (!isTotal) {
+                    sourceConstraints.push(where('createdAt', '>=', startDate), where('createdAt', '<=', endDate));
+                }
+
                 // PARALELIZACIÓN DE CONSULTAS DE USUARIOS (SPEED BOOST)
                 const [pwaCount, localCount, snapTopBalance, snapVisitors, snapTopHistoryOrReferrals] = await Promise.all([
-                    getCountFromServer(query(collection(db, 'users'), where('source', '==', 'pwa'), where('role', '!=', 'admin'))),
-                    getCountFromServer(query(collection(db, 'users'), where('source', '==', 'local'), where('role', '!=', 'admin'))),
+                    getCountFromServer(query(collection(db, 'users'), where('source', '==', 'pwa'), ...sourceConstraints)),
+                    getCountFromServer(query(collection(db, 'users'), where('source', '==', 'local'), ...sourceConstraints)),
                     getDocs(query(collection(db, 'users'), orderBy('points', 'desc'), limit(15))),
                     getDocs(query(collection(db, 'users'), orderBy('visitCount', 'desc'), limit(15))),
                     appConfig?.referrals?.challenge?.enabled ? 
@@ -377,7 +386,7 @@ export const MetricsPage = () => {
                         creditCount: currentResults.creditCount,
                         referralCount: currentResults.referralCount
                     },
-                    chartData: Array.from(currentResults.grouped.entries()).map(([name, data]) => ({ name, ...data, emitted: data.emitted - data.expired })),
+                    chartData: Array.from(currentResults.grouped.entries()).map(([name, data]) => ({ name, ...data })),
                     topUsers: filteredTopBalance.map(user => ({ id: user.id, ...user, name: user.name || user.nombre || 'Socio sin nombre', points: user.points || 0, socioNumber: user.socioNumber || user.numeroSocio || '' })),
                     topSpenders: sortedSpenders.map(([uid, total]) => {
                         const uData = usersMap.get(uid);

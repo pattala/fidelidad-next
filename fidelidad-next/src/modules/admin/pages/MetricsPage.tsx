@@ -130,14 +130,14 @@ export const MetricsPage = () => {
                 const prevStartDate = new Date(prevEndDate.getTime() - duration);
 
                 const fetchRangeData = async (start: Date, end: Date, isTotalMode = false) => {
-                    const constraints: any[] = [orderBy('date', 'asc')];
-                    if (!isTotalMode) {
-                        constraints.push(where('date', '>=', start), where('date', '<=', end));
-                    }
-                    // Usamos collectionGroup para agarrar el historial real de todos los usuarios
-                    const q = query(collectionGroup(db, 'points_history'), ...constraints);
-                    const snap = await getDocs(q);
-                    return snap.docs.map(d => {
+                    try {
+                        const constraints: any[] = [];
+                        if (!isTotalMode) {
+                            constraints.push(where('date', '>=', Timestamp.fromDate(start)), where('date', '<=', Timestamp.fromDate(end)));
+                        }
+                        const q = query(collectionGroup(db, 'points_history'), ...constraints);
+                        const snap = await getDocs(q);
+                        return snap.docs.map(d => {
                         const data = d.data();
                         const date = data.date?.toDate ? data.date.toDate() : (data.date ? new Date(data.date) : new Date());
                         return {
@@ -149,6 +149,10 @@ export const MetricsPage = () => {
                             moneySpent: data.moneySpent || 0
                         };
                     });
+                    } catch (err) {
+                        console.error("Error in fetchRangeData:", err);
+                        return [];
+                    }
                 };
 
                 const [currentMovements, prevMovements] = await Promise.all([
@@ -278,20 +282,25 @@ export const MetricsPage = () => {
                 });
 
                 // 0. Preparar filtros de fecha para orígenes (si aplica)
-                const sourceConstraints: any[] = [where('role', '!=', 'admin')];
+                const sourceConstraints: any[] = [];
                 if (!isTotal) {
-                    sourceConstraints.push(where('createdAt', '>=', startDate), where('createdAt', '<=', endDate));
+                    sourceConstraints.push(where('createdAt', '>=', Timestamp.fromDate(startDate)), where('createdAt', '<=', Timestamp.fromDate(endDate)));
                 }
+
+                // Manejador seguro para consultas que puedan fallar por falta de índices
+                const safeQuery = async (p: Promise<any>, fallback: any = { data: () => ({ count: 0 }), docs: [] }) => {
+                    try { return await p; } catch (err) { console.warn("Query failed (maybe missing index):", err); return fallback; }
+                };
 
                 // PARALELIZACIÓN DE CONSULTAS DE USUARIOS (SPEED BOOST)
                 const [pwaCount, localCount, snapTopBalance, snapVisitors, snapTopHistoryOrReferrals] = await Promise.all([
-                    getCountFromServer(query(collection(db, 'users'), where('source', '==', 'pwa'), ...sourceConstraints)),
-                    getCountFromServer(query(collection(db, 'users'), where('source', '==', 'local'), ...sourceConstraints)),
-                    getDocs(query(collection(db, 'users'), orderBy('points', 'desc'), limit(15))),
-                    getDocs(query(collection(db, 'users'), orderBy('visitCount', 'desc'), limit(15))),
+                    safeQuery(getCountFromServer(query(collection(db, 'users'), where('source', '==', 'pwa'), ...sourceConstraints))),
+                    safeQuery(getCountFromServer(query(collection(db, 'users'), where('source', '==', 'local'), ...sourceConstraints))),
+                    safeQuery(getDocs(query(collection(db, 'users'), orderBy('points', 'desc'), limit(15)))),
+                    safeQuery(getDocs(query(collection(db, 'users'), orderBy('visitCount', 'desc'), limit(15)))),
                     appConfig?.referrals?.challenge?.enabled ? 
-                        getDocs(query(collection(db, 'users'), where('createdAt', '>=', new Date(appConfig.referrals.challenge.startDate)), where('createdAt', '<=', new Date(new Date(appConfig.referrals.challenge.endDate).setHours(23, 59, 59, 999))))) :
-                        getDocs(query(collection(db, 'users'), orderBy('referralStats.count', 'desc'), limit(5)))
+                        safeQuery(getDocs(query(collection(db, 'users'), where('createdAt', '>=', Timestamp.fromDate(new Date(appConfig.referrals.challenge.startDate))), where('createdAt', '<=', Timestamp.fromDate(new Date(new Date(appConfig.referrals.challenge.endDate).setHours(23, 59, 59, 999))))))) :
+                        safeQuery(getDocs(query(collection(db, 'users'), orderBy('referralStats.count', 'desc'), limit(5))))
                 ]);
 
                 // 1. Procesar Orígenes

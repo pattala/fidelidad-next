@@ -63,10 +63,12 @@ async function handleForecast(req, res, db) {
         };
         if (customRange.end) customRange.end.setHours(23, 59, 59, 999);
 
-        const creditsSnap = await db.collectionGroup('points_history').where('type', '==', 'credit').get();
+        // Simplificamos la consulta para evitar requerir índices de grupo complejos si no están creados
+        const creditsSnap = await db.collectionGroup('points_history').get();
 
         creditsSnap.forEach(doc => {
             const data = doc.data();
+            if (data.type !== 'credit') return; // Filtro en memoria
             if (!data.expiresAt) return;
             const rem = data.remainingPoints !== undefined ? Number(data.remainingPoints) : Number(data.amount);
             if (data.status === 'expired' || !(rem > 0)) return;

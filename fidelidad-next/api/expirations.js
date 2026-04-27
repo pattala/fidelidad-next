@@ -153,12 +153,7 @@ export default async function handler(req, res) {
         const isSilent = req.query?.silent === 'true' || req.body?.silent === true;
         const logResults = { processed: 0, expired: 0, notified: 0, list: [], details: [], errors: [] };
 
-        // Eliminada auditoría inicial para unificarla al final.
-
         // --- PASO A: RESTAR PUNTOS VENCIDOS ---
-        // Buscamos usuarios que:
-        // 1. Tengan una fecha de vencimiento menor o igual a hoy (Caché).
-        // 2. O usuarios con puntos > 0 que NO tengan fecha de vencimiento seteada (para forzar revisión).
         const toExpireSnap = await db.collection('users')
             .where('points', '>', 0)
             .get();
@@ -168,8 +163,6 @@ export default async function handler(req, res) {
                 const userData = userDoc.data();
                 const nextExp = userData.nextExpirationDate;
 
-                // Si tiene fecha cacheada y es futura (según el simulador), saltamos para ahorrar lectura de subcoleccion.
-                // PERO si no tiene fecha o es pasada/hoy, debemos entrar a revisar.
                 if (nextExp && nextExp > referenceDateStr) {
                     continue; 
                 }
@@ -195,7 +188,6 @@ export default async function handler(req, res) {
                 if (totalToSubtract > 0) {
                     logResults.expired += totalToSubtract;
                     
-                    // 1. Registro en el historial del usuario
                     const historyDocRef = historyRef.doc();
                     batch.set(historyDocRef, { 
                         amount: -totalToSubtract, 
@@ -205,7 +197,6 @@ export default async function handler(req, res) {
                         isExpirationAdjustment: true 
                     });
 
-                    // 2. Registro en la colección GLOBAL para Métricas
                     const globalTxRef = db.collection('transactions').doc();
                     batch.set(globalTxRef, {
                         uid: userId,
@@ -223,13 +214,17 @@ export default async function handler(req, res) {
                     await batch.commit();
 
                     // --- NOTIFICACIÓN DE VENCIMIENTO CONSUMADO ---
-                    if (!isSilent) {
+                    if (!isSilent && config.messaging?.enableExpirationWarnings !== false) {
                         const userName = (userData.nombre || userData.name || 'Socio').split(' ')[0];
                         const title = "📉 Tus puntos han vencido";
                         const msg = `¡Hola ${userName}! 📢 Se han vencido ${totalToSubtract} puntos de tu cuenta por falta de uso. ¡No dejes que vuelva a pasar! 🎁`;
                         
+                        const msgConfig = config.messaging || {};
+                        const eventCfg = msgConfig.eventConfigs?.['pointsExpired'] || { channels: ['push', 'email', 'inbox'] };
+                        const channels = eventCfg.channels || [];
+
                         // Push
-                        if (userData.fcmTokens?.length) {
+                        if (channels.includes('push') && msgConfig.pushEnabled !== false && userData.fcmTokens?.length) {
                             await admin.messaging().sendEachForMulticast({
                                 tokens: userData.fcmTokens,
                                 notification: { title, body: msg },
@@ -237,14 +232,43 @@ export default async function handler(req, res) {
                             }).catch(() => {});
                         }
                         
+                        // Email
+                        if (channels.includes('email') && msgConfig.emailEnabled !== false && userData.email && process.env.SMTP_USER) {
+                            try {
+                                const innerHtml = `
+                                    <div style="color: #333;">
+                                        <h2 style="color: #e11d48; margin-top: 0;">${title}</h2>
+                                        <p style="font-size: 16px; line-height: 1.6;">
+                                            ${msg}
+                                        </p>
+                                        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
+                                        <p style="font-size: 14px; color: #666;">
+                                            ¡Seguí sumando puntos con tus próximas compras y no pierdas tus beneficios!
+                                        </p>
+                                    </div>
+                                `;
+                                const html = buildHtmlLayout(innerHtml, config);
+                                await transporter.sendMail({
+                                    from: `"${config.siteName || 'Club Fidelidad'}" <${process.env.SMTP_USER}>`,
+                                    to: userData.email,
+                                    subject: title,
+                                    html
+                                });
+                            } catch (e) {
+                                console.error("[Expirations] Error sending expired email to:", userData.email, e.message);
+                            }
+                        }
+
                         // Inbox
-                        await userDoc.ref.collection('inbox').add({
-                            title,
-                            body: msg,
-                            date: nowTimestamp,
-                            read: false,
-                            type: 'points_expired'
-                        });
+                        if (channels.includes('inbox')) {
+                            await userDoc.ref.collection('inbox').add({
+                                title,
+                                body: msg,
+                                date: nowTimestamp,
+                                read: false,
+                                type: 'points_expired'
+                            });
+                        }
                         
                         logResults.details.push({ userId: userDoc.id, userName, action: 'expired_notification', info: msg });
                     }
@@ -270,7 +294,6 @@ export default async function handler(req, res) {
              warningDate.setDate(warningDate.getDate() + warningDays);
              const warningDateStr = warningDate.toISOString().split('T')[0];
 
-             // Buscamos socios que tengan SU PRÓXIMO vencimiento en la ventana de aviso
              const proactiveSnap = await db.collection('users')
                 .where('nextExpirationDate', '<=', warningDateStr)
                 .where('nextExpirationDate', '>=', referenceDateStr)
@@ -281,15 +304,11 @@ export default async function handler(req, res) {
                      const userData = userDoc.data();
                      const userId = userDoc.id;
 
-                     // EVITAR SPAM: Si ya notificamos a este usuario para esta fecha de vencimiento, saltar.
-                     // Guardamos el 'nextExpirationDate' para el cual ya avisamos.
                      if (userData.lastExpirationNoticeDate === userData.nextExpirationDate) {
                          continue;
                      }
 
                      const historyRef = userDoc.ref.collection('points_history');
-                     
-                     // Escaneamos qué vence en esta ventana de 7 días
                      const impendingSnap = await historyRef
                         .where('type', '==', 'credit')
                         .where('expiresAt', '>', admin.firestore.Timestamp.fromDate(startOfToday))
@@ -317,8 +336,12 @@ export default async function handler(req, res) {
                          const title = "⚠️ Tus puntos están por vencer";
                          const msg = `¡Hola ${userName}! 📢 Tenés puntos próximos a vencer: ${breakdownStr}. Total a vencer: ${totalImpending} pts. ¡Aprovechalos pronto! 🎁`;
 
-                         // Notificación Push
-                         if (userData.fcmTokens?.length) {
+                         const msgConfig = config.messaging || {};
+                         const eventCfg = msgConfig.eventConfigs?.['pointsExpiringSoon'] || { channels: ['push', 'email', 'inbox'] };
+                         const channels = eventCfg.channels || [];
+
+                         // Push
+                         if (channels.includes('push') && msgConfig.pushEnabled !== false && userData.fcmTokens?.length) {
                              await admin.messaging().sendEachForMulticast({
                                 tokens: userData.fcmTokens,
                                 notification: { title, body: msg },
@@ -326,8 +349,8 @@ export default async function handler(req, res) {
                              }).catch(() => {});
                          }
                          
-                         // Email (si aplica)
-                         if (userData.email && process.env.SMTP_USER) {
+                         // Email
+                         if (channels.includes('email') && msgConfig.emailEnabled !== false && userData.email && process.env.SMTP_USER) {
                              try {
                                  const innerHtml = `
                                      <div style="color: #333;">
@@ -352,17 +375,18 @@ export default async function handler(req, res) {
                                  console.error("[Expirations] Error sending email to:", userData.email, e.message);
                              }
                          }
-
+ 
                          // Inbox
-                         await userDoc.ref.collection('inbox').add({
-                             title,
-                             body: msg,
-                             date: admin.firestore.Timestamp.fromDate(referenceDate),
-                             read: false,
-                             type: 'system'
-                         });
+                         if (channels.includes('inbox')) {
+                             await userDoc.ref.collection('inbox').add({
+                                 title,
+                                 body: msg,
+                                 date: admin.firestore.Timestamp.fromDate(referenceDate),
+                                 read: false,
+                                 type: 'system'
+                             });
+                         }
 
-                         // Marcar como notificado para esta fecha
                          await userDoc.ref.update({
                              lastExpirationNoticeDate: userData.nextExpirationDate,
                              lastExpirationNoticeAt: admin.firestore.Timestamp.fromDate(referenceDate)
@@ -385,7 +409,7 @@ export default async function handler(req, res) {
              }
         }
 
-        // --- PASO C: AUTO-PURGA DE AUDITORÍA (Logs de más de 7 días) ---
+        // --- PASO C: AUTO-PURGA DE AUDITORÍA ---
         const purgeDate = new Date(referenceDate);
         purgeDate.setDate(purgeDate.getDate() - 7);
         const oldLogsSnap = await db.collection('audit_logs')

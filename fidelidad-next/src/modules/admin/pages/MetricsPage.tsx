@@ -391,7 +391,7 @@ export const MetricsPage = () => {
                         frequency: currentResults.activeUids.size > 0 ? currentResults.creditCount / currentResults.activeUids.size : 0,
                         activeCustomers: currentResults.activeUids.size,
                         totalCustomers: currentResults.activeUids.size,
-                        potentialRevenue: currentInCirculation * realPV,
+                        potentialRevenue: realCirculation * realPV,
                         creditCount: currentResults.creditCount,
                         referralCount: currentResults.referralCount
                     },

@@ -156,6 +156,7 @@ export default async function handler(req, res) {
         startOfToday.setHours(0, 0, 0, 0);
 
         const isSilent = req.query?.silent === 'true' || req.body?.silent === true;
+        const ignoreDeduplication = req.body?.ignoreDeduplication === true || req.query?.ignoreDeduplication === 'true';
         const logResults = { processed: 0, expired: 0, notified: 0, list: [], details: [], errors: [] };
 
         // --- PASO A: RESTAR PUNTOS VENCIDOS ---
@@ -309,7 +310,7 @@ export default async function handler(req, res) {
                      const userData = userDoc.data();
                      const userId = userDoc.id;
 
-                     if (userData.lastExpirationNoticeDate === userData.nextExpirationDate && !config.enableDateSimulator) {
+                     if (userData.lastExpirationNoticeDate === userData.nextExpirationDate && !ignoreDeduplication) {
                          continue;
                      }
 

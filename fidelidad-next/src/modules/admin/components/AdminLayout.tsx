@@ -318,11 +318,17 @@ export const AdminLayout = () => {
                             <button onClick={() => updateSimulation(-1)} className="flex-1 bg-white border border-purple-200 text-purple-700 rounded px-2 py-1 text-xs hover:bg-purple-100">-1 Día</button>
                             <button onClick={() => updateSimulation(1)} className="flex-1 bg-white border border-purple-200 text-purple-700 rounded px-2 py-1 text-xs hover:bg-purple-100">+1 Día</button>
                         </div>
-                        {simulatedOffset !== 0 && (
-                            <button onClick={resetSimulation} className="w-full mt-2 bg-purple-200 text-purple-800 rounded px-2 py-1 text-[10px] uppercase font-bold hover:bg-purple-300">
-                                Resetear Fecha
-                            </button>
-                        )}
+                        <button 
+                            onClick={resetSimulation} 
+                            disabled={simulatedOffset === 0}
+                            className={`w-full mt-2 rounded px-2 py-1 text-[10px] uppercase font-bold transition-all ${
+                                simulatedOffset === 0 
+                                ? 'bg-gray-200 text-gray-400 cursor-not-allowed opacity-50' 
+                                : 'bg-purple-200 text-purple-800 hover:bg-purple-300 shadow-sm'
+                            }`}
+                        >
+                            Resetear Fecha Actual
+                        </button>
 
                         <div className="mt-4 pt-4 border-t border-purple-100 space-y-3">
                             <label className="flex items-center gap-2 cursor-pointer group">

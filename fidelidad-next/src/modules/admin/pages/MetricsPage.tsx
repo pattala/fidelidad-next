@@ -293,9 +293,7 @@ export const MetricsPage = () => {
                 };
 
                 // PARALELIZACIÓN DE CONSULTAS DE USUARIOS (SPEED BOOST)
-                const [pwaCount, localCount, snapTopBalance, snapVisitors, snapTopHistoryOrReferrals] = await Promise.all([
-                    safeQuery(getCountFromServer(query(collection(db, 'users'), where('source', '==', 'pwa'), ...sourceConstraints))),
-                    safeQuery(getCountFromServer(query(collection(db, 'users'), where('source', '==', 'local'), ...sourceConstraints))),
+                const [snapTopBalance, snapVisitors, snapTopHistoryOrReferrals] = await Promise.all([
                     safeQuery(getDocs(query(collection(db, 'users'), orderBy('points', 'desc'), limit(15)))),
                     safeQuery(getDocs(query(collection(db, 'users'), orderBy('visitCount', 'desc'), limit(15)))),
                     appConfig?.referrals?.challenge?.enabled ? 
@@ -303,10 +301,31 @@ export const MetricsPage = () => {
                         safeQuery(getDocs(query(collection(db, 'users'), orderBy('referralStats.count', 'desc'), limit(5))))
                 ]);
 
-                // 1. Procesar Orígenes
+                // 1. Procesar Orígenes (Evitando índices compuestos que fallan con 400)
+                let pwaCountFinal = 0;
+                let localCountFinal = 0;
+
+                if (isTotal) {
+                    const [pwaSnap, localSnap] = await Promise.all([
+                        safeQuery(getCountFromServer(query(collection(db, 'users'), where('source', '==', 'pwa')))),
+                        safeQuery(getCountFromServer(query(collection(db, 'users'), where('source', '==', 'local'))))
+                    ]);
+                    pwaCountFinal = pwaSnap?.data ? pwaSnap.data().count : 0;
+                    localCountFinal = localSnap?.data ? localSnap.data().count : 0;
+                } else {
+                    const rangeUsersSnap = await safeQuery(getDocs(query(collection(db, 'users'), where('createdAt', '>=', Timestamp.fromDate(startDate)), where('createdAt', '<=', Timestamp.fromDate(endDate)))));
+                    if (rangeUsersSnap && rangeUsersSnap.docs) {
+                        rangeUsersSnap.docs.forEach((d: any) => {
+                            const u = d.data();
+                            if (u.source === 'pwa') pwaCountFinal++;
+                            else if (u.source === 'local') localCountFinal++;
+                        });
+                    }
+                }
+
                 setRegistrationSources({ 
-                    pwa: pwaCount.data().count, 
-                    local: localCount.data().count 
+                    pwa: pwaCountFinal, 
+                    local: localCountFinal 
                 });
 
                 // 2. Procesar Saldo
@@ -364,17 +383,19 @@ export const MetricsPage = () => {
 
                 // 5. Top Generadores (COMPRA) - Procesar spenders del periodo
                 const sortedSpenders = Array.from(currentResults.spenders.entries()).sort((a, b) => b[1] - a[1])?.slice(0, 5);
+                let finalTopSpenders: any[] = [];
                 if (sortedSpenders.length > 0) {
                     const uids = sortedSpenders.map(s => s[0]);
                     const usersSnap = await getDocs(query(collection(db, 'users'), where(documentId(), 'in', uids)));
                     const usersMap = new Map();
                     usersSnap.forEach(d => usersMap.set(d.id, d.data()));
-                    setTopSpenders(sortedSpenders.map(([uid, total]) => {
+                    finalTopSpenders = sortedSpenders.map(([uid, total]) => {
                         const uData = usersMap.get(uid);
                         return uData ? 
                         { id: uid, name: uData.name || uData.nombre || 'Socio', total, socioNumber: uData.socioNumber || uData.numeroSocio || '', dni: uData.dni || '' } :
                         { id: uid, name: 'Socio Desconocido', total, socioNumber: '', dni: '' };
-                    }));
+                    });
+                    setTopSpenders(finalTopSpenders);
                 } else {
                     setTopSpenders([]);
                 }
@@ -397,13 +418,10 @@ export const MetricsPage = () => {
                     },
                     chartData: Array.from(currentResults.grouped.entries()).map(([name, data]) => ({ name, ...data })),
                     topUsers: filteredTopBalance.map(user => ({ id: user.id, ...user, name: user.name || user.nombre || 'Socio sin nombre', points: user.points || 0, socioNumber: user.socioNumber || user.numeroSocio || '' })),
-                    topSpenders: sortedSpenders.map(([uid, total]) => {
-                        const uData = usersMap.get(uid);
-                        return uData ? { id: uid, name: uData.name || uData.nombre || 'Socio', total, socioNumber: uData.socioNumber || uData.numeroSocio || '', dni: uData.dni || '' } : { id: uid, name: 'Socio Desconocido', total, socioNumber: '', dni: '' };
-                    }),
+                    topSpenders: finalTopSpenders,
                     topVisitors: filteredVisitors.map(user => ({ id: user.id, ...user, name: user.name || user.nombre || 'Socio', count: user.visitCount || 0, socioNumber: user.socioNumber || user.numeroSocio || '' })),
                     topReferrers: [], // Opcional cachear referidos ya que son dinámicos
-                    registrationSources: { pwa: pwaCount.data().count, local: localCount.data().count }
+                    registrationSources: { pwa: pwaCountFinal, local: localCountFinal }
                 }));
 
             } catch (error) {

@@ -117,6 +117,9 @@ const transporter = nodemailer.createTransport({
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
     },
+    tls: {
+        rejectUnauthorized: false
+    }
 });
 
 function getAbsoluteUrl(url, baseUrl) {
@@ -439,7 +442,7 @@ export default async function handler(req, res) {
                 status: logResults.errors.length > 0 ? 'partial' : 'success',
                 summary: summaryText,
                 executor: isManual ? 'Ejecución Manual (Admin)' : 'Ejecución Automática (Sistema)',
-                timestamp: admin.firestore.Timestamp.fromDate(referenceDate),
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
                 details: logResults.details.length > 0 ? logResults.details : [{
                     userId: 'system',
                     action: 'check_finished',

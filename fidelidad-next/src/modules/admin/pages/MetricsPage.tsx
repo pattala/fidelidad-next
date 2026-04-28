@@ -101,9 +101,9 @@ export const MetricsPage = () => {
                 const appConfig = await ConfigService.get();
                 setConfig(appConfig);
 
-                const now = new Date();
-                let startDate = new Date();
-                let endDate = new Date();
+                const now = TimeService.now();
+                let startDate = new Date(now);
+                let endDate = new Date(now);
 
                 if (timeRange === '30_days') startDate.setDate(now.getDate() - 30);
                 else if (timeRange === '6_months') startDate.setMonth(now.getMonth() - 6);

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { collection, query, onSnapshot, doc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import { TimeService } from '../../../services/timeService';
-import { Cake, ChevronDown, MessageCircle, Sparkles, Bell, Gift, EyeOff, Calendar } from 'lucide-react';
+import { Cake, ChevronDown, MessageCircle, Sparkles, Bell, Gift, EyeOff, Calendar, X } from 'lucide-react';
 import { BirthdayService } from '../../../services/birthdayService';
 import toast from 'react-hot-toast';
 
@@ -16,6 +16,7 @@ export const GlobalAlerts = () => {
     const [isMinimized, setIsMinimized] = useState(true);
     const [includeGift, setIncludeGift] = useState<{ [id: string]: boolean }>({});
     const [shouldNotify, setShouldNotify] = useState<{ [id: string]: boolean }>({});
+    const [dismissedItems, setDismissedItems] = useState<{ [id: string]: boolean }>({});
 
     // Draggable Logic
     const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -157,9 +158,20 @@ export const GlobalAlerts = () => {
                 toast.success("Aviso archivado");
             }
         }
+        const key = type === 'pet' ? `pet-${user.id}-${user.petName}` : `${type}-${user.id}`;
+        setDismissedItems(prev => ({ ...prev, [key]: true }));
     };
 
-    const total = birthdaysOfToday.length + expiringUsers.length + petAlerts.length;
+    const handleDismiss = (id: string, type: 'birthday' | 'expiration' | 'pet', petName?: string) => {
+        const key = type === 'pet' ? `pet-${id}-${petName}` : `${type}-${id}`;
+        setDismissedItems(prev => ({ ...prev, [key]: true }));
+    };
+
+    const filteredBirthdays = birthdaysOfToday.filter(u => !dismissedItems[`birthday-${u.id}`]);
+    const filteredExpirations = expiringUsers.filter(u => !dismissedItems[`expiration-${u.id}`]);
+    const filteredPets = petAlerts.filter(u => !dismissedItems[`pet-${u.id}-${u.petName}`]);
+
+    const total = filteredBirthdays.length + filteredExpirations.length + filteredPets.length;
     if (total === 0) return null;
 
     return (
@@ -180,14 +192,21 @@ export const GlobalAlerts = () => {
                     </div>
 
                     <div className="p-7 max-h-[520px] overflow-y-auto space-y-7 custom-scrollbar bg-black/20">
-                        {birthdaysOfToday.map(u => {
+                        {filteredBirthdays.map(u => {
                             const bonusActive = config?.enableBirthdayBonus;
                             const isSelected = includeGift[u.id] ?? !!bonusActive; // Aquí se aplica el default configurado
                             const isMsg = shouldNotify[u.id] ?? true;
                             
                             return (
-                                <div key={u.id} className="bg-white/[0.03] p-6 rounded-[35px] border border-white/10 flex flex-col gap-5 hover:bg-white/[0.06] transition-all">
-                                    <div className="flex justify-between items-start">
+                                <div key={u.id} className="bg-white/[0.03] p-6 rounded-[35px] border border-white/10 flex flex-col gap-5 hover:bg-white/[0.06] transition-all relative group">
+                                    <button 
+                                        onClick={() => handleDismiss(u.id, 'birthday')} 
+                                        className="absolute top-4 right-4 text-white/30 hover:text-white/80 transition-colors p-1.5 rounded-full hover:bg-white/10 opacity-0 group-hover:opacity-100 md:opacity-100"
+                                        title="Descartar aviso"
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                    <div className="flex justify-between items-start pr-6">
                                         <div>
                                             <h5 className="font-black text-white text-lg tracking-tight">🎂 {u.name || u.nombre || 'Socio'}</h5>
                                             <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider mt-1">DNI: {u.dni} | NRO: {u.socioNumber}</p>
@@ -213,11 +232,18 @@ export const GlobalAlerts = () => {
                             );
                         })}
 
-                        {expiringUsers.map((u, i) => {
+                        {filteredExpirations.map((u, i) => {
                             const isMsg = shouldNotify[u.id] ?? true;
                             return (
-                                <div key={`exp-${i}`} className="bg-white/[0.03] p-6 rounded-[35px] border border-white/10 flex flex-col gap-5">
-                                    <div className="flex justify-between items-center">
+                                <div key={`exp-${i}`} className="bg-white/[0.03] p-6 rounded-[35px] border border-white/10 flex flex-col gap-5 relative group">
+                                    <button 
+                                        onClick={() => handleDismiss(u.id, 'expiration')} 
+                                        className="absolute top-4 right-4 text-white/30 hover:text-white/80 transition-colors p-1.5 rounded-full hover:bg-white/10 opacity-0 group-hover:opacity-100 md:opacity-100"
+                                        title="Descartar aviso"
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                    <div className="flex justify-between items-center pr-6">
                                         <div className="flex-1">
                                             <h5 className="font-extrabold text-white text-lg tracking-tight">{u.name || u.nombre || 'Socio'}</h5>
                                             <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider mt-0.5">Socio N°: {u.socioNumber || 'S/N'}</p>
@@ -245,11 +271,18 @@ export const GlobalAlerts = () => {
                             );
                         })}
 
-                        {petAlerts.map((u, i) => {
+                        {filteredPets.map((u, i) => {
                             const isMsg = shouldNotify[u.id] ?? true;
                             return (
-                                <div key={`pet-${i}`} className="bg-white/[0.03] p-6 rounded-[35px] border border-white/10 flex flex-col gap-5">
-                                    <div className="flex justify-between items-center">
+                                <div key={`pet-${i}`} className="bg-white/[0.03] p-6 rounded-[35px] border border-white/10 flex flex-col gap-5 relative group">
+                                    <button 
+                                        onClick={() => handleDismiss(u.id, 'pet', u.petName)} 
+                                        className="absolute top-4 right-4 text-white/30 hover:text-white/80 transition-colors p-1.5 rounded-full hover:bg-white/10 opacity-0 group-hover:opacity-100 md:opacity-100"
+                                        title="Descartar aviso"
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                    <div className="flex justify-between items-center pr-6">
                                         <div className="flex-1">
                                             <h5 className="font-extrabold text-white text-lg tracking-tight">{u.name || u.nombre || 'Socio'}</h5>
                                             <p className="text-[11px] text-indigo-400 font-black uppercase mt-1">🐾 Alimento: {u.petName}</p>

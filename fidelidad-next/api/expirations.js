@@ -309,7 +309,7 @@ export default async function handler(req, res) {
                      const userData = userDoc.data();
                      const userId = userDoc.id;
 
-                     if (userData.lastExpirationNoticeDate === userData.nextExpirationDate) {
+                     if (userData.lastExpirationNoticeDate === userData.nextExpirationDate && !config.enableDateSimulator) {
                          continue;
                      }
 

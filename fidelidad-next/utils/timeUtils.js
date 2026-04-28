@@ -7,8 +7,9 @@ export async function getEffectiveDate(db, simulatedDateParam = null) {
     
     // 1. Prioridad: Parámetro explícito en la request (body o query)
     if (simulatedDateParam) {
-        // Soporta YYYY-MM-DD
-        return new Date(simulatedDateParam + 'T12:00:00');
+        // Soporta YYYY-MM-DD o ISOString
+        const dateStr = simulatedDateParam.includes('T') ? simulatedDateParam.split('T')[0] : simulatedDateParam;
+        return new Date(dateStr + 'T12:00:00');
     }
 
     // 2. Segunda prioridad: Configuración global del Simulador

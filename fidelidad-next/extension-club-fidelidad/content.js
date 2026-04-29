@@ -9,7 +9,7 @@ let currentPromos = [];
 let enablePetModule = false;
 
 // Cargar configuración de storage
-chrome.storage.local.get(['appName', 'apiUrl', 'apiKey'], (res) => {
+chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (res) => {
     config = res;
     if (res.apiUrl && res.apiKey) {
         // Trigger Engine
@@ -21,6 +21,16 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey'], (res) => {
         }).then(r => r.json())
         .then(data => {
             if (data?.ok) {
+                const dismissed = res.dismissedAlerts || [];
+                if (data.birthdays?.list) {
+                    data.birthdays.list = data.birthdays.list.filter(b => !dismissed.includes(`birthday-${b.socioNumber || b.dni}`));
+                }
+                if (data.expirations?.list) {
+                    data.expirations.list = data.expirations.list.filter(e => !dismissed.includes(`expiration-${e.phone || e.name}`));
+                }
+                if (data.petAlerts?.list) {
+                    data.petAlerts.list = data.petAlerts.list.filter(p => !dismissed.includes(`pet-${p.phone}-${p.petName}`));
+                }
                 const total = (data.birthdays?.list?.length || 0) + (data.expirations?.list?.length || 0) + (data.petAlerts?.list?.length || 0);
                 if (total > 0) showGlobalAlert(data, res.apiUrl);
             }
@@ -154,7 +164,6 @@ function showGlobalAlert(fullData, adminUrl) {
             
             ui.querySelectorAll('.cf-v35-card').forEach(card => {
                 const btn = card.querySelector('.cf-v35-btn-wa');
-                const checkWA = card.querySelector('.cf-v34-wa-toggle');
                 const closeBtn = card.querySelector('.cf-v35-card-close');
                 
                 const checkEmpty = () => {
@@ -165,26 +174,30 @@ function showGlobalAlert(fullData, adminUrl) {
                     }
                 };
 
+                const dismissItem = (alertId) => {
+                    chrome.storage.local.get(['dismissedAlerts'], (store) => {
+                        const list = store.dismissedAlerts || [];
+                        if (!list.includes(alertId)) {
+                            list.push(alertId);
+                            chrome.storage.local.set({ dismissedAlerts: list });
+                        }
+                    });
+                };
+
                 if (closeBtn) {
                     closeBtn.onclick = () => {
                         card.style.display = 'none';
+                        dismissItem(btn.dataset.alertId);
                         checkEmpty();
                     };
                 }
-                
-                checkWA.onchange = () => {
-                    const active = checkWA.checked;
-                    btn.innerText = active ? '\u{1F4F1} Enviar WhatsApp' : '\u2705 Marcar como visto';
-                    if (!active) btn.classList.add('no-msg');
-                    else btn.classList.remove('no-msg');
-                };
 
                 btn.onclick = () => {
-                    if (checkWA.checked) {
-                        const url = generateWhatsAppToken(btn.dataset.type, btn.dataset.phone, btn.dataset.name, btn.dataset.extra, fullData.config, btn.dataset.breakdown);
-                        if (url) window.open(url, '_blank');
-                    }
+                    const url = generateWhatsAppToken(btn.dataset.type, btn.dataset.phone, btn.dataset.name, btn.dataset.extra, fullData.config, btn.dataset.breakdown);
+                    if (url) window.open(url, '_blank');
+                    
                     card.style.opacity = '0.3'; btn.innerText = 'PROCESADO';
+                    dismissItem(btn.dataset.alertId);
                     setTimeout(() => {
                         card.style.display = 'none';
                         checkEmpty();
@@ -212,10 +225,9 @@ function showGlobalAlert(fullData, adminUrl) {
                 <button class="cf-v35-card-close" title="Ocultar aviso">×</button>
                 <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:12px;">
                     <div><div style="font-weight:900; font-size:16px;">${c.name}</div><div style="font-size:10px; opacity:0.5;">DNI: ${c.dni} | Nro: ${c.socioNumber}</div></div>
-                    <div style="text-align:center"><span style="font-size:8px; opacity:0.6; display:block">MSG</span><input type="checkbox" class="cf-v35-checkbox cf-v34-wa-toggle" checked></div>
                 </div>
-                <div style="color:${c.lastBirthdayPointsYear === curY ? '#4ade80' : '#fb923c'}; font-size:9px; font-weight:900;">${c.lastBirthdayPointsYear === curY ? '\u2705 REGALO ENVIADO' : '­ƒÄü REGALO PENDIENTE'}</div>
-                <button class="cf-v35-btn-wa" data-type="birthdays" data-phone="${c.phone}" data-name="${c.name}">\u{1F4F1} Enviar WhatsApp</button>
+                <div style="color:${c.lastBirthdayPointsYear === curY ? '#4ade80' : '#fb923c'}; font-size:9px; font-weight:900;">${c.lastBirthdayPointsYear === curY ? '\u2705 REGALO ENVIADO' : '🎁 REGALO PENDIENTE'}</div>
+                <button class="cf-v35-btn-wa" data-alertId="birthday-${c.socioNumber || c.dni}" data-type="birthdays" data-phone="${c.phone}" data-name="${c.name}">📳 Enviar WhatsApp</button>
             </div>`).join('')}
         </div>`;
     };
@@ -231,12 +243,11 @@ function showGlobalAlert(fullData, adminUrl) {
                 <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:12px;">
                     <div style="flex:1;">
                         <div style="font-weight:900; font-size:16px; margin-bottom:4px;">${item.name}</div>
-                        <div style="font-size:11px; color:#f59e0b; font-weight:800;">\u26A0\uFE0F ${item.points} pts por vencer</div>
+                        <div style="font-size:11px; color:#f59e0b; font-weight:800;">⚠️ ${item.points} pts por vencer</div>
                     </div>
-                    <div style="text-align:center"><span style="font-size:8px; opacity:0.6; display:block">MSG</span><input type="checkbox" class="cf-v35-checkbox cf-v34-wa-toggle" checked></div>
                 </div>
-                ${item.breakdown && item.breakdown.length > 1 ? `<div style="font-size:9px; opacity:0.6; font-weight:700; background:rgba(0,0,0,0.2); padding:8px; border-radius:12px;">${item.breakdown.map(b => `\u2022 ${b.date}: ${b.rem} pts`).join('<br>')}</div>` : ''}
-                <button class="cf-v35-btn-wa" data-type="expirations" data-phone="${item.phone}" data-name="${item.name}" data-extra="${item.points}" data-breakdown="${bStr}">\u{1F4F1} Enviar WhatsApp</button>
+                ${item.breakdown && item.breakdown.length > 1 ? `<div style="font-size:9px; opacity:0.6; font-weight:700; background:rgba(0,0,0,0.2); padding:8px; border-radius:12px;">${item.breakdown.map(b => `• ${b.date}: ${b.rem} pts`).join('<br>')}</div>` : ''}
+                <button class="cf-v35-btn-wa" data-alertId="expiration-${item.phone || item.name}" data-type="expirations" data-phone="${item.phone}" data-name="${item.name}" data-extra="${item.points}" data-breakdown="${bStr}">📳 Enviar WhatsApp</button>
             </div>`;
             }).join('')}
         </div>`;
@@ -248,10 +259,9 @@ function showGlobalAlert(fullData, adminUrl) {
             ${list.map(item => `<div class="cf-v35-card">
                 <button class="cf-v35-card-close" title="Ocultar aviso">×</button>
                 <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:12px;">
-                    <div style="flex:1;"><div style="font-weight:900; font-size:16px;">${item.name}</div><div style="font-size:11px; color:${color}; font-weight:800;">\u{1F43E} Alimento: ${item.petName}</div></div>
-                    <div style="text-align:center"><span style="font-size:8px; opacity:0.6; display:block">MSG</span><input type="checkbox" class="cf-v35-checkbox cf-v34-wa-toggle" checked></div>
+                    <div style="flex:1;"><div style="font-weight:900; font-size:16px;">${item.name}</div><div style="font-size:11px; color:${color}; font-weight:800;">🐾 Alimento: ${item.petName}</div></div>
                 </div>
-                <button class="cf-v35-btn-wa" data-type="${type}" data-phone="${item.phone}" data-name="${item.name}" data-extra="${item.petName}">\u{1F4F1} Enviar WhatsApp</button>
+                <button class="cf-v35-btn-wa" data-alertId="pet-${item.phone}-${item.petName}" data-type="${type}" data-phone="${item.phone}" data-name="${item.name}" data-extra="${item.petName}">📳 Enviar WhatsApp</button>
             </div>`).join('')}
         </div>`;
     };
@@ -272,13 +282,25 @@ async function refreshAlertCounts() {
         });
         const data = await r.json();
         if (data.ok) {
-            const total = (data.birthdays?.list?.length || 0) + (data.expirations?.list?.length || 0) + (data.petAlerts?.list?.length || 0);
-            if (total > 0) {
-                showGlobalAlert(data, config.apiUrl);
-            } else {
-                const w = document.getElementById('cf-v35-bubble');
-                if (w) w.remove();
-            }
+            chrome.storage.local.get(['dismissedAlerts'], (store) => {
+                const dismissed = store.dismissedAlerts || [];
+                if (data.birthdays?.list) {
+                    data.birthdays.list = data.birthdays.list.filter(b => !dismissed.includes(`birthday-${b.socioNumber || b.dni}`));
+                }
+                if (data.expirations?.list) {
+                    data.expirations.list = data.expirations.list.filter(e => !dismissed.includes(`expiration-${e.phone || e.name}`));
+                }
+                if (data.petAlerts?.list) {
+                    data.petAlerts.list = data.petAlerts.list.filter(p => !dismissed.includes(`pet-${p.phone}-${p.petName}`));
+                }
+                const total = (data.birthdays?.list?.length || 0) + (data.expirations?.list?.length || 0) + (data.petAlerts?.list?.length || 0);
+                if (total > 0) {
+                    showGlobalAlert(data, config.apiUrl);
+                } else {
+                    const w = document.getElementById('cf-v35-bubble');
+                    if (w) w.remove();
+                }
+            });
         }
     } catch (e) {
         console.warn('[Club Fidelidad] Error refrescando contadores:', e.message);

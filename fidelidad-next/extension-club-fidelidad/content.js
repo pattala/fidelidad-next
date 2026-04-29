@@ -69,7 +69,9 @@ function showGlobalAlert(fullData, adminUrl) {
                 transition: transform 0.2s; animation: cf-v35-float 4s infinite ease-in-out; pointer-events: auto;
             }
             .cf-v35-panel { width: 400px; max-height: 580px; display: flex; flex-direction: column; overflow: hidden; animation: cf-v35-pop 0.3s cubic-bezier(0,1,0.2,1); }
-            .cf-v35-card { background: rgba(255,255,255,0.07); border-radius: 30px; padding: 24px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.1); }
+            .cf-v35-card { position: relative; background: rgba(255,255,255,0.07); border-radius: 30px; padding: 24px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.1); }
+            .cf-v35-card-close { position: absolute; top: 15px; right: 15px; background: none; border: none; color: rgba(255,255,255,0.4); font-size: 20px; cursor: pointer; transition: color 0.2s; }
+            .cf-v35-card-close:hover { color: #ef4444; }
             .cf-v35-checkbox { width: 22px; height: 22px; cursor: pointer; accent-color: #25D366; }
             .cf-v35-btn-wa {
                 background: linear-gradient(135deg, #25D366, #128C7E); color: white; border: none;
@@ -153,6 +155,22 @@ function showGlobalAlert(fullData, adminUrl) {
             ui.querySelectorAll('.cf-v35-card').forEach(card => {
                 const btn = card.querySelector('.cf-v35-btn-wa');
                 const checkWA = card.querySelector('.cf-v34-wa-toggle');
+                const closeBtn = card.querySelector('.cf-v35-card-close');
+                
+                const checkEmpty = () => {
+                    if (ui.querySelectorAll('.cf-v35-card:not([style*="display: none"])').length === 0) {
+                        isExpanded = false;
+                        const bubble = document.getElementById('cf-v35-bubble');
+                        if (bubble) bubble.remove();
+                    }
+                };
+
+                if (closeBtn) {
+                    closeBtn.onclick = () => {
+                        card.style.display = 'none';
+                        checkEmpty();
+                    };
+                }
                 
                 checkWA.onchange = () => {
                     const active = checkWA.checked;
@@ -167,6 +185,10 @@ function showGlobalAlert(fullData, adminUrl) {
                         if (url) window.open(url, '_blank');
                     }
                     card.style.opacity = '0.3'; btn.innerText = 'PROCESADO';
+                    setTimeout(() => {
+                        card.style.display = 'none';
+                        checkEmpty();
+                    }, 1000);
                 };
             });
         } else {
@@ -187,6 +209,7 @@ function showGlobalAlert(fullData, adminUrl) {
         return `<div style="margin-bottom:25px;">
             <div style="font-size:11px; font-weight:900; color:#ec4899; text-transform:uppercase; margin-bottom:12px;">\u{1F382} Cumpleaños Hoy</div>
             ${birthdays.map(c => `<div class="cf-v35-card">
+                <button class="cf-v35-card-close" title="Ocultar aviso">×</button>
                 <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:12px;">
                     <div><div style="font-weight:900; font-size:16px;">${c.name}</div><div style="font-size:10px; opacity:0.5;">DNI: ${c.dni} | Nro: ${c.socioNumber}</div></div>
                     <div style="text-align:center"><span style="font-size:8px; opacity:0.6; display:block">MSG</span><input type="checkbox" class="cf-v35-checkbox cf-v34-wa-toggle" checked></div>
@@ -204,6 +227,7 @@ function showGlobalAlert(fullData, adminUrl) {
             ${expirations.map(item => {
                 const bStr = item.breakdown ? item.breakdown.map(b => `${b.date}: ${b.rem} pts`).join('|') : '';
                 return `<div class="cf-v35-card">
+                <button class="cf-v35-card-close" title="Ocultar aviso">×</button>
                 <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:12px;">
                     <div style="flex:1;">
                         <div style="font-weight:900; font-size:16px; margin-bottom:4px;">${item.name}</div>
@@ -222,6 +246,7 @@ function showGlobalAlert(fullData, adminUrl) {
         if (!list || list.length === 0) return '';
         return `<div style="margin-bottom:25px;"><div style="font-size:11px; font-weight:900; color:${color}; text-transform:uppercase; margin-bottom:12px;">${title}</div>
             ${list.map(item => `<div class="cf-v35-card">
+                <button class="cf-v35-card-close" title="Ocultar aviso">×</button>
                 <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:12px;">
                     <div style="flex:1;"><div style="font-weight:900; font-size:16px;">${item.name}</div><div style="font-size:11px; color:${color}; font-weight:800;">\u{1F43E} Alimento: ${item.petName}</div></div>
                     <div style="text-align:center"><span style="font-size:8px; opacity:0.6; display:block">MSG</span><input type="checkbox" class="cf-v35-checkbox cf-v34-wa-toggle" checked></div>

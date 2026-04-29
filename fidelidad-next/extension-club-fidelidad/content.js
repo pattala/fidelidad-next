@@ -187,7 +187,7 @@ function showGlobalAlert(fullData, adminUrl) {
                 if (closeBtn) {
                     closeBtn.onclick = () => {
                         card.style.display = 'none';
-                        dismissItem(btn.dataset.alertId);
+                        dismissItem(btn.dataset.id);
                         checkEmpty();
                     };
                 }
@@ -197,7 +197,7 @@ function showGlobalAlert(fullData, adminUrl) {
                     if (url) window.open(url, '_blank');
                     
                     card.style.opacity = '0.3'; btn.innerText = 'PROCESADO';
-                    dismissItem(btn.dataset.alertId);
+                    dismissItem(btn.dataset.id);
                     setTimeout(() => {
                         card.style.display = 'none';
                         checkEmpty();
@@ -227,7 +227,7 @@ function showGlobalAlert(fullData, adminUrl) {
                     <div><div style="font-weight:900; font-size:16px;">${c.name}</div><div style="font-size:10px; opacity:0.5;">DNI: ${c.dni} | Nro: ${c.socioNumber}</div></div>
                 </div>
                 <div style="color:${c.lastBirthdayPointsYear === curY ? '#4ade80' : '#fb923c'}; font-size:9px; font-weight:900;">${c.lastBirthdayPointsYear === curY ? '\u2705 REGALO ENVIADO' : '🎁 REGALO PENDIENTE'}</div>
-                <button class="cf-v35-btn-wa" data-alertId="birthday-${c.socioNumber || c.dni}" data-type="birthdays" data-phone="${c.phone}" data-name="${c.name}">📳 Enviar WhatsApp</button>
+                <button class="cf-v35-btn-wa" data-id="birthday-${c.socioNumber || c.dni}" data-type="birthdays" data-phone="${c.phone}" data-name="${c.name}">📳 Enviar WhatsApp</button>
             </div>`).join('')}
         </div>`;
     };
@@ -247,7 +247,7 @@ function showGlobalAlert(fullData, adminUrl) {
                     </div>
                 </div>
                 ${item.breakdown && item.breakdown.length > 1 ? `<div style="font-size:9px; opacity:0.6; font-weight:700; background:rgba(0,0,0,0.2); padding:8px; border-radius:12px;">${item.breakdown.map(b => `• ${b.date}: ${b.rem} pts`).join('<br>')}</div>` : ''}
-                <button class="cf-v35-btn-wa" data-alertId="expiration-${item.phone || item.name}" data-type="expirations" data-phone="${item.phone}" data-name="${item.name}" data-extra="${item.points}" data-breakdown="${bStr}">📳 Enviar WhatsApp</button>
+                <button class="cf-v35-btn-wa" data-id="expiration-${item.phone || item.name}" data-type="expirations" data-phone="${item.phone}" data-name="${item.name}" data-extra="${item.points}" data-breakdown="${bStr}">📳 Enviar WhatsApp</button>
             </div>`;
             }).join('')}
         </div>`;
@@ -261,7 +261,7 @@ function showGlobalAlert(fullData, adminUrl) {
                 <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:12px;">
                     <div style="flex:1;"><div style="font-weight:900; font-size:16px;">${item.name}</div><div style="font-size:11px; color:${color}; font-weight:800;">🐾 Alimento: ${item.petName}</div></div>
                 </div>
-                <button class="cf-v35-btn-wa" data-alertId="pet-${item.phone}-${item.petName}" data-type="${type}" data-phone="${item.phone}" data-name="${item.name}" data-extra="${item.petName}">📳 Enviar WhatsApp</button>
+                <button class="cf-v35-btn-wa" data-id="pet-${item.phone}-${item.petName}" data-type="${type}" data-phone="${item.phone}" data-name="${item.name}" data-extra="${item.petName}">📳 Enviar WhatsApp</button>
             </div>`).join('')}
         </div>`;
     };

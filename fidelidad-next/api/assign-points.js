@@ -89,6 +89,7 @@ export default async function handler(req, res) {
                             dni: data.dni,
                             socioNumber: data.socioNumber || data.numeroSocio || data.socio_number,
                             phone: data.phone || data.telefono,
+                            points: data.points ?? data.puntos ?? 0,
                             accumulated_balance: data.accumulated_balance ?? 0,
                             pets: data.pets || []  // Incluir mascotas para la extensión
                         });

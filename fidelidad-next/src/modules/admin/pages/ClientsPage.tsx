@@ -136,13 +136,11 @@ export const ClientsPage = () => {
 
 
     // 1. Cargar Clientes y Config
-    const fetchData = async (cachedSnapshot?: any) => {
+    async function fetchData(cachedSnapshot?: any) {
         try {
-            // 1. Fetch Config first to use it in calculations
             const freshConfig = config || await ConfigService.get();
             if (!config) setConfig(freshConfig);
 
-            // Si no tenemos snapshot, lo buscamos
             let snapshot = cachedSnapshot;
             if (!snapshot) {
                 const q = query(collection(db, 'users'), where('role', '!=', 'admin'));
@@ -151,8 +149,6 @@ export const ClientsPage = () => {
 
             const loadedClients = snapshot.docs.map((doc: any) => {
                 const data = doc.data();
-
-                // Address Normalization (Flattening)
                 const provincia = data.domicilio?.components?.provincia || data.provincia || '';
                 const partido = data.domicilio?.components?.partido || data.partido || '';
                 const localidad = data.domicilio?.components?.localidad || data.localidad || '';
@@ -161,7 +157,6 @@ export const ClientsPage = () => {
                 const depto = data.domicilio?.components?.depto || data.depto || '';
                 const cp = data.domicilio?.components?.zipCode || data.cp || '';
 
-                // Usamos los detalles cacheados en utils/_expiration-utils.js 
                 let liveExpirations = [];
                 if (data.expirationDetails && Array.isArray(data.expirationDetails)) {
                     liveExpirations = data.expirationDetails.map((e: any) => ({
@@ -170,7 +165,6 @@ export const ClientsPage = () => {
                     }));
                 }
                 
-                // FALLBACK: Si no hay detalle pero el socio tiene puntos y una fecha de vencimiento guardada en el perfil, usarla como respaldo.
                 let finalExpirations = [...liveExpirations];
                 if (finalExpirations.length === 0 && (data.points || data.puntos) > 0 && data.nextExpirationDate) {
                     finalExpirations.push({
@@ -193,16 +187,15 @@ export const ClientsPage = () => {
                     expiringPoints: data.nextExpirationAmount || 0,
                     virtualExpired: 0,
                     expirationDetails: sortedExpirations,
-                    totalSpent: 0, // Calculado on-demand en historial
+                    totalSpent: 0,
                     redeemedPoints: 0,
                     redeemedValue: 0,
                     registrationDate: data.createdAt || data.fechaInscripcion || null,
                     provincia, partido, localidad, calle, piso, depto, cp,
-                    createdAt: data.createdAt // Preservar para sort
+                    createdAt: data.createdAt
                 } as Client;
             });
 
-            // Ordenar en memoria por createdAt desc (clientes más nuevos primero)
             const sortedAndFiltered = loadedClients
                 .filter((c: Client) => (c.name || c.dni))
                 .sort((a: Client, b: Client) => {
@@ -218,7 +211,7 @@ export const ClientsPage = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }
 
     useEffect(() => {
         setLoading(true);
@@ -248,10 +241,10 @@ export const ClientsPage = () => {
     }, [location.search]);
 
     // 2. Guardar Cliente (CRUD)
-    const handleSave = async (e: React.FormEvent) => {
+    async function handleSave(e: React.FormEvent) {
         e.preventDefault();
         if (isReadOnly) return;
-        setActionLoading(true); // Use actionLoading
+        setActionLoading(true);
 
         const safeDni = formData.dni.trim();
         const safeEmail = formData.email.trim();
@@ -277,10 +270,7 @@ export const ClientsPage = () => {
         }
 
         try {
-            // Validar Duplicados
             const usersRef = collection(db, 'users');
-
-            // Check DNI
             if (safeDni) {
                 const qDni = query(usersRef, where('dni', '==', safeDni));
                 const snapDni = await getDocs(qDni);
@@ -292,7 +282,6 @@ export const ClientsPage = () => {
                 }
             }
 
-            // Check Email
             if (safeEmail) {
                 const qEmail = query(usersRef, where('email', '==', safeEmail));
                 const snapEmail = await getDocs(qEmail);
@@ -305,10 +294,8 @@ export const ClientsPage = () => {
             }
 
             const formattedAddress = `${formData.calle}, ${formData.localidad}, ${formData.partido}, ${formData.provincia}, Argentina`;
-            const welcomePts = Number(config?.welcomePoints || 0);
-
+            
             if (editingId) {
-                // ACTUALIZAR
                 const clientPayload = {
                     ...formData,
                     nombre: formData.name.trim(),
@@ -340,16 +327,11 @@ export const ClientsPage = () => {
                     termsAcceptedAt: new Date().toISOString()
                 };
                 await updateDoc(doc(db, 'users', editingId), clientPayload);
-
-                // --- AUDITORIA ---
                 AuditService.log('user_mgmt', `Perfil actualizado: ${formData.name}`, [
                     { action: 'user_updated_profile', status: 'success', info: `Cambios en perfil de ${formData.name}. DNI: ${formData.dni}, Tel: ${formData.phone}` }
                 ]);
-
                 toast.success('Cliente actualizado correctamente');
             } else {
-                // CREAR
-                // Generar ID Socio
                 if (!finalSocioId) {
                     try {
                         await runTransaction(db, async (transaction) => {
@@ -365,7 +347,6 @@ export const ClientsPage = () => {
                     }
                 }
 
-                // Payload compatible con api/create-user.js (Español)
                 const apiPayload = {
                     nombre: formData.name.trim(),
                     email: safeEmail,
@@ -421,9 +402,7 @@ export const ClientsPage = () => {
                         setActionLoading(false);
                         return;
                     }
-                } catch (e) {
-                    console.warn("API Backend no disponible, intentando local...");
-                }
+                } catch (e) { console.warn("API error", e); }
 
                 if (!apiSuccess) {
                     try {
@@ -431,7 +410,7 @@ export const ClientsPage = () => {
                         newDocId = newRef.id;
                         await setDoc(newRef, {
                             ...apiPayload,
-                            name: formData.name.trim(), // Keep both for backward compat
+                            name: formData.name.trim(),
                             phone: formData.phone.trim(),
                             socioNumber: Number(finalSocioId),
                             numeroSocio: Number(finalSocioId),
@@ -441,135 +420,66 @@ export const ClientsPage = () => {
                         });
                         toast.success('Cliente registrado (Modo Local)');
                     } catch (errLocal) {
-                        console.error("Error local:", errLocal);
+                        console.error("Local save error", errLocal);
                         toast.error("Error al guardar cliente");
                         setActionLoading(false);
                         return;
                     }
                 }
-            }
 
-            // --- ACCIONES POST-ALTA ---
-            if (!editingId && newDocId) {
-                const freshConfig = await ConfigService.get();
-
-                let totalWelcomePts = 0;
-                const conceptParts: string[] = [];
-
-                if (applyWelcomeBonus && Number(freshConfig?.welcomePoints || 0) > 0 && freshConfig?.enableWelcomeBonus !== false) {
-                    totalWelcomePts += Number(freshConfig?.welcomePoints);
-                    conceptParts.push('Registro');
-                }
-
-                const hasAddress =
-                    formData.calle.trim() !== '' &&
-                    formData.provincia.trim() !== '' &&
-                    (formData.localidad.trim() !== '' || formData.partido.trim() !== '');
-
-                if (applyAddressBonus && Number(freshConfig?.pointsForAddress || 0) > 0 && freshConfig?.enableAddressBonus !== false && hasAddress) {
-                    totalWelcomePts += Number(freshConfig?.pointsForAddress);
-                    conceptParts.push('Domicilio');
-                }
-
-                if (totalWelcomePts > 0) {
-                    let days = 365;
-                    if (freshConfig?.expirationRules && freshConfig.expirationRules.length > 0) {
-                        const sortedRules = [...freshConfig.expirationRules].sort((a: any, b: any) => (a.minPoints || 0) - (b.minPoints || 0));
-                        const rule = sortedRules.find((r: any) => totalWelcomePts >= r.minPoints && (!r.maxPoints || totalWelcomePts <= r.maxPoints));
-                        if (rule) {
-                            days = rule.validityDays;
-                        } else {
-                            const highestRule = sortedRules[sortedRules.length - 1];
-                            if (totalWelcomePts >= (highestRule.minPoints || 0)) {
-                                days = highestRule.validityDays;
-                            }
+                if (newDocId) {
+                    const freshConfig = await ConfigService.get();
+                    let totalWelcomePts = 0;
+                    const conceptParts: string[] = [];
+                    if (applyWelcomeBonus && Number(freshConfig?.welcomePoints || 0) > 0 && freshConfig?.enableWelcomeBonus !== false) {
+                        totalWelcomePts += Number(freshConfig?.welcomePoints);
+                        conceptParts.push('Registro');
+                    }
+                    const hasAddress = formData.calle.trim() !== '' && formData.provincia.trim() !== '' && (formData.localidad.trim() !== '' || formData.partido.trim() !== '');
+                    if (applyAddressBonus && Number(freshConfig?.pointsForAddress || 0) > 0 && freshConfig?.enableAddressBonus !== false && hasAddress) {
+                        totalWelcomePts += Number(freshConfig?.pointsForAddress);
+                        conceptParts.push('Domicilio');
+                    }
+                    if (totalWelcomePts > 0) {
+                        let days = 365;
+                        if (freshConfig?.expirationRules && freshConfig.expirationRules.length > 0) {
+                            const sortedRules = [...freshConfig.expirationRules].sort((a: any, b: any) => (a.minPoints || 0) - (b.minPoints || 0));
+                            const rule = sortedRules.find((r: any) => totalWelcomePts >= r.minPoints && (!r.maxPoints || totalWelcomePts <= r.maxPoints));
+                            if (rule) days = rule.validityDays;
+                            else { const highestRule = sortedRules[sortedRules.length - 1]; if (totalWelcomePts >= (highestRule.minPoints || 0)) days = highestRule.validityDays; }
+                        }
+                        const expiresAt = TimeService.now(); expiresAt.setDate(expiresAt.getDate() + days);
+                        const conceptStr = `🎁 Bienvenida al sistema (${conceptParts.join(' + ')})`;
+                        await addDoc(collection(db, `users/${newDocId}/points_history`), { amount: totalWelcomePts, concept: conceptStr, date: new Date(), type: 'credit', expiresAt });
+                        await updateDoc(doc(db, 'users', newDocId), { points: totalWelcomePts, historialPuntos: arrayUnion({ fechaObtencion: new Date(), puntosObtenidos: totalWelcomePts, puntosDisponibles: totalWelcomePts, diasCaducidad: days, origen: conceptStr, estado: 'Activo' }) });
+                    }
+                    const welcomeTemplate = freshConfig?.messaging?.templates?.welcome || DEFAULT_TEMPLATES.welcome;
+                    const welcomeMsg = welcomeTemplate.replace(/{nombre}/g, formData.name.split(' ')[0]).replace(/{nombre_completo}/g, formData.name).replace(/{puntos}/g, totalWelcomePts.toString()).replace(/{dni}/g, formData.dni).replace(/{email}/g, formData.email).replace(/{socio}/g, finalSocioId).replace(/{numero_socio}/g, finalSocioId).replace(/{telefono}/g, formData.phone).replace(/{siteName}/g, freshConfig?.siteName || 'nuestro Club');
+                    if (formData.phone && sendWelcomeWa) {
+                        const cleanPhone = PhoneUtils.formatForWhatsApp(formData.phone);
+                        if (cleanPhone) {
+                            const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(welcomeMsg.trim())}`;
+                            setTimeout(() => { const link = document.createElement('a'); link.href = waUrl; link.target = '_blank'; link.rel = 'noopener noreferrer'; document.body.appendChild(link); link.click(); document.body.removeChild(link); }, 500);
                         }
                     }
-                    const expiresAt = TimeService.now();
-                    expiresAt.setDate(expiresAt.getDate() + days);
-
-                    const conceptStr = `🎁 Bienvenida al sistema (${conceptParts.join(' + ')})`;
-
-                    await addDoc(collection(db, `users/${newDocId}/points_history`), {
-                        amount: totalWelcomePts,
-                        concept: conceptStr,
-                        date: new Date(),
-                        type: 'credit',
-                        expiresAt: expiresAt
-                    });
-
-                    await updateDoc(doc(db, 'users', newDocId), {
-                        points: totalWelcomePts,
-                        historialPuntos: arrayUnion({
-                            fechaObtencion: new Date(),
-                            puntosObtenidos: totalWelcomePts,
-                            puntosDisponibles: totalWelcomePts,
-                            diasCaducidad: days,
-                            origen: conceptStr,
-                            estado: 'Activo'
-                        })
-                    });
-                }
-
-                const welcomeTemplate = freshConfig?.messaging?.templates?.welcome || DEFAULT_TEMPLATES.welcome;
-                const welcomeMsg = welcomeTemplate
-                    .replace(/{nombre}/g, formData.name.split(' ')[0])
-                    .replace(/{nombre_completo}/g, formData.name)
-                    .replace(/{puntos}/g, totalWelcomePts.toString())
-                    .replace(/{dni}/g, formData.dni)
-                    .replace(/{email}/g, formData.email)
-                    .replace(/{socio}/g, finalSocioId)
-                    .replace(/{numero_socio}/g, finalSocioId)
-                    .replace(/{telefono}/g, formData.phone)
-                    .replace(/{siteName}/g, freshConfig?.siteName || 'nuestro Club');
-
-                if (formData.phone && sendWelcomeWa) {
-                    const cleanPhone = PhoneUtils.formatForWhatsApp(formData.phone);
-                    if (cleanPhone) {
-                        const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(welcomeMsg.trim())}`;
-                        setTimeout(() => {
-                            const link = document.createElement('a');
-                            link.href = waUrl;
-                            link.target = '_blank';
-                            link.rel = 'noopener noreferrer';
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                        }, 500);
+                    if (formData.email && NotificationService.isChannelEnabled(freshConfig, 'welcome', 'email')) {
+                        const welcomeSubject = `¡Bienvenido a ${freshConfig?.siteName || 'nuestro Club'}!`;
+                        const htmlContent = EmailService.generateBrandedTemplate(freshConfig || {}, welcomeSubject, welcomeMsg);
+                        EmailService.sendEmail(formData.email, welcomeSubject, htmlContent).catch(() => { });
                     }
+                    NotificationService.sendToClient(newDocId, { title: `¡Bienvenido a ${freshConfig?.siteName || 'nuestro Club'}!`, body: welcomeMsg, type: 'welcome', icon: freshConfig?.logoUrl }).catch(() => { });
                 }
-
-                if (formData.email && NotificationService.isChannelEnabled(freshConfig, 'welcome', 'email')) {
-                    const welcomeSubject = `¡Bienvenido a ${freshConfig?.siteName || 'nuestro Club'}!`;
-                    const htmlContent = EmailService.generateBrandedTemplate(freshConfig || {}, welcomeSubject, welcomeMsg);
-                    EmailService.sendEmail(formData.email, welcomeSubject, htmlContent).catch(() => { });
-                }
-
-                NotificationService.sendToClient(newDocId, {
-                    title: `¡Bienvenido a ${freshConfig?.siteName || 'nuestro Club'}!`,
-                    body: welcomeMsg,
-                    type: 'welcome',
-                    icon: freshConfig?.logoUrl
-                }).catch(() => { });
             }
-
             closeModal();
             setTimeout(() => fetchData(), 500);
-        } catch (error: any) {
-            console.error("Error General al guardar:", error);
-            toast.error(error.message || "Error al guardar");
-        } finally {
-            setActionLoading(false);
-        }
-    };
+        } catch (error: any) { console.error("Error saving:", error); toast.error(error.message || "Error al guardar"); }
+        finally { setActionLoading(false); }
+    }
 
     // 3. Eliminar
-    const handleDelete = async (id: string, name: string) => {
+    async function handleDelete(id: string, name: string) {
         if (isReadOnly) return;
-
-        // PROTECCIÓN DE CUENTAS MAESTRAS
         const masterEmails = ['pablo_attala@yahoo.com.ar', 'admin@admin.com'];
-        // Obtenemos el email buscando en la lista local de clientes (id es doc.id)
         const targetClient = clients.find(c => c.id === id);
         if (targetClient && masterEmails.includes(targetClient.email?.toLowerCase())) {
             toast.error("Esta es una cuenta maestra del sistema y no puede ser eliminada.");
@@ -582,18 +492,11 @@ export const ClientsPage = () => {
         try {
             const response = await fetch('/api/users?action=delete', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': import.meta.env.VITE_API_KEY || ''
-                },
+                headers: { 'Content-Type': 'application/json', 'x-api-key': import.meta.env.VITE_API_KEY || '' },
                 body: JSON.stringify({ docId: id })
             });
-
             if (response.ok) {
-                // --- AUDITORIA ---
-                AuditService.log('user_mgmt', `Cliente eliminado: ${name}`, [
-                    { action: 'client_deleted', status: 'success', info: `ID: ${id}, Nombre: ${name}` }
-                ]);
+                AuditService.log('user_mgmt', `Cliente eliminado: ${name}`, [{ action: 'client_deleted', status: 'success', info: `ID: ${id}, Nombre: ${name}` }]);
                 toast.success('Cliente y todos sus datos eliminados correctamente', { id: toastId });
             } else {
                 const err = await response.json();
@@ -604,13 +507,12 @@ export const ClientsPage = () => {
             console.error("Delete error:", error);
             toast.error(`Error de purga: ${error.message}. Intenta de nuevo o verifica tu conexión.`, { id: toastId });
         }
-    };
+    }
 
     // 4. Asignar Puntos
-    const handleAssignPoints = async (e: React.FormEvent) => {
+    async function handleAssignPoints(e: React.FormEvent) {
         e.preventDefault();
         if (isReadOnly || !selectedClientForPoints) return;
-
         setActionLoading(true);
         try {
             const inputVal = parseFloat(pointsData.amount);
@@ -619,7 +521,6 @@ export const ClientsPage = () => {
                 setActionLoading(false);
                 return;
             }
-
             const token = await auth.currentUser?.getIdToken();
             const res = await fetch('/api/assign-points', {
                 method: 'POST',
@@ -641,75 +542,35 @@ export const ClientsPage = () => {
                     petIds: isPetFoodPurchase ? selectedPetsForFood : []
                 })
             });
-
             const data = await res.json();
-
             if (data.ok) {
-                // FLUJO MANUAL DE WHATSAPP PARA EVITAR BLOQUEOS
                 if (data.whatsappLink && notifyWhatsapp) {
-                    // AUTO-OPEN WHATSAPP
-                    setTimeout(() => {
-                        const link = document.createElement('a');
-                        link.href = data.whatsappLink!;
-                        link.target = '_blank';
-                        link.rel = 'noopener noreferrer';
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                    }, 300);
-
+                    setTimeout(() => { const link = document.createElement('a'); link.href = data.whatsappLink!; link.target = '_blank'; link.rel = 'noopener noreferrer'; document.body.appendChild(link); link.click(); document.body.removeChild(link); }, 300);
                     toast.success((t) => (
                         <div className="flex flex-col gap-2">
                             <span className="font-bold text-sm">✨ ¡Se asignaron {data.pointsAdded} puntos!</span>
-                            <a 
-                                href={data.whatsappLink} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                onClick={() => toast.dismiss(t.id)}
-                                className="bg-green-600 text-white px-4 py-2 rounded-xl text-center font-black text-xs hover:bg-green-700 transition shadow-sm flex items-center justify-center gap-2"
-                            >
-                                <MessageCircle size={14} /> RE-ENVIAR COMPROBANTE WA
-                            </a>
+                            <a href={data.whatsappLink} target="_blank" rel="noopener noreferrer" onClick={() => toast.dismiss(t.id)} className="bg-green-600 text-white px-4 py-2 rounded-xl text-center font-black text-xs hover:bg-green-700 transition shadow-sm flex items-center justify-center gap-2"><MessageCircle size={14} /> RE-ENVIAR COMPROBANTE WA</a>
                         </div>
                     ), { duration: 6000 });
-                } else {
-                    toast.success(`¡Se asignaron ${data.pointsAdded} puntos!`);
-                }
+                } else toast.success(`¡Se asignaron ${data.pointsAdded} puntos!`);
 
-                // 3. Update User Balance (Solo si hay campos extras como en Petshop)
                 const userRef = doc(db, 'users', selectedClientForPoints.id);
                 const updates: any = {};
-
-                // SECCION PETSHOP: Actualizar fecha de compra de alimento
                 if (isPetFoodPurchase && selectedClientForPoints.pets) {
                     const updatedPets = selectedClientForPoints.pets.map(pet => {
-                        if (selectedPetsForFood.includes(pet.id)) {
-                            return { ...pet, lastPurchaseDate: Timestamp.fromDate(new Date(pointsData.purchaseDate)) };
-                        }
+                        if (selectedPetsForFood.includes(pet.id)) return { ...pet, lastPurchaseDate: Timestamp.fromDate(new Date(pointsData.purchaseDate)) };
                         return pet;
                     });
                     updates.pets = updatedPets;
                 }
-
-                if (Object.keys(updates).length > 0) {
-                    await updateDoc(userRef, updates);
-                }
-
-                // Actualizar cache de vencimientos
+                if (Object.keys(updates).length > 0) await updateDoc(userRef, updates);
                 ExpirationService.updateNextExpirationCache(selectedClientForPoints.id);
-
                 closePointsModal();
                 fetchData();
-            } else {
-                toast.error(`Error: ${data.error}`);
-            }
-        } catch (error) {
-            console.error("Error al asignar puntos:", error);
-            toast.error("Error de conexión al asignar puntos");
-        } finally {
-            setActionLoading(false);
-        }
-    };
+            } else toast.error(`Error: ${data.error}`);
+        } catch (error) { console.error("Error assigning points:", error); toast.error("Error de conexión al asignar puntos"); }
+        finally { setActionLoading(false); }
+    }
 
     const refreshAndOpen = async (client: Client, openFn: (c: Client) => void) => {
         try {
@@ -828,65 +689,16 @@ export const ClientsPage = () => {
         setHistoryModalOpen(true);
     };
 
-    const handleExportExcel = () => {
-        // --- AUDITORIA ---
-        AuditService.log('data_export', 'Exportación de base de clientes a Excel', [
-            { action: 'excel_export', status: 'success', info: `Total registros: ${clients.length}` }
-        ]);
-
-        const headers = [
-            'Socio', 'Nombre', 'Email', 'DNI', 'Telefono', 'Fecha Alta',
-            'Puntos Actuales', 'Puntos por Vencer', 'Puntos Canjeados Total',
-            'Valor Canjes ($)', 'Total Gastado ($ Estimado)',
-            'Provincia', 'Partido', 'Localidad', 'Calle', 'Piso', 'Depto', 'CP',
-            'Visitas', 'Ultima Conexion', 'GPS', 'Notif', 'TyC'
-        ];
-
-        const rows = clients.map(c => [
-            c.socioNumber || '',
-            c.name || '',
-            c.email || '',
-            c.dni || '',
-            c.phone || '',
-            c.registrationDate ? new Date(c.registrationDate?.toDate?.() || c.registrationDate).toLocaleDateString() : '',
-            c.points || 0,
-            c.expiringPoints || 0,
-            c.redeemedPoints || 0,
-            c.redeemedValue || 0,
-            c.totalSpent || 0,
-            c.provincia || '',
-            c.partido || '',
-            c.localidad || '',
-            c.calle || '',
-            c.piso || '',
-            c.depto || '',
-            c.cp || '',
-            c.visitCount || 0,
-            c.lastActive ? new Date(c.lastActive?.toDate?.() || c.lastActive).toLocaleString() : '',
-            c.permissions?.geolocation?.status || 'pendiente',
-            c.permissions?.notifications?.status || 'pendiente',
-            c.termsAccepted ? 'si' : 'no'
-        ]);
-
-        const csvContent = [
-            headers.join(';'),
-            ...rows.map(r => r.map(v => {
-                if (typeof v === 'number') return v.toFixed(2).replace('.', ',');
-                return `"${v}"`;
-            }).join(';'))
-        ].join('\n');
-
+    function handleExportExcel() {
+        AuditService.log('data_export', 'Exportación de base de clientes a Excel', [{ action: 'excel_export', status: 'success', info: `Total registros: ${clients.length}` }]);
+        const headers = ['Socio', 'Nombre', 'Email', 'DNI', 'Telefono', 'Fecha Alta', 'Puntos Actuales', 'Puntos por Vencer', 'Puntos Canjeados Total', 'Valor Canjes ($)', 'Total Gastado ($ Estimado)', 'Provincia', 'Partido', 'Localidad', 'Calle', 'Piso', 'Depto', 'CP', 'Visitas', 'Ultima Conexion', 'GPS', 'Notif', 'TyC'];
+        const rows = clients.map(c => [c.socioNumber || '', c.name || '', c.email || '', c.dni || '', c.phone || '', c.registrationDate ? new Date(c.registrationDate?.toDate?.() || c.registrationDate).toLocaleDateString() : '', c.points || 0, c.expiringPoints || 0, c.redeemedPoints || 0, c.redeemedValue || 0, c.totalSpent || 0, c.provincia || '', c.partido || '', c.localidad || '', c.calle || '', c.piso || '', c.depto || '', c.cp || '', c.visitCount || 0, c.lastActive ? new Date(c.lastActive?.toDate?.() || c.lastActive).toLocaleString() : '', c.permissions?.geolocation?.status || 'pendiente', c.permissions?.notifications?.status || 'pendiente', c.termsAccepted ? 'si' : 'no']);
+        const csvContent = [headers.join(';'), ...rows.map(r => r.map(v => { if (typeof v === 'number') return v.toFixed(2).replace('.', ','); return `"${v}"`; }).join(';'))].join('\n');
         const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.setAttribute("href", url);
-        link.setAttribute("download", `clientes_${new Date().toISOString().split('T')[0]}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        const link = document.createElement("a"); link.setAttribute("href", url); link.setAttribute("download", `clientes_${new Date().toISOString().split('T')[0]}.csv`); link.style.visibility = 'hidden'; document.body.appendChild(link); link.click(); document.body.removeChild(link);
         toast.success("Excel exportado correctamente");
-    };
+    }
 
     const filteredClients = clients.filter(c => {
         const matchesSearch = !searchTerm || 

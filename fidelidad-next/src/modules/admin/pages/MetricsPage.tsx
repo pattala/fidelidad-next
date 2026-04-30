@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BarChart3, TrendingUp, Users, DollarSign, Award, Sparkles, Download, Clock, Calendar, RefreshCw, ShoppingBag, ArrowUpRight, ArrowDownRight, Eye } from 'lucide-react';
+import { BarChart3, TrendingUp, Users, DollarSign, Award, Sparkles, Download, Clock, Calendar, RefreshCw, ShoppingBag, ArrowUpRight, ArrowDownRight, Eye, Settings } from 'lucide-react';
 import { collection, query, where, getDocs, orderBy, limit, documentId, getCountFromServer, collectionGroup, Timestamp } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import {
@@ -240,7 +240,7 @@ export const MetricsPage = () => {
                 isTotal ? Promise.resolve([]) : fetchRangeData(prevStartDate, prevEndDate)
             ]);
             setMovementsData(currentMovements);
-            const realPV = (appConfig.pointValue || 10);
+            const realPV = (appConfig?.pointValue || 10);
             const currentResults = processStats(currentMovements, appConfig);
             const prevResults = processStats(prevMovements, appConfig);
             const currentNetEmitted = currentResults.tEmitted - currentResults.tExpired;
@@ -364,7 +364,7 @@ export const MetricsPage = () => {
     }, []);
 
     useEffect(() => { fetchHeatmapData(); }, [heatmapDateRange, heatmapMode, heatmapMetric]);
-    useEffect(() => { fetchData(); }, [timeRange, customDates, heatmapMetric, heatmapMode, dormantDays]);
+    useEffect(() => { fetchData(); }, [timeRange, customDates, heatmapMetric, heatmapMode]);
 
     // Escuchar cambios en el simulador de tiempo
     useEffect(() => {

@@ -185,7 +185,8 @@ export default async function handler(req, res) {
                     origen: `Canje: ${pData.name} (${shortCode})`,
                     estado: 'Canjeado'
                 }),
-                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                lastPurchaseDate: admin.firestore.Timestamp.fromDate(now)
             });
 
             // AUDITORIA: Agregar detalle del canje

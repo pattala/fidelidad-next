@@ -449,6 +449,7 @@ export default async function handler(req, res) {
                     accumulated_balance_updated_at: admin.firestore.FieldValue.serverTimestamp(),
                     [`rewards_awarded.${reason}`]: true,
                     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                    lastPurchaseDate: admin.firestore.Timestamp.fromDate(recordDate),
                     // Limitamos el historial rápido a los últimos 1000 movimientos para fluidez en la App
                     historialPuntos: [...(cData.historialPuntos || []), {
                         fechaObtencion: admin.firestore.Timestamp.fromDate(recordDate),

@@ -263,16 +263,13 @@ export const MetricsPage = () => {
                 const u = uDoc.data(); if (u.role === 'admin') return;
                 const uPoints = Number(u.points || 0); totalSystemPoints += uPoints;
                 
-                // Cálculo de clientes dormidos (unificado con ClientsPage)
+                // Cálculo de clientes dormidos (V.1.1.8 - con fallback de registro)
                 const lastPurchase = u.lastPurchaseDate?.toDate ? u.lastPurchaseDate.toDate() : (u.lastPurchaseDate ? new Date(u.lastPurchaseDate) : null);
-                if (!lastPurchase) {
-                    console.log(`[DormantDebug] Usuario sin compra: ${u.nombre || u.email || uDoc.id}`);
+                const registration = u.createdAt?.toDate ? u.createdAt.toDate() : (u.createdAt ? new Date(u.createdAt) : null);
+                const lastActivity = lastPurchase || registration;
+                
+                if (!lastActivity || lastActivity < dormantThresholdDate) {
                     dormantCount++;
-                } else {
-                    if (lastPurchase < dormantThresholdDate) {
-                        console.log(`[DormantDebug] Usuario dormido: ${u.nombre || u.email || uDoc.id} (Last: ${lastPurchase.toISOString()}, Threshold: ${dormantThresholdDate.toISOString()})`);
-                        dormantCount++;
-                    }
                 }
 
                 if (u.nextExpirationDate) {

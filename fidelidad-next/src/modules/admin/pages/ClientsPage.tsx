@@ -764,8 +764,11 @@ export const ClientsPage = () => {
             threshold.setDate(threshold.getDate() - dormantDays);
             
             const lastPurchase = c.lastPurchaseDate?.toDate ? c.lastPurchaseDate.toDate() : (c.lastPurchaseDate ? new Date(c.lastPurchaseDate) : null);
-            if (!lastPurchase) return true; // Si nunca compró, está dormido
-            return lastPurchase < threshold;
+            const registration = c.createdAt?.toDate ? c.createdAt.toDate() : (c.createdAt ? new Date(c.createdAt) : null);
+            const lastActivity = lastPurchase || registration;
+
+            if (!lastActivity) return true; 
+            return lastActivity < threshold;
         }
 
         return true;

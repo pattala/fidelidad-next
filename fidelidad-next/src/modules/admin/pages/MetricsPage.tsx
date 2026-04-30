@@ -252,6 +252,9 @@ export const MetricsPage = () => {
             const allUsersSnap = await getDocs(query(collection(db, 'users'), where('points', '>', 0)));
             let dormantCount = 0;
             let totalSystemPoints = 0, totalVirtualExpired = 0, totalProjectedNext30 = 0;
+            const startOfToday = TimeService.startOfToday(), next30Days = new Date(startOfToday);
+            next30Days.setDate(next30Days.getDate() + 30);
+            const next30Str = next30Days.toISOString().split('T')[0];
             const dormantThresholdDate = new Date(now);
             dormantThresholdDate.setDate(dormantThresholdDate.getDate() - dormantDays);
             const dormantThresholdStr = dormantThresholdDate.toISOString().split('T')[0];

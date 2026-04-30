@@ -191,7 +191,16 @@ export default async function handler(req, res) {
                         }
 
                         results.notified++;
-                        results.details.push({ user: userData.name, pet: pet.name, status: "sent" });
+                        results.details.push({ 
+                            userId: userDoc.id,
+                            userName: userData.nombre || userData.name || 'Socio',
+                            socioNumber: userData.socioNumber || userData.numeroSocio || '',
+                            dni: userData.dni || '',
+                            action: "pet_food_alert",
+                            status: "success",
+                            info: `Mascota: ${pet.name} (${pet.foodBrand || pet.brand || 'Alimento'})`,
+                            messageSent: msg
+                        });
                         results.list.push({
                             id: userDoc.id,
                             name: userData.nombre || userData.name || 'Socio',

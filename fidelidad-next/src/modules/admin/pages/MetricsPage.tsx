@@ -626,18 +626,22 @@ export const MetricsPage = () => {
                                             <Eye size={16} />
                                         </button>
                                     </div>
-                                    <div className="flex items-center gap-2 mt-2">
-                                        <p className="text-[10px] text-orange-600/70 italic">Calculado según umbral de</p>
-                                        <span className="px-2 py-0.5 bg-orange-100 text-orange-700 rounded text-[10px] font-bold border border-orange-200">
-                                            {config?.dormantDays || 30} días
-                                        </span>
-                                        <button 
-                                            onClick={() => navigate('/admin/config')}
-                                            className="p-1 text-orange-400 hover:text-orange-600 transition-colors"
-                                            title="Cambiar en configuración"
-                                        >
-                                            <Settings size={10} />
-                                        </button>
+                                    <div className="mt-4 p-3 bg-orange-100/50 rounded-2xl border border-orange-200/50">
+                                        <div className="flex items-center justify-between mb-1">
+                                            <div className="flex items-center gap-2">
+                                                <AlertTriangle size={14} className="text-orange-600" />
+                                                <p className="text-[11px] font-bold text-orange-800 uppercase tracking-tight">Umbral de Inactividad</p>
+                                            </div>
+                                            <button 
+                                                onClick={() => navigate('/admin/config')}
+                                                className="flex items-center gap-1 px-2 py-1 bg-orange-200 text-orange-700 rounded-lg text-[9px] font-black hover:bg-orange-300 transition-all uppercase"
+                                            >
+                                                <Settings size={10} /> Configurar
+                                            </button>
+                                        </div>
+                                        <p className="text-[10px] text-orange-600 leading-tight">
+                                            Este número muestra clientes que no compran hace <strong>{config?.dormantDays || 30} días</strong>. Puedes cambiar este umbral en la pestaña "Reglas del Juego".
+                                        </p>
                                     </div>
                                 </div>
                             </div>

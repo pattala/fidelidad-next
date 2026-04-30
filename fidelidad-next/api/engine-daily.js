@@ -61,13 +61,23 @@ async function buildExtensionLists(db, simulatedDate) {
             // Vencimientos (Respetando Lead Days de Configuración)
             if (data.nextExpirationDate && data.nextExpirationDate >= todayStr && data.nextExpirationDate <= winEndStr) {
                 if ((data.points || 0) > 0) {
+                    // Mapeo detallado para que la extensión entienda el itinerario (V.1.2.5)
+                    const rawDetails = data.expirationDetails || [];
+                    const processedBreakdown = rawDetails.map(d => {
+                        const dt = d.date?.toDate ? d.date.toDate() : new Date(d.date);
+                        return {
+                            date: `${dt.getDate()}/${dt.getMonth() + 1}`,
+                            rem: d.points || d.rem || 0
+                        };
+                    });
+
                     expirationList.push({
                         id: d.id,
                         name: data.name || data.nombre || 'Socio',
                         phone: data.phone || data.telefono || '',
                         points: data.points || 0,
                         nextExpirationDate: data.nextExpirationDate,
-                        breakdown: data.expirations || [] // Enviamos el desglose para el WhatsApp
+                        breakdown: processedBreakdown
                     });
                 }
             }
@@ -141,8 +151,8 @@ export default async function handler(req, res) {
         const configData = configSnap.data();
         const systemEnableDuplicateControl = configData?.enableDuplicateControl !== false;
 
-        // --- CONTROL DE DUPLICIDAD (Safety Wall) ---
-        if (!ignoreDeduplication && systemEnableDuplicateControl) {
+        // --- CONTROL DE DUPLICIDAD (Safety Wall) - Ignorar si viene de la extensión (V.1.2.5) ---
+        if (!ignoreDeduplication && systemEnableDuplicateControl && triggerSource !== 'extension') {
             try {
                 const arFormatter = new Intl.DateTimeFormat('en-CA', {
                     timeZone: 'America/Argentina/Buenos_Aires',

@@ -27,6 +27,8 @@ export const MetricsPage = () => {
     const [registrationSources, setRegistrationSources] = useState<{ pwa: number, local: number }>({ pwa: 0, local: 0 });
     const [totalStats, setTotalStats] = useState({ emitted: 0, redeemed: 0, expired: 0, moneyRedeemed: 0 });
     const [prevTotalStats, setPrevTotalStats] = useState({ emitted: 0, redeemed: 0, expired: 0, moneyRedeemed: 0 });
+    const [activeDateRange, setActiveDateRange] = useState<{ start: Date | null, end: Date | null }>({ start: null, end: null });
+    const [heatmapSummary, setHeatmapSummary] = useState({ topDay: '', topHour: '', peakMoment: '', totalHeatmapEvents: 0 });
     const [loading, setLoading] = useState(true);
     const [config, setConfig] = useState<any>(null);
     const [movementsData, setMovementsData] = useState<any[]>([]);
@@ -123,7 +125,9 @@ export const MetricsPage = () => {
                 } else if (timeRange === 'total') {
                     startDate = new Date(2020, 0, 1);
                 }
-
+                
+                setActiveDateRange({ start: startDate, end: endDate });
+                
                 const isTotal = timeRange === 'total';
                 const duration = endDate.getTime() - startDate.getTime();
                 const prevEndDate = new Date(startDate.getTime() - 1000);
@@ -274,6 +278,37 @@ export const MetricsPage = () => {
                 });
 
                 setHeatmapData(currentResults.heatmap);
+
+                // Analizar Mapa de Calor para Insights
+                let maxVal = 0;
+                let maxDayIdx = -1;
+                let maxHourIdx = -1;
+                
+                let dayTotals = Array(7).fill(0);
+                let hourTotals = Array(24).fill(0);
+                
+                currentResults.heatmap.forEach((dayRow: number[], dIdx: number) => {
+                    dayRow.forEach((val: number, hIdx: number) => {
+                        dayTotals[dIdx] += val;
+                        hourTotals[hIdx] += val;
+                        if (val > maxVal) {
+                            maxVal = val;
+                            maxDayIdx = dIdx;
+                            maxHourIdx = hIdx;
+                        }
+                    });
+                });
+                
+                const daysOfWeek = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+                const bestDayIdx = dayTotals.indexOf(Math.max(...dayTotals));
+                const bestHourIdx = hourTotals.indexOf(Math.max(...hourTotals));
+                
+                setHeatmapSummary({
+                    topDay: bestDayIdx !== -1 && dayTotals[bestDayIdx] > 0 ? daysOfWeek[bestDayIdx] : 'N/A',
+                    topHour: bestHourIdx !== -1 && hourTotals[bestHourIdx] > 0 ? `${bestHourIdx}:00hs` : 'N/A',
+                    peakMoment: maxDayIdx !== -1 && maxVal > 0 ? `${daysOfWeek[maxDayIdx]} a las ${maxHourIdx}:00hs (${maxVal} ventas)` : 'N/A',
+                    totalHeatmapEvents: dayTotals.reduce((a, b) => a + b, 0)
+                });
 
                 setAdvancedStats({
                     averageTicket: currentResults.creditCount > 0 ? currentResults.totalMoneySpent / currentResults.creditCount : 0,
@@ -808,6 +843,11 @@ export const MetricsPage = () => {
                                     <Clock className="text-purple-600" /> Mapa de Calor: Actividad por Día y Hora
                                 </h3>
                                 <p className="text-sm text-gray-500">Detecta tus momentos de mayor tráfico de ventas.</p>
+                                {activeDateRange.start && activeDateRange.end && (
+                                    <p className="text-xs font-bold text-purple-700 mt-2 bg-purple-50 px-3 py-1.5 rounded-lg inline-block">
+                                        📅 Analizando datos desde el <b>{activeDateRange.start.toLocaleDateString('es-AR')}</b> hasta el <b>{activeDateRange.end.toLocaleDateString('es-AR')}</b>
+                                    </p>
+                                )}
                             </div>
                             <div className="flex items-center gap-2 text-xs font-bold text-gray-400">
                                 <span>Menos</span>
@@ -820,6 +860,24 @@ export const MetricsPage = () => {
                                 <span>Más ({Math.max(...heatmapData.flat()) || 0} máx)</span>
                             </div>
                         </div>
+
+                        {/* RESUMEN DE INSIGHTS DEL MAPA DE CALOR */}
+                        {heatmapSummary.totalHeatmapEvents > 0 && (
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                                <div className="bg-purple-50/40 border border-purple-100 p-4 rounded-2xl flex flex-col justify-center">
+                                    <p className="text-[10px] font-bold text-purple-400 uppercase tracking-wider mb-1">Día Más Fuerte</p>
+                                    <p className="text-lg font-black text-purple-900">{heatmapSummary.topDay}</p>
+                                </div>
+                                <div className="bg-purple-50/40 border border-purple-100 p-4 rounded-2xl flex flex-col justify-center">
+                                    <p className="text-[10px] font-bold text-purple-400 uppercase tracking-wider mb-1">Hora Pico Habitual</p>
+                                    <p className="text-lg font-black text-purple-900">{heatmapSummary.topHour}</p>
+                                </div>
+                                <div className="bg-purple-50/40 border border-purple-100 p-4 rounded-2xl flex flex-col justify-center">
+                                    <p className="text-[10px] font-bold text-purple-400 uppercase tracking-wider mb-1">Momento de Oro (Pico Máximo)</p>
+                                    <p className="text-sm font-black text-purple-900">{heatmapSummary.peakMoment}</p>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="overflow-x-auto">
                             <div className="min-w-[800px]">

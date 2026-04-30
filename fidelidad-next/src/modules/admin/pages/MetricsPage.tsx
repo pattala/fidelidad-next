@@ -207,6 +207,70 @@ export const MetricsPage = () => {
         fetchHeatmapData();
     }, [heatmapDateRange, heatmapMode, heatmapMetric]);
 
+    const processStats = (movements: any[], appConfig: any) => {
+        const grouped = new Map<string, { emitted: number, redeemed: number, expired: number, money: number, referrals: number }>();
+        const spenders = new Map<string, number>();
+        let tEmitted = 0, tRedeemed = 0, tExpired = 0, tMoneyRedeemed = 0;
+        let totalMoneySpent = 0, creditCount = 0, referralCount = 0;
+        const activeUids = new Set<string>();
+        const heatmapCount = Array(7).fill(0).map(() => Array(24).fill(0));
+        const heatmapRevenue = Array(7).fill(0).map(() => Array(24).fill(0));
+
+        movements.forEach((mov: any) => {
+            const key = (timeRange === 'today' || timeRange === '30_days' || timeRange === 'custom')
+                ? mov.date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
+                : mov.date.toLocaleDateString('es-AR', { month: 'short', year: '2-digit' });
+
+            const current = grouped.get(key) || { emitted: 0, redeemed: 0, expired: 0, money: 0, referrals: 0 };
+
+            if (mov.type === 'credit') {
+                const pts = Number(mov.amount || mov.points || 0);
+                current.emitted += pts;
+                tEmitted += pts;
+
+                if (mov.reason === 'referral_bonus') {
+                    referralCount++;
+                    current.referrals = (current.referrals || 0) + 1;
+                }
+
+                const money = Number(mov.moneySpent || 0);
+                if (money > 0) {
+                    totalMoneySpent += money;
+                    const userId = mov.uid || mov.userId;
+                    if (userId) spenders.set(userId, (spenders.get(userId) || 0) + money);
+                }
+
+                if (mov.date instanceof Date) {
+                    heatmapCount[mov.date.getDay()][mov.date.getHours()]++;
+                    if (money > 0) {
+                        heatmapRevenue[mov.date.getDay()][mov.date.getHours()] += money;
+                    }
+                }
+                
+                creditCount++;
+                activeUids.add(mov.uid || mov.userId);
+            } else {
+                const pts = Math.abs(Number(mov.points || 0));
+                const concept = (mov.concept || '').toLowerCase();
+                const isEx = mov.isExpirationAdjustment === true || 
+                             concept.includes('vencimiento') || 
+                             concept.includes('vencidos') || 
+                             concept.includes('vencieron');
+
+                if (isEx) {
+                    current.expired += pts; tExpired += pts;
+                } else {
+                    current.redeemed += pts; tRedeemed += pts;
+                    const val = mov.redeemedValue || (pts * (appConfig?.pointValue || 10));
+                    current.money += val; tMoneyRedeemed += val;
+                }
+            }
+            grouped.set(key, current);
+        });
+
+        return { grouped, spenders, tEmitted, tRedeemed, tExpired, tMoneyRedeemed, totalMoneySpent, creditCount, activeUids, heatmapCount, heatmapRevenue, referralCount };
+    };
+
     useEffect(() => {
         const fetchData = async () => {
             setIsUpdating(true);
@@ -248,17 +312,17 @@ export const MetricsPage = () => {
                         const q = query(collectionGroup(db, 'points_history'), ...constraints);
                         const snap = await getDocs(q);
                         return snap.docs.map(d => {
-                        const data = d.data();
-                        const date = data.date?.toDate ? data.date.toDate() : (data.date ? new Date(data.date) : new Date());
-                        return {
-                            ...data,
-                            id: d.id,
-                            uid: d.ref.parent.parent?.id,
-                            date,
-                            points: Math.abs(data.amount || 0),
-                            moneySpent: data.moneySpent || 0
-                        };
-                    });
+                            const data = d.data();
+                            const date = data.date?.toDate ? data.date.toDate() : (data.date ? new Date(data.date) : new Date());
+                            return {
+                                ...data,
+                                id: d.id,
+                                uid: d.ref.parent.parent?.id,
+                                date,
+                                points: Math.abs(data.amount || 0),
+                                moneySpent: data.moneySpent || 0
+                            };
+                        });
                     } catch (err) {
                         console.error("Error in fetchRangeData:", err);
                         return [];
@@ -272,74 +336,9 @@ export const MetricsPage = () => {
 
                 setMovementsData(currentMovements);
 
-                const processStats = (movements: any[]) => {
-                    const grouped = new Map<string, { emitted: number, redeemed: number, expired: number, money: number, referrals: number }>();
-                    const spenders = new Map<string, number>();
-                    let tEmitted = 0, tRedeemed = 0, tExpired = 0, tMoneyRedeemed = 0;
-                    let totalMoneySpent = 0, creditCount = 0, referralCount = 0;
-                    const activeUids = new Set<string>();
-                    const heatmapCount = Array(7).fill(0).map(() => Array(24).fill(0));
-                    const heatmapRevenue = Array(7).fill(0).map(() => Array(24).fill(0));
-
-                    movements.forEach((mov: any) => {
-                        const key = (timeRange === 'today' || timeRange === '30_days' || timeRange === 'custom')
-                            ? mov.date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
-                            : mov.date.toLocaleDateString('es-AR', { month: 'short', year: '2-digit' });
-
-                        const current = grouped.get(key) || { emitted: 0, redeemed: 0, expired: 0, money: 0, referrals: 0 };
-
-                        if (mov.type === 'credit') {
-                            const pts = Number(mov.amount || mov.points || 0);
-                            current.emitted += pts;
-                            tEmitted += pts;
-
-                            if (mov.reason === 'referral_bonus') {
-                                referralCount++;
-                                current.referrals = (current.referrals || 0) + 1;
-                            }
-
-                            const money = Number(mov.moneySpent || 0);
-                            if (money > 0) {
-                                totalMoneySpent += money;
-                                const userId = mov.uid || mov.userId;
-                                if (userId) spenders.set(userId, (spenders.get(userId) || 0) + money);
-                            }
-
-                            // Always count for traffic if date exists
-                            if (mov.date instanceof Date) {
-                                heatmapCount[mov.date.getDay()][mov.date.getHours()]++;
-                                if (money > 0) {
-                                    heatmapRevenue[mov.date.getDay()][mov.date.getHours()] += money;
-                                }
-                            }
-                            
-                            creditCount++;
-                            activeUids.add(mov.uid || mov.userId);
-                        } else {
-                            const pts = Math.abs(Number(mov.points || 0));
-                            const concept = (mov.concept || '').toLowerCase();
-                            const isEx = mov.isExpirationAdjustment === true || 
-                                         concept.includes('vencimiento') || 
-                                         concept.includes('vencidos') || 
-                                         concept.includes('vencieron');
-
-                            if (isEx) {
-                                current.expired += pts; tExpired += pts;
-                            } else {
-                                current.redeemed += pts; tRedeemed += pts;
-                                const val = mov.redeemedValue || (pts * (appConfig.pointValue || 10));
-                                current.money += val; tMoneyRedeemed += val;
-                            }
-                        }
-                        grouped.set(key, current);
-                    });
-
-                    return { grouped, spenders, tEmitted, tRedeemed, tExpired, tMoneyRedeemed, totalMoneySpent, creditCount, activeUids, heatmapCount, heatmapRevenue, referralCount };
-                };
-
                 const realPV = (appConfig.pointValue || 10);
-                const currentResults = processStats(currentMovements);
-                const prevResults = processStats(prevMovements);
+                const currentResults = processStats(currentMovements, appConfig);
+                const prevResults = processStats(prevMovements, appConfig);
 
                 const currentNetEmitted = currentResults.tEmitted - currentResults.tExpired;
                 const prevNetEmitted = prevResults.tEmitted - prevResults.tExpired;
@@ -567,9 +566,6 @@ export const MetricsPage = () => {
         fetchData();
     }, [timeRange, customDates, heatmapMetric, heatmapMode]); 
 
-    const safeQuery = async (p: Promise<any>, fallback: any = { data: () => ({ count: 0 }), docs: [] }) => {
-        try { return await p; } catch (err) { console.warn("Query failed (maybe missing index):", err); return fallback; }
-    };
 
     const handleCSVExport = () => {
         if (movementsData.length === 0) {

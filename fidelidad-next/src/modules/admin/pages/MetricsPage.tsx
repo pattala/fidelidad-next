@@ -620,9 +620,6 @@ export const MetricsPage = () => {
                         <BarChart3 className="text-purple-600" /> Métricas y Reportes
                     </h1>
                     <p className="text-gray-500 mt-1">Analiza el rendimiento de tu programa de fidelidad.</p>
-                    <div className="mt-2 inline-flex items-center gap-2 px-3 py-1 bg-purple-600 text-white text-[10px] font-black uppercase tracking-widest rounded-full animate-bounce shadow-lg">
-                        🚀 TEST DESARROLLO (Vercel Test)
-                    </div>
                 </div>
 
                 {/* CARTEL DE ACTUALIZACIÓN LLAMATIVO - POSICIÓN FIJA O DESTACADA */}

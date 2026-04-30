@@ -52,12 +52,7 @@ export const GlobalAlerts = () => {
         const unsubUsers = onSnapshot(query(collection(db, 'users')), (snap) => {
             if (!config) return;
 
-            const today = TimeService.now();
-            let effectiveDate = today;
-            if (config.enableDateSimulator && config.simulatedOffsetDays) {
-                effectiveDate = new Date(today);
-                effectiveDate.setDate(effectiveDate.getDate() + config.simulatedOffsetDays);
-            }
+            const effectiveDate = TimeService.now();
 
             // Formato robusto para evitar errores de zona horaria
             const dY = effectiveDate.getFullYear();

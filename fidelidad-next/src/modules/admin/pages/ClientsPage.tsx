@@ -734,7 +734,7 @@ export const ClientsPage = () => {
         if (!matchesSearch) return false;
 
         if (filterMode === 'dormant') {
-            const threshold = new Date();
+            const threshold = TimeService.now();
             threshold.setDate(threshold.getDate() - dormantDays);
             
             const lastPurchase = c.lastPurchaseDate?.toDate ? c.lastPurchaseDate.toDate() : (c.lastPurchaseDate ? new Date(c.lastPurchaseDate) : null);

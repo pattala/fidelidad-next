@@ -358,6 +358,13 @@ export const MetricsPage = () => {
     useEffect(() => { fetchHeatmapData(); }, [heatmapDateRange, heatmapMode, heatmapMetric]);
     useEffect(() => { fetchData(); }, [timeRange, customDates, heatmapMetric, heatmapMode, dormantDays]);
 
+    // Escuchar cambios en el simulador de tiempo
+    useEffect(() => {
+        const handleTimeChange = () => fetchData();
+        window.addEventListener('time-simulation-change', handleTimeChange);
+        return () => window.removeEventListener('time-simulation-change', handleTimeChange);
+    }, []);
+
     async function handleCSVExport() {
         if (movementsData.length === 0) { toast.error("No hay datos para exportar en este periodo."); return; }
         const headers = ["Fecha", "Cliente", "Socio #", "Tipo", "Concepto", "Puntos", "Monto $"];

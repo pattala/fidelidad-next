@@ -19,4 +19,4 @@ Este documento contiene las pautas obligatorias para el desarrollo y mantenimien
 - **Comentarios**: Mantener los comentarios existentes en el código.
 ## 5. Gestión de Versiones
 - **Incremento Obligatorio**: Con cada subida (push) que incluya mejoras o correcciones, se DEBE incrementar el número de versión (V.X.X.X).
-- **Visibilidad**: El número de versión debe actualizarse en todas las etiquetas visuales de la interfaz (Sidebar, Header, etc.) para que el usuario pueda verificar que está viendo la última versión desplegada.
+- **Visibilidad**: El número de versión debe actualizarse en todas las etiquetas visuales de la interfaz (Sidebar, Header, etc.) para que el usuario pueda verificar que está viendo la última versión desplegada. Siempre debe ser visible para el usuario.

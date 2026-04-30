@@ -547,11 +547,19 @@ export const ClientsPage = () => {
     async function handleAssignPoints(e: React.FormEvent) {
         e.preventDefault();
         if (isReadOnly || !selectedClientForPoints) return;
+
+        // Abrir ventana en blanco inmediatamente para evitar bloqueo del navegador
+        let waWindow: Window | null = null;
+        if (notifyWhatsapp) {
+            waWindow = window.open('about:blank', '_blank');
+        }
+
         setActionLoading(true);
         try {
             const inputVal = parseFloat(pointsData.amount);
             if (isNaN(inputVal) || inputVal <= 0) {
                 toast.error("Ingrese un monto válido");
+                if (waWindow) waWindow.close();
                 setActionLoading(false);
                 return;
             }
@@ -578,15 +586,23 @@ export const ClientsPage = () => {
             });
             const data = await res.json();
             if (data.ok) {
-                if (data.whatsappLink && notifyWhatsapp) {
-                    setTimeout(() => { const link = document.createElement('a'); link.href = data.whatsappLink!; link.target = '_blank'; link.rel = 'noopener noreferrer'; document.body.appendChild(link); link.click(); document.body.removeChild(link); }, 300);
-                    toast.success((t) => (
-                        <div className="flex flex-col gap-2">
-                            <span className="font-bold text-sm">✨ ¡Se asignaron {data.pointsAdded} puntos!</span>
-                            <a href={data.whatsappLink} target="_blank" rel="noopener noreferrer" onClick={() => toast.dismiss(t.id)} className="bg-green-600 text-white px-4 py-2 rounded-xl text-center font-black text-xs hover:bg-green-700 transition shadow-sm flex items-center justify-center gap-2"><MessageCircle size={14} /> RE-ENVIAR COMPROBANTE WA</a>
-                        </div>
-                    ), { duration: 6000 });
-                } else toast.success(`¡Se asignaron ${data.pointsAdded} puntos!`);
+                // Redirigir la ventana abierta al link de WhatsApp
+                if (data.whatsappLink && notifyWhatsapp && waWindow) {
+                    waWindow.location.href = data.whatsappLink;
+                } else if (waWindow) {
+                    waWindow.close();
+                }
+
+                toast.success((t) => (
+                    <div className="flex flex-col gap-2">
+                        <span className="font-bold text-sm">✨ ¡Se asignaron {data.pointsAdded} puntos!</span>
+                        {data.whatsappLink && (
+                            <a href={data.whatsappLink} target="_blank" rel="noopener noreferrer" onClick={() => toast.dismiss(t.id)} className="bg-green-600 text-white px-4 py-2 rounded-xl text-center font-black text-xs hover:bg-green-700 transition shadow-sm flex items-center justify-center gap-2">
+                                <MessageCircle size={14} /> RE-ENVIAR COMPROBANTE WA
+                            </a>
+                        )}
+                    </div>
+                ), { duration: 6000 });
 
                 const userRef = doc(db, 'users', selectedClientForPoints.id);
                 const updates: any = {};

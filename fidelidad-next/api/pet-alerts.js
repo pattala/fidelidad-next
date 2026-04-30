@@ -91,6 +91,14 @@ export default async function handler(req, res) {
         errors: []
     };
 
+    // Registrar parámetros de inicio para auditoría
+    results.details.push({
+        action: 'engine_parameters',
+        status: 'info',
+        referenceDate: todayStr,
+        info: `Simulador: ${simulatedDateStr || (config.enableDateSimulator ? 'On (Global)' : 'Off')}`
+    });
+
     try {
         // Query users with pets
         const usersSnap = await db.collection('users').where('pets', '!=', null).get();

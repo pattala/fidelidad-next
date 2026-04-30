@@ -85,7 +85,9 @@ export const MetricsPage = () => {
         creditCount: 0,
         referralCount: 0,
         projectedExpirations: 0,
-        circulatingPoints: 0
+        circulatingPoints: 0,
+        newCustomers: 0,
+        dormantCustomers: 0
     });
     const [prevAdvancedStats, setPrevAdvancedStats] = useState({
         averageTicket: 0,
@@ -360,7 +362,9 @@ export const MetricsPage = () => {
                     creditCount: currentResults.creditCount,
                     referralCount: currentResults.referralCount,
                     projectedExpirations: totalProjectedNext30,
-                    circulatingPoints: realCirculation
+                    circulatingPoints: realCirculation,
+                    newCustomers: pwaCountFinal + localCountFinal,
+                    dormantCustomers: 0 // Se calculará abajo
                 });
 
                 setPrevAdvancedStats({
@@ -435,6 +439,14 @@ export const MetricsPage = () => {
                         });
                     }
                 }
+                
+                // Calcular Dormidos (Sin compra en los últimos 60 días)
+                const sixtyDaysAgo = new Date(now);
+                sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+                const dormantSnap = await safeQuery(getCountFromServer(query(collection(db, 'users'), where('lastPurchaseDate', '<', Timestamp.fromDate(sixtyDaysAgo)))));
+                const dormantCount = dormantSnap?.data ? dormantSnap.data().count : 0;
+                
+                setAdvancedStats(prev => ({ ...prev, newCustomers: pwaCountFinal + localCountFinal, dormantCustomers: dormantCount }));
 
                 setRegistrationSources({ pwa: pwaCountFinal, local: localCountFinal });
 
@@ -935,6 +947,53 @@ export const MetricsPage = () => {
                                 <div className="flex justify-between items-end"><span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Altas en el Local</span><span className="text-2xl font-black text-emerald-600">{registrationSources.local}</span></div>
                                 <div className="w-full bg-gray-100 h-3 rounded-full overflow-hidden">
                                     <div className="bg-emerald-500 h-full transition-all duration-1000" style={{ width: `${(registrationSources.local / (registrationSources.pwa + registrationSources.local || 1)) * 100}%` }}></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Índice de Salud de la Base (Nuevos vs Dormidos) */}
+                    <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 mb-8">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
+                            <div>
+                                <h3 className="text-xl font-black text-gray-800 flex items-center gap-2">
+                                    <Sparkles className="text-amber-500" /> Índice de Salud de la Base
+                                </h3>
+                                <p className="text-sm text-gray-500">Comparativa de nuevas inscripciones contra clientes que dejaron de comprar.</p>
+                            </div>
+                            <div className="flex gap-2">
+                                {advancedStats.newCustomers > advancedStats.dormantCustomers ? (
+                                    <div className="flex items-center gap-2 px-4 py-2 bg-emerald-100 text-emerald-700 rounded-2xl font-black text-xs uppercase tracking-wider shadow-sm border-b-2 border-emerald-200">
+                                        <TrendingUp size={16} /> Crecimiento Sano
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-2 px-4 py-2 bg-orange-100 text-orange-700 rounded-2xl font-black text-xs uppercase tracking-wider shadow-sm border-b-2 border-orange-200">
+                                        <Clock size={16} /> Atención Requerida
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="bg-emerald-50/50 p-6 rounded-3xl border border-emerald-100 flex items-center gap-6">
+                                <div className="p-4 bg-emerald-100 text-emerald-600 rounded-2xl">
+                                    <Users size={32} />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-black text-emerald-600 uppercase tracking-widest">Nuevas Inscripciones</p>
+                                    <p className="text-4xl font-black text-emerald-700">+{advancedStats.newCustomers}</p>
+                                    <p className="text-[10px] text-emerald-600/70 mt-1 font-medium italic">Clientes que se sumaron en este periodo</p>
+                                </div>
+                            </div>
+
+                            <div className="bg-orange-50/50 p-6 rounded-3xl border border-orange-100 flex items-center gap-6">
+                                <div className="p-4 bg-orange-100 text-orange-600 rounded-2xl">
+                                    <Clock size={32} />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-black text-orange-600 uppercase tracking-widest">Clientes Dormidos</p>
+                                    <p className="text-4xl font-black text-orange-700">{advancedStats.dormantCustomers}</p>
+                                    <p className="text-[10px] text-orange-600/70 mt-1 font-medium italic">No compran hace más de 60 días</p>
                                 </div>
                             </div>
                         </div>

@@ -287,25 +287,28 @@ Para facilitar el mantenimiento sin necesidad de conocimientos técnicos avanzad
 
 ## 12. 📊 Estrategia de Métricas Avanzadas (Insights)
 
-El sistema no solo cuenta puntos, sino que analiza la salud financiera de tu negocio a través de 4 pilares estratégicos.
+El sistema no solo cuenta puntos, sino que analiza la salud de tu negocio a través de 4 pilares estratégicos diseñados para la toma de decisiones:
 
-### A. El Mapa de Calor Dual (Gente vs. Dinero)
-El mapa de calor permite alternar entre dos visiones críticas para evitar "falsos positivos":
-*   **Vista Tráfico (Transacciones):** Mide cuántas personas compraron. Solo cuenta movimientos donde hubo intercambio de dinero ($ > 0). Ignora registros gratuitos o regalos manuales de puntos para no inflar la métrica de éxito.
-*   **Vista Recaudación ($):** Mide el volumen de dinero ingresado por hora. Permite detectar "Horas Pico de Valor" donde, aunque haya poca gente, el consumo es alto.
+### A. Ticket Promedio y Comparativa de Eficiencia
+*   **Qué mide:** El gasto medio por cliente en cada compra.
+*   **Análisis Estratégico:** El sistema compara el ticket actual contra el histórico. 
+    *   **Ticket Sube:** Tu estrategia de "Upselling" (vender productos más caros o packs ahorro) está funcionando.
+    *   **Ticket Baja pero la Gente Sube:** Estás masificando la base. Es una estrategia de volumen, pero ten cuidado con no saturar la operación por tickets muy pequeños.
 
-### B. El Índice de Eficiencia (Volumen vs. Ticket)
-Esta métrica compara la cantidad de gente contra el **Ticket Promedio**.
-*   **Escenario Ideal:** Aumento de gente con ticket estable o creciente.
-*   **Alerta de Riesgo:** Aumento de gente con caída fuerte del ticket promedio. Indica que la operación se está volviendo ineficiente (mucho trabajo por poca ganancia). El sistema mostrará alertas cuando el ticket promedio baje de los umbrales históricos.
+### B. Relación Tráfico vs. Ingresos (Gente vs. Dinero)
+*   **Vista Tráfico:** Cuántas transacciones reales hubo (registros con gasto mayor a $0).
+*   **Vista Dinero:** Cuánto volumen de pesos ingresó al negocio.
+*   **Para qué sirve:** Para detectar las **"Horas Pico de Valor"**. A veces tienes menos gente a las 14:00hs pero gastan el triple que los que vienen a las 10:00hs. Esto te ayuda a decidir horarios de personal o promociones flash.
 
-### C. Retorno de Inversión (ROI) de Promociones
-Analiza cada `bonusId` (Martes 2x1, Bono de Bienvenida, etc.) para determinar:
-*   Cuánta venta real atrajo cada campaña.
-*   Si la promoción está captando clientes nuevos o simplemente premiando a los que ya iban a venir (Recurrencia).
+### C. Índice de Salud de la Base (Retención)
+*   **Inscripciones:** Clientes nuevos que se sumaron al club este mes.
+*   **Dormidos:** Clientes que no registran compras hace más de 60/90 días.
+*   **Meta:** Tu tasa de "Nuevos" siempre debe ser mayor a la de "Dormidos" para que el negocio sea sano y esté en crecimiento constante.
 
-### D. Embudo de Engagement (Canje Próximo)
-Identifica a los socios que tienen entre el 80% y 99% de los puntos para su próximo premio. Este es el grupo más sensible a las notificaciones Push de "Venta de Impulso".
+### D. Pasivo Contingente y Vencimientos
+*   **Qué mide:** Cuánto dinero "le debes" a tus clientes en premios si todos vinieran a canjear hoy. Es tu deuda técnica en fidelización.
+*   **Proyección de Vencimientos:** El Dashboard te avisará cuántos puntos están por expirar en los próximos 30 días.
+*   **Acción Recomendada:** Si ves una ola de vencimientos próxima, es el momento ideal para lanzar una campaña: *"¡Tus puntos vencen pronto! Ven a canjearlos hoy"*. Esto genera tráfico inmediato al local sin costo de publicidad.
 
 ---
 

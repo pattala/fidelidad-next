@@ -249,7 +249,7 @@ export const MetricsPage = () => {
             const currentNetEmitted = currentResults.tEmitted - currentResults.tExpired;
             const prevNetEmitted = prevResults.tEmitted - prevResults.tExpired;
 
-            const allUsersSnap = await getDocs(query(collection(db, 'users'), where('points', '>', 0)));
+            const allUsersSnap = await getDocs(query(collection(db, 'users'), where('role', '!=', 'admin')));
             let dormantCount = 0;
             let totalSystemPoints = 0, totalVirtualExpired = 0, totalProjectedNext30 = 0;
             const startOfToday = TimeService.startOfToday(), next30Days = new Date(startOfToday);

@@ -969,8 +969,14 @@ export const ClientsPage = () => {
                                                         return null;
                                                     })()}
                                                 </div>
-                                                <div className="text-[10px] font-bold text-gray-400 flex items-center gap-1">
-                                                    <span className="bg-gray-50/50 px-1.5 py-0.5 rounded text-gray-400 border border-gray-100">DNI {client.dni}</span>
+                                                <div className="text-[10px] font-bold text-gray-400 flex items-center gap-1.5">
+                                                    <span className="bg-gray-50/50 px-1.5 py-0.5 rounded text-gray-400 border border-gray-100 uppercase tracking-tighter">DNI {client.dni}</span>
+                                                    {client.registrationDate && (
+                                                        <span className="text-[9px] text-gray-300 font-bold flex items-center gap-1">
+                                                            <Calendar size={10} />
+                                                            Inscrito: {new Date(client.registrationDate?.toDate?.() || client.registrationDate).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' })}
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 {config?.enablePetModule && client.pets && client.pets.length > 0 && (
                                                     <div className="flex flex-wrap gap-1.5 mt-0.5">
@@ -1409,18 +1415,34 @@ export const ClientsPage = () => {
                                                     </div>
                                                 </div>
 
-                                                <div>
-                                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Fecha de Nacimiento</label>
-                                                    <div className="relative">
-                                                        <Calendar className="absolute left-3 top-3 text-gray-300" size={16} />
-                                                        <input
-                                                            type="date"
-                                                            className="w-full bg-gray-50 pl-10 pr-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-purple-200 outline-none text-sm font-bold transition-all text-gray-600"
-                                                            value={formData.birthDate}
-                                                            onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
-                                                            max={new Date().toISOString().split('T')[0]}
-                                                        />
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Fecha de Nacimiento</label>
+                                                        <div className="relative">
+                                                            <Calendar className="absolute left-3 top-3 text-gray-300" size={16} />
+                                                            <input
+                                                                type="date"
+                                                                className="w-full bg-gray-50 pl-10 pr-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-purple-200 outline-none text-sm font-bold transition-all text-gray-600"
+                                                                value={formData.birthDate}
+                                                                onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
+                                                                max={new Date().toISOString().split('T')[0]}
+                                                            />
+                                                        </div>
                                                     </div>
+                                                    {editingId && formData.registrationDate && (
+                                                        <div>
+                                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Fecha de Inscripción</label>
+                                                            <div className="relative">
+                                                                <Clock className="absolute left-3 top-3 text-gray-300" size={16} />
+                                                                <input
+                                                                    type="text"
+                                                                    readOnly
+                                                                    className="w-full bg-gray-100/50 pl-10 pr-4 py-2.5 rounded-xl border border-transparent outline-none text-sm font-bold text-gray-500 cursor-not-allowed"
+                                                                    value={new Date(formData.registrationDate?.toDate?.() || formData.registrationDate).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                                 <div className="pt-2">

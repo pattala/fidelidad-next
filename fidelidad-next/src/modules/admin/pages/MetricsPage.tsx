@@ -447,8 +447,8 @@ export const MetricsPage = () => {
                 const [snapTopBalance, snapVisitors, snapTopHistoryOrReferrals] = await Promise.all([
                     safeQuery(getDocs(query(collection(db, 'users'), orderBy('points', 'desc'), limit(15)))),
                     safeQuery(getDocs(query(collection(db, 'users'), orderBy('visitCount', 'desc'), limit(15)))),
-                    config?.referrals?.challenge?.enabled ? 
-                        safeQuery(getDocs(query(collection(db, 'users'), where('createdAt', '>=', Timestamp.fromDate(new Date(config.referrals.challenge.startDate))), where('createdAt', '<=', Timestamp.fromDate(new Date(new Date(config.referrals.challenge.endDate).setHours(23, 59, 59, 999))))))) :
+                    appConfig?.referrals?.challenge?.enabled ? 
+                        safeQuery(getDocs(query(collection(db, 'users'), where('createdAt', '>=', Timestamp.fromDate(new Date(appConfig.referrals.challenge.startDate))), where('createdAt', '<=', Timestamp.fromDate(new Date(new Date(appConfig.referrals.challenge.endDate).setHours(23, 59, 59, 999))))))) :
                         safeQuery(getDocs(query(collection(db, 'users'), orderBy('referralStats.count', 'desc'), limit(5))))
                 ]);
 

@@ -137,10 +137,10 @@ export const ClientsPage = () => {
 
     // Actualizar dormantDays cuando cargue la config inicial
     useEffect(() => {
-        if (config?.dormantDays && dormantDays === 60) {
+        if (config?.dormantDays) {
             setDormantDays(config.dormantDays);
         }
-    }, [config]);
+    }, [config?.dormantDays]);
 
     // Sincronizar con parámetros de URL (Ej: desde Métricas)
     useEffect(() => {
@@ -783,22 +783,30 @@ export const ClientsPage = () => {
                             <h4 className="text-sm font-black text-orange-700 uppercase tracking-tighter">Vista de Clientes Dormidos</h4>
                             <div className="flex items-center gap-2 mt-1">
                                 <p className="text-xs text-orange-600 font-medium">No compran hace más de</p>
-                                <input 
-                                    type="number" 
-                                    value={dormantDays} 
-                                    onChange={async (e) => {
-                                        const val = Number(e.target.value);
-                                        setDormantDays(val);
-                                        try {
-                                            await updateDoc(doc(db, 'config', 'general'), {
-                                                dormantDays: val
-                                            });
-                                        } catch (err) {
-                                            console.error("Error saving dormant days:", err);
-                                        }
-                                    }}
-                                    className="w-16 px-2 py-0.5 bg-white border border-orange-200 rounded text-xs font-bold text-orange-700 outline-none focus:ring-1 focus:ring-orange-300"
-                                />
+                                <div className="flex items-center gap-1">
+                                    <input 
+                                        type="number" 
+                                        value={dormantDays} 
+                                        onChange={(e) => setDormantDays(Number(e.target.value))}
+                                        className="w-16 px-2 py-0.5 bg-white border border-orange-200 rounded text-xs font-bold text-orange-700 outline-none focus:ring-1 focus:ring-orange-300"
+                                    />
+                                    <button 
+                                        onClick={async () => {
+                                            try {
+                                                await updateDoc(doc(db, 'config', 'general'), {
+                                                    dormantDays: dormantDays
+                                                });
+                                                toast.success("Días guardados correctamente");
+                                            } catch (err) {
+                                                toast.error("Error al guardar");
+                                            }
+                                        }}
+                                        className="p-1 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors"
+                                        title="Guardar como predeterminado"
+                                    >
+                                        <RefreshCw size={12} />
+                                    </button>
+                                </div>
                                 <p className="text-xs text-orange-600 font-medium">días.</p>
                             </div>
                         </div>

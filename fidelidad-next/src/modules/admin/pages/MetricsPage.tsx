@@ -250,14 +250,21 @@ export const MetricsPage = () => {
             const prevNetEmitted = prevResults.tEmitted - prevResults.tExpired;
 
             const allUsersSnap = await getDocs(query(collection(db, 'users'), where('points', '>', 0)));
-            let totalSystemPoints = 0, totalVirtualExpired = 0, totalProjectedNext30 = 0;
-            const startOfToday = TimeService.startOfToday(), next30Days = new Date(startOfToday);
-            next30Days.setDate(next30Days.getDate() + 30);
-            const next30Str = next30Days.toISOString().split('T')[0];
+            let dormantCount = 0;
+            const dormantThresholdDate = new Date(now);
+            dormantThresholdDate.setDate(dormantThresholdDate.getDate() - dormantDays);
+            const dormantThresholdStr = dormantThresholdDate.toISOString().split('T')[0];
 
             allUsersSnap.forEach(uDoc => {
                 const u = uDoc.data(); if (u.role === 'admin') return;
                 const uPoints = Number(u.points || 0); totalSystemPoints += uPoints;
+                
+                // Cálculo de clientes dormidos (unificado con ClientsPage)
+                const lastPurchase = u.lastPurchaseDate?.toDate ? u.lastPurchaseDate.toDate() : (u.lastPurchaseDate ? new Date(u.lastPurchaseDate) : null);
+                if (!lastPurchase || lastPurchase < dormantThresholdDate) {
+                    dormantCount++;
+                }
+
                 if (u.nextExpirationDate) {
                     const nextExDate = u.nextExpirationDate.toString();
                     if (nextExDate < startOfToday.toISOString().split('T')[0]) totalVirtualExpired += Math.min(uPoints, Number(u.nextExpirationAmount || 0));
@@ -279,10 +286,6 @@ export const MetricsPage = () => {
                 const rangeUsersSnap = await safeQuery(getDocs(query(collection(db, 'users'), where('createdAt', '>=', Timestamp.fromDate(startDate)), where('createdAt', '<=', Timestamp.fromDate(endDate)))));
                 if (rangeUsersSnap?.docs) rangeUsersSnap.docs.forEach((d: any) => { const u = d.data(); if (u.source === 'pwa') pwaCountFinal++; else if (u.source === 'local') localCountFinal++; });
             }
-
-            const dormantThresholdDate = new Date(now); dormantThresholdDate.setDate(dormantThresholdDate.getDate() - dormantDays);
-            const dormantSnap = await safeQuery(getCountFromServer(query(collection(db, 'users'), where('lastPurchaseDate', '<', Timestamp.fromDate(dormantThresholdDate)))));
-            const dormantCount = dormantSnap?.data ? dormantSnap.data().count : 0;
 
             setAdvancedStats({
                 averageTicket: currentResults.creditCount > 0 ? currentResults.totalMoneySpent / currentResults.creditCount : 0,
@@ -620,12 +623,31 @@ export const MetricsPage = () => {
                                     </div>
                                     <div className="flex items-center gap-2 mt-2">
                                         <p className="text-[10px] text-orange-600/70 italic">Sin compra hace más de</p>
-                                        <input 
-                                            type="number" 
-                                            value={dormantDays}
-                                            onChange={(e) => setDormantDays(Number(e.target.value))}
-                                            className="w-12 bg-white border border-orange-200 rounded px-1 text-[10px] font-bold text-orange-700 outline-none"
-                                        />
+                                        <div className="flex items-center gap-1">
+                                            <input 
+                                                type="number" 
+                                                value={dormantDays}
+                                                onChange={(e) => setDormantDays(Number(e.target.value))}
+                                                className="w-12 bg-white border border-orange-200 rounded px-1 text-[10px] font-bold text-orange-700 outline-none"
+                                            />
+                                            <button 
+                                                onClick={async () => {
+                                                    try {
+                                                        const { updateDoc, doc } = await import('firebase/firestore');
+                                                        await updateDoc(doc(db, 'config', 'general'), {
+                                                            dormantDays: dormantDays
+                                                        });
+                                                        toast.success("Configuración guardada");
+                                                    } catch (err) {
+                                                        toast.error("Error al guardar");
+                                                    }
+                                                }}
+                                                className="p-1 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors"
+                                                title="Guardar como predeterminado"
+                                            >
+                                                <RefreshCw size={10} />
+                                            </button>
+                                        </div>
                                         <p className="text-[10px] text-orange-600/70 italic">días</p>
                                     </div>
                                 </div>

@@ -158,6 +158,7 @@ export default async function handler(req, res) {
         const isSilent = req.query?.silent === 'true' || req.body?.silent === true;
         const ignoreDeduplication = req.body?.ignoreDeduplication === true || req.query?.ignoreDeduplication === 'true';
         const logResults = { processed: 0, expired: 0, notified: 0, list: [], details: [], errors: [] };
+        const nowTimestamp = admin.firestore.Timestamp.fromDate(referenceDate);
 
         // --- PASO A: RESTAR PUNTOS VENCIDOS ---
         const toExpireSnap = await db.collection('users')
@@ -352,10 +353,21 @@ export default async function handler(req, res) {
                          // Push
                          if (channels.includes('push') && msgConfig.pushEnabled !== false && userData.fcmTokens?.length) {
                              await admin.messaging().sendEachForMulticast({
-                                tokens: userData.fcmTokens,
+                                tokens: Array.from(new Set((userData.fcmTokens || []).filter(t => typeof t === 'string' && t.length > 10))),
                                 notification: { title, body: msg },
                                 data: { url: "/rewards" }
                              }).catch(() => {});
+                         }
+
+                         // Inbox
+                         if (channels.includes('inbox')) {
+                             await userDoc.ref.collection('inbox').add({
+                                 title,
+                                 body: msg,
+                                 date: nowTimestamp,
+                                 read: false,
+                                 type: 'points_expiring_soon'
+                             });
                          }
                          
                          // Email

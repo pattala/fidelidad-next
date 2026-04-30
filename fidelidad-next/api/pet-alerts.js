@@ -186,7 +186,7 @@ export default async function handler(req, res) {
                         if (eventConfig.channels.includes('inbox')) {
                              await userDoc.ref.collection('inbox').add({
                                  title, body: msg, url: "/profile", type: "pet_alert",
-                                 read: false, date: admin.firestore.FieldValue.serverTimestamp()
+                                 read: false, date: admin.firestore.Timestamp.fromDate(referenceDate)
                              });
                         }
 

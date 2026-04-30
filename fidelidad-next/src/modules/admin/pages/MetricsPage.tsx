@@ -1037,7 +1037,7 @@ export const MetricsPage = () => {
                                             <Eye size={16} /> Ver Lista
                                         </button>
                                     </div>
-                                    <p className="text-[10px] text-orange-600/70 mt-1 font-medium italic">No compran hace más de {appConfig?.dormantDays || 60} días</p>
+                                    <p className="text-[10px] text-orange-600/70 mt-1 font-medium italic">No compran hace más de {config?.dormantDays || 60} días</p>
                                 </div>
                             </div>
                         </div>

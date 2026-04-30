@@ -191,20 +191,19 @@ export default async function handler(req, res) {
             }
         }
 
-        // Auditoria
-        if (!isSilent) {
-            const isManual = triggerSource === 'dashboard';
-            const logType = isManual ? 'manual_birthday' : 'birthday_engine';
-            
-            const summaryText = logResults.processed > 0
-                ? `Proceso de Cumpleaños: ${logResults.processed} socios notificados (Puntaje Total Regalo: ${logResults.pointsGivenTotal}).`
-                : `Revisión ejecutada: 0 cumpleañeros detectados hoy.`;
-                
+            // Detección detallada del ejecutor (V.1.1.9)
+            let executorDetail = "Sistema (Ejecución Automática)";
+            if (req.headers["x-vercel-cron"]) executorDetail = "Sistema (Vercel Cron)";
+            else if (req.headers["x-qstash-signature"]) executorDetail = "Sistema (QStash)";
+            else if (triggerSource === 'engine-daily') executorDetail = "Sistema (Motor Diario)";
+            else if (triggerSource === 'dashboard') executorDetail = "Administrador (Panel)";
+            else if (triggerSource === 'extension') executorDetail = "Administrador (Extensión)";
+
             await app.firestore().collection('audit_logs').add({
                 type: logType,
                 status: logResults.errors.length > 0 ? 'partial' : 'success',
                 summary: summaryText,
-                executor: isManual ? 'Ejecución Manual (Admin)' : 'Ejecución Automática (Sistema)',
+                executor: executorDetail,
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
                 details: logResults.details.length > 0 ? logResults.details : [{
                     userId: 'system',
@@ -213,7 +212,6 @@ export default async function handler(req, res) {
                     info: 'Ningún socio cumple años en la fecha de hoy.'
                 }]
             });
-        }
 
         return res.status(200).json({ ok: true, summary: logResults });
 

@@ -462,20 +462,19 @@ export default async function handler(req, res) {
             console.log(`[Maintenance] Purged ${oldTxSnap.size} old transactions (>3 years).`);
         }
 
-        // --- PASO D: LOG DE AUDITORÍA UNIFICADO ---
-        if (!isSilent) {
-            const isManual = triggerSource === 'dashboard';
-            const logType = isManual ? 'manual_expiration' : 'expiration_engine';
-            
-            const summaryText = logResults.processed > 0 || logResults.notified > 0
-                ? `Revisión finalizada: ${logResults.processed} procesados, ${logResults.expired} puntos restados, ${logResults.notified} avisos enviados.`
-                : `Revisión ejecutada: 0 registros para procesar en fecha ${referenceDateStr}.`;
-                
+            // Detección detallada del ejecutor (V.1.1.9)
+            let executorDetail = "Sistema (Ejecución Automática)";
+            if (req.headers["x-vercel-cron"]) executorDetail = "Sistema (Vercel Cron)";
+            else if (req.headers["x-qstash-signature"]) executorDetail = "Sistema (QStash)";
+            else if (triggerSource === 'engine-daily') executorDetail = "Sistema (Motor Diario)";
+            else if (triggerSource === 'dashboard') executorDetail = "Administrador (Panel)";
+            else if (triggerSource === 'extension') executorDetail = "Administrador (Extensión)";
+
             await db.collection('audit_logs').add({
                 type: logType,
                 status: logResults.errors.length > 0 ? 'partial' : 'success',
                 summary: summaryText,
-                executor: isManual ? 'Ejecución Manual (Admin)' : 'Ejecución Automática (Sistema)',
+                executor: executorDetail,
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
                 details: logResults.details.length > 0 ? logResults.details : [{
                     userId: 'system',
@@ -484,7 +483,6 @@ export default async function handler(req, res) {
                     info: 'Todo al día. No se requirieron acciones ni vencimientos en esta fecha.'
                 }]
             });
-        }
 
         return res.status(200).json({ ok: true, summary: logResults });
 

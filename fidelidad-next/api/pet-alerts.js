@@ -236,19 +236,19 @@ export default async function handler(req, res) {
             }
         }
 
-        if (!isSilent) {
-            const isManual = triggerSource === 'dashboard';
-            const logType = isManual ? 'manual_pet_alerts' : 'pet_alerts_engine';
-            
-            const summaryText = results.notified > 0
-                ? `Alertas PetShop: ${results.notified} avisos enviados de ${results.scanned} mascotas evaluadas.`
-                : `Alertas PetShop: 0 avisos necesarios hoy (Evaluadas: ${results.scanned}).`;
-                
+            // Detección detallada del ejecutor (V.1.1.9)
+            let executorDetail = "Sistema (Ejecución Automática)";
+            if (req.headers["x-vercel-cron"]) executorDetail = "Sistema (Vercel Cron)";
+            else if (req.headers["x-qstash-signature"]) executorDetail = "Sistema (QStash)";
+            else if (triggerSource === 'engine-daily') executorDetail = "Sistema (Motor Diario)";
+            else if (triggerSource === 'dashboard') executorDetail = "Administrador (Panel)";
+            else if (triggerSource === 'extension') executorDetail = "Administrador (Extensión)";
+
             await app.firestore().collection('audit_logs').add({
                 type: logType,
                 status: results.errors.length > 0 ? 'partial' : 'success',
                 summary: summaryText,
-                executor: isManual ? 'Ejecución Manual (Admin)' : 'Ejecución Automática (Sistema)',
+                executor: executorDetail,
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
                 details: results.details.length > 0 ? results.details : [{
                     userId: 'system',
@@ -257,7 +257,6 @@ export default async function handler(req, res) {
                     info: 'No se encontraron alertas pendientes de envío para hoy.'
                 }]
             });
-        }
 
         return res.status(200).json({ ok: true, results });
 

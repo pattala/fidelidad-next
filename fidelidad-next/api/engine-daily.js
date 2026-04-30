@@ -179,7 +179,7 @@ export default async function handler(req, res) {
             'Content-Type': 'application/json', 
             'x-api-key': SECRET 
         };
-        const requestBody = JSON.stringify({ simulatedDate, source: triggerSource, silent: isSilent, ignoreDeduplication });
+        const requestBody = JSON.stringify({ simulatedDate, source: 'engine-daily', silent: isSilent, ignoreDeduplication });
 
         // Helper to fetch and catch
         const callSubApi = async (path, key) => {

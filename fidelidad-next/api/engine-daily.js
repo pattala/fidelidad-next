@@ -72,10 +72,27 @@ async function buildExtensionLists(db, simulatedDate) {
                 }
             }
 
-            // Alertas pet
             if (data.pets && Array.isArray(data.pets)) {
                 data.pets.forEach(p => {
-                    if (p.nextFoodAlertDate === todayStr) {
+                    let isAlertDay = (p.nextFoodAlertDate === todayStr);
+                    
+                    // Fallback dinámico si falta el campo o para mayor precisión
+                    if (!isAlertDay && p.lastPurchaseDate && p.frequencyDays) {
+                        const lastP = p.lastPurchaseDate.toDate ? p.lastPurchaseDate.toDate() : new Date(p.lastPurchaseDate);
+                        const freq = Number(p.frequencyDays);
+                        const lead = Number(config.petFoodAlertLeadDays || 0);
+                        
+                        const exDate = new Date(lastP);
+                        exDate.setDate(lastP.getDate() + freq);
+                        const alDate = new Date(exDate);
+                        alDate.setDate(exDate.getDate() - lead);
+                        
+                        if (alDate.toISOString().split('T')[0] === todayStr) {
+                            isAlertDay = true;
+                        }
+                    }
+
+                    if (isAlertDay) {
                         petAlertList.push({
                             id: d.id,
                             name: data.name || data.nombre || 'Socio',

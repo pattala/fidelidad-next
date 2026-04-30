@@ -230,12 +230,15 @@ export default async function handler(req, res) {
                         const channels = eventCfg.channels || [];
 
                         // Push
-                        if (channels.includes('push') && msgConfig.pushEnabled !== false && userData.fcmTokens?.length) {
+                        const cleanTokens = Array.from(new Set((userData.fcmTokens || []).filter(t => typeof t === 'string' && t.length > 10)));
+                        if (channels.includes('push') && msgConfig.pushEnabled !== false && cleanTokens.length > 0) {
                             await admin.messaging().sendEachForMulticast({
-                                tokens: userData.fcmTokens,
+                                tokens: cleanTokens,
                                 notification: { title, body: msg },
                                 data: { url: "/rewards" }
-                            }).catch(() => {});
+                            }).catch(err => {
+                                console.error("[Expirations] Push error:", err.message);
+                            });
                         }
                         
                         // Email

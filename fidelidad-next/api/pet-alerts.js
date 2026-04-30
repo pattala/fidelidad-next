@@ -117,14 +117,24 @@ export default async function handler(req, res) {
                 alertDate.setDate(exhaustionDate.getDate() - leadDays);
 
                 const alertDateStr = alertDate.toISOString().split('T')[0];
-
                 const lastPurchaseDateStr = lastPurchase.toISOString().split('T')[0];
+                
+                // MARGEN DE SEGURIDAD: Buscamos si hoy es el día del aviso, 
+                // o si el día ya pasó pero aún no le avisamos (hasta 4 días de atraso).
+                const diffDays = Math.floor((referenceDate.getTime() - alertDate.getTime()) / (1000 * 60 * 60 * 24));
+                const isAlertDay = (diffDays >= 0 && diffDays <= 4); 
 
-                if (todayStr === alertDateStr) {
-                    // PROTECCIÓN: Si la mascota ya tuvo una compra HOY, no mandamos alerta de "falta alimento"
-                    // Esto evita mails contradictorios si el cliente acaba de comprar.
+                if (isAlertDay) {
+                    // PROTECCIÓN: Si la mascota ya tuvo una compra HOY (simulado), no mandamos alerta.
                     if (lastPurchaseDateStr === todayStr) {
                         continue; 
+                    }
+
+                    // Verificar si ya se notificó recientemente para este "ciclo" de alimento
+                    // (Usamos la fecha de la última compra como referencia del ciclo)
+                    const lastNotified = pet.lastFoodAlertDate || null;
+                    if (lastNotified === lastPurchaseDateStr) {
+                        continue; // Ya avisamos para esta misma bolsa de comida.
                     }
                     // Check if already notified today for this pet
                     const alertId = `petfood_${userDoc.id}_${pet.id}_${alertDateStr}`;
@@ -146,10 +156,19 @@ export default async function handler(req, res) {
                         if (eventConfig.channels.includes('push') && userData.fcmTokens?.length) {
                              const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
                              const icon = getAbsoluteUrl(config.logoUrl || "/pwa-192x192.png", PWA_URL);
-                             await app.messaging().sendEachForMulticast({
-                                 tokens: Array.from(new Set(userData.fcmTokens)),
-                                 data: { title, body: msg, url: "/profile", icon, type: "pet_alert" }
-                             });
+                             
+                             const cleanTokens = Array.from(new Set((userData.fcmTokens || []).filter(t => typeof t === 'string' && t.length > 10)));
+                             
+                             if (cleanTokens.length > 0) {
+                                 await app.messaging().sendEachForMulticast({
+                                     tokens: cleanTokens,
+                                     data: { title, body: msg, url: "/profile", icon, type: "pet_alert" }
+                                 }).then(resp => {
+                                     console.log(`[PetAlerts] Push sent to ${userData.name}: ${resp.successCount} success`);
+                                 }).catch(err => {
+                                     console.error(`[PetAlerts] Push failed for ${userData.name}:`, err.message);
+                                 });
+                             }
                         }
 
                         // Send Email
@@ -182,6 +201,16 @@ export default async function handler(req, res) {
                             lastPurchaseDate: pet.lastPurchaseDate,
                             frequencyDays: pet.frequencyDays
                         });
+
+                        // MARCAR COMO NOTIFICADO para evitar duplicados en este ciclo
+                        try {
+                            const currentPets = (await userDoc.ref.get()).data()?.pets || [];
+                            const nextPets = currentPets.map(p => {
+                                if (p.id === pet.id) return { ...p, lastFoodAlertDate: lastPurchaseDateStr };
+                                return p;
+                            });
+                            await userDoc.ref.update({ pets: nextPets });
+                        } catch (e) { console.error("Error updating pet notify status:", e.message); }
 
                     } catch (err) {
                         results.errors.push(`${userDoc.id}-${pet.name}: ${err.message}`);

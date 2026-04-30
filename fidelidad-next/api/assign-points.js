@@ -671,7 +671,25 @@ export default async function handler(req, res) {
 
                     const updatedPets = (userData.pets || []).map(pet => {
                         if (petIds.includes(pet.id)) {
-                            return { ...pet, lastPurchaseDate: purchaseTimestamp };
+                            // Calcular próxima fecha de aviso (nextFoodAlertDate)
+                            let nextDate = null;
+                            const freq = Number(pet.frequencyDays || 30);
+                            const lead = Number(config.petFoodAlertLeadDays || 0);
+                            
+                            const baseDate = date ? new Date(date + 'T12:00:00') : new Date();
+                            const exhaustionDate = new Date(baseDate);
+                            exhaustionDate.setDate(baseDate.getDate() + freq);
+                            
+                            const alertDate = new Date(exhaustionDate);
+                            alertDate.setDate(exhaustionDate.getDate() - lead);
+                            
+                            const nextDateStr = alertDate.toISOString().split('T')[0];
+
+                            return { 
+                                ...pet, 
+                                lastPurchaseDate: purchaseTimestamp,
+                                nextFoodAlertDate: nextDateStr // Sincronizamos para la barra lateral
+                            };
                         }
                         return pet;
                     });

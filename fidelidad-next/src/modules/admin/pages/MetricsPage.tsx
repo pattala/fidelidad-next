@@ -99,6 +99,7 @@ export const MetricsPage = () => {
         averageTicket: 0, frequency: 0, activeCustomers: 0, totalCustomers: 0, potentialRevenue: 0, creditCount: 0, referralCount: 0
     });
     const [heatmapData, setHeatmapData] = useState<number[][]>(Array(7).fill(0).map(() => Array(24).fill(0)));
+    const [dormantDays, setDormantDays] = useState(60);
 
     // --- FUNCIONES (HOISTED) ---
     async function fetchForecast() {
@@ -208,6 +209,9 @@ export const MetricsPage = () => {
         if (!chartData.length) setLoading(true);
         try {
             const appConfig = await ConfigService.get();
+            if (config === null) {
+                setDormantDays(appConfig?.dormantDays || 60);
+            }
             setConfig(appConfig);
             const now = TimeService.now();
             let startDate = new Date(now), endDate = new Date(now);
@@ -276,8 +280,7 @@ export const MetricsPage = () => {
                 if (rangeUsersSnap?.docs) rangeUsersSnap.docs.forEach((d: any) => { const u = d.data(); if (u.source === 'pwa') pwaCountFinal++; else if (u.source === 'local') localCountFinal++; });
             }
 
-            const dormantThresholdDays = appConfig?.dormantDays || 60;
-            const dormantThresholdDate = new Date(now); dormantThresholdDate.setDate(dormantThresholdDate.getDate() - dormantThresholdDays);
+            const dormantThresholdDate = new Date(now); dormantThresholdDate.setDate(dormantThresholdDate.getDate() - dormantDays);
             const dormantSnap = await safeQuery(getCountFromServer(query(collection(db, 'users'), where('lastPurchaseDate', '<', Timestamp.fromDate(dormantThresholdDate)))));
             const dormantCount = dormantSnap?.data ? dormantSnap.data().count : 0;
 
@@ -353,7 +356,7 @@ export const MetricsPage = () => {
     }, []);
 
     useEffect(() => { fetchHeatmapData(); }, [heatmapDateRange, heatmapMode, heatmapMetric]);
-    useEffect(() => { fetchData(); }, [timeRange, customDates, heatmapMetric, heatmapMode]);
+    useEffect(() => { fetchData(); }, [timeRange, customDates, heatmapMetric, heatmapMode, dormantDays]);
 
     async function handleCSVExport() {
         if (movementsData.length === 0) { toast.error("No hay datos para exportar en este periodo."); return; }
@@ -595,7 +598,30 @@ export const MetricsPage = () => {
                             </div>
                             <div className="bg-orange-50/50 p-6 rounded-3xl border border-orange-100 flex items-center gap-6">
                                 <div className="p-4 bg-orange-100 text-orange-600 rounded-2xl"><Clock size={32} /></div>
-                                <div className="flex-1"><div className="flex items-center justify-between gap-4"><div><p className="text-xs font-black text-orange-600 uppercase tracking-widest">Clientes Dormidos</p><p className="text-4xl font-black text-orange-700">{advancedStats.dormantCustomers}</p></div><button onClick={() => navigate('/admin/clients?filter=dormant')} className="p-3 bg-orange-100 text-orange-700 rounded-2xl hover:bg-orange-200 transition-all shadow-sm border border-orange-200"><Eye size={16} /></button></div><p className="text-[10px] text-orange-600/70 mt-1 italic">Sin compra hace más de {config?.dormantDays || 60} días</p></div>
+                                <div className="flex-1">
+                                    <div className="flex items-center justify-between gap-4">
+                                        <div>
+                                            <p className="text-xs font-black text-orange-600 uppercase tracking-widest">Clientes Dormidos</p>
+                                            <p className="text-4xl font-black text-orange-700">{advancedStats.dormantCustomers}</p>
+                                        </div>
+                                        <button 
+                                            onClick={() => navigate(`/admin/clients?filter=dormant&days=${dormantDays}`)} 
+                                            className="p-3 bg-orange-100 text-orange-700 rounded-2xl hover:bg-orange-200 transition-all shadow-sm border border-orange-200"
+                                        >
+                                            <Eye size={16} />
+                                        </button>
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-2">
+                                        <p className="text-[10px] text-orange-600/70 italic">Sin compra hace más de</p>
+                                        <input 
+                                            type="number" 
+                                            value={dormantDays}
+                                            onChange={(e) => setDormantDays(Number(e.target.value))}
+                                            className="w-12 bg-white border border-orange-200 rounded px-1 text-[10px] font-bold text-orange-700 outline-none"
+                                        />
+                                        <p className="text-[10px] text-orange-600/70 italic">días</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

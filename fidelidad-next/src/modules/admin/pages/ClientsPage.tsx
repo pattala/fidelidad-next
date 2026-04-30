@@ -142,6 +142,22 @@ export const ClientsPage = () => {
         }
     }, [config]);
 
+    // Sincronizar con parámetros de URL (Ej: desde Métricas)
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const filterParam = params.get('filter');
+        const daysParam = params.get('days');
+
+        if (filterParam === 'dormant') {
+            setFilterMode('dormant');
+            if (daysParam) {
+                setDormantDays(Number(daysParam));
+            }
+        } else {
+            setFilterMode('all');
+        }
+    }, [location.search]);
+
 
     // 1. Cargar Clientes y Config
     async function fetchData(cachedSnapshot?: any) {

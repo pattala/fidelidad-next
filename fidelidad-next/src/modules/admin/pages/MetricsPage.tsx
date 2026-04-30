@@ -29,6 +29,18 @@ export const MetricsPage = () => {
     const [prevTotalStats, setPrevTotalStats] = useState({ emitted: 0, redeemed: 0, expired: 0, moneyRedeemed: 0 });
     const [activeDateRange, setActiveDateRange] = useState<{ start: Date | null, end: Date | null }>({ start: null, end: null });
     const [heatmapSummary, setHeatmapSummary] = useState({ topDay: '', topHour: '', peakMoment: '', totalHeatmapEvents: 0 });
+    const [heatmapLoading, setHeatmapLoading] = useState(false);
+    const [heatmapDateRange, setHeatmapDateRange] = useState<{ start: Date, end: Date }>(() => {
+        const now = new Date();
+        const day = now.getDay();
+        const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Lunes
+        const start = new Date(now.setDate(diff));
+        start.setHours(0,0,0,0);
+        const end = new Date(start);
+        end.setDate(start.getDate() + 6);
+        end.setHours(23,59,59,999);
+        return { start, end };
+    });
     const [loading, setLoading] = useState(true);
     const [config, setConfig] = useState<any>(null);
     const [movementsData, setMovementsData] = useState<any[]>([]);
@@ -94,6 +106,68 @@ export const MetricsPage = () => {
             setFetchingForecast(false);
         }
     };
+
+    useEffect(() => {
+        const fetchHeatmapData = async () => {
+            setHeatmapLoading(true);
+            try {
+                const constraints: any[] = [
+                    where('date', '>=', Timestamp.fromDate(heatmapDateRange.start)),
+                    where('date', '<=', Timestamp.fromDate(heatmapDateRange.end))
+                ];
+                const q = query(collectionGroup(db, 'points_history'), ...constraints);
+                const snap = await getDocs(q);
+                
+                const newHeatmap = Array(7).fill(0).map(() => Array(24).fill(0));
+                
+                snap.docs.forEach(d => {
+                    const data = d.data();
+                    const date = data.date?.toDate ? data.date.toDate() : (data.date ? new Date(data.date) : new Date());
+                    if (data.type === 'credit') {
+                        // Incrementar según el día de la semana y la hora
+                        newHeatmap[date.getDay()][date.getHours()]++;
+                    }
+                });
+                
+                setHeatmapData(newHeatmap);
+                
+                // Actualizar Insights
+                let maxVal = 0;
+                let maxDayIdx = -1;
+                let maxHourIdx = -1;
+                let dayTotals = Array(7).fill(0);
+                let hourTotals = Array(24).fill(0);
+                
+                newHeatmap.forEach((dayRow, dIdx) => {
+                    dayRow.forEach((val, hIdx) => {
+                        dayTotals[dIdx] += val;
+                        hourTotals[hIdx] += val;
+                        if (val > maxVal) {
+                            maxVal = val;
+                            maxDayIdx = dIdx;
+                            maxHourIdx = hIdx;
+                        }
+                    });
+                });
+                
+                const daysOfWeek = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+                const bestDayIdx = dayTotals.indexOf(Math.max(...dayTotals));
+                const bestHourIdx = hourTotals.indexOf(Math.max(...hourTotals));
+                
+                setHeatmapSummary({
+                    topDay: bestDayIdx !== -1 && dayTotals[bestDayIdx] > 0 ? daysOfWeek[bestDayIdx] : 'N/A',
+                    topHour: bestHourIdx !== -1 && hourTotals[bestHourIdx] > 0 ? `${bestHourIdx}:00hs` : 'N/A',
+                    peakMoment: maxDayIdx !== -1 && maxVal > 0 ? `${daysOfWeek[maxDayIdx]} a las ${maxHourIdx}:00hs (${maxVal} ventas)` : 'N/A',
+                    totalHeatmapEvents: dayTotals.reduce((a, b) => a + b, 0)
+                });
+            } catch (err) {
+                console.error("Heatmap fetch error", err);
+            } finally {
+                setHeatmapLoading(false);
+            }
+        };
+        fetchHeatmapData();
+    }, [heatmapDateRange]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -277,38 +351,7 @@ export const MetricsPage = () => {
                     moneyRedeemed: prevResults.tMoneyRedeemed 
                 });
 
-                setHeatmapData(currentResults.heatmap);
 
-                // Analizar Mapa de Calor para Insights
-                let maxVal = 0;
-                let maxDayIdx = -1;
-                let maxHourIdx = -1;
-                
-                let dayTotals = Array(7).fill(0);
-                let hourTotals = Array(24).fill(0);
-                
-                currentResults.heatmap.forEach((dayRow: number[], dIdx: number) => {
-                    dayRow.forEach((val: number, hIdx: number) => {
-                        dayTotals[dIdx] += val;
-                        hourTotals[hIdx] += val;
-                        if (val > maxVal) {
-                            maxVal = val;
-                            maxDayIdx = dIdx;
-                            maxHourIdx = hIdx;
-                        }
-                    });
-                });
-                
-                const daysOfWeek = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-                const bestDayIdx = dayTotals.indexOf(Math.max(...dayTotals));
-                const bestHourIdx = hourTotals.indexOf(Math.max(...hourTotals));
-                
-                setHeatmapSummary({
-                    topDay: bestDayIdx !== -1 && dayTotals[bestDayIdx] > 0 ? daysOfWeek[bestDayIdx] : 'N/A',
-                    topHour: bestHourIdx !== -1 && hourTotals[bestHourIdx] > 0 ? `${bestHourIdx}:00hs` : 'N/A',
-                    peakMoment: maxDayIdx !== -1 && maxVal > 0 ? `${daysOfWeek[maxDayIdx]} a las ${maxHourIdx}:00hs (${maxVal} ventas)` : 'N/A',
-                    totalHeatmapEvents: dayTotals.reduce((a, b) => a + b, 0)
-                });
 
                 setAdvancedStats({
                     averageTicket: currentResults.creditCount > 0 ? currentResults.totalMoneySpent / currentResults.creditCount : 0,
@@ -843,11 +886,40 @@ export const MetricsPage = () => {
                                     <Clock className="text-purple-600" /> Mapa de Calor: Actividad por Día y Hora
                                 </h3>
                                 <p className="text-sm text-gray-500">Detecta tus momentos de mayor tráfico de ventas.</p>
-                                {activeDateRange.start && activeDateRange.end && (
-                                    <p className="text-xs font-bold text-purple-700 mt-2 bg-purple-50 px-3 py-1.5 rounded-lg inline-block">
-                                        📅 Analizando datos desde el <b>{activeDateRange.start.toLocaleDateString('es-AR')}</b> hasta el <b>{activeDateRange.end.toLocaleDateString('es-AR')}</b>
-                                    </p>
-                                )}
+                                <div className="flex items-center gap-4 mt-3 bg-purple-50/50 px-4 py-2 rounded-2xl border border-purple-100 max-w-fit">
+                                    <button 
+                                        onClick={() => {
+                                            const newStart = new Date(heatmapDateRange.start);
+                                            newStart.setDate(newStart.getDate() - 7);
+                                            const newEnd = new Date(heatmapDateRange.end);
+                                            newEnd.setDate(newEnd.getDate() - 7);
+                                            setHeatmapDateRange({ start: newStart, end: newEnd });
+                                        }}
+                                        className="w-8 h-8 flex items-center justify-center bg-white border border-purple-200 text-purple-700 rounded-xl hover:bg-purple-100 transition shadow-sm font-bold text-sm"
+                                        title="Semana Anterior"
+                                    >
+                                        ◀
+                                    </button>
+                                    <span className="text-xs font-black text-purple-900 tracking-wide">
+                                        {heatmapDateRange.start.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })} al {heatmapDateRange.end.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                    </span>
+                                    <button 
+                                        onClick={() => {
+                                            const newStart = new Date(heatmapDateRange.start);
+                                            newStart.setDate(newStart.getDate() + 7);
+                                            const newEnd = new Date(heatmapDateRange.end);
+                                            newEnd.setDate(newEnd.getDate() + 7);
+                                            setHeatmapDateRange({ start: newStart, end: newEnd });
+                                        }}
+                                        className="w-8 h-8 flex items-center justify-center bg-white border border-purple-200 text-purple-700 rounded-xl hover:bg-purple-100 transition shadow-sm font-bold text-sm"
+                                        title="Semana Siguiente"
+                                    >
+                                        ▶
+                                    </button>
+                                    {heatmapLoading && (
+                                        <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                                    )}
+                                </div>
                             </div>
                             <div className="flex items-center gap-2 text-xs font-bold text-gray-400">
                                 <span>Menos</span>

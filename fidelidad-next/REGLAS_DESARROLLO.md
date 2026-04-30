@@ -17,4 +17,6 @@ Este documento contiene las pautas obligatorias para el desarrollo y mantenimien
 
 ## 4. Documentación y Estilo
 - **Comentarios**: Mantener los comentarios existentes en el código.
-- **Transparencia**: Informar siempre sobre el estado de los archivos y si los cambios ya han sido subidos al repositorio.
+## 5. Gestión de Versiones
+- **Incremento Obligatorio**: Con cada subida (push) que incluya mejoras o correcciones, se DEBE incrementar el número de versión (V.X.X.X).
+- **Visibilidad**: El número de versión debe actualizarse en todas las etiquetas visuales de la interfaz (Sidebar, Header, etc.) para que el usuario pueda verificar que está viendo la última versión desplegada.

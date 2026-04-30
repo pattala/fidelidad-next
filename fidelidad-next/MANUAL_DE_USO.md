@@ -17,6 +17,8 @@ Este documento es la guía definitiva para la operación, configuración y estra
 9. [Anexo: Automatización con la Extensión](#9-anexo-automatización-con-la-extensión)
 10. [Guía de Migración: Cambio de URL y Dominio](#10-guía-de-migración-cambio-de-url-y-dominio)
 11. [Motor de Notificaciones y Auditoría](#11-motor-de-notificaciones-y-auditoría)
+12. [Estrategia de Métricas Avanzadas (Insights)](#12-estrategia-de-métricas-avanzadas-insights)
+13. [Actualizaciones y Mantenimiento Visual](#13-actualizaciones-y-mantenimiento-visual)
 
 ---
 
@@ -267,4 +269,43 @@ Para mantener la PWA rápida y ágil en todos los dispositivos móviles, se reco
 El sistema ha sido optimizado con **Carga Inteligente**. Esto significa que el código pesado de administración (gráficos, métricas, reportes) no es descargado por los celulares de tus socios. Solo vos, cuando entres como Administrador, descargarás esos componentes adicionales.
 
 ---
-*Manual Operativo Avanzado v2.7 (Performance & PWA Optimization)*
+
+## 13. 🚀 Actualizaciones y Mantenimiento Visual (Rampet Installer)
+
+Para facilitar el mantenimiento sin necesidad de conocimientos técnicos avanzados en Git, el sistema incluye un **Entorno Visual de Gestión**.
+
+### Cómo iniciar
+1. Localice el archivo **`INICIAR_INSTALADOR.bat`** en la carpeta raíz.
+2. Ejecútelo y navegue a **`http://localhost:3005`**.
+
+### Funciones Principales
+*   **Sincronizar Código:** Pasa los cambios probados en el Laboratorio (desarrollo) al sitio oficial (main) de forma segura.
+*   **Editor de Variables:** Permite cambiar nombres, claves de API y configuraciones de Firebase desde un formulario visual.
+*   **Despliegue Maestro:** Ejecuta el proceso de instalación completo hacia Vercel y Firebase.
+
+---
+
+## 12. 📊 Estrategia de Métricas Avanzadas (Insights)
+
+El sistema no solo cuenta puntos, sino que analiza la salud financiera de tu negocio a través de 4 pilares estratégicos.
+
+### A. El Mapa de Calor Dual (Gente vs. Dinero)
+El mapa de calor permite alternar entre dos visiones críticas para evitar "falsos positivos":
+*   **Vista Tráfico (Transacciones):** Mide cuántas personas compraron. Solo cuenta movimientos donde hubo intercambio de dinero ($ > 0). Ignora registros gratuitos o regalos manuales de puntos para no inflar la métrica de éxito.
+*   **Vista Recaudación ($):** Mide el volumen de dinero ingresado por hora. Permite detectar "Horas Pico de Valor" donde, aunque haya poca gente, el consumo es alto.
+
+### B. El Índice de Eficiencia (Volumen vs. Ticket)
+Esta métrica compara la cantidad de gente contra el **Ticket Promedio**.
+*   **Escenario Ideal:** Aumento de gente con ticket estable o creciente.
+*   **Alerta de Riesgo:** Aumento de gente con caída fuerte del ticket promedio. Indica que la operación se está volviendo ineficiente (mucho trabajo por poca ganancia). El sistema mostrará alertas cuando el ticket promedio baje de los umbrales históricos.
+
+### C. Retorno de Inversión (ROI) de Promociones
+Analiza cada `bonusId` (Martes 2x1, Bono de Bienvenida, etc.) para determinar:
+*   Cuánta venta real atrajo cada campaña.
+*   Si la promoción está captando clientes nuevos o simplemente premiando a los que ya iban a venir (Recurrencia).
+
+### D. Embudo de Engagement (Canje Próximo)
+Identifica a los socios que tienen entre el 80% y 99% de los puntos para su próximo premio. Este es el grupo más sensible a las notificaciones Push de "Venta de Impulso".
+
+---
+

@@ -117,6 +117,15 @@ Para no cargar estas 30 variables a mano en Vercel:
 
 ---
 
+## 🖥️ Fase Alternativa: Entorno Visual (Recomendado)
+Para una experiencia sin códigos, utilice el **Instalador Visual Rampet**:
+
+1. Ejecute el archivo **`INICIAR_INSTALADOR.bat`** (doble clic).
+2. Abra su navegador en **`http://localhost:3005`**.
+3. Utilice la interfaz para configurar variables, generar el archivo de entorno y sincronizar cambios entre ramas (Desarrollo -> Producción) con un solo clic.
+
+---
+
 ## 🚀 Fase 3: Despliegue y Verificación
 1. **Root Directory**: Asegúrese de que en Vercel sea `fidelidad-next`.
 2. **URL dinámica**: Una vez desplegado, vaya a **Avanzado** en el panel admin y verá la URL de QStash lista para copiar.

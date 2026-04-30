@@ -30,6 +30,7 @@ export const MetricsPage = () => {
     const [activeDateRange, setActiveDateRange] = useState<{ start: Date | null, end: Date | null }>({ start: null, end: null });
     const [heatmapSummary, setHeatmapSummary] = useState({ topDay: '', topHour: '', peakMoment: '', totalHeatmapEvents: 0 });
     const [heatmapLoading, setHeatmapLoading] = useState(false);
+    const [heatmapMode, setHeatmapMode] = useState<'trend' | 'weekly'>('trend');
     const [heatmapDateRange, setHeatmapDateRange] = useState<{ start: Date, end: Date }>(() => {
         const now = new Date();
         const day = now.getDay();
@@ -109,6 +110,7 @@ export const MetricsPage = () => {
 
     useEffect(() => {
         const fetchHeatmapData = async () => {
+            if (heatmapMode === 'trend') return; // En modo tendencia se encarga el fetchData general
             setHeatmapLoading(true);
             try {
                 const constraints: any[] = [
@@ -167,7 +169,7 @@ export const MetricsPage = () => {
             }
         };
         fetchHeatmapData();
-    }, [heatmapDateRange]);
+    }, [heatmapDateRange, heatmapMode]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -352,6 +354,8 @@ export const MetricsPage = () => {
                 });
 
 
+                setChartData(Array.from(currentResults.grouped.entries()).map(([name, data]) => ({ name, ...data })));
+                setPrevChartData(Array.from(prevResults.grouped.entries()).map(([name, data]) => ({ name, ...data })));
 
                 setAdvancedStats({
                     averageTicket: currentResults.creditCount > 0 ? currentResults.totalMoneySpent / currentResults.creditCount : 0,
@@ -364,6 +368,50 @@ export const MetricsPage = () => {
                     projectedExpirations: totalProjectedNext30,
                     circulatingPoints: realCirculation
                 });
+
+                setPrevAdvancedStats({
+                    averageTicket: prevResults.creditCount > 0 ? prevResults.totalMoneySpent / prevResults.creditCount : 0,
+                    frequency: prevResults.activeUids.size > 0 ? prevResults.creditCount / prevResults.activeUids.size : 0,
+                    activeCustomers: prevResults.activeUids.size,
+                    totalCustomers: prevResults.activeUids.size,
+                    potentialRevenue: 0,
+                    creditCount: prevResults.creditCount,
+                    referralCount: prevResults.referralCount
+                });
+
+                if (heatmapMode === 'trend') {
+                    setHeatmapData(currentResults.heatmap);
+                    
+                    // Actualizar Insights para modo tendencia
+                    let maxVal = 0;
+                    let maxDayIdx = -1;
+                    let maxHourIdx = -1;
+                    let dayTotals = Array(7).fill(0);
+                    let hourTotals = Array(24).fill(0);
+                    
+                    currentResults.heatmap.forEach((dayRow: number[], dIdx: number) => {
+                        dayRow.forEach((val: number, hIdx: number) => {
+                            dayTotals[dIdx] += val;
+                            hourTotals[hIdx] += val;
+                            if (val > maxVal) {
+                                maxVal = val;
+                                maxDayIdx = dIdx;
+                                maxHourIdx = hIdx;
+                            }
+                        });
+                    });
+                    
+                    const daysOfWeek = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+                    const bestDayIdx = dayTotals.indexOf(Math.max(...dayTotals));
+                    const bestHourIdx = hourTotals.indexOf(Math.max(...hourTotals));
+                    
+                    setHeatmapSummary({
+                        topDay: bestDayIdx !== -1 && dayTotals[bestDayIdx] > 0 ? daysOfWeek[bestDayIdx] : 'N/A',
+                        topHour: bestHourIdx !== -1 && hourTotals[bestHourIdx] > 0 ? `${bestHourIdx}:00hs` : 'N/A',
+                        peakMoment: maxDayIdx !== -1 && maxVal > 0 ? `${daysOfWeek[maxDayIdx]} a las ${maxHourIdx}:00hs (${maxVal} ventas)` : 'N/A',
+                        totalHeatmapEvents: dayTotals.reduce((a, b) => a + b, 0)
+                    });
+                }
 
                 // 0. Preparar filtros de fecha para orígenes (si aplica)
                 const sourceConstraints: any[] = [];
@@ -886,36 +934,61 @@ export const MetricsPage = () => {
                                     <Clock className="text-purple-600" /> Mapa de Calor: Actividad por Día y Hora
                                 </h3>
                                 <p className="text-sm text-gray-500">Detecta tus momentos de mayor tráfico de ventas.</p>
-                                <div className="flex items-center gap-4 mt-3 bg-purple-50/50 px-4 py-2 rounded-2xl border border-purple-100 max-w-fit">
-                                    <button 
-                                        onClick={() => {
-                                            const newStart = new Date(heatmapDateRange.start);
-                                            newStart.setDate(newStart.getDate() - 7);
-                                            const newEnd = new Date(heatmapDateRange.end);
-                                            newEnd.setDate(newEnd.getDate() - 7);
-                                            setHeatmapDateRange({ start: newStart, end: newEnd });
-                                        }}
-                                        className="w-8 h-8 flex items-center justify-center bg-white border border-purple-200 text-purple-700 rounded-xl hover:bg-purple-100 transition shadow-sm font-bold text-sm"
-                                        title="Semana Anterior"
-                                    >
-                                        ◀
-                                    </button>
-                                    <span className="text-xs font-black text-purple-900 tracking-wide">
-                                        {heatmapDateRange.start.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })} al {heatmapDateRange.end.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                                    </span>
-                                    <button 
-                                        onClick={() => {
-                                            const newStart = new Date(heatmapDateRange.start);
-                                            newStart.setDate(newStart.getDate() + 7);
-                                            const newEnd = new Date(heatmapDateRange.end);
-                                            newEnd.setDate(newEnd.getDate() + 7);
-                                            setHeatmapDateRange({ start: newStart, end: newEnd });
-                                        }}
-                                        className="w-8 h-8 flex items-center justify-center bg-white border border-purple-200 text-purple-700 rounded-xl hover:bg-purple-100 transition shadow-sm font-bold text-sm"
-                                        title="Semana Siguiente"
-                                    >
-                                        ▶
-                                    </button>
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mt-4">
+                                    {/* Selector de Modo */}
+                                    <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200">
+                                        <button 
+                                            onClick={() => setHeatmapMode('trend')}
+                                            className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition ${heatmapMode === 'trend' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                                        >
+                                            Tendencia del Periodo
+                                        </button>
+                                        <button 
+                                            onClick={() => setHeatmapMode('weekly')}
+                                            className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition ${heatmapMode === 'weekly' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                                        >
+                                            Por Semanas
+                                        </button>
+                                    </div>
+
+                                    {/* Controles de Navegación (Solo si modo es weekly) */}
+                                    {heatmapMode === 'weekly' ? (
+                                        <div className="flex items-center gap-3 bg-purple-50/50 px-3 py-1.5 rounded-xl border border-purple-100 animate-fade-in">
+                                            <button 
+                                                onClick={() => {
+                                                    const newStart = new Date(heatmapDateRange.start);
+                                                    newStart.setDate(newStart.getDate() - 7);
+                                                    const newEnd = new Date(heatmapDateRange.end);
+                                                    newEnd.setDate(newEnd.getDate() - 7);
+                                                    setHeatmapDateRange({ start: newStart, end: newEnd });
+                                                }}
+                                                className="w-7 h-7 flex items-center justify-center bg-white border border-purple-200 text-purple-700 rounded-lg hover:bg-purple-100 transition shadow-sm font-bold text-xs"
+                                            >
+                                                ◀
+                                            </button>
+                                            <span className="text-[10px] font-black text-purple-900 uppercase">
+                                                {heatmapDateRange.start.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })} al {heatmapDateRange.end.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })}
+                                            </span>
+                                            <button 
+                                                onClick={() => {
+                                                    const newStart = new Date(heatmapDateRange.start);
+                                                    newStart.setDate(newStart.getDate() + 7);
+                                                    const newEnd = new Date(heatmapDateRange.end);
+                                                    newEnd.setDate(newEnd.getDate() + 7);
+                                                    setHeatmapDateRange({ start: newStart, end: newEnd });
+                                                }}
+                                                className="w-7 h-7 flex items-center justify-center bg-white border border-purple-200 text-purple-700 rounded-lg hover:bg-purple-100 transition shadow-sm font-bold text-xs"
+                                            >
+                                                ▶
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100 animate-fade-in">
+                                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                                            <span className="text-[10px] font-black text-emerald-700 uppercase">Resumen del Periodo Filtrado</span>
+                                        </div>
+                                    )}
+
                                     {heatmapLoading && (
                                         <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
                                     )}

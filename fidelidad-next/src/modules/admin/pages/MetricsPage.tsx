@@ -25,8 +25,8 @@ export const MetricsPage = () => {
     const [topVisitors, setTopVisitors] = useState<any[]>([]);
     const [topReferrers, setTopReferrers] = useState<any[]>([]);
     const [registrationSources, setRegistrationSources] = useState<{ pwa: number, local: number }>({ pwa: 0, local: 0 });
-    const [totalStats, setTotalStats] = useState({ emitted: 0, redeemed: 0, expired: 0 });
-    const [prevTotalStats, setPrevTotalStats] = useState({ emitted: 0, redeemed: 0, expired: 0 });
+    const [totalStats, setTotalStats] = useState({ emitted: 0, redeemed: 0, expired: 0, moneyRedeemed: 0 });
+    const [prevTotalStats, setPrevTotalStats] = useState({ emitted: 0, redeemed: 0, expired: 0, moneyRedeemed: 0 });
     const [loading, setLoading] = useState(true);
     const [config, setConfig] = useState<any>(null);
     const [movementsData, setMovementsData] = useState<any[]>([]);
@@ -263,9 +263,15 @@ export const MetricsPage = () => {
                 setTotalStats({ 
                     emitted: currentNetEmitted, 
                     redeemed: currentResults.tRedeemed, 
-                    expired: currentResults.tExpired + (isTotal ? totalVirtualExpired : 0) 
+                    expired: currentResults.tExpired + (isTotal ? totalVirtualExpired : 0),
+                    moneyRedeemed: currentResults.tMoneyRedeemed
                 });
-                setPrevTotalStats({ emitted: prevNetEmitted, redeemed: prevResults.tRedeemed, expired: prevResults.tExpired });
+                setPrevTotalStats({ 
+                    emitted: prevNetEmitted, 
+                    redeemed: prevResults.tRedeemed, 
+                    expired: prevResults.tExpired,
+                    moneyRedeemed: prevResults.tMoneyRedeemed 
+                });
 
                 setHeatmapData(currentResults.heatmap);
 
@@ -406,7 +412,7 @@ export const MetricsPage = () => {
 
                 // GUARDAR EN CACHE PARA LA PRÓXIMA VEZ
                 localStorage.setItem('metrics_cache_v2', JSON.stringify({
-                    totalStats: { emitted: currentNetEmitted, redeemed: currentResults.tRedeemed, expired: currentResults.tExpired },
+                    totalStats: { emitted: currentNetEmitted, redeemed: currentResults.tRedeemed, expired: currentResults.tExpired, moneyRedeemed: currentResults.tMoneyRedeemed },
                     advancedStats: {
                         averageTicket: currentResults.creditCount > 0 ? currentResults.totalMoneySpent / currentResults.creditCount : 0,
                         frequency: currentResults.activeUids.size > 0 ? currentResults.creditCount / currentResults.activeUids.size : 0,
@@ -548,14 +554,14 @@ export const MetricsPage = () => {
             </div>
 
             {showSkeleton ? (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {[1, 2, 3].map(i => (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-6">
+                    {[1, 2, 3, 4, 5].map(i => (
                         <div key={i} className="bg-gray-100 h-32 rounded-2xl animate-pulse" />
                     ))}
                 </div>
             ) : (
                 <>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-6">
                         {(() => {
                             const TrendIndicator = ({ current, prev, isRed = false }: { current: number, prev: number, isRed?: boolean }) => {
                                 if (prev === 0) return null;
@@ -587,6 +593,14 @@ export const MetricsPage = () => {
                                             <TrendIndicator current={totalStats.redeemed} prev={prevTotalStats.redeemed} />
                                         </div>
                                         <div className="p-3 bg-orange-50 text-orange-600 rounded-xl"><Award size={24} /></div>
+                                    </div>
+                                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-emerald-100 flex items-center justify-between">
+                                        <div>
+                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Dinero en Premios</p>
+                                            <p className="text-2xl font-black text-emerald-600">${totalStats.moneyRedeemed ? Math.round(totalStats.moneyRedeemed).toLocaleString('es-AR') : 0}</p>
+                                            <TrendIndicator current={totalStats.moneyRedeemed} prev={prevTotalStats.moneyRedeemed} />
+                                        </div>
+                                        <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl"><DollarSign size={24} /></div>
                                     </div>
                                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-red-100 flex items-center justify-between">
                                         <div>

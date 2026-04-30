@@ -764,7 +764,7 @@ export const ClientsPage = () => {
             threshold.setDate(threshold.getDate() - dormantDays);
             
             const lastPurchase = c.lastPurchaseDate?.toDate ? c.lastPurchaseDate.toDate() : (c.lastPurchaseDate ? new Date(c.lastPurchaseDate) : null);
-            if (!lastPurchase) return false; 
+            if (!lastPurchase) return true; // Si nunca compró, está dormido
             return lastPurchase < threshold;
         }
 
@@ -786,7 +786,17 @@ export const ClientsPage = () => {
                                 <input 
                                     type="number" 
                                     value={dormantDays} 
-                                    onChange={(e) => setDormantDays(Number(e.target.value))}
+                                    onChange={async (e) => {
+                                        const val = Number(e.target.value);
+                                        setDormantDays(val);
+                                        try {
+                                            await updateDoc(doc(db, 'config', 'general'), {
+                                                dormantDays: val
+                                            });
+                                        } catch (err) {
+                                            console.error("Error saving dormant days:", err);
+                                        }
+                                    }}
                                     className="w-16 px-2 py-0.5 bg-white border border-orange-200 rounded text-xs font-bold text-orange-700 outline-none focus:ring-1 focus:ring-orange-300"
                                 />
                                 <p className="text-xs text-orange-600 font-medium">días.</p>

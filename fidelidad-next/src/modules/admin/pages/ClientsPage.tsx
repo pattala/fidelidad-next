@@ -133,6 +133,14 @@ export const ClientsPage = () => {
     const [historyModalOpen, setHistoryModalOpen] = useState(false);
     const [visitHistoryModalOpen, setVisitHistoryModalOpen] = useState(false);
     const [selectedClientForHistory, setSelectedClientForHistory] = useState<Client | null>(null);
+    const [dormantDays, setDormantDays] = useState(config?.dormantDays || 60);
+
+    // Actualizar dormantDays cuando cargue la config inicial
+    useEffect(() => {
+        if (config?.dormantDays && dormantDays === 60) {
+            setDormantDays(config.dormantDays);
+        }
+    }, [config]);
 
 
     // 1. Cargar Clientes y Config
@@ -710,7 +718,6 @@ export const ClientsPage = () => {
         if (!matchesSearch) return false;
 
         if (filterMode === 'dormant') {
-            const dormantDays = config?.dormantDays || 60;
             const threshold = new Date();
             threshold.setDate(threshold.getDate() - dormantDays);
             
@@ -732,7 +739,16 @@ export const ClientsPage = () => {
                         </div>
                         <div>
                             <h4 className="text-sm font-black text-orange-700 uppercase tracking-tighter">Vista de Clientes Dormidos</h4>
-                            <p className="text-xs text-orange-600 font-medium">Mostrando socios que no compran hace más de {config?.dormantDays || 60} días.</p>
+                            <div className="flex items-center gap-2 mt-1">
+                                <p className="text-xs text-orange-600 font-medium">No compran hace más de</p>
+                                <input 
+                                    type="number" 
+                                    value={dormantDays} 
+                                    onChange={(e) => setDormantDays(Number(e.target.value))}
+                                    className="w-16 px-2 py-0.5 bg-white border border-orange-200 rounded text-xs font-bold text-orange-700 outline-none focus:ring-1 focus:ring-orange-300"
+                                />
+                                <p className="text-xs text-orange-600 font-medium">días.</p>
+                            </div>
                         </div>
                     </div>
                     <button 

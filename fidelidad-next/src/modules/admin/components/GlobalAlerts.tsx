@@ -89,7 +89,18 @@ export const GlobalAlerts = () => {
                 if (data.nextExpirationDate && data.nextExpirationDate >= todayStr && data.nextExpirationDate <= winEndStr) {
                     // Solo si tiene puntos y no se notificó hoy real
                     if ((data.points || 0) > 0) {
-                        exps.push({ id: d.id, ...data });
+                        let processedExpirations = [];
+                        if (data.expirationDetails && Array.isArray(data.expirationDetails)) {
+                            processedExpirations = data.expirationDetails.map((e: any) => ({
+                                date: e.date?.toDate ? e.date.toDate() : new Date(e.date),
+                                points: e.points
+                            }));
+                        }
+                        exps.push({ 
+                            id: d.id, 
+                            ...data, 
+                            expirationDetails: processedExpirations.sort((a:any, b:any) => a.date.getTime() - b.date.getTime()) 
+                        });
                     }
                 }
                 
@@ -143,12 +154,17 @@ export const GlobalAlerts = () => {
                 const p = phone.startsWith('54') ? phone : (phone.length === 10 ? '549' + phone : phone);
                 let msg = "";
                 if(type === 'expiration') {
-                    // Discriminación de puntos por fecha
-                    if (user.breakdown && user.breakdown.length > 1) {
-                        const list = user.breakdown.map((b:any)=>`\n• ${b.date}: ${b.rem} pts`).join('');
-                        msg = `¡Hola ${user.name?.split(' ')[0]}! 📢 Vencimientos próximos:${list}\n\n🔥 Total: ${user.points} pts.`;
+                    // Discriminación de puntos por fecha (usando expirationDetails si existe)
+                    const breakdown = user.expirationDetails || [];
+                    if (breakdown.length > 0) {
+                        const list = breakdown.map((b: any) => {
+                            const d = b.date?.toDate ? b.date.toDate() : new Date(b.date);
+                            const dStr = `${d.getDate()}/${d.getMonth() + 1}`;
+                            return `\n• ${b.points} pts el ${dStr}`;
+                        }).join('');
+                        msg = `¡Hola ${user.name?.split(' ')[0]}! 📢 Tenés puntos próximos a vencer:${list}\n\n🔥 Total a vencer: ${user.points} pts. ¡Aprovechalos pronto! 🎁`;
                     } else {
-                        msg = `¡Hola ${user.name?.split(' ')[0]}! 📢 Tus puntos (${user.points} pts) están por vencer el ${user.nextExpirationDate?.split('-').reverse().join('/')}.`;
+                        msg = `¡Hola ${user.name?.split(' ')[0]}! 📢 Tus puntos (${user.points} pts) están por vencer el ${user.nextExpirationDate?.split('-').reverse().join('/')}. ¡Aprovechalos pronto! 🎁`;
                     }
                 } else {
                     msg = `¡Hola ${user.name?.split(' ')[0]}! 🐾 Avisamos que se termina el alimento de ${user.petName}.`;
@@ -256,11 +272,15 @@ export const GlobalAlerts = () => {
                                     </div>
                                     <div className="bg-black/20 p-4 rounded-2xl border border-white/5">
                                         <p className="text-[11px] font-black text-white/90">⚠️ {u.points} puntos por expirar</p>
-                                        {u.breakdown && u.breakdown.length > 1 && (
+                                        {u.expirationDetails && u.expirationDetails.length > 0 && (
                                             <div className="mt-2 space-y-1 opacity-50">
-                                                {u.breakdown.map((b:any,idx:number)=>(
-                                                    <p key={idx} className="text-[9px] font-bold">• {b.date}: {b.rem} pts</p>
-                                                ))}
+                                                {u.expirationDetails.map((b: any, idx: number) => {
+                                                    const d = b.date?.toDate ? b.date.toDate() : new Date(b.date);
+                                                    const dStr = `${d.getDate()}/${d.getMonth() + 1}`;
+                                                    return (
+                                                        <p key={idx} className="text-[9px] font-bold">• {dStr}: {b.points} pts</p>
+                                                    );
+                                                })}
                                             </div>
                                         )}
                                     </div>

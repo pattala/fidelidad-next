@@ -265,8 +265,14 @@ export const MetricsPage = () => {
                 
                 // Cálculo de clientes dormidos (unificado con ClientsPage)
                 const lastPurchase = u.lastPurchaseDate?.toDate ? u.lastPurchaseDate.toDate() : (u.lastPurchaseDate ? new Date(u.lastPurchaseDate) : null);
-                if (!lastPurchase || lastPurchase < dormantThresholdDate) {
+                if (!lastPurchase) {
+                    console.log(`[DormantDebug] Usuario sin compra: ${u.nombre || u.email || uDoc.id}`);
                     dormantCount++;
+                } else {
+                    if (lastPurchase < dormantThresholdDate) {
+                        console.log(`[DormantDebug] Usuario dormido: ${u.nombre || u.email || uDoc.id} (Last: ${lastPurchase.toISOString()}, Threshold: ${dormantThresholdDate.toISOString()})`);
+                        dormantCount++;
+                    }
                 }
 
                 if (u.nextExpirationDate) {

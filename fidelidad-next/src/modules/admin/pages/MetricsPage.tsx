@@ -11,6 +11,32 @@ import toast from 'react-hot-toast';
 import { ConfigService } from '../../../services/configService';
 import { TimeService } from '../../../services/timeService';
 
+const TrendIndicator = ({ current, prev, isRed = false }: { current: number, prev: number, isRed?: boolean }) => {
+    if (!prev || prev === 0) return null;
+    const diff = ((current - prev) / prev) * 100;
+    const isPositive = diff >= 0;
+    const absDiff = Math.abs(Math.round(diff));
+    
+    const colorClass = isRed 
+        ? (isPositive ? 'text-red-600 bg-red-50' : 'text-emerald-600 bg-emerald-50')
+        : (isPositive ? 'text-emerald-600 bg-emerald-50' : 'text-red-600 bg-red-50');
+
+    return (
+        <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black mt-1 ${colorClass}`}>
+            {isPositive ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
+            {absDiff}%
+        </div>
+    );
+};
+
+const safeQuery = async (p: Promise<any>) => {
+    try { return await p; }
+    catch (e) { 
+        console.error("Query error:", e); 
+        return { docs: [], data: () => ({ count: 0 }), size: 0 }; 
+    }
+};
+
 export const MetricsPage = () => {
     const [timeRange, setTimeRange] = useState<'today' | '30_days' | '6_months' | 'year' | 'total' | 'custom'>('30_days');
     const [customDates, setCustomDates] = useState({

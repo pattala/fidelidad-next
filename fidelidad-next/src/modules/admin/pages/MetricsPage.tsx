@@ -99,7 +99,7 @@ export const MetricsPage = () => {
         averageTicket: 0, frequency: 0, activeCustomers: 0, totalCustomers: 0, potentialRevenue: 0, creditCount: 0, referralCount: 0
     });
     const [heatmapData, setHeatmapData] = useState<number[][]>(Array(7).fill(0).map(() => Array(24).fill(0)));
-    const [dormantDays, setDormantDays] = useState(60);
+    // dormantDays state removed - now uses config.dormantDays directly
 
     // --- FUNCIONES (HOISTED) ---
     async function fetchForecast() {
@@ -209,9 +209,6 @@ export const MetricsPage = () => {
         if (!chartData.length) setLoading(true);
         try {
             const appConfig = await ConfigService.get();
-            if (config === null) {
-                setDormantDays(appConfig?.dormantDays || 60);
-            }
             setConfig(appConfig);
             const now = TimeService.now();
             let startDate = new Date(now), endDate = new Date(now);
@@ -255,8 +252,9 @@ export const MetricsPage = () => {
             const startOfToday = TimeService.startOfToday(), next30Days = new Date(startOfToday);
             next30Days.setDate(next30Days.getDate() + 30);
             const next30Str = next30Days.toISOString().split('T')[0];
+            const effectiveDormantDays = config?.dormantDays || 30;
             const dormantThresholdDate = new Date(now);
-            dormantThresholdDate.setDate(dormantThresholdDate.getDate() - dormantDays);
+            dormantThresholdDate.setDate(dormantThresholdDate.getDate() - effectiveDormantDays);
             const dormantThresholdStr = dormantThresholdDate.toISOString().split('T')[0];
 
             allUsersSnap.forEach(uDoc => {
@@ -622,40 +620,24 @@ export const MetricsPage = () => {
                                             <p className="text-4xl font-black text-orange-700">{advancedStats.dormantCustomers}</p>
                                         </div>
                                         <button 
-                                            onClick={() => navigate(`/admin/clients?filter=dormant&days=${dormantDays}`)} 
+                                            onClick={() => navigate('/admin/clients?filter=dormant')} 
                                             className="p-3 bg-orange-100 text-orange-700 rounded-2xl hover:bg-orange-200 transition-all shadow-sm border border-orange-200"
                                         >
                                             <Eye size={16} />
                                         </button>
                                     </div>
                                     <div className="flex items-center gap-2 mt-2">
-                                        <p className="text-[10px] text-orange-600/70 italic">Sin compra hace más de</p>
-                                        <div className="flex items-center gap-1">
-                                            <input 
-                                                type="number" 
-                                                value={dormantDays}
-                                                onChange={(e) => setDormantDays(Number(e.target.value))}
-                                                className="w-12 bg-white border border-orange-200 rounded px-1 text-[10px] font-bold text-orange-700 outline-none"
-                                            />
-                                            <button 
-                                                onClick={async () => {
-                                                    try {
-                                                        const { updateDoc, doc } = await import('firebase/firestore');
-                                                        await updateDoc(doc(db, 'config', 'general'), {
-                                                            dormantDays: dormantDays
-                                                        });
-                                                        toast.success("Configuración guardada");
-                                                    } catch (err) {
-                                                        toast.error("Error al guardar");
-                                                    }
-                                                }}
-                                                className="p-1 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors"
-                                                title="Guardar como predeterminado"
-                                            >
-                                                <RefreshCw size={10} />
-                                            </button>
-                                        </div>
-                                        <p className="text-[10px] text-orange-600/70 italic">días</p>
+                                        <p className="text-[10px] text-orange-600/70 italic">Calculado según umbral de</p>
+                                        <span className="px-2 py-0.5 bg-orange-100 text-orange-700 rounded text-[10px] font-bold border border-orange-200">
+                                            {config?.dormantDays || 30} días
+                                        </span>
+                                        <button 
+                                            onClick={() => navigate('/admin/config')}
+                                            className="p-1 text-orange-400 hover:text-orange-600 transition-colors"
+                                            title="Cambiar en configuración"
+                                        >
+                                            <Settings size={10} />
+                                        </button>
                                     </div>
                                 </div>
                             </div>

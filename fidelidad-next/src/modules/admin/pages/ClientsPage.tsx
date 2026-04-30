@@ -133,14 +133,6 @@ export const ClientsPage = () => {
     const [historyModalOpen, setHistoryModalOpen] = useState(false);
     const [visitHistoryModalOpen, setVisitHistoryModalOpen] = useState(false);
     const [selectedClientForHistory, setSelectedClientForHistory] = useState<Client | null>(null);
-    const [dormantDays, setDormantDays] = useState(config?.dormantDays || 60);
-
-    // Actualizar dormantDays cuando cargue la config inicial
-    useEffect(() => {
-        if (config?.dormantDays) {
-            setDormantDays(config.dormantDays);
-        }
-    }, [config?.dormantDays]);
 
     // Sincronizar con parámetros de URL (Ej: desde Métricas)
     useEffect(() => {
@@ -150,9 +142,6 @@ export const ClientsPage = () => {
 
         if (filterParam === 'dormant') {
             setFilterMode('dormant');
-            if (daysParam) {
-                setDormantDays(Number(daysParam));
-            }
         } else {
             setFilterMode('all');
         }
@@ -760,8 +749,9 @@ export const ClientsPage = () => {
         if (!matchesSearch) return false;
 
         if (filterMode === 'dormant') {
+            const effectiveDormantDays = config?.dormantDays || 30;
             const threshold = TimeService.now();
-            threshold.setDate(threshold.getDate() - dormantDays);
+            threshold.setDate(threshold.getDate() - effectiveDormantDays);
             
             const lastPurchase = c.lastPurchaseDate?.toDate ? c.lastPurchaseDate.toDate() : (c.lastPurchaseDate ? new Date(c.lastPurchaseDate) : null);
             const registration = c.createdAt?.toDate ? c.createdAt.toDate() : (c.createdAt ? new Date(c.createdAt) : null);

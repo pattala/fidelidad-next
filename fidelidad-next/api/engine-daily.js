@@ -31,12 +31,11 @@ async function buildExtensionLists(db, simulatedDate) {
         const arMD = `${String(effectiveDate.getMonth() + 1).padStart(2, '0')}-${String(effectiveDate.getDate()).padStart(2, '0')}`;
         const todayStr = effectiveDate.toISOString().split('T')[0];
         
+        const leadDays = Number(config.expirationWarningLeadDays || 7);
         const winEnd = new Date(effectiveDate);
-        winEnd.setDate(winEnd.getDate() + 30);
+        winEnd.setDate(winEnd.getDate() + leadDays);
         const winEndStr = winEnd.toISOString().split('T')[0];
 
-        // Optimization: Try to filter by points > 0 to reduce scan size for expirations
-        // But birthday needs full scan unless we have an index on birthDate.
         const usersSnap = await db.collection('users').get();
 
         const birthdayList = [];
@@ -59,7 +58,7 @@ async function buildExtensionLists(db, simulatedDate) {
                 });
             }
 
-            // Vencimientos (ventana 30 días)
+            // Vencimientos (Respetando Lead Days de Configuración)
             if (data.nextExpirationDate && data.nextExpirationDate >= todayStr && data.nextExpirationDate <= winEndStr) {
                 if ((data.points || 0) > 0) {
                     expirationList.push({
@@ -68,6 +67,7 @@ async function buildExtensionLists(db, simulatedDate) {
                         phone: data.phone || data.telefono || '',
                         points: data.points || 0,
                         nextExpirationDate: data.nextExpirationDate,
+                        breakdown: data.expirations || [] // Enviamos el desglose para el WhatsApp
                     });
                 }
             }

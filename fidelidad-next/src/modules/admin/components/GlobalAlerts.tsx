@@ -61,9 +61,10 @@ export const GlobalAlerts = () => {
             const dMD = `${dM}-${dD}`;
             const todayStr = `${dY}-${dM}-${dD}`;
             
-            // Ventana de 30 días para avisos de vencimiento
+            // Ventana de aviso según configuración (V.1.2.4)
+            const leadDays = Number(config?.messaging?.expirationWarningDays || 7);
             const winEnd = new Date(effectiveDate);
-            winEnd.setDate(winEnd.getDate() + 30);
+            winEnd.setDate(winEnd.getDate() + leadDays);
             const winEndStr = `${winEnd.getFullYear()}-${String(winEnd.getMonth() + 1).padStart(2, '0')}-${String(winEnd.getDate()).padStart(2, '0')}`;
             
             const births: any[] = [];

@@ -31,7 +31,7 @@ async function buildExtensionLists(db, simulatedDate) {
         const arMD = `${String(effectiveDate.getMonth() + 1).padStart(2, '0')}-${String(effectiveDate.getDate()).padStart(2, '0')}`;
         const todayStr = effectiveDate.toISOString().split('T')[0];
         
-        const leadDays = Number(config.expirationWarningLeadDays || 7);
+        const leadDays = Number(config.messaging?.expirationWarningDays || 7);
         const winEnd = new Date(effectiveDate);
         winEnd.setDate(winEnd.getDate() + leadDays);
         const winEndStr = winEnd.toISOString().split('T')[0];

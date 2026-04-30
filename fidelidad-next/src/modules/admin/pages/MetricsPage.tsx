@@ -60,8 +60,12 @@ export const MetricsPage = () => {
         if (cached) {
             try {
                 const parsed = JSON.parse(cached);
-                setTotalStats(parsed.totalStats || { emitted: 0, redeemed: 0, expired: 0 });
-                setAdvancedStats(parsed.advancedStats || { averageTicket: 0, frequency: 0, activeCustomers: 0, totalCustomers: 0, potentialRevenue: 0, creditCount: 0, referralCount: 0 });
+                if (parsed.totalStats) {
+                    setTotalStats(prev => ({ ...prev, ...parsed.totalStats }));
+                }
+                if (parsed.advancedStats) {
+                    setAdvancedStats(prev => ({ ...prev, ...parsed.advancedStats }));
+                }
                 setChartData(parsed.chartData || []);
                 setTopUsers(parsed.topUsers || []);
                 setTopSpenders(parsed.topSpenders || []);
@@ -619,39 +623,39 @@ export const MetricsPage = () => {
                                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-blue-100 flex items-center justify-between">
                                         <div>
                                             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Puntos Emitidos</p>
-                                            <p className="text-2xl font-black text-blue-600">{totalStats.emitted.toLocaleString()}</p>
-                                            <TrendIndicator current={totalStats.emitted} prev={prevTotalStats.emitted} />
+                                            <p className="text-2xl font-black text-blue-600">{(totalStats?.emitted || 0).toLocaleString()}</p>
+                                            <TrendIndicator current={totalStats?.emitted || 0} prev={prevTotalStats?.emitted || 0} />
                                         </div>
                                         <div className="p-3 bg-blue-50 text-blue-600 rounded-xl"><TrendingUp size={24} /></div>
                                     </div>
                                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-orange-100 flex items-center justify-between">
                                         <div>
                                             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Puntos Canjeados</p>
-                                            <p className="text-2xl font-black text-orange-600">{totalStats.redeemed.toLocaleString()}</p>
-                                            <TrendIndicator current={totalStats.redeemed} prev={prevTotalStats.redeemed} />
+                                            <p className="text-2xl font-black text-orange-600">{(totalStats?.redeemed || 0).toLocaleString()}</p>
+                                            <TrendIndicator current={totalStats?.redeemed || 0} prev={prevTotalStats?.redeemed || 0} />
                                         </div>
                                         <div className="p-3 bg-orange-50 text-orange-600 rounded-xl"><Award size={24} /></div>
                                     </div>
                                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-emerald-100 flex items-center justify-between">
                                         <div>
                                             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Dinero en Premios</p>
-                                            <p className="text-2xl font-black text-emerald-600">${Math.round(totalStats.moneyRedeemed).toLocaleString('es-AR')}</p>
-                                            <TrendIndicator current={totalStats.moneyRedeemed} prev={prevTotalStats.moneyRedeemed} />
+                                            <p className="text-2xl font-black text-emerald-600">${Math.round(totalStats?.moneyRedeemed || 0).toLocaleString('es-AR')}</p>
+                                            <TrendIndicator current={totalStats?.moneyRedeemed || 0} prev={prevTotalStats?.moneyRedeemed || 0} />
                                         </div>
                                         <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl"><DollarSign size={24} /></div>
                                     </div>
                                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-red-100 flex items-center justify-between">
                                         <div>
                                             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Puntos Vencidos</p>
-                                            <p className="text-2xl font-black text-red-600">{totalStats.expired.toLocaleString()}</p>
-                                            <TrendIndicator current={totalStats.expired} prev={prevTotalStats.expired} isRed />
+                                            <p className="text-2xl font-black text-red-600">{(totalStats?.expired || 0).toLocaleString()}</p>
+                                            <TrendIndicator current={totalStats?.expired || 0} prev={prevTotalStats?.expired || 0} isRed />
                                         </div>
                                         <div className="p-3 bg-red-50 text-red-600 rounded-xl"><TrendingUp size={24} className="rotate-180" /></div>
                                     </div>
                                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-indigo-100 flex items-center justify-between">
                                         <div>
                                             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Puntos Circulando</p>
-                                            <p className="text-2xl font-black text-indigo-600">{advancedStats.circulatingPoints.toLocaleString()}</p>
+                                            <p className="text-2xl font-black text-indigo-600">{(advancedStats?.circulatingPoints || 0).toLocaleString()}</p>
                                             <p className="text-[10px] text-gray-400 mt-1 italic">Pasivo real descontando expirados</p>
                                         </div>
                                         <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl"><Sparkles size={24} /></div>
@@ -673,8 +677,8 @@ export const MetricsPage = () => {
                             },
                             { 
                                 label: 'Ticket Promedio', 
-                                value: `$${Math.round(advancedStats.averageTicket).toLocaleString('es-AR')}`, 
-                                prev: prevAdvancedStats.averageTicket,
+                                value: `$${Math.round(advancedStats?.averageTicket || 0).toLocaleString('es-AR')}`, 
+                                prev: prevAdvancedStats?.averageTicket || 0,
                                 icon: DollarSign, 
                                 color: 'emerald' 
                             },
@@ -687,8 +691,8 @@ export const MetricsPage = () => {
                             },
                             { 
                                 label: 'Recaudación Est.', 
-                                value: `$${Math.round(advancedStats.averageTicket * advancedStats.creditCount).toLocaleString('es-AR')}`, 
-                                prev: prevAdvancedStats.averageTicket * prevAdvancedStats.creditCount,
+                                value: `$${Math.round((advancedStats?.averageTicket || 0) * (advancedStats?.creditCount || 0)).toLocaleString('es-AR')}`, 
+                                prev: (prevAdvancedStats?.averageTicket || 0) * (prevAdvancedStats?.creditCount || 0),
                                 icon: TrendingUp, 
                                 color: 'orange' 
                             }
@@ -815,7 +819,7 @@ export const MetricsPage = () => {
                                     <div className="w-3 h-3 rounded bg-purple-600 opacity-80"></div>
                                     <div className="w-3 h-3 rounded bg-purple-600 opacity-100"></div>
                                 </div>
-                                <span>Más ({heatmapMetric === 'revenue' ? '$' : ''}{Math.max(...heatmapData.flat()).toLocaleString()})</span>
+                                <span>Más ({heatmapMetric === 'revenue' ? '$' : ''}{(Math.max(...(heatmapData?.flat() || [0])) || 0).toLocaleString()})</span>
                             </div>
                         </div>
 

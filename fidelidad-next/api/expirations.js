@@ -415,18 +415,36 @@ export default async function handler(req, res) {
              }
         }
 
-        // --- PASO C: AUTO-PURGA DE AUDITORÍA ---
-        const purgeDate = new Date(referenceDate);
-        purgeDate.setDate(purgeDate.getDate() - 7);
+        // --- PASO C: MANTENIMIENTO DEL SISTEMA (PURGA) ---
+        const now = referenceDate;
+
+        // 1. Purga de Logs de Auditoría (7 días)
+        const purgeLogsDate = new Date(now);
+        purgeLogsDate.setDate(purgeLogsDate.getDate() - 7);
         const oldLogsSnap = await db.collection('audit_logs')
-            .where('timestamp', '<', admin.firestore.Timestamp.fromDate(purgeDate))
+            .where('timestamp', '<', admin.firestore.Timestamp.fromDate(purgeLogsDate))
             .limit(100)
             .get();
         
         if (!oldLogsSnap.empty) {
-            const purgeBatch = db.batch();
-            oldLogsSnap.docs.forEach(d => purgeBatch.delete(d.ref));
-            await purgeBatch.commit();
+            const batch = db.batch();
+            oldLogsSnap.docs.forEach(d => batch.delete(d.ref));
+            await batch.commit();
+        }
+
+        // 2. Purga de Transacciones Globales (3 años)
+        const purgeTxDate = new Date(now);
+        purgeTxDate.setFullYear(purgeTxDate.getFullYear() - 3);
+        const oldTxSnap = await db.collection('transactions')
+            .where('date', '<', admin.firestore.Timestamp.fromDate(purgeTxDate))
+            .limit(100)
+            .get();
+
+        if (!oldTxSnap.empty) {
+            const batch = db.batch();
+            oldTxSnap.docs.forEach(d => batch.delete(d.ref));
+            await batch.commit();
+            console.log(`[Maintenance] Purged ${oldTxSnap.size} old transactions (>3 years).`);
         }
 
         // --- PASO D: LOG DE AUDITORÍA UNIFICADO ---

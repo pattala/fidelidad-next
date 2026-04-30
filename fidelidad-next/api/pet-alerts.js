@@ -118,7 +118,14 @@ export default async function handler(req, res) {
 
                 const alertDateStr = alertDate.toISOString().split('T')[0];
 
+                const lastPurchaseDateStr = lastPurchase.toISOString().split('T')[0];
+
                 if (todayStr === alertDateStr) {
+                    // PROTECCIÓN: Si la mascota ya tuvo una compra HOY, no mandamos alerta de "falta alimento"
+                    // Esto evita mails contradictorios si el cliente acaba de comprar.
+                    if (lastPurchaseDateStr === todayStr) {
+                        continue; 
+                    }
                     // Check if already notified today for this pet
                     const alertId = `petfood_${userDoc.id}_${pet.id}_${alertDateStr}`;
                     // (Optional: Implement a log check to avoid duplicates)

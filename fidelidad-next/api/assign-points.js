@@ -449,14 +449,15 @@ export default async function handler(req, res) {
                     accumulated_balance_updated_at: admin.firestore.FieldValue.serverTimestamp(),
                     [`rewards_awarded.${reason}`]: true,
                     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-                    historialPuntos: admin.firestore.FieldValue.arrayUnion({
+                    // Limitamos el historial rápido a los últimos 1000 movimientos para fluidez en la App
+                    historialPuntos: [...(cData.historialPuntos || []), {
                         fechaObtencion: admin.firestore.Timestamp.fromDate(recordDate),
                         puntosObtenidos: points,
                         puntosDisponibles: points,
                         diasCaducidad: validityDays,
                         origen: finalConcept,
                         estado: 'Activo'
-                    })
+                    }].slice(-1000)
                 };
 
                 // Si hay referido válido, marcarlo aquí mismo
@@ -832,7 +833,11 @@ export default async function handler(req, res) {
                                 points, executor,
                                 templateData: { subject: '¡Has sumado puntos! 💰', htmlContent: unifiedMsg }
                             })
-                        }).then(() => {
+                        }).then(async (emailRes) => {
+                            if (!emailRes.ok) {
+                                const errText = await emailRes.text();
+                                throw new Error(`Status ${emailRes.status}: ${errText}`);
+                            }
                             result.auditDetails.push({
                                 userId: targetUid,
                                 userName: result.guestData.name,

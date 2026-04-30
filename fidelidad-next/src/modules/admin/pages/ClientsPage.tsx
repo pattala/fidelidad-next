@@ -158,6 +158,16 @@ export const ClientsPage = () => {
         }
     }, [location.search]);
 
+    // Escuchar cambios en el simulador de tiempo para refrescar el filtro automáticamente
+    useEffect(() => {
+        const handleTimeChange = () => {
+            // Forzamos un refresco visual de la lista disparando el fetchData con el snapshot actual o recargando
+            fetchData(); 
+        };
+        window.addEventListener('time-simulation-change', handleTimeChange);
+        return () => window.removeEventListener('time-simulation-change', handleTimeChange);
+    }, [clients]);
+
 
     // 1. Cargar Clientes y Config
     async function fetchData(cachedSnapshot?: any) {

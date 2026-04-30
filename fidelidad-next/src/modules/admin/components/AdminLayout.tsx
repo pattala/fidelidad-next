@@ -269,7 +269,10 @@ export const AdminLayout = () => {
 
                 {role === 'admin' && config?.enableDateSimulator && (
                     <div className="p-4 border-t border-gray-200 bg-purple-50">
-                        <p className="text-[10px] font-bold text-purple-800 uppercase tracking-wider mb-2">Simulador de Fecha</p>
+                        <div className="flex items-center justify-between mb-2">
+                            <p className="text-[10px] font-bold text-purple-800 uppercase tracking-wider">Simulador de Fecha</p>
+                            <span className="text-[9px] font-black text-purple-400 bg-purple-100/50 px-1.5 py-0.5 rounded border border-purple-200/50">V.1.0.1</span>
+                        </div>
                         <div className="text-xs text-gray-600 mb-2">
                             <div className="flex justify-between">
                                 <span>Hoy Real:</span>
@@ -379,7 +382,8 @@ export const AdminLayout = () => {
                         </h2>
                     </div>
 
-                    <div className="text-sm text-gray-500 hidden md:block">
+                    <div className="flex items-center gap-4 text-sm text-gray-500 hidden md:flex">
+                        <span className="bg-gray-100 text-gray-400 px-2 py-0.5 rounded text-[10px] font-black tracking-widest border border-gray-200">V.1.0.1</span>
                         {auth.currentUser?.email}
                     </div>
                 </header>

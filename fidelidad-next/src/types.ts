@@ -249,7 +249,8 @@ export interface AppConfig {
     pwaIconUrl?: string;
     carouselSpeedSeconds?: number;
     enablePetModule?: boolean;
-    discountRecoveryRatio?: number; // Factor K: Porcentaje de recuperación por descuentos
+    discountRecoveryRatio?: number; 
+    dormantDays?: number;
 }
 
 export interface Prize {

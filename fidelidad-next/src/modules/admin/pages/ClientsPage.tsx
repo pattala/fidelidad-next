@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Users, Search, Plus, Filter, Mail, Phone, MapPin, Trash2, Edit, X, Download, Gift, ArrowRight, History, Calendar, Star, CheckCircle2, AlertCircle, Camera, User, Zap, MessageCircle } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Users, Search, Plus, Filter, Mail, Phone, MapPin, Trash2, Edit, X, Download, Gift, ArrowRight, History, Calendar, Star, CheckCircle2, AlertCircle, Camera, User, Zap, MessageCircle, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { collection, addDoc, getDocs, query, orderBy, doc, deleteDoc, updateDoc, increment, runTransaction, arrayUnion, where, setDoc, collectionGroup, onSnapshot, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db, auth } from '../../../lib/firebase';
@@ -92,14 +92,16 @@ const PointsTimer = ({ endTime }: { endTime?: string }) => {
 
 export const ClientsPage = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { isReadOnly } = useAdminAuth();
 
     // Estados
     const [clients, setClients] = useState<Client[]>([]);
     const [loading, setLoading] = useState(false);
-    const [actionLoading, setActionLoading] = useState(false); // New state for buttons/modals
+    const [actionLoading, setActionLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
-    const [config, setConfig] = useState<any>(null); // Config global
+    const [filterMode, setFilterMode] = useState<'all' | 'dormant'>('all');
+    const [config, setConfig] = useState<any>(null);
 
     // Estado del Modal CRUD
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -236,6 +238,14 @@ export const ClientsPage = () => {
             unsubConfig();
         };
     }, []);
+
+    useEffect(() => {
+        const queryParams = new URLSearchParams(location.search);
+        if (queryParams.get('filter') === 'dormant') {
+            setFilterMode('dormant');
+            setSearchTerm('');
+        }
+    }, [location.search]);
 
     // 2. Guardar Cliente (CRUD)
     const handleSave = async (e: React.FormEvent) => {
@@ -878,14 +888,52 @@ export const ClientsPage = () => {
         toast.success("Excel exportado correctamente");
     };
 
-    const filteredClients = clients.filter(c =>
-        c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.dni?.includes(searchTerm) ||
-        c.socioNumber?.includes(searchTerm)
-    );
+    const filteredClients = clients.filter(c => {
+        const matchesSearch = !searchTerm || 
+            c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            c.dni?.includes(searchTerm) ||
+            c.socioNumber?.includes(searchTerm) ||
+            c.phone?.includes(searchTerm);
+            
+        if (!matchesSearch) return false;
+
+        if (filterMode === 'dormant') {
+            const dormantDays = config?.dormantDays || 60;
+            const threshold = new Date();
+            threshold.setDate(threshold.getDate() - dormantDays);
+            
+            const lastPurchase = c.lastPurchaseDate?.toDate ? c.lastPurchaseDate.toDate() : (c.lastPurchaseDate ? new Date(c.lastPurchaseDate) : null);
+            if (!lastPurchase) return false; 
+            return lastPurchase < threshold;
+        }
+
+        return true;
+    });
 
     return (
         <div className="animate-fade-in pb-20">
+            {filterMode === 'dormant' && (
+                <div className="mb-6 flex items-center justify-between bg-orange-50 border border-orange-100 p-4 rounded-2xl animate-fade-in">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-orange-100 text-orange-600 rounded-xl">
+                            <Clock size={20} />
+                        </div>
+                        <div>
+                            <h4 className="text-sm font-black text-orange-700 uppercase tracking-tighter">Vista de Clientes Dormidos</h4>
+                            <p className="text-xs text-orange-600 font-medium">Mostrando socios que no compran hace más de {config?.dormantDays || 60} días.</p>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={() => {
+                            setFilterMode('all');
+                            navigate('/admin/clients', { replace: true });
+                        }}
+                        className="px-4 py-2 bg-white text-orange-600 border border-orange-200 rounded-xl text-xs font-black uppercase hover:bg-orange-100 transition-all flex items-center gap-2"
+                    >
+                        <X size={14} /> Quitar Filtro
+                    </button>
+                </div>
+            )}
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div>

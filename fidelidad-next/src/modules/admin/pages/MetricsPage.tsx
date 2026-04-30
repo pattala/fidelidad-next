@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BarChart3, TrendingUp, Users, DollarSign, Award, Sparkles, Download, Clock, Calendar, RefreshCw, ShoppingBag, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { BarChart3, TrendingUp, Users, DollarSign, Award, Sparkles, Download, Clock, Calendar, RefreshCw, ShoppingBag, ArrowUpRight, ArrowDownRight, Eye } from 'lucide-react';
 import { collection, query, where, getDocs, orderBy, limit, documentId, getCountFromServer, collectionGroup, Timestamp } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import {
@@ -7,6 +7,7 @@ import {
     BarChart, Bar
 } from 'recharts';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
 import { ConfigService } from '../../../services/configService';
 import { TimeService } from '../../../services/timeService';
@@ -38,6 +39,7 @@ const safeQuery = async (p: Promise<any>) => {
 };
 
 export const MetricsPage = () => {
+    const navigate = useNavigate();
     const [timeRange, setTimeRange] = useState<'today' | '30_days' | '6_months' | 'year' | 'total' | 'custom'>('30_days');
     const [customDates, setCustomDates] = useState({
         start: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0],
@@ -80,28 +82,6 @@ export const MetricsPage = () => {
     const [fetchingForecast, setFetchingForecast] = useState(false);
     const [isUpdating, setIsUpdating] = useState(false);
 
-    // PERSISTENCIA DE DATOS (CACHE-FIRST UX)
-    useEffect(() => {
-        const cached = localStorage.getItem('metrics_cache_v2');
-        if (cached) {
-            try {
-                const parsed = JSON.parse(cached);
-                if (parsed.totalStats) {
-                    setTotalStats(prev => ({ ...prev, ...parsed.totalStats }));
-                }
-                if (parsed.advancedStats) {
-                    setAdvancedStats(prev => ({ ...prev, ...parsed.advancedStats }));
-                }
-                setChartData(parsed.chartData || []);
-                setTopUsers(parsed.topUsers || []);
-                setTopSpenders(parsed.topSpenders || []);
-                setTopVisitors(parsed.topVisitors || []);
-                setTopReferrers(parsed.topReferrers || []);
-                setRegistrationSources(parsed.registrationSources || { pwa: 0, local: 0 });
-            } catch (e) { console.error("Cache error", e); }
-        }
-    }, []);
-
     const [advancedStats, setAdvancedStats] = useState({
         averageTicket: 0,
         frequency: 0,
@@ -125,6 +105,28 @@ export const MetricsPage = () => {
         referralCount: 0
     });
     const [heatmapData, setHeatmapData] = useState<number[][]>(Array(7).fill(0).map(() => Array(24).fill(0)));
+
+    // PERSISTENCIA DE DATOS (CACHE-FIRST UX)
+    useEffect(() => {
+        const cached = localStorage.getItem('metrics_cache_v2');
+        if (cached) {
+            try {
+                const parsed = JSON.parse(cached);
+                if (parsed.totalStats) {
+                    setTotalStats(prev => ({ ...prev, ...parsed.totalStats }));
+                }
+                if (parsed.advancedStats) {
+                    setAdvancedStats(prev => ({ ...prev, ...parsed.advancedStats }));
+                }
+                setChartData(parsed.chartData || []);
+                setTopUsers(parsed.topUsers || []);
+                setTopSpenders(parsed.topSpenders || []);
+                setTopVisitors(parsed.topVisitors || []);
+                setTopReferrers(parsed.topReferrers || []);
+                setRegistrationSources(parsed.registrationSources || { pwa: 0, local: 0 });
+            } catch (e) { console.error("Cache error", e); }
+        }
+    }, []);
 
     const fetchForecast = async () => {
         setFetchingForecast(true);
@@ -299,14 +301,19 @@ export const MetricsPage = () => {
                             const money = Number(mov.moneySpent || 0);
                             if (money > 0) {
                                 totalMoneySpent += money;
-                                creditCount++;
                                 const userId = mov.uid || mov.userId;
                                 if (userId) spenders.set(userId, (spenders.get(userId) || 0) + money);
-                                if (mov.date instanceof Date) {
-                                    heatmapCount[mov.date.getDay()][mov.date.getHours()]++;
+                            }
+
+                            // Always count for traffic if date exists
+                            if (mov.date instanceof Date) {
+                                heatmapCount[mov.date.getDay()][mov.date.getHours()]++;
+                                if (money > 0) {
                                     heatmapRevenue[mov.date.getDay()][mov.date.getHours()] += money;
                                 }
                             }
+                            
+                            creditCount++;
                             activeUids.add(mov.uid || mov.userId);
                         } else {
                             const pts = Math.abs(Number(mov.points || 0));
@@ -466,10 +473,11 @@ export const MetricsPage = () => {
                     }
                 }
                 
-                // Calcular Dormidos (Sin compra en los últimos 60 días)
-                const sixtyDaysAgo = new Date(now);
-                sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
-                const dormantSnap = await safeQuery(getCountFromServer(query(collection(db, 'users'), where('lastPurchaseDate', '<', Timestamp.fromDate(sixtyDaysAgo)))));
+                // Calcular Dormidos (Sin compra en los últimos X días definidos en config)
+                const dormantThresholdDays = appConfig?.dormantDays || 60;
+                const dormantThresholdDate = new Date(now);
+                dormantThresholdDate.setDate(dormantThresholdDate.getDate() - dormantThresholdDays);
+                const dormantSnap = await safeQuery(getCountFromServer(query(collection(db, 'users'), where('lastPurchaseDate', '<', Timestamp.fromDate(dormantThresholdDate)))));
                 const dormantCount = dormantSnap?.data ? dormantSnap.data().count : 0;
                 
                 setAdvancedStats(prev => ({ ...prev, newCustomers: pwaCountFinal + localCountFinal, dormantCustomers: dormantCount }));
@@ -1016,10 +1024,20 @@ export const MetricsPage = () => {
                                 <div className="p-4 bg-orange-100 text-orange-600 rounded-2xl">
                                     <Clock size={32} />
                                 </div>
-                                <div>
-                                    <p className="text-xs font-black text-orange-600 uppercase tracking-widest">Clientes Dormidos</p>
-                                    <p className="text-4xl font-black text-orange-700">{advancedStats.dormantCustomers}</p>
-                                    <p className="text-[10px] text-orange-600/70 mt-1 font-medium italic">No compran hace más de 60 días</p>
+                                <div className="flex-1">
+                                    <div className="flex items-center justify-between gap-4">
+                                        <div>
+                                            <p className="text-xs font-black text-orange-600 uppercase tracking-widest">Clientes Dormidos</p>
+                                            <p className="text-4xl font-black text-orange-700">{advancedStats.dormantCustomers}</p>
+                                        </div>
+                                        <button 
+                                            onClick={() => navigate('/admin/clients?filter=dormant')}
+                                            className="p-3 bg-orange-100 text-orange-700 rounded-2xl hover:bg-orange-200 transition-all flex items-center gap-2 text-xs font-black uppercase tracking-tight shadow-sm border border-orange-200"
+                                        >
+                                            <Eye size={16} /> Ver Lista
+                                        </button>
+                                    </div>
+                                    <p className="text-[10px] text-orange-600/70 mt-1 font-medium italic">No compran hace más de {appConfig?.dormantDays || 60} días</p>
                                 </div>
                             </div>
                         </div>

@@ -145,7 +145,8 @@ export const ConfigPage = () => {
         enableDateSimulator: false,
         enableDuplicateControl: true,
         enablePetModule: import.meta.env.VITE_ENABLE_PET_MODULE === 'true',
-        discountRecoveryRatio: 0 // Factor K
+        discountRecoveryRatio: 0,
+        dormantDays: 60
     });
 
     const { isReadOnly, user } = useAdminAuth();
@@ -575,6 +576,40 @@ export const ConfigPage = () => {
                                 </div>
                             </div>
 
+                            {/* Tarjeta de Salud de la Base - MOVILIZADA AQUÍ PARA MAYOR VISIBILIDAD */}
+                            <div className="bg-white p-8 rounded-2xl shadow-sm border border-orange-100 relative overflow-hidden group hover:shadow-md transition">
+                                <div className="absolute top-0 right-0 w-24 h-24 bg-orange-50 rounded-bl-full -mr-8 -mt-8 transition group-hover:bg-orange-100"></div>
+                                <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2 relative z-10">
+                                    <span className="bg-orange-100 text-orange-600 p-2 rounded-lg"><Clock size={20} /></span>
+                                    Salud de la Base
+                                </h3>
+                                
+                                <div className="space-y-4 relative z-10">
+                                    <div className="bg-orange-50/30 p-4 rounded-xl border border-orange-100">
+                                        <div className="flex flex-col gap-3">
+                                            <div className="flex-1">
+                                                <span className="text-sm font-bold text-gray-800">Umbral de Inactividad</span>
+                                                <p className="text-xs text-gray-500 mt-1">Días sin compras para que el sistema marque a un cliente como "Dormido" en el dashboard.</p>
+                                            </div>
+                                            <div className="relative">
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    max="365"
+                                                    value={config.dormantDays || 60}
+                                                    onChange={e => setConfig({ ...config, dormantDays: parseInt(e.target.value) || 0 })}
+                                                    className="w-full pl-4 pr-16 py-3 bg-white rounded-xl border-orange-200 border-2 focus:border-orange-500 focus:ring-4 focus:ring-orange-50 text-orange-700 font-black text-xl text-center outline-none transition shadow-sm"
+                                                />
+                                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-orange-600 text-xs font-black uppercase tracking-tighter">Días</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p className="text-[10px] text-orange-400 italic px-1">
+                                        * Este ajuste afecta directamente al gráfico de "Salud de la Base" en la página de métricas.
+                                    </p>
+                                </div>
+                            </div>
+
                             <div className="space-y-6">
                                 {/* Tarjeta de Ajustes Generales */}
                                 <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 h-full">
@@ -636,6 +671,7 @@ export const ConfigPage = () => {
                                                         Ejemplo: Con 10%, si un cliente usa un cupón de $5000 (equivale a 50 pts), recibirá **5 pts** de bono adicional.
                                                     </p>
                                                 </div>
+
 
                                                 {/* NUEVO: Bono por Domicilio */}
                                                 <div className="flex items-center justify-between pt-4 border-t border-gray-100">

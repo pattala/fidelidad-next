@@ -434,32 +434,40 @@ export default async function handler(req, res) {
         const now = referenceDate;
 
         // 1. Purga de Logs de Auditoría (7 días)
-        const purgeLogsDate = new Date(now);
-        purgeLogsDate.setDate(purgeLogsDate.getDate() - 7);
-        const oldLogsSnap = await db.collection('audit_logs')
-            .where('timestamp', '<', admin.firestore.Timestamp.fromDate(purgeLogsDate))
-            .limit(100)
-            .get();
-        
-        if (!oldLogsSnap.empty) {
-            const batch = db.batch();
-            oldLogsSnap.docs.forEach(d => batch.delete(d.ref));
-            await batch.commit();
+        try {
+            const purgeLogsDate = new Date(now);
+            purgeLogsDate.setDate(purgeLogsDate.getDate() - 7);
+            const oldLogsSnap = await db.collection('audit_logs')
+                .where('timestamp', '<', admin.firestore.Timestamp.fromDate(purgeLogsDate))
+                .limit(100)
+                .get();
+            
+            if (!oldLogsSnap.empty) {
+                const batch = db.batch();
+                oldLogsSnap.docs.forEach(d => batch.delete(d.ref));
+                await batch.commit();
+            }
+        } catch (purgeErr) {
+            console.warn("[Expirations] Purge logs error (likely missing index):", purgeErr.message);
         }
 
         // 2. Purga de Transacciones Globales (3 años)
-        const purgeTxDate = new Date(now);
-        purgeTxDate.setFullYear(purgeTxDate.getFullYear() - 3);
-        const oldTxSnap = await db.collection('transactions')
-            .where('date', '<', admin.firestore.Timestamp.fromDate(purgeTxDate))
-            .limit(100)
-            .get();
+        try {
+            const purgeTxDate = new Date(now);
+            purgeTxDate.setFullYear(purgeTxDate.getFullYear() - 3);
+            const oldTxSnap = await db.collection('transactions')
+                .where('date', '<', admin.firestore.Timestamp.fromDate(purgeTxDate))
+                .limit(100)
+                .get();
 
-        if (!oldTxSnap.empty) {
-            const batch = db.batch();
-            oldTxSnap.docs.forEach(d => batch.delete(d.ref));
-            await batch.commit();
-            console.log(`[Maintenance] Purged ${oldTxSnap.size} old transactions (>3 years).`);
+            if (!oldTxSnap.empty) {
+                const batch = db.batch();
+                oldTxSnap.docs.forEach(d => batch.delete(d.ref));
+                await batch.commit();
+                console.log(`[Maintenance] Purged ${oldTxSnap.size} old transactions (>3 years).`);
+            }
+        } catch (purgeTxErr) {
+            console.warn("[Expirations] Purge transactions error (likely missing index):", purgeTxErr.message);
         }
 
             // Detección detallada del ejecutor (V.1.1.9)
@@ -469,6 +477,9 @@ export default async function handler(req, res) {
             else if (triggerSource === 'engine-daily') executorDetail = "Sistema (Motor Diario)";
             else if (triggerSource === 'dashboard') executorDetail = "Administrador (Panel)";
             else if (triggerSource === 'extension') executorDetail = "Administrador (Extensión)";
+
+            const logType = 'expiration_check';
+            const summaryText = `Proceso de vencimientos finalizado: ${logResults.expired} pts vencidos, ${logResults.notified} avisos enviados.`;
 
             await db.collection('audit_logs').add({
                 type: logType,

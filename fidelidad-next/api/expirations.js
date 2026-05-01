@@ -1,9 +1,10 @@
 import admin from "firebase-admin";
-import { getEffectiveDate } from "../utils/timeUtils.js";
 
-function initFirebaseAdmin() {
+// --- INICIALIZACIÓN ROBUSTA ---
+function getDb() {
     if (!admin.apps.length) {
         const credsRaw = process.env.GOOGLE_CREDENTIALS_JSON || "";
+        if (!credsRaw) throw new Error("Falta GOOGLE_CREDENTIALS_JSON");
         let creds;
         try { creds = JSON.parse(credsRaw); } catch { creds = JSON.parse(credsRaw.replace(/\\n/g, "\n")); }
         admin.initializeApp({
@@ -17,18 +18,36 @@ function initFirebaseAdmin() {
     return admin.firestore();
 }
 
-async function handleForecast(req, res, db) {
+// --- UTILIDAD DE FECHA INTEGRADA (Evita error de importación) ---
+async function getNow(db, simulatedDateParam) {
+    if (simulatedDateParam) {
+        const dateStr = simulatedDateParam.includes('T') ? simulatedDateParam.split('T')[0] : simulatedDateParam;
+        return new Date(dateStr + 'T12:00:00');
+    }
+    const configSnap = await db.collection('config').doc('general').get();
+    const config = configSnap.data() || {};
+    if (config.enableDateSimulator && config.simulatedOffsetDays) {
+        const d = new Date();
+        d.setDate(d.getDate() + Number(config.simulatedOffsetDays));
+        return d;
+    }
+    return new Date();
+}
+
+export default async function handler(req, res) {
+    if (req.method === 'OPTIONS') return res.status(200).end();
     const authHeader = req.headers["x-api-key"] || req.headers["authorization"];
     const SECRET = (process.env.API_SECRET_KEY || "").trim();
     if (!authHeader || !authHeader.includes(SECRET)) return res.status(401).json({ ok: false, error: "Unauthorized" });
 
     try {
+        const db = getDb();
         const customStartStr = req.query?.startDate || req.body?.startDate;
         const customEndStr = req.query?.endDate || req.body?.endDate;
         const hasCustom = !!(customStartStr && customEndStr);
 
         const configSnap = await db.collection('config').doc('general').get();
-        const config = configSnap.exists ? configSnap.data() : {};
+        const config = configSnap.data() || {};
 
         const prizesSnap = await db.collection('prizes').where('active', '==', true).get();
         let totalRatio = 0, pCount = 0;
@@ -38,9 +57,8 @@ async function handleForecast(req, res, db) {
         });
         const pointValue = pCount > 0 ? (totalRatio / pCount) : (config.pointValue || 10);
 
-        const now = await getEffectiveDate(db);
-        const startOfToday = new Date(now);
-        startOfToday.setHours(0, 0, 0, 0);
+        const now = await getNow(db);
+        const startOfToday = new Date(now); startOfToday.setHours(0, 0, 0, 0);
 
         const intervals = {
             short:  { label: 'Próximos 7 días', maxDays: 7,    points: 0, money: 0, count: 0 },
@@ -51,19 +69,16 @@ async function handleForecast(req, res, db) {
 
         const customRange = {
             active: hasCustom,
-            start: hasCustom ? new Date(customStartStr + 'T12:00:00') : null,
+            start: hasCustom ? new Date(customStartStr + 'T00:00:00') : null,
             end:   hasCustom ? new Date(customEndStr + 'T23:59:59')   : null,
             points: 0, money: 0, count: 0
         };
 
-        // FILTRADO EN MEMORIA (PARA EVITAR ERRORES DE ÍNDICE 500)
-        const creditsSnap = await db.collectionGroup('points_history')
-            .where('type', '==', 'credit')
-            .get();
-
+        // FILTRADO EN MEMORIA PARA EVITAR ERROR 500 DE ÍNDICE
+        const creditsSnap = await db.collectionGroup('points_history').where('type', '==', 'credit').get();
+        
         creditsSnap.forEach(doc => {
             const data = doc.data();
-            // Filtrar status y puntos remanentes en memoria
             if (data.status === 'expired' || !data.expiresAt || (data.remainingPoints || 0) <= 0) return;
 
             const expiresAt = data.expiresAt.toDate();
@@ -71,20 +86,20 @@ async function handleForecast(req, res, db) {
 
             if (diffDays > 0) {
                 let bucket;
-                if (diffDays <= 7)  bucket = intervals.short;
+                if (diffDays <= 7) bucket = intervals.short;
                 else if (diffDays <= 30) bucket = intervals.medium;
                 else if (diffDays <= 90) bucket = intervals.long;
                 else bucket = intervals.future;
                 
                 const rem = Number(data.remainingPoints);
                 bucket.points += rem;
-                bucket.money  += (rem * pointValue);
+                bucket.money += (rem * pointValue);
                 bucket.count++;
             }
             if (customRange.active && expiresAt >= customRange.start && expiresAt <= customRange.end) {
                 const rem = Number(data.remainingPoints);
                 customRange.points += rem;
-                customRange.money  += (rem * pointValue);
+                customRange.money += (rem * pointValue);
                 customRange.count++;
             }
         });
@@ -93,20 +108,13 @@ async function handleForecast(req, res, db) {
             ok: true, 
             summary: {
                 totalPoints: Object.values(intervals).reduce((acc, b) => acc + b.points, 0),
-                totalMoney:  Object.values(intervals).reduce((acc, b) => acc + b.money,  0),
-                intervals:   Object.entries(intervals).map(([key, val]) => ({ key, ...val })),
+                totalMoney: Object.values(intervals).reduce((acc, b) => acc + b.money, 0),
+                intervals: Object.entries(intervals).map(([key, val]) => ({ key, ...val })),
                 customRange: customRange.active ? customRange : null
             },
             pointValue 
         });
     } catch (error) {
-        console.error("[Expirations-Forecast] Error:", error);
         return res.status(500).json({ ok: false, error: error.message });
     }
-}
-
-export default async function handler(req, res) {
-    if (req.method === 'OPTIONS') return res.status(200).end();
-    const db = initFirebaseAdmin();
-    return handleForecast(req, res, db);
 }

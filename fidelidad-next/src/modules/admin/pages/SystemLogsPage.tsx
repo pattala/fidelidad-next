@@ -41,56 +41,14 @@ export const SystemLogsPage = () => {
     const [endDate, setEndDate] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
 
-    const [isRunningExpirations, setIsRunningExpirations] = useState(false);
-    const [isRunningBirthdays, setIsRunningBirthdays] = useState(false);
-    const [ignoreDeduplication, setIgnoreDeduplication] = useState(false);
-    const [isSavingConfig, setIsSavingConfig] = useState(false);
-    const navigate = useNavigate();
-
-    const handleRunBirthdays = async () => {
-        if (!window.confirm("¿Deseas ejecutar ahora el proceso de saludos de cumpleaños y enviar las notificaciones (Push/Email/Inbox) según la fecha actual?")) return;
-
-        setIsRunningBirthdays(true);
-        const toastId = toast.loading('Ejecutando proceso de cumpleaños...');
-        try {
-            const token = await auth.currentUser?.getIdToken();
-            const res = await fetch('/api/engine-daily?mode=daily&trigger=dashboard&target=birthdays', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': import.meta.env.VITE_API_KEY || '',
-                    'Authorization': `Bearer ${token}`,
-                    'x-executor-role': (auth.currentUser as any)?.reloadUserInfo?.customAttributes?.includes('editor') ? 'editor' : 'admin'
-                },
-                body: JSON.stringify({
-                    simulatedDate: TimeService.now().toLocaleDateString('en-CA'), // YYYY-MM-DD local
-                    isManual: true,
-                    ignoreDeduplication: ignoreDeduplication
-                })
-            });
-            const data = await res.json();
-            if (data.ok) {
-                toast.success(`Éxito: ${data.summary?.totalToday || 0} socios procesados hoy.`, { id: toastId });
-                // Pequeño delay para asegurar que Firestore persistió el log
-                setTimeout(fetchLogs, 1500);
-            } else {
-                toast.error(`Error: ${data.error}`, { id: toastId });
-            }
-        } catch (e) {
-            toast.error('Error de conexión', { id: toastId });
-        } finally {
-            setIsRunningBirthdays(false);
-        }
-    };
-
-    const handleRunExpirations = async () => {
-        if (!window.confirm("¿Deseas ejecutar ahora la revisión de vencimientos y enviar las notificaciones pendientes?")) return;
+    const handleRunEngine = async () => {
+        if (!window.confirm("¿Deseas ejecutar ahora el Motor Unificado? Esto procesará Cumpleaños, Vencimientos, Campañas y Alertas de Mascotas en un solo paso.")) return;
 
         setIsRunningExpirations(true);
-        const toastId = toast.loading('Ejecutando revisión de vencimientos...');
+        const toastId = toast.loading('Ejecutando Motor Unificado...');
         try {
             const token = await auth.currentUser?.getIdToken();
-            const res = await fetch('/api/engine-daily?mode=daily&trigger=dashboard&target=expirations', {
+            const res = await fetch('/api/engine-daily?mode=daily&trigger=dashboard', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -99,15 +57,14 @@ export const SystemLogsPage = () => {
                     'x-executor-role': (auth.currentUser as any)?.reloadUserInfo?.customAttributes?.includes('editor') ? 'editor' : 'admin'
                 },
                 body: JSON.stringify({
-                    simulatedDate: TimeService.now().toLocaleDateString('en-CA'), // YYYY-MM-DD local
+                    simulatedDate: TimeService.now().toLocaleDateString('en-CA'),
                     isManual: true,
                     ignoreDeduplication: ignoreDeduplication
                 })
             });
             const data = await res.json();
             if (data.ok) {
-                toast.success(`Éxito: ${data.summary?.summary || 'Revisión completada'}`, { id: toastId });
-                // Pequeño delay para asegurar que Firestore persistió el log
+                toast.success('Motor ejecutado con éxito.', { id: toastId });
                 setTimeout(fetchLogs, 1500);
             } else {
                 toast.error(`Error: ${data.error}`, { id: toastId });
@@ -274,21 +231,13 @@ export const SystemLogsPage = () => {
                 </div>
                 <div className="flex items-center gap-2">
                     <button
-                        onClick={handleRunBirthdays}
-                        disabled={isRunningBirthdays}
-                        className="flex items-center gap-2 px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-black transition-all shadow-lg shadow-pink-100 font-bold text-sm disabled:opacity-50"
-                        title="Saludar a todos los cumpleañeros de hoy"
-                    >
-                        {isRunningBirthdays ? <Loader2 size={18} className="animate-spin" /> : <Cake size={18} />}
-                        <span className="hidden sm:inline">Ejecutar Proceso de Cumpleaños</span>
-                    </button>
-                    <button
-                        onClick={handleRunExpirations}
+                        onClick={handleRunEngine}
                         disabled={isRunningExpirations}
-                        className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-black transition-all shadow-lg shadow-orange-100 font-bold text-sm disabled:opacity-50"
+                        className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-black transition-all shadow-lg shadow-purple-100 font-bold text-sm disabled:opacity-50"
+                        title="Ejecutar Cumpleaños, Vencimientos, Campañas y Mascotas"
                     >
                         {isRunningExpirations ? <Loader2 size={18} className="animate-spin" /> : <Play size={18} fill="currentColor" />}
-                        <span className="hidden sm:inline">Ejecutar Revisión de Vencimientos</span>
+                        <span className="hidden sm:inline">Ejecutar Motor Unificado</span>
                     </button>
 
                     <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg">

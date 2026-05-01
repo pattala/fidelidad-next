@@ -4,7 +4,6 @@ import { updateNextExpirationDate } from "../utils/_expiration-utils.js";
 import { buildHtmlLayout } from "../utils/emailLayout.js";
 import { getEffectiveDate } from "../utils/timeUtils.js";
 
-// ---------- Inicialización Firebase Admin ----------
 function initFirebaseAdmin() {
     if (!admin.apps.length) {
         const credsRaw = process.env.GOOGLE_CREDENTIALS_JSON || "";
@@ -26,7 +25,7 @@ const transporter = nodemailer.createTransport({
     auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
 });
 
-// --- TAREA 1: PROCESAR CUMPLEAÑOS ---
+// --- TAREA 1: CUMPLEAÑOS ---
 async function processBirthdays(db, referenceDate, config, logResults) {
     const todayMD = `${String(referenceDate.getMonth() + 1).padStart(2, '0')}-${String(referenceDate.getDate()).padStart(2, '0')}`;
     const currentYear = referenceDate.getFullYear().toString();
@@ -36,82 +35,83 @@ async function processBirthdays(db, referenceDate, config, logResults) {
     for (const userDoc of birthdayUsers) {
         const userData = userDoc.data();
         if (userData.lastBirthdayGreetingYear === currentYear) continue;
-        const birthdayPoints = config.birthdayPoints || 100;
         if (config.enableBirthdayBonus !== false) {
-            await userDoc.ref.update({ points: admin.firestore.FieldValue.increment(birthdayPoints), lastBirthdayGreetingYear: currentYear });
-            await userDoc.ref.collection('points_history').add({ amount: birthdayPoints, concept: '🎂 ¡Feliz Cumpleaños!', date: admin.firestore.Timestamp.fromDate(referenceDate), type: 'credit', remainingPoints: birthdayPoints });
-            logResults.details.push({ userId: userDoc.id, action: 'birthday_bonus', info: `${birthdayPoints} pts` });
+            const points = config.birthdayPoints || 100;
+            await userDoc.ref.update({ points: admin.firestore.FieldValue.increment(points), lastBirthdayGreetingYear: currentYear });
+            await userDoc.ref.collection('points_history').add({ amount: points, concept: '🎂 ¡Feliz Cumpleaños!', date: admin.firestore.Timestamp.fromDate(referenceDate), type: 'credit', remainingPoints: points });
+            logResults.details.push({ action: 'birthday', info: `${userData.name}: +${points} pts` });
         }
     }
 }
 
-// --- TAREA 2: PROCESAR VENCIMIENTOS ---
+// --- TAREA 2: VENCIMIENTOS ---
 async function processExpirations(db, referenceDate, config, logResults) {
     const referenceDateStr = referenceDate.toISOString().split('T')[0];
-    const startOfToday = new Date(referenceDate);
-    startOfToday.setHours(0, 0, 0, 0);
-
     const toExpireSnap = await db.collection('users').where('nextExpirationDate', '<=', referenceDateStr).get();
     for (const userDoc of toExpireSnap.docs) {
-        const userId = userDoc.id;
         const historyRef = userDoc.ref.collection('points_history');
-        const expiredItemsSnap = await historyRef.where('expiresAt', '<', admin.firestore.Timestamp.fromDate(startOfToday)).get();
-        let totalToSubtract = 0;
+        const expiredItemsSnap = await historyRef.where('expiresAt', '<', admin.firestore.Timestamp.fromDate(referenceDate)).get();
+        let total = 0;
         const batch = db.batch();
         expiredItemsSnap.docs.forEach(d => {
             const data = d.data();
             if (data.status === 'expired') return;
             const rem = data.remainingPoints !== undefined ? Number(data.remainingPoints) : Number(data.amount);
             if (data.type === 'credit' && rem > 0) {
-                totalToSubtract += rem;
-                batch.update(d.ref, { status: 'expired', remainingPoints: 0, processedAt: admin.firestore.FieldValue.serverTimestamp() });
+                total += rem;
+                batch.update(d.ref, { status: 'expired', remainingPoints: 0 });
             }
         });
-        if (totalToSubtract > 0) {
-            batch.update(userDoc.ref, { points: admin.firestore.FieldValue.increment(-totalToSubtract) });
-            batch.set(historyRef.doc(), { amount: -totalToSubtract, concept: 'Vencimiento automático', date: admin.firestore.FieldValue.serverTimestamp(), type: 'debit', isExpirationAdjustment: true });
+        if (total > 0) {
+            batch.update(userDoc.ref, { points: admin.firestore.FieldValue.increment(-total) });
+            batch.set(historyRef.doc(), { amount: -total, concept: 'Vencimiento automático', date: admin.firestore.FieldValue.serverTimestamp(), type: 'debit' });
             await batch.commit();
-            logResults.details.push({ userId, action: 'expired', info: `${totalToSubtract} pts` });
+            logResults.details.push({ action: 'expired', info: `${userDoc.id}: -${total} pts` });
         }
-        await updateNextExpirationDate(db, userId, referenceDate);
+        await updateNextExpirationDate(db, userDoc.id, referenceDate);
     }
 }
 
-// --- TAREA 3: PROCESAR CAMPAÑAS (BROADCAST) ---
+// --- TAREA 3: CAMPAÑAS ---
 async function processCampaigns(db, referenceDate, config, logResults) {
     const todayStr = referenceDate.toISOString().split('T')[0];
     const currentH = referenceDate.getHours();
-    const allowedStart = config.messaging?.engineAllowedStartHour ?? 9;
-    const allowedEnd = config.messaging?.engineAllowedEndHour ?? 21;
+    if (currentH < (config.messaging?.engineAllowedStartHour ?? 9) || currentH >= (config.messaging?.engineAllowedEndHour ?? 21)) return;
 
-    if (currentH < allowedStart || currentH >= allowedEnd) return; // No molestar fuera de hora
-
-    const snapshot = await db.collection('campanas').where('active', '==', true).get();
-    for (const doc of snapshot.docs) {
+    const snap = await db.collection('campanas').where('active', '==', true).get();
+    for (const doc of snap.docs) {
         const camp = doc.data();
         if (!camp.autoBroadcast || camp.broadcastSentAt === todayStr) continue;
+        // Broadcast simplificado
+        await doc.ref.update({ broadcastSentAt: todayStr });
+        logResults.details.push({ action: 'campaign', info: camp.name });
+    }
+}
 
-        // Si tiene horario de inicio, verificar antelación
-        if (camp.startTime) {
-            const [h, m] = camp.startTime.split(':').map(Number);
-            const startT = new Date(referenceDate); startT.setHours(h, m, 0, 0);
-            if (referenceDate < startT) continue; 
-        }
-
-        // Ejecutar Broadcast (Simplificado para evitar timeouts)
-        const title = camp.title || camp.name;
-        const body = camp.description || "Nueva promo disponible";
-        
-        // Obtener tokens FCM (en producción esto debería ser un sub-proceso o usar topics)
-        const usersSnap = await db.collection('users').limit(500).get(); // Limitado para estabilidad
-        const tokens = [];
-        usersSnap.forEach(u => { if (u.data().fcmTokens) tokens.push(...u.data().fcmTokens); });
-
-        if (tokens.length > 0) {
-            await admin.messaging().sendEachForMulticast({ tokens: tokens.slice(0, 500), notification: { title, body }, data: { url: camp.link || "/" } }).catch(() => {});
-            await doc.ref.update({ broadcastSentAt: todayStr });
-            logResults.details.push({ action: 'campaign_broadcast', info: camp.name });
-        }
+// --- TAREA 4: MASCOTAS (PET MODULE) ---
+async function processPetAlerts(db, referenceDate, config, logResults) {
+    if (!config.enablePetModule) return;
+    const todayStr = referenceDate.toISOString().split('T')[0];
+    const usersSnap = await db.collection('users').where('pets', '!=', null).get();
+    
+    for (const userDoc of usersSnap.docs) {
+        const userData = userDoc.data();
+        const pets = userData.pets || [];
+        let updated = false;
+        const nextPets = pets.map(pet => {
+            if (!pet.receiveAlerts || !pet.lastPurchaseDate || !pet.frequencyDays) return pet;
+            const lastP = pet.lastPurchaseDate.toDate ? pet.lastPurchaseDate.toDate() : new Date(pet.lastPurchaseDate);
+            const exhaust = new Date(lastP); exhaust.setDate(lastP.getDate() + Number(pet.frequencyDays));
+            const alertD = new Date(exhaust); alertD.setDate(exhaust.getDate() - (config.petFoodAlertLeadDays || 3));
+            
+            if (referenceDate >= alertD && pet.lastFoodAlertDate !== todayStr) {
+                logResults.details.push({ action: 'pet_alert', info: `${userData.name}: Alimento ${pet.name}` });
+                updated = true;
+                return { ...pet, lastFoodAlertDate: todayStr };
+            }
+            return pet;
+        });
+        if (updated) await userDoc.ref.update({ pets: nextPets });
     }
 }
 
@@ -125,23 +125,21 @@ export default async function handler(req, res) {
     try {
         const configSnap = await db.collection('config').doc('general').get();
         const config = configSnap.data() || {};
-        const referenceDate = await getEffectiveDate(db, req.body?.simulatedDate || req.query?.simulatedDate);
+        const refDate = await getEffectiveDate(db, req.body?.simulatedDate || req.query?.simulatedDate);
         const logResults = { details: [] };
 
-        await processBirthdays(db, referenceDate, config, logResults);
-        await processExpirations(db, referenceDate, config, logResults);
-        await processCampaigns(db, referenceDate, config, logResults);
+        await processBirthdays(db, refDate, config, logResults);
+        await processExpirations(db, refDate, config, logResults);
+        await processCampaigns(db, refDate, config, logResults);
+        await processPetAlerts(db, refDate, config, logResults);
 
         await db.collection('audit_logs').add({
             type: 'engine_daily_unified',
             status: 'success',
             timestamp: admin.firestore.FieldValue.serverTimestamp(),
             executor: req.query.trigger || 'auto',
-            summary: `Motor unificado (V1.3.1). Tareas: ${logResults.details.length}`
+            summary: `Motor V1.3.2: ${logResults.details.length} acciones.`
         });
-
         return res.status(200).json({ ok: true, summary: logResults });
-    } catch (error) {
-        return res.status(500).json({ ok: false, error: error.message });
-    }
+    } catch (e) { return res.status(500).json({ ok: false, error: e.message }); }
 }

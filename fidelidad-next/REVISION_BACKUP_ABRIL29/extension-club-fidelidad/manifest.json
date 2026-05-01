@@ -1,0 +1,32 @@
+{
+    "manifest_version": 3,
+    "name": "Integrador de Beneficios",
+    "version": "1.1",
+    "description": "Integra tu facturador con el club de fidelidad",
+    "permissions": [
+        "storage"
+    ],
+    "host_permissions": [
+        "<all_urls>"
+    ],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "action": {
+        "default_popup": "popup.html"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "<all_urls>"
+            ],
+            "js": [
+                "content.js"
+            ],
+            "css": [
+                "content.css"
+            ],
+            "all_frames": true
+        }
+    ]
+}

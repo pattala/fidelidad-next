@@ -246,29 +246,6 @@ export const DashboardPage = () => {
                 </div>
             </div>
 
-            {forecastSummary ? (
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-8 overflow-hidden relative">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                        <div>
-                            <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2 mb-1"><Clock className="text-orange-500" size={20} /> Pronóstico de Vencimientos</h3>
-                            <p className="text-sm text-gray-500">Puntos que vencen en los próximos periodos</p>
-                        </div>
-                        <div className="flex gap-8">
-                            {[ { key: 'short', label: 'Próximos 7 días', points: forecastSummary.next7DaysPoints, money: forecastSummary.next7DaysMoney },
-                               { key: 'medium', label: 'Próximos 15 días', points: forecastSummary.next15DaysPoints, money: forecastSummary.next15DaysMoney },
-                               { key: 'long', label: 'Próximos 30 días', points: forecastSummary.next30DaysPoints, money: forecastSummary.next30DaysMoney }
-                            ].map(interval => (
-                                <div key={interval.key} className="relative group cursor-pointer" onClick={() => navigate('/admin/metrics')}>
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{interval.label}</p>
-                                    <p className="text-lg font-black text-gray-800">{(interval.points || 0).toLocaleString()} <span className="text-[10px] text-gray-300">pts</span></p>
-                                    <p className={`text-xs font-bold ${interval.key === 'short' ? 'text-red-500' : 'text-orange-500'}`}>≈ ${Math.round(interval.money || 0).toLocaleString()}</p>
-                                </div>
-                            ))}
-                        </div>
-                        <button onClick={() => navigate('/admin/metrics')} className="bg-gray-50 hover:bg-gray-100 text-gray-500 px-4 py-2 rounded-xl text-xs font-black">VER DETALLE</button>
-                    </div>
-                </div>
-            ) : null}
 
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                 <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2 mb-6"><Clock className="text-gray-400" size={20} /> Actividad Reciente</h3>

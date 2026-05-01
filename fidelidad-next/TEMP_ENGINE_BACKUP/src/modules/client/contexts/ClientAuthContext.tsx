@@ -1,0 +1,97 @@
+
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { onAuthStateChanged, type User } from 'firebase/auth';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { auth, db } from '../../../lib/firebase';
+
+interface ClientAuthContextType {
+    user: User | null;
+    userData: any | null;
+    loading: boolean;
+    isAdmin: boolean;
+}
+
+const ClientAuthContext = createContext<ClientAuthContextType>({
+    user: null,
+    userData: null,
+    loading: true,
+    isAdmin: false,
+});
+
+export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) => {
+    const [user, setUser] = useState<User | null>(null);
+    const [userData, setUserData] = useState<any | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [isAdmin, setIsAdmin] = useState(false);
+
+    useEffect(() => {
+        let unsubFirestore: (() => void) | undefined;
+        let resolveTimer: any | undefined;
+
+        const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+            // Clear any pending resolve timer if auth state changes
+            if (resolveTimer) clearTimeout(resolveTimer);
+
+            if (firebaseUser) {
+                setUser(firebaseUser);
+                setLoading(true); // Ensure loading is true while fetching data
+
+                const userRef = doc(db, 'users', firebaseUser.uid);
+                const adminRef = doc(db, 'admins', firebaseUser.uid);
+
+                if (unsubFirestore) unsubFirestore();
+                unsubFirestore = onSnapshot(userRef, async (snap) => {
+                    if (snap.exists()) {
+                        setUserData(snap.data());
+                        setIsAdmin(false);
+                        setLoading(false);
+                    } else {
+                        try {
+                            const { getDoc } = await import('firebase/firestore');
+                            const adminSnap = await getDoc(adminRef);
+                            if (adminSnap.exists()) {
+                                setIsAdmin(true);
+                                setUserData(null);
+                            } else {
+                                setIsAdmin(false);
+                                setUserData(null);
+                            }
+                        } catch (e) {
+                            console.error("Error checking admin status:", e);
+                        } finally {
+                            setLoading(false);
+                        }
+                    }
+                }, (err: any) => {
+                    console.error("Firestore Client Auth Error:", err);
+                    setLoading(false);
+                });
+
+            } else {
+                // Wait 600ms before deciding there's no user (fast but safe for persistence)
+                resolveTimer = setTimeout(() => {
+                    if (!auth.currentUser) {
+                        setUser(null);
+                        setUserData(null);
+                        setIsAdmin(false);
+                        setLoading(false);
+                    }
+                }, 600);
+            }
+        });
+
+        return () => {
+            unsubscribeAuth();
+            if (unsubFirestore) unsubFirestore();
+            if (resolveTimer) clearTimeout(resolveTimer);
+        };
+    }, []);
+
+    return (
+        <ClientAuthContext.Provider value={{ user, userData, loading, isAdmin }}>
+            {children}
+        </ClientAuthContext.Provider>
+    );
+};
+
+export const useClientAuth = () => useContext(ClientAuthContext);

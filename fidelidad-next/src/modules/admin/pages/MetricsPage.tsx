@@ -78,7 +78,7 @@ export const MetricsPage = () => {
     const [forecastData, setForecastData] = useState<any>(null);
     const [forecastDates, setForecastDates] = useState({
         start: new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0],
-        end: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0]
+        end: new Date(new Date().setDate(new Date().getDate() + 90)).toISOString().split('T')[0]
     });
     const [fetchingForecast, setFetchingForecast] = useState(false);
     const [isUpdating, setIsUpdating] = useState(false);
@@ -285,11 +285,31 @@ export const MetricsPage = () => {
 
             let pwaCountFinal = 0, localCountFinal = 0;
             if (isTotal) {
-                const [pwaSnap, localSnap] = await Promise.all([safeQuery(getCountFromServer(query(collection(db, 'users'), where('source', '==', 'pwa')))), safeQuery(getCountFromServer(query(collection(db, 'users'), where('source', '==', 'local'))))]);
-                pwaCountFinal = pwaSnap?.data ? pwaSnap.data().count : 0; localCountFinal = localSnap?.data ? localSnap.data().count : 0;
+                const [pwaSnap, localSnap] = await Promise.all([
+                    safeQuery(getCountFromServer(query(collection(db, 'users'), where('source', '==', 'pwa')))), 
+                    safeQuery(getCountFromServer(query(collection(db, 'users'), where('source', '==', 'local'))))
+                ]);
+                pwaCountFinal = pwaSnap?.data ? pwaSnap.data().count : 0; 
+                localCountFinal = localSnap?.data ? localSnap.data().count : 0;
             } else {
-                const rangeUsersSnap = await safeQuery(getDocs(query(collection(db, 'users'), where('createdAt', '>=', Timestamp.fromDate(startDate)), where('createdAt', '<=', Timestamp.fromDate(endDate)))));
-                if (rangeUsersSnap?.docs) rangeUsersSnap.docs.forEach((d: any) => { const u = d.data(); if (u.source === 'pwa') pwaCountFinal++; else if (u.source === 'local') localCountFinal++; });
+                // Filtro por fecha para nuevos clientes en el periodo
+                try {
+                    const rangeUsersSnap = await getDocs(query(collection(db, 'users'), where('createdAt', '>=', Timestamp.fromDate(startDate)), where('createdAt', '<=', Timestamp.fromDate(endDate))));
+                    rangeUsersSnap.docs.forEach((d: any) => { 
+                        const u = d.data(); 
+                        if (u.source === 'pwa') pwaCountFinal++; 
+                        else if (u.source === 'local' || !u.source) localCountFinal++; 
+                    });
+                } catch (err) {
+                    console.warn("Error counting range users (index missing?):", err);
+                    // Fallback para no mostrar 0 si el índice no está listo: mostramos el total de PWA como referencia
+                    const [pwaSnap, localSnap] = await Promise.all([
+                        safeQuery(getCountFromServer(query(collection(db, 'users'), where('source', '==', 'pwa')))), 
+                        safeQuery(getCountFromServer(query(collection(db, 'users'), where('source', '==', 'local'))))
+                    ]);
+                    pwaCountFinal = pwaSnap?.data ? pwaSnap.data().count : 0; 
+                    localCountFinal = localSnap?.data ? localSnap.data().count : 0;
+                }
             }
 
             setAdvancedStats({
@@ -609,7 +629,29 @@ export const MetricsPage = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div className="bg-emerald-50/50 p-6 rounded-3xl border border-emerald-100 flex items-center gap-6">
                                 <div className="p-4 bg-emerald-100 text-emerald-600 rounded-2xl"><Users size={32} /></div>
-                                <div><p className="text-xs font-black text-emerald-600 uppercase tracking-widest">Nuevas Inscripciones</p><p className="text-4xl font-black text-emerald-700">+{advancedStats.newCustomers}</p></div>
+                                <div className="flex-1">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-xs font-black text-emerald-600 uppercase tracking-widest">Nuevas Inscripciones</p>
+                                            <p className="text-4xl font-black text-emerald-700">+{advancedStats.newCustomers}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="flex items-center gap-2 justify-end mb-1">
+                                                <span className="text-[10px] font-bold text-emerald-600/70 uppercase">Origen</span>
+                                            </div>
+                                            <div className="flex flex-col gap-1">
+                                                <div className="flex items-center gap-2 bg-white/50 px-2 py-1 rounded-lg border border-emerald-100">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                                                    <span className="text-[10px] font-black text-gray-600">PWA: {registrationSources.pwa}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 bg-white/50 px-2 py-1 rounded-lg border border-emerald-100">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
+                                                    <span className="text-[10px] font-black text-gray-600">Admin: {registrationSources.local}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <div className="bg-orange-50/50 p-6 rounded-3xl border border-orange-100 flex items-center gap-6">
                                 <div className="p-4 bg-orange-100 text-orange-600 rounded-2xl"><Clock size={32} /></div>
@@ -647,6 +689,42 @@ export const MetricsPage = () => {
                             </div>
                         </div>
                     </div>
+
+                    {forecastData && (
+                        <div className="bg-white p-6 rounded-3xl shadow-sm border border-orange-100 mb-8 mt-4 relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <Clock size={80} className="text-orange-500" />
+                            </div>
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+                                <div className="flex-1">
+                                    <h3 className="font-black text-xl text-gray-800 flex items-center gap-2 mb-1">
+                                        <Clock className="text-orange-500" size={24} /> Pronóstico de Vencimientos (Cash Flow)
+                                    </h3>
+                                    <p className="text-sm text-gray-500 font-medium">Impacto estimado en el pasivo de puntos por periodos fijos.</p>
+                                </div>
+                                <div className="flex flex-wrap gap-8 items-center">
+                                    {(forecastData.intervals || []).filter((i: any) => i.key !== 'future').map((interval: any) => (
+                                        <div key={interval.key} className="flex flex-col">
+                                            <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest mb-1">{interval.label}</p>
+                                            <p className="text-2xl font-black text-gray-800">
+                                                {(interval.points || 0).toLocaleString()} 
+                                                <span className="text-xs text-gray-400 ml-1 font-bold">pts</span>
+                                            </p>
+                                            <p className={`text-sm font-bold ${interval.key === 'short' ? 'text-red-500' : 'text-orange-500'}`}>
+                                                ≈ ${Math.round(interval.money || 0).toLocaleString()}
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="flex flex-col items-end gap-1">
+                                    <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Valor de Canje Aplicado</p>
+                                    <p className="text-xs font-bold text-gray-400 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100">
+                                        1 punto = ${forecastData.pointValue?.toFixed(2) || '0.00'}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div className="bg-white rounded-2xl shadow-sm border border-orange-100 overflow-hidden flex flex-col h-full">

@@ -1,8 +1,8 @@
-// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V37 - DASHBOARD SILENCER)
-if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin')) {
-    console.log("🛡️ [Club Fidelidad] Extensión desactivada en el Dashboard para evitar ruidos.");
+// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V38 - STABLE MESSAGING)
+if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin') || window.location.href.includes('pattala.com')) {
+    console.log("🛡️ [Club Fidelidad] Extensión desactivada en el Dashboard.");
 } else {
-    console.log("🚀 [Club Fidelidad] V37: Iniciando extensión.");
+    console.log("🚀 [Club Fidelidad] V38: Iniciando extensión.");
 
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;

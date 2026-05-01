@@ -10,11 +10,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         })
         .then(async response => {
             const data = await response.json();
-            if (!response.ok) {
-                sendResponse({ success: false, error: data.error || `HTTP ${response.status}` });
-            } else {
-                sendResponse({ success: true, data: data });
-            }
+            sendResponse({ success: response.ok, data: data, error: response.ok ? null : (data.error || `HTTP ${response.status}`) });
         })
         .catch(error => {
             console.error("[Background] Fetch Error:", error);
@@ -23,4 +19,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         
         return true; 
     }
+    // Siempre responder algo para cerrar el canal si no es fetchAlerts
+    sendResponse({ status: "ignored" });
+    return false;
 });

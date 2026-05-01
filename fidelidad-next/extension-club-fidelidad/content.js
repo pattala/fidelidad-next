@@ -1,8 +1,8 @@
-// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V39 - STABLE MESSAGING)
+// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V40 - ESTABILIDAD ESTRUCTURAL)
 if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin') || window.location.href.includes('pattala.com')) {
     console.log("🛡️ [Club Fidelidad] Extensión desactivada en el Dashboard.");
 } else {
-    console.log("🚀 [Club Fidelidad] V39: Iniciando extensión.");
+    console.log("🚀 [Club Fidelidad] V40: Iniciando extensión.");
 
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;

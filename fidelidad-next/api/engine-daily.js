@@ -1,6 +1,10 @@
 import admin from "firebase-admin";
+import nodemailer from 'nodemailer';
+import { updateNextExpirationDate } from "../utils/_expiration-utils.js";
+import { buildHtmlLayout } from "../utils/emailLayout.js";
 import { getEffectiveDate } from "../utils/timeUtils.js";
 
+// ---------- Inicialización Firebase Admin ----------
 function initFirebaseAdmin() {
     if (!admin.apps.length) {
         const credsRaw = process.env.GOOGLE_CREDENTIALS_JSON || "";
@@ -14,111 +18,78 @@ function initFirebaseAdmin() {
             }),
         });
     }
-    return admin;
+    return admin.firestore();
 }
 
-/**
- * Construye las listas de alertas para la extensión de Chrome directamente
- * desde Firestore, SIN modificar nada. Solo lectura.
- * Se llama tanto en ejecución normal como cuando hay deduplicación activa.
- */
-async function buildExtensionLists(db, simulatedDate) {
-    try {
-        const configSnap = await db.collection('config').doc('general').get();
-        const config = configSnap.data() || {};
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+    },
+});
 
-        const effectiveDate = await getEffectiveDate(db, simulatedDate);
-        const arMD = `${String(effectiveDate.getMonth() + 1).padStart(2, '0')}-${String(effectiveDate.getDate()).padStart(2, '0')}`;
-        const todayStr = effectiveDate.toISOString().split('T')[0];
+// --- TAREA 1: PROCESAR CUMPLEAÑOS ---
+async function processBirthdays(db, referenceDate, config, logResults) {
+    const todayMD = `${String(referenceDate.getMonth() + 1).padStart(2, '0')}-${String(referenceDate.getDate()).padStart(2, '0')}`;
+    const currentYear = referenceDate.getFullYear().toString();
+
+    const usersSnap = await db.collection('users').where('birthDate', '!=', '').get();
+    const birthdayUsers = usersSnap.docs.filter(doc => doc.data().birthDate?.endsWith(todayMD));
+
+    for (const userDoc of birthdayUsers) {
+        const userData = userDoc.data();
+        if (userData.lastBirthdayGreetingYear === currentYear) continue;
+
+        const birthdayPoints = config.birthdayPoints || 100;
+        if (config.enableBirthdayBonus !== false) {
+            await userDoc.ref.update({
+                points: admin.firestore.FieldValue.increment(birthdayPoints),
+                lastBirthdayGreetingYear: currentYear
+            });
+            await userDoc.ref.collection('points_history').add({
+                amount: birthdayPoints,
+                concept: '🎂 ¡Feliz Cumpleaños!',
+                date: admin.firestore.Timestamp.fromDate(referenceDate),
+                type: 'credit',
+                remainingPoints: birthdayPoints
+            });
+            logResults.details.push({ userId: userDoc.id, action: 'birthday_bonus', info: `${birthdayPoints} pts` });
+        }
+    }
+}
+
+// --- TAREA 2: PROCESAR VENCIMIENTOS ---
+async function processExpirations(db, referenceDate, config, logResults) {
+    const referenceDateStr = referenceDate.toISOString().split('T')[0];
+    const startOfToday = new Date(referenceDate);
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const toExpireSnap = await db.collection('users').where('nextExpirationDate', '<=', referenceDateStr).get();
+    for (const userDoc of toExpireSnap.docs) {
+        const userId = userDoc.id;
+        const historyRef = userDoc.ref.collection('points_history');
+        const expiredItemsSnap = await historyRef.where('expiresAt', '<', admin.firestore.Timestamp.fromDate(startOfToday)).get();
         
-        const leadDays = Number(config.messaging?.expirationWarningDays || 7);
-        const winEnd = new Date(effectiveDate);
-        winEnd.setDate(winEnd.getDate() + leadDays);
-        const winEndStr = winEnd.toISOString().split('T')[0];
-
-        const usersSnap = await db.collection('users').get();
-
-        const birthdayList = [];
-        const expirationList = [];
-        const petAlertList = [];
-
-        usersSnap.forEach(d => {
+        let totalToSubtract = 0;
+        const batch = db.batch();
+        expiredItemsSnap.docs.forEach(d => {
             const data = d.data();
-            if (data.role === 'admin' || data.isTestUser) return;
-
-            // Cumpleaños
-            const bd = data.birthDate || data.fechaNacimiento;
-            if (bd && bd.endsWith(arMD)) {
-                birthdayList.push({
-                    id: d.id,
-                    name: data.name || data.nombre || 'Socio',
-                    phone: data.phone || data.telefono || '',
-                    dni: data.dni || '',
-                    socioNumber: data.socioNumber || data.numeroSocio || '',
-                });
-            }
-
-            // Vencimientos (Respetando Lead Days de Configuración)
-            if (data.nextExpirationDate && data.nextExpirationDate >= todayStr && data.nextExpirationDate <= winEndStr) {
-                if ((data.points || 0) > 0) {
-                    // Mapeo detallado para que la extensión entienda el itinerario (V.1.2.5)
-                    const rawDetails = data.expirationDetails || [];
-                    const processedBreakdown = rawDetails.map(d => {
-                        const dt = d.date?.toDate ? d.date.toDate() : new Date(d.date);
-                        return {
-                            date: `${dt.getDate()}/${dt.getMonth() + 1}`,
-                            rem: d.points || d.rem || 0
-                        };
-                    });
-
-                    expirationList.push({
-                        id: d.id,
-                        name: data.name || data.nombre || 'Socio',
-                        phone: data.phone || data.telefono || '',
-                        points: data.points || 0,
-                        nextExpirationDate: data.nextExpirationDate,
-                        breakdown: processedBreakdown
-                    });
-                }
-            }
-
-            if (data.pets && Array.isArray(data.pets)) {
-                data.pets.forEach(p => {
-                    let isAlertDay = (p.nextFoodAlertDate === todayStr);
-                    
-                    // Fallback dinámico si falta el campo o para mayor precisión
-                    if (!isAlertDay && p.lastPurchaseDate && p.frequencyDays) {
-                        const lastP = p.lastPurchaseDate.toDate ? p.lastPurchaseDate.toDate() : new Date(p.lastPurchaseDate);
-                        const freq = Number(p.frequencyDays);
-                        const lead = Number(config.petFoodAlertLeadDays || 0);
-                        
-                        const exDate = new Date(lastP);
-                        exDate.setDate(lastP.getDate() + freq);
-                        const alDate = new Date(exDate);
-                        alDate.setDate(exDate.getDate() - lead);
-                        
-                        if (alDate.toISOString().split('T')[0] === todayStr) {
-                            isAlertDay = true;
-                        }
-                    }
-
-                    if (isAlertDay) {
-                        petAlertList.push({
-                            id: d.id,
-                            name: data.name || data.nombre || 'Socio',
-                            phone: data.phone || data.telefono || '',
-                            petName: p.name,
-                            category: p.category || 'Mascota',
-                        });
-                    }
-                });
+            if (data.status === 'expired') return;
+            const rem = data.remainingPoints !== undefined ? Number(data.remainingPoints) : Number(data.amount);
+            if (data.type === 'credit' && rem > 0) {
+                totalToSubtract += rem;
+                batch.update(d.ref, { status: 'expired', remainingPoints: 0, processedAt: admin.firestore.FieldValue.serverTimestamp() });
             }
         });
 
-        return { birthdayList, expirationList, petAlertList, config };
-    } catch (error) {
-        console.error("[Engine] buildExtensionLists error:", error.message);
-        return { birthdayList: [], expirationList: [], petAlertList: [], config: {} };
+        if (totalToSubtract > 0) {
+            batch.update(userDoc.ref, { points: admin.firestore.FieldValue.increment(-totalToSubtract) });
+            batch.set(historyRef.doc(), { amount: -totalToSubtract, concept: 'Vencimiento automático', date: admin.firestore.FieldValue.serverTimestamp(), type: 'debit', isExpirationAdjustment: true });
+            await batch.commit();
+            logResults.details.push({ userId, action: 'expired', info: `${totalToSubtract} pts` });
+        }
+        await updateNextExpirationDate(db, userId, referenceDate);
     }
 }
 
@@ -126,139 +97,34 @@ export default async function handler(req, res) {
     if (req.method === 'OPTIONS') return res.status(200).end();
 
     const authHeader = req.headers["x-api-key"] || req.headers["authorization"];
-    const cronHeader = req.headers["x-vercel-cron"];
-    const SECRET = process.env.API_SECRET_KEY;
+    const SECRET = (process.env.API_SECRET_KEY || "").trim();
+    if (!authHeader || !authHeader.includes(SECRET)) return res.status(401).json({ ok: false, error: "Unauthorized" });
 
-    if (!cronHeader && (!authHeader || !authHeader.includes(SECRET))) {
-        return res.status(401).json({ error: "Unauthorized" });
-    }
-
+    const db = initFirebaseAdmin();
     try {
-        const simulatedDate = req.body?.simulatedDate || req.query?.simulatedDate;
-        const triggerSource = req.body?.source || req.query?.source || req.query?.trigger || 'Sistema (QStash)';
-        const isSilent = req.body?.silent === true || req.query?.silent === 'true';
-        const ignoreDeduplication = req.body?.ignoreDeduplication === true;
-        const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
-        const target = req.query?.target || 'all';
-
-        const app = initFirebaseAdmin();
-        const db = app.firestore();
-
-        console.log(`[Engine] Triggered by ${triggerSource} with mode ${target}. Simulated Date: ${simulatedDate || 'None'}`);
-
         const configSnap = await db.collection('config').doc('general').get();
-        if (!configSnap.exists) throw new Error("General config not found");
-        const configData = configSnap.data();
-        const systemEnableDuplicateControl = configData?.enableDuplicateControl !== false;
+        const config = configSnap.data() || {};
 
-        // --- CONTROL DE DUPLICIDAD (Safety Wall) - Ignorar si viene de la extensión (V.1.2.5) ---
-        if (!ignoreDeduplication && systemEnableDuplicateControl && triggerSource !== 'extension') {
-            try {
-                const arFormatter = new Intl.DateTimeFormat('en-CA', {
-                    timeZone: 'America/Argentina/Buenos_Aires',
-                    year: 'numeric', month: '2-digit', day: '2-digit'
-                });
-                const todayAR = arFormatter.format(new Date());
-                const checkSnap = await db.collection('config').doc('dailyCheck').get();
-                const lastRunDate = checkSnap.exists ? checkSnap.data()?.[`lastRun_${target}`] : null;
+        const simulatedDateStr = req.body?.simulatedDate || req.query?.simulatedDate;
+        const referenceDate = await getEffectiveDate(db, simulatedDateStr);
+        
+        const logResults = { details: [] };
 
-                // Si hay fecha simulada, saltamos el bloqueo para permitir pruebas
-                if (lastRunDate === todayAR && !simulatedDate) {
-                    console.log(`[Engine] Skip: Already run today (${todayAR}) for target ${target}`);
-                    const { birthdayList, expirationList, petAlertList, config } = await buildExtensionLists(db, simulatedDate);
-                    return res.status(200).json({
-                        ok: true,
-                        skipped: true,
-                        message: `Proceso '${target}' ya ejecutado hoy (${todayAR}). Solo modo lectura.`,
-                        birthdays:   { list: birthdayList },
-                        expirations: { list: expirationList },
-                        petAlerts:   { list: petAlertList },
-                        config,
-                    });
-                }
-            } catch (e) {
-                console.warn("[Engine] Deduplication check failed, proceeding anyway:", e.message);
-            }
-        }
+        // Ejecución secuencial en memoria (SIN FETCH INTERNOS)
+        await processBirthdays(db, referenceDate, config, logResults);
+        await processExpirations(db, referenceDate, config, logResults);
 
-        // --- PROCESAMIENTO CONCURRENTE (Previene Vercel Timeout) ---
-        const results = { birthdays: null, expirations: null, petAlerts: null };
-        const subRequests = [];
-
-        const requestHeaders = { 
-            'Content-Type': 'application/json', 
-            'x-api-key': SECRET 
-        };
-        const requestBody = JSON.stringify({ simulatedDate, source: 'engine-daily', silent: isSilent, ignoreDeduplication });
-
-        // Helper to fetch and catch
-        const callSubApi = async (path, key) => {
-            const url = `${PWA_URL}${path}`;
-            console.log(`[Engine] Calling sub-api: ${url}`);
-            try {
-                const subRes = await fetch(url, {
-                    method: 'POST',
-                    headers: requestHeaders,
-                    body: requestBody
-                });
-                const contentType = subRes.headers.get("content-type");
-                if (contentType && contentType.includes("application/json")) {
-                    results[key] = await subRes.json();
-                } else {
-                    const text = await subRes.text();
-                    results[key] = { ok: false, error: "Non-JSON response", status: subRes.status, body: text.substring(0, 200) };
-                    console.error(`[Engine] Sub-API ${key} returned non-JSON (${subRes.status}):`, text.substring(0, 100));
-                }
-            } catch (err) {
-                console.error(`[Engine] Failed to call ${key} at ${url}:`, err.message);
-                results[key] = { ok: false, error: err.message };
-            }
-        };
-
-        // 1. Cumpleaños
-        if (target === 'all' || target === 'birthdays') {
-            subRequests.push(callSubApi('/api/birthdays', 'birthdays'));
-        }
-
-        // 2. Expiraciones
-        if (target === 'all' || target === 'expirations') {
-            subRequests.push(callSubApi('/api/expirations', 'expirations'));
-        }
-
-        // 3. Alertas Pet
-        if (target === 'all' || target === 'pet-alerts') {
-            subRequests.push(callSubApi('/api/pet-alerts', 'petAlerts'));
-        }
-
-        // Ejecutar todo en paralelo
-        await Promise.all(subRequests);
-
-        // --- GUARDAR ESTADO DE EJECUCIÓN ---
-        try {
-            const arFormatter = new Intl.DateTimeFormat('en-CA', {
-                timeZone: 'America/Argentina/Buenos_Aires',
-                year: 'numeric', month: '2-digit', day: '2-digit'
-            });
-            await db.collection('config').doc('dailyCheck').set({
-                [`lastRun_${target}`]: arFormatter.format(new Date()),
-                [`lastRunTimestamp_${target}`]: admin.firestore.FieldValue.serverTimestamp(),
-            }, { merge: true });
-        } catch (e) { console.error("[Engine] Could not set daily check lock", e.message); }
-
-        // --- RESPUESTA FORMATO EXTENSIÓN ---
-        const { birthdayList, expirationList, petAlertList, config } = await buildExtensionLists(db, simulatedDate);
-
-        return res.status(200).json({
-            ok: true,
-            results,
-            birthdays:   { list: birthdayList },
-            expirations: { list: expirationList },
-            petAlerts:   { list: petAlertList },
-            config,
+        await db.collection('audit_logs').add({
+            type: 'engine_daily_unified',
+            status: 'success',
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            executor: req.query.trigger || 'auto',
+            summary: `Motor unificado ejecutado. Acciones: ${logResults.details.length}`
         });
 
+        return res.status(200).json({ ok: true, summary: logResults });
     } catch (error) {
-        console.error("[Engine] Fatal Error:", error);
-        return res.status(500).json({ error: error.message, stack: error.stack });
+        console.error("[Engine-Daily] Fatal Error:", error);
+        return res.status(500).json({ ok: false, error: error.message });
     }
 }

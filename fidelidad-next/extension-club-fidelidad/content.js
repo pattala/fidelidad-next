@@ -1,5 +1,5 @@
-// Club Fidelidad - Content Script (VERSI├ôN EMPLEADO V35 - EXPIRATION ITINERARY)
-console.log("\u{1F680} [Club Fidelidad] V35: Implementando itinerario de vencimientos detallado.");
+// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V36 - STABLE NOTIFICATIONS)
+console.log("🚀 [Club Fidelidad] V36: Sincronizando alertas de socios y mascotas.");
 
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;
@@ -21,20 +21,32 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
         }).then(r => r.json())
         .then(data => {
             if (data?.ok) {
+                console.log("✅ [Club Fidelidad] Alertas recibidas:", data);
                 const dismissed = res.dismissedAlerts || [];
-                if (data.birthdays?.list) {
-                    data.birthdays.list = data.birthdays.list.filter(b => !dismissed.includes(`birthday-${b.socioNumber || b.dni}`));
+                
+                // Mapeo robusto para asegurar que las listas existan
+                const bList = data.birthdays?.list || data.birthdays || [];
+                const eList = data.expirations?.list || data.expirations || [];
+                const pList = data.petAlerts?.list || data.petAlerts || [];
+
+                const filteredBirthdays = (Array.isArray(bList) ? bList : []).filter(b => !dismissed.includes(`birthday-${b.socioNumber || b.dni}`));
+                const filteredExpirations = (Array.isArray(eList) ? eList : []).filter(e => !dismissed.includes(`expiration-${e.phone || e.name}`));
+                const filteredPetAlerts = (Array.isArray(pList) ? pList : []).filter(p => !dismissed.includes(`pet-${p.phone}-${p.petName}`));
+
+                // Re-armamos el objeto para showGlobalAlert
+                const processedData = {
+                    ...data,
+                    birthdays: { list: filteredBirthdays },
+                    expirations: { list: filteredExpirations },
+                    petAlerts: { list: filteredPetAlerts }
+                };
+
+                const total = filteredBirthdays.length + filteredExpirations.length + filteredPetAlerts.length;
+                if (total > 0) {
+                    showGlobalAlert(processedData, res.apiUrl);
                 }
-                if (data.expirations?.list) {
-                    data.expirations.list = data.expirations.list.filter(e => !dismissed.includes(`expiration-${e.phone || e.name}`));
-                }
-                if (data.petAlerts?.list) {
-                    data.petAlerts.list = data.petAlerts.list.filter(p => !dismissed.includes(`pet-${p.phone}-${p.petName}`));
-                }
-                const total = (data.birthdays?.list?.length || 0) + (data.expirations?.list?.length || 0) + (data.petAlerts?.list?.length || 0);
-                if (total > 0) showGlobalAlert(data, res.apiUrl);
             }
-        }).catch(e => console.error("\u274C [Club Fidelidad] Error:", e.message));
+        }).catch(e => console.error("❌ [Club Fidelidad] Error:", e.message));
     }
 });
 
@@ -284,18 +296,25 @@ async function refreshAlertCounts() {
         if (data.ok) {
             chrome.storage.local.get(['dismissedAlerts'], (store) => {
                 const dismissed = store.dismissedAlerts || [];
-                if (data.birthdays?.list) {
-                    data.birthdays.list = data.birthdays.list.filter(b => !dismissed.includes(`birthday-${b.socioNumber || b.dni}`));
-                }
-                if (data.expirations?.list) {
-                    data.expirations.list = data.expirations.list.filter(e => !dismissed.includes(`expiration-${e.phone || e.name}`));
-                }
-                if (data.petAlerts?.list) {
-                    data.petAlerts.list = data.petAlerts.list.filter(p => !dismissed.includes(`pet-${p.phone}-${p.petName}`));
-                }
-                const total = (data.birthdays?.list?.length || 0) + (data.expirations?.list?.length || 0) + (data.petAlerts?.list?.length || 0);
+                
+                const bList = data.birthdays?.list || data.birthdays || [];
+                const eList = data.expirations?.list || data.expirations || [];
+                const pList = data.petAlerts?.list || data.petAlerts || [];
+
+                const filteredBirthdays = (Array.isArray(bList) ? bList : []).filter(b => !dismissed.includes(`birthday-${b.socioNumber || b.dni}`));
+                const filteredExpirations = (Array.isArray(eList) ? eList : []).filter(e => !dismissed.includes(`expiration-${e.phone || e.name}`));
+                const filteredPetAlerts = (Array.isArray(pList) ? pList : []).filter(p => !dismissed.includes(`pet-${p.phone}-${p.petName}`));
+
+                const processedData = {
+                    ...data,
+                    birthdays: { list: filteredBirthdays },
+                    expirations: { list: filteredExpirations },
+                    petAlerts: { list: filteredPetAlerts }
+                };
+
+                const total = filteredBirthdays.length + filteredExpirations.length + filteredPetAlerts.length;
                 if (total > 0) {
-                    showGlobalAlert(data, config.apiUrl);
+                    showGlobalAlert(processedData, config.apiUrl);
                 } else {
                     const w = document.getElementById('cf-v35-bubble');
                     if (w) w.remove();

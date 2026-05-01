@@ -559,8 +559,8 @@ export const MetricsPage = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 min-w-0">
                             <h3 className="text-lg font-bold text-gray-700 mb-6 flex items-center gap-2"><TrendingUp size={20} className="text-blue-500" /> Puntos Emitidos vs Canjeados</h3>
-                            <div style={{ width: '100%', height: 350 }}>
-                                <ResponsiveContainer width="100%" height="100%">
+                            <div style={{ width: '100%', minHeight: '350px' }}>
+                                <ResponsiveContainer width="100%" height={350}>
                                     <LineChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                                         <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                                         <XAxis dataKey="name" fontSize={12} />
@@ -576,8 +576,8 @@ export const MetricsPage = () => {
                         </div>
                         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 min-w-0">
                             <h3 className="text-lg font-bold text-gray-700 mb-6 flex items-center gap-2"><DollarSign size={20} className="text-green-500" /> Dinero Devuelto (Estimado)</h3>
-                            <div style={{ width: '100%', height: 350 }}>
-                                <ResponsiveContainer width="100%" height="100%">
+                            <div style={{ width: '100%', minHeight: '350px' }}>
+                                <ResponsiveContainer width="100%" height={350}>
                                     <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                                         <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                                         <XAxis dataKey="name" fontSize={12} />

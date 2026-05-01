@@ -1,5 +1,8 @@
-// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V36 - STABLE NOTIFICATIONS)
-console.log("🚀 [Club Fidelidad] V36: Sincronizando alertas de socios y mascotas.");
+// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V37 - DASHBOARD SILENCER)
+if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin')) {
+    console.log("🛡️ [Club Fidelidad] Extensión desactivada en el Dashboard para evitar ruidos.");
+} else {
+    console.log("🚀 [Club Fidelidad] V37: Iniciando extensión.");
 
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;
@@ -1200,4 +1203,6 @@ function showFidelidadPanel() {
             panel.remove();
         };
     }
+}
+
 }

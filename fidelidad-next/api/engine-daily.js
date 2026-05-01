@@ -27,92 +27,97 @@ const transporter = nodemailer.createTransport({
 
 // --- TAREA 1: CUMPLEAÑOS ---
 async function processBirthdays(db, referenceDate, config, logResults) {
-    const todayMD = `${String(referenceDate.getMonth() + 1).padStart(2, '0')}-${String(referenceDate.getDate()).padStart(2, '0')}`;
-    const currentYear = referenceDate.getFullYear().toString();
-    const usersSnap = await db.collection('users').where('birthDate', '!=', '').get();
-    const birthdayUsers = usersSnap.docs.filter(doc => doc.data().birthDate?.endsWith(todayMD));
+    try {
+        const todayMD = `${String(referenceDate.getMonth() + 1).padStart(2, '0')}-${String(referenceDate.getDate()).padStart(2, '0')}`;
+        const currentYear = referenceDate.getFullYear().toString();
+        const usersSnap = await db.collection('users').where('birthDate', '!=', '').get();
+        const birthdayUsers = usersSnap.docs.filter(doc => doc.data().birthDate?.endsWith(todayMD));
 
-    for (const userDoc of birthdayUsers) {
-        const userData = userDoc.data();
-        if (userData.lastBirthdayGreetingYear === currentYear) continue;
-        if (config.enableBirthdayBonus !== false) {
-            const points = config.birthdayPoints || 100;
-            await userDoc.ref.update({ points: admin.firestore.FieldValue.increment(points), lastBirthdayGreetingYear: currentYear });
-            await userDoc.ref.collection('points_history').add({ amount: points, concept: '🎂 ¡Feliz Cumpleaños!', date: admin.firestore.Timestamp.fromDate(referenceDate), type: 'credit', remainingPoints: points });
-            logResults.details.push({ action: 'birthday', info: `${userData.name}: +${points} pts` });
+        for (const userDoc of birthdayUsers) {
+            const userData = userDoc.data();
+            if (userData.lastBirthdayGreetingYear === currentYear) continue;
+            if (config.enableBirthdayBonus !== false) {
+                const points = config.birthdayPoints || 100;
+                await userDoc.ref.update({ points: admin.firestore.FieldValue.increment(points), lastBirthdayGreetingYear: currentYear });
+                await userDoc.ref.collection('points_history').add({ amount: points, concept: '🎂 ¡Feliz Cumpleaños!', date: admin.firestore.Timestamp.fromDate(referenceDate), type: 'credit', remainingPoints: points });
+                logResults.details.push({ action: 'birthday', info: `${userData.name}: +${points} pts` });
+            }
         }
-    }
+    } catch (e) { logResults.details.push({ action: 'birthday_error', info: e.message }); }
 }
 
 // --- TAREA 2: VENCIMIENTOS ---
 async function processExpirations(db, referenceDate, config, logResults) {
-    const referenceDateStr = referenceDate.toISOString().split('T')[0];
-    const toExpireSnap = await db.collection('users').where('nextExpirationDate', '<=', referenceDateStr).get();
-    for (const userDoc of toExpireSnap.docs) {
-        const historyRef = userDoc.ref.collection('points_history');
-        const expiredItemsSnap = await historyRef.where('expiresAt', '<', admin.firestore.Timestamp.fromDate(referenceDate)).get();
-        let total = 0;
-        const batch = db.batch();
-        expiredItemsSnap.docs.forEach(d => {
-            const data = d.data();
-            if (data.status === 'expired') return;
-            const rem = data.remainingPoints !== undefined ? Number(data.remainingPoints) : Number(data.amount);
-            if (data.type === 'credit' && rem > 0) {
-                total += rem;
-                batch.update(d.ref, { status: 'expired', remainingPoints: 0 });
+    try {
+        const referenceDateStr = referenceDate.toISOString().split('T')[0];
+        const toExpireSnap = await db.collection('users').where('nextExpirationDate', '<=', referenceDateStr).get();
+        for (const userDoc of toExpireSnap.docs) {
+            const historyRef = userDoc.ref.collection('points_history');
+            const expiredItemsSnap = await historyRef.where('expiresAt', '<', admin.firestore.Timestamp.fromDate(referenceDate)).get();
+            let total = 0;
+            const batch = db.batch();
+            expiredItemsSnap.docs.forEach(d => {
+                const data = d.data();
+                if (data.status === 'expired') return;
+                const rem = data.remainingPoints !== undefined ? Number(data.remainingPoints) : Number(data.amount);
+                if (data.type === 'credit' && rem > 0) {
+                    total += rem;
+                    batch.update(d.ref, { status: 'expired', remainingPoints: 0 });
+                }
+            });
+            if (total > 0) {
+                batch.update(userDoc.ref, { points: admin.firestore.FieldValue.increment(-total) });
+                batch.set(historyRef.doc(), { amount: -total, concept: 'Vencimiento automático', date: admin.firestore.FieldValue.serverTimestamp(), type: 'debit' });
+                await batch.commit();
+                logResults.details.push({ action: 'expired', info: `${userDoc.id}: -${total} pts` });
             }
-        });
-        if (total > 0) {
-            batch.update(userDoc.ref, { points: admin.firestore.FieldValue.increment(-total) });
-            batch.set(historyRef.doc(), { amount: -total, concept: 'Vencimiento automático', date: admin.firestore.FieldValue.serverTimestamp(), type: 'debit' });
-            await batch.commit();
-            logResults.details.push({ action: 'expired', info: `${userDoc.id}: -${total} pts` });
+            await updateNextExpirationDate(db, userDoc.id, referenceDate);
         }
-        await updateNextExpirationDate(db, userDoc.id, referenceDate);
-    }
+    } catch (e) { logResults.details.push({ action: 'expirations_error', info: e.message }); }
 }
 
 // --- TAREA 3: CAMPAÑAS ---
 async function processCampaigns(db, referenceDate, config, logResults) {
-    const todayStr = referenceDate.toISOString().split('T')[0];
-    const currentH = referenceDate.getHours();
-    if (currentH < (config.messaging?.engineAllowedStartHour ?? 9) || currentH >= (config.messaging?.engineAllowedEndHour ?? 21)) return;
+    try {
+        const todayStr = referenceDate.toISOString().split('T')[0];
+        const currentH = referenceDate.getHours();
+        if (currentH < (config.messaging?.engineAllowedStartHour ?? 9) || currentH >= (config.messaging?.engineAllowedEndHour ?? 21)) return;
 
-    const snap = await db.collection('campanas').where('active', '==', true).get();
-    for (const doc of snap.docs) {
-        const camp = doc.data();
-        if (!camp.autoBroadcast || camp.broadcastSentAt === todayStr) continue;
-        // Broadcast simplificado
-        await doc.ref.update({ broadcastSentAt: todayStr });
-        logResults.details.push({ action: 'campaign', info: camp.name });
-    }
+        const snap = await db.collection('campanas').where('active', '==', true).get();
+        for (const doc of snap.docs) {
+            const camp = doc.data();
+            if (!camp.autoBroadcast || camp.broadcastSentAt === todayStr) continue;
+            await doc.ref.update({ broadcastSentAt: todayStr });
+            logResults.details.push({ action: 'campaign', info: camp.name });
+        }
+    } catch (e) { logResults.details.push({ action: 'campaign_error', info: e.message }); }
 }
 
-// --- TAREA 4: MASCOTAS (PET MODULE) ---
+// --- TAREA 4: MASCOTAS ---
 async function processPetAlerts(db, referenceDate, config, logResults) {
-    if (!config.enablePetModule) return;
-    const todayStr = referenceDate.toISOString().split('T')[0];
-    const usersSnap = await db.collection('users').where('pets', '!=', null).get();
-    
-    for (const userDoc of usersSnap.docs) {
-        const userData = userDoc.data();
-        const pets = userData.pets || [];
-        let updated = false;
-        const nextPets = pets.map(pet => {
-            if (!pet.receiveAlerts || !pet.lastPurchaseDate || !pet.frequencyDays) return pet;
-            const lastP = pet.lastPurchaseDate.toDate ? pet.lastPurchaseDate.toDate() : new Date(pet.lastPurchaseDate);
-            const exhaust = new Date(lastP); exhaust.setDate(lastP.getDate() + Number(pet.frequencyDays));
-            const alertD = new Date(exhaust); alertD.setDate(exhaust.getDate() - (config.petFoodAlertLeadDays || 3));
-            
-            if (referenceDate >= alertD && pet.lastFoodAlertDate !== todayStr) {
-                logResults.details.push({ action: 'pet_alert', info: `${userData.name}: Alimento ${pet.name}` });
-                updated = true;
-                return { ...pet, lastFoodAlertDate: todayStr };
-            }
-            return pet;
-        });
-        if (updated) await userDoc.ref.update({ pets: nextPets });
-    }
+    try {
+        if (!config.enablePetModule) return;
+        const todayStr = referenceDate.toISOString().split('T')[0];
+        const usersSnap = await db.collection('users').where('pets', '!=', null).get();
+        for (const userDoc of usersSnap.docs) {
+            const userData = userDoc.data();
+            const pets = userData.pets || [];
+            let updated = false;
+            const nextPets = pets.map(pet => {
+                if (!pet.receiveAlerts || !pet.lastPurchaseDate || !pet.frequencyDays) return pet;
+                const lastP = pet.lastPurchaseDate.toDate ? pet.lastPurchaseDate.toDate() : new Date(pet.lastPurchaseDate);
+                const exhaust = new Date(lastP); exhaust.setDate(lastP.getDate() + Number(pet.frequencyDays));
+                const alertD = new Date(exhaust); alertD.setDate(exhaust.getDate() - (config.petFoodAlertLeadDays || 3));
+                if (referenceDate >= alertD && pet.lastFoodAlertDate !== todayStr) {
+                    logResults.details.push({ action: 'pet_alert', info: `${userData.name}: Alimento ${pet.name}` });
+                    updated = true;
+                    return { ...pet, lastFoodAlertDate: todayStr };
+                }
+                return pet;
+            });
+            if (updated) await userDoc.ref.update({ pets: nextPets });
+        }
+    } catch (e) { logResults.details.push({ action: 'pet_error', info: e.message }); }
 }
 
 export default async function handler(req, res) {
@@ -138,7 +143,7 @@ export default async function handler(req, res) {
             status: 'success',
             timestamp: admin.firestore.FieldValue.serverTimestamp(),
             executor: req.query.trigger || 'auto',
-            summary: `Motor V1.3.2: ${logResults.details.length} acciones.`
+            summary: `Motor V1.3.3: ${logResults.details.length} acciones.`
         });
         return res.status(200).json({ ok: true, summary: logResults });
     } catch (e) { return res.status(500).json({ ok: false, error: e.message }); }

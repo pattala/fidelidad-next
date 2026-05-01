@@ -51,21 +51,20 @@ async function handleForecast(req, res, db) {
 
         const customRange = {
             active: hasCustom,
-            start: hasCustom ? new Date(customStartStr) : null,
-            end:   hasCustom ? new Date(customEndStr)   : null,
+            start: hasCustom ? new Date(customStartStr + 'T12:00:00') : null,
+            end:   hasCustom ? new Date(customEndStr + 'T23:59:59')   : null,
             points: 0, money: 0, count: 0
         };
 
-        // OPTIMIZACIÓN CRÍTICA: Solo traer créditos que NO han vencido y que tienen puntos remanentes
-        // Esto evita el Error 500 por timeout al procesar miles de registros antiguos.
+        // FILTRADO EN MEMORIA (PARA EVITAR ERRORES DE ÍNDICE 500)
         const creditsSnap = await db.collectionGroup('points_history')
             .where('type', '==', 'credit')
-            .where('status', '!=', 'expired')
             .get();
 
         creditsSnap.forEach(doc => {
             const data = doc.data();
-            if (!data.expiresAt || (data.remainingPoints || 0) <= 0) return;
+            // Filtrar status y puntos remanentes en memoria
+            if (data.status === 'expired' || !data.expiresAt || (data.remainingPoints || 0) <= 0) return;
 
             const expiresAt = data.expiresAt.toDate();
             const diffDays = Math.ceil((expiresAt.getTime() - startOfToday.getTime()) / 86400000);

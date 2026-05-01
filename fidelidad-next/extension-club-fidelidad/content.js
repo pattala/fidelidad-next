@@ -1,8 +1,8 @@
-// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V42 - UNIFICACIÓN TOTAL)
+// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V43 - STABLE RELEASE)
 if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin') || window.location.href.includes('pattala.com')) {
     console.log("🛡️ [Club Fidelidad] Extensión desactivada en el Dashboard.");
 } else {
-    console.log("🚀 [Club Fidelidad] V42: Iniciando extensión.");
+    console.log("🚀 [Club Fidelidad] V43: Iniciando extensión.");
 
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;
@@ -15,8 +15,7 @@ let enablePetModule = false;
 chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (res) => {
     config = res;
     if (res.apiUrl && res.apiKey) {
-        // Trigger Engine
-        fetch(`${res.apiUrl}/api/engine-campaigns?trigger=extension`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-api-key': res.apiKey } }).catch(e => {});
+        // Trigger Engine (Solo motor diario unificado)
 
         fetch(`${res.apiUrl}/api/engine-daily?mode=daily&trigger=extension`, {
             method: 'POST',

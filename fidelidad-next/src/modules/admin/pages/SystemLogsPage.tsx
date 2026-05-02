@@ -41,6 +41,11 @@ export const SystemLogsPage = () => {
     const [endDate, setEndDate] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
 
+    // Engine & Configuration State
+    const [isRunningExpirations, setIsRunningExpirations] = useState(false);
+    const [ignoreDeduplication, setIgnoreDeduplication] = useState(false);
+    const [isSavingConfig, setIsSavingConfig] = useState(false);
+
     const handleRunEngine = async () => {
         if (!window.confirm("¿Deseas ejecutar ahora el Motor Unificado? Esto procesará Cumpleaños, Vencimientos, Campañas y Alertas de Mascotas en un solo paso.")) return;
 

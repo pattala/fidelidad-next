@@ -5,7 +5,11 @@ import { Toaster } from 'react-hot-toast';
 import { RouterProvider } from 'react-router-dom';
 import { router } from './router';
 
+import { APP_VERSION } from './lib/adminConfig';
+
 document.title = import.meta.env.VITE_APP_NAME || 'Sistema de Beneficios';
+console.log(`%c 💎 RAMPET DASHBOARD ${APP_VERSION} `, 'background: #7c3aed; color: #fff; font-weight: bold; padding: 4px; border-radius: 4px;');
+
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>

@@ -1,4 +1,9 @@
 /**
+ * APP VERSION & REVISION
+ */
+export const APP_VERSION = 'V.1.3.6-STABLE-REV1';
+
+/**
  * CONFIGURACIÓN DE SEGURIDAD ADMINISTRATIVA (White Label)
  * El sistema es autoinstalable. Si no hay admins en Firestore, 
  * se permite el acceso inicial con credenciales de fábrica.

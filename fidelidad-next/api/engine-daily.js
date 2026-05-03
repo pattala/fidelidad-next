@@ -63,6 +63,16 @@ export default async function handler(req, res) {
         // Usamos la utilidad centralizada para respetar el Simulador
         const referenceDate = await getEffectiveDate(db, simulatedDateStr);
         const todayStr = referenceDate.toISOString().split('T')[0];
+        
+        // RECUPERAR ALERTAS PROCESADAS PARA SINCRONIZACIÓN
+        let processedAlerts = {};
+        try {
+            const processedSnap = await db.collection('audit_logs').doc(`daily_alerts_${todayStr}`).get();
+            if (processedSnap.exists) {
+                processedAlerts = processedSnap.data().actions || {};
+            }
+        } catch (e) { console.error("Error fetching processed alerts:", e); }
+
         const todayMD = `${String(referenceDate.getMonth() + 1).padStart(2, '0')}-${String(referenceDate.getDate()).padStart(2, '0')}`;
         const currentYear = referenceDate.getFullYear().toString();
         
@@ -316,7 +326,8 @@ export default async function handler(req, res) {
             results,
             birthdays: birthdaysList,
             expirations: expirationsList,
-            petAlerts: petAlertsList
+            petAlerts: petAlertsList,
+            processedAlerts: processedAlerts // Enviamos los estados a la extensión
         });
 
     } catch (e) {

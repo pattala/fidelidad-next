@@ -72,30 +72,6 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
     }
 });
 
-function showGlobalAlert(fullData, adminUrl) {
-    const birthdays = fullData.birthdays?.list || [];
-    const expirations = fullData.expirations?.list || [];
-    const petAlerts = fullData.petAlerts?.list || [];
-    const total = birthdays.length + expirations.length + petAlerts.length;
-
-    if (total === 0) {
-        const w = document.getElementById('cf-v35-bubble');
-        if (w) w.remove();
-        return;
-    }
-
-    let container = document.getElementById('cf-v35-bubble');
-    if (container) container.remove();
-    
-    container = document.createElement('div');
-    container.id = 'cf-v35-bubble';
-    container.style.cssText = `position:fixed; bottom:30px; right:30px; z-index:999999999; pointer-events:none;`;
-
-    let isExpanded = false;
-    let pos = { x: 0, y: 0 };
-    let dragStart = { x: 0, y: 0 };
-    let isDragging = false;
-
     if (!document.getElementById('cf-v35-styles')) {
         const style = document.createElement('style');
         style.id = 'cf-v35-styles';
@@ -113,18 +89,15 @@ function showGlobalAlert(fullData, adminUrl) {
                 transition: transform 0.2s; animation: cf-v35-float 4s infinite ease-in-out; pointer-events: auto;
             }
             .cf-v35-panel { width: 400px; max-height: 580px; display: flex; flex-direction: column; overflow: hidden; animation: cf-v35-pop 0.3s cubic-bezier(0,1,0.2,1); }
-            .cf-v35-card { position: relative; background: rgba(255,255,255,0.07); border-radius: 30px; padding: 24px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.1); }
+            .cf-v35-card { position: relative; background: rgba(255,255,255,0.07); border-radius: 30px; padding: 20px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.1); }
             .cf-v35-card-close { position: absolute; top: 15px; right: 15px; background: none; border: none; color: rgba(255,255,255,0.4); font-size: 20px; cursor: pointer; transition: color 0.2s; }
             .cf-v35-card-close:hover { color: #ef4444; }
-            .cf-v35-checkbox { width: 22px; height: 22px; cursor: pointer; accent-color: #25D366; }
             .cf-v35-btn-wa {
                 background: linear-gradient(135deg, #25D366, #128C7E); color: white; border: none;
-                border-radius: 20px; padding: 16px; font-weight: 900; font-size: 13px;
-                text-transform: uppercase; cursor: pointer; width: 100%; margin-top: 15px;
-                box-shadow: 0 10px 20px rgba(18, 140, 126, 0.3); transition: all 0.2s;
+                border-radius: 18px; padding: 12px; font-weight: 900; font-size: 12px;
+                text-transform: uppercase; cursor: pointer; width: 100%; transition: all 0.2s;
             }
             .cf-v35-btn-wa:hover { filter: brightness(1.1); transform: scale(1.02); }
-            .cf-v35-btn-wa.no-msg { background: rgba(255,255,255,0.1); color: #fff; box-shadow: none; border: 1px solid rgba(255,255,255,0.2); }
             @keyframes cf-v35-float { 0%,100% {transform:translateY(0)} 50% {transform:translateY(-12px)} }
             @keyframes cf-v35-pop { from {opacity:0; transform:scale(0.8) translateY(40px)} to {opacity:1; transform:scale(1) translateY(0)} }
             .cf-scrollbar::-webkit-scrollbar { width: 4px; }
@@ -147,18 +120,31 @@ function showGlobalAlert(fullData, adminUrl) {
                 msg = (templates.birthday || "¡Feliz cumple {nombre}! \u{1F382}\u{1F38A} Te regalamos {puntos} puntos. \u2728").replace(/{puntos}/g, points.toString());
             } else { msg = templates.birthdaySimple || "¡Feliz cumple {nombre}! \u{1F382}\u{1F38A} \u2728"; }
         } else if (type === 'expirations') {
-            if (breakdownStr && breakdownStr.includes('|')) {
-                const list = breakdownStr.split('|').map(s => `\n\u2022 ${s}`).join('');
-                msg = `¡Hola ${firstName}! \u{1F4E3} Tus puntos vencen próximamente:${list}\n\n\u{1F525} Total a vencer: ${extra} pts.`;
-            } else {
-                msg = (templates.expirationWarning || "¡Hola {nombre}! \u{1F4E3} {puntos} pts por vencer. \u23F3").replace(/{puntos}/g, extra);
-            }
+            msg = (templates.expirationWarning || "¡Hola {nombre}! \u{1F4E3} {puntos} pts por vencer.").replace(/{puntos}/g, extra);
         } else if (type === 'petAlerts') {
             msg = (templates.petFoodAlert || "¡Hola {nombre}! \u{1F43E} Reposición de {mascota}.").replace(/{mascota}/g, extra);
         }
         msg = msg.replace(/{nombre}/g, firstName).replace(/{tienda}/g, cfg?.siteName || cfg?.appName || 'la tienda');
         return `https://api.whatsapp.com/send?phone=${p}&text=${encodeURIComponent(msg)}`;
     };
+
+function showGlobalAlert(fullData, adminUrl) {
+    const curY = new Date().getFullYear().toString();
+    const birthdays = fullData.birthdays?.list || [];
+    const expirations = fullData.expirations?.list || [];
+    const petAlerts = fullData.petAlerts?.list || [];
+
+    let isExpanded = false;
+    let activeTab = 'pending'; 
+    let pos = { x: 0, y: 0 };
+    let dragStart = { x: 0, y: 0 };
+    let isDragging = false;
+
+    let container = document.getElementById('cf-v35-bubble');
+    if (container) container.remove();
+    container = document.createElement('div');
+    container.id = 'cf-v35-bubble';
+    container.style.cssText = `position:fixed; bottom:30px; right:30px; z-index:999999999; pointer-events:none; font-family: 'Outfit', sans-serif;`;
 
     const mouseUp = () => { isDragging = false; document.removeEventListener('mousemove', onMouseMove); };
     const onMouseMove = (e) => { 
@@ -171,23 +157,53 @@ function showGlobalAlert(fullData, adminUrl) {
     const render = () => {
         container.innerHTML = '';
         const ui = document.createElement('div');
+        ui.style.pointerEvents = 'auto';
+
+        const dismissed = fullData.dismissedAlerts || [];
+        const getStatus = (id) => {
+            const entry = dismissed.find(d => d.id === id);
+            return entry ? entry.status : 'pending';
+        };
+
+        const pendingB = birthdays.filter(b => getStatus(`birthday-${b.socioNumber || b.dni}-${curY}`) === 'pending');
+        const pendingE = expirations.filter(e => getStatus(`expiration-${e.socioNumber || e.phone}-${e.nextExpirationDate || 'today'}-${e.points || 0}`) === 'pending');
+        const pendingP = petAlerts.filter(p => getStatus(`pet-${p.socioNumber || p.phone}-${p.petName}-${p.lastFoodAlertDate || 'today'}-${p.points || 0}`) === 'pending');
+        
+        const procB = birthdays.filter(b => getStatus(`birthday-${b.socioNumber || b.dni}-${curY}`) !== 'pending');
+        const procE = expirations.filter(e => getStatus(`expiration-${e.socioNumber || e.phone}-${e.nextExpirationDate || 'today'}-${e.points || 0}`) !== 'pending');
+        const procP = petAlerts.filter(p => getStatus(`pet-${p.socioNumber || p.phone}-${p.petName}-${p.lastFoodAlertDate || 'today'}-${p.points || 0}`) !== 'pending');
+
+        const totalPending = pendingB.length + pendingE.length + pendingP.length;
+        const totalDiscarded = [...procB, ...procE, ...procP].filter(item => {
+            const id = item.petName ? `pet-${item.socioNumber || item.phone}-${item.petName}-${item.lastFoodAlertDate || 'today'}-${item.points || 0}` : 
+                       item.nextExpirationDate ? `expiration-${item.socioNumber || item.phone}-${item.nextExpirationDate || 'today'}-${item.points || 0}` :
+                       `birthday-${item.socioNumber || item.dni}-${curY}`;
+            return getStatus(id) === 'dismissed';
+        }).length;
+
         if (isExpanded) {
             ui.className = 'cf-v35-glass cf-v35-panel';
             ui.innerHTML = `
-                <div style="padding:24px; cursor:grab; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center;" id="cf-v35-drag">
-                    <div style="display:flex; align-items:center; gap:12px;">
-                        <span style="font-size:28px;">\u2B50</span>
+                <div style="padding:16px; cursor:grab; border-bottom:1px solid rgba(255,255,255,0.1); display:flex; justify-content:space-between; align-items:center;" id="cf-v35-drag">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span style="font-size:24px;">\u{1F680}</span>
                         <div>
-                            <div style="font-weight:900; font-size:13px; text-transform:uppercase;">Centro de Avisos</div>
-                            <div style="font-size:10px; opacity:0.5; font-weight:700;">Gestión de Vencimientos</div>
+                            <div style="font-weight:900; font-size:12px; text-transform:uppercase;">Club Fidelidad</div>
+                            <div style="font-size:10px; opacity:0.6;">Gestión de Alertas</div>
                         </div>
                     </div>
-                    <button id="cf-v35-close" style="background:none; border:none; color:white; font-size:28px; cursor:pointer;" title="Minimizar">×</button>
+                    <button id="cf-v35-close" style="background:none; border:none; color:white; font-size:24px; cursor:pointer;">×</button>
                 </div>
-                <div style="padding:22px; overflow-y:auto; flex:1;" class="cf-scrollbar">
-                    ${renderBirthdays()}
-                    ${renderExpirations()}
-                    ${renderGroup('petAlerts', '\u{1F43E} Mascotas', petAlerts, '#6366f1')}
+                <div style="display:flex; background:rgba(0,0,0,0.2); padding:4px;">
+                    <button id="tab-pending" style="flex:1; padding:8px; border:none; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; ${activeTab === 'pending' ? 'background:rgba(255,255,255,0.15); color:white;' : 'background:none; color:rgba(255,255,255,0.4);'}">
+                        PENDIENTES (${totalPending})
+                    </button>
+                    <button id="tab-processed" style="flex:1; padding:8px; border:none; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; ${activeTab === 'processed' ? 'background:rgba(255,255,255,0.15); color:white;' : 'background:none; color:rgba(255,255,255,0.4);'}">
+                        PROCESADOS
+                    </button>
+                </div>
+                <div style="padding:16px; overflow-y:auto; flex:1;" class="cf-scrollbar">
+                    ${activeTab === 'pending' ? renderList(pendingB, pendingE, pendingP, 'pending', curY, fullData) : renderList(procB, procE, procP, 'processed', curY, fullData)}
                 </div>
             `;
             ui.querySelector('#cf-v35-drag').onmousedown = (e) => {
@@ -195,52 +211,13 @@ function showGlobalAlert(fullData, adminUrl) {
                 document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', mouseUp);
             };
             ui.querySelector('#cf-v35-close').onclick = () => { isExpanded = false; render(); };
-            
-            ui.querySelectorAll('.cf-v35-card').forEach(card => {
-                const btn = card.querySelector('.cf-v35-btn-wa');
-                const closeBtn = card.querySelector('.cf-v35-card-close');
-                
-                const checkEmpty = () => {
-                    if (ui.querySelectorAll('.cf-v35-card:not([style*="display: none"])').length === 0) {
-                        isExpanded = false;
-                        const bubble = document.getElementById('cf-v35-bubble');
-                        if (bubble) bubble.remove();
-                    }
-                };
-
-                const dismissItem = (alertId) => {
-                    chrome.storage.local.get(['dismissedAlerts'], (store) => {
-                        const list = store.dismissedAlerts || [];
-                        if (!list.includes(alertId)) {
-                            list.push(alertId);
-                            chrome.storage.local.set({ dismissedAlerts: list });
-                        }
-                    });
-                };
-
-                if (closeBtn) {
-                    closeBtn.onclick = () => {
-                        card.style.display = 'none';
-                        dismissItem(btn.dataset.id);
-                        checkEmpty();
-                    };
-                }
-
-                btn.onclick = () => {
-                    const url = generateWhatsAppToken(btn.dataset.type, btn.dataset.phone, btn.dataset.name, btn.dataset.extra, fullData.config, btn.dataset.breakdown);
-                    if (url) window.open(url, '_blank');
-                    
-                    card.style.opacity = '0.3'; btn.innerText = 'PROCESADO';
-                    dismissItem(btn.dataset.id);
-                    setTimeout(() => {
-                        card.style.display = 'none';
-                        checkEmpty();
-                    }, 1000);
-                };
-            });
+            ui.querySelector('#tab-pending').onclick = () => { activeTab = 'pending'; render(); };
+            ui.querySelector('#tab-processed').onclick = () => { activeTab = 'processed'; render(); };
+            attachActions(ui, fullData, render);
         } else {
             ui.className = 'cf-v35-bubble';
-            ui.innerHTML = `<span style="font-size:36px;">\u{1F4E3}</span><div style="position:absolute; top:-5px; right:-5px; background:#ef4444; color:white; font-size:11px; font-weight:900; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:2.5px solid white;">${total}</div>`;
+            const countHtml = `<div style="position:absolute; top:-8px; right:-8px; background:#ef4444; color:white; font-size:10px; font-weight:900; padding:4px 8px; border-radius:20px; border:2px solid white; box-shadow:0 4px 12px rgba(0,0,0,0.2); pointer-events:none;">${totalPending} / ${totalDiscarded}</div>`;
+            ui.innerHTML = `<span style="font-size:28px;">\u{1F4E3}</span>${countHtml}`;
             ui.onmousedown = (e) => {
                 isDragging = true; dragStart.x = e.clientX - pos.x; dragStart.y = e.clientY - pos.y;
                 document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', mouseUp);
@@ -250,57 +227,87 @@ function showGlobalAlert(fullData, adminUrl) {
         container.appendChild(ui);
     };
 
-    const renderBirthdays = () => {
-        if (birthdays.length === 0) return '';
-        const curY = new Date().getFullYear().toString();
-        return `<div style="margin-bottom:25px;">
-            <div style="font-size:11px; font-weight:900; color:#ec4899; text-transform:uppercase; margin-bottom:12px;">\u{1F382} Cumpleaños Hoy</div>
-            ${birthdays.map(c => `<div class="cf-v35-card">
-                <button class="cf-v35-card-close" title="Ocultar aviso">×</button>
-                <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:12px;">
-                    <div><div style="font-weight:900; font-size:16px;">${c.name} <span style="font-size:10px; opacity:0.4; margin-left:5px;">#${c.socioNumber || 'S/N'}</span></div><div style="font-size:10px; opacity:0.5;">DNI: ${c.dni} | Nro: ${c.socioNumber}</div></div>
+    const renderList = (births, exps, pets, mode, curY, fullData) => {
+        let html = '';
+        if (births.length > 0) {
+            html += `<div style="margin-bottom:16px;"><div style="font-size:10px; font-weight:900; color:#ec4899; text-transform:uppercase; margin-bottom:8px;">\u{1F382} Cumpleaños</div>`;
+            html += births.map(c => renderCard(c, 'birthday', `birthday-${c.socioNumber || c.dni}-${curY}`, mode, fullData)).join('');
+            html += `</div>`;
+        }
+        if (exps.length > 0) {
+            html += `<div style="margin-bottom:16px;"><div style="font-size:10px; font-weight:900; color:#f59e0b; text-transform:uppercase; margin-bottom:8px;">\u23F3 Vencimientos</div>`;
+            html += exps.map(e => renderCard(e, 'expiration', `expiration-${e.socioNumber || e.phone}-${e.nextExpirationDate || 'today'}-${e.points || 0}`, mode, fullData)).join('');
+            html += `</div>`;
+        }
+        if (pets.length > 0) {
+            html += `<div style="margin-bottom:16px;"><div style="font-size:10px; font-weight:900; color:#6366f1; text-transform:uppercase; margin-bottom:8px;">\u{1F43E} Mascotas</div>`;
+            html += pets.map(p => renderCard(p, 'pet', `pet-${p.socioNumber || p.phone}-${p.petName}-${p.lastFoodAlertDate || 'today'}-${p.points || 0}`, mode, fullData)).join('');
+            html += `</div>`;
+        }
+        return html || '<div style="text-align:center; padding:40px; opacity:0.4;">Sin registros</div>';
+    };
+
+    const renderCard = (item, type, id, mode, fullData) => {
+        const dismissed = fullData.dismissedAlerts || [];
+        const entry = dismissed.find(d => d.id === id);
+        const status = entry ? entry.status : 'pending';
+        let statusIcon = '';
+        if (status === 'sent') statusIcon = '<span style="color:#4ade80; font-size:14px; margin-left:auto;">\u2714\u2714</span>';
+        if (status === 'dismissed') statusIcon = '<span style="color:#f87171; font-size:14px; margin-left:auto;">\u2714</span>';
+
+        return `<div class="cf-v35-card" style="${mode === 'processed' ? 'opacity:0.8; filter:grayscale(0.5);' : ''}">
+            <div style="display:flex; justify-content:space-between; align-items:start;">
+                <div style="flex:1;">
+                    <div style="font-weight:800; font-size:14px; display:flex; align-items:center; gap:6px;">
+                        ${item.name} <span style="font-size:9px; opacity:0.4;">#${item.socioNumber || 'S/N'}</span> ${statusIcon}
+                    </div>
+                    <div style="font-size:10px; opacity:0.6; margin-top:2px;">
+                        ${type === 'pet' ? `🐾 ${item.petName}` : type === 'expiration' ? `⏳ ${item.points} pts` : '🎂 Cumpleaños'}
+                    </div>
                 </div>
-                <div style="color:${c.lastBirthdayPointsYear === curY ? '#4ade80' : '#fb923c'}; font-size:9px; font-weight:900;">${c.lastBirthdayPointsYear === curY ? '\u2705 REGALO ENVIADO' : '🎁 REGALO PENDIENTE'}</div>
-                <button class="cf-v35-btn-wa" data-id="birthday-${c.socioNumber || c.dni}-${curY}" data-type="birthdays" data-phone="${c.phone}" data-name="${c.name}">📳 Enviar WhatsApp</button>
-            </div>`).join('')}
+                ${mode === 'pending' ? `<button class="cf-v35-card-close" data-id="${id}">×</button>` : `<button class="cf-v35-card-delete" data-id="${id}" style="background:none; border:none; color:white; opacity:0.4; cursor:pointer;">🗑️</button>`}
+            </div>
+            <div style="margin-top:10px;">
+                <button class="cf-v35-btn-wa" data-id="${id}" data-type="${type === 'pet' ? 'petAlerts' : type + 's'}" data-phone="${item.phone}" data-name="${item.name}" data-extra="${type === 'pet' ? item.petName : item.points || ''}" style="${mode === 'processed' ? 'background:rgba(255,255,255,0.1);' : ''}">
+                    ${mode === 'pending' ? '📳 Enviar WhatsApp' : '🔄 Re-enviar'}
+                </button>
+            </div>
         </div>`;
     };
 
-    const renderExpirations = () => {
-        if (expirations.length === 0) return '';
-        return `<div style="margin-bottom:25px;">
-            <div style="font-size:11px; font-weight:900; color:#f59e0b; text-transform:uppercase; margin-bottom:12px;">\u23F3 Vencimientos Próximos</div>
-            ${expirations.map(item => {
-                const bStr = item.breakdown ? item.breakdown.map(b => `${b.date}: ${b.rem} pts`).join('|') : '';
-                return `<div class="cf-v35-card">
-                <button class="cf-v35-card-close" title="Ocultar aviso">×</button>
-                <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:12px;">
-                    <div style="flex:1;">
-                        <div style="font-weight:900; font-size:16px; margin-bottom:4px;">${item.name} <span style="font-size:10px; opacity:0.4; margin-left:5px;">#${item.socioNumber || 'S/N'}</span></div>
-                        <div style="font-size:11px; color:#f59e0b; font-weight:800;">⚠️ ${item.points} pts por vencer</div>
-                    </div>
-                </div>
-                ${item.breakdown && item.breakdown.length > 1 ? `<div style="font-size:9px; opacity:0.6; font-weight:700; background:rgba(0,0,0,0.2); padding:8px; border-radius:12px;">${item.breakdown.map(b => `• ${b.date}: ${b.rem} pts`).join('<br>')}</div>` : ''}
-                <button class="cf-v35-btn-wa" data-id="expiration-${item.socioNumber || item.phone}-${item.nextExpirationDate || 'today'}-${item.points || 0}" data-type="expirations" data-phone="${item.phone}" data-name="${item.name}" data-extra="${item.points}" data-breakdown="${bStr}">📳 Enviar WhatsApp</button>
-            </div>`;
-            }).join('')}
-        </div>`;
-    };
+    const attachActions = (ui, fullData, render) => {
+        const updateStorage = async (alertId, status) => {
+            // 1. Local Sync (Immediate feedback)
+            chrome.storage.local.get(['dismissedAlerts'], (store) => {
+                let list = store.dismissedAlerts || [];
+                list = list.filter(d => d.id !== alertId);
+                if (status) list.push({ id: alertId, status, timestamp: Date.now() });
+                chrome.storage.local.set({ dismissedAlerts: list }, () => {
+                    fullData.dismissedAlerts = list;
+                    render();
+                });
+            });
 
-    const renderGroup = (type, title, list, color) => {
-        if (!list || list.length === 0) return '';
-        return `<div style="margin-bottom:25px;"><div style="font-size:11px; font-weight:900; color:${color}; text-transform:uppercase; margin-bottom:12px;">${title}</div>
-            ${list.map(item => `<div class="cf-v35-card">
-                <button class="cf-v35-card-close" title="Ocultar aviso">×</button>
-                <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:12px;">
-                    <div style="flex:1;">
-                        <div style="font-weight:900; font-size:16px;">${item.name} <span style="font-size:10px; opacity:0.4; margin-left:5px;">#${item.socioNumber || 'S/N'}</span></div>
-                        <div style="font-size:11px; color:${color}; font-weight:800;">🐾 Alimento: ${item.petName}</div>
-                    </div>
-                </div>
-                <button class="cf-v35-btn-wa" data-id="pet-${item.socioNumber || item.phone}-${item.petName}-${item.lastFoodAlertDate || 'today'}-${item.points || 0}" data-type="${type}" data-phone="${item.phone}" data-name="${item.name}" data-extra="${item.petName}">📳 Enviar WhatsApp</button>
-            </div>`).join('')}
-        </div>`;
+            // 2. Cloud Sync (for Dashboard Parity)
+            try {
+                fetch(`${fullData.config.apiUrl}/api/sync-alerts`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-api-key': fullData.config.apiKey },
+                    body: JSON.stringify({ 
+                        alertId, 
+                        action: status || 'delete',
+                        date: new Date().toISOString().split('T')[0]
+                    })
+                });
+            } catch (e) { console.warn("Sync error:", e); }
+        };
+        ui.querySelectorAll('.cf-v35-card-close').forEach(btn => btn.onclick = () => updateStorage(btn.dataset.id, 'dismissed'));
+        ui.querySelectorAll('.cf-v35-card-delete').forEach(btn => btn.onclick = () => updateStorage(btn.dataset.id, null));
+        ui.querySelectorAll('.cf-v35-btn-wa').forEach(btn => btn.onclick = () => {
+            const url = generateWhatsAppToken(btn.dataset.type, btn.dataset.phone, btn.dataset.name, btn.dataset.extra, fullData.config, btn.dataset.breakdown);
+            if (url) window.open(url, '_blank');
+            updateStorage(btn.dataset.id, 'sent');
+        });
     };
 
     render();

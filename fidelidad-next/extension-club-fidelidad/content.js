@@ -31,14 +31,25 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                 const pList = data.petAlerts || [];
                 console.log("📊 [Club Fidelidad] Totales -> Cumples:", bList.length, "Vencim:", eList.length, "Pets:", pList.length);
 
+                const curY = new Date().getFullYear().toString();
                 const dismissed = res.dismissedAlerts || [];
-                const filteredBirthdays = bList.filter(b => !dismissed.includes(`birthday-${b.socioNumber || b.dni}`));
+
+                const filteredBirthdays = bList.filter(b => {
+                    const id = `birthday-${b.socioNumber || b.dni}-${curY}`;
+                    return !dismissed.includes(id);
+                });
+
                 const filteredExpirations = eList.filter(e => {
-                    const isDismissed = dismissed.includes(`expiration-${e.phone || e.name}`);
-                    if (isDismissed) console.log("🚫 [Club Fidelidad] Vencimiento filtrado (ya cerrado antes):", e.name);
+                    const id = `expiration-${e.socioNumber || e.phone}-${e.nextExpirationDate || 'today'}`;
+                    const isDismissed = dismissed.includes(id);
+                    if (isDismissed) console.log("🚫 [Club Fidelidad] Vencimiento filtrado por fecha específica:", e.name, e.nextExpirationDate);
                     return !isDismissed;
                 });
-                const filteredPetAlerts = pList.filter(p => !dismissed.includes(`pet-${p.phone}-${p.petName}`));
+
+                const filteredPetAlerts = pList.filter(p => {
+                    const id = `pet-${p.socioNumber || p.phone}-${p.petName}-${p.lastFoodAlertDate || 'today'}`;
+                    return !dismissed.includes(id);
+                });
 
                 const total = filteredBirthdays.length + filteredExpirations.length + filteredPetAlerts.length;
                 console.log("🔔 [Club Fidelidad] Alertas finales (post-filtro):", total);
@@ -250,7 +261,7 @@ function showGlobalAlert(fullData, adminUrl) {
                     <div><div style="font-weight:900; font-size:16px;">${c.name} <span style="font-size:10px; opacity:0.4; margin-left:5px;">#${c.socioNumber || 'S/N'}</span></div><div style="font-size:10px; opacity:0.5;">DNI: ${c.dni} | Nro: ${c.socioNumber}</div></div>
                 </div>
                 <div style="color:${c.lastBirthdayPointsYear === curY ? '#4ade80' : '#fb923c'}; font-size:9px; font-weight:900;">${c.lastBirthdayPointsYear === curY ? '\u2705 REGALO ENVIADO' : '🎁 REGALO PENDIENTE'}</div>
-                <button class="cf-v35-btn-wa" data-id="birthday-${c.socioNumber || c.dni}" data-type="birthdays" data-phone="${c.phone}" data-name="${c.name}">📳 Enviar WhatsApp</button>
+                <button class="cf-v35-btn-wa" data-id="birthday-${c.socioNumber || c.dni}-${curY}" data-type="birthdays" data-phone="${c.phone}" data-name="${c.name}">📳 Enviar WhatsApp</button>
             </div>`).join('')}
         </div>`;
     };
@@ -270,7 +281,7 @@ function showGlobalAlert(fullData, adminUrl) {
                     </div>
                 </div>
                 ${item.breakdown && item.breakdown.length > 1 ? `<div style="font-size:9px; opacity:0.6; font-weight:700; background:rgba(0,0,0,0.2); padding:8px; border-radius:12px;">${item.breakdown.map(b => `• ${b.date}: ${b.rem} pts`).join('<br>')}</div>` : ''}
-                <button class="cf-v35-btn-wa" data-id="expiration-${item.phone || item.name}" data-type="expirations" data-phone="${item.phone}" data-name="${item.name}" data-extra="${item.points}" data-breakdown="${bStr}">📳 Enviar WhatsApp</button>
+                <button class="cf-v35-btn-wa" data-id="expiration-${item.socioNumber || item.phone}-${item.nextExpirationDate || 'today'}" data-type="expirations" data-phone="${item.phone}" data-name="${item.name}" data-extra="${item.points}" data-breakdown="${bStr}">📳 Enviar WhatsApp</button>
             </div>`;
             }).join('')}
         </div>`;
@@ -287,7 +298,7 @@ function showGlobalAlert(fullData, adminUrl) {
                         <div style="font-size:11px; color:${color}; font-weight:800;">🐾 Alimento: ${item.petName}</div>
                     </div>
                 </div>
-                <button class="cf-v35-btn-wa" data-id="pet-${item.phone}-${item.petName}" data-type="${type}" data-phone="${item.phone}" data-name="${item.name}" data-extra="${item.petName}">📳 Enviar WhatsApp</button>
+                <button class="cf-v35-btn-wa" data-id="pet-${item.socioNumber || item.phone}-${item.petName}-${item.lastFoodAlertDate || 'today'}" data-type="${type}" data-phone="${item.phone}" data-name="${item.name}" data-extra="${item.petName}">📳 Enviar WhatsApp</button>
             </div>`).join('')}
         </div>`;
     };

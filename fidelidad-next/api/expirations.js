@@ -28,16 +28,31 @@ export default async function handler(req, res) {
         const now = new Date();
         const todayStr = now.toISOString().split('T')[0];
 
-        // Obtener valor del punto
+        // Obtener valor del punto respetando la configuración del panel
         const configSnap = await db.collection('config').doc('general').get();
         const config = configSnap.data() || {};
-        const prizesSnap = await db.collection('prizes').where('active', '==', true).get();
-        let totalRatio = 0, pCount = 0;
-        prizesSnap.forEach(d => {
-            const p = d.data();
-            if (p.cashValue && p.pointsRequired > 0) { totalRatio += (p.cashValue / p.pointsRequired); pCount++; }
-        });
-        const pointValue = pCount > 0 ? (totalRatio / pCount) : (config.pointValue || 10);
+        const method = config.pointCalculationMethod || 'manual';
+        
+        let pointValue = 10; // Fallback mínimo seguro
+
+        if (method === 'manual') {
+            pointValue = config.pointValue || 10;
+        } else if (method === 'average') {
+            const prizesSnap = await db.collection('prizes').where('active', '==', true).get();
+            let totalRatio = 0, pCount = 0;
+            prizesSnap.forEach(d => {
+                const p = d.data();
+                if (p.cashValue && p.pointsRequired > 0) { 
+                    totalRatio += (p.cashValue / p.pointsRequired); 
+                    pCount++; 
+                }
+            });
+            pointValue = pCount > 0 ? (totalRatio / pCount) : (config.pointValue || 10);
+        } else if (method === 'budget' && config.pointValueBudget) {
+            // En modo presupuesto, el valor del punto es Presupuesto / Total Puntos en calle
+            // Para el pronóstico, usamos un valor proyectado o el manual como base
+            pointValue = config.pointValue || 10;
+        }
 
         // CONSULTA ULTRA-SEGURA: Usamos el cache 'nextExpirationDate' de los usuarios
         const usersSnap = await db.collection('users')

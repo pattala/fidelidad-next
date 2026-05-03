@@ -133,24 +133,32 @@ export default async function handler(req, res) {
                         const msg = template.replace(/{nombre}/g, (userData.nombre || userData.name || '').split(' ')[0]).replace(/{puntos}/g, birthdayPoints.toString());
                         const title = "¡Feliz Cumpleaños! 🎂";
 
-                        if (userData.fcmTokens?.length) {
+                        // 1. PWA PUSH
+                        if (userData.fcmTokens?.length && config.messaging?.pushEnabled !== false) {
                             const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
                             await app.messaging().sendEachForMulticast({
                                 tokens: userData.fcmTokens,
                                 data: { title, body: msg, url: "/profile", icon: config.logoUrl ? getAbsoluteUrl(config.logoUrl, PWA_URL) : "" }
                             }).catch(() => {});
                         }
-                        if (userData.email && process.env.SMTP_USER) {
+
+                        // 2. EMAIL
+                        if (userData.email && process.env.SMTP_USER && config.messaging?.emailEnabled !== false) {
                             const innerHtml = `<div style="color: #333;"><h2 style="color: #db2777; margin-top: 0;">${title}</h2><p style="font-size: 16px; line-height: 1.6;">${msg}</p></div>`;
                             await transporter.sendMail({
                                 from: `"${config.siteName || 'Club Fidelidad'}" <${process.env.SMTP_USER}>`,
                                 to: userData.email, subject: title, html: buildHtmlLayout(innerHtml, config)
                             }).catch(() => {});
                         }
-                        await userDoc.ref.collection('inbox').add({
-                            title, body: msg, url: "/profile", type: "birthday", read: false,
-                            date: admin.firestore.Timestamp.fromDate(referenceDate)
-                        });
+
+                        // 3. INBOX
+                        if (config.messaging?.inboxEnabled !== false) {
+                            await userDoc.ref.collection('inbox').add({
+                                title, body: msg, url: "/profile", type: "birthday", read: false,
+                                date: admin.firestore.Timestamp.fromDate(referenceDate)
+                            });
+                        }
+                        
                         await userDoc.ref.update({ lastBirthdayGreetingYear: currentYear });
                     }
                     results.birthdays++;
@@ -245,7 +253,7 @@ export default async function handler(req, res) {
                         .replace(/{fecha}/g, userData.nextExpirationDate);
 
                     // 1. PWA PUSH
-                    if (userData.fcmTokens?.length) {
+                    if (userData.fcmTokens?.length && config.messaging?.pushEnabled !== false) {
                         const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
                         await app.messaging().sendEachForMulticast({
                             tokens: userData.fcmTokens,
@@ -254,13 +262,15 @@ export default async function handler(req, res) {
                     }
 
                     // 2. INBOX
-                    await doc.ref.collection('inbox').add({
-                        title, body: msg, url: "/profile", type: "expiration_warning", read: false,
-                        date: admin.firestore.Timestamp.fromDate(referenceDate)
-                    });
+                    if (config.messaging?.inboxEnabled !== false) {
+                        await doc.ref.collection('inbox').add({
+                            title, body: msg, url: "/profile", type: "expiration_warning", read: false,
+                            date: admin.firestore.Timestamp.fromDate(referenceDate)
+                        });
+                    }
 
                     // 3. EMAIL
-                    if (userData.email && process.env.SMTP_USER) {
+                    if (userData.email && process.env.SMTP_USER && config.messaging?.emailEnabled !== false) {
                         const innerHtml = `<div style="color: #333;"><h2 style="color: #f59e0b; margin-top: 0;">${title}</h2><p style="font-size: 16px; line-height: 1.6;">${msg}</p></div>`;
                         await transporter.sendMail({
                             from: `"${config.siteName || 'Club Fidelidad'}" <${process.env.SMTP_USER}>`,
@@ -313,16 +323,30 @@ export default async function handler(req, res) {
                                 const template = config.messaging?.templates?.petFoodAlert || "¡Hola {nombre}! 🐾 Notamos que a {mascota} se le debe estar terminando su {marca}.";
                                 const msg = template.replace(/{nombre}/g, userName).replace(/{mascota}/g, pet.name).replace(/{marca}/g, pet.foodBrand || pet.brand || 'alimento');
 
-                                if (userData.fcmTokens?.length) {
+                                if (userData.fcmTokens?.length && config.messaging?.pushEnabled !== false) {
+                                    const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
                                     await app.messaging().sendEachForMulticast({
                                         tokens: userData.fcmTokens,
-                                        data: { title: "🐾 Aviso de Alimento", body: msg, url: "/profile", type: "pet_alert" }
+                                        data: { title: "🐾 Aviso de Alimento", body: msg, url: "/profile", icon: config.logoUrl ? getAbsoluteUrl(config.logoUrl, PWA_URL) : "" }
                                     }).catch(() => {});
                                 }
-                                await userDoc.ref.collection('inbox').add({
-                                    title: "🐾 Aviso de Alimento", body: msg, url: "/profile", type: "pet_alert",
-                                    read: false, date: admin.firestore.Timestamp.fromDate(referenceDate)
-                                });
+
+                                if (config.messaging?.inboxEnabled !== false) {
+                                    await userDoc.ref.collection('inbox').add({
+                                        title: "🐾 Aviso de Alimento", body: msg, url: "/profile", type: "pet_alert",
+                                        read: false, date: admin.firestore.Timestamp.fromDate(referenceDate)
+                                    });
+                                }
+
+                                if (userData.email && process.env.SMTP_USER && config.messaging?.emailEnabled !== false) {
+                                    const title = "🐾 Aviso de Alimento";
+                                    const innerHtml = `<div style="color: #333;"><h2 style="color: #6366f1; margin-top: 0;">${title}</h2><p style="font-size: 16px; line-height: 1.6;">${msg}</p></div>`;
+                                    await transporter.sendMail({
+                                        from: `"${config.siteName || 'Club Fidelidad'}" <${process.env.SMTP_USER}>`,
+                                        to: userData.email, subject: title, html: buildHtmlLayout(innerHtml, config)
+                                    }).catch(() => {});
+                                }
+
                                 nextPets[i].lastFoodAlertDate = lastPurchase.toISOString().split('T')[0];
                                 updatedPets = true;
                                 results.petAlerts++;

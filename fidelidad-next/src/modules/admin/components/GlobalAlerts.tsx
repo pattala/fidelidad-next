@@ -42,27 +42,42 @@ export const GlobalAlerts = () => {
     }, [isDragging, dragStart]);
 
     useEffect(() => {
+        // Cargar configuración inicial
+        const unsubConfig = onSnapshot(doc(db, 'config', 'general'), (snap) => {
+            if (snap.exists()) setConfig(snap.data());
+        });
+        return () => unsubConfig();
+    }, []);
+
+    useEffect(() => {
+        let unsubs: (() => void)[] = [];
+
         const refreshAlerts = () => {
-            const todayStr = TimeService.now().toISOString().split('T')[0];
+            // Limpiar listeners anteriores
+            unsubs.forEach(u => u());
+            unsubs = [];
+
+            const effectiveDate = TimeService.now();
+            const todayStr = effectiveDate.toISOString().split('T')[0];
+            const curY = effectiveDate.getFullYear().toString();
+            const dM = String(effectiveDate.getMonth() + 1).padStart(2, '0');
+            const dD = String(effectiveDate.getDate()).padStart(2, '0');
+            const dMD = `${dM}-${dD}`;
             
+            const leadDays = Number(config?.messaging?.expirationWarningDays || 7);
+            const winEnd = new Date(effectiveDate);
+            winEnd.setDate(winEnd.getDate() + leadDays);
+            const winEndStr = winEnd.toISOString().split('T')[0];
+
+            // 1. Listener de Alertas Procesadas
             const unsubProcessed = onSnapshot(doc(db, 'audit_logs', `daily_alerts_${todayStr}`), (snap) => {
                 if (snap.exists()) setProcessedAlerts(snap.data().actions || {});
                 else setProcessedAlerts({});
             });
+            unsubs.push(unsubProcessed);
 
+            // 2. Listener de Usuarios (Alertas dinámicas)
             const unsubUsers = onSnapshot(query(collection(db, 'users')), (snap) => {
-                const effectiveDate = TimeService.now();
-                const curY = effectiveDate.getFullYear().toString();
-                const dM = String(effectiveDate.getMonth() + 1).padStart(2, '0');
-                const dD = String(effectiveDate.getDate()).padStart(2, '0');
-                const dMD = `${dM}-${dD}`;
-                const todayStr = effectiveDate.toISOString().split('T')[0];
-                
-                const leadDays = Number(config?.messaging?.expirationWarningDays || 7);
-                const winEnd = new Date(effectiveDate);
-                winEnd.setDate(winEnd.getDate() + leadDays);
-                const winEndStr = winEnd.toISOString().split('T')[0];
-                
                 const births: any[] = [];
                 const exps: any[] = [];
                 const pets: any[] = [];
@@ -71,7 +86,7 @@ export const GlobalAlerts = () => {
                     const data = d.data();
                     if (data.role === 'admin') return;
                     
-                    const bId = `birthday-${data.socioNumber || data.dni}-${curY}`;
+                    const bId = `birthday-${data.socioNumber || data.dni || data.id || d.id}-${curY}`;
                     const eId = `expiration-${data.socioNumber || data.phone || data.telefono}-${data.nextExpirationDate || 'today'}-${data.points || 0}`;
                     
                     const userBD = data.birthDate || data.fechaNacimiento;
@@ -98,19 +113,18 @@ export const GlobalAlerts = () => {
                 setExpiringUsers(exps);
                 setPetAlerts(pets);
             });
-
-            return { unsubProcessed, unsubUsers };
+            unsubs.push(unsubUsers);
         };
 
-        const { unsubProcessed, unsubUsers } = refreshAlerts();
+        refreshAlerts();
         
         // Listen for simulation changes to refresh everything
-        window.addEventListener('time-simulation-change', refreshAlerts);
+        const handleSimChange = () => refreshAlerts();
+        window.addEventListener('time-simulation-change', handleSimChange);
 
         return () => {
-            unsubProcessed();
-            unsubUsers();
-            window.removeEventListener('time-simulation-change', refreshAlerts);
+            unsubs.forEach(u => u());
+            window.removeEventListener('time-simulation-change', handleSimChange);
         };
     }, [config]);
 

@@ -46,6 +46,11 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                         const eList = data.expirations || [];
                         const pList = data.petAlerts || [];
 
+                        // GUARDAR CONFIGURACIÓN COMPLETA GLOBALMENTE
+                        if (data.config) {
+                            config = { ...config, ...data.config };
+                        }
+
                         const getStatus = (id) => {
                             const entry = localList.find(d => d.id === id);
                             return entry ? entry.status : 'pending';
@@ -573,7 +578,7 @@ function showFidelidadPanel() {
                             <!-- Se llena vía API -->
                         </div>
                         <label class="cf-checkbox-label" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #f3f4f6;">
-                            <input type="checkbox" id="cf-notify-wa"> Notificar por WhatsApp
+                            <input type="checkbox" id="cf-notify-wa" ${config.messaging?.whatsappEnabled !== false ? 'checked' : ''}> Notificar por WhatsApp
                         </label>
                         <!-- Sección Pet: se renderiza dinámicamente si enablePetModule=true y el cliente tiene mascotas -->
                         <div id="cf-pet-food-section" style="display:none; margin-top: 12px; padding-top: 12px; border-top: 1px solid #f3f4f6;">

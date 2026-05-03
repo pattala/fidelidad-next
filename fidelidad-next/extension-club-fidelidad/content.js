@@ -63,7 +63,7 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
 
                 if (total > 0) {
                     console.log("🎨 [Club Fidelidad] Dibujando globo...");
-                    showGlobalAlert(processedData, res.apiUrl);
+                    showGlobalAlert(processedData, config);
                 } else if (eList.length > 0 || bList.length > 0 || pList.length > 0) {
                     console.log("💡 [Club Fidelidad] Limpiando historial de cierres para mostrar alertas nuevas...");
                     chrome.storage.local.set({ dismissedAlerts: [] });
@@ -129,7 +129,7 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
         return `https://api.whatsapp.com/send?phone=${p}&text=${encodeURIComponent(msg)}`;
     };
 
-function showGlobalAlert(fullData, adminUrl) {
+function showGlobalAlert(fullData, config) {
     const curY = new Date().getFullYear().toString();
     const birthdays = fullData.birthdays?.list || [];
     const expirations = fullData.expirations?.list || [];
@@ -253,8 +253,8 @@ function showGlobalAlert(fullData, adminUrl) {
         const entry = dismissed.find(d => d.id === id);
         const status = entry ? entry.status : 'pending';
         let statusIcon = '';
-        if (status === 'sent') statusIcon = '<span style="color:#4ade80; font-size:14px; margin-left:auto;">\u2714\u2714</span>';
-        if (status === 'dismissed') statusIcon = '<span style="color:#f87171; font-size:14px; margin-left:auto;">\u2714</span>';
+        if (status === 'sent') statusIcon = '<span style="color:#25D366; font-size:14px; margin-left:auto; filter: drop-shadow(0 0 2px rgba(37,211,102,0.4)); font-weight:bold;">\u2714\u2714</span>';
+        if (status === 'dismissed') statusIcon = '<span style="color:#f87171; font-size:14px; margin-left:auto; font-weight:bold;">\u2714</span>';
 
         return `<div class="cf-v35-card" style="${mode === 'processed' ? 'opacity:0.8; filter:grayscale(0.5);' : ''}">
             <div style="display:flex; justify-content:space-between; align-items:start;">
@@ -291,9 +291,9 @@ function showGlobalAlert(fullData, adminUrl) {
 
             // 2. Cloud Sync (for Dashboard Parity)
             try {
-                fetch(`${fullData.config.apiUrl}/api/sync-alerts`, {
+                fetch(`${config.apiUrl}/api/sync-alerts`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-api-key': fullData.config.apiKey },
+                    headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey },
                     body: JSON.stringify({ 
                         alertId, 
                         action: status || 'delete',
@@ -305,7 +305,7 @@ function showGlobalAlert(fullData, adminUrl) {
         ui.querySelectorAll('.cf-v35-card-close').forEach(btn => btn.onclick = () => updateStorage(btn.dataset.id, 'dismissed'));
         ui.querySelectorAll('.cf-v35-card-delete').forEach(btn => btn.onclick = () => updateStorage(btn.dataset.id, null));
         ui.querySelectorAll('.cf-v35-btn-wa').forEach(btn => btn.onclick = () => {
-            const url = generateWhatsAppToken(btn.dataset.type, btn.dataset.phone, btn.dataset.name, btn.dataset.extra, fullData.config, btn.dataset.socio);
+            const url = generateWhatsAppToken(btn.dataset.type, btn.dataset.phone, btn.dataset.name, btn.dataset.extra, config, btn.dataset.socio);
             if (url) window.open(url, '_blank');
             updateStorage(btn.dataset.id, 'sent');
         });
@@ -347,7 +347,7 @@ async function refreshAlertCounts() {
 
                 const total = filteredBirthdays.length + filteredExpirations.length + filteredPetAlerts.length;
                 if (total > 0) {
-                    showGlobalAlert(processedData, config.apiUrl);
+                    showGlobalAlert(processedData, config);
                 } else {
                     const w = document.getElementById('cf-v35-bubble');
                     if (w) w.remove();

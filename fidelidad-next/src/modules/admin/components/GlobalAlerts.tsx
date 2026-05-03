@@ -245,8 +245,8 @@ const AlertCard = ({ item, type, onAction, onDelete, status }: any) => {
                 <div>
                     <h5 className="font-bold text-white text-[15px] flex items-center gap-2">
                         {item.name} <span className="text-[10px] text-white/30 font-bold tracking-tighter">#{item.socioNumber || 'S/N'}</span>
-                        {isSent && <span className="text-green-400 text-xs">✓✓</span>}
-                        {isDismissed && <span className="text-red-400 text-xs">✓</span>}
+                        {isSent && <span className="text-[#25D366] text-xs font-black drop-shadow-[0_0_2px_rgba(37,211,102,0.5)]">✓✓</span>}
+                        {isDismissed && <span className="text-red-500 text-xs font-black">✓</span>}
                     </h5>
                     <p className="text-[9px] text-white/40 font-bold uppercase tracking-wider mt-1">
                         {type === 'pet' ? `🐾 ${item.petName}` : type === 'expiration' ? `⏳ ${item.points} pts` : '🎂 Cumpleaños'}

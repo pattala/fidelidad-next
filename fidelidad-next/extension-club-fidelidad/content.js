@@ -106,25 +106,26 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
         document.head.appendChild(style);
     }
 
-    const generateWhatsAppToken = (type, phone, name, extra, cfg, breakdownStr) => {
+    const generateWhatsAppToken = (type, phone, name, extra, cfg, socioNumber) => {
         if (!phone) return null;
         let p = phone.replace(/\D/g, '');
         if (!p.startsWith('54') && p.length === 10) p = '549' + p;
         const templates = cfg?.messaging?.templates || {};
         const firstName = name.split(' ')[0];
+        const socioInfo = socioNumber ? ` (Socio #${socioNumber})` : "";
         let msg = "";
         
         if (type === 'birthdays') {
             const points = cfg?.birthdayPoints || 100;
             if (cfg?.enableBirthdayBonus !== false) {
-                msg = (templates.birthday || "¡Feliz cumple {nombre}! \u{1F382}\u{1F38A} Te regalamos {puntos} puntos. \u2728").replace(/{puntos}/g, points.toString());
-            } else { msg = templates.birthdaySimple || "¡Feliz cumple {nombre}! \u{1F382}\u{1F38A} \u2728"; }
+                msg = (templates.birthday || `¡Feliz cumple {nombre}{socioInfo}! \u{1F382}\u{1F38A} Te regalamos {puntos} puntos. \u2728`).replace(/{puntos}/g, points.toString());
+            } else { msg = templates.birthdaySimple || `¡Feliz cumple {nombre}{socioInfo}! \u{1F382}\u{1F38A} \u2728`; }
         } else if (type === 'expirations') {
-            msg = (templates.expirationWarning || "¡Hola {nombre}! \u{1F4E3} {puntos} pts por vencer.").replace(/{puntos}/g, extra);
+            msg = (templates.expirationWarning || `¡Hola {nombre}{socioInfo}! \u{1F4E3} {puntos} pts por vencer.`).replace(/{puntos}/g, extra);
         } else if (type === 'petAlerts') {
-            msg = (templates.petFoodAlert || "¡Hola {nombre}! \u{1F43E} Reposición de {mascota}.").replace(/{mascota}/g, extra);
+            msg = (templates.petFoodAlert || `¡Hola {nombre}{socioInfo}! \u{1F43E} Reposición de {mascota}.`).replace(/{mascota}/g, extra);
         }
-        msg = msg.replace(/{nombre}/g, firstName).replace(/{tienda}/g, cfg?.siteName || cfg?.appName || 'la tienda');
+        msg = msg.replace(/{nombre}/g, firstName).replace(/{socioInfo}/g, socioInfo).replace(/{tienda}/g, cfg?.siteName || cfg?.appName || 'la tienda');
         return `https://api.whatsapp.com/send?phone=${p}&text=${encodeURIComponent(msg)}`;
     };
 
@@ -268,7 +269,7 @@ function showGlobalAlert(fullData, adminUrl) {
                 ${mode === 'pending' ? `<button class="cf-v35-card-close" data-id="${id}">×</button>` : `<button class="cf-v35-card-delete" data-id="${id}" style="background:none; border:none; color:white; opacity:0.4; cursor:pointer;">🗑️</button>`}
             </div>
             <div style="margin-top:10px;">
-                <button class="cf-v35-btn-wa" data-id="${id}" data-type="${type === 'pet' ? 'petAlerts' : type + 's'}" data-phone="${item.phone}" data-name="${item.name}" data-extra="${type === 'pet' ? item.petName : item.points || ''}" style="${mode === 'processed' ? 'background:rgba(255,255,255,0.1);' : ''}">
+                <button class="cf-v35-btn-wa" data-id="${id}" data-type="${type === 'pet' ? 'petAlerts' : type + 's'}" data-phone="${item.phone}" data-name="${item.name}" data-socio="${item.socioNumber || ''}" data-extra="${type === 'pet' ? item.petName : item.points || ''}" style="${mode === 'processed' ? 'background:rgba(255,255,255,0.1);' : ''}">
                     ${mode === 'pending' ? '📳 Enviar WhatsApp' : '🔄 Re-enviar'}
                 </button>
             </div>
@@ -296,7 +297,7 @@ function showGlobalAlert(fullData, adminUrl) {
                     body: JSON.stringify({ 
                         alertId, 
                         action: status || 'delete',
-                        date: new Date().toISOString().split('T')[0]
+                        date: fullData.referenceDate // USAR FECHA DE REFERENCIA DEL MOTOR
                     })
                 });
             } catch (e) { console.warn("Sync error:", e); }
@@ -304,7 +305,7 @@ function showGlobalAlert(fullData, adminUrl) {
         ui.querySelectorAll('.cf-v35-card-close').forEach(btn => btn.onclick = () => updateStorage(btn.dataset.id, 'dismissed'));
         ui.querySelectorAll('.cf-v35-card-delete').forEach(btn => btn.onclick = () => updateStorage(btn.dataset.id, null));
         ui.querySelectorAll('.cf-v35-btn-wa').forEach(btn => btn.onclick = () => {
-            const url = generateWhatsAppToken(btn.dataset.type, btn.dataset.phone, btn.dataset.name, btn.dataset.extra, fullData.config, btn.dataset.breakdown);
+            const url = generateWhatsAppToken(btn.dataset.type, btn.dataset.phone, btn.dataset.name, btn.dataset.extra, fullData.config, btn.dataset.socio);
             if (url) window.open(url, '_blank');
             updateStorage(btn.dataset.id, 'sent');
         });

@@ -42,71 +42,76 @@ export const GlobalAlerts = () => {
     }, [isDragging, dragStart]);
 
     useEffect(() => {
-        const todayStr = TimeService.now().toISOString().split('T')[0];
-        
-        const unsubConfig = onSnapshot(doc(db, 'config', 'general'), (docSnap) => {
-            if (docSnap.exists()) setConfig(docSnap.data());
-        });
-
-        // ESCUCHA DE ALERTAS PROCESADAS (Sincronización real con Firestore/Extensión)
-        const unsubProcessed = onSnapshot(doc(db, 'audit_logs', `daily_alerts_${todayStr}`), (snap) => {
-            if (snap.exists()) setProcessedAlerts(snap.data().actions || {});
-        });
-
-        const unsubUsers = onSnapshot(query(collection(db, 'users')), (snap) => {
-            const effectiveDate = TimeService.now();
-            const curY = effectiveDate.getFullYear().toString();
-            const dM = String(effectiveDate.getMonth() + 1).padStart(2, '0');
-            const dD = String(effectiveDate.getDate()).padStart(2, '0');
-            const dMD = `${dM}-${dD}`;
-            const todayStr = effectiveDate.toISOString().split('T')[0];
+        const refreshAlerts = () => {
+            const todayStr = TimeService.now().toISOString().split('T')[0];
             
-            const leadDays = Number(config?.messaging?.expirationWarningDays || 7);
-            const winEnd = new Date(effectiveDate);
-            winEnd.setDate(winEnd.getDate() + leadDays);
-            const winEndStr = winEnd.toISOString().split('T')[0];
-            
-            const births: any[] = [];
-            const exps: any[] = [];
-            const pets: any[] = [];
-
-            snap.forEach(d => {
-                const data = d.data();
-                if (data.role === 'admin') return;
-                
-                // IDs consistentes con la extensión (La "Llave Maestra")
-                const bId = `birthday-${data.socioNumber || data.dni}-${curY}`;
-                const eId = `expiration-${data.socioNumber || data.phone || data.telefono}-${data.nextExpirationDate || 'today'}-${data.points || 0}`;
-                
-                // BIRTHDAYS
-                const userBD = data.birthDate || data.fechaNacimiento;
-                if (userBD && userBD.endsWith(dMD)) {
-                    births.push({ ...data, alertId: bId, id: d.id });
-                }
-                
-                // EXPIRATIONS
-                if (data.nextExpirationDate && data.nextExpirationDate >= todayStr && data.nextExpirationDate <= winEndStr) {
-                    if ((data.points || 0) > 0) {
-                        exps.push({ ...data, alertId: eId, id: d.id });
-                    }
-                }
-                
-                // PETS
-                if (data.pets) {
-                    data.pets.forEach((p: any) => {
-                        const pId = `pet-${data.socioNumber || data.phone || data.telefono}-${p.name}-${p.lastFoodAlertDate || 'today'}-${data.points || 0}`;
-                        if (p.nextFoodAlertDate === todayStr) {
-                            pets.push({ ...data, petName: p.name, alertId: pId, id: d.id });
-                        }
-                    });
-                }
+            const unsubProcessed = onSnapshot(doc(db, 'audit_logs', `daily_alerts_${todayStr}`), (snap) => {
+                if (snap.exists()) setProcessedAlerts(snap.data().actions || {});
+                else setProcessedAlerts({});
             });
-            setBirthdaysOfToday(births);
-            setExpiringUsers(exps);
-            setPetAlerts(pets);
-        });
 
-        return () => { unsubConfig(); unsubProcessed(); unsubUsers(); };
+            const unsubUsers = onSnapshot(query(collection(db, 'users')), (snap) => {
+                const effectiveDate = TimeService.now();
+                const curY = effectiveDate.getFullYear().toString();
+                const dM = String(effectiveDate.getMonth() + 1).padStart(2, '0');
+                const dD = String(effectiveDate.getDate()).padStart(2, '0');
+                const dMD = `${dM}-${dD}`;
+                const todayStr = effectiveDate.toISOString().split('T')[0];
+                
+                const leadDays = Number(config?.messaging?.expirationWarningDays || 7);
+                const winEnd = new Date(effectiveDate);
+                winEnd.setDate(winEnd.getDate() + leadDays);
+                const winEndStr = winEnd.toISOString().split('T')[0];
+                
+                const births: any[] = [];
+                const exps: any[] = [];
+                const pets: any[] = [];
+
+                snap.forEach(d => {
+                    const data = d.data();
+                    if (data.role === 'admin') return;
+                    
+                    const bId = `birthday-${data.socioNumber || data.dni}-${curY}`;
+                    const eId = `expiration-${data.socioNumber || data.phone || data.telefono}-${data.nextExpirationDate || 'today'}-${data.points || 0}`;
+                    
+                    const userBD = data.birthDate || data.fechaNacimiento;
+                    if (userBD && userBD.endsWith(dMD)) {
+                        births.push({ ...data, alertId: bId, id: d.id });
+                    }
+                    
+                    if (data.nextExpirationDate && data.nextExpirationDate >= todayStr && data.nextExpirationDate <= winEndStr) {
+                        if ((data.points || 0) > 0) {
+                            exps.push({ ...data, alertId: eId, id: d.id });
+                        }
+                    }
+                    
+                    if (data.pets) {
+                        data.pets.forEach((p: any) => {
+                            const pId = `pet-${data.socioNumber || data.phone || data.telefono}-${p.name}-${p.lastFoodAlertDate || 'today'}-${data.points || 0}`;
+                            if (p.nextFoodAlertDate === todayStr) {
+                                pets.push({ ...data, petName: p.name, alertId: pId, id: d.id });
+                            }
+                        });
+                    }
+                });
+                setBirthdaysOfToday(births);
+                setExpiringUsers(exps);
+                setPetAlerts(pets);
+            });
+
+            return { unsubProcessed, unsubUsers };
+        };
+
+        const { unsubProcessed, unsubUsers } = refreshAlerts();
+        
+        // Listen for simulation changes to refresh everything
+        window.addEventListener('time-simulation-change', refreshAlerts);
+
+        return () => {
+            unsubProcessed();
+            unsubUsers();
+            window.removeEventListener('time-simulation-change', refreshAlerts);
+        };
     }, [config]);
 
     const handleAction = async (item: any, type: string, action: 'sent' | 'dismissed') => {
@@ -126,12 +131,14 @@ export const GlobalAlerts = () => {
                 
                 let msg = "";
                 const firstName = item.name?.split(' ')[0];
+                const socioInfo = item.socioNumber ? ` (Socio #${item.socioNumber})` : "";
+                
                 if (type === 'birthday') {
-                    msg = `¡Feliz cumple ${firstName}! 🎂 Te regalamos puntos. ✨`;
+                    msg = `¡Feliz cumple ${firstName}${socioInfo}! 🎂 Te regalamos puntos. ✨`;
                 } else if (type === 'expiration') {
-                    msg = `¡Hola ${firstName}! 📢 Tus puntos (${item.points} pts) vencen pronto.`;
+                    msg = `¡Hola ${firstName}${socioInfo}! 📢 Tus puntos (${item.points} pts) vencen pronto.`;
                 } else {
-                    msg = `¡Hola ${firstName}! 🐾 Recordatorio de alimento para ${item.petName}.`;
+                    msg = `¡Hola ${firstName}${socioInfo}! 🐾 Recordatorio de alimento para ${item.petName}.`;
                 }
                 window.open(`https://api.whatsapp.com/send?phone=${p}&text=${encodeURIComponent(msg)}`, '_blank');
             }

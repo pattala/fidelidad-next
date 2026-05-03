@@ -327,7 +327,8 @@ export default async function handler(req, res) {
             birthdays: birthdaysList,
             expirations: expirationsList,
             petAlerts: petAlertsList,
-            processedAlerts: processedAlerts // Enviamos los estados a la extensión
+            processedAlerts: processedAlerts,
+            referenceDate: todayStr // Enviamos la fecha de referencia (simulada o real)
         });
 
     } catch (e) {

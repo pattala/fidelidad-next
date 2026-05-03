@@ -40,14 +40,14 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                 });
 
                 const filteredExpirations = eList.filter(e => {
-                    const id = `expiration-${e.socioNumber || e.phone}-${e.nextExpirationDate || 'today'}`;
+                    const id = `expiration-${e.socioNumber || e.phone}-${e.nextExpirationDate || 'today'}-${e.points || 0}`;
                     const isDismissed = dismissed.includes(id);
-                    if (isDismissed) console.log("🚫 [Club Fidelidad] Vencimiento filtrado por fecha específica:", e.name, e.nextExpirationDate);
+                    if (isDismissed) console.log("🚫 [Club Fidelidad] Vencimiento filtrado por estado específico (puntos/fecha):", e.name);
                     return !isDismissed;
                 });
 
                 const filteredPetAlerts = pList.filter(p => {
-                    const id = `pet-${p.socioNumber || p.phone}-${p.petName}-${p.lastFoodAlertDate || 'today'}`;
+                    const id = `pet-${p.socioNumber || p.phone}-${p.petName}-${p.lastFoodAlertDate || 'today'}-${p.points || 0}`;
                     return !dismissed.includes(id);
                 });
 
@@ -281,7 +281,7 @@ function showGlobalAlert(fullData, adminUrl) {
                     </div>
                 </div>
                 ${item.breakdown && item.breakdown.length > 1 ? `<div style="font-size:9px; opacity:0.6; font-weight:700; background:rgba(0,0,0,0.2); padding:8px; border-radius:12px;">${item.breakdown.map(b => `• ${b.date}: ${b.rem} pts`).join('<br>')}</div>` : ''}
-                <button class="cf-v35-btn-wa" data-id="expiration-${item.socioNumber || item.phone}-${item.nextExpirationDate || 'today'}" data-type="expirations" data-phone="${item.phone}" data-name="${item.name}" data-extra="${item.points}" data-breakdown="${bStr}">📳 Enviar WhatsApp</button>
+                <button class="cf-v35-btn-wa" data-id="expiration-${item.socioNumber || item.phone}-${item.nextExpirationDate || 'today'}-${item.points || 0}" data-type="expirations" data-phone="${item.phone}" data-name="${item.name}" data-extra="${item.points}" data-breakdown="${bStr}">📳 Enviar WhatsApp</button>
             </div>`;
             }).join('')}
         </div>`;
@@ -298,7 +298,7 @@ function showGlobalAlert(fullData, adminUrl) {
                         <div style="font-size:11px; color:${color}; font-weight:800;">🐾 Alimento: ${item.petName}</div>
                     </div>
                 </div>
-                <button class="cf-v35-btn-wa" data-id="pet-${item.socioNumber || item.phone}-${item.petName}-${item.lastFoodAlertDate || 'today'}" data-type="${type}" data-phone="${item.phone}" data-name="${item.name}" data-extra="${item.petName}">📳 Enviar WhatsApp</button>
+                <button class="cf-v35-btn-wa" data-id="pet-${item.socioNumber || item.phone}-${item.petName}-${item.lastFoodAlertDate || 'today'}-${item.points || 0}" data-type="${type}" data-phone="${item.phone}" data-name="${item.name}" data-extra="${item.petName}">📳 Enviar WhatsApp</button>
             </div>`).join('')}
         </div>`;
     };

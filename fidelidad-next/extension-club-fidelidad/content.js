@@ -22,12 +22,14 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
             headers: { 'Content-Type': 'application/json', 'x-api-key': res.apiKey }
         }).then(r => r.json())
         .then(data => {
-                console.log("💎 [Club Fidelidad] Datos recibidos de API:", data);
+                console.log("💎 [Club Fidelidad] API FULL DATA:", data);
+                if (data.results?.summary) console.log("📝 [Club Fidelidad] Resumen Motor:", data.results.summary);
+                
                 // Mapeo robusto: el motor unificado devuelve arrays directamente (V.1.3.6-STABLE-REV2)
                 const bList = data.birthdays || [];
                 const eList = data.expirations || [];
                 const pList = data.petAlerts || [];
-                console.log("📊 [Club Fidelidad] Listas mapeadas -> Cumples:", bList.length, "Vencim:", eList.length, "Pets:", pList.length);
+                console.log("📊 [Club Fidelidad] Totales -> Cumples:", bList.length, "Vencim:", eList.length, "Pets:", pList.length);
 
                 const dismissed = res.dismissedAlerts || [];
                 const filteredBirthdays = bList.filter(b => !dismissed.includes(`birthday-${b.socioNumber || b.dni}`));

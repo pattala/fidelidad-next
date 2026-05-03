@@ -113,15 +113,21 @@ export const MetricsPage = () => {
     // dormantDays state removed - now uses config.dormantDays directly
 
     // --- FUNCIONES (HOISTED) ---
-    async function fetchForecast() {
+    async function fetchForecast(simulatedDate?: string) {
         setFetchingForecast(true);
         try {
-            const SECRET = import.meta.env.VITE_API_KEY || '';
-            const fRes = await fetch(`/api/expirations?action=forecast&startDate=${forecastDates.start}&endDate=${forecastDates.end}`, {
-                headers: { 'x-api-key': SECRET }
+            const res = await fetch(`/api/expirations?action=forecast&simulatedDate=${simulatedDate || ''}`, {
+                headers: {
+                    'x-api-key': import.meta.env.VITE_API_KEY || ''
+                }
             });
-            const fData = await fRes.json();
-            if (fData.ok) setForecastData(fData.summary);
+            const data = await res.json();
+            if (data.ok) {
+                setForecastData({
+                    ...data.summary,
+                    pointValue: data.pointValue // Guardamos el valor real usado por la API
+                });
+            }
         } catch (e) {
             console.error("Error fetching forecast:", e);
         } finally {
@@ -570,7 +576,7 @@ export const MetricsPage = () => {
                                 <div className="flex flex-col items-end gap-1">
                                     <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Valor de Canje Aplicado</p>
                                     <p className="text-xs font-bold text-gray-400 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100">
-                                        1 punto = ${forecastData.pointValue > 0 ? forecastData.pointValue.toFixed(2) : (config?.pointValue || 10).toFixed(2)}
+                                        1 punto = ${forecastData?.pointValue ? forecastData.pointValue.toFixed(2) : (config?.pointValue || 10).toFixed(2)}
                                     </p>
                                 </div>
                             </div>

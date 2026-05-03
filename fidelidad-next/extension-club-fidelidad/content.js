@@ -23,51 +23,52 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
         }).then(r => r.json())
         .then(data => {
                 console.log("💎 [Club Fidelidad] API FULL DATA:", data);
-                if (data.results?.summary) console.log("📝 [Club Fidelidad] Resumen Motor:", data.results.summary);
                 
-                // Mapeo robusto: el motor unificado devuelve arrays directamente (V.1.3.6-STABLE-REV2)
-                const bList = data.birthdays || [];
-                const eList = data.expirations || [];
-                const pList = data.petAlerts || [];
-                console.log("📊 [Club Fidelidad] Totales -> Cumples:", bList.length, "Vencim:", eList.length, "Pets:", pList.length);
+                const serverProcessed = data.processedAlerts || {};
+                chrome.storage.local.get(['dismissedAlerts'], (store) => {
+                    let localList = store.dismissedAlerts || [];
+                    if (!Array.isArray(localList)) localList = [];
 
-                const curY = new Date().getFullYear().toString();
-                const dismissed = res.dismissedAlerts || [];
+                    // 1. MEZCLAR estados del servidor con locales
+                    Object.keys(serverProcessed).forEach(id => {
+                        const status = serverProcessed[id];
+                        const exists = localList.find(d => d.id === id);
+                        if (!exists) {
+                            localList.push({ id, status, timestamp: Date.now() });
+                        } else if (exists.status !== status) {
+                            exists.status = status; // Prioridad al servidor
+                        }
+                    });
 
-                const filteredBirthdays = bList.filter(b => {
-                    const id = `birthday-${b.socioNumber || b.dni}-${curY}`;
-                    return !dismissed.includes(id);
+                    chrome.storage.local.set({ dismissedAlerts: localList }, () => {
+                        const curY = new Date().getFullYear().toString();
+                        const bList = data.birthdays || [];
+                        const eList = data.expirations || [];
+                        const pList = data.petAlerts || [];
+
+                        const getStatus = (id) => {
+                            const entry = localList.find(d => d.id === id);
+                            return entry ? entry.status : 'pending';
+                        };
+
+                        const filteredBirthdays = bList.filter(b => getStatus(`birthday-${b.socioNumber || b.dni}-${curY}`) === 'pending');
+                        const filteredExpirations = eList.filter(e => getStatus(`expiration-${e.socioNumber || e.phone}-${e.nextExpirationDate || 'today'}-${e.points || 0}`) === 'pending');
+                        const filteredPetAlerts = pList.filter(p => getStatus(`pet-${p.socioNumber || p.phone}-${p.petName}-${p.lastFoodAlertDate || 'today'}-${p.points || 0}`) === 'pending');
+
+                        const total = filteredBirthdays.length + filteredExpirations.length + filteredPetAlerts.length;
+                        const processedData = {
+                            ...data,
+                            dismissedAlerts: localList,
+                            birthdays: { list: bList }, // Pasamos listas completas, el render filtra por status
+                            expirations: { list: eList },
+                            petAlerts: { list: pList }
+                        };
+
+                        if (total > 0 || localList.length > 0) {
+                            showGlobalAlert(processedData, config);
+                        }
+                    });
                 });
-
-                const filteredExpirations = eList.filter(e => {
-                    const id = `expiration-${e.socioNumber || e.phone}-${e.nextExpirationDate || 'today'}-${e.points || 0}`;
-                    const isDismissed = dismissed.includes(id);
-                    if (isDismissed) console.log("🚫 [Club Fidelidad] Vencimiento filtrado por estado específico (puntos/fecha):", e.name);
-                    return !isDismissed;
-                });
-
-                const filteredPetAlerts = pList.filter(p => {
-                    const id = `pet-${p.socioNumber || p.phone}-${p.petName}-${p.lastFoodAlertDate || 'today'}-${p.points || 0}`;
-                    return !dismissed.includes(id);
-                });
-
-                const total = filteredBirthdays.length + filteredExpirations.length + filteredPetAlerts.length;
-                console.log("🔔 [Club Fidelidad] Alertas finales (post-filtro):", total);
-
-                const processedData = {
-                    ...data,
-                    birthdays: { list: filteredBirthdays },
-                    expirations: { list: filteredExpirations },
-                    petAlerts: { list: filteredPetAlerts }
-                };
-
-                if (total > 0) {
-                    console.log("🎨 [Club Fidelidad] Dibujando globo...");
-                    showGlobalAlert(processedData, config);
-                } else if (eList.length > 0 || bList.length > 0 || pList.length > 0) {
-                    console.log("💡 [Club Fidelidad] Limpiando historial de cierres para mostrar alertas nuevas...");
-                    chrome.storage.local.set({ dismissedAlerts: [] });
-                }
             }).catch(e => console.error("❌ [Club Fidelidad] Error:", e.message));
     }
 });
@@ -327,31 +328,50 @@ async function refreshAlertCounts() {
         });
         const data = await r.json();
         if (data.ok) {
+            const serverProcessed = data.processedAlerts || {};
             chrome.storage.local.get(['dismissedAlerts'], (store) => {
-                // Mapeo unificado (V.1.3.6-STABLE-REV2)
-                const bList = data.birthdays || [];
-                const eList = data.expirations || [];
-                const pList = data.petAlerts || [];
+                let localList = store.dismissedAlerts || [];
+                if (!Array.isArray(localList)) localList = [];
 
-                const dismissed = store.dismissedAlerts || [];
-                const filteredBirthdays = bList.filter(b => !dismissed.includes(`birthday-${b.socioNumber || b.dni}`));
-                const filteredExpirations = eList.filter(e => !dismissed.includes(`expiration-${e.phone || e.name}`));
-                const filteredPetAlerts = pList.filter(p => !dismissed.includes(`pet-${p.phone}-${p.petName}`));
+                // MEZCLAR con prioridad al servidor
+                Object.keys(serverProcessed).forEach(id => {
+                    const status = serverProcessed[id];
+                    const exists = localList.find(d => d.id === id);
+                    if (!exists) localList.push({ id, status, timestamp: Date.now() });
+                    else if (exists.status !== status) exists.status = status;
+                });
 
-                const processedData = {
-                    ...data,
-                    birthdays: { list: filteredBirthdays },
-                    expirations: { list: filteredExpirations },
-                    petAlerts: { list: filteredPetAlerts }
-                };
+                chrome.storage.local.set({ dismissedAlerts: localList }, () => {
+                    const curY = new Date().getFullYear().toString();
+                    const bList = data.birthdays || [];
+                    const eList = data.expirations || [];
+                    const pList = data.petAlerts || [];
 
-                const total = filteredBirthdays.length + filteredExpirations.length + filteredPetAlerts.length;
-                if (total > 0) {
-                    showGlobalAlert(processedData, config);
-                } else {
-                    const w = document.getElementById('cf-v35-bubble');
-                    if (w) w.remove();
-                }
+                    const getStatus = (id) => {
+                        const entry = localList.find(d => d.id === id);
+                        return entry ? entry.status : 'pending';
+                    };
+
+                    const filteredBirthdays = bList.filter(b => getStatus(`birthday-${b.socioNumber || b.dni}-${curY}`) === 'pending');
+                    const filteredExpirations = eList.filter(e => getStatus(`expiration-${e.socioNumber || e.phone}-${e.nextExpirationDate || 'today'}-${e.points || 0}`) === 'pending');
+                    const filteredPetAlerts = pList.filter(p => getStatus(`pet-${p.socioNumber || p.phone}-${p.petName}-${p.lastFoodAlertDate || 'today'}-${p.points || 0}`) === 'pending');
+
+                    const total = filteredBirthdays.length + filteredExpirations.length + filteredPetAlerts.length;
+                    const processedData = {
+                        ...data,
+                        dismissedAlerts: localList,
+                        birthdays: { list: bList },
+                        expirations: { list: eList },
+                        petAlerts: { list: pList }
+                    };
+
+                    if (total > 0 || localList.length > 0) {
+                        showGlobalAlert(processedData, config);
+                    } else {
+                        const w = document.getElementById('cf-v35-bubble');
+                        if (w) w.remove();
+                    }
+                });
             });
         }
     } catch (e) {

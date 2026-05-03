@@ -220,7 +220,7 @@ export const GlobalAlerts = () => {
                                     </button>
                                     <div className="flex justify-between items-start pr-6">
                                         <div>
-                                            <h5 className="font-black text-white text-lg tracking-tight">🎂 {u.name || u.nombre || 'Socio'}</h5>
+                                            <h5 className="font-black text-white text-lg tracking-tight">🎂 {u.name || u.nombre || 'Socio'} <span className="text-[10px] text-white/30 ml-2 font-bold opacity-70">#{u.socioNumber || 'S/N'}</span></h5>
                                             <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider mt-1">DNI: {u.dni} | NRO: {u.socioNumber}</p>
                                         </div>
                                         <div className="bg-violet-500/20 px-3 py-1 rounded-full border border-violet-500/20">
@@ -257,7 +257,7 @@ export const GlobalAlerts = () => {
                                     </button>
                                     <div className="flex justify-between items-center pr-6">
                                         <div className="flex-1">
-                                            <h5 className="font-extrabold text-white text-lg tracking-tight">{u.name || u.nombre || 'Socio'}</h5>
+                                            <h5 className="font-extrabold text-white text-lg tracking-tight">{u.name || u.nombre || 'Socio'} <span className="text-[10px] text-white/30 ml-2 font-bold opacity-70">#{u.socioNumber || 'S/N'}</span></h5>
                                             <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider mt-0.5">Socio N°: {u.socioNumber || 'S/N'}</p>
                                             <p className="text-[11px] text-orange-400 font-black uppercase flex items-center gap-2 mt-1"><Calendar size={12}/> Vence: {u.nextExpirationDate?.split('-').reverse().join('/')}</p>
                                         </div>
@@ -300,7 +300,7 @@ export const GlobalAlerts = () => {
                                     </button>
                                     <div className="flex justify-between items-center pr-6">
                                         <div className="flex-1">
-                                            <h5 className="font-extrabold text-white text-lg tracking-tight">{u.name || u.nombre || 'Socio'}</h5>
+                                            <h5 className="font-extrabold text-white text-lg tracking-tight">{u.name || u.nombre || 'Socio'} <span className="text-[10px] text-white/30 ml-2 font-bold opacity-70">#{u.socioNumber || 'S/N'}</span></h5>
                                             <p className="text-[11px] text-indigo-400 font-black uppercase mt-1">🐾 Alimento: {u.petName}</p>
                                         </div>
                                         <button onClick={() => setShouldNotify(prev => ({...prev, [u.id]: !isMsg}))} 

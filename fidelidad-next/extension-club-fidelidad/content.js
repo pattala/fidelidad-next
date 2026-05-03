@@ -22,20 +22,16 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
             headers: { 'Content-Type': 'application/json', 'x-api-key': res.apiKey }
         }).then(r => r.json())
         .then(data => {
-            if (data?.ok) {
-                console.log("✅ [Club Fidelidad] Alertas recibidas:", data);
+                // Mapeo robusto: el motor unificado devuelve arrays directamente (V.1.3.6-STABLE-REV2)
+                const bList = data.birthdays || [];
+                const eList = data.expirations || [];
+                const pList = data.petAlerts || [];
+
                 const dismissed = res.dismissedAlerts || [];
-                
-                // Mapeo robusto para asegurar que las listas existan
-                const bList = data.birthdays?.list || data.birthdays || [];
-                const eList = data.expirations?.list || data.expirations || [];
-                const pList = data.petAlerts?.list || data.petAlerts || [];
+                const filteredBirthdays = bList.filter(b => !dismissed.includes(`birthday-${b.socioNumber || b.dni}`));
+                const filteredExpirations = eList.filter(e => !dismissed.includes(`expiration-${e.phone || e.name}`));
+                const filteredPetAlerts = pList.filter(p => !dismissed.includes(`pet-${p.phone}-${p.petName}`));
 
-                const filteredBirthdays = (Array.isArray(bList) ? bList : []).filter(b => !dismissed.includes(`birthday-${b.socioNumber || b.dni}`));
-                const filteredExpirations = (Array.isArray(eList) ? eList : []).filter(e => !dismissed.includes(`expiration-${e.phone || e.name}`));
-                const filteredPetAlerts = (Array.isArray(pList) ? pList : []).filter(p => !dismissed.includes(`pet-${p.phone}-${p.petName}`));
-
-                // Re-armamos el objeto para showGlobalAlert
                 const processedData = {
                     ...data,
                     birthdays: { list: filteredBirthdays },
@@ -238,7 +234,7 @@ function showGlobalAlert(fullData, adminUrl) {
             ${birthdays.map(c => `<div class="cf-v35-card">
                 <button class="cf-v35-card-close" title="Ocultar aviso">×</button>
                 <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:12px;">
-                    <div><div style="font-weight:900; font-size:16px;">${c.name}</div><div style="font-size:10px; opacity:0.5;">DNI: ${c.dni} | Nro: ${c.socioNumber}</div></div>
+                    <div><div style="font-weight:900; font-size:16px;">${c.name} <span style="font-size:10px; opacity:0.4; margin-left:5px;">#${c.socioNumber || 'S/N'}</span></div><div style="font-size:10px; opacity:0.5;">DNI: ${c.dni} | Nro: ${c.socioNumber}</div></div>
                 </div>
                 <div style="color:${c.lastBirthdayPointsYear === curY ? '#4ade80' : '#fb923c'}; font-size:9px; font-weight:900;">${c.lastBirthdayPointsYear === curY ? '\u2705 REGALO ENVIADO' : '🎁 REGALO PENDIENTE'}</div>
                 <button class="cf-v35-btn-wa" data-id="birthday-${c.socioNumber || c.dni}" data-type="birthdays" data-phone="${c.phone}" data-name="${c.name}">📳 Enviar WhatsApp</button>
@@ -256,7 +252,7 @@ function showGlobalAlert(fullData, adminUrl) {
                 <button class="cf-v35-card-close" title="Ocultar aviso">×</button>
                 <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:12px;">
                     <div style="flex:1;">
-                        <div style="font-weight:900; font-size:16px; margin-bottom:4px;">${item.name}</div>
+                        <div style="font-weight:900; font-size:16px; margin-bottom:4px;">${item.name} <span style="font-size:10px; opacity:0.4; margin-left:5px;">#${item.socioNumber || 'S/N'}</span></div>
                         <div style="font-size:11px; color:#f59e0b; font-weight:800;">⚠️ ${item.points} pts por vencer</div>
                     </div>
                 </div>
@@ -273,7 +269,10 @@ function showGlobalAlert(fullData, adminUrl) {
             ${list.map(item => `<div class="cf-v35-card">
                 <button class="cf-v35-card-close" title="Ocultar aviso">×</button>
                 <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:12px;">
-                    <div style="flex:1;"><div style="font-weight:900; font-size:16px;">${item.name}</div><div style="font-size:11px; color:${color}; font-weight:800;">🐾 Alimento: ${item.petName}</div></div>
+                    <div style="flex:1;">
+                        <div style="font-weight:900; font-size:16px;">${item.name} <span style="font-size:10px; opacity:0.4; margin-left:5px;">#${item.socioNumber || 'S/N'}</span></div>
+                        <div style="font-size:11px; color:${color}; font-weight:800;">🐾 Alimento: ${item.petName}</div>
+                    </div>
                 </div>
                 <button class="cf-v35-btn-wa" data-id="pet-${item.phone}-${item.petName}" data-type="${type}" data-phone="${item.phone}" data-name="${item.name}" data-extra="${item.petName}">📳 Enviar WhatsApp</button>
             </div>`).join('')}
@@ -297,15 +296,15 @@ async function refreshAlertCounts() {
         const data = await r.json();
         if (data.ok) {
             chrome.storage.local.get(['dismissedAlerts'], (store) => {
-                const dismissed = store.dismissedAlerts || [];
-                
-                const bList = data.birthdays?.list || data.birthdays || [];
-                const eList = data.expirations?.list || data.expirations || [];
-                const pList = data.petAlerts?.list || data.petAlerts || [];
+                // Mapeo unificado (V.1.3.6-STABLE-REV2)
+                const bList = data.birthdays || [];
+                const eList = data.expirations || [];
+                const pList = data.petAlerts || [];
 
-                const filteredBirthdays = (Array.isArray(bList) ? bList : []).filter(b => !dismissed.includes(`birthday-${b.socioNumber || b.dni}`));
-                const filteredExpirations = (Array.isArray(eList) ? eList : []).filter(e => !dismissed.includes(`expiration-${e.phone || e.name}`));
-                const filteredPetAlerts = (Array.isArray(pList) ? pList : []).filter(p => !dismissed.includes(`pet-${p.phone}-${p.petName}`));
+                const dismissed = store.dismissedAlerts || [];
+                const filteredBirthdays = bList.filter(b => !dismissed.includes(`birthday-${b.socioNumber || b.dni}`));
+                const filteredExpirations = eList.filter(e => !dismissed.includes(`expiration-${e.phone || e.name}`));
+                const filteredPetAlerts = pList.filter(p => !dismissed.includes(`pet-${p.phone}-${p.petName}`));
 
                 const processedData = {
                     ...data,

@@ -88,80 +88,65 @@ export default async function handler(req, res) {
         for (const userDoc of birthdayUsers) {
             try {
                 const userData = userDoc.data();
-                if (userData.lastBirthdayGreetingYear === currentYear) continue;
+                const alreadyGreeted = userData.lastBirthdayGreetingYear === currentYear;
 
-                const birthdayPoints = Number(config?.birthdayPoints || 100);
-                const autoBonusEnabled = config?.enableBirthdayBonus === true;
-                const autoMessageEnabled = config?.enableBirthdayMessage !== false;
+                // Lógica Automática (Solo si no se saludó hoy)
+                if (!alreadyGreeted) {
+                    const birthdayPoints = Number(config?.birthdayPoints || 100);
+                    const autoBonusEnabled = config?.enableBirthdayBonus === true;
+                    const autoMessageEnabled = config?.enableBirthdayMessage !== false;
 
-                let pointsAdded = 0;
-                let actionsTaken = [];
+                    let pointsAdded = 0;
+                    if (autoBonusEnabled && userData.lastBirthdayPointsYear !== currentYear) {
+                        const historyRef = userDoc.ref.collection('points_history');
+                        let expirationDate = new Date(referenceDate);
+                        expirationDate.setDate(expirationDate.getDate() + 365);
 
-                // Acreditar puntos si corresponde
-                if (autoBonusEnabled && userData.lastBirthdayPointsYear !== currentYear) {
-                    const historyRef = userDoc.ref.collection('points_history');
-                    let expirationDate = new Date(referenceDate);
-                    expirationDate.setDate(expirationDate.getDate() + 365);
+                        await historyRef.add({
+                            amount: birthdayPoints, concept: '🎂 ¡Feliz Cumpleaños! Regalo del Club',
+                            date: admin.firestore.Timestamp.fromDate(referenceDate), type: 'credit',
+                            expiresAt: admin.firestore.Timestamp.fromDate(expirationDate),
+                            remainingPoints: birthdayPoints, balanceAfter: (Number(userData.points) || 0) + birthdayPoints
+                        });
 
-                    await historyRef.add({
-                        amount: birthdayPoints,
-                        concept: '🎂 ¡Feliz Cumpleaños! Regalo del Club',
-                        date: admin.firestore.Timestamp.fromDate(referenceDate),
-                        type: 'credit',
-                        expiresAt: admin.firestore.Timestamp.fromDate(expirationDate),
-                        remainingPoints: birthdayPoints,
-                        balanceAfter: (Number(userData.points) || 0) + birthdayPoints
-                    });
-
-                    await userDoc.ref.update({
-                        points: admin.firestore.FieldValue.increment(birthdayPoints),
-                        lastBirthdayPointsYear: currentYear
-                    });
-                    pointsAdded = birthdayPoints;
-                    actionsTaken.push("puntos_acreditados");
-                }
-
-                // Enviar Saludo (Push/Email/Inbox)
-                if (autoMessageEnabled) {
-                    const templateFull = config?.messaging?.templates?.birthday || "¡Feliz cumpleaños {nombre}! 🎂 Que tengas un gran día. Te regalamos {puntos} puntos.";
-                    const templateSimple = config?.messaging?.templates?.birthdaySimple || "¡Feliz cumpleaños {nombre}! 🎂 Que tengas un gran día.";
-                    const template = (pointsAdded > 0) ? templateFull : templateSimple;
-                    const msg = template
-                        .replace(/{nombre}/g, (userData.nombre || userData.name || '').split(' ')[0])
-                        .replace(/{puntos}/g, birthdayPoints.toString());
-                    const title = "¡Feliz Cumpleaños! 🎂";
-
-                    // Push
-                    if (userData.fcmTokens?.length) {
-                        const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
-                        await app.messaging().sendEachForMulticast({
-                            tokens: userData.fcmTokens,
-                            data: { title, body: msg, url: "/profile", icon: config.logoUrl ? getAbsoluteUrl(config.logoUrl, PWA_URL) : "" }
-                        }).catch(() => {});
-                        actionsTaken.push("push_enviado");
+                        await userDoc.ref.update({
+                            points: admin.firestore.FieldValue.increment(birthdayPoints),
+                            lastBirthdayPointsYear: currentYear
+                        });
+                        pointsAdded = birthdayPoints;
                     }
 
-                    // Email
-                    if (userData.email && process.env.SMTP_USER) {
-                        const innerHtml = `<div style="color: #333;"><h2 style="color: #db2777; margin-top: 0;">${title}</h2><p style="font-size: 16px; line-height: 1.6;">${msg}</p></div>`;
-                        await transporter.sendMail({
-                            from: `"${config.siteName || 'Club Fidelidad'}" <${process.env.SMTP_USER}>`,
-                            to: userData.email, subject: title, html: buildHtmlLayout(innerHtml, config)
-                        }).catch(() => {});
-                        actionsTaken.push("email_enviado");
+                    if (autoMessageEnabled) {
+                        const templateFull = config?.messaging?.templates?.birthday || "¡Feliz cumpleaños {nombre}! 🎂 Que tengas un gran día. Te regalamos {puntos} puntos.";
+                        const templateSimple = config?.messaging?.templates?.birthdaySimple || "¡Feliz cumpleaños {nombre}! 🎂 Que tengas un gran día.";
+                        const template = (pointsAdded > 0) ? templateFull : templateSimple;
+                        const msg = template.replace(/{nombre}/g, (userData.nombre || userData.name || '').split(' ')[0]).replace(/{puntos}/g, birthdayPoints.toString());
+                        const title = "¡Feliz Cumpleaños! 🎂";
+
+                        if (userData.fcmTokens?.length) {
+                            const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
+                            await app.messaging().sendEachForMulticast({
+                                tokens: userData.fcmTokens,
+                                data: { title, body: msg, url: "/profile", icon: config.logoUrl ? getAbsoluteUrl(config.logoUrl, PWA_URL) : "" }
+                            }).catch(() => {});
+                        }
+                        if (userData.email && process.env.SMTP_USER) {
+                            const innerHtml = `<div style="color: #333;"><h2 style="color: #db2777; margin-top: 0;">${title}</h2><p style="font-size: 16px; line-height: 1.6;">${msg}</p></div>`;
+                            await transporter.sendMail({
+                                from: `"${config.siteName || 'Club Fidelidad'}" <${process.env.SMTP_USER}>`,
+                                to: userData.email, subject: title, html: buildHtmlLayout(innerHtml, config)
+                            }).catch(() => {});
+                        }
+                        await userDoc.ref.collection('inbox').add({
+                            title, body: msg, url: "/profile", type: "birthday", read: false,
+                            date: admin.firestore.Timestamp.fromDate(referenceDate)
+                        });
+                        await userDoc.ref.update({ lastBirthdayGreetingYear: currentYear });
                     }
-
-                    // Inbox
-                    await userDoc.ref.collection('inbox').add({
-                        title, body: msg, url: "/profile", type: "birthday", read: false,
-                        date: admin.firestore.Timestamp.fromDate(referenceDate)
-                    });
-                    actionsTaken.push("inbox_guardado");
-
-                    await userDoc.ref.update({ lastBirthdayGreetingYear: currentYear });
+                    results.birthdays++;
                 }
 
-                results.birthdays++;
+                // SIEMPRE añadir a detalles para la extensión (WhatsApp)
                 results.details.push({
                     userId: userDoc.id,
                     userName: userData.nombre || userData.name || 'Socio',
@@ -169,7 +154,7 @@ export default async function handler(req, res) {
                     dni: userData.dni || '',
                     action: "birthday_greeting",
                     status: "success",
-                    info: pointsAdded > 0 ? `Saludo + ${pointsAdded} pts` : 'Solo saludo',
+                    info: alreadyGreeted ? 'Ya saludado (Auto)' : 'Saludo procesado ahora',
                     phone: userData.phone || userData.telefono || ''
                 });
 
@@ -177,7 +162,7 @@ export default async function handler(req, res) {
         }
 
         // 2. PROCESAR VENCIMIENTOS
-        // A. Ejecutar vencimientos REALES (los que vencen hoy o antes)
+        // A. Ejecutar vencimientos REALES
         const toExpireSnap = await db.collection('users').where('nextExpirationDate', '<=', todayStr).get();
         for (const doc of toExpireSnap.docs) {
             try {
@@ -198,19 +183,17 @@ export default async function handler(req, res) {
                 });
 
                 if (total > 0) {
-                    batch.update(doc.ref, { 
-                        points: admin.firestore.FieldValue.increment(-total),
-                        nextExpirationDate: null 
-                    });
+                    batch.update(doc.ref, { points: admin.firestore.FieldValue.increment(-total), nextExpirationDate: null });
                     batch.set(history.doc(), { 
-                        amount: -total, 
-                        concept: 'Vencimiento automático de puntos acumulados (Auto)', 
-                        date: admin.firestore.FieldValue.serverTimestamp(), 
-                        type: 'debit' 
+                        amount: -total, concept: 'Vencimiento automático de puntos acumulados (Auto)', 
+                        date: admin.firestore.FieldValue.serverTimestamp(), type: 'debit' 
                     });
                     await batch.commit();
-                    
                     results.expirations++;
+                }
+
+                // SIEMPRE añadir a detalles para la extensión si tiene puntos o venció hoy
+                if (total > 0 || (userData.points || 0) > 0) {
                     results.details.push({
                         userId: doc.id,
                         userName: userData.nombre || userData.name || 'Socio',
@@ -218,15 +201,15 @@ export default async function handler(req, res) {
                         dni: userData.dni || '',
                         action: "points_expired",
                         status: "success",
-                        info: `-${total} pts vencidos`,
+                        info: total > 0 ? `-${total} pts vencidos hoy` : 'Vencimiento pendiente de aviso',
                         phone: userData.phone || userData.telefono || '',
-                        points: total
+                        points: total > 0 ? total : (userData.points || 0)
                     });
                 }
             } catch (e) { results.errors.push(`Expiration ${doc.id}: ${e.message}`); }
         }
 
-        // B. Detectar Vencimientos PRÓXIMOS (Para avisos de WhatsApp en la extensión)
+        // B. Detectar Vencimientos PRÓXIMOS
         const warningDays = Number(config?.messaging?.expirationWarningDays || 7);
         const warningLimit = new Date(referenceDate);
         warningLimit.setDate(warningLimit.getDate() + warningDays);
@@ -241,21 +224,17 @@ export default async function handler(req, res) {
             const userData = doc.data();
             if ((userData.points || 0) > 0) {
                 results.details.push({
-                    userId: doc.id,
-                    userName: userData.nombre || userData.name || 'Socio',
+                    userId: doc.id, userName: userData.nombre || userData.name || 'Socio',
                     socioNumber: userData.socioNumber || userData.numeroSocio || '',
-                    dni: userData.dni || '',
-                    action: "expiration_warning",
-                    status: "info",
+                    dni: userData.dni || '', action: "expiration_warning", status: "info",
                     info: `${userData.points} pts próximos a vencer el ${userData.nextExpirationDate}`,
                     phone: userData.phone || userData.telefono || '',
-                    points: userData.points,
-                    nextExpirationDate: userData.nextExpirationDate
+                    points: userData.points, nextExpirationDate: userData.nextExpirationDate
                 });
             }
         }
 
-        // 3. PROCESAR ALERTAS DE MASCOTAS (PETSHOP)
+        // 3. PROCESAR ALERTAS DE MASCOTAS
         if (config.enablePetModule) {
             const petUsersSnap = await db.collection('users').where('pets', '!=', null).get();
             for (const userDoc of petUsersSnap.docs) {
@@ -278,43 +257,37 @@ export default async function handler(req, res) {
 
                         const diffDays = Math.floor((referenceDate.getTime() - alertDate.getTime()) / (1000 * 60 * 60 * 24));
                         const isAlertDay = (diffDays >= 0 && diffDays <= 4); 
+                        const alreadyAlerted = pet.lastFoodAlertDate === lastPurchase.toISOString().split('T')[0];
 
-                        if (isAlertDay && pet.lastFoodAlertDate !== lastPurchase.toISOString().split('T')[0]) {
-                            const userName = (userData.nombre || userData.name || '').split(' ')[0];
-                            const template = config.messaging?.templates?.petFoodAlert || "¡Hola {nombre}! 🐾 Notamos que a {mascota} se le debe estar terminando su {marca}.";
-                            const msg = template
-                                .replace(/{nombre}/g, userName)
-                                .replace(/{mascota}/g, pet.name)
-                                .replace(/{marca}/g, pet.foodBrand || pet.brand || 'alimento');
+                        if (isAlertDay) {
+                            if (!alreadyAlerted) {
+                                const userName = (userData.nombre || userData.name || '').split(' ')[0];
+                                const template = config.messaging?.templates?.petFoodAlert || "¡Hola {nombre}! 🐾 Notamos que a {mascota} se le debe estar terminando su {marca}.";
+                                const msg = template.replace(/{nombre}/g, userName).replace(/{mascota}/g, pet.name).replace(/{marca}/g, pet.foodBrand || pet.brand || 'alimento');
 
-                            // Send Push/Email/Inbox (simplificado para brevedad)
-                            if (userData.fcmTokens?.length) {
-                                await app.messaging().sendEachForMulticast({
-                                    tokens: userData.fcmTokens,
-                                    data: { title: "🐾 Aviso de Alimento", body: msg, url: "/profile", type: "pet_alert" }
-                                }).catch(() => {});
+                                if (userData.fcmTokens?.length) {
+                                    await app.messaging().sendEachForMulticast({
+                                        tokens: userData.fcmTokens,
+                                        data: { title: "🐾 Aviso de Alimento", body: msg, url: "/profile", type: "pet_alert" }
+                                    }).catch(() => {});
+                                }
+                                await userDoc.ref.collection('inbox').add({
+                                    title: "🐾 Aviso de Alimento", body: msg, url: "/profile", type: "pet_alert",
+                                    read: false, date: admin.firestore.Timestamp.fromDate(referenceDate)
+                                });
+                                nextPets[i].lastFoodAlertDate = lastPurchase.toISOString().split('T')[0];
+                                updatedPets = true;
+                                results.petAlerts++;
                             }
-                            
-                            await userDoc.ref.collection('inbox').add({
-                                title: "🐾 Aviso de Alimento", body: msg, url: "/profile", type: "pet_alert",
-                                read: false, date: admin.firestore.Timestamp.fromDate(referenceDate)
-                            });
 
-                            nextPets[i].lastFoodAlertDate = lastPurchase.toISOString().split('T')[0];
-                            updatedPets = true;
-                            
-                            results.petAlerts++;
+                            // SIEMPRE añadir a detalles para la extensión
                             results.details.push({
-                                userId: userDoc.id,
-                                userName: userData.nombre || userData.name || 'Socio',
+                                userId: userDoc.id, userName: userData.nombre || userData.name || 'Socio',
                                 socioNumber: userData.socioNumber || userData.numeroSocio || '',
-                                dni: userData.dni || '',
-                                action: "pet_food_alert",
-                                status: "success",
-                                info: `Mascota: ${pet.name} (${pet.foodBrand || 'Alimento'})`,
+                                dni: userData.dni || '', action: "pet_food_alert", status: "success",
+                                info: alreadyAlerted ? `Ya alertado (Auto)` : `Alerta mascota procesada`,
                                 phone: userData.phone || userData.telefono || '',
-                                petName: pet.name,
-                                foodBrand: pet.foodBrand || pet.brand || ''
+                                petName: pet.name, foodBrand: pet.foodBrand || pet.brand || ''
                             });
                         }
                     }

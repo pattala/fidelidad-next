@@ -177,6 +177,7 @@ export default async function handler(req, res) {
         }
 
         // 2. PROCESAR VENCIMIENTOS
+        // A. Ejecutar vencimientos REALES (los que vencen hoy o antes)
         const toExpireSnap = await db.collection('users').where('nextExpirationDate', '<=', todayStr).get();
         for (const doc of toExpireSnap.docs) {
             try {
@@ -199,7 +200,7 @@ export default async function handler(req, res) {
                 if (total > 0) {
                     batch.update(doc.ref, { 
                         points: admin.firestore.FieldValue.increment(-total),
-                        nextExpirationDate: null // Se recalculará en el próximo login o proceso
+                        nextExpirationDate: null 
                     });
                     batch.set(history.doc(), { 
                         amount: -total, 
@@ -219,11 +220,39 @@ export default async function handler(req, res) {
                         status: "success",
                         info: `-${total} pts vencidos`,
                         phone: userData.phone || userData.telefono || '',
-                        points: total,
-                        nextExpirationDate: userData.nextExpirationDate
+                        points: total
                     });
                 }
             } catch (e) { results.errors.push(`Expiration ${doc.id}: ${e.message}`); }
+        }
+
+        // B. Detectar Vencimientos PRÓXIMOS (Para avisos de WhatsApp en la extensión)
+        const warningDays = Number(config?.messaging?.expirationWarningDays || 7);
+        const warningLimit = new Date(referenceDate);
+        warningLimit.setDate(warningLimit.getDate() + warningDays);
+        const warningLimitStr = warningLimit.toISOString().split('T')[0];
+
+        const upcomingExpsSnap = await db.collection('users')
+            .where('nextExpirationDate', '>', todayStr)
+            .where('nextExpirationDate', '<=', warningLimitStr)
+            .get();
+
+        for (const doc of upcomingExpsSnap.docs) {
+            const userData = doc.data();
+            if ((userData.points || 0) > 0) {
+                results.details.push({
+                    userId: doc.id,
+                    userName: userData.nombre || userData.name || 'Socio',
+                    socioNumber: userData.socioNumber || userData.numeroSocio || '',
+                    dni: userData.dni || '',
+                    action: "expiration_warning",
+                    status: "info",
+                    info: `${userData.points} pts próximos a vencer el ${userData.nextExpirationDate}`,
+                    phone: userData.phone || userData.telefono || '',
+                    points: userData.points,
+                    nextExpirationDate: userData.nextExpirationDate
+                });
+            }
         }
 
         // 3. PROCESAR ALERTAS DE MASCOTAS (PETSHOP)
@@ -306,7 +335,7 @@ export default async function handler(req, res) {
 
         // Formatear listas para la extensión/dashboard
         const birthdaysList = results.details.filter(d => d.action === "birthday_greeting").map(d => ({...d, name: d.userName}));
-        const expirationsList = results.details.filter(d => d.action === "points_expired").map(d => ({...d, name: d.userName}));
+        const expirationsList = results.details.filter(d => d.action === "points_expired" || d.action === "expiration_warning").map(d => ({...d, name: d.userName}));
         const petAlertsList = results.details.filter(d => d.action === "pet_food_alert").map(d => ({...d, name: d.userName}));
 
         return res.status(200).json({ 

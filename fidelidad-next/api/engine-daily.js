@@ -169,7 +169,8 @@ export default async function handler(req, res) {
                     dni: userData.dni || '',
                     action: "birthday_greeting",
                     status: "success",
-                    info: pointsAdded > 0 ? `Saludo + ${pointsAdded} pts` : 'Solo saludo'
+                    info: pointsAdded > 0 ? `Saludo + ${pointsAdded} pts` : 'Solo saludo',
+                    phone: userData.phone || userData.telefono || ''
                 });
 
             } catch (e) { results.errors.push(`Birthday ${userDoc.id}: ${e.message}`); }
@@ -216,7 +217,10 @@ export default async function handler(req, res) {
                         dni: userData.dni || '',
                         action: "points_expired",
                         status: "success",
-                        info: `-${total} pts vencidos`
+                        info: `-${total} pts vencidos`,
+                        phone: userData.phone || userData.telefono || '',
+                        points: total,
+                        nextExpirationDate: userData.nextExpirationDate
                     });
                 }
             } catch (e) { results.errors.push(`Expiration ${doc.id}: ${e.message}`); }
@@ -278,7 +282,10 @@ export default async function handler(req, res) {
                                 dni: userData.dni || '',
                                 action: "pet_food_alert",
                                 status: "success",
-                                info: `Mascota: ${pet.name} (${pet.foodBrand || 'Alimento'})`
+                                info: `Mascota: ${pet.name} (${pet.foodBrand || 'Alimento'})`,
+                                phone: userData.phone || userData.telefono || '',
+                                petName: pet.name,
+                                foodBrand: pet.foodBrand || pet.brand || ''
                             });
                         }
                     }
@@ -297,7 +304,18 @@ export default async function handler(req, res) {
             details: results.details.length > 0 ? results.details : [{ userId: 'system', action: 'check', status: 'skipped', info: 'Sin acciones hoy' }]
         });
 
-        return res.status(200).json({ ok: true, results });
+        // Formatear listas para la extensión/dashboard
+        const birthdaysList = results.details.filter(d => d.action === "birthday_greeting").map(d => ({...d, name: d.userName}));
+        const expirationsList = results.details.filter(d => d.action === "points_expired").map(d => ({...d, name: d.userName}));
+        const petAlertsList = results.details.filter(d => d.action === "pet_food_alert").map(d => ({...d, name: d.userName}));
+
+        return res.status(200).json({ 
+            ok: true, 
+            results,
+            birthdays: birthdaysList,
+            expirations: expirationsList,
+            petAlerts: petAlertsList
+        });
 
     } catch (e) {
         console.error("Fatal Engine Error:", e);

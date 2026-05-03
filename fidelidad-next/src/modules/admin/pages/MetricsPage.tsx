@@ -72,6 +72,17 @@ export const MetricsPage = () => {
         end.setHours(23,59,59,999);
         return { start, end };
     });
+
+    const moveHeatmapWeek = (direction: number) => {
+        setHeatmapDateRange(prev => {
+            const newStart = new Date(prev.start);
+            newStart.setDate(newStart.getDate() + (direction * 7));
+            const newEnd = new Date(newStart);
+            newEnd.setDate(newEnd.getDate() + 6);
+            newEnd.setHours(23,59,59,999);
+            return { start: newStart, end: newEnd };
+        });
+    };
     const [loading, setLoading] = useState(true);
     const [config, setConfig] = useState<any>(null);
     const [movementsData, setMovementsData] = useState<any[]>([]);
@@ -530,13 +541,58 @@ export const MetricsPage = () => {
                         })}
                     </div>
 
+                    {forecastData && (
+                        <div className="bg-white p-6 rounded-3xl shadow-sm border border-orange-100 mb-8 mt-4 relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <Clock size={80} className="text-orange-500" />
+                            </div>
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+                                <div className="flex-1">
+                                    <h3 className="font-black text-xl text-gray-800 flex items-center gap-2 mb-1">
+                                        <Clock className="text-orange-500" size={24} /> Pronóstico de Vencimientos (Cash Flow)
+                                    </h3>
+                                    <p className="text-sm text-gray-500 font-medium">Impacto estimado en el pasivo de puntos por periodos fijos.</p>
+                                </div>
+                                <div className="flex flex-wrap gap-8 items-center">
+                                    {(forecastData.intervals || []).filter((i: any) => i.key !== 'future').map((interval: any) => (
+                                        <div key={interval.key} className="flex flex-col">
+                                            <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest mb-1">{interval.label}</p>
+                                            <p className="text-2xl font-black text-gray-800">
+                                                {(interval.points || 0).toLocaleString()} 
+                                                <span className="text-xs text-gray-400 ml-1 font-bold">pts</span>
+                                            </p>
+                                            <p className={`text-sm font-bold ${interval.key === 'short' ? 'text-red-500' : 'text-orange-500'}`}>
+                                                ≈ ${Math.round(interval.money || 0).toLocaleString()}
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="flex flex-col items-end gap-1">
+                                    <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Valor de Canje Aplicado</p>
+                                    <p className="text-xs font-bold text-gray-400 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100">
+                                        1 punto = ${forecastData.pointValue > 0 ? forecastData.pointValue.toFixed(2) : (config?.pointValue || 10).toFixed(2)}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
                         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
                             <div>
                                 <h3 className="text-xl font-black text-gray-800 flex items-center gap-2"><Clock className="text-purple-600" /> Mapa de Calor de Actividad</h3>
                                 <p className="text-sm text-gray-500">Analiza tus momentos de mayor flujo según el tipo de métrica.</p>
                             </div>
-                            <div className="flex flex-wrap items-center gap-4">
+                             <div className="flex flex-wrap items-center gap-4">
+                                {heatmapMode === 'weekly' && (
+                                    <div className="flex items-center gap-2 mr-2 bg-gray-50 p-1 rounded-xl border border-gray-100">
+                                        <button onClick={() => moveHeatmapWeek(-1)} className="p-1.5 hover:bg-white hover:shadow-sm rounded-lg text-gray-500 transition-all"><ArrowDownRight className="rotate-90" size={16} /></button>
+                                        <span className="text-[10px] font-black text-gray-600 px-1 min-w-[120px] text-center">
+                                            {heatmapDateRange.start.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })} - {heatmapDateRange.end.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}
+                                        </span>
+                                        <button onClick={() => moveHeatmapWeek(1)} className="p-1.5 hover:bg-white hover:shadow-sm rounded-lg text-gray-500 transition-all"><ArrowUpRight className="-rotate-90" size={16} /></button>
+                                    </div>
+                                )}
                                 <div className="flex bg-gray-100 p-1 rounded-xl">
                                     <button onClick={() => setHeatmapMetric('count')} className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${heatmapMetric === 'count' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>Tráfico</button>
                                     <button onClick={() => setHeatmapMetric('revenue')} className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${heatmapMetric === 'revenue' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>Recaudación</button>
@@ -690,41 +746,6 @@ export const MetricsPage = () => {
                         </div>
                     </div>
 
-                    {forecastData && (
-                        <div className="bg-white p-6 rounded-3xl shadow-sm border border-orange-100 mb-8 mt-4 relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                                <Clock size={80} className="text-orange-500" />
-                            </div>
-                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
-                                <div className="flex-1">
-                                    <h3 className="font-black text-xl text-gray-800 flex items-center gap-2 mb-1">
-                                        <Clock className="text-orange-500" size={24} /> Pronóstico de Vencimientos (Cash Flow)
-                                    </h3>
-                                    <p className="text-sm text-gray-500 font-medium">Impacto estimado en el pasivo de puntos por periodos fijos.</p>
-                                </div>
-                                <div className="flex flex-wrap gap-8 items-center">
-                                    {(forecastData.intervals || []).filter((i: any) => i.key !== 'future').map((interval: any) => (
-                                        <div key={interval.key} className="flex flex-col">
-                                            <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest mb-1">{interval.label}</p>
-                                            <p className="text-2xl font-black text-gray-800">
-                                                {(interval.points || 0).toLocaleString()} 
-                                                <span className="text-xs text-gray-400 ml-1 font-bold">pts</span>
-                                            </p>
-                                            <p className={`text-sm font-bold ${interval.key === 'short' ? 'text-red-500' : 'text-orange-500'}`}>
-                                                ≈ ${Math.round(interval.money || 0).toLocaleString()}
-                                            </p>
-                                        </div>
-                                    ))}
-                                </div>
-                                <div className="flex flex-col items-end gap-1">
-                                    <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Valor de Canje Aplicado</p>
-                                    <p className="text-xs font-bold text-gray-400 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100">
-                                        1 punto = ${forecastData.pointValue?.toFixed(2) || '0.00'}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    )}
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div className="bg-white rounded-2xl shadow-sm border border-orange-100 overflow-hidden flex flex-col h-full">

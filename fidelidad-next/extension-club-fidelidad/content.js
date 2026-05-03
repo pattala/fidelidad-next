@@ -33,8 +33,15 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
 
                 const dismissed = res.dismissedAlerts || [];
                 const filteredBirthdays = bList.filter(b => !dismissed.includes(`birthday-${b.socioNumber || b.dni}`));
-                const filteredExpirations = eList.filter(e => !dismissed.includes(`expiration-${e.phone || e.name}`));
+                const filteredExpirations = eList.filter(e => {
+                    const isDismissed = dismissed.includes(`expiration-${e.phone || e.name}`);
+                    if (isDismissed) console.log("🚫 [Club Fidelidad] Vencimiento filtrado (ya cerrado antes):", e.name);
+                    return !isDismissed;
+                });
                 const filteredPetAlerts = pList.filter(p => !dismissed.includes(`pet-${p.phone}-${p.petName}`));
+
+                const total = filteredBirthdays.length + filteredExpirations.length + filteredPetAlerts.length;
+                console.log("🔔 [Club Fidelidad] Alertas finales (post-filtro):", total);
 
                 const processedData = {
                     ...data,
@@ -43,11 +50,12 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                     petAlerts: { list: filteredPetAlerts }
                 };
 
-                const total = filteredBirthdays.length + filteredExpirations.length + filteredPetAlerts.length;
-                console.log("🔔 [Club Fidelidad] Alertas finales a mostrar (post-filtro):", total);
                 if (total > 0) {
-                    console.log("🎨 [Club Fidelidad] Dibujando globo de alertas...");
+                    console.log("🎨 [Club Fidelidad] Dibujando globo...");
                     showGlobalAlert(processedData, res.apiUrl);
+                } else if (eList.length > 0 || bList.length > 0 || pList.length > 0) {
+                    console.log("💡 [Club Fidelidad] Limpiando historial de cierres para mostrar alertas nuevas...");
+                    chrome.storage.local.set({ dismissedAlerts: [] });
                 }
             }).catch(e => console.error("❌ [Club Fidelidad] Error:", e.message));
     }

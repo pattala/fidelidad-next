@@ -233,6 +233,44 @@ export default async function handler(req, res) {
         for (const doc of upcomingExpsSnap.docs) {
             const userData = doc.data();
             if ((userData.points || 0) > 0) {
+                const todayStrShort = todayStr;
+                const alreadyNotified = userData.lastExpirationWarningDate === todayStrShort;
+
+                if (!alreadyNotified && config?.enableExpirationMessage !== false) {
+                    const title = "⚠️ ¡Tus puntos vencen pronto!";
+                    const template = config?.messaging?.templates?.expirationWarning || "¡Hola {nombre}! 📢 Te recordamos que tus {puntos} puntos vencen el {fecha}. ¡No los pierdas!";
+                    const msg = template
+                        .replace(/{nombre}/g, (userData.nombre || userData.name || 'Socio').split(' ')[0])
+                        .replace(/{puntos}/g, userData.points.toString())
+                        .replace(/{fecha}/g, userData.nextExpirationDate);
+
+                    // 1. PWA PUSH
+                    if (userData.fcmTokens?.length) {
+                        const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
+                        await app.messaging().sendEachForMulticast({
+                            tokens: userData.fcmTokens,
+                            data: { title, body: msg, url: "/profile", icon: config.logoUrl ? getAbsoluteUrl(config.logoUrl, PWA_URL) : "" }
+                        }).catch(() => {});
+                    }
+
+                    // 2. INBOX
+                    await doc.ref.collection('inbox').add({
+                        title, body: msg, url: "/profile", type: "expiration_warning", read: false,
+                        date: admin.firestore.Timestamp.fromDate(referenceDate)
+                    });
+
+                    // 3. EMAIL
+                    if (userData.email && process.env.SMTP_USER) {
+                        const innerHtml = `<div style="color: #333;"><h2 style="color: #f59e0b; margin-top: 0;">${title}</h2><p style="font-size: 16px; line-height: 1.6;">${msg}</p></div>`;
+                        await transporter.sendMail({
+                            from: `"${config.siteName || 'Club Fidelidad'}" <${process.env.SMTP_USER}>`,
+                            to: userData.email, subject: title, html: buildHtmlLayout(innerHtml, config)
+                        }).catch(() => {});
+                    }
+
+                    await doc.ref.update({ lastExpirationWarningDate: todayStrShort });
+                }
+
                 results.details.push({
                     userId: doc.id, userName: userData.nombre || userData.name || 'Socio',
                     socioNumber: userData.socioNumber || userData.numeroSocio || '',

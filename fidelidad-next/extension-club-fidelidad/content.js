@@ -43,8 +43,7 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                 if (total > 0) {
                     showGlobalAlert(processedData, res.apiUrl);
                 }
-            }
-        }).catch(e => console.error("❌ [Club Fidelidad] Error:", e.message));
+            }).catch(e => console.error("❌ [Club Fidelidad] Error:", e.message));
     }
 });
 
@@ -65,7 +64,7 @@ function showGlobalAlert(fullData, adminUrl) {
     
     container = document.createElement('div');
     container.id = 'cf-v35-bubble';
-    container.style.cssText = `position:fixed; bottom:30px; right:30px; z-index:2147483647; pointer-events:none;`;
+    container.style.cssText = `position:fixed; bottom:30px; right:30px; z-index:999999999; pointer-events:none;`;
 
     let isExpanded = false;
     let pos = { x: 0, y: 0 };

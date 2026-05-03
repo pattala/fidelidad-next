@@ -44,7 +44,9 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                 };
 
                 const total = filteredBirthdays.length + filteredExpirations.length + filteredPetAlerts.length;
+                console.log("🔔 [Club Fidelidad] Alertas finales a mostrar (post-filtro):", total);
                 if (total > 0) {
+                    console.log("🎨 [Club Fidelidad] Dibujando globo de alertas...");
                     showGlobalAlert(processedData, res.apiUrl);
                 }
             }).catch(e => console.error("❌ [Club Fidelidad] Error:", e.message));

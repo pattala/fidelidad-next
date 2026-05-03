@@ -244,7 +244,7 @@ const AlertCard = ({ item, type, onAction, onDelete, status }: any) => {
             <div className="flex justify-between items-start">
                 <div>
                     <h5 className="font-bold text-white text-[15px] flex items-center gap-2">
-                        {item.name}
+                        {item.name} <span className="text-[10px] text-white/30 font-bold tracking-tighter">#{item.socioNumber || 'S/N'}</span>
                         {isSent && <span className="text-green-400 text-xs">✓✓</span>}
                         {isDismissed && <span className="text-red-400 text-xs">✓</span>}
                     </h5>

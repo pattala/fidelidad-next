@@ -262,7 +262,7 @@ export default async function handler(req, res) {
                 read: false
             });
 
-            result = { ok: true, pointsRedeemed: pointsNeeded, newBalance: newTotalPoints, unifiedMsg, auditDetails: result.auditDetails || [] };
+            result = { ok: true, pointsRedeemed: pointsNeeded, newBalance: newTotalPoints, unifiedMsg, redemptionCode: shortCode, auditDetails: result.auditDetails || [] };
 
             // --- WHATSAPP LINK GENERATION (MANUAL TRIGGER) ---
             const isWhatsAppConfigured = whatsappEnabled && channels.includes('whatsapp');
@@ -432,11 +432,26 @@ export default async function handler(req, res) {
                             timestamp: admin.firestore.FieldValue.serverTimestamp(),
                             type: 'prize_redemption',
                             status: 'success',
-                            summary: `Canje de premio: ${clientData.name} (${prizeData.name})`,
+                            summary: `Canje de premio: ${clientData.name || clientData.nombre || 'Socio'} (${prizeData.name})`,
                             details: result.auditDetails,
                             executor,
                             role: executorRole || 'admin'
                         });
+
+                        // --- SINCRO AUTO: Si se generó el WhatsApp, marcar como 'sent' en el log diario ---
+                        if (result.whatsappLink) {
+                            const todayStr = new Date().toISOString().split('T')[0];
+                            const todaySyncRef = db.collection('audit_logs').doc(`daily_alerts_${todayStr}`);
+                            const alertId = `redemption-${clientData.socioNumber || clientData.numeroSocio || clientData.phone || targetUid}-${result.redemptionCode || 'N/A'}`;
+                            
+                            await db.runTransaction(async (t) => {
+                                const syncDoc = await t.get(todaySyncRef);
+                                let actions = {};
+                                if (syncDoc.exists) actions = syncDoc.data().actions || {};
+                                actions[alertId] = 'sent';
+                                t.set(todaySyncRef, { actions, lastUpdate: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+                            });
+                        }
                     } catch (auditErr) {
                         console.error("Final audit log error (redemption):", auditErr);
                     }

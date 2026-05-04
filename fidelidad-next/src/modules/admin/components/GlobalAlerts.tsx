@@ -9,6 +9,8 @@ export const GlobalAlerts = () => {
     const [birthdaysOfToday, setBirthdaysOfToday] = useState<any[]>([]);
     const [expiringUsers, setExpiringUsers] = useState<any[]>([]);
     const [petAlerts, setPetAlerts] = useState<any[]>([]);
+    const [redemptions, setRedemptions] = useState<any[]>([]);
+    const [pointsAssignments, setPointsAssignments] = useState<any[]>([]);
     const [processedAlerts, setProcessedAlerts] = useState<any>({});
     const [config, setConfig] = useState<any>(null);
     
@@ -53,7 +55,6 @@ export const GlobalAlerts = () => {
         let unsubs: (() => void)[] = [];
 
         const refreshAlerts = () => {
-            // Limpiar listeners anteriores
             unsubs.forEach(u => u());
             unsubs = [];
 
@@ -69,14 +70,12 @@ export const GlobalAlerts = () => {
             winEnd.setDate(winEnd.getDate() + leadDays);
             const winEndStr = winEnd.toISOString().split('T')[0];
 
-            // 1. Listener de Alertas Procesadas
             const unsubProcessed = onSnapshot(doc(db, 'audit_logs', `daily_alerts_${todayStr}`), (snap) => {
                 if (snap.exists()) setProcessedAlerts(snap.data().actions || {});
                 else setProcessedAlerts({});
             });
             unsubs.push(unsubProcessed);
 
-            // 2. Listener de Usuarios (Alertas dinámicas)
             const unsubUsers = onSnapshot(query(collection(db, 'users')), (snap) => {
                 const births: any[] = [];
                 const exps: any[] = [];
@@ -115,11 +114,59 @@ export const GlobalAlerts = () => {
                 setPetAlerts(pets);
             });
             unsubs.push(unsubUsers);
+
+            const qReds = query(
+                collection(db, 'audit_logs'), 
+                where('type', '==', 'prize_redemption'),
+                where('timestamp', '>=', new Date(new Date().setHours(0,0,0,0)))
+            );
+            const unsubReds = onSnapshot(qReds, (snap) => {
+                const reds: any[] = [];
+                snap.forEach(d => {
+                    const data = d.data();
+                    const dtl = data.details?.find((x: any) => x.action === 'prize_redeemed');
+                    if (dtl) {
+                        const alertId = `redemption-${dtl.socioNumber || dtl.phone || dtl.userId || d.id}-${dtl.redemptionCode || 'N/A'}`;
+                        reds.push({ 
+                            ...dtl, 
+                            name: dtl.userName, 
+                            alertId, 
+                            id: d.id,
+                            timestamp: data.timestamp 
+                        });
+                    }
+                });
+                setRedemptions(reds);
+            });
+            unsubs.push(unsubReds);
+
+            const qPoints = query(
+                collection(db, 'audit_logs'), 
+                where('type', '==', 'points_assignment'),
+                where('timestamp', '>=', new Date(new Date().setHours(0,0,0,0)))
+            );
+            const unsubPoints = onSnapshot(qPoints, (snap) => {
+                const pts: any[] = [];
+                snap.forEach(d => {
+                    const data = d.data();
+                    const dtl = data.details?.find((x: any) => x.action === 'points_credited');
+                    if (dtl) {
+                        const alertId = `points-${dtl.socioNumber || dtl.phone || dtl.userId || d.id}-${d.id}`;
+                        pts.push({ 
+                            ...dtl, 
+                            name: dtl.userName, 
+                            alertId, 
+                            id: d.id,
+                            timestamp: data.timestamp 
+                        });
+                    }
+                });
+                setPointsAssignments(pts);
+            });
+            unsubs.push(unsubPoints);
         };
 
         refreshAlerts();
-        
-        // Listen for simulation changes to refresh everything
         const handleSimChange = () => refreshAlerts();
         window.addEventListener('time-simulation-change', handleSimChange);
 
@@ -151,7 +198,11 @@ export const GlobalAlerts = () => {
                 if (type === 'birthday') {
                     msg = `¡Feliz cumple ${firstName}${socioInfo}! 🎂 Te regalamos puntos. ✨`;
                 } else if (type === 'expiration') {
-                    msg = `¡Hola ${firstName}${socioInfo}! 📢 Tus puntos (${item.points} pts) vencen pronto.`;
+                    msg = `¡Hola ${firstName}${socioInfo}! 📢 Tus puntos (${item.points || item.pointsRedeemed} pts) vencen pronto.`;
+                } else if (type === 'redemption') {
+                    msg = `¡Canje exitoso ${firstName}! 🎁 Canjeaste ${item.prizeName}. Código: ${item.redemptionCode || 'N/A'}`;
+                } else if (type === 'points') {
+                    msg = `¡Hola ${firstName}! 💰 Sumaste ${item.points} puntos. Tu saldo actual es ${item.balanceAfter || 'N/A'}.`;
                 } else {
                     msg = `¡Hola ${firstName}${socioInfo}! 🐾 Recordatorio de alimento para ${item.petName}.`;
                 }
@@ -173,13 +224,17 @@ export const GlobalAlerts = () => {
     const pendingB = birthdaysOfToday.filter(u => !processedAlerts[u.alertId]);
     const pendingE = expiringUsers.filter(u => !processedAlerts[u.alertId]);
     const pendingP = petAlerts.filter(u => !processedAlerts[u.alertId]);
+    const pendingR = redemptions.filter(u => !processedAlerts[u.alertId]);
+    const pendingA = pointsAssignments.filter(u => !processedAlerts[u.alertId]);
 
     const procB = birthdaysOfToday.filter(u => processedAlerts[u.alertId]);
     const procE = expiringUsers.filter(u => processedAlerts[u.alertId]);
     const procP = petAlerts.filter(u => processedAlerts[u.alertId]);
+    const procR = redemptions.filter(u => processedAlerts[u.alertId]);
+    const procA = pointsAssignments.filter(u => processedAlerts[u.alertId]);
 
-    const totalPending = pendingB.length + pendingE.length + pendingP.length;
-    const totalProcessed = procB.length + procE.length + procP.length;
+    const totalPending = pendingB.length + pendingE.length + pendingP.length + pendingR.length + pendingA.length;
+    const totalProcessed = procB.length + procE.length + procP.length + procR.length + procA.length;
 
     if (totalPending === 0 && totalProcessed === 0) return null;
 
@@ -215,6 +270,8 @@ export const GlobalAlerts = () => {
                                 {pendingB.map(u => <AlertCard key={u.alertId} item={u} type="birthday" onAction={handleAction} status="pending" />)}
                                 {pendingE.map(u => <AlertCard key={u.alertId} item={u} type="expiration" onAction={handleAction} status="pending" />)}
                                 {pendingP.map(u => <AlertCard key={u.alertId} item={u} type="pet" onAction={handleAction} status="pending" />)}
+                                {pendingR.map(u => <AlertCard key={u.alertId} item={u} type="redemption" onAction={handleAction} status="pending" />)}
+                                {pendingA.map(u => <AlertCard key={u.alertId} item={u} type="points" onAction={handleAction} status="pending" />)}
                                 {totalPending === 0 && <div className="text-center py-10 opacity-30 text-xs font-bold">✨ ¡Todo al día!</div>}
                             </>
                         ) : (
@@ -222,6 +279,8 @@ export const GlobalAlerts = () => {
                                 {procB.map(u => <AlertCard key={u.alertId} item={u} type="birthday" onAction={handleAction} onDelete={deleteProcessed} status={processedAlerts[u.alertId]} />)}
                                 {procE.map(u => <AlertCard key={u.alertId} item={u} type="expiration" onAction={handleAction} onDelete={deleteProcessed} status={processedAlerts[u.alertId]} />)}
                                 {procP.map(u => <AlertCard key={u.alertId} item={u} type="pet" onAction={handleAction} onDelete={deleteProcessed} status={processedAlerts[u.alertId]} />)}
+                                {procR.map(u => <AlertCard key={u.alertId} item={u} type="redemption" onAction={handleAction} onDelete={deleteProcessed} status={processedAlerts[u.alertId]} />)}
+                                {procA.map(u => <AlertCard key={u.alertId} item={u} type="points" onAction={handleAction} onDelete={deleteProcessed} status={processedAlerts[u.alertId]} />)}
                                 {Object.keys(processedAlerts).length === 0 && <div className="text-center py-10 opacity-30 text-xs font-bold">Vacío</div>}
                             </>
                         )}
@@ -264,7 +323,7 @@ const AlertCard = ({ item, type, onAction, onDelete, status }: any) => {
                         {isDismissed && <span className="text-red-500 text-xs font-black">✓</span>}
                     </h5>
                     <p className="text-[9px] text-white/40 font-bold uppercase tracking-wider mt-1">
-                        {type === 'pet' ? `🐾 ${item.petName}` : type === 'expiration' ? `⏳ ${item.points} pts` : '🎂 Cumpleaños'}
+                        {type === 'pet' ? `🐾 ${item.petName}` : type === 'expiration' ? `⏳ ${item.points} pts` : type === 'redemption' ? `🎁 ${item.prizeName}` : type === 'points' ? `💰 +${item.points} pts` : '🎂 Cumpleaños'}
                     </p>
                 </div>
             </div>

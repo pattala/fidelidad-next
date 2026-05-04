@@ -973,7 +973,7 @@ export default async function handler(req, res) {
             // --- FINAL AUDIT LOG (UNIFIED) ---
             if (result.auditDetails && result.auditDetails.length > 0) {
                 try {
-                    await db.collection('audit_logs').add({
+                    const auditDoc = await db.collection('audit_logs').add({
                         timestamp: admin.firestore.FieldValue.serverTimestamp(),
                         type: 'points_assignment',
                         status: 'success',
@@ -982,6 +982,21 @@ export default async function handler(req, res) {
                         executor,
                         role: executorRole
                     });
+
+                    // --- SINCRO AUTO: Si se generó el WhatsApp, marcar como 'sent' en el log diario ---
+                    if (applyWhatsApp && result.whatsappLink) {
+                        const todaySyncRef = db.collection('audit_logs').doc(`daily_alerts_${todayStr}`);
+                        const alertId = `points-${result.guestData.socioNumber || result.guestData.phone || targetUid}-${auditDoc.id}`;
+                        
+                        await db.runTransaction(async (t) => {
+                            const syncDoc = await t.get(todaySyncRef);
+                            let actions = {};
+                            if (syncDoc.exists) actions = syncDoc.data().actions || {};
+                            actions[alertId] = 'sent';
+                            t.set(todaySyncRef, { actions, lastUpdate: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+                        });
+                    }
+
                 } catch (auditErr) {
                     console.error("Final audit log error:", auditErr);
                 }

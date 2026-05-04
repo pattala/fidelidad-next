@@ -368,6 +368,53 @@ export default async function handler(req, res) {
             }
         }
 
+        // 4. PROCESAR CANJES (Para sincronización de WhatsApp)
+        const redemptionsList = [];
+        try {
+            const redsSnap = await db.collection('audit_logs')
+                .where('type', '==', 'prize_redemption')
+                .where('timestamp', '>=', admin.firestore.Timestamp.fromDate(new Date(new Date().setHours(0,0,0,0))))
+                .get();
+            
+            redsSnap.forEach(doc => {
+                const data = doc.data();
+                const dtl = data.details?.find(x => x.action === 'prize_redeemed');
+                if (dtl) {
+                    const alertId = `redemption-${dtl.socioNumber || dtl.phone || dtl.userId || doc.id}-${dtl.redemptionCode || 'N/A'}`;
+                    redemptionsList.push({
+                        ...dtl,
+                        alertId,
+                        name: dtl.userName,
+                        action: 'prize_redemption'
+                    });
+                }
+            });
+        } catch (e) { console.error("Error fetching redemptions for engine:", e); }
+
+        // 5. PROCESAR ASIGNACIONES DE PUNTOS (Manuales)
+        const pointsAssignmentsList = [];
+        try {
+            const pointsSnap = await db.collection('audit_logs')
+                .where('type', '==', 'points_assignment')
+                .where('timestamp', '>=', admin.firestore.Timestamp.fromDate(new Date(new Date().setHours(0,0,0,0))))
+                .get();
+
+            pointsSnap.forEach(doc => {
+                const data = doc.data();
+                const dtl = data.details?.find(x => x.action === 'points_credited');
+                if (dtl) {
+                    const alertId = `points-${dtl.socioNumber || dtl.phone || dtl.userId || doc.id}-${doc.id}`;
+                    pointsAssignmentsList.push({
+                        ...dtl,
+                        alertId,
+                        name: dtl.userName,
+                        action: 'points_assignment',
+                        points: dtl.points
+                    });
+                }
+            });
+        } catch (e) { console.error("Error fetching points assignments for engine:", e); }
+
         // AUDITORÍA FINAL CONSOLIDADA
         await db.collection('audit_logs').add({
             type: 'engine_daily_unified',
@@ -389,6 +436,8 @@ export default async function handler(req, res) {
             birthdays: birthdaysList,
             expirations: expirationsList,
             petAlerts: petAlertsList,
+            redemptions: redemptionsList,
+            pointsAssignments: pointsAssignmentsList,
             processedAlerts: processedAlerts,
             referenceDate: todayStr // Enviamos la fecha de referencia (simulada o real)
         });

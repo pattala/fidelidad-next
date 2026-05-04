@@ -178,7 +178,7 @@ export const GlobalAlerts = () => {
     const procP = petAlerts.filter(u => processedAlerts[u.alertId]);
 
     const totalPending = pendingB.length + pendingE.length + pendingP.length;
-    const totalProcessed = Object.keys(processedAlerts).length;
+    const totalProcessed = procB.length + procE.length + procP.length;
 
     if (totalPending === 0 && totalProcessed === 0) return null;
 

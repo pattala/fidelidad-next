@@ -13,17 +13,31 @@ let enablePetModule = false;
 
 const getIdentifier = (item) => item?.socioNumber || item?.phone || item?.telefono || item?.dni || item?.userId || 'unknown';
 
+// PUENTE API: Delegar al background para evitar bloqueos CSP/CORS
+const apiBridge = (params) => {
+    return new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({ action: 'apiCall', params }, (response) => {
+            if (chrome.runtime.lastError) {
+                console.warn("[Bridge] Runtime Error:", chrome.runtime.lastError);
+                return reject(new Error(chrome.runtime.lastError.message));
+            }
+            if (!response || !response.success) return reject(new Error(response?.error || 'API Error'));
+            resolve(response.data);
+        });
+    });
+};
+
 // Cargar configuración de storage
 chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (res) => {
     config = res;
     if (res.apiUrl && res.apiKey) {
         // Trigger Engine (Solo motor diario unificado)
 
-        fetch(`${res.apiUrl}/api/engine-daily?mode=daily&trigger=extension`, {
+        apiBridge({
+            url: `${res.apiUrl}/api/engine-daily?mode=daily&trigger=extension`,
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-api-key': res.apiKey }
-        }).then(r => r.json())
-        .then(data => {
+            headers: { 'x-api-key': res.apiKey }
+        }).then(data => {
                 console.log("💎 [Club Fidelidad] API FULL DATA:", data);
                 
                 const serverProcessed = data.processedAlerts || {};
@@ -320,14 +334,15 @@ function showGlobalAlert(fullData, config) {
 
             // 2. Cloud Sync (for Dashboard Parity)
             try {
-                fetch(`${config.apiUrl}/api/sync-alerts`, {
+                apiBridge({
+                    url: `${config.apiUrl}/api/sync-alerts`,
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey },
-                    body: JSON.stringify({ 
+                    headers: { 'x-api-key': config.apiKey },
+                    body: { 
                         alertId, 
                         action: status || 'delete',
-                        date: fullData.referenceDate // USAR FECHA DE REFERENCIA DEL MOTOR
-                    })
+                        date: fullData.referenceDate 
+                    }
                 });
             } catch (e) { console.warn("Sync error:", e); }
         };
@@ -350,12 +365,12 @@ function showGlobalAlert(fullData, config) {
 async function refreshAlertCounts() {
     if (!config.apiUrl || !config.apiKey) return;
     try {
-        const r = await fetch(`${config.apiUrl}/api/engine-daily?mode=daily&trigger=extension`, {
+        const data = await apiBridge({
+            url: `${config.apiUrl}/api/engine-daily?mode=daily&trigger=extension`,
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey }
+            headers: { 'x-api-key': config.apiKey }
         });
-        const data = await r.json();
-        if (data.ok) {
+        if (data) {
             const serverProcessed = data.processedAlerts || {};
             chrome.storage.local.get(['dismissedAlerts'], (store) => {
                 let localList = store.dismissedAlerts || [];
@@ -831,17 +846,12 @@ function showFidelidadPanel() {
             return;
         }
         try {
-                        const res = await fetch(`${config.apiUrl}/api/assign-points?q=${encodeURIComponent(q)}`, {
+            const data = await apiBridge({
+                url: `${config.apiUrl}/api/assign-points?q=${encodeURIComponent(q)}`,
                 headers: { 'x-api-key': config.apiKey }
             });
             
-            if (!res.ok) {
-                statusDiv.innerText = `\u274C Error API (${res.status})`;
-                return;
-            }
-
-            const data = await res.json();
-            if (data.ok) {
+            if (data && data.ok) {
                 apiRatios.base = data.pointsMoneyBase || 100;
                 apiRatios.perPeso = data.pointsPerPeso || 1;
                 apiRatios.discountK = data.discountRecoveryRatio || 0;
@@ -1119,10 +1129,11 @@ function showFidelidadPanel() {
         submitBtn.innerText = 'PROCESANDO...';
 
         try {
-            const res = await fetch(`${config.apiUrl}/api/assign-points`, {
+            const data = await apiBridge({
+                url: `${config.apiUrl}/api/assign-points`,
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey },
-                body: JSON.stringify({
+                headers: { 'x-api-key': config.apiKey },
+                body: {
                     uid: selectedClient.id,
                     amount: amount,
                     reason: isPesos ? 'external_integration' : 'manual',
@@ -1132,10 +1143,9 @@ function showFidelidadPanel() {
                     applyWhatsApp: applyWhatsApp,
                     isPetFood: isPetFood,
                     petIds: finalPetIds
-                })
+                }
             });
-            const data = await res.json();
-            if (data.ok) {
+            if (data && data.ok) {
                 // AUTO-OPEN WHATSAPP if requested
                 if (data.whatsappLink && applyWhatsApp) {
                     setTimeout(() => {
@@ -1245,16 +1255,16 @@ function showFidelidadPanel() {
         prizesList.innerHTML = '<div style="grid-column: 1 / span 2; text-align: center; padding: 40px; color: #16a34a;">Procesando canje...</div>';
 
         try {
-            const res = await fetch(`${config.apiUrl}/api/redeem-prize`, {
+            const data = await apiBridge({
+                url: `${config.apiUrl}/api/redeem-prize`,
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey },
-                body: JSON.stringify({
+                headers: { 'x-api-key': config.apiKey },
+                body: {
                     uid: selectedClient.id,
                     prizeId: prize.id
-                })
+                }
             });
-            const data = await res.json();
-            if (data.ok) {
+            if (data && data.ok) {
                 renderRedemptionSuccess(data, prize);
             } else {
                 alert(`Error al canjear: ${data.error}`);

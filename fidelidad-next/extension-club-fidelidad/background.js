@@ -1,25 +1,28 @@
-// Background Service Worker para la extensión
-// Maneja las peticiones API para evitar bloqueos por CSP (Content Security Policy)
-
+// Background Service Worker - Puente Universal para evitar bloqueos CSP/CORS
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === "fetchAlerts") {
-        console.log("[Background] Fetching alerts from:", request.url);
+    if (request.action === "apiCall") {
+        const { url, method, headers, body } = request.params;
         
-        fetch(request.url, {
-            headers: { 'x-api-key': request.apiKey }
+        fetch(url, {
+            method: method || 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                ...headers
+            },
+            body: body ? JSON.stringify(body) : undefined
         })
         .then(async response => {
-            const data = await response.json();
-            sendResponse({ success: response.ok, data: data, error: response.ok ? null : (data.error || `HTTP ${response.status}`) });
+            const text = await response.text();
+            let data;
+            try { data = JSON.parse(text); } catch(e) { data = { text }; }
+            sendResponse({ success: response.ok, data: data, status: response.status });
         })
         .catch(error => {
-            console.error("[Background] Fetch Error:", error);
+            console.error("[Background] API Error:", error);
             sendResponse({ success: false, error: error.message });
         });
         
-        return true; 
+        return true; // Mantiene el canal abierto para la respuesta asíncrona
     }
-    // Siempre responder algo para cerrar el canal si no es fetchAlerts
-    sendResponse({ status: "ignored" });
-    return false;
+    // No respondemos a otros mensajes para no interferir con otras partes de la extensión
 });

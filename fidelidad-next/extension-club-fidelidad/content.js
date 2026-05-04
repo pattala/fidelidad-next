@@ -41,6 +41,7 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                     });
 
                     chrome.storage.local.set({ dismissedAlerts: localList }, () => {
+                        const getIdentifier = (item) => item.socioNumber || item.phone || item.telefono || item.dni || item.userId;
                         const curY = new Date().getFullYear().toString();
                         const bList = data.birthdays || [];
                         const eList = data.expirations || [];
@@ -56,9 +57,9 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                             return entry ? entry.status : 'pending';
                         };
 
-                        const filteredBirthdays = bList.filter(b => getStatus(`birthday-${b.socioNumber || b.dni}-${curY}`) === 'pending');
-                        const filteredExpirations = eList.filter(e => getStatus(`expiration-${e.socioNumber || e.dni}-${e.nextExpirationDate || 'today'}-${e.points || 0}`) === 'pending');
-                        const filteredPetAlerts = pList.filter(p => getStatus(`pet-${p.socioNumber || p.dni}-${p.petName}-${p.lastFoodAlertDate || 'today'}-${p.points || 0}`) === 'pending');
+                        const filteredBirthdays = bList.filter(b => getStatus(`birthday-${getIdentifier(b)}-${curY}`) === 'pending');
+                        const filteredExpirations = eList.filter(e => getStatus(`expiration-${getIdentifier(e)}-${e.nextExpirationDate || 'today'}-${e.points || 0}`) === 'pending');
+                        const filteredPetAlerts = pList.filter(p => getStatus(`pet-${getIdentifier(p)}-${p.petName}-${p.lastFoodAlertDate || 'today'}-${p.points || 0}`) === 'pending');
 
                         const total = filteredBirthdays.length + filteredExpirations.length + filteredPetAlerts.length;
                         const processedData = {
@@ -172,14 +173,16 @@ function showGlobalAlert(fullData, config) {
             return entry ? entry.status : 'pending';
         };
 
+        const getIdentifier = (item) => item.socioNumber || item.phone || item.telefono || item.dni || item.userId;
         const curY = new Date().getFullYear().toString();
-        const pendingB = birthdays.filter(b => getStatus(`birthday-${b.socioNumber || b.dni}-${curY}`) === 'pending');
-        const pendingE = expirations.filter(e => getStatus(`expiration-${e.socioNumber || e.dni}-${e.nextExpirationDate || 'today'}-${e.points || 0}`) === 'pending');
-        const pendingP = petAlerts.filter(p => getStatus(`pet-${p.socioNumber || p.dni}-${p.petName}-${p.lastFoodAlertDate || 'today'}-${p.points || 0}`) === 'pending');
+
+        const pendingB = birthdays.filter(b => getStatus(`birthday-${getIdentifier(b)}-${curY}`) === 'pending');
+        const pendingE = expirations.filter(e => getStatus(`expiration-${getIdentifier(e)}-${e.nextExpirationDate || 'today'}-${e.points || 0}`) === 'pending');
+        const pendingP = petAlerts.filter(p => getStatus(`pet-${getIdentifier(p)}-${p.petName}-${p.lastFoodAlertDate || 'today'}-${p.points || 0}`) === 'pending');
         
-        const procB = birthdays.filter(b => getStatus(`birthday-${b.socioNumber || b.dni}-${curY}`) !== 'pending');
-        const procE = expirations.filter(e => getStatus(`expiration-${e.socioNumber || e.dni}-${e.nextExpirationDate || 'today'}-${e.points || 0}`) !== 'pending');
-        const procP = petAlerts.filter(p => getStatus(`pet-${p.socioNumber || p.dni}-${p.petName}-${p.lastFoodAlertDate || 'today'}-${p.points || 0}`) !== 'pending');
+        const procB = birthdays.filter(b => getStatus(`birthday-${getIdentifier(b)}-${curY}`) !== 'pending');
+        const procE = expirations.filter(e => getStatus(`expiration-${getIdentifier(e)}-${e.nextExpirationDate || 'today'}-${e.points || 0}`) !== 'pending');
+        const procP = petAlerts.filter(p => getStatus(`pet-${getIdentifier(p)}-${p.petName}-${p.lastFoodAlertDate || 'today'}-${p.points || 0}`) !== 'pending');
 
         const totalPending = pendingB.length + pendingE.length + pendingP.length;
         const totalProcessed = [...procB, ...procE, ...procP].length;
@@ -343,6 +346,7 @@ async function refreshAlertCounts() {
                 });
 
                 chrome.storage.local.set({ dismissedAlerts: localList }, () => {
+                    const getIdentifier = (item) => item.socioNumber || item.phone || item.telefono || item.dni || item.userId;
                     const curY = new Date().getFullYear().toString();
                     const bList = data.birthdays || [];
                     const eList = data.expirations || [];
@@ -353,9 +357,9 @@ async function refreshAlertCounts() {
                         return entry ? entry.status : 'pending';
                     };
 
-                    const filteredBirthdays = bList.filter(b => getStatus(`birthday-${b.socioNumber || b.dni}-${curY}`) === 'pending');
-                    const filteredExpirations = eList.filter(e => getStatus(`expiration-${e.socioNumber || e.dni}-${e.nextExpirationDate || 'today'}-${e.points || 0}`) === 'pending');
-                    const filteredPetAlerts = pList.filter(p => getStatus(`pet-${p.socioNumber || p.dni}-${p.petName}-${p.lastFoodAlertDate || 'today'}-${p.points || 0}`) === 'pending');
+                    const filteredBirthdays = bList.filter(b => getStatus(`birthday-${getIdentifier(b)}-${curY}`) === 'pending');
+                    const filteredExpirations = eList.filter(e => getStatus(`expiration-${getIdentifier(e)}-${e.nextExpirationDate || 'today'}-${e.points || 0}`) === 'pending');
+                    const filteredPetAlerts = pList.filter(p => getStatus(`pet-${getIdentifier(p)}-${p.petName}-${p.lastFoodAlertDate || 'today'}-${p.points || 0}`) === 'pending');
 
                     const total = filteredBirthdays.length + filteredExpirations.length + filteredPetAlerts.length;
                     const processedData = {

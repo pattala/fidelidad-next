@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, query, onSnapshot, doc, setDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, setDoc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import { TimeService } from '../../../services/timeService';
 import { ChevronDown, Sparkles, Bell, EyeOff, X } from 'lucide-react';

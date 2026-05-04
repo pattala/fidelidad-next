@@ -11,6 +11,8 @@ let apiRatios = { base: 100, perPeso: 1, discountK: 0 };
 let currentPromos = [];
 let enablePetModule = false;
 
+const getIdentifier = (item) => item?.socioNumber || item?.phone || item?.telefono || item?.dni || item?.userId || 'unknown';
+
 // Cargar configuración de storage
 chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (res) => {
     config = res;
@@ -41,7 +43,6 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                     });
 
                     chrome.storage.local.set({ dismissedAlerts: localList }, () => {
-                        const getIdentifier = (item) => item.socioNumber || item.phone || item.telefono || item.dni || item.userId;
                         const curY = new Date().getFullYear().toString();
                         const bList = data.birthdays || [];
                         const eList = data.expirations || [];
@@ -183,7 +184,6 @@ function showGlobalAlert(fullData, config) {
             return entry ? entry.status : 'pending';
         };
 
-        const getIdentifier = (item) => item.socioNumber || item.phone || item.telefono || item.dni || item.userId;
         const curY = new Date().getFullYear().toString();
 
         const pendingB = birthdays.filter(b => getStatus(`birthday-${getIdentifier(b)}-${curY}`) === 'pending');
@@ -370,7 +370,6 @@ async function refreshAlertCounts() {
                 });
 
                 chrome.storage.local.set({ dismissedAlerts: localList }, () => {
-                    const getIdentifier = (item) => item.socioNumber || item.phone || item.telefono || item.dni || item.userId;
                     const curY = new Date().getFullYear().toString();
                     const bList = data.birthdays || [];
                     const eList = data.expirations || [];

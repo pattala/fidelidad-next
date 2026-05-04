@@ -264,23 +264,73 @@ export const GlobalAlerts = () => {
                         </button>
                     </div>
 
-                    <div className="p-6 max-h-[480px] overflow-y-auto space-y-4 custom-scrollbar">
+                    <div className="p-6 max-h-[480px] overflow-y-auto space-y-6 custom-scrollbar">
                         {activeTab === 'pending' ? (
                             <>
-                                {pendingB.map(u => <AlertCard key={u.alertId} item={u} type="birthday" onAction={handleAction} status="pending" />)}
-                                {pendingE.map(u => <AlertCard key={u.alertId} item={u} type="expiration" onAction={handleAction} status="pending" />)}
-                                {pendingP.map(u => <AlertCard key={u.alertId} item={u} type="pet" onAction={handleAction} status="pending" />)}
-                                {pendingR.map(u => <AlertCard key={u.alertId} item={u} type="redemption" onAction={handleAction} status="pending" />)}
-                                {pendingA.map(u => <AlertCard key={u.alertId} item={u} type="points" onAction={handleAction} status="pending" />)}
+                                {pendingB.length > 0 && (
+                                    <div>
+                                        <div className="text-[10px] font-black text-pink-500 uppercase tracking-widest mb-3 flex items-center gap-2">🎂 Cumpleaños</div>
+                                        <div className="space-y-3">{pendingB.map(u => <AlertCard key={u.alertId} item={u} type="birthday" onAction={handleAction} status="pending" />)}</div>
+                                    </div>
+                                )}
+                                {pendingE.length > 0 && (
+                                    <div>
+                                        <div className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-3 flex items-center gap-2">⏳ Vencimientos</div>
+                                        <div className="space-y-3">{pendingE.map(u => <AlertCard key={u.alertId} item={u} type="expiration" onAction={handleAction} status="pending" />)}</div>
+                                    </div>
+                                )}
+                                {pendingP.length > 0 && (
+                                    <div>
+                                        <div className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-3 flex items-center gap-2">🐾 Mascotas</div>
+                                        <div className="space-y-3">{pendingP.map(u => <AlertCard key={u.alertId} item={u} type="pet" onAction={handleAction} status="pending" />)}</div>
+                                    </div>
+                                )}
+                                {pendingR.length > 0 && (
+                                    <div>
+                                        <div className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-3 flex items-center gap-2">🎁 Canjes</div>
+                                        <div className="space-y-3">{pendingR.map(u => <AlertCard key={u.alertId} item={u} type="redemption" onAction={handleAction} status="pending" />)}</div>
+                                    </div>
+                                )}
+                                {pendingA.length > 0 && (
+                                    <div>
+                                        <div className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-3 flex items-center gap-2">💰 Asignaciones</div>
+                                        <div className="space-y-3">{pendingA.map(u => <AlertCard key={u.alertId} item={u} type="points" onAction={handleAction} status="pending" />)}</div>
+                                    </div>
+                                )}
                                 {totalPending === 0 && <div className="text-center py-10 opacity-30 text-xs font-bold">✨ ¡Todo al día!</div>}
                             </>
                         ) : (
                             <>
-                                {procB.map(u => <AlertCard key={u.alertId} item={u} type="birthday" onAction={handleAction} onDelete={deleteProcessed} status={processedAlerts[u.alertId]} />)}
-                                {procE.map(u => <AlertCard key={u.alertId} item={u} type="expiration" onAction={handleAction} onDelete={deleteProcessed} status={processedAlerts[u.alertId]} />)}
-                                {procP.map(u => <AlertCard key={u.alertId} item={u} type="pet" onAction={handleAction} onDelete={deleteProcessed} status={processedAlerts[u.alertId]} />)}
-                                {procR.map(u => <AlertCard key={u.alertId} item={u} type="redemption" onAction={handleAction} onDelete={deleteProcessed} status={processedAlerts[u.alertId]} />)}
-                                {procA.map(u => <AlertCard key={u.alertId} item={u} type="points" onAction={handleAction} onDelete={deleteProcessed} status={processedAlerts[u.alertId]} />)}
+                                {procB.length > 0 && (
+                                    <div>
+                                        <div className="text-[10px] font-black text-pink-500 uppercase tracking-widest mb-3 flex items-center gap-2 opacity-50">🎂 Cumpleaños</div>
+                                        <div className="space-y-3">{procB.map(u => <AlertCard key={u.alertId} item={u} type="birthday" onAction={handleAction} onDelete={deleteProcessed} status={processedAlerts[u.alertId]} />)}</div>
+                                    </div>
+                                )}
+                                {procE.length > 0 && (
+                                    <div>
+                                        <div className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-3 flex items-center gap-2 opacity-50">⏳ Vencimientos</div>
+                                        <div className="space-y-3">{procE.map(u => <AlertCard key={u.alertId} item={u} type="expiration" onAction={handleAction} onDelete={deleteProcessed} status={processedAlerts[u.alertId]} />)}</div>
+                                    </div>
+                                )}
+                                {procP.length > 0 && (
+                                    <div>
+                                        <div className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-3 flex items-center gap-2 opacity-50">🐾 Mascotas</div>
+                                        <div className="space-y-3">{procP.map(u => <AlertCard key={u.alertId} item={u} type="pet" onAction={handleAction} onDelete={deleteProcessed} status={processedAlerts[u.alertId]} />)}</div>
+                                    </div>
+                                )}
+                                {procR.length > 0 && (
+                                    <div>
+                                        <div className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-3 flex items-center gap-2 opacity-50">🎁 Canjes</div>
+                                        <div className="space-y-3">{procR.map(u => <AlertCard key={u.alertId} item={u} type="redemption" onAction={handleAction} onDelete={deleteProcessed} status={processedAlerts[u.alertId]} />)}</div>
+                                    </div>
+                                )}
+                                {procA.length > 0 && (
+                                    <div>
+                                        <div className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-3 flex items-center gap-2 opacity-50">💰 Asignaciones</div>
+                                        <div className="space-y-3">{procA.map(u => <AlertCard key={u.alertId} item={u} type="points" onAction={handleAction} onDelete={deleteProcessed} status={processedAlerts[u.alertId]} />)}</div>
+                                    </div>
+                                )}
                                 {Object.keys(processedAlerts).length === 0 && <div className="text-center py-10 opacity-30 text-xs font-bold">Vacío</div>}
                             </>
                         )}

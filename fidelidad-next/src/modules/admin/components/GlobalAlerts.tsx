@@ -86,8 +86,8 @@ export const GlobalAlerts = () => {
                     const data = d.data();
                     if (data.role === 'admin') return;
                     
-                    const bId = `birthday-${data.socioNumber || data.dni || data.id || d.id}-${curY}`;
-                    const eId = `expiration-${data.socioNumber || data.phone || data.telefono || d.id}-${data.nextExpirationDate || 'today'}-${data.points || 0}`;
+                    const bId = `birthday-${data.socioNumber || data.dni}-${curY}`;
+                    const eId = `expiration-${data.socioNumber || data.dni}-${data.nextExpirationDate || 'today'}-${data.points || 0}`;
                     
                     const userBD = data.birthDate || data.fechaNacimiento;
                     if (userBD && userBD.endsWith(dMD)) {
@@ -102,7 +102,7 @@ export const GlobalAlerts = () => {
                     
                     if (data.pets) {
                         data.pets.forEach((p: any) => {
-                            const pId = `pet-${data.socioNumber || data.phone || data.telefono || d.id}-${p.name}-${p.lastFoodAlertDate || 'today'}-${data.points || 0}`;
+                            const pId = `pet-${data.socioNumber || data.dni}-${p.name}-${p.lastFoodAlertDate || 'today'}-${data.points || 0}`;
                             if (p.nextFoodAlertDate === todayStr) {
                                 pets.push({ ...data, petName: p.name, alertId: pId, id: d.id });
                             }

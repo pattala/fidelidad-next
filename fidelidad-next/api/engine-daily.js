@@ -415,6 +415,40 @@ export default async function handler(req, res) {
             });
         } catch (e) { console.error("Error fetching points assignments for engine:", e); }
 
+        // 6. MANTENIMIENTO GLOBAL DE TRANSACCIONES (3 AÑOS O 5000 REGISTROS)
+        try {
+            // A. Borrar por antigüedad (3 años = 1095 días)
+            const threeYearsAgo = new Date(referenceDate);
+            threeYearsAgo.setDate(threeYearsAgo.getDate() - 1095);
+            const oldTransSnap = await db.collection('transactions')
+                .where('date', '<', admin.firestore.Timestamp.fromDate(threeYearsAgo))
+                .limit(500)
+                .get();
+
+            if (!oldTransSnap.empty) {
+                const batch = db.batch();
+                oldTransSnap.docs.forEach(doc => batch.delete(doc.ref));
+                await batch.commit();
+                console.log(`[engine] Purged ${oldTransSnap.size} transactions older than 3 years.`);
+            }
+
+            // B. Borrar por cantidad (Cap: 5000)
+            const transCountSnap = await db.collection('transactions').count().get();
+            const totalTrans = transCountSnap.data().count;
+            if (totalTrans > 5000) {
+                const toDelete = totalTrans - 5000;
+                const excessSnap = await db.collection('transactions')
+                    .orderBy('date', 'asc')
+                    .limit(Math.min(toDelete, 500))
+                    .get();
+                
+                const batch = db.batch();
+                excessSnap.docs.forEach(doc => batch.delete(doc.ref));
+                await batch.commit();
+                console.log(`[engine] Purged ${excessSnap.size} excess transactions (Total was ${totalTrans}).`);
+            }
+        } catch (e) { console.error("Error in transaction maintenance:", e); }
+
         // AUDITORÍA FINAL CONSOLIDADA
         await db.collection('audit_logs').add({
             type: 'engine_daily_unified',
@@ -439,6 +473,7 @@ export default async function handler(req, res) {
             redemptions: redemptionsList,
             pointsAssignments: pointsAssignmentsList,
             processedAlerts: processedAlerts,
+            config: config,
             referenceDate: todayStr // Enviamos la fecha de referencia (simulada o real)
         });
 

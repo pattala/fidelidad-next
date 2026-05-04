@@ -177,14 +177,14 @@ export default async function handler(req, res) {
                     prizeId: prizeId,
                     redemptionCode: shortCode
                 }),
-                historialPuntos: admin.firestore.FieldValue.arrayUnion({
+                historialPuntos: [...(cData.historialPuntos || []), {
                     fechaObtencion: admin.firestore.Timestamp.fromDate(now),
                     puntosObtenidos: -pointsNeeded,
                     puntosDisponibles: 0,
                     diasCaducidad: 0,
                     origen: `Canje: ${pData.name} (${shortCode})`,
                     estado: 'Canjeado'
-                }),
+                }].slice(-100),
                 updatedAt: admin.firestore.FieldValue.serverTimestamp(),
                 lastPurchaseDate: admin.firestore.Timestamp.fromDate(now)
             });

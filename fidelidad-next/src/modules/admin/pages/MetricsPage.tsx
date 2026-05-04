@@ -302,12 +302,13 @@ export const MetricsPage = () => {
 
             let pwaCountFinal = 0, localCountFinal = 0;
             if (isTotal) {
-                const [pwaSnap, localSnap] = await Promise.all([
-                    safeQuery(getCountFromServer(query(collection(db, 'users'), where('source', '==', 'pwa')))), 
-                    safeQuery(getCountFromServer(query(collection(db, 'users'), where('source', '==', 'local'))))
-                ]);
-                pwaCountFinal = pwaSnap?.data ? pwaSnap.data().count : 0; 
-                localCountFinal = localSnap?.data ? localSnap.data().count : 0;
+                // Para el total, traemos todos los clientes (no-admin) para categorizarlos correctamente
+                const allUsersForTotal = await getDocs(query(collection(db, 'users'), where('role', '!=', 'admin')));
+                allUsersForTotal.forEach(d => {
+                    const u = d.data();
+                    if (u.source === 'pwa') pwaCountFinal++;
+                    else localCountFinal++; // 'local' o undefined/null cuentan como local
+                });
             } else {
                 // Filtro por fecha para nuevos clientes en el periodo
                 try {
@@ -320,12 +321,13 @@ export const MetricsPage = () => {
                 } catch (err) {
                     console.warn("Error counting range users (index missing?):", err);
                     // Fallback para no mostrar 0 si el índice no está listo: mostramos el total de PWA como referencia
-                    const [pwaSnap, localSnap] = await Promise.all([
-                        safeQuery(getCountFromServer(query(collection(db, 'users'), where('source', '==', 'pwa')))), 
-                        safeQuery(getCountFromServer(query(collection(db, 'users'), where('source', '==', 'local'))))
+                    const [allCountSnap, pwaSnap] = await Promise.all([
+                        safeQuery(getCountFromServer(query(collection(db, 'users'), where('role', '!=', 'admin')))),
+                        safeQuery(getCountFromServer(query(collection(db, 'users'), where('source', '==', 'pwa'))))
                     ]);
+                    const totalUsersCount = allCountSnap?.data ? allCountSnap.data().count : 0;
                     pwaCountFinal = pwaSnap?.data ? pwaSnap.data().count : 0; 
-                    localCountFinal = localSnap?.data ? localSnap.data().count : 0;
+                    localCountFinal = Math.max(0, totalUsersCount - pwaCountFinal);
                 }
             }
 
@@ -475,7 +477,7 @@ export const MetricsPage = () => {
             ) : (
                 <>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-blue-100 flex items-center justify-between">
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-blue-100 flex items-center justify-between" title="Suma total de puntos entregados a los clientes en el período seleccionado (incluye cargas manuales y automáticas).">
                             <div>
                                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Puntos Emitidos</p>
                                 <p className="text-2xl font-black text-blue-600">{(totalStats?.emitted || 0).toLocaleString()}</p>
@@ -483,7 +485,7 @@ export const MetricsPage = () => {
                             </div>
                             <div className="p-3 bg-blue-50 text-blue-600 rounded-xl"><TrendingUp size={24} /></div>
                         </div>
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-orange-100 flex items-center justify-between">
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-orange-100 flex items-center justify-between" title="Cantidad de puntos que los clientes han utilizado para canjear premios en este período.">
                             <div>
                                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Puntos Canjeados</p>
                                 <p className="text-2xl font-black text-orange-600">{(totalStats?.redeemed || 0).toLocaleString()}</p>
@@ -491,7 +493,7 @@ export const MetricsPage = () => {
                             </div>
                             <div className="p-3 bg-orange-50 text-orange-600 rounded-xl"><Award size={24} /></div>
                         </div>
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-emerald-100 flex items-center justify-between">
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-emerald-100 flex items-center justify-between" title="Valor monetario estimado de los premios entregados. Se calcula multiplicando los puntos canjeados por el valor de canje configurado.">
                             <div>
                                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Dinero en Premios</p>
                                 <p className="text-2xl font-black text-emerald-600">${Math.round(totalStats?.moneyRedeemed || 0).toLocaleString('es-AR')}</p>
@@ -499,7 +501,7 @@ export const MetricsPage = () => {
                             </div>
                             <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl"><DollarSign size={24} /></div>
                         </div>
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-red-100 flex items-center justify-between">
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-red-100 flex items-center justify-between" title="Puntos que perdieron validez por no haber sido usados a tiempo durante este período.">
                             <div>
                                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Puntos Vencidos</p>
                                 <p className="text-2xl font-black text-red-600">{(totalStats?.expired || 0).toLocaleString()}</p>
@@ -507,7 +509,7 @@ export const MetricsPage = () => {
                             </div>
                             <div className="p-3 bg-red-50 text-red-600 rounded-xl"><TrendingUp size={24} className="rotate-180" /></div>
                         </div>
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-indigo-100 flex items-center justify-between">
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-indigo-100 flex items-center justify-between" title="Total de puntos que los clientes tienen actualmente en sus cuentas (el pasivo real del sistema).">
                             <div>
                                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Puntos Circulando</p>
                                 <p className="text-2xl font-black text-indigo-600">{(advancedStats?.circulatingPoints || 0).toLocaleString()}</p>
@@ -528,7 +530,12 @@ export const MetricsPage = () => {
                             const prevVal = stat.prev || 0;
                             const diff = prevVal > 0 ? ((currentVal - prevVal) / prevVal) * 100 : 0;
                             return (
-                                <div key={i} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm transition hover:shadow-md">
+                                <div key={i} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm transition hover:shadow-md" title={
+                                    stat.label === 'Transacciones' ? 'Número total de ventas u operaciones registradas.' :
+                                    stat.label === 'Ticket Promedio' ? 'Monto promedio de dinero gastado por cada transacción.' :
+                                    stat.label === 'Clientes Activos' ? 'Cantidad de clientes distintos que realizaron al menos una operación en este período.' :
+                                    stat.label === 'Recaudación Est.' ? 'Suma total de dinero ingresado por ventas registradas.' : ''
+                                }>
                                     <div className="flex items-center gap-3 mb-3">
                                         <div className={`p-2 bg-${stat.color}-50 text-${stat.color}-600 rounded-lg`}><stat.icon size={20} /></div>
                                         <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{stat.label}</span>
@@ -689,7 +696,7 @@ export const MetricsPage = () => {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="bg-emerald-50/50 p-6 rounded-3xl border border-emerald-100 flex items-center gap-6">
+                            <div className="bg-emerald-50/50 p-6 rounded-3xl border border-emerald-100 flex items-center gap-6" title="Clientes nuevos registrados en el período seleccionado, desglosados por origen (PWA o Panel Admin).">
                                 <div className="p-4 bg-emerald-100 text-emerald-600 rounded-2xl"><Users size={32} /></div>
                                 <div className="flex-1">
                                     <div className="flex items-center justify-between">
@@ -715,7 +722,7 @@ export const MetricsPage = () => {
                                     </div>
                                 </div>
                             </div>
-                            <div className="bg-orange-50/50 p-6 rounded-3xl border border-orange-100 flex items-center gap-6">
+                            <div className="bg-orange-50/50 p-6 rounded-3xl border border-orange-100 flex items-center gap-6" title={`Clientes que no han tenido actividad en los últimos ${config?.dormantDays || 30} días.`}>
                                 <div className="p-4 bg-orange-100 text-orange-600 rounded-2xl"><Clock size={32} /></div>
                                 <div className="flex-1">
                                     <div className="flex items-center justify-between gap-4">

@@ -13,13 +13,31 @@ let enablePetModule = false;
 
 const getIdentifier = (item) => item?.socioNumber || item?.phone || item?.telefono || item?.dni || item?.userId || 'unknown';
 
+// Helper de paridad con Admin
+const isChannelEnabled = (cfg, event, channel) => {
+    if (channel === 'whatsapp' && !cfg?.messaging?.whatsappEnabled) return false;
+    if (channel === 'email' && !cfg?.messaging?.emailEnabled) return false;
+    if (channel === 'push' && !cfg?.messaging?.pushEnabled) return false;
+
+    const specific = cfg?.messaging?.eventConfigs?.[event]?.channels;
+    if (specific && Array.isArray(specific)) return specific.includes(channel);
+    return true;
+};
+
 // PUENTE API: Delegar al background para evitar bloqueos CSP/CORS
 const apiBridge = (params) => {
     return new Promise((resolve, reject) => {
+        if (!chrome.runtime?.id) {
+            return reject(new Error("Extension context invalidated. Por favor, refresca la página."));
+        }
         chrome.runtime.sendMessage({ action: 'apiCall', params }, (response) => {
             if (chrome.runtime.lastError) {
-                console.warn("[Bridge] Runtime Error:", chrome.runtime.lastError);
-                return reject(new Error(chrome.runtime.lastError.message));
+                const msg = chrome.runtime.lastError.message;
+                if (msg.includes('context invalidated')) {
+                    return reject(new Error("Extension context invalidated."));
+                }
+                console.warn("[Bridge] Runtime Error:", msg);
+                return reject(new Error(msg));
             }
             if (!response || !response.success) return reject(new Error(response?.error || 'API Error'));
             resolve(response.data);
@@ -299,6 +317,17 @@ function showGlobalAlert(fullData, config) {
         if (status === 'sent') statusIcon = '<span style="color:#25D366; font-size:14px; margin-left:auto; filter: drop-shadow(0 0 2px rgba(37,211,102,0.4)); font-weight:bold;">\u2714\u2714</span>';
         if (status === 'dismissed') statusIcon = '<span style="color:#f87171; font-size:14px; margin-left:auto; font-weight:bold;">\u2714</span>';
 
+        // Mapeo de tipos de alerta a eventos de config
+        const eventMap = {
+            'birthday': 'birthday',
+            'expiration': 'expirationWarning',
+            'pet': 'petFoodAlert',
+            'redemption': 'redemption',
+            'pointsAssignment': 'pointsAdded'
+        };
+        const eventName = eventMap[type] || type;
+        const showWaBtn = isChannelEnabled(config, eventName, 'whatsapp');
+
         return `<div class="cf-v35-card" style="${mode === 'processed' ? 'opacity:0.8; filter:grayscale(0.5);' : ''}">
             <div style="display:flex; justify-content:space-between; align-items:start;">
                 <div style="flex:1;">
@@ -311,11 +340,13 @@ function showGlobalAlert(fullData, config) {
                 </div>
                 ${mode === 'pending' ? `<button class="cf-v35-card-close" data-id="${id}">×</button>` : `<button class="cf-v35-card-delete" data-id="${id}" style="background:none; border:none; color:white; opacity:0.4; cursor:pointer;">🗑️</button>`}
             </div>
+            ${showWaBtn ? `
             <div style="margin-top:10px;">
                 <button class="cf-v35-btn-wa" data-id="${id}" data-type="${type === 'pet' ? 'petAlerts' : type === 'redemption' ? 'redemptions' : type === 'pointsAssignment' ? 'pointsAssignments' : type + 's'}" data-phone="${item.phone}" data-name="${item.name}" data-socio="${type === 'redemption' ? (item.redemptionCode || '') : (item.socioNumber || '')}" data-extra="${type === 'pet' ? item.petName : type === 'redemption' ? item.prizeName : item.points || ''}" style="${mode === 'processed' ? 'background:rgba(255,255,255,0.1);' : ''}">
                     ${mode === 'pending' ? '📳 Enviar WhatsApp' : '🔄 Re-enviar'}
                 </button>
             </div>
+            ` : ''}
         </div>`;
     };
 
@@ -622,7 +653,7 @@ function showFidelidadPanel() {
                             <!-- Se llena vía API -->
                         </div>
                         <label class="cf-checkbox-label" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #f3f4f6;">
-                            <input type="checkbox" id="cf-notify-wa" ${config.messaging?.whatsappEnabled !== false ? 'checked' : ''}> Notificar por WhatsApp
+                            <input type="checkbox" id="cf-notify-wa" ${isChannelEnabled(config, 'pointsAdded', 'whatsapp') ? 'checked' : ''}> Notificar por WhatsApp
                         </label>
                         <!-- Sección Pet: se renderiza dinámicamente si enablePetModule=true y el cliente tiene mascotas -->
                         <div id="cf-pet-food-section" style="display:none; margin-top: 12px; padding-top: 12px; border-top: 1px solid #f3f4f6;">

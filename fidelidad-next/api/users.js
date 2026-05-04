@@ -46,7 +46,12 @@ function applyCors(req, res) {
 async function handleCreate(req, res, db) {
     let payload = req.body;
     try {
-        let { email, dni, nombre, telefono, numeroSocio, fechaNacimiento, birthDate, fechaInscripcion, domicilio, docId, termsAccepted, termsAcceptedAt } = payload || {};
+        let { 
+            email, dni, nombre, telefono, numeroSocio, fechaNacimiento, 
+            birthDate, fechaInscripcion, domicilio, docId, termsAccepted, 
+            termsAcceptedAt, source, isTestUser, photoUrl, metadata 
+        } = payload || {};
+        
         if (!email || !dni) return res.status(400).json({ ok: false, error: "Faltan email y dni" });
 
         const finalBirthDate = birthDate || fechaNacimiento || "";
@@ -83,9 +88,13 @@ async function handleCreate(req, res, db) {
             birthDate: finalBirthDate, // Canonical name
             fechaNacimiento: finalBirthDate, // Alias for legacy or specific modules
             authUID, role: "client", estado: "activo",
+            source: source || 'local',
+            isTestUser: isTestUser || false,
+            photoUrl: photoUrl || "",
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
         };
 
+        if (metadata) fsPayload.metadata = { ...metadata };
         if (termsAccepted !== undefined) fsPayload.termsAccepted = termsAccepted;
         if (termsAcceptedAt) fsPayload.termsAcceptedAt = termsAcceptedAt;
         if (fechaInscripcion) fsPayload.fechaInscripcion = fechaInscripcion;
@@ -136,8 +145,15 @@ async function handleDelete(req, res, db) {
 
         if (userId) {
             await db.collection(targetCollection).doc(userId).delete();
-            // Cascade delete subcollections (only for users, admins 보통 don't have them but it's safe)
-            if (targetCollection === 'users') {
+                // Borrar transacciones globales asociadas (Búsqueda dual por userId y uid)
+                const tSnap1 = await db.collection('transactions').where('userId', '==', userId).get();
+                const tSnap2 = await db.collection('transactions').where('uid', '==', userId).get();
+                
+                const tBatch = db.batch();
+                tSnap1.forEach(d => tBatch.delete(d.ref));
+                tSnap2.forEach(d => tBatch.delete(d.ref));
+                await tBatch.commit();
+
                 const subs = ["points_history", "inbox", "visit_history"];
                 for (const s of subs) {
                     const snap = await db.collection(`users/${userId}/${s}`).get();

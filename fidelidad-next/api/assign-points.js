@@ -458,7 +458,7 @@ export default async function handler(req, res) {
                         diasCaducidad: validityDays,
                         origen: finalConcept,
                         estado: 'Activo'
-                    }].slice(-1000)
+                    }].slice(-100)
                 };
 
                 // Si hay referido válido, marcarlo aquí mismo
@@ -564,14 +564,14 @@ export default async function handler(req, res) {
                     puntos: newRPoints,
                     'referralStats.count': admin.firestore.FieldValue.increment(1),
                     'referralStats.pointsEarned': admin.firestore.FieldValue.increment(totalAwarded),
-                    historialPuntos: admin.firestore.FieldValue.arrayUnion({
+                    historialPuntos: [...(rData.historialPuntos || []), {
                         fechaObtencion: admin.firestore.Timestamp.fromDate(new Date()),
                         puntosObtenidos: totalAwarded,
                         puntosDisponibles: totalAwarded,
                         diasCaducidad: rValidityDays,
                         origen: conceptFinal,
                         estado: 'Activo'
-                    })
+                    }].slice(-100)
                 });
 
                 tx.set(rRef.collection('points_history').doc(), {

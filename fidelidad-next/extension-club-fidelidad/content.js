@@ -41,7 +41,7 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                     });
 
                     chrome.storage.local.set({ dismissedAlerts: localList }, () => {
-                        const curY = new Date().getFullYear().toString();
+                        const curY = (data.referenceDate || new Date().toISOString()).split('-')[0];
                         const bList = data.birthdays || [];
                         const eList = data.expirations || [];
                         const pList = data.petAlerts || [];
@@ -136,7 +136,7 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
     };
 
 function showGlobalAlert(fullData, config) {
-    const curY = new Date().getFullYear().toString();
+    const curY = (fullData.referenceDate || new Date().toISOString()).split('-')[0];
     const birthdays = fullData.birthdays?.list || [];
     const expirations = fullData.expirations?.list || [];
     const petAlerts = fullData.petAlerts?.list || [];
@@ -342,7 +342,7 @@ async function refreshAlertCounts() {
                 });
 
                 chrome.storage.local.set({ dismissedAlerts: localList }, () => {
-                    const curY = new Date().getFullYear().toString();
+                    const curY = (data.referenceDate || new Date().toISOString()).split('-')[0];
                     const bList = data.birthdays || [];
                     const eList = data.expirations || [];
                     const pList = data.petAlerts || [];

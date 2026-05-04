@@ -178,9 +178,9 @@ export const GlobalAlerts = () => {
     const procP = petAlerts.filter(u => processedAlerts[u.alertId]);
 
     const totalPending = pendingB.length + pendingE.length + pendingP.length;
-    const totalDiscarded = Object.values(processedAlerts).filter(v => v === 'dismissed').length;
+    const totalProcessed = Object.keys(processedAlerts).length;
 
-    if (totalPending === 0 && Object.keys(processedAlerts).length === 0) return null;
+    if (totalPending === 0 && totalProcessed === 0) return null;
 
     return (
         <div className="fixed z-[9999] flex flex-col items-end pointer-events-none transition-transform"
@@ -233,7 +233,7 @@ export const GlobalAlerts = () => {
                     onClick={() => setIsExpanded(true)}
                     className="w-20 h-20 bg-gradient-to-tr from-violet-600 to-indigo-700 rounded-full shadow-[0_20px_60px_rgba(99,102,241,0.6)] flex items-center justify-center text-white border-4 border-white/20 hover:scale-110 active:scale-95 transition-all pointer-events-auto relative cursor-grab active:cursor-grabbing">
                     <div className="absolute -top-2 -right-2 bg-red-500 text-white text-[11px] font-black px-3 py-1 rounded-full border-2 border-white shadow-lg">
-                        {totalPending} / {totalDiscarded}
+                        {totalPending} / {totalProcessed}
                     </div>
                     <Bell size={32} />
                 </button>

@@ -172,21 +172,16 @@ function showGlobalAlert(fullData, config) {
             return entry ? entry.status : 'pending';
         };
 
-        const pendingB = birthdays.filter(b => getStatus(`birthday-${b.socioNumber || b.dni}-${curY}`) === 'pending');
-        const pendingE = expirations.filter(e => getStatus(`expiration-${e.socioNumber || e.phone}-${e.nextExpirationDate || 'today'}-${e.points || 0}`) === 'pending');
-        const pendingP = petAlerts.filter(p => getStatus(`pet-${p.socioNumber || p.phone}-${p.petName}-${p.lastFoodAlertDate || 'today'}-${p.points || 0}`) === 'pending');
+        const pendingB = birthdays.filter(b => getStatus(`birthday-${b.socioNumber || b.dni || b.userId}-${curY}`) === 'pending');
+        const pendingE = expirations.filter(e => getStatus(`expiration-${e.socioNumber || e.phone || e.userId}-${e.nextExpirationDate || 'today'}-${e.points || 0}`) === 'pending');
+        const pendingP = petAlerts.filter(p => getStatus(`pet-${p.socioNumber || p.phone || p.userId}-${p.petName}-${p.lastFoodAlertDate || 'today'}-${p.points || 0}`) === 'pending');
         
-        const procB = birthdays.filter(b => getStatus(`birthday-${b.socioNumber || b.dni}-${curY}`) !== 'pending');
-        const procE = expirations.filter(e => getStatus(`expiration-${e.socioNumber || e.phone}-${e.nextExpirationDate || 'today'}-${e.points || 0}`) !== 'pending');
-        const procP = petAlerts.filter(p => getStatus(`pet-${p.socioNumber || p.phone}-${p.petName}-${p.lastFoodAlertDate || 'today'}-${p.points || 0}`) !== 'pending');
+        const procB = birthdays.filter(b => getStatus(`birthday-${b.socioNumber || b.dni || b.userId}-${curY}`) !== 'pending');
+        const procE = expirations.filter(e => getStatus(`expiration-${e.socioNumber || e.phone || e.userId}-${e.nextExpirationDate || 'today'}-${e.points || 0}`) !== 'pending');
+        const procP = petAlerts.filter(p => getStatus(`pet-${p.socioNumber || p.phone || p.userId}-${p.petName}-${p.lastFoodAlertDate || 'today'}-${p.points || 0}`) !== 'pending');
 
         const totalPending = pendingB.length + pendingE.length + pendingP.length;
-        const totalDiscarded = [...procB, ...procE, ...procP].filter(item => {
-            const id = item.petName ? `pet-${item.socioNumber || item.phone}-${item.petName}-${item.lastFoodAlertDate || 'today'}-${item.points || 0}` : 
-                       item.nextExpirationDate ? `expiration-${item.socioNumber || item.phone}-${item.nextExpirationDate || 'today'}-${item.points || 0}` :
-                       `birthday-${item.socioNumber || item.dni}-${curY}`;
-            return getStatus(id) === 'dismissed';
-        }).length;
+        const totalProcessed = [...procB, ...procE, ...procP].length;
 
         if (isExpanded) {
             ui.className = 'cf-v35-glass cf-v35-panel';
@@ -223,7 +218,7 @@ function showGlobalAlert(fullData, config) {
             attachActions(ui, fullData, render);
         } else {
             ui.className = 'cf-v35-bubble';
-            const countHtml = `<div style="position:absolute; top:-8px; right:-8px; background:#ef4444; color:white; font-size:10px; font-weight:900; padding:4px 8px; border-radius:20px; border:2px solid white; box-shadow:0 4px 12px rgba(0,0,0,0.2); pointer-events:none;">${totalPending} / ${totalDiscarded}</div>`;
+            const countHtml = `<div style="position:absolute; top:-8px; right:-8px; background:#ef4444; color:white; font-size:10px; font-weight:900; padding:4px 8px; border-radius:20px; border:2px solid white; box-shadow:0 4px 12px rgba(0,0,0,0.2); pointer-events:none;">${totalPending} / ${totalProcessed}</div>`;
             ui.innerHTML = `<span style="font-size:28px;">\u{1F4E3}</span>${countHtml}`;
             ui.onmousedown = (e) => {
                 isDragging = true; dragStart.x = e.clientX - pos.x; dragStart.y = e.clientY - pos.y;

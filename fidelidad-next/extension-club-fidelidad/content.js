@@ -43,6 +43,9 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                     chrome.storage.local.set({ dismissedAlerts: localList }, () => {
                         const getIdentifier = (item) => item.socioNumber || item.phone || item.telefono || item.dni || item.userId;
                         const curY = new Date().getFullYear().toString();
+                        const bList = data.birthdays || [];
+                        const eList = data.expirations || [];
+                        const pList = data.petAlerts || [];
                         const rList = data.redemptions || [];
                         const aList = data.pointsAssignments || [];
 
@@ -183,6 +186,8 @@ function showGlobalAlert(fullData, config) {
         const getIdentifier = (item) => item.socioNumber || item.phone || item.telefono || item.dni || item.userId;
         const curY = new Date().getFullYear().toString();
 
+        const pendingB = birthdays.filter(b => getStatus(`birthday-${getIdentifier(b)}-${curY}`) === 'pending');
+        const pendingE = expirations.filter(e => getStatus(`expiration-${getIdentifier(e)}-${e.nextExpirationDate || 'today'}-${e.points || 0}`) === 'pending');
         const pendingP = petAlerts.filter(p => getStatus(`pet-${getIdentifier(p)}-${p.petName}-${p.lastFoodAlertDate || 'today'}-${p.points || 0}`) === 'pending');
         const pendingR = (fullData.redemptions?.list || []).filter(r => getStatus(r.alertId) === 'pending');
         const pendingA = (fullData.pointsAssignments?.list || []).filter(a => getStatus(a.alertId) === 'pending');

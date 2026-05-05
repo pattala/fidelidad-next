@@ -3,6 +3,7 @@
 // Actions: 'create' (default), 'delete', 'assign-socio'
 
 import admin from "firebase-admin";
+import { getValidityDays } from "../utils/_expiration-utils.js";
 
 // ---------- Firebase Admin Init ----------
 function initFirebaseAdmin() {
@@ -209,7 +210,6 @@ async function handleAssignSocio(req, res, db) {
         // 1. Leer config para días de vencimiento
         const configSnap = await db.collection('config').doc('general').get();
         const config = configSnap.exists ? configSnap.data() : {};
-        const expirationDays = Number(config.pointsExpirationDays || config.expirationRules?.[0]?.days || 365);
         const siteName = config.siteName || 'Club Fidelidad';
 
         const contadorRef = db.collection('config').doc('counters');
@@ -239,10 +239,13 @@ async function handleAssignSocio(req, res, db) {
             const aPoints = Number(bonusDetails.address || 0);
             const totalBonus = wPoints + aPoints;
 
-            // Calcular fecha de vencimiento siempre (necesaria para email)
+            const expirationRules = config.expirationRules || [];
+            const validityDays = getValidityDays(totalBonus, expirationRules);
+
+            // Calcular fecha de vencimiento usando reglas de escala
             const now = new Date();
             const expirationDate = new Date(now);
-            expirationDate.setDate(expirationDate.getDate() + expirationDays);
+            expirationDate.setDate(expirationDate.getDate() + validityDays);
             const expY = expirationDate.getFullYear();
             const expM = String(expirationDate.getMonth() + 1).padStart(2, '0');
             const expD = String(expirationDate.getDate()).padStart(2, '0');

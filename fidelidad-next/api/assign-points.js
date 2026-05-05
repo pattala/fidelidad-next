@@ -4,7 +4,7 @@
 // Soporta modo ADMIN (x-api-key) y modo USUARIO (Token Firebase).
 
 import admin from "firebase-admin";
-import { updateNextExpirationDate } from "../utils/_expiration-utils.js";
+import { updateNextExpirationDate, getValidityDays } from "../utils/_expiration-utils.js";
 import { getEffectiveDate } from "../utils/timeUtils.js";
 
 // ---------- Firebase Admin ----------
@@ -389,29 +389,6 @@ export default async function handler(req, res) {
 
         // 5. Determinar Días de Validez (Escalas)
         const expirationRules = config.expirationRules || [];
-        function getValidityDays(pts, rules) {
-            if (!rules || rules.length === 0) return 365;
-
-            // Ordenamos por puntos mínimos para garantizar orden lógico
-            const sortedRules = [...rules].sort((a, b) => (Number(a.minPoints) || 0) - (Number(b.minPoints) || 0));
-
-            // 1. Intentar match exacto de rango
-            const match = sortedRules.find(r =>
-                pts >= (Number(r.minPoints) || 0) &&
-                (r.maxPoints === null || r.maxPoints === undefined || pts <= Number(r.maxPoints))
-            );
-
-            if (match) return Number(match.validityDays) || 365;
-
-            // 2. Fallback: Si supera el valor más alto de la tabla, aplicamos la regla superior
-            const highestRule = sortedRules[sortedRules.length - 1];
-            if (pts >= (Number(highestRule.minPoints) || 0)) {
-                return Number(highestRule.validityDays) || 365;
-            }
-
-            return 365;
-        }
-
         const validityDays = getValidityDays(points, expirationRules);
         const expirationDate = new Date(recordDate);
         expirationDate.setDate(expirationDate.getDate() + validityDays);

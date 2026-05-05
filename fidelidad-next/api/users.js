@@ -155,31 +155,66 @@ async function handleDelete(req, res, db) {
         }
 
         if (userId) {
-            const auditDocSnap = await db.collection(targetCollection).doc(userId).get();
+            const userRef = db.collection(targetCollection).doc(userId);
+            const auditDocSnap = await userRef.get();
             let auditSummary = `Usuario eliminado: ${email || userId}`;
+            let socioNumber = '';
+            
             if (auditDocSnap.exists) {
                 const d = auditDocSnap.data();
-                auditSummary = `Usuario eliminado: ${d.name || d.nombre || 'N/A'} (Socio #${d.socioNumber || d.numeroSocio || 'N/A'}, DNI ${d.dni || 'N/A'})`;
+                socioNumber = d.socioNumber || d.numeroSocio || '';
+                auditSummary = `Usuario eliminado: ${d.name || d.nombre || 'N/A'} (Socio #${socioNumber || 'N/A'}, DNI ${d.dni || 'N/A'})`;
             }
             req.body.cachedAuditSummary = auditSummary;
 
-            await db.collection(targetCollection).doc(userId).delete();
-                // Borrar transacciones globales asociadas (Búsqueda dual por userId y uid)
-                const tSnap1 = await db.collection('transactions').where('userId', '==', userId).get();
-                const tSnap2 = await db.collection('transactions').where('uid', '==', userId).get();
-                
-                const tBatch = db.batch();
-                tSnap1.forEach(d => tBatch.delete(d.ref));
-                tSnap2.forEach(d => tBatch.delete(d.ref));
-                await tBatch.commit();
-
-                const subs = ["points_history", "inbox", "visit_history"];
-                for (const s of subs) {
-                    const snap = await db.collection(`users/${userId}/${s}`).get();
+            // 1. Borrar transacciones globales asociadas
+            const tSnap1 = await db.collection('transactions').where('userId', '==', userId).get();
+            const tSnap2 = await db.collection('transactions').where('uid', '==', userId).get();
+            
+            const tBatch = db.batch();
+            tSnap1.forEach(d => tBatch.delete(d.ref));
+            tSnap2.forEach(d => tBatch.delete(d.ref));
+            if (tSnap1.size > 0 || tSnap2.size > 0) await tBatch.commit();
+            
+            // 2. Borrar subcolecciones
+            const collections = ['points_history', 'inbox', 'redemptions', 'transactions', 'visit_history'];
+            for (const collName of collections) {
+                const subSnap = await userRef.collection(collName).get();
+                if (!subSnap.empty) {
                     const batch = db.batch();
-                    snap.forEach(d => batch.delete(d.ref));
+                    subSnap.docs.forEach(doc => batch.delete(doc.ref));
                     await batch.commit();
+                }
             }
+
+            // --- NUEVO: Limpiar rastro en audit_logs para GlobalAlerts (Burbujas) ---
+            const startOfToday = new Date();
+            startOfToday.setHours(0, 0, 0, 0);
+
+            const auditCleanupSnap = await db.collection('audit_logs')
+                .where('timestamp', '>=', admin.firestore.Timestamp.fromDate(startOfToday))
+                .get();
+
+            const auditBatch = db.batch();
+            let countAudit = 0;
+            auditCleanupSnap.docs.forEach(doc => {
+                const data = doc.data();
+                const isRelevantType = ['prize_redemption', 'points_assignment'].includes(data.type);
+                
+                // Buscar si este log pertenece al usuario que estamos borrando
+                const hasMatch = data.details?.some(d => d.userId === userId || (socioNumber && d.socioNumber === socioNumber)) 
+                               || data.details?.userId === userId 
+                               || (socioNumber && data.details?.socioNumber === socioNumber);
+                
+                if (isRelevantType && hasMatch) {
+                    auditBatch.delete(doc.ref);
+                    countAudit++;
+                }
+            });
+            if (countAudit > 0) await auditBatch.commit();
+            
+            // 3. Finalmente borrar el perfil
+            await userRef.delete();
         }
         if (authUID) await admin.auth().deleteUser(authUID).catch(() => { });
         else if (email) {

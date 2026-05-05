@@ -415,7 +415,7 @@ export const ConfigPage = () => {
         <div className="max-w-6xl mx-auto space-y-8">
             <div className="flex flex-col md:flex-row justify-between items-end border-b border-gray-100 pb-6 gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-800">Configuración</h1>
+                    <h1 className="text-3xl font-bold text-gray-800">Configuración Pro</h1>
                     <p className="text-gray-500 mt-1">Personaliza el funcionamiento y la apariencia de tu programa de fidelidad.</p>
                 </div>
                 <div className="flex bg-gray-100 p-1 rounded-xl">

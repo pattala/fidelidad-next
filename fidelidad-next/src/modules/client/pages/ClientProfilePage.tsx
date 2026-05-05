@@ -141,8 +141,35 @@ export const ClientProfilePage = () => {
                 'domicilio.components.zipCode': editData.cp || '',
             };
 
+            const wasAddressComplete = userData.domicilio?.status === 'complete';
+            const isAddressNowComplete = !!(editData.provincia && editData.localidad && editData.street && editData.number);
+
             await updateDoc(userRef, updates);
             toast.success("Perfil actualizado");
+
+            // --- NUEVO: Otorgar puntos si el domicilio se completó ahora ---
+            if (!wasAddressComplete && isAddressNowComplete && config.enableAddressBonus) {
+                const token = await userAuth.getIdToken();
+                const apiKey = config.apiKey || ''; // Intentar obtener del config o usar el secreto si es admin
+                
+                fetch('/api/assign-points', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ 
+                        uid: userAuth.uid,
+                        reason: 'profile_address',
+                        metadata: { source: 'pwa_profile_update' }
+                    })
+                }).then(res => res.json()).then(data => {
+                    if (data.ok) {
+                        toast.success(`¡Ganaste ${config.pointsForAddress || 50} puntos por completar tu dirección! 🏠`, { duration: 5000 });
+                    }
+                }).catch(err => console.error("Error asignando bono domicilio:", err));
+            }
+
             setIsEditModalOpen(false);
         } catch (error: any) {
             console.error(error);
@@ -428,6 +455,32 @@ export const ClientProfilePage = () => {
                         >
                             <span className="animate-pulse">🎁</span> Invitar Amigos y Ganar Puntos
                         </button>
+
+                        {/* BANNER DE INCENTIVO: BONO DOMICILIO */}
+                        {config.enableAddressBonus && userData.domicilio?.status !== 'complete' && (
+                            <button
+                                onClick={() => {
+                                    setEditData({
+                                        ...editData, // Use current editData if any, or spread userData
+                                        name: userData.name || userData.nombre || '',
+                                        email: userData.email || '',
+                                        dni: userData.dni || '',
+                                        phone: userData.phone || userData.telefono || userData.phone_number || '',
+                                    });
+                                    setIsEditModalOpen(true);
+                                }}
+                                className="mt-2 w-full bg-indigo-50 border-2 border-dashed border-indigo-200 rounded-2xl p-4 flex items-center gap-4 group hover:border-indigo-400 transition-all animate-pulse"
+                            >
+                                <div className="bg-white p-2 rounded-xl shadow-sm text-2xl group-hover:scale-110 transition-transform">🏠</div>
+                                <div className="text-left">
+                                    <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">¡Oportunidad!</p>
+                                    <p className="text-sm font-bold text-indigo-900 leading-tight">
+                                        Cargá tu domicilio y ganá <span className="text-purple-600">{config.pointsForAddress || 50} puntos</span> extra.
+                                    </p>
+                                </div>
+                                <ChevronRight size={16} className="text-indigo-300 ml-auto" />
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>

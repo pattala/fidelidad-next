@@ -80,9 +80,11 @@ export const GlobalAlerts = () => {
                 const births: any[] = [];
                 const exps: any[] = [];
                 const pets: any[] = [];
+                const activeIds = new Set<string>();
 
                 snap.forEach(d => {
                     const data = d.data();
+                    activeIds.add(d.id);
                     if (data.role === 'admin') return;
                     
                     const userIdentifier = data.socioNumber || data.phone || data.telefono || data.dni || d.id;
@@ -112,6 +114,13 @@ export const GlobalAlerts = () => {
                 setBirthdaysOfToday(births);
                 setExpiringUsers(exps);
                 setPetAlerts(pets);
+
+                // Actualizar alertas de auditoría con estado de huérfano
+                setRedemptions(prev => prev.map(r => ({ ...r, isOrphan: !activeIds.has(r.userId) })));
+                setPointsAssignments(prev => prev.map(p => ({ ...p, isOrphan: !activeIds.has(p.userId) })));
+                
+                // Guardar IDs para futuros procesos en este mismo ciclo
+                (window as any)._activeUserIds = activeIds;
             });
             unsubs.push(unsubUsers);
 
@@ -122,6 +131,7 @@ export const GlobalAlerts = () => {
             );
             const unsubReds = onSnapshot(qReds, (snap) => {
                 const reds: any[] = [];
+                const activeIds = (window as any)._activeUserIds || new Set();
                 snap.forEach(d => {
                     const data = d.data();
                     const dtl = data.details?.find((x: any) => x.action === 'prize_redeemed');
@@ -132,7 +142,8 @@ export const GlobalAlerts = () => {
                             name: dtl.userName, 
                             alertId, 
                             id: d.id,
-                            timestamp: data.timestamp 
+                            timestamp: data.timestamp,
+                            isOrphan: dtl.userId ? !activeIds.has(dtl.userId) : false
                         });
                     }
                 });
@@ -147,6 +158,7 @@ export const GlobalAlerts = () => {
             );
             const unsubPoints = onSnapshot(qPoints, (snap) => {
                 const pts: any[] = [];
+                const activeIds = (window as any)._activeUserIds || new Set();
                 snap.forEach(d => {
                     const data = d.data();
                     const dtl = data.details?.find((x: any) => x.action === 'points_credited');
@@ -157,7 +169,8 @@ export const GlobalAlerts = () => {
                             name: dtl.userName, 
                             alertId, 
                             id: d.id,
-                            timestamp: data.timestamp 
+                            timestamp: data.timestamp,
+                            isOrphan: dtl.userId ? !activeIds.has(dtl.userId) : false
                         });
                     }
                 });
@@ -187,6 +200,10 @@ export const GlobalAlerts = () => {
             await setDoc(logRef, { actions: currentActions, lastUpdate: new Date() }, { merge: true });
             
             if (action === 'sent') {
+                if (item.isOrphan) {
+                    toast.error("El usuario ya no existe. Solo podés descartar este aviso.");
+                    return;
+                }
                 const phone = (item.phone || item.telefono || '').replace(/\D/g, '');
                 let p = phone;
                 if (!p.startsWith('54') && p.length === 10) p = '549' + p;
@@ -374,6 +391,7 @@ const AlertCard = ({ item, type, onAction, onDelete, status }: any) => {
                     </h5>
                     <p className="text-[9px] text-white/40 font-bold uppercase tracking-wider mt-1">
                         {type === 'pet' ? `🐾 ${item.petName}` : type === 'expiration' ? `⏳ ${item.points} pts` : type === 'redemption' ? `🎁 ${item.prizeName}` : type === 'points' ? `💰 +${item.points} pts` : '🎂 Cumpleaños'}
+                        {item.isOrphan && <span className="ml-2 text-red-400 bg-red-400/10 px-1.5 py-0.5 rounded border border-red-400/20 text-[7px]">USUARIO ELIMINADO</span>}
                     </p>
                 </div>
             </div>

@@ -109,6 +109,16 @@ async function handleCreate(req, res, db) {
             createdFs = true;
         }
 
+        // AUDITORIA: Registro de creación
+        await db.collection('audit_logs').add({
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            type: 'user_created',
+            status: 'success',
+            summary: `Usuario creado: ${fsPayload.nombre} (Socio #${fsPayload.socioNumber || 'N/A'}, DNI ${fsPayload.dni})`,
+            details: { email: fsPayload.email, source: fsPayload.source },
+            executor: req.headers["x-executor-email"] || "admin"
+        });
+
         return res.status(200).json({ ok: true, auth: { uid: authUID, created: createdAuth }, firestore: { docId: fsDocRef.id, created: createdFs } });
     } catch (e) { return res.status(500).json({ ok: false, error: e.message }); }
 }
@@ -144,6 +154,14 @@ async function handleDelete(req, res, db) {
         }
 
         if (userId) {
+            const auditDocSnap = await db.collection(targetCollection).doc(userId).get();
+            let auditSummary = `Usuario eliminado: ${email || userId}`;
+            if (auditDocSnap.exists) {
+                const d = auditDocSnap.data();
+                auditSummary = `Usuario eliminado: ${d.name || d.nombre || 'N/A'} (Socio #${d.socioNumber || d.numeroSocio || 'N/A'}, DNI ${d.dni || 'N/A'})`;
+            }
+            req.body.cachedAuditSummary = auditSummary;
+
             await db.collection(targetCollection).doc(userId).delete();
                 // Borrar transacciones globales asociadas (Búsqueda dual por userId y uid)
                 const tSnap1 = await db.collection('transactions').where('userId', '==', userId).get();
@@ -167,6 +185,18 @@ async function handleDelete(req, res, db) {
             const user = await admin.auth().getUserByEmail(email).catch(() => null);
             if (user) await admin.auth().deleteUser(user.uid);
         }
+        // AUDITORIA: Registro de borrado
+        if (userId) {
+            await db.collection('audit_logs').add({
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                type: 'user_deleted',
+                status: 'success',
+                summary: req.body.cachedAuditSummary || `Usuario eliminado: ${email || userId}`,
+                details: { userId, authUID, email },
+                executor: "admin"
+            });
+        }
+
         return res.status(200).json({ ok: true });
     } catch (e) { return res.status(500).json({ ok: false, error: e.message }); }
 }

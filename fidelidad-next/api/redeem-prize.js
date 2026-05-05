@@ -434,7 +434,7 @@ export default async function handler(req, res) {
                             timestamp: admin.firestore.FieldValue.serverTimestamp(),
                             type: 'prize_redemption',
                             status: 'success',
-                            summary: `Canje de premio: ${clientData.name || clientData.nombre || 'Socio'} (${prizeData.name})`,
+                            summary: `Canje de premio: ${clientData.name || clientData.nombre || 'Socio'} (Socio #${clientData.socioNumber || clientData.numeroSocio || 'N/A'}, DNI ${clientData.dni || 'N/A'}) - Premio: ${prizeData.name}`,
                             details: result.auditDetails,
                             executor,
                             role: executorRole || 'admin'

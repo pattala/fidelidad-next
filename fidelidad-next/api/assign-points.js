@@ -984,7 +984,7 @@ export default async function handler(req, res) {
                         timestamp: admin.firestore.FieldValue.serverTimestamp(),
                         type: 'points_assignment',
                         status: 'success',
-                        summary: `Asignación de puntos: ${result.guestData.name} (${result.pointsAdded || 0} pts)`,
+                        summary: `Asignación de puntos: ${result.guestData.name} (Socio #${result.guestData.socioNumber || 'N/A'}, DNI ${result.guestData.dni || 'N/A'}) - ${result.pointsAdded || 0} pts`,
                         details: result.auditDetails,
                         executor,
                         role: executorRole

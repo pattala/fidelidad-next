@@ -4,41 +4,32 @@ const fs = require('fs');
 const path = require('path');
 
 const saPath = path.join(__dirname, '..', '_OLD_BACKUPS', 'DEPURACION_FINA_MAYO', 'service-account.json');
-
-if (!fs.existsSync(saPath)) {
-    console.error('Error: No se encontró el archivo de credenciales en:', saPath);
-    process.exit(1);
-}
-
 const sa = JSON.parse(fs.readFileSync(saPath, 'utf8'));
 admin.initializeApp({ credential: admin.credential.cert(sa) });
 const db = admin.firestore();
 
 async function audit() {
     try {
-        console.log('--- REPORTE TÉCNICO DE LIMPIEZA V.1.4.6 ---');
+        console.log('--- AUDITORÍA DE REGISTRO V.1.4.7 ---');
         
-        const usersSnap = await db.collection('users').get();
-        const clients = usersSnap.docs.filter(d => d.data().role === 'client');
-        console.log('Socios (Clientes) en DB:', clients.length);
+        const usersSnap = await db.collection('users').where('role', '==', 'client').get();
+        console.log('Socios encontrados:', usersSnap.size);
+        usersSnap.forEach(d => {
+            const u = d.data();
+            console.log(`> SOCIO: ${u.nombre || u.name} | DNI: ${u.dni} | Socio #: ${u.numeroSocio || 'Pendiente'}`);
+            console.log(`  Puntos: ${u.points || 0} | Domicilio: ${u.domicilio ? 'CARGADO' : 'PENDIENTE'}`);
+        });
         
-        const transactionsSnap = await db.collection('transactions').get();
-        console.log('Transacciones totales en tabla global:', transactionsSnap.size);
-        
-        const auditSnap = await db.collection('audit_logs').orderBy('timestamp', 'desc').limit(5).get();
-        console.log('--- ÚLTIMOS LOGS DE ACTIVIDAD ---');
+        console.log('\n--- ÚLTIMOS MOVIMIENTOS DE AUDITORÍA ---');
+        const auditSnap = await db.collection('audit_logs').orderBy('timestamp', 'desc').limit(3).get();
         auditSnap.forEach(d => {
-            const data = d.data();
-            console.log(`- [${data.action}] ${data.details || ''} (${data.timestamp?.toDate().toLocaleString() || 'sin fecha'})`);
+            const a = d.data();
+            console.log(`- [${a.type || 'SISTEMA'}] ${a.summary || 'Sin resumen'}`);
+            if (a.details) console.log(`  Detalles: ${JSON.stringify(a.details)}`);
         });
 
-        if (clients.length === 0 && transactionsSnap.size === 0) {
-            console.log('\n✅ RESULTADO: El sistema está 100% PURGADO de datos de socios.');
-        } else {
-            console.log('\n⚠️ AVISO: Aún detecto registros en la base de datos.');
-        }
     } catch (e) {
-        console.error('Error en auditoría:', e.message);
+        console.error('Error:', e.message);
     }
     process.exit(0);
 }

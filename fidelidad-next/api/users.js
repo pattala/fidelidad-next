@@ -297,6 +297,16 @@ async function handleAssignSocio(req, res, db) {
 
             await batch.commit();
 
+            // AUDITORIA: Registro de finalización de alta (PWA)
+            await db.collection('audit_logs').add({
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                type: 'user_created',
+                status: 'success',
+                summary: `Nuevo socio registrado (PWA): ${userName} (Socio #${assignedNumber}, DNI ${clientData.dni || 'N/A'})`,
+                details: { userId: docId, email: userEmail, source: 'pwa' },
+                executor: 'system'
+            });
+
             // 4. Enviar email de bienvenida con datos correctos
             if (userEmail) {
                 const baseUrl = process.env.PUBLIC_BASE_URL || `https://${req.headers.host}`;

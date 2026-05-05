@@ -151,7 +151,7 @@ export const ConfigPage = () => {
     });
 
     const { isReadOnly, user } = useAdminAuth();
-    const [activeTab, setActiveTab] = useState<'rules' | 'branding' | 'messaging' | 'legales' | 'advanced'>('rules');
+    const [activeTab, setActiveTab] = useState<'economy' | 'mechanics' | 'communication' | 'identity' | 'advanced'>('economy');
     const [resetOptions, setResetOptions] = useState({
         socios_total: false,
         socios_historial: false,
@@ -420,34 +420,39 @@ export const ConfigPage = () => {
                 </div>
                 <div className="flex bg-gray-100 p-1 rounded-xl">
                     <button
-                        onClick={() => setActiveTab('rules')}
-                        className={`px-5 py-2.5 rounded-lg text-sm font-bold transition flex items-center gap-2 ${activeTab === 'rules' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        type="button"
+                        onClick={() => setActiveTab('economy')}
+                        className={`px-5 py-2.5 rounded-lg text-sm font-bold transition flex items-center gap-2 ${activeTab === 'economy' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                     >
                         <Calculator size={18} />
-                        Reglas del Juego
+                        Economía
                     </button>
                     <button
-                        onClick={() => setActiveTab('branding')}
-                        className={`px-5 py-2.5 rounded-lg text-sm font-bold transition flex items-center gap-2 ${activeTab === 'branding' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        type="button"
+                        onClick={() => setActiveTab('mechanics')}
+                        className={`px-5 py-2.5 rounded-lg text-sm font-bold transition flex items-center gap-2 ${activeTab === 'mechanics' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                        <Zap size={18} />
+                        Mecánicas
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab('communication')}
+                        className={`px-5 py-2.5 rounded-lg text-sm font-bold transition flex items-center gap-2 ${activeTab === 'communication' ? 'bg-white text-green-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                        <MessageCircle size={18} />
+                        Comunicación
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab('identity')}
+                        className={`px-5 py-2.5 rounded-lg text-sm font-bold transition flex items-center gap-2 ${activeTab === 'identity' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                     >
                         <Palette size={18} />
-                        Identidad Visual
+                        Identidad
                     </button>
                     <button
-                        onClick={() => setActiveTab('messaging')}
-                        className={`px-5 py-2.5 rounded-lg text-sm font-bold transition flex items-center gap-2 ${activeTab === 'messaging' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                        <span className="text-green-500 text-lg">💬</span>
-                        Mensajería
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('legales')}
-                        className={`px-5 py-2.5 rounded-lg text-sm font-bold transition flex items-center gap-2 ${activeTab === 'legales' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                        <FileText size={18} />
-                        Legales
-                    </button>
-                    <button
+                        type="button"
                         onClick={() => setActiveTab('advanced')}
                         className={`px-5 py-2.5 rounded-lg text-sm font-bold transition flex items-center gap-2 ${activeTab === 'advanced' ? 'bg-white text-red-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                     >
@@ -466,8 +471,8 @@ export const ConfigPage = () => {
                     onSave={(newConfig) => setConfig({ ...config, ...newConfig })}
                 />
 
-                {/* Pestaña: REGLAS DEL JUEGO (Lo que pidió el usuario) */}
-                {activeTab === 'rules' && (
+                {/* Pilar: ECONOMÍA 💰 */}
+                {activeTab === 'economy' && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="space-y-6">
                             {/* Tarjeta de Conversión */}
@@ -533,7 +538,6 @@ export const ConfigPage = () => {
                                                 </button>
                                             </div>
 
-                                            {/* Summary Card */}
                                             <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
                                                 <div className="flex justify-between items-center mb-2">
                                                     <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Método Actual</span>
@@ -550,7 +554,7 @@ export const ConfigPage = () => {
                                                 <div className="flex items-end gap-2">
                                                     <span className="text-2xl font-black text-gray-800">
                                                         $ {
-                                                            (config.pointCalculationMethod === 'budget' && config.pointValueBudget) ? 'Varía (Dinámico)' : // Dynamic logic is complex to show here without fetching stats
+                                                            (config.pointCalculationMethod === 'budget' && config.pointValueBudget) ? 'Varía (Dinámico)' :
                                                                 (config.pointCalculationMethod === 'average' || config.useAutomaticPointValue) ? autoPointValue.toFixed(2) :
                                                                     (config.pointValue || 10)
                                                         }
@@ -558,14 +562,6 @@ export const ConfigPage = () => {
                                                     <span className="text-sm font-bold text-gray-400 mb-1">/ punto</span>
                                                 </div>
 
-                                                {/* Extra info for Budget mode */}
-                                                {config.pointCalculationMethod === 'budget' && (
-                                                    <p className="text-xs text-orange-600 mt-2 font-medium">
-                                                        Controlado por presupuesto mensual de: <strong>${config.pointValueBudget?.toLocaleString()}</strong>
-                                                    </p>
-                                                )}
-
-                                                {/* Extra info for Auto/Average mode */}
                                                 {(config.pointCalculationMethod === 'average' || config.useAutomaticPointValue) && (
                                                     <p className="text-xs text-purple-600 mt-2 font-medium">
                                                         Calculado automáticamente según tus premios activos.
@@ -577,14 +573,34 @@ export const ConfigPage = () => {
                                 </div>
                             </div>
 
-                            {/* Tarjeta de Salud de la Base - MOVILIZADA AQUÍ PARA MAYOR VISIBILIDAD */}
+                            {/* Control de Duplicados (Movido de Avanzado) */}
+                            <div className="flex items-center justify-between p-6 bg-red-50/50 rounded-2xl border border-red-100 group transition-all hover:bg-red-50">
+                                <div className="flex-1">
+                                    <span className="text-sm font-black text-red-900 uppercase flex items-center gap-2">
+                                        <Shield size={16} /> Control de Ejecución Diaria
+                                    </span>
+                                    <p className="text-[10px] text-red-600 font-bold mt-1 leading-tight">
+                                        Evita que el motor automático envíe avisos duplicados si se ejecuta varias veces el mismo día. <br />
+                                        <span className="opacity-70">Altamente recomendado para cuidar la experiencia del cliente.</span>
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setConfig({ ...config, enableDuplicateControl: config.enableDuplicateControl === undefined ? true : !config.enableDuplicateControl })}
+                                    className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.enableDuplicateControl !== false ? 'bg-red-600' : 'bg-gray-200'}`}
+                                >
+                                    <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enableDuplicateControl !== false ? 'translate-x-5' : 'translate-x-0'}`} />
+                                </button>
+                            </div>
+
+                            {/* Tarjeta de Salud de la Base */}
                             <div className="bg-white p-8 rounded-2xl shadow-sm border border-orange-100 relative overflow-hidden group hover:shadow-md transition">
                                 <div className="absolute top-0 right-0 w-24 h-24 bg-orange-50 rounded-bl-full -mr-8 -mt-8 transition group-hover:bg-orange-100"></div>
                                 <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2 relative z-10">
                                     <span className="bg-orange-100 text-orange-600 p-2 rounded-lg"><Clock size={20} /></span>
                                     Salud de la Base
                                 </h3>
-                                
+
                                 <div className="space-y-4 relative z-10">
                                     <div className="bg-orange-50/30 p-4 rounded-xl border border-orange-100">
                                         <div className="flex flex-col gap-3">
@@ -599,725 +615,126 @@ export const ConfigPage = () => {
                                                     max="365"
                                                     value={config.dormantDays || 60}
                                                     onChange={e => setConfig({ ...config, dormantDays: parseInt(e.target.value) || 0 })}
-                                                    className="w-full pl-4 pr-16 py-3 bg-white rounded-xl border-orange-200 border-2 focus:border-orange-500 focus:ring-4 focus:ring-orange-50 text-orange-700 font-black text-xl text-center outline-none transition shadow-sm"
+                                                    className="w-full pl-3 pr-12 py-2 bg-white rounded-lg border-orange-200 border-2 text-orange-700 font-bold outline-none focus:ring-4 focus:ring-orange-50"
                                                 />
-                                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-orange-600 text-xs font-black uppercase tracking-tighter">Días</span>
+                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-orange-400 text-[10px] font-bold uppercase">Días</span>
                                             </div>
                                         </div>
                                     </div>
-                                    <p className="text-[10px] text-orange-400 italic px-1">
-                                        * Este ajuste afecta directamente al gráfico de "Salud de la Base" en la página de métricas.
-                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Columna Derecha: VENCIMIENTOS */}
+                        <div className="space-y-6">
+                            <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden group hover:shadow-md transition">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-gray-50 rounded-bl-full -mr-10 -mt-10 transition group-hover:bg-gray-100"></div>
+                                <div className="flex items-center justify-between mb-6 relative z-10">
+                                    <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                                        <span className="bg-gray-100 text-gray-600 p-2 rounded-lg"><RefreshCw size={20} /></span>
+                                        Vencimientos
+                                    </h3>
+                                    <button
+                                        type="button"
+                                        onClick={() => setConfig({ ...config, expirationRules: [...(config.expirationRules || []), { months: 6, pointsThreshold: 0 }] })}
+                                        className="flex items-center gap-2 px-3 py-1.5 bg-gray-900 text-white rounded-lg text-xs font-bold hover:bg-black transition shadow-lg shadow-gray-200"
+                                    >
+                                        <Plus size={14} /> Nueva Regla
+                                    </button>
+                                </div>
+
+                                <div className="space-y-4 relative z-10">
+                                    {(config.expirationRules || []).map((rule, idx) => (
+                                        <div key={idx} className="flex items-center gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100 group/item">
+                                            <div className="flex-1">
+                                                <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Los puntos vencen a los</span>
+                                                <div className="flex items-center gap-2">
+                                                    <input
+                                                        type="number" min="1"
+                                                        value={rule.months}
+                                                        onChange={e => {
+                                                            const newRules = [...config.expirationRules];
+                                                            newRules[idx].months = parseInt(e.target.value) || 0;
+                                                            setConfig({ ...config, expirationRules: newRules });
+                                                        }}
+                                                        className="w-16 p-2 bg-white rounded-lg border-gray-200 text-center font-bold text-gray-700 outline-none focus:ring-2 focus:ring-blue-500"
+                                                    />
+                                                    <span className="text-sm font-bold text-gray-500">meses</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex-1">
+                                                <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Si el saldo supera</span>
+                                                <div className="flex items-center gap-2">
+                                                    <input
+                                                        type="number" min="0"
+                                                        value={rule.pointsThreshold}
+                                                        onChange={e => {
+                                                            const newRules = [...config.expirationRules];
+                                                            newRules[idx].pointsThreshold = parseInt(e.target.value) || 0;
+                                                            setConfig({ ...config, expirationRules: newRules });
+                                                        }}
+                                                        className="w-20 p-2 bg-white rounded-lg border-gray-200 text-center font-bold text-gray-700 outline-none focus:ring-2 focus:ring-blue-500"
+                                                    />
+                                                    <span className="text-sm font-bold text-gray-500">pts</span>
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setConfig({ ...config, expirationRules: config.expirationRules.filter((_, i) => i !== idx) })}
+                                                className="p-2 text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover/item:opacity-100"
+                                            >
+                                                <Trash2 size={18} />
+                                            </button>
+                                        </div>
+                                    ))}
+
+                                    {(config.expirationRules || []).length === 0 && (
+                                        <div className="text-center py-8 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                                            <p className="text-sm text-gray-400">No hay reglas de vencimiento. <br />Los puntos serán eternos.</p>
+                                        </div>
+                                    )}
+
+                                    {/* Botón Acción Manual de Vencimientos */}
+                                    <div className="mt-8 p-4 bg-blue-50 rounded-2xl border border-blue-100 flex items-center justify-between gap-4">
+                                        <div className="flex-1">
+                                            <span className="text-xs font-bold text-blue-800 block">Ejecución de Motor Manual</span>
+                                            <p className="text-[10px] text-blue-600 mt-1">Revisa vencimientos y envía avisos ahora mismo.</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={handleRunExpirations}
+                                            className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200 flex items-center gap-2"
+                                        >
+                                            <Zap size={14} /> Ejecutar Ahora
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="space-y-6">
-                                {/* Tarjeta de Ajustes Generales */}
-                                <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 h-full">
-                                    <h3 className="text-lg font-bold text-gray-800 mb-6">Políticas del Programa</h3>
-                                    <div className="space-y-6">
-                                        <div>
-                                            <div className="flex items-center justify-between mb-2">
-                                                <label className="block text-sm font-semibold text-gray-700">🎁 Bienvenida (Nuevo Cliente)</label>
-                                            </div>
-
-                                            <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-200 space-y-4">
-                                                {/* 1. Automatic Points */}
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex-1">
-                                                        <span className="text-sm font-bold text-gray-800">Regalar Puntos al Registrarse</span>
-                                                        <p className="text-xs text-gray-500">El cliente recibe puntos automáticamente tras validar su cuenta.</p>
-                                                    </div>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setConfig({ ...config, enableWelcomeBonus: !config.enableWelcomeBonus })}
-                                                        className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.enableWelcomeBonus ? 'bg-blue-600' : 'bg-gray-200'}`}
-                                                    >
-                                                        <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enableWelcomeBonus ? 'translate-x-5' : 'translate-x-0'}`} />
-                                                    </button>
-                                                </div>
-
-                                                {config.enableWelcomeBonus && (
-                                                    <div className="flex items-center gap-3 animate-fade-in pl-2 border-l-2 border-blue-200">
-                                                        <input
-                                                            type="number"
-                                                            value={config.welcomePoints}
-                                                            onChange={e => setConfig({ ...config, welcomePoints: parseInt(e.target.value) || 0 })}
-                                                            className="w-24 p-2 rounded-lg border border-gray-200 outline-none focus:ring-2 focus:ring-blue-100 font-bold text-gray-700 text-center"
-                                                        />
-                                                        <span className="text-gray-500 text-sm font-medium">puntos de bienvenida.</span>
-                                                    </div>
-                                                )}
-
-                                                {/* NUEVO: Factor K (Recuperación por Descuento) */}
-                                                <div className="pt-4 border-t border-gray-100">
-                                                    <div className="flex items-center justify-between mb-2">
-                                                        <div className="flex-1">
-                                                            <span className="text-sm font-bold text-blue-600 flex items-center gap-2">
-                                                                <Sparkles size={16} /> Factor K: Recuperación por Descuentos
-                                                            </span>
-                                                            <p className="text-xs text-gray-500 mt-0.5">Otorga puntos sobre el monto neto de descuentos (ej: Combos, Cupones).</p>
-                                                        </div>
-                                                        <div className="flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">
-                                                            <input
-                                                                type="number" min="0" max="100"
-                                                                value={config.discountRecoveryRatio || 0}
-                                                                onChange={e => setConfig({ ...config, discountRecoveryRatio: parseInt(e.target.value) || 0 })}
-                                                                className="w-16 bg-transparent outline-none font-black text-blue-700 text-right pr-1"
-                                                            />
-                                                            <span className="text-blue-600 font-bold text-xs">%</span>
-                                                        </div>
-                                                    </div>
-                                                    <p className="text-[10px] text-gray-400 italic">
-                                                        Ejemplo: Con 10%, si un cliente usa un cupón de $5000 (equivale a 50 pts), recibirá **5 pts** de bono adicional.
-                                                    </p>
-                                                </div>
-
-
-                                                {/* NUEVO: Bono por Domicilio */}
-                                                <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                                                    <div className="flex-1">
-                                                        <span className="text-sm font-bold text-gray-800">Bono por Domicilio Completo</span>
-                                                        <p className="text-xs text-gray-500">Regalar puntos si el socio completa su dirección al registrarse.</p>
-                                                    </div>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setConfig({ ...config, enableAddressBonus: !config.enableAddressBonus })}
-                                                        className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.enableAddressBonus ? 'bg-emerald-600' : 'bg-gray-200'}`}
-                                                    >
-                                                        <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enableAddressBonus ? 'translate-x-5' : 'translate-x-0'}`} />
-                                                    </button>
-                                                </div>
-
-                                                {config.enableAddressBonus && (
-                                                    <div className="flex items-center gap-3 animate-fade-in pl-2 border-l-2 border-emerald-200">
-                                                        <input
-                                                            type="number"
-                                                            value={config.pointsForAddress || 50}
-                                                            onChange={e => setConfig({ ...config, pointsForAddress: parseInt(e.target.value) || 0 })}
-                                                            className="w-24 p-2 rounded-lg border border-gray-200 outline-none focus:ring-2 focus:ring-emerald-100 font-bold text-gray-700 text-center"
-                                                        />
-                                                        <span className="text-gray-500 text-sm font-medium">puntos por dirección.</span>
-                                                    </div>
-                                                )}
-
-                                                {/* 2. Automatic Message */}
-                                                <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                                                    <div className="flex-1">
-                                                        <span className="text-sm font-bold text-gray-800">Enviar Mensaje de Bienvenida</span>
-                                                        <p className="text-xs text-gray-500">Enviar Email y notificación Push al completar registro.</p>
-                                                    </div>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setConfig({ ...config, enableWelcomeMessage: config.enableWelcomeMessage === undefined ? true : !config.enableWelcomeMessage })}
-                                                        className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.enableWelcomeMessage !== false ? 'bg-indigo-500' : 'bg-gray-200'}`}
-                                                    >
-                                                        <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enableWelcomeMessage !== false ? 'translate-x-5' : 'translate-x-0'}`} />
-                                                    </button>
-                                                </div>
-                                            </div>
+                            {/* Ratio de Recuperación (Deuda) */}
+                            <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden group hover:shadow-md transition">
+                                <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                    <span className="bg-emerald-100 text-emerald-600 p-2 rounded-lg"><Monitor size={20} /></span>
+                                    Control de Deuda Técnica
+                                </h3>
+                                <div className="space-y-4">
+                                    <div>
+                                        <div className="flex justify-between items-center mb-2">
+                                            <label className="text-sm font-semibold text-gray-700">Ratio de Recuperación de Descuentos</label>
+                                            <span className="text-emerald-600 font-bold">{(config.discountRecoveryRatio || 0) * 100}%</span>
                                         </div>
-
-                                        <div>
-                                            <div className="flex items-center justify-between mb-2">
-                                                <label className="block text-sm font-semibold text-gray-700">🎂 Cumpleaños</label>
-                                            </div>
-
-                                            <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-200 space-y-4">
-                                                {/* 1. Automatic Points */}
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex-1">
-                                                        <span className="text-sm font-bold text-gray-800">Regalar Puntos Automáticamente</span>
-                                                        <p className="text-xs text-gray-500">El cliente recibe puntos al iniciar sesión en su cumple.</p>
-                                                    </div>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setConfig({ ...config, enableBirthdayBonus: !config.enableBirthdayBonus })}
-                                                        className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.enableBirthdayBonus ? 'bg-pink-500' : 'bg-gray-200'}`}
-                                                    >
-                                                        <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enableBirthdayBonus ? 'translate-x-5' : 'translate-x-0'}`} />
-                                                    </button>
-                                                </div>
-
-                                                {config.enableBirthdayBonus && (
-                                                    <div className="flex items-center gap-3 animate-fade-in pl-2 border-l-2 border-pink-200">
-                                                        <input
-                                                            type="number"
-                                                            value={config.birthdayPoints}
-                                                            onChange={e => setConfig({ ...config, birthdayPoints: parseInt(e.target.value) || 0 })}
-                                                            className="w-24 p-2 rounded-lg border border-gray-200 outline-none focus:ring-2 focus:ring-pink-100 font-bold text-gray-700 text-center"
-                                                        />
-                                                        <span className="text-gray-500 text-sm font-medium">puntos de regalo.</span>
-                                                    </div>
-                                                )}
-
-                                                {/* 2. Automatic Message */}
-                                                <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                                                    <div className="flex-1">
-                                                        <span className="text-sm font-bold text-gray-800">Enviar Saludo Automático</span>
-                                                        <p className="text-xs text-gray-500">Enviar Push/Email/WhatsApp automáticamente.</p>
-                                                    </div>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setConfig({ ...config, enableBirthdayMessage: config.enableBirthdayMessage === undefined ? true : !config.enableBirthdayMessage })}
-                                                        className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.enableBirthdayMessage !== false ? 'bg-blue-500' : 'bg-gray-200'}`}
-                                                    >
-                                                        <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enableBirthdayMessage !== false ? 'translate-x-5' : 'translate-x-0'}`} />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="pt-6 border-t border-gray-100">
-                                            <div className="flex justify-between items-center mb-4">
-                                                <div>
-                                                    <label className="block text-sm font-semibold text-gray-700">📅 Vencimiento por Escalas</label>
-                                                    <p className="text-xs text-gray-400 mt-1">Define cuánto duran los puntos según la cantidad obtenida.</p>
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setConfig({
-                                                        ...config,
-                                                        expirationRules: [
-                                                            ...(config.expirationRules || []),
-                                                            { minPoints: 0, maxPoints: null, validityDays: 30 }
-                                                        ]
-                                                    })}
-                                                    className="text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg font-bold hover:bg-blue-100 transition flex items-center gap-1"
-                                                >
-                                                    <Plus size={14} /> Agregar Regla
-                                                </button>
-                                            </div>
-
-                                            <div className="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
-                                                <table className="w-full text-sm text-left">
-                                                    <thead className="bg-gray-100 text-xs text-gray-500 uppercase font-bold">
-                                                        <tr>
-                                                            <th className="p-3 pl-4">Desde (Pts)</th>
-                                                            <th className="p-3">Hasta (Pts)</th>
-                                                            <th className="p-3">Validez (Días)</th>
-                                                            <th className="p-3 w-10"></th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody className="divide-y divide-gray-200">
-                                                        {(config.expirationRules || []).map((rule, idx) => (
-                                                            <tr key={idx} className="bg-white">
-                                                                <td className="p-2 pl-4">
-                                                                    <input
-                                                                        type="number" min="0"
-                                                                        className="w-full bg-transparent outline-none font-bold text-gray-700 placeholder-gray-300"
-                                                                        placeholder="0"
-                                                                        value={rule.minPoints}
-                                                                        onChange={e => {
-                                                                            const newRules = [...(config.expirationRules || [])];
-                                                                            newRules[idx].minPoints = parseInt(e.target.value) || 0;
-                                                                            setConfig({ ...config, expirationRules: newRules });
-                                                                        }}
-                                                                    />
-                                                                </td>
-                                                                <td className="p-2">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <input
-                                                                            type="number" min="0"
-                                                                            className="w-full bg-transparent outline-none font-bold text-gray-700 placeholder-gray-300 disabled:opacity-50"
-                                                                            placeholder="Infinito"
-                                                                            value={rule.maxPoints === null ? '' : rule.maxPoints}
-                                                                            onChange={e => {
-                                                                                const val = e.target.value === '' ? null : parseInt(e.target.value);
-                                                                                const newRules = [...(config.expirationRules || [])];
-                                                                                newRules[idx].maxPoints = val;
-                                                                                setConfig({ ...config, expirationRules: newRules });
-                                                                            }}
-                                                                        />
-                                                                        {rule.maxPoints === null && <span className="text-xs text-gray-400 font-mono">∞</span>}
-                                                                    </div>
-                                                                </td>
-                                                                <td className="p-2">
-                                                                    <div className="flex items-center gap-1">
-                                                                        <input
-                                                                            type="number" min="1"
-                                                                            className="w-16 bg-transparent outline-none font-bold text-blue-600"
-                                                                            value={rule.validityDays}
-                                                                            onChange={e => {
-                                                                                const newRules = [...(config.expirationRules || [])];
-                                                                                newRules[idx].validityDays = parseInt(e.target.value) || 0;
-                                                                                setConfig({ ...config, expirationRules: newRules });
-                                                                            }}
-                                                                        />
-                                                                        <span className="text-xs text-gray-400">días</span>
-                                                                    </div>
-                                                                </td>
-                                                                <td className="p-2 pr-4 text-right">
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            const newRules = [...(config.expirationRules || [])];
-                                                                            newRules.splice(idx, 1);
-                                                                            setConfig({ ...config, expirationRules: newRules });
-                                                                        }}
-                                                                        className="text-gray-400 hover:text-red-500 transition"
-                                                                    >
-                                                                        <Trash2 size={16} />
-                                                                    </button>
-                                                                </td>
-                                                            </tr>
-                                                        ))}
-                                                        {(!config.expirationRules || config.expirationRules.length === 0) && (
-                                                            <tr>
-                                                                <td colSpan={4} className="p-4 text-center text-xs text-gray-400 italic">
-                                                                    No hay reglas definidas. Los puntos no tendrán vencimiento específico (o usarán default).
-                                                                </td>
-                                                            </tr>
-                                                        )}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-
-                                            {/* SECCIÓN NUEVA: Itinerancia y Avisos */}
-                                            <div className="mt-6 pt-6 border-t border-gray-100 space-y-4">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <span className="bg-orange-100 text-orange-600 p-1.5 rounded-lg"><Clock size={16} /></span>
-                                                    <h4 className="text-sm font-bold text-gray-800">Itinerancia de Avisos (Recordatorios)</h4>
-                                                </div>
-
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    <div className="bg-orange-50/30 p-4 rounded-xl border border-orange-100/50">
-                                                        <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Anticipación del Aviso</label>
-                                                        <div className="flex items-center gap-3">
-                                                            <input
-                                                                type="number"
-                                                                value={config.messaging?.expirationWarningDays ?? 5}
-                                                                onChange={e => setConfig({
-                                                                    ...config,
-                                                                    messaging: { ...config.messaging!, expirationWarningDays: parseInt(e.target.value) || 0 }
-                                                                })}
-                                                                className="w-20 p-2 rounded-lg border border-gray-200 outline-none focus:ring-2 focus:ring-orange-100 font-bold text-center"
-                                                            />
-                                                            <div className="flex flex-col">
-                                                                <span className="text-sm font-medium text-gray-600">Días antes del vencimiento (Anticipo de primer aviso).</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="bg-blue-50/30 p-4 rounded-xl border border-blue-100/50 flex items-center justify-between">
-                                                        <div>
-                                                            <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Repetir Avisos</label>
-                                                            <span className="text-[10px] text-gray-500 font-medium">Habilita la "Itinerancia" (múltiples avisos).</span>
-                                                        </div>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setConfig({
-                                                                ...config,
-                                                                messaging: { ...config.messaging!, repeatExpirationWarnings: !config.messaging?.repeatExpirationWarnings }
-                                                            })}
-                                                            className={`relative w-10 h-6 transition-colors rounded-full shadow-inner ${config.messaging?.repeatExpirationWarnings ? 'bg-blue-600' : 'bg-gray-200'}`}
-                                                        >
-                                                            <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform ${config.messaging?.repeatExpirationWarnings ? 'translate-x-4' : 'translate-x-0'}`} />
-                                                        </button>
-                                                    </div>
-                                                </div>
-
-                                                {/* Intervalo de Repetición (Vencimientos) */}
-                                                {config.messaging?.repeatExpirationWarnings && (
-                                                    <div className="bg-white p-4 rounded-xl border-2 border-dashed border-blue-100 animate-fade-in mt-4">
-                                                        <label className="block text-xs font-bold text-blue-600 uppercase mb-2 ml-1 flex items-center gap-2">
-                                                            <Clock size={12} /> Intervalo de Repetición
-                                                        </label>
-                                                        <div className="flex items-center gap-3">
-                                                            <input
-                                                                type="number"
-                                                                value={config.messaging?.expirationReminderIntervalDays ?? 5}
-                                                                onChange={e => setConfig({
-                                                                    ...config,
-                                                                    messaging: { ...config.messaging!, expirationReminderIntervalDays: parseInt(e.target.value) || 0 }
-                                                                })}
-                                                                className="w-20 p-2 rounded-lg border border-blue-200 outline-none focus:ring-2 focus:ring-blue-50 font-black text-center text-blue-700"
-                                                            />
-                                                            <div className="flex flex-col">
-                                                                <span className="text-sm font-bold text-gray-700">Días de silencio (espera) entre avisos.</span>
-                                                                <p className="text-[9px] text-gray-400 italic leading-tight mt-1">
-                                                                    0 = Enviar siempre. <br />
-                                                                    1 = Día por medio (Lunes sí, Martes no, Miércoles sí). <br />
-                                                                    2 = Dos días de espera (Lunes sí, Mar y Mié no, Jueves sí).
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Tarjeta de Integraciones Externas */}
-                                <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 mt-6">
-                                    <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
-                                        <span className="bg-purple-100 text-purple-600 p-2 rounded-lg"><Monitor size={20} /></span>
-                                        Integraciones Externas
-                                    </h3>
-
-                                    <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-100">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex-1">
-                                                <span className="text-sm font-bold text-gray-800">Habilitar Extensión de Navegador</span>
-                                                <p className="text-xs text-gray-500">Permitir que la extensión de Chrome capture montos de tu sistema de facturación.</p>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => setConfig({ ...config, enableExternalIntegration: !config.enableExternalIntegration })}
-                                                className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.enableExternalIntegration !== false ? 'bg-purple-600' : 'bg-gray-200'}`}
-                                            >
-                                                <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enableExternalIntegration !== false ? 'translate-x-5' : 'translate-x-0'}`} />
-                                            </button>
-                                        </div>
-                                        <p className="text-[10px] text-purple-400 mt-3 italic">
-                                            * Esta opción controla si el servidor procesa puntos enviados desde herramientas externas como el facturador.
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max="1"
+                                            step="0.01"
+                                            value={config.discountRecoveryRatio || 0}
+                                            onChange={e => setConfig({ ...config, discountRecoveryRatio: parseFloat(e.target.value) })}
+                                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                                        />
+                                        <p className="text-xs text-gray-500 mt-2">
+                                            Porcentaje de los puntos canjeados que se consideran "recuperados" para tus métricas de ahorro.
                                         </p>
-
-                                        <div className="mt-6 pt-6 border-t border-purple-100">
-                                            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                                                <div>
-                                                    <span className="text-sm font-bold text-gray-800 block">Extensión para Navegador</span>
-                                                    <p className="text-xs text-gray-500 max-w-md mt-1">
-                                                        Usa nuestro <b>Integrador de Beneficios</b> para capturar montos de Rappi, UberEats y otros facturadores automáticamente.
-                                                    </p>
-                                                </div>
-                                                <a 
-                                                    href="/download/Integrador_Beneficios.zip" 
-                                                    download 
-                                                    className="flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-xl font-bold shadow-lg shadow-purple-200 hover:bg-purple-700 hover:scale-105 transition-all active:scale-95 shrink-0"
-                                                >
-                                                    <Download size={20} />
-                                                    Descargar Extensión
-                                                </a>
-                                            </div>
-
-                                            <div className="mt-4 bg-white/50 p-4 rounded-xl border border-purple-100">
-                                                <h4 className="text-[10px] font-black text-purple-600 uppercase tracking-widest mb-3">Guía de Instalación Rápida:</h4>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    <div className="flex gap-3">
-                                                        <span className="w-5 h-5 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0">1</span>
-                                                        <p className="text-[11px] text-gray-600 leading-tight"><b>Descargá y descomprimí</b> el archivo .ZIP en una carpeta de tu PC (ej: Documentos).</p>
-                                                    </div>
-                                                    <div className="flex gap-3">
-                                                        <span className="w-5 h-5 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0">2</span>
-                                                        <p className="text-[11px] text-gray-600 leading-tight">En Chrome, entrá a <b>chrome://extensions</b> y activá el <b>Modo desarrollador</b> (arriba-derecha).</p>
-                                                    </div>
-                                                    <div className="flex gap-3">
-                                                        <span className="w-5 h-5 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0">3</span>
-                                                        <p className="text-[11px] text-gray-600 leading-tight">Tocá en <b>Cargar descomprimida</b> y seleccioná la carpeta que acabas de extraer.</p>
-                                                    </div>
-                                                    <div className="flex gap-3">
-                                                        <span className="w-5 h-5 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0">4</span>
-                                                        <p className="text-[11px] text-gray-600 leading-tight">Abrí la extensión y configurá la <b>API URL</b> con la dirección de este sitio.</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="mt-8 pt-6 border-t border-purple-100">
-                                                <div className="flex items-center gap-2 mb-4">
-                                                    <div className="bg-purple-100 p-1.5 rounded-lg text-purple-600">
-                                                        <KeyRound size={16} />
-                                                    </div>
-                                                    <h4 className="text-sm font-black text-gray-800 uppercase tracking-tight">Credenciales de Conexión</h4>
-                                                </div>
-                                                
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    <div className="bg-white/50 p-4 rounded-xl border border-purple-100">
-                                                        <label className="text-[10px] font-black text-purple-600 uppercase tracking-widest block mb-2">Paso 1: Configurar API URL</label>
-                                                        <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-purple-50 group">
-                                                            <code className="text-[11px] text-gray-600 flex-1 truncate font-mono">
-                                                                {window.location.origin}
-                                                            </code>
-                                                            <button 
-                                                                onClick={() => {
-                                                                    navigator.clipboard.writeText(window.location.origin);
-                                                                    toast.success("URL de API copiada", { icon: '🔗' });
-                                                                }}
-                                                                className="p-2 hover:bg-purple-50 rounded-lg text-purple-600 transition-all active:scale-90"
-                                                                title="Copiar URL"
-                                                            >
-                                                                <Copy size={14} />
-                                                            </button>
-                                                        </div>
-                                                        <p className="text-[9px] text-gray-400 mt-2 italic">Pegar este valor en "API URL" dentro de la extensión.</p>
-                                                    </div>
-
-                                                    <div className="bg-white/50 p-4 rounded-xl border border-purple-100">
-                                                        <label className="text-[10px] font-black text-purple-600 uppercase tracking-widest block mb-2">Paso 2: Configurar API Key</label>
-                                                        <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-purple-50 group">
-                                                            <code className="text-[11px] text-gray-600 flex-1 truncate font-mono">
-                                                                {import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSy..."}
-                                                            </code>
-                                                            <button 
-                                                                onClick={() => {
-                                                                    const apiKey = import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyCiWY4sS9VaJUcfD0o5c_ZRFT0NxFdfOX8";
-                                                                    navigator.clipboard.writeText(apiKey);
-                                                                    toast.success("API Key copiada", { icon: '🔑' });
-                                                                }}
-                                                                className="p-2 hover:bg-purple-50 rounded-lg text-purple-600 transition-all active:scale-90"
-                                                                title="Copiar API Key"
-                                                            >
-                                                                <Copy size={14} />
-                                                            </button>
-                                                        </div>
-                                                        <p className="text-[9px] text-gray-400 mt-2 italic">Pegar este valor en "API Key" dentro de la extensión.</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Tarjeta de Referidos */}
-                                <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 mt-6">
-                                    <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
-                                        <span className="bg-orange-100 text-orange-600 p-2 rounded-lg"><Gift size={20} /></span>
-                                        Programa de Referidos
-                                    </h3>
-
-                                    <div className="bg-orange-50/50 p-6 rounded-xl border border-orange-100 space-y-6">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex-1">
-                                                <span className="text-sm font-bold text-gray-800">Activar Sistema de Invitación</span>
-                                                <p className="text-xs text-gray-500">Permite que los socios inviten amigos y ganen puntos por ello.</p>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => setConfig({
-                                                    ...config,
-                                                    referrals: { ...config.referrals!, enabled: !config.referrals?.enabled }
-                                                })}
-                                                className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.referrals?.enabled ? 'bg-orange-600' : 'bg-gray-200'}`}
-                                            >
-                                                <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.referrals?.enabled ? 'translate-x-5' : 'translate-x-0'}`} />
-                                            </button>
-                                        </div>
-
-                                        {config.referrals?.enabled && (
-                                            <div className="space-y-6 animate-fade-in pl-2 border-l-2 border-orange-200">
-                                                <div>
-                                                    <label className="block text-xs font-bold text-orange-700 uppercase mb-2">Puntos para el Referidor (Quien invita)</label>
-                                                    <div className="flex items-center gap-3">
-                                                        <input
-                                                            type="number"
-                                                            value={config.referrals.pointsForReferrer}
-                                                            onChange={e => setConfig({
-                                                                ...config,
-                                                                referrals: { ...config.referrals!, pointsForReferrer: parseInt(e.target.value) || 0 }
-                                                            })}
-                                                            className="w-24 p-2 rounded-lg border border-gray-200 outline-none focus:ring-2 focus:ring-orange-100 font-bold text-gray-700 text-center"
-                                                        />
-                                                        <span className="text-gray-500 text-sm font-medium">puntos por cada amigo que realice su primera compra.</span>
-                                                    </div>
-                                                </div>
-
-                                                <div className="pt-2">
-                                                    <label className="block text-xs font-bold text-orange-700 uppercase mb-2">Criterio de Recompensa</label>
-                                                    <select
-                                                        value={config.referrals.rewardCriteria}
-                                                        onChange={e => setConfig({
-                                                            ...config,
-                                                            referrals: { ...config.referrals!, rewardCriteria: e.target.value as any }
-                                                        })}
-                                                        className="w-full p-2.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-orange-100"
-                                                    >
-                                                        <option value="first_transaction">Tras el primer consumo en el local</option>
-                                                        <option value="registration" disabled>Al registrarse (Deshabilitado por fraude)</option>
-                                                    </select>
-                                                    <p className="text-[10px] text-gray-400 mt-2 italic">
-                                                        * Recomendamos 'Primer Consumo' para evitar cuentas falsas. El bono se asigna automáticamente cuando el invitado suma sus primeros puntos desde el facturador.
-                                                    </p>
-                                                </div>
-
-                                                {/* NUEVO: Configuración de Desafío */}
-                                                <div className="pt-6 border-t border-orange-100">
-                                                    <div className="flex items-center justify-between mb-4">
-                                                        <div className="flex items-center gap-2">
-                                                            <div className="bg-orange-600 text-white p-1 rounded">
-                                                                <Zap size={14} />
-                                                            </div>
-                                                            <span className="text-sm font-bold text-gray-800">Desafío con Fecha Límite</span>
-                                                        </div>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setConfig({
-                                                                ...config,
-                                                                referrals: {
-                                                                    ...config.referrals!,
-                                                                    challenge: {
-                                                                        enabled: !config.referrals?.challenge?.enabled,
-                                                                        startDate: config.referrals?.challenge?.startDate || new Date().toISOString().split('T')[0],
-                                                                        endDate: config.referrals?.challenge?.endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                                                                        tiers: config.referrals?.challenge?.tiers || [{ count: 1, bonus: 100 }],
-                                                                        isInternal: config.referrals?.challenge?.isInternal || false
-                                                                    }
-                                                                }
-                                                            })}
-                                                            className={`relative w-10 h-6 transition-colors rounded-full shadow-inner ${config.referrals?.challenge?.enabled ? 'bg-orange-500' : 'bg-gray-200'}`}
-                                                        >
-                                                            <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform ${config.referrals?.challenge?.enabled ? 'translate-x-4' : 'translate-x-0'}`} />
-                                                        </button>
-                                                    </div>
-
-                                                    {config.referrals?.challenge?.enabled && (
-                                                        <div className="space-y-4 animate-fade-in pl-2 border-l-2 border-orange-400">
-                                                            <div className="grid grid-cols-2 gap-4">
-                                                                <div>
-                                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Fecha Inicio</label>
-                                                                    <input
-                                                                        type="date"
-                                                                        value={config.referrals.challenge?.startDate}
-                                                                        onChange={e => setConfig({
-                                                                            ...config,
-                                                                            referrals: {
-                                                                                ...config.referrals!,
-                                                                                challenge: { ...config.referrals!.challenge!, startDate: e.target.value }
-                                                                            }
-                                                                        })}
-                                                                        className="w-full p-2 border border-orange-100 rounded-lg text-xs font-bold text-gray-700 outline-none focus:ring-2 focus:ring-orange-50"
-                                                                    />
-                                                                </div>
-                                                                <div>
-                                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Fecha Final</label>
-                                                                    <input
-                                                                        type="date"
-                                                                        value={config.referrals.challenge?.endDate}
-                                                                        onChange={e => setConfig({
-                                                                            ...config,
-                                                                            referrals: {
-                                                                                ...config.referrals!,
-                                                                                challenge: { ...config.referrals!.challenge!, endDate: e.target.value }
-                                                                            }
-                                                                        })}
-                                                                        className="w-full p-2 border border-orange-100 rounded-lg text-xs font-bold text-gray-700 outline-none focus:ring-2 focus:ring-orange-50"
-                                                                    />
-                                                                </div>
-                                                            </div>
-
-                                                            <div>
-                                                                <div className="flex justify-between items-center mb-2">
-                                                                    <label className="block text-[10px] font-bold text-orange-700 uppercase">Metas Progresivas (Tiers)</label>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            const tiers = [...(config.referrals!.challenge!.tiers || [])];
-                                                                            tiers.push({ count: (tiers[tiers.length - 1]?.count || 0) + 1, bonus: 0 });
-                                                                            setConfig({
-                                                                                ...config,
-                                                                                referrals: {
-                                                                                    ...config.referrals!,
-                                                                                    challenge: { ...config.referrals!.challenge!, tiers }
-                                                                                }
-                                                                            });
-                                                                        }}
-                                                                        className="text-[10px] bg-orange-100 text-orange-600 px-2 py-1 rounded font-bold hover:bg-orange-200 transition"
-                                                                    >
-                                                                        + Agregar Nivel
-                                                                    </button>
-                                                                </div>
-                                                                <div className="space-y-2">
-                                                                    {(config.referrals.challenge?.tiers || []).sort((a, b) => a.count - b.count).map((tier, idx) => (
-                                                                        <div key={idx} className="flex items-center gap-2 bg-white/50 p-2 rounded-lg border border-orange-100">
-                                                                            <span className="text-xs font-bold text-gray-400 w-4">{idx + 1}º</span>
-                                                                            <div className="flex flex-1 items-center gap-2">
-                                                                                <input
-                                                                                    type="number"
-                                                                                    placeholder="Cant"
-                                                                                    value={tier.count}
-                                                                                    onChange={e => {
-                                                                                        const tiers = [...(config.referrals!.challenge!.tiers || [])];
-                                                                                        tiers[idx].count = parseInt(e.target.value) || 0;
-                                                                                        setConfig({
-                                                                                            ...config,
-                                                                                            referrals: {
-                                                                                                ...config.referrals!,
-                                                                                                challenge: { ...config.referrals!.challenge!, tiers }
-                                                                                            }
-                                                                                        });
-                                                                                    }}
-                                                                                    className="w-14 p-1.5 border border-gray-100 rounded text-xs font-black text-center text-gray-700"
-                                                                                />
-                                                                                <span className="text-[10px] font-bold text-gray-400">Amigos</span>
-                                                                                <div className="h-4 w-px bg-gray-100" />
-                                                                                <span className="text-[10px] font-bold text-orange-600">Bono +</span>
-                                                                                <input
-                                                                                    type="number"
-                                                                                    placeholder="Puntos"
-                                                                                    value={tier.bonus}
-                                                                                    onChange={e => {
-                                                                                        const tiers = [...(config.referrals!.challenge!.tiers || [])];
-                                                                                        tiers[idx].bonus = parseInt(e.target.value) || 0;
-                                                                                        setConfig({
-                                                                                            ...config,
-                                                                                            referrals: {
-                                                                                                ...config.referrals!,
-                                                                                                challenge: { ...config.referrals!.challenge!, tiers }
-                                                                                            }
-                                                                                        });
-                                                                                    }}
-                                                                                    className="w-16 p-1.5 border border-orange-200 rounded text-xs font-black text-center text-orange-700"
-                                                                                />
-                                                                                <span className="text-[10px] font-bold text-gray-400 italic">pts extra</span>
-                                                                            </div>
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => {
-                                                                                    const tiers = [...(config.referrals!.challenge!.tiers || [])];
-                                                                                    tiers.splice(idx, 1);
-                                                                                    setConfig({
-                                                                                        ...config,
-                                                                                        referrals: {
-                                                                                            ...config.referrals!,
-                                                                                            challenge: { ...config.referrals!.challenge!, tiers }
-                                                                                        }
-                                                                                    });
-                                                                                }}
-                                                                                className="text-gray-300 hover:text-red-500 p-1"
-                                                                            >
-                                                                                <Trash2 size={12} />
-                                                                            </button>
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            </div>
-
-                                                            {/* NUEVO: Selección de Canales y Botón de Difusión */}
-                                                            <section className="pt-4 border-t border-orange-100 flex items-center justify-between bg-blue-50/50 p-4 rounded-xl">
-                                                                <div className="flex items-center gap-3">
-                                                                    <div className="p-2 bg-blue-100 text-blue-600 rounded-xl">
-                                                                        <Shield size={20} />
-                                                                    </div>
-                                                                    <div>
-                                                                        <label className="text-[10px] font-black text-blue-900 uppercase block">Desafío Interno (Modo Test)</label>
-                                                                        <p className="text-[8px] text-blue-600 font-bold uppercase mt-0.5 italic">Sólo visible para "Usuarios de Prueba"</p>
-                                                                    </div>
-                                                                </div>
-                                                                <label className="relative inline-flex items-center cursor-pointer">
-                                                                    <input
-                                                                        type="checkbox"
-                                                                        className="sr-only peer"
-                                                                        checked={config.referrals?.challenge?.isInternal || false}
-                                                                        onChange={e => setConfig({
-                                                                            ...config,
-                                                                            referrals: {
-                                                                                ...config.referrals!,
-                                                                                challenge: { ...config.referrals!.challenge!, isInternal: e.target.checked }
-                                                                            }
-                                                                        })}
-                                                                    />
-                                                                    <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
-                                                                </label>
-                                                            </section>
-
-
-                                                            {/* Referral Challenge Channels & Broadcast has been moved to Mensajes Automáticos */}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -1325,190 +742,494 @@ export const ConfigPage = () => {
                     </div>
                 )}
 
-                {
-                    activeTab === 'legales' && (
-                        <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 animate-in fade-in slide-in-from-bottom-4">
-                            <div className="max-w-4xl">
-                                <div className="flex items-center gap-3 mb-6">
-                                    <div className="bg-blue-50 p-3 rounded-2xl text-blue-600">
-                                        <FileText size={24} />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-xl font-black text-gray-800 tracking-tight">Términos y Condiciones</h3>
-                                        <p className="text-gray-500 text-sm">Este texto aparecerá en el perfil de usuario de la PWA. Puedes usar formato simple.</p>
+                {/* Pilar: MECÁNICAS 🎮 */}
+                {activeTab === 'mechanics' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            {/* Bienvenida */}
+                            <div className="bg-white p-8 rounded-2xl shadow-sm border border-orange-100 relative overflow-hidden group hover:shadow-md transition">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-orange-50 rounded-bl-full -mr-10 -mt-10 transition group-hover:bg-orange-100"></div>
+                                <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2 relative z-10">
+                                    <span className="bg-orange-100 text-orange-600 p-2 rounded-lg"><UserPlus size={20} /></span>
+                                    Bienvenida
+                                </h3>
+                                <div className="space-y-4 relative z-10">
+                                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Puntos de Regalo al Registrarse</label>
+                                        <div className="relative">
+                                            <input
+                                                type="number" min="0"
+                                                value={config.welcomePoints}
+                                                onChange={e => setConfig({ ...config, welcomePoints: parseInt(e.target.value) || 0 })}
+                                                className="w-full pl-4 pr-16 py-3 bg-white rounded-xl border-orange-200 border-2 focus:border-orange-500 focus:ring-4 focus:ring-orange-50 text-orange-700 font-black text-xl text-center outline-none transition shadow-sm"
+                                            />
+                                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-orange-600 text-xs font-black uppercase tracking-tighter">Puntos</span>
+                                        </div>
+                                        <p className="text-[10px] text-gray-400 mt-2">Estos puntos se acreditan automáticamente al momento de la creación de la cuenta.</p>
                                     </div>
                                 </div>
+                            </div>
 
-                                <div className="space-y-6">
-                                    <div className="flex flex-col gap-2">
-                                        <div className="flex justify-between items-end">
-                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Contenido de los Términos</label>
-                                            <div className="text-[10px] text-gray-400 bg-gray-50 px-2 py-1 rounded">Soporta Markdown Básico</div>
-                                        </div>
-                                        <textarea
-                                            rows={20}
-                                            className="w-full p-4 rounded-2xl border-2 border-gray-100 focus:border-blue-500 focus:ring-4 focus:ring-blue-50 outline-none transition text-sm font-medium leading-relaxed bg-gray-50/30"
-                                            placeholder="Escribe aquí los términos..."
-                                            value={config.contact?.termsContent || ''}
-                                            onChange={e => setConfig({
-                                                ...config,
-                                                contact: { ...config.contact!, termsContent: e.target.value }
-                                            })}
-                                        />
-                                    </div>
-
-                                    <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100 flex gap-3">
-                                        <div className="text-xl">💡</div>
-                                        <div className="text-xs text-blue-700 leading-relaxed pt-1">
-                                            <strong>Tip:</strong> Puedes usar variables como <code className="bg-white px-1 rounded">{"{siteName}"}</code> que se reemplazarán automáticamente por <strong>{config.siteName}</strong> en la PWA.
-                                        </div>
-                                    </div>
-
-                                    <div className="pt-4 border-t border-gray-100">
-                                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Link Externo (Opcional)</label>
-                                        <input
-                                            type="text"
-                                            placeholder="https://..."
-                                            value={config.contact?.termsAndConditions || ''}
-                                            onChange={e => setConfig({
-                                                ...config,
-                                                contact: { ...config.contact!, termsAndConditions: e.target.value }
-                                            })}
-                                            className="w-full rounded-xl border-gray-200 border p-3 text-sm focus:ring-2 focus:ring-blue-100 outline-none bg-gray-50/50"
-                                        />
-                                        <p className="text-[10px] text-gray-400 mt-2 px-1">
-                                            <strong>⚠️ Prioridad:</strong> Si este link está presente, el botón de Términos redirigirá aquí. Si queda vacío, se mostrará el contenido de arriba en un cuadro interno.
+                            {/* Módulo Petshop (Toggle Global) */}
+                            {import.meta.env.VITE_ENABLE_PET_MODULE === 'true' && (
+                                <div className="flex items-center justify-between p-6 bg-orange-50/50 rounded-2xl border border-orange-100 group transition-all hover:bg-orange-50">
+                                    <div className="flex-1">
+                                        <span className="text-sm font-black text-orange-900 uppercase flex items-center gap-2">
+                                            <Dog size={16} /> Módulo Petshop
+                                        </span>
+                                        <p className="text-[10px] text-orange-600 font-bold mt-1 leading-tight">
+                                            Habilita la sección "Mis Mascotas" en el perfil del cliente y el sistema de alertas de alimento.
                                         </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setConfig({ ...config, enablePetModule: !config.enablePetModule })}
+                                        className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.enablePetModule ? 'bg-orange-600' : 'bg-gray-200'}`}
+                                    >
+                                        <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enablePetModule ? 'translate-x-5' : 'translate-x-0'}`} />
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Referidos */}
+                            <div className="bg-white p-8 rounded-2xl shadow-sm border border-blue-100 relative overflow-hidden group hover:shadow-md transition">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-bl-full -mr-10 -mt-10 transition group-hover:bg-blue-100"></div>
+                                <div className="flex items-center justify-between mb-6 relative z-10">
+                                    <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                                        <span className="bg-blue-100 text-blue-600 p-2 rounded-lg"><Users size={20} /></span>
+                                        Sistema de Referidos
+                                    </h3>
+                                    <button
+                                        type="button"
+                                        onClick={() => setConfig({ ...config, referrals: { ...config.referrals!, enabled: !config.referrals?.enabled } })}
+                                        className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.referrals?.enabled ? 'bg-blue-600' : 'bg-gray-200'}`}
+                                    >
+                                        <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.referrals?.enabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                                    </button>
+                                </div>
+
+                                <div className={`space-y-6 relative z-10 transition-opacity ${config.referrals?.enabled ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Premio al Invitador</label>
+                                            <div className="relative">
+                                                <input
+                                                    type="number"
+                                                    value={config.referrals?.pointsForReferrer || 0}
+                                                    onChange={e => setConfig({ ...config, referrals: { ...config.referrals!, pointsForReferrer: parseInt(e.target.value) || 0 } })}
+                                                    className="w-full p-2 bg-white rounded-lg border border-gray-200 text-center font-bold text-blue-600 outline-none focus:ring-2 focus:ring-blue-500"
+                                                />
+                                                <span className="absolute right-2 top-2 text-[8px] font-bold text-gray-300">PTS</span>
+                                            </div>
+                                        </div>
+                                        <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Regalo al Invitado</label>
+                                            <div className="relative">
+                                                <input
+                                                    type="number"
+                                                    value={config.referrals?.pointsForReferee || 0}
+                                                    onChange={e => setConfig({ ...config, referrals: { ...config.referrals!, pointsForReferee: parseInt(e.target.value) || 0 } })}
+                                                    className="w-full p-2 bg-white rounded-lg border border-gray-200 text-center font-bold text-emerald-600 outline-none focus:ring-2 focus:ring-emerald-500"
+                                                />
+                                                <span className="absolute right-2 top-2 text-[8px] font-bold text-gray-300">PTS</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                                        <label className="block text-xs font-bold text-blue-800 uppercase tracking-widest mb-3">Criterio de Recompensa</label>
+                                        <div className="space-y-2">
+                                            {[
+                                                { id: 'registration', label: 'Al registrarse', desc: 'Los puntos se dan apenas el invitado crea su cuenta.' },
+                                                { id: 'first_transaction', label: 'Tras la primera compra', desc: 'Ideal para evitar cuentas falsas. Requiere una compra real.' }
+                                            ].map(opt => (
+                                                <label key={opt.id} className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition ${config.referrals?.rewardCriteria === opt.id ? 'bg-white border-blue-400 shadow-sm' : 'bg-transparent border-transparent hover:bg-white/50'}`}>
+                                                    <input
+                                                        type="radio"
+                                                        name="rewardCriteria"
+                                                        checked={config.referrals?.rewardCriteria === opt.id}
+                                                        onChange={() => setConfig({ ...config, referrals: { ...config.referrals!, rewardCriteria: opt.id as any } })}
+                                                        className="mt-1 text-blue-600"
+                                                    />
+                                                    <div>
+                                                        <span className="text-sm font-bold text-gray-700 block">{opt.label}</span>
+                                                        <span className="text-[10px] text-gray-500">{opt.desc}</span>
+                                                    </div>
+                                                </label>
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    )
-                }
 
-                {
-                    activeTab === 'branding' && (
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fade-in">
-                            {/* ... (Existing Branding Content) ... */}
-                            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                                {/* ... (Existing Form) ... */}
-                                <h2 className="text-lg font-semibold mb-6 text-gray-800">Personalización de Marca</h2>
+                        {/* Cumpleaños (Columna Derecha) */}
+                        <div className="space-y-6">
+                            <div className="bg-white p-8 rounded-2xl shadow-sm border border-pink-100 relative overflow-hidden group hover:shadow-md transition">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-pink-50 rounded-bl-full -mr-10 -mt-10 transition group-hover:bg-pink-100"></div>
+                                <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2 relative z-10">
+                                    <span className="bg-pink-100 text-pink-600 p-2 rounded-lg"><Cake size={20} /></span>
+                                    Reglas de Cumpleaños
+                                </h3>
+                                <div className="space-y-6 relative z-10">
+                                    <div className="bg-gray-50 p-6 rounded-2xl border border-gray-200">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div>
+                                                <span className="text-sm font-bold text-gray-800 block">Regalo de Puntos</span>
+                                                <p className="text-[10px] text-gray-500 leading-tight">Crédito automático que recibe el socio en su día.</p>
+                                            </div>
+                                            <div className="relative">
+                                                <input
+                                                    type="number" min="0"
+                                                    value={config.birthdayPoints || 0}
+                                                    onChange={e => setConfig({ ...config, birthdayPoints: parseInt(e.target.value) || 0 })}
+                                                    className="w-24 p-3 bg-white rounded-xl border-pink-200 border-2 text-pink-600 font-black text-lg text-center outline-none focus:ring-4 focus:ring-pink-50"
+                                                />
+                                                <span className="absolute -top-2 -right-1 bg-pink-600 text-white text-[8px] px-1.5 py-0.5 rounded-full font-bold">PTS</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3 p-3 bg-white/50 rounded-xl border border-pink-100">
+                                            <div className="flex-1">
+                                                <span className="text-xs font-bold text-gray-600 block">Habilitar Saludo Simple</span>
+                                                <p className="text-[9px] text-gray-400">Si el regalo es 0, enviar solo un mensaje de felicitación.</p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setConfig({ ...config, enableBirthdayGreeting: !config.enableBirthdayGreeting })}
+                                                className={`relative w-10 h-6 transition-colors rounded-full ${config.enableBirthdayGreeting ? 'bg-pink-500' : 'bg-gray-200'}`}
+                                            >
+                                                <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform ${config.enableBirthdayGreeting ? 'translate-x-4' : 'translate-x-0'}`} />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100">
+                                        <h4 className="text-xs font-bold text-blue-800 uppercase tracking-widest mb-2 flex items-center gap-2">
+                                            <Clock size={14} /> Ventana de Aplicación
+                                        </h4>
+                                        <p className="text-[10px] text-blue-600 mb-4">Los puntos de cumpleaños se entregan a las 00:00hs del día del aniversario.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+
+                {/* Pilar: COMUNICACIÓN 📢 */}
+                {activeTab === 'communication' && (
+                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+                        {/* 1. MASTER SWITCHES */}
+                        <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+                            <div className="flex items-center gap-3 mb-8">
+                                <div className="bg-indigo-50 p-3 rounded-2xl text-indigo-600">
+                                    <Settings size={24} />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-black text-gray-800 tracking-tight">Canales Globales</h3>
+                                    <p className="text-gray-500 text-sm">Activa o desactiva la salida de mensajes por canal.</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                {[
+                                    { id: 'whatsappEnabled', label: 'WhatsApp', icon: '💬', color: 'bg-green-500', bgColor: 'bg-green-50', borderColor: 'border-green-200', textColor: 'text-green-700' },
+                                    { id: 'emailEnabled', label: 'Email', icon: '📧', color: 'bg-blue-500', bgColor: 'bg-blue-50', borderColor: 'border-blue-200', textColor: 'text-blue-700' },
+                                    { id: 'pushEnabled', label: 'Notificaciones Push', icon: '🔔', color: 'bg-purple-500', bgColor: 'bg-purple-50', borderColor: 'border-purple-200', textColor: 'text-purple-700' }
+                                ].map(channel => (
+                                    <div key={channel.id} className={`p-6 rounded-2xl border-2 transition-all ${config.messaging?.[channel.id as keyof typeof config.messaging] ? `${channel.bgColor} ${channel.borderColor}` : 'bg-gray-50 border-gray-100'}`}>
+                                        <div className="flex items-center justify-between mb-4">
+                                            <span className="text-2xl">{channel.icon}</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setConfig({
+                                                    ...config,
+                                                    messaging: { ...config.messaging!, [channel.id]: !config.messaging?.[channel.id as keyof typeof config.messaging] }
+                                                })}
+                                                className={`relative w-12 h-7 transition-colors rounded-full shadow-inner ${config.messaging?.[channel.id as keyof typeof config.messaging] ? channel.color : 'bg-gray-200'}`}
+                                            >
+                                                <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.messaging?.[channel.id as keyof typeof config.messaging] ? 'translate-x-5' : 'translate-x-0'}`} />
+                                            </button>
+                                        </div>
+                                        <span className={`font-bold uppercase tracking-widest text-[10px] ${channel.textColor}`}>{channel.label}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* 2. PWA & PUSH PERMISSIONS */}
+                        <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+                            <div className="flex items-center gap-3 mb-8">
+                                <div className="bg-purple-50 p-3 rounded-2xl text-purple-600">
+                                    <Bell size={24} />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-black text-gray-800 tracking-tight">Experiencia PWA</h3>
+                                    <p className="text-gray-500 text-sm">Configura cómo y cuándo pedir permisos a tus clientes.</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div className="space-y-6">
+                                    <div className="bg-purple-50/50 p-6 rounded-2xl border border-purple-100">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div>
+                                                <span className="text-sm font-bold text-gray-800 block">Re-intento de Permisos</span>
+                                                <p className="text-[10px] text-gray-500">Si el cliente elige "Quizás Luego".</p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setConfig({
+                                                    ...config,
+                                                    messaging: { ...config.messaging!, enablePermissionPromptRepetition: !config.messaging?.enablePermissionPromptRepetition }
+                                                })}
+                                                className={`relative w-10 h-6 transition-colors rounded-full ${config.messaging?.enablePermissionPromptRepetition ? 'bg-purple-600' : 'bg-gray-200'}`}
+                                            >
+                                                <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform ${config.messaging?.enablePermissionPromptRepetition ? 'translate-x-4' : 'translate-x-0'}`} />
+                                            </button>
+                                        </div>
+                                        <div className="flex items-center gap-4 bg-white p-4 rounded-xl border border-purple-100">
+                                            <input
+                                                type="number"
+                                                value={config.messaging?.notificationPromptIntervalDays || 30}
+                                                onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, notificationPromptIntervalDays: parseInt(e.target.value) || 30 } })}
+                                                className="w-16 bg-purple-50 text-center font-black text-lg text-purple-600 rounded-lg py-1 outline-none"
+                                            />
+                                            <span className="text-xs font-bold text-gray-600">Días de silencio entre intentos.</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="p-6 bg-blue-50/50 rounded-2xl border border-blue-100 flex flex-col justify-center">
+                                    <div className="flex items-center gap-3 mb-4 text-blue-700">
+                                        <Smartphone size={20} />
+                                        <span className="text-sm font-bold uppercase tracking-tight">WhatsApp Business</span>
+                                    </div>
+                                    <input
+                                        type="tel"
+                                        placeholder="54911..."
+                                        value={config.messaging?.whatsappPhoneNumber || ''}
+                                        onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, whatsappPhoneNumber: e.target.value } })}
+                                        className="w-full p-4 rounded-xl border-2 border-white bg-white shadow-sm focus:border-blue-500 outline-none text-lg font-bold text-gray-800"
+                                    />
+                                    <p className="text-[10px] text-blue-400 mt-2 ml-1 italic">* Formato internacional sin símbolos (ej: 549116543210)</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 3. AUTOMATIC TEMPLATES */}
+                        <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+                            <h3 className="text-xl font-black text-gray-800 mb-8 flex items-center gap-3">
+                                <span className="bg-emerald-50 text-emerald-600 p-3 rounded-2xl"><MessageSquare size={24} /></span>
+                                Plantillas Automáticas
+                            </h3>
+
+                            <div className="grid grid-cols-1 gap-8">
+                                {[
+                                    { id: 'welcome', label: 'Bienvenida', icon: '👋', vars: ['siteName', 'nombre', 'puntos'] },
+                                    { id: 'pointsAdded', label: 'Suma de Puntos', icon: '💰', vars: ['siteName', 'nombre', 'puntos', 'saldo'] },
+                                    { id: 'redemption', label: 'Canje de Premio', icon: '🎁', vars: ['siteName', 'nombre', 'premio', 'codigo'] },
+                                    { id: 'birthday', label: 'Cumpleaños', icon: '🎂', vars: ['siteName', 'nombre', 'puntos'] },
+                                    { id: 'expirationWarning', label: 'Aviso de Vencimiento', icon: '⏳', vars: ['siteName', 'nombre', 'puntos', 'fecha'] }
+                                ].map(tpl => (
+                                    <div key={tpl.id} className="group relative bg-gray-50/50 p-6 rounded-2xl border border-gray-100 hover:border-emerald-200 transition-all">
+                                        <div className="flex flex-col md:flex-row gap-6">
+                                            <div className="flex-1 space-y-3">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-sm font-black text-gray-800 uppercase tracking-tighter flex items-center gap-2">
+                                                        <span className="text-lg">{tpl.icon}</span> {tpl.label}
+                                                    </span>
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => openPreview(tpl.id as any)}
+                                                            className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition"
+                                                            title="Previsualizar"
+                                                        >
+                                                            <Eye size={18} />
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setConfig({
+                                                                ...config,
+                                                                messaging: {
+                                                                    ...config.messaging!,
+                                                                    templates: { ...config.messaging?.templates, [tpl.id]: (DEFAULT_TEMPLATES as any)[tpl.id] }
+                                                                }
+                                                            })}
+                                                            className="p-2 text-gray-400 hover:text-orange-500 transition"
+                                                            title="Restaurar"
+                                                        >
+                                                            <RotateCcw size={16} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <textarea
+                                                    rows={2}
+                                                    value={config.messaging?.templates?.[tpl.id as keyof typeof config.messaging.templates] || ''}
+                                                    onChange={e => setConfig({
+                                                        ...config,
+                                                        messaging: {
+                                                            ...config.messaging!,
+                                                            templates: { ...config.messaging?.templates, [tpl.id]: e.target.value }
+                                                        }
+                                                    })}
+                                                    placeholder={(DEFAULT_TEMPLATES as any)[tpl.id]}
+                                                    className="w-full p-4 rounded-xl border border-gray-200 bg-white focus:ring-4 focus:ring-emerald-50 outline-none transition text-sm leading-relaxed"
+                                                />
+                                                <VariableChips vars={tpl.vars} onSelect={v => insertVar(tpl.id as any, v)} />
+                                            </div>
+                                            <div className="w-full md:w-64 border-l-2 border-dashed border-gray-200 pl-6">
+                                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Enviar por:</label>
+                                                <ChannelSelector
+                                                    channels={config.messaging?.eventConfigs?.[tpl.id as keyof typeof config.messaging.eventConfigs]?.channels || []}
+                                                    onChange={(newChannels) => setConfig({
+                                                        ...config,
+                                                        messaging: {
+                                                            ...config.messaging!,
+                                                            eventConfigs: {
+                                                                ...config.messaging?.eventConfigs,
+                                                                [tpl.id]: { channels: newChannels }
+                                                            }
+                                                        }
+                                                    })}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Pilar: IDENTIDAD 🎨 */}
+                {activeTab === 'identity' && (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-4">
+                        <div className="space-y-8">
+                            {/* Branding Central */}
+                            <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+                                <h3 className="text-xl font-black text-gray-800 mb-6 flex items-center gap-2">
+                                    <span className="bg-blue-50 text-blue-600 p-2 rounded-lg"><Palette size={20} /></span>
+                                    Branding Central
+                                </h3>
                                 <div className="space-y-6">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Nombre del Club</label>
+                                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Nombre del Club</label>
                                         <input
                                             type="text"
                                             value={config.siteName}
                                             onChange={e => setConfig({ ...config, siteName: e.target.value })}
-                                            className="w-full rounded-lg border-gray-200 border p-3 focus:ring-2 focus:ring-blue-100 outline-none transition"
+                                            className="w-full p-4 rounded-xl border-2 border-gray-100 focus:border-blue-500 outline-none transition font-bold text-lg"
                                         />
                                     </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+                                    <div className="grid grid-cols-3 gap-4">
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">Tipografía</label>
-                                            <select
-                                                value={config.siteNameFont || 'Inter'}
-                                                onChange={e => setConfig({ ...config, siteNameFont: e.target.value })}
-                                                className="w-full rounded-lg border-gray-200 border p-3 focus:ring-2 focus:ring-blue-100 outline-none transition"
-                                            >
-                                                <option value="Inter">Inter (Sanz)</option>
-                                                <option value="Roboto">Roboto</option>
-                                                <option value="Montserrat">Montserrat</option>
-                                                <option value="Playfair Display">Playfair Display (Serif)</option>
-                                                <option value="Outfit">Outfit</option>
-                                                <option value="system-ui">Sistema</option>
-                                            </select>
+                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2">Primario</label>
+                                            <input type="color" value={config.primaryColor} onChange={e => setConfig({ ...config, primaryColor: e.target.value })} className="w-full h-12 rounded-lg cursor-pointer" />
                                         </div>
-
                                         <div>
-                                            <div className="flex justify-between items-center mb-2">
-                                                <label className="block text-sm font-medium text-gray-700">Tamaño de Letra</label>
-                                                <span className="text-xs font-black bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">{config.siteNameSize || 14}px</span>
-                                            </div>
-                                            <input
-                                                type="range"
-                                                min="10"
-                                                max="24"
-                                                step="1"
-                                                value={config.siteNameSize || 14}
-                                                onChange={e => setConfig({ ...config, siteNameSize: parseInt(e.target.value) })}
-                                                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600 mt-4"
-                                            />
-                                            <div className="flex justify-between text-[9px] text-gray-400 font-bold uppercase mt-2">
-                                                <span>Chica</span>
-                                                <span>Grande</span>
-                                            </div>
+                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2">Secundario</label>
+                                            <input type="color" value={config.secondaryColor} onChange={e => setConfig({ ...config, secondaryColor: e.target.value })} className="w-full h-12 rounded-lg cursor-pointer" />
                                         </div>
-
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">Alineación</label>
-                                            <div className="flex p-1 bg-gray-100 rounded-xl">
-                                                {(['left', 'center', 'right'] as const).map((align) => (
-                                                    <button
-                                                        key={align}
-                                                        type="button"
-                                                        onClick={() => setConfig({ ...config, siteNameAlignment: align })}
-                                                        className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${config.siteNameAlignment === align ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'
-                                                            }`}
-                                                    >
-                                                        {align === 'left' ? 'Izq' : align === 'center' ? 'Centro' : 'Der'}
-                                                    </button>
-                                                ))}
+                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2">Fondo</label>
+                                            <input type="color" value={config.backgroundColor || '#f9fafb'} onChange={e => setConfig({ ...config, backgroundColor: e.target.value })} className="w-full h-12 rounded-lg cursor-pointer" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Redes Sociales y Contacto */}
+                            <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+                                <h3 className="text-lg font-black text-gray-800 mb-6 flex items-center gap-2">
+                                    <span className="bg-pink-50 text-pink-600 p-2 rounded-lg"><Share2 size={20} /></span>
+                                    Redes y Contacto
+                                </h3>
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                        <Instagram className="text-pink-500" size={20} />
+                                        <input
+                                            type="text"
+                                            placeholder="Usuario de Instagram (ej: mipetshop)"
+                                            value={config.contact?.instagram || ''}
+                                            onChange={e => setConfig({ ...config, contact: { ...config.contact!, instagram: e.target.value } })}
+                                            className="flex-1 bg-transparent outline-none text-sm font-medium"
+                                        />
+                                    </div>
+                                    <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                        <Facebook className="text-blue-600" size={20} />
+                                        <input
+                                            type="text"
+                                            placeholder="URL de Facebook"
+                                            value={config.contact?.facebook || ''}
+                                            onChange={e => setConfig({ ...config, contact: { ...config.contact!, facebook: e.target.value } })}
+                                            className="flex-1 bg-transparent outline-none text-sm font-medium"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Términos y Condiciones */}
+                            <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+                                <h3 className="text-lg font-black text-gray-800 mb-6 flex items-center gap-2">
+                                    <span className="bg-gray-100 text-gray-600 p-2 rounded-lg"><FileText size={20} /></span>
+                                    Legales y Privacidad
+                                </h3>
+                                <textarea
+                                    rows={6}
+                                    className="w-full p-4 rounded-xl border-2 border-gray-100 focus:border-blue-500 outline-none transition text-xs leading-relaxed"
+                                    placeholder="Escribe aquí los términos..."
+                                    value={config.contact?.termsContent || ''}
+                                    onChange={e => setConfig({ ...config, contact: { ...config.contact!, termsContent: e.target.value } })}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Preview Columna Derecha */}
+                        <div className="sticky top-24">
+                            <div className="bg-gray-900 p-4 rounded-[3rem] shadow-2xl border-[8px] border-gray-800 aspect-[9/19] max-w-[320px] mx-auto overflow-hidden relative group">
+                                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-gray-800 rounded-b-2xl z-20"></div>
+                                <div className="h-full rounded-[2.2rem] overflow-hidden flex flex-col relative z-10" style={{ backgroundColor: config.backgroundColor || '#f9fafb' }}>
+                                    <div className="h-16 flex items-center px-6 bg-white border-b border-gray-100">
+                                        <div className="flex-1">
+                                            <div className="w-20 h-3 bg-gray-100 rounded-full mb-1"></div>
+                                            <span className="text-[10px] font-black uppercase tracking-tighter" style={{ color: config.primaryColor }}>{config.siteName}</span>
+                                        </div>
+                                        <div className="w-8 h-8 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-300">
+                                            <User size={14} />
+                                        </div>
+                                    </div>
+                                    <div className="p-6 space-y-4">
+                                        <div className="h-24 rounded-2xl p-4 flex flex-col justify-end" style={{ backgroundImage: `linear-gradient(135deg, ${config.primaryColor}, ${config.secondaryColor})` }}>
+                                            <div className="w-1/2 h-2 bg-white/20 rounded-full mb-2"></div>
+                                            <div className="w-3/4 h-3 bg-white rounded-full"></div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="h-20 bg-white rounded-2xl border border-gray-100 p-3 shadow-sm flex flex-col gap-2">
+                                                <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-400"><Sparkles size={16} /></div>
+                                                <div className="w-full h-2 bg-gray-100 rounded-full"></div>
+                                            </div>
+                                            <div className="h-20 bg-white rounded-2xl border border-gray-100 p-3 shadow-sm flex flex-col gap-2">
+                                                <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center text-orange-400"><Gift size={16} /></div>
+                                                <div className="w-full h-2 bg-gray-100 rounded-full"></div>
                                             </div>
                                         </div>
                                     </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">Color Primario</label>
-                                            <div className="flex items-center gap-3">
-                                                <input
-                                                    type="color"
-                                                    value={config.primaryColor}
-                                                    onChange={e => setConfig({ ...config, primaryColor: e.target.value })}
-                                                    className="h-12 w-full rounded-lg cursor-pointer border-0 bg-transparent p-0"
-                                                />
-                                                <span className="text-xs font-mono text-gray-500">{config.primaryColor}</span>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">Color Secundario</label>
-                                            <div className="flex items-center gap-3">
-                                                <input
-                                                    type="color"
-                                                    value={config.secondaryColor}
-                                                    onChange={e => setConfig({ ...config, secondaryColor: e.target.value })}
-                                                    className="h-12 w-full rounded-lg cursor-pointer border-0 bg-transparent p-0"
-                                                />
-                                                <span className="text-xs font-mono text-gray-500">{config.secondaryColor}</span>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">Color de Fondo</label>
-                                            <div className="flex items-center gap-3">
-                                                <input
-                                                    type="color"
-                                                    value={config.backgroundColor || '#f9fafb'}
-                                                    onChange={e => setConfig({ ...config, backgroundColor: e.target.value })}
-                                                    className="h-12 w-full rounded-lg cursor-pointer border-0 bg-transparent p-0"
-                                                />
-                                                <span className="text-xs font-mono text-gray-500">{config.backgroundColor || '#f9fafb'}</span>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">Color de Títulos</label>
-                                            <div className="flex items-center gap-3">
-                                                <input
-                                                    type="color"
-                                                    value={config.sectionTitleColor || '#9ca3af'}
-                                                    onChange={e => setConfig({ ...config, sectionTitleColor: e.target.value })}
-                                                    className="h-12 w-full rounded-lg cursor-pointer border-0 bg-transparent p-0"
-                                                />
-                                                <span className="text-xs font-mono text-gray-500">{config.sectionTitleColor || '#9ca3af'}</span>
-                                            </div>
-                                        </div>
-                                        <div>
+                                    <div className="absolute bottom-0 w-full bg-white border-t border-gray-100 flex justify-center gap-8 py-4 rounded-b-[2.2rem]">
+                                        <Home size={20} style={{ color: config.primaryColor }} />
+                                        <Gift size={20} className="text-gray-300" />
+                                        <MessageCircle size={20} className="text-gray-300" />
+                                    </div>
+                                </div>
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center z-30">
+                                    <span className="text-white font-black text-xs uppercase tracking-widest bg-black/50 px-4 py-2 rounded-full border border-white/20">Vista Previa</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
                                             <label className="block text-sm font-medium text-gray-700 mb-2">Color de Enlaces</label>
                                             <div className="flex items-center gap-3">
                                                 <input
@@ -1582,1358 +1303,9 @@ export const ConfigPage = () => {
                                         </div>
                                     </div>
 
-                                    <div className="pt-4 border-t border-gray-100">
-                                        <div className="flex justify-between items-center mb-2">
-                                            <label className="block text-sm font-bold text-gray-700">Velocidad del Carrusel</label>
-                                            <span className="text-xs font-black bg-blue-50 text-blue-600 px-2.5 py-1 rounded-full">{config.carouselSpeedSeconds || 6} segundos</span>
-                                        </div>
-                                        <p className="text-[10px] text-gray-400 mb-3 italic">Controla qué tan rápido rotan las campañas en la página principal del cliente.</p>
-                                        <input
-                                            type="range"
-                                            min="2"
-                                            max="15"
-                                            step="1"
-                                            value={config.carouselSpeedSeconds || 6}
-                                            onChange={e => setConfig({ ...config, carouselSpeedSeconds: parseInt(e.target.value) })}
-                                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                                        />
-                                        <div className="flex justify-between text-[9px] text-gray-400 font-bold uppercase mt-1.5 px-1">
-                                            <span>🔥 Rápido (2s)</span>
-                                            <span>🧘 Lento (15s)</span>
-                                        </div>
-                                    </div>
+                {/* Pilar: CONFIGURACIÓN AVANZADA 🛠️ */}
+                {activeTab === 'advanced' && (
 
-
-                                    {/* SECTION: Contact & Social */}
-                                    <div className="pt-6 border-t border-gray-100 space-y-4">
-                                        <h4 className="font-bold text-gray-800 flex items-center gap-2">
-                                            📱 Contacto y Redes
-                                        </h4>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div className="col-span-full">
-                                                <label className="block text-xs font-semibold text-gray-600 mb-1">Dirección del Local</label>
-                                                <input
-                                                    type="text"
-                                                    placeholder="Av. Principal 123..."
-                                                    value={config.contact?.address || ''}
-                                                    onChange={e => setConfig({
-                                                        ...config,
-                                                        contact: { ...config.contact!, address: e.target.value }
-                                                    })}
-                                                    className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
-                                                />
-                                            </div>
-                                            <div className="col-span-full">
-                                                <label className="block text-xs font-semibold text-gray-600 mb-1">Horarios de Atención</label>
-                                                <input
-                                                    type="text"
-                                                    placeholder="Lun a Vie 9 a 18 hs..."
-                                                    value={config.contact?.openingHours || ''}
-                                                    onChange={e => setConfig({
-                                                        ...config,
-                                                        contact: { ...config.contact!, openingHours: e.target.value }
-                                                    })}
-                                                    className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-semibold text-gray-600 mb-1">WhatsApp (Soporte)</label>
-                                                <input
-                                                    type="text"
-                                                    placeholder="549..."
-                                                    value={config.contact?.whatsapp || ''}
-                                                    onChange={e => setConfig({
-                                                        ...config,
-                                                        contact: { ...config.contact!, whatsapp: e.target.value }
-                                                    })}
-                                                    className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-green-100 outline-none"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-semibold text-gray-600 mb-1">Email Público</label>
-                                                <input
-                                                    type="email"
-                                                    placeholder="contacto@..."
-                                                    value={config.contact?.email || ''}
-                                                    onChange={e => setConfig({
-                                                        ...config,
-                                                        contact: { ...config.contact!, email: e.target.value }
-                                                    })}
-                                                    className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-semibold text-gray-600 mb-1">Instagram</label>
-                                                <input
-                                                    type="text"
-                                                    placeholder="@usuario"
-                                                    value={config.contact?.instagram || ''}
-                                                    onChange={e => setConfig({
-                                                        ...config,
-                                                        contact: { ...config.contact!, instagram: e.target.value }
-                                                    })}
-                                                    className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-pink-100 outline-none"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-semibold text-gray-600 mb-1">Facebook</label>
-                                                <input
-                                                    type="text"
-                                                    placeholder="/pagina"
-                                                    value={config.contact?.facebook || ''}
-                                                    onChange={e => setConfig({
-                                                        ...config,
-                                                        contact: { ...config.contact!, facebook: e.target.value }
-                                                    })}
-                                                    className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
-                                                />
-                                            </div>
-                                            <div className="col-span-full">
-                                                <label className="block text-xs font-semibold text-gray-600 mb-1">Sitio Web</label>
-                                                <input
-                                                    type="text"
-                                                    placeholder="https://..."
-                                                    value={config.contact?.website || ''}
-                                                    onChange={e => setConfig({
-                                                        ...config,
-                                                        contact: { ...config.contact!, website: e.target.value }
-                                                    })}
-                                                    className="w-full rounded-lg border-gray-200 border p-2 text-sm focus:ring-2 focus:ring-gray-100 outline-none"
-                                                />
-                                            </div>
-                                            <div className="col-span-full bg-blue-50/30 p-4 rounded-xl border border-blue-100/50">
-                                                <div className="flex flex-col md:flex-row gap-6 items-start">
-                                                    <div className="flex-1 w-full">
-                                                        <label className="block text-xs font-black text-blue-900 uppercase tracking-tighter mb-2">URL de la App (Bandera Blanca)</label>
-                                                        <input
-                                                            type="url"
-                                                            placeholder="https://tu-dominio.com"
-                                                            value={config.contact?.pwaUrl || ''}
-                                                            onChange={e => setConfig({
-                                                                ...config,
-                                                                contact: { ...config.contact!, pwaUrl: e.target.value }
-                                                            })}
-                                                            className="w-full rounded-lg border-blue-200 border p-3 text-sm focus:ring-2 focus:ring-blue-100 outline-none bg-white font-bold"
-                                                        />
-                                                        <p className="text-[10px] text-blue-600 mt-2 font-medium italic">
-                                                            ⚠️ Esta URL es la que se usará para generar el QR de auto-registro y los links en los correos.
-                                                        </p>
-                                                    </div>
-                                                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center gap-4 self-center md:self-start">
-                                                        <div id="qr-code-container" className="bg-white p-3 rounded-xl">
-                                                              <QRCode 
-                                                                value={`${config.contact?.pwaUrl || window.location.origin}/register`} 
-                                                                size={140}
-                                                                style={{ height: "auto", maxWidth: "100%" }}
-                                                                viewBox={`0 0 140 140`}
-                                                            />
-                                                        </div>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                const svg = document.querySelector("#qr-code-container svg") as SVGGraphicsElement;
-                                                                if (!svg) return;
-                                                                const svgData = new XMLSerializer().serializeToString(svg);
-                                                                const canvas = document.createElement("canvas");
-                                                                const ctx = canvas.getContext("2d");
-                                                                const img = new Image();
-                                                                img.onload = () => {
-                                                                    canvas.width = 600;
-                                                                    canvas.height = 600;
-                                                                    if (ctx) {
-                                                                        ctx.fillStyle = "white";
-                                                                        ctx.fillRect(0, 0, canvas.width, canvas.height);
-                                                                        ctx.drawImage(img, 0, 0, 600, 600);
-                                                                    }
-                                                                    const pngFile = canvas.toDataURL("image/png");
-                                                                    const downloadLink = document.createElement("a");
-                                                                    downloadLink.download = `QR-${config.siteName}.png`;
-                                                                    downloadLink.href = pngFile;
-                                                                    downloadLink.click();
-                                                                };
-                                                                img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
-                                                            }}
-                                                            className="flex items-center gap-2 px-3 py-1.5 bg-gray-900 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-black transition-colors"
-                                                        >
-                                                            <Download size={14} /> Descargar QR
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                </div>
-
-                             {/* Vista Previa Móvil (Columna 2) */}
-                            <div className="flex flex-col items-center justify-start pt-8">
-                                <div
-                                    className="border-[8px] border-gray-900 rounded-[3rem] overflow-hidden w-80 shadow-2xl relative h-[600px] transition-colors duration-500"
-                                    style={{ backgroundColor: config.backgroundColor || '#f9fafb' }}
-                                >
-                                    {/* Notch */}
-                                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-gray-900 rounded-b-xl z-20"></div>
-
-                                    {/* Header Mock */}
-                                    <div
-                                        className="px-4 pt-12 h-24 text-white flex items-center gap-2 transition-all duration-500 overflow-hidden"
-                                        style={{ backgroundColor: config.primaryColor }}
-                                    >
-                                        <div className="w-12 shrink-0 flex items-center justify-center">
-                                            {config.logoUrl ? (
-                                                <img
-                                                    src={config.logoUrl}
-                                                    alt="Logo"
-                                                    className="rounded-full object-contain bg-white shrink-0 shadow-sm"
-                                                    style={{ width: `${config.logoSize || 32}px`, height: `${config.logoSize || 32}px` }}
-                                                />
-                                            ) : (
-                                                <div
-                                                    className="bg-white/20 rounded-full flex items-center justify-center text-[10px] shrink-0"
-                                                    style={{ width: `${config.logoSize || 32}px`, height: `${config.logoSize || 32}px` }}
-                                                >
-                                                    Logo
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        <div className="flex-1 min-w-0">
-                                            <span
-                                                style={{
-                                                    fontFamily: config.siteNameFont,
-                                                    fontSize: `${config.siteNameSize || 14}px`,
-                                                    textAlign: config.siteNameAlignment || 'center',
-                                                    fontWeight: '800',
-                                                    textTransform: 'uppercase',
-                                                    letterSpacing: '0.05em',
-                                                    display: 'block'
-                                                }}
-                                                className="w-full"
-                                            >
-                                                {config.siteName}
-                                            </span>
-                                        </div>
-
-                                        <div className="w-12 shrink-0"></div> {/* Spacer to maintain center/balance */}
-                                    </div>
-
-                                    {/* Hero Mock */}
-                                    <div
-                                        className="p-6 m-4 rounded-2xl text-white shadow-lg text-center transition-all duration-500"
-                                        style={{
-                                            backgroundColor: config.secondaryColor,
-                                            marginTop: '16px'
-                                        }}
-                                    >
-                                        <p className="text-sm opacity-80 mb-1">Tu Saldo</p>
-                                        <p className="text-4xl font-black tracking-tight">1.250</p>
-                                        <span className="text-xs uppercase tracking-widest opacity-70">Puntos Disponibles</span>
-                                    </div>
-
-                                    {/* Simulated Content / Carousel Preview */}
-                                    <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6 scrollbar-hide">
-                                        <div className="space-y-2">
-                                            <div className="flex justify-between items-center px-1">
-                                                <div className="w-20 h-2 bg-gray-200 rounded-full"></div>
-                                                <div className="w-8 h-2 bg-indigo-200 rounded-full"></div>
-                                            </div>
-
-                                            {/* PREVIEW CAROUSEL */}
-                                            <div className="relative group">
-                                                <div className="aspect-[16/9] rounded-2xl overflow-hidden bg-gray-100 relative shadow-inner border border-gray-50">
-                                                    <div className="absolute inset-0 flex items-center justify-center">
-                                                        <div className="flex flex-col items-center gap-2">
-                                                            <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-400">
-                                                                <Sparkles size={16} className="animate-pulse" />
-                                                            </div>
-                                                            <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Vista Previa Carrusel</span>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Animated Bar representing the cycle */}
-                                                    <div className="absolute bottom-0 left-0 h-1 bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]"
-                                                        style={{
-                                                            width: '100%',
-                                                            animation: `carousel-progress ${config.carouselSpeedSeconds || 5}s linear infinite`
-                                                        }}
-                                                    ></div>
-                                                </div>
-                                                <div className="flex justify-center gap-1 mt-2">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-gray-200"></div>
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-gray-200"></div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-50 flex gap-4 items-center">
-                                            <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-400 shrink-0">
-                                                <Sparkles size={24} />
-                                            </div>
-                                            <div className="flex-1 space-y-2">
-                                                <div className="w-2/3 h-2 bg-gray-100 rounded-full"></div>
-                                                <div className="w-full h-2 bg-gray-50 rounded-full"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Bottom Nav Mock */}
-                                    <div className="absolute bottom-0 left-0 w-full bg-white border-t border-gray-100 flex justify-center items-center gap-6 py-3 pb-8 z-10 rounded-b-[2.8rem] shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
-                                        <div className="flex flex-col items-center gap-0.5" style={{ color: config.primaryColor }}>
-                                            <div className="w-6 h-6 flex items-center justify-center"><Home size={18} strokeWidth={2.5} /></div>
-                                            <span className="text-[8px] font-black uppercase tracking-tighter bg-clip-text text-transparent" style={{ backgroundImage: `linear-gradient(to right, ${config.primaryColor}, ${config.secondaryColor})` }}>Inicio</span>
-                                        </div>
-                                        <div className="flex flex-col items-center gap-0.5 opacity-50 grayscale">
-                                            <div className="w-6 h-6 flex items-center justify-center text-gray-400"><Gift size={18} /></div>
-                                            <span className="text-[8px] font-bold uppercase tracking-tighter text-gray-600">Premios</span>
-                                        </div>
-                                        <div className="flex flex-col items-center gap-0.5 opacity-50 grayscale">
-                                            <div className="w-6 h-6 flex items-center justify-center text-gray-400"><MessageCircle size={18} /></div>
-                                            <span className="text-[8px] font-bold uppercase tracking-tighter text-gray-600">Contacto</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="px-6 text-center">
-                                        <p className="text-xs text-gray-400">Vista previa en tiempo real de la App del Cliente</p>
-                                        <button
-                                            type="button"
-                                            onClick={() => setConfig({
-                                                ...config,
-                                                primaryColor: '#4a148c',
-                                                secondaryColor: '#880e4f',
-                                                backgroundColor: '#f5f3f7',
-                                                sectionTitleColor: '#9ca3af',
-                                                linkColor: '#4a148c'
-                                            })}
-                                            className="mt-4 text-xs font-bold text-gray-400 hover:text-gray-600 underline"
-                                        >
-                                            Restaurar Predeterminado (Original)
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                        </div>
-                    )
-                }
-
-                {
-                    activeTab === 'messaging' && (
-                        <div className="max-w-3xl mx-auto space-y-8 animate-fade-in">
-
-                            {/* 1. MASTER SWITCHES (Global Control) */}
-                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-                                <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                                    <Settings size={20} /> Control Maestro de Canales
-                                </h3>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    {/* WhatsApp Switch */}
-                                    <div className={`p-4 rounded-xl border flex flex-col items-center gap-3 transition-colors ${config.messaging?.whatsappEnabled ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
-                                        <div className="flex items-center gap-2 font-bold text-gray-700">
-                                            <span className="text-green-500 text-xl">💬</span> WhatsApp
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => setConfig({
-                                                ...config,
-                                                messaging: { ...config.messaging!, whatsappEnabled: !config.messaging?.whatsappEnabled }
-                                            })}
-                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.messaging?.whatsappEnabled ? 'bg-green-500' : 'bg-gray-300'}`}
-                                        >
-                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${config.messaging?.whatsappEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
-                                        </button>
-                                    </div>
-
-                                    {/* Email Switch */}
-                                    <div className={`p-4 rounded-xl border flex flex-col items-center gap-3 transition-colors ${config.messaging?.emailEnabled ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'}`}>
-                                        <div className="flex items-center gap-2 font-bold text-gray-700">
-                                            <span className="text-blue-500 text-xl">📧</span> Email
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => setConfig({
-                                                ...config,
-                                                messaging: { ...config.messaging!, emailEnabled: !config.messaging?.emailEnabled }
-                                            })}
-                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.messaging?.emailEnabled ? 'bg-blue-500' : 'bg-gray-300'}`}
-                                        >
-                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${config.messaging?.emailEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
-                                        </button>
-                                    </div>
-
-                                    {/* Push Switch */}
-                                    <div className={`p-4 rounded-xl border flex flex-col items-center gap-3 transition-colors ${config.messaging?.pushEnabled ? 'bg-purple-50 border-purple-200' : 'bg-gray-50 border-gray-200'}`}>
-                                        <div className="flex items-center gap-2 font-bold text-gray-700">
-                                            <span className="text-purple-500 text-xl">🔔</span> Push
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => setConfig({
-                                                ...config,
-                                                messaging: { ...config.messaging!, pushEnabled: !config.messaging?.pushEnabled }
-                                            })}
-                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.messaging?.pushEnabled ? 'bg-purple-500' : 'bg-gray-300'}`}
-                                        >
-                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${config.messaging?.pushEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
-                                        </button>
-                                    </div>
-                                </div>
-                                <p className="text-xs text-center text-gray-400 mt-4">
-                                    Estos interruptores son globales. Si apagas uno aquí, ningún mensaje saldrá por ese canal, sin importar las reglas de abajo.
-                                </p>
-                            </div>
-
-                            {/* 2. PWA PERMISSIONS & CONTEXTUAL REINFORCEMENT */}
-                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-                                <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
-                                    <Bell size={20} className="text-purple-600" /> Permisos y Refuerzo Contextual (PWA)
-                                </h3>
-
-                                <div className="space-y-6">
-                                    {/* 1. RE-INTENTO (Standby) */}
-                                    <div className="bg-purple-50/30 p-6 rounded-2xl border border-purple-100/50">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
-                                                    <Bell size={20} />
-                                                </div>
-                                                <div>
-                                                    <h4 className="font-black text-gray-800 uppercase tracking-tighter">RE-INTENTO DE PERMISOS PWA</h4>
-                                                    <p className="text-xs text-gray-500">Volver a mostrar carteles si el cliente eligió "Quizás Luego".</p>
-                                                </div>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => setConfig({
-                                                    ...config,
-                                                    messaging: {
-                                                        ...config.messaging!,
-                                                        enablePermissionPromptRepetition: !config.messaging?.enablePermissionPromptRepetition
-                                                    }
-                                                })}
-                                                className={`relative w-12 h-7 transition-colors rounded-full ${config.messaging?.enablePermissionPromptRepetition ? 'bg-purple-600' : 'bg-gray-200'}`}
-                                            >
-                                                <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.messaging?.enablePermissionPromptRepetition ? 'translate-x-5' : 'translate-x-0'}`} />
-                                            </button>
-                                        </div>
-
-                                        <div className="bg-white p-4 rounded-xl border border-purple-100 flex items-center gap-6">
-                                            <div className="w-24 h-16 bg-purple-50/50 rounded-lg border border-purple-100 flex items-center justify-center">
-                                                <input
-                                                    type="number"
-                                                    min="1" max="365"
-                                                    value={config.messaging?.notificationPromptIntervalDays || 30}
-                                                    onChange={e => setConfig({
-                                                        ...config,
-                                                        messaging: { ...config.messaging!, notificationPromptIntervalDays: parseInt(e.target.value) || 30 }
-                                                    })}
-                                                    className="w-full bg-transparent text-center font-black text-2xl text-purple-600 outline-none"
-                                                />
-                                            </div>
-                                            <div>
-                                                <span className="font-bold text-gray-800 block">Días para volver a preguntar.</span>
-                                                <p className="text-[10px] text-gray-400 leading-tight">Días de silencio antes de volver a molestar con el cartel de Notificaciones o Beneficios Locales.</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* 2. LARGE PROMPT (Phase 1) */}
-                                    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-500">
-                                                <Bell size={20} />
-                                            </div>
-                                            <div>
-                                                <h4 className="font-black text-gray-800 uppercase tracking-tighter">CONFIGURACIÓN DE CARTELES PWA</h4>
-                                                <p className="text-xs text-gray-500">Límites y tiempos para mostrar los avisos a los clientes.</p>
-                                            </div>
-                                        </div>
-
-                                        {/* Card 3: Limits & Mobile Cooldown */}
-                                        <div className="p-4 bg-blue-50/50 rounded-xl border border-dashed border-blue-200 space-y-4">
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="bg-white p-3 rounded-lg border border-blue-100 shadow-sm">
-                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Máx. Intentos PC</label>
-                                                    <input
-                                                        type="number" min="1" max="10"
-                                                        value={config.messaging?.maxLargePromptDismissalsPC || 2}
-                                                        onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, maxLargePromptDismissalsPC: parseInt(e.target.value) || 2 } })}
-                                                        className="w-full px-2 py-1 text-center font-bold bg-gray-50 border border-gray-100 rounded outline-none focus:ring-1 focus:ring-blue-500 text-sm"
-                                                    />
-                                                </div>
-                                                <div className="bg-white p-3 rounded-lg border border-blue-100 shadow-sm">
-                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Máx. Intentos Celular</label>
-                                                    <input
-                                                        type="number" min="1" max="10"
-                                                        value={config.messaging?.maxLargePromptDismissalsMobile || 2}
-                                                        onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, maxLargePromptDismissalsMobile: parseInt(e.target.value) || 2 } })}
-                                                        className="w-full px-2 py-1 text-center font-bold bg-gray-50 border border-gray-100 rounded outline-none focus:ring-1 focus:ring-blue-500 text-sm"
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div className="pt-2 border-t border-blue-100/50">
-                                                <div className="flex items-center gap-3 mb-3">
-                                                    <Clock size={16} className="text-blue-400" />
-                                                    <div>
-                                                        <span className="text-xs font-bold text-gray-600 block leading-tight">Cooldown para Celulares (Programado)</span>
-                                                        <span className="text-[9px] text-gray-400 uppercase tracking-tighter text-balance leading-none">Tiempo de espera tras elegir "Quizás luego"</span>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex items-center gap-4 bg-white p-3 rounded-lg border border-blue-100 shadow-sm">
-                                                    <div className="flex-1">
-                                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Horas</label>
-                                                        <input
-                                                            type="number" min="0" max="720"
-                                                            value={Math.floor(config.messaging?.mobileCooldownHours || 0)}
-                                                            onChange={e => {
-                                                                const h = parseInt(e.target.value) || 0;
-                                                                const current = config.messaging?.mobileCooldownHours || 0;
-                                                                const m = (current - Math.floor(current)) * 60;
-                                                                setConfig({ ...config, messaging: { ...config.messaging!, mobileCooldownHours: h + (m / 60) } });
-                                                            }}
-                                                            className="w-full px-2 py-1 text-center font-bold bg-gray-50 border border-gray-100 rounded outline-none focus:ring-1 focus:ring-blue-500 text-sm"
-                                                        />
-                                                    </div>
-                                                    <div className="flex-1">
-                                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Minutos</label>
-                                                        <input
-                                                            type="number" min="0" max="59"
-                                                            value={Math.floor(((config.messaging?.mobileCooldownHours || 0) - Math.floor(config.messaging?.mobileCooldownHours || 0)) * 60)}
-                                                            onChange={e => {
-                                                                const m = parseInt(e.target.value) || 0;
-                                                                const h = Math.floor(config.messaging?.mobileCooldownHours || 0);
-                                                                setConfig({ ...config, messaging: { ...config.messaging!, mobileCooldownHours: h + (m / 60) } });
-                                                            }}
-                                                            className="w-full px-2 py-1 text-center font-bold bg-gray-50 border border-gray-100 rounded outline-none focus:ring-1 focus:ring-blue-500 text-sm"
-                                                        />
-                                                    </div>
-                                                    <div className="flex-1">
-                                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Segundos</label>
-                                                        <input
-                                                            type="number" min="0" max="59"
-                                                            value={Math.round(((((config.messaging?.mobileCooldownHours || 0) - Math.floor(config.messaging?.mobileCooldownHours || 0)) * 60) - Math.floor(((config.messaging?.mobileCooldownHours || 0) - Math.floor(config.messaging?.mobileCooldownHours || 0)) * 60)) * 60)}
-                                                            onChange={e => {
-                                                                const s = parseInt(e.target.value) || 0;
-                                                                const current = config.messaging?.mobileCooldownHours || 0;
-                                                                const h = Math.floor(current);
-                                                                const m = Math.floor((current - h) * 60);
-                                                                setConfig({ ...config, messaging: { ...config.messaging!, mobileCooldownHours: h + (m / 60) + (s / 3600) } });
-                                                            }}
-                                                            className="w-full px-2 py-1 text-center font-bold bg-gray-50 border border-gray-100 rounded outline-none focus:ring-1 focus:ring-blue-500 text-sm"
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <p className="text-[10px] text-blue-600 mt-2 font-medium italic">
-                                                    Si el cliente elige "Quizás luego", esta configuración determina cuánto tiempo debe pasar para volver a preguntar.
-                                                    Total decimal: {(config.messaging?.mobileCooldownHours || 0).toFixed(4)} hs.
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* 3. PWA INSTALLATION MOMENTS (Removed) */}
-
-                                </div>
-                            </div>
-
-
-                            {/* 3. SPECIFIC SETTINGS (WhatsApp Number) */}
-                            <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-                                <h3 className="text-xl font-bold text-gray-800 mb-6">⚙️ Configuración de WhatsApp</h3>
-                                <div className="space-y-6">
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Tu Número (Business)</label>
-                                        <input
-                                            type="tel"
-                                            placeholder="54911..."
-                                            value={config.messaging?.whatsappPhoneNumber || ''}
-                                            onChange={e => setConfig({
-                                                ...config,
-                                                messaging: { ...config.messaging!, whatsappPhoneNumber: e.target.value }
-                                            })}
-                                            className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none"
-                                        />
-                                        <p className="text-[10px] text-gray-400 mt-1">Formato: 54911xxxxxxxx (Sin 0 ni 15)</p>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Mensaje Manual por Defecto</label>
-                                        <p className="text-xs text-gray-500 mb-2">
-                                            Este es el texto que aparecerá precargado cuando hagas clic en el botón de WhatsApp manualmente desde la lista de clientes.
-                                        </p>
-                                        <div className="flex gap-2">
-                                            <textarea
-                                                rows={2}
-                                                value={config.messaging?.whatsappDefaultMessage || ''}
-                                                onChange={e => setConfig({
-                                                    ...config,
-                                                    messaging: { ...config.messaging!, whatsappDefaultMessage: e.target.value }
-                                                })}
-                                                placeholder={DEFAULT_TEMPLATES.whatsappDefaultMessage}
-                                                className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none resize-none"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* 3. AUTOMATIC EVENTS */}
-                            <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 space-y-8 animate-fade-in-up">
-                                <h3 className="text-xl font-bold text-gray-800 border-b pb-4">🤖 Mensajes Automáticos (Reglas)</h3>
-
-                                {/* Points Added */}
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Al Sumar Puntos (Compra)</label>
-                                    <div className="flex gap-2">
-                                        <div className="relative flex-1">
-                                            <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">🎉</span>
-                                            <textarea
-                                                rows={2}
-                                                value={config.messaging?.templates?.pointsAdded || ''}
-                                                onChange={e => setConfig({
-                                                    ...config,
-                                                    messaging: {
-                                                        ...config.messaging!,
-                                                        templates: { ...config.messaging?.templates, pointsAdded: e.target.value }
-                                                    }
-                                                })}
-                                                placeholder={DEFAULT_TEMPLATES.pointsAdded}
-                                                className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none resize-none"
-                                            />
-                                        </div>
-                                        <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, pointsAdded: DEFAULT_TEMPLATES.pointsAdded } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition" title="Restaurar predeterminado">↺</button>
-                                        <button
-                                            type="button"
-                                            onClick={() => openPreview('pointsAdded')}
-                                            className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
-                                            title="Previsualizar Email"
-                                        >
-                                            <Eye size={18} />
-                                        </button>
-                                    </div>
-                                    <VariableChips vars={['siteName', 'nombre', 'nombre_completo', 'puntos', 'saldo']} onSelect={v => insertVar('pointsAdded', v)} />
-                                    <ChannelSelector
-                                        channels={config.messaging?.eventConfigs?.pointsAdded?.channels || []}
-                                        onChange={(newChannels) => setConfig({
-                                            ...config,
-                                            messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, pointsAdded: { channels: newChannels } } }
-                                        })}
-                                    />
-                                </div>
-
-                                {/* Redemption */}
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Al Canjear Premio</label>
-                                    <div className="flex gap-2">
-                                        <div className="relative flex-1">
-                                            <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">🎁</span>
-                                            <textarea
-                                                rows={2}
-                                                value={config.messaging?.templates?.redemption || ''}
-                                                onChange={e => setConfig({
-                                                    ...config,
-                                                    messaging: {
-                                                        ...config.messaging!,
-                                                        templates: { ...config.messaging?.templates, redemption: e.target.value }
-                                                    }
-                                                })}
-                                                placeholder={DEFAULT_TEMPLATES.redemption}
-                                                className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none resize-none"
-                                            />
-                                        </div>
-                                        <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, redemption: DEFAULT_TEMPLATES.redemption } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition" title="Restaurar predeterminado">↺</button>
-                                        <button
-                                            type="button"
-                                            onClick={() => openPreview('redemption')}
-                                            className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
-                                            title="Previsualizar Email"
-                                        >
-                                            <Eye size={18} />
-                                        </button>
-                                    </div>
-                                    <VariableChips vars={['siteName', 'nombre', 'nombre_completo', 'premio', 'codigo']} onSelect={v => insertVar('redemption', v)} />
-                                    <ChannelSelector
-                                        channels={config.messaging?.eventConfigs?.redemption?.channels || []}
-                                        onChange={(newChannels) => setConfig({
-                                            ...config,
-                                            messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, redemption: { channels: newChannels } } }
-                                        })}
-                                    />
-                                </div>
-
-                                {/* Welcome */}
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Bienvenida (Nuevo Cliente)</label>
-                                    <div className="flex gap-2">
-                                        <div className="relative flex-1">
-                                            <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">👋</span>
-                                            <textarea
-                                                rows={2}
-                                                value={config.messaging?.templates?.welcome || ''}
-                                                onChange={e => setConfig({
-                                                    ...config,
-                                                    messaging: {
-                                                        ...config.messaging!,
-                                                        templates: { ...config.messaging?.templates, welcome: e.target.value }
-                                                    }
-                                                })}
-                                                placeholder={DEFAULT_TEMPLATES.welcome}
-                                                className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none resize-none"
-                                            />
-                                        </div>
-                                        <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, welcome: DEFAULT_TEMPLATES.welcome } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition" title="Restaurar predeterminado">↺</button>
-                                        <button
-                                            type="button"
-                                            onClick={() => openPreview('welcome')}
-                                            className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
-                                            title="Previsualizar Email"
-                                        >
-                                            <Eye size={18} />
-                                        </button>
-                                    </div>
-                                    <VariableChips vars={['siteName', 'nombre', 'nombre_completo', 'puntos', 'socio', 'dni']} onSelect={v => insertVar('welcome', v)} />
-                                    <ChannelSelector
-                                        channels={config.messaging?.eventConfigs?.welcome?.channels || []}
-                                        onChange={(newChannels) => setConfig({
-                                            ...config,
-                                            messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, welcome: { channels: newChannels } } }
-                                        })}
-                                    />
-                                </div>
-
-                                {/* Campaign Template */}
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Promo Manual (Campaña)</label>
-                                    <div className="flex gap-2">
-                                        <div className="relative flex-1">
-                                            <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">🚀</span>
-                                            <textarea
-                                                rows={2}
-                                                value={config.messaging?.templates?.campaign || ''}
-                                                onChange={e => setConfig({
-                                                    ...config,
-                                                    messaging: {
-                                                        ...config.messaging!,
-                                                        templates: { ...config.messaging?.templates, campaign: e.target.value }
-                                                    }
-                                                })}
-                                                placeholder={DEFAULT_TEMPLATES.campaign}
-                                                className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none resize-none"
-                                            />
-                                        </div>
-                                        <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, campaign: DEFAULT_TEMPLATES.campaign } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition" title="Restaurar predeterminado">↺</button>
-                                        <button
-                                            type="button"
-                                            onClick={() => openPreview('campaign')}
-                                            className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
-                                            title="Previsualizar Email"
-                                        >
-                                            <Eye size={18} />
-                                        </button>
-                                    </div>
-                                    <VariableChips vars={['siteName', 'titulo', 'descripcion']} onSelect={v => insertVar('campaign', v)} />
-                                    <ChannelSelector
-                                        channels={config.messaging?.eventConfigs?.campaign?.channels || []}
-                                        onChange={(newChannels) => setConfig({
-                                            ...config,
-                                            messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, campaign: { channels: newChannels } } }
-                                        })}
-                                    />
-                                </div>
-
-                                {/* Offer Template */}
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Oferta Especial</label>
-                                    <div className="flex gap-2">
-                                        <div className="relative flex-1">
-                                            <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">🔥</span>
-                                            <textarea
-                                                rows={2}
-                                                value={config.messaging?.templates?.offer || ''}
-                                                onChange={e => setConfig({
-                                                    ...config,
-                                                    messaging: {
-                                                        ...config.messaging!,
-                                                        templates: { ...config.messaging?.templates, offer: e.target.value }
-                                                    }
-                                                })}
-                                                placeholder={DEFAULT_TEMPLATES.offer}
-                                                className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none resize-none"
-                                            />
-                                        </div>
-                                        <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, offer: DEFAULT_TEMPLATES.offer } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition" title="Restaurar predeterminado">↺</button>
-                                        <button
-                                            type="button"
-                                            onClick={() => openPreview('offer')}
-                                            className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
-                                            title="Previsualizar Email"
-                                        >
-                                            <Eye size={18} />
-                                        </button>
-                                    </div>
-                                    <VariableChips vars={['siteName', 'titulo', 'detalle', 'vencimiento']} onSelect={v => insertVar('offer', v)} />
-                                    <ChannelSelector
-                                        channels={config.messaging?.eventConfigs?.offer?.channels || []}
-                                        onChange={(newChannels) => setConfig({
-                                            ...config,
-                                            messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, offer: { channels: newChannels } } }
-                                        })}
-                                    />
-                                </div>
-
-                                {/* Flash Offer Template */}
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2 font-mono flex items-center gap-2">
-                                        ⚡ Oferta Flash <span className="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full uppercase">Crítico / Urgente</span>
-                                    </label>
-                                    <div className="flex gap-2">
-                                        <div className="relative flex-1">
-                                            <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">⚡</span>
-                                            <textarea
-                                                rows={2}
-                                                value={config.messaging?.templates?.flashOffer || ''}
-                                                onChange={e => setConfig({
-                                                    ...config,
-                                                    messaging: {
-                                                        ...config.messaging!,
-                                                        templates: { ...config.messaging?.templates, flashOffer: e.target.value }
-                                                    }
-                                                })}
-                                                placeholder={DEFAULT_TEMPLATES.flashOffer}
-                                                className="w-full pl-10 pr-3 py-3 rounded-lg border border-yellow-200 focus:ring-2 focus:ring-yellow-100 outline-none resize-none"
-                                            />
-                                        </div>
-                                        <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, flashOffer: DEFAULT_TEMPLATES.flashOffer } } })} className="px-3 py-2 text-gray-400 hover:text-yellow-600 rounded-lg hover:bg-yellow-50 transition" title="Restaurar predeterminado">↺</button>
-                                        <button
-                                            type="button"
-                                            onClick={() => openPreview('flashOffer')}
-                                            className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
-                                            title="Previsualizar Email"
-                                        >
-                                            <Eye size={18} />
-                                        </button>
-                                    </div>
-                                    <VariableChips vars={['siteName', 'titulo', 'detalle', 'horario']} onSelect={v => insertVar('flashOffer', v)} />
-                                    <p className="text-[10px] text-gray-400 mt-1 italic">
-                                        * Se usa automáticamente para campañas marcadas como "Flash".
-                                    </p>
-                                </div>
-
-                                {/* Birthday Template */}
-                                <div className="space-y-6">
-                                    <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-                                        <h4 className="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
-                                            🎂 Cumpleaños
-                                        </h4>
-
-                                        <div className="space-y-4">
-                                            {/* Full Gift Greeting */}
-                                            <div>
-                                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Mensaje CON Regalo (Puntos)</label>
-                                                <div className="flex gap-2">
-                                                    <div className="relative flex-1">
-                                                        <span className="absolute top-3 left-3 text-xl">🎁</span>
-                                                        <textarea
-                                                            rows={2}
-                                                            value={config.messaging?.templates?.birthday || ''}
-                                                            onChange={e => setConfig({
-                                                                ...config,
-                                                                messaging: {
-                                                                    ...config.messaging!,
-                                                                    templates: { ...config.messaging?.templates, birthday: e.target.value }
-                                                                }
-                                                            })}
-                                                            placeholder={DEFAULT_TEMPLATES.birthday}
-                                                            className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-pink-100 outline-none resize-none text-sm"
-                                                        />
-                                                    </div>
-                                                    <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, birthday: DEFAULT_TEMPLATES.birthday } } })} className="px-3 py-2 text-gray-300 hover:text-pink-600 transition" title="Restaurar predeterminado">↺</button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => openPreview('birthday')}
-                                                        className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
-                                                        title="Previsualizar Email"
-                                                    >
-                                                        <Eye size={18} />
-                                                    </button>
-                                                </div>
-                                                <VariableChips vars={['siteName', 'nombre', 'nombre_completo', 'puntos']} onSelect={v => insertVar('birthday', v)} />
-                                            </div>
-
-                                            {/* Simple Greeting */}
-                                            <div className="pt-4 border-t border-gray-100">
-                                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Mensaje SIN Regalo (Solo Saludo)</label>
-                                                <div className="flex gap-2">
-                                                    <div className="relative flex-1">
-                                                        <span className="absolute top-3 left-3 text-xl">👋</span>
-                                                        <textarea
-                                                            rows={2}
-                                                            value={config.messaging?.templates?.birthdaySimple || ''}
-                                                            onChange={e => setConfig({
-                                                                ...config,
-                                                                messaging: {
-                                                                    ...config.messaging!,
-                                                                    templates: { ...config.messaging?.templates, birthdaySimple: e.target.value }
-                                                                }
-                                                            })}
-                                                            placeholder={DEFAULT_TEMPLATES.birthdaySimple}
-                                                            className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none resize-none text-sm"
-                                                        />
-                                                    </div>
-                                                    <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, birthdaySimple: DEFAULT_TEMPLATES.birthdaySimple } } })} className="px-3 py-2 text-gray-300 hover:text-blue-600 transition" title="Restaurar predeterminado">↺</button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => openPreview('birthdaySimple')}
-                                                        className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
-                                                        title="Previsualizar Email"
-                                                    >
-                                                        <Eye size={18} />
-                                                    </button>
-                                                </div>
-                                                <VariableChips vars={['siteName', 'nombre', 'nombre_completo']} onSelect={v => insertVar('birthdaySimple', v)} />
-                                            </div>
-                                        </div>
-
-                                        <div className="mt-4 pt-4 border-t border-gray-100">
-                                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Canales de Envío Automático</label>
-                                            <ChannelSelector
-                                                channels={config.messaging?.eventConfigs?.birthday?.channels || []}
-                                                onChange={(newChannels) => setConfig({
-                                                    ...config,
-                                                    messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, birthday: { channels: newChannels } } }
-                                                })}
-                                            />
-                                            <p className="text-[10px] text-gray-400 mt-2 italic">
-                                                * El sistema detecta automáticamente si enviar el mensaje con o sin puntos según la configuración de "Reglas de Juego".
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <hr className="border-gray-50" />
-
-                                {/* Referral Reward Template */}
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Recompensa por Referido</label>
-                                    <div className="flex gap-2">
-                                        <div className="relative flex-1">
-                                            <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">💎</span>
-                                            <textarea
-                                                rows={2}
-                                                value={config.messaging?.templates?.referralReward || ''}
-                                                onChange={e => setConfig({
-                                                    ...config,
-                                                    messaging: {
-                                                        ...config.messaging!,
-                                                        templates: { ...config.messaging?.templates, referralReward: e.target.value }
-                                                    }
-                                                })}
-                                                placeholder={DEFAULT_TEMPLATES.referralReward}
-                                                className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none resize-none"
-                                            />
-                                        </div>
-                                        <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, referralReward: DEFAULT_TEMPLATES.referralReward } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition" title="Restaurar predeterminado">↺</button>
-                                        <button
-                                            type="button"
-                                            onClick={() => openPreview('referralReward')}
-                                            className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
-                                            title="Previsualizar Email"
-                                        >
-                                            <Eye size={18} />
-                                        </button>
-                                    </div>
-                                    <VariableChips vars={['siteName', 'nombre', 'amigo', 'puntos']} onSelect={v => insertVar('referralReward', v)} />
-                                    <ChannelSelector
-                                        channels={config.messaging?.eventConfigs?.referralReward?.channels || []}
-                                        onChange={(newChannels) => setConfig({
-                                            ...config,
-                                            messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, referralReward: { channels: newChannels } } }
-                                        })}
-                                    />
-                                </div>
-
-                                {/* Referral Points Template (Puntos por referir) */}
-                                <div className="p-4 bg-orange-50/30 rounded-xl border border-orange-100">
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">🎁 Puntos a Favor (Referidor)</label>
-                                    <p className="text-[10px] text-gray-500 mb-2 leading-tight">Mismo evento que el anterior, pero enfocado en avisar los puntos ganados.</p>
-                                    <div className="flex gap-2">
-                                        <div className="relative flex-1">
-                                            <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">🚀</span>
-                                            <textarea
-                                                rows={2}
-                                                value={config.messaging?.templates?.referralPoints || ''}
-                                                onChange={e => setConfig({
-                                                    ...config,
-                                                    messaging: {
-                                                        ...config.messaging!,
-                                                        templates: { ...config.messaging?.templates, referralPoints: e.target.value }
-                                                    }
-                                                })}
-                                                placeholder={DEFAULT_TEMPLATES.referralPoints}
-                                                className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-orange-100 outline-none resize-none"
-                                            />
-                                        </div>
-                                        <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, referralPoints: DEFAULT_TEMPLATES.referralPoints } } })} className="px-3 py-2 text-gray-400 hover:text-orange-600 rounded-lg hover:bg-orange-50 transition" title="Restaurar predeterminado">↺</button>
-                                        <button
-                                            type="button"
-                                            onClick={() => openPreview('referralPoints')}
-                                            className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
-                                            title="Previsualizar Email"
-                                        >
-                                            <Eye size={18} />
-                                        </button>
-                                    </div>
-                                    <VariableChips vars={['siteName', 'nombre', 'nombre_referido', 'puntos']} onSelect={v => insertVar('referralPoints', v)} />
-                                </div>
-
-                                {/* Referral Challenge Template */}
-                                <div className="p-4 bg-orange-50/50 rounded-xl border border-orange-200">
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2 font-mono flex items-center gap-2">
-                                        ⚡ Desafío de Referidos <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full uppercase">Difusión Manual</span>
-                                    </label>
-                                    <p className="text-[10px] text-gray-500 mb-2 leading-tight">Envía este mensaje de forma manual para motivar a los usuarios durante un desafío activo.</p>
-                                    <div className="flex gap-2">
-                                        <div className="relative flex-1">
-                                            <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">🚀</span>
-                                            <textarea
-                                                rows={2}
-                                                value={config.messaging?.templates?.referralChallenge || ''}
-                                                onChange={e => setConfig({
-                                                    ...config,
-                                                    messaging: {
-                                                        ...config.messaging!,
-                                                        templates: { ...config.messaging?.templates, referralChallenge: e.target.value }
-                                                    }
-                                                })}
-                                                placeholder={DEFAULT_TEMPLATES.referralChallenge || '¡Tenemos un nuevo desafío!'}
-                                                className="w-full pl-10 pr-3 py-3 rounded-lg border border-orange-200 focus:ring-2 focus:ring-orange-100 outline-none resize-none"
-                                            />
-                                        </div>
-                                        <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, referralChallenge: DEFAULT_TEMPLATES.referralChallenge } } })} className="px-3 py-2 text-gray-400 hover:text-orange-600 rounded-lg hover:bg-orange-50 transition" title="Restaurar predeterminado">↺</button>
-                                        <button
-                                            type="button"
-                                            onClick={() => openPreview('referralChallenge', '¡NUEVO DESAFÍO ACTIVO! 🚀')}
-                                            className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
-                                            title="Previsualizar Email"
-                                        >
-                                            <Eye size={18} />
-                                        </button>
-                                    </div>
-                                    <VariableChips vars={['siteName', 'nombre', 'nombre_completo', 'fecha_limite', 'puntos', 'meta']} onSelect={v => insertVar('referralChallenge', v)} />
-
-                                    <div className="mt-4 flex flex-col sm:flex-row items-center gap-4 justify-between bg-white p-3 rounded-lg border border-orange-100">
-                                        <div className="w-full sm:w-auto">
-                                            <ChannelSelector
-                                                channels={challengeChannels}
-                                                onChange={setChallengeChannels}
-                                            />
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={async () => {
-                                                const channelsStr = challengeChannels.join(', ') || 'Ninguno';
-                                                if (challengeChannels.length === 0) {
-                                                    toast.error("Selecciona al menos un canal");
-                                                    return;
-                                                }
-                                                if (!window.confirm(`¿Deseas difundir el desafío a todos los clientes a través de: ${channelsStr}?`)) return;
-
-                                                const toastId = toast.loading('Iniciando difusión...');
-                                                const title = '¡NUEVO DESAFÍO ACTIVO! 🚀';
-                                                const templateText = config.messaging?.templates?.referralChallenge || DEFAULT_TEMPLATES.referralChallenge || 'Desafío Activo';
-
-                                                try {
-                                                    // Get challenge end date from config for {fecha_limite} replacement
-                                                    const challengeEndDateRaw = config.referrals?.challenge?.endDate;
-                                                    let expirationDateFormatted = 'pronto';
-                                                    if (challengeEndDateRaw) {
-                                                        const [year, month, day] = challengeEndDateRaw.split('-');
-                                                        expirationDateFormatted = `${day}/${month}/${year}`;
-                                                    }
-
-                                                    const q = query(collection(db, 'users'));
-                                                    const snap = await getDocs(q);
-
-                                                    if (challengeChannels.includes('push')) {
-                                                        const pushPromises = snap.docs.map(doc => {
-                                                            const d = doc.data();
-                                                            const userName = d.name || '';
-                                                            let personalizedMsg = templateText
-                                                                .replace(/{nombre}/g, userName.split(' ')[0])
-                                                                .replace(/{nombre_completo}/g, userName)
-                                                                .replace(/{fecha_limite}/g, expirationDateFormatted)
-                                                                .replace(/{vencimiento}/g, expirationDateFormatted)
-                                                                .replace(/{puntos}/g, config.referrals?.challenge?.tiers?.[0]?.bonus?.toString() || '0')
-                                                                .replace(/{meta}/g, config.referrals?.challenge?.tiers?.[0]?.count?.toString() || '0');
-
-                                                            return NotificationService.sendToClient(doc.id, {
-                                                                title: title,
-                                                                body: personalizedMsg,
-                                                                type: 'campaign',
-                                                                icon: config.logoUrl || '/pwa-192x192.png'
-                                                            });
-                                                        });
-                                                        await Promise.allSettled(pushPromises);
-                                                    }
-
-                                                    if (challengeChannels.includes('email')) {
-                                                        const emailPromises = snap.docs.map(doc => {
-                                                            const d = doc.data();
-                                                            if (d.email) {
-                                                                const userName = d.name || '';
-                                                                let personalizedMsg = templateText
-                                                                    .replace(/{nombre}/g, userName.split(' ')[0])
-                                                                    .replace(/{nombre_completo}/g, userName)
-                                                                    .replace(/{fecha_limite}/g, expirationDateFormatted)
-                                                                    .replace(/{vencimiento}/g, expirationDateFormatted)
-                                                                    .replace(/{puntos}/g, config.referrals?.challenge?.tiers?.[0]?.bonus?.toString() || '0')
-                                                                    .replace(/{meta}/g, config.referrals?.challenge?.tiers?.[0]?.count?.toString() || '0');
-
-                                                                const htmlContent = EmailService.generateBrandedTemplate(config, title, personalizedMsg);
-                                                                return EmailService.sendEmail(d.email, title, htmlContent);
-                                                            }
-                                                            return null;
-                                                        }).filter(Boolean);
-                                                        await Promise.allSettled(emailPromises);
-                                                    }
-
-                                                    if (challengeChannels.includes('whatsapp')) {
-                                                        let waMsg = templateText
-                                                            .replace(/{fecha_limite}/g, expirationDateFormatted)
-                                                            .replace(/{vencimiento}/g, expirationDateFormatted)
-                                                            .replace(/{puntos}/g, config.referrals?.challenge?.tiers?.[0]?.bonus?.toString() || '0')
-                                                            .replace(/{meta}/g, config.referrals?.challenge?.tiers?.[0]?.count?.toString() || '0');
-                                                        navigate('/admin/whatsapp', { state: { message: waMsg } });
-                                                    }
-
-                                                    toast.success('¡Difusión completada!', { id: toastId });
-                                                } catch (e) {
-                                                    toast.error('Error en la difusión', { id: toastId });
-                                                }
-                                            }}
-                                            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-rose-600 text-white rounded-xl text-sm font-black shadow-lg shadow-orange-200 hover:scale-105 transition active:scale-95 whitespace-nowrap"
-                                        >
-                                            <Megaphone size={18} />
-                                            ¡Difundir Desafío a Todos!
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Points Expiration Warning Configuration */}
-                                <div className="pt-6 mt-6 border-t border-gray-100">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-xl">📢</span>
-                                            <div>
-                                                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-tight">Aviso de Vencimiento de Puntos</h3>
-                                                <div className="flex items-center gap-1 text-[10px] text-gray-400">
-                                                    <span>Notifica a los socios</span>
-                                                    <input
-                                                        type="number"
-                                                        min="1" max="90"
-                                                        value={config.messaging?.expirationWarningDays || 7}
-                                                        onChange={e => setConfig({
-                                                            ...config,
-                                                            messaging: { ...config.messaging!, expirationWarningDays: parseInt(e.target.value) || 7 }
-                                                        })}
-                                                        className="w-10 bg-transparent border-b border-gray-300 text-center font-bold focus:border-orange-500 outline-none text-orange-600"
-                                                    />
-                                                    <span>días antes de que pierdan sus puntos.</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => setConfig({
-                                                ...config,
-                                                messaging: { ...config.messaging!, enableExpirationWarnings: !config.messaging?.enableExpirationWarnings }
-                                            })}
-                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.messaging?.enableExpirationWarnings ? 'bg-orange-500' : 'bg-gray-300'}`}
-                                        >
-                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${config.messaging?.enableExpirationWarnings ? 'translate-x-6' : 'translate-x-1'}`} />
-                                        </button>
-                                    </div>
-
-                                    {/* Itinerancy / Repeat Notifications Toggle */}
-                                    <div className="mt-4 p-4 bg-orange-50/50 rounded-xl border border-orange-100 flex items-center justify-between mb-6">
-                                        <div className="flex items-start gap-3">
-                                            <div className="p-2 bg-white rounded-lg shadow-sm">
-                                                <div className="w-5 h-5 flex items-center justify-center text-orange-600">🔁</div>
-                                            </div>
-                                            <div>
-                                                <h4 className="text-sm font-bold text-orange-900">Itinerancia de Avisos</h4>
-                                                <p className="text-[11px] text-orange-800/70 leading-tight mt-1">
-                                                    Si está activo, el sistema volverá a enviar notificaciones aunque no haya cambios en los puntos.<br />
-                                                    Ideal para recordar periódicamente los vencimientos.
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => setConfig({
-                                                ...config,
-                                                messaging: { ...config.messaging!, repeatExpirationWarnings: !config.messaging?.repeatExpirationWarnings }
-                                            })}
-                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.messaging?.repeatExpirationWarnings ? 'bg-orange-500' : 'bg-gray-300'}`}
-                                        >
-                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${config.messaging?.repeatExpirationWarnings ? 'translate-x-6' : 'translate-x-1'}`} />
-                                        </button>
-                                    </div>
-                                    {/* Interval days input - visible when itinerancy is ON */}
-                                    {config.messaging?.repeatExpirationWarnings && (
-                                        <div className="mt-3 ml-10 p-3 bg-white rounded-lg border border-orange-100 animate-fade-in">
-                                            <label className="flex items-center gap-3">
-                                                <span className="text-xs font-bold text-orange-800 whitespace-nowrap">Recordar cada</span>
-                                                <input
-                                                    type="number"
-                                                    min={0}
-                                                    max={30}
-                                                    value={config.messaging?.expirationReminderIntervalDays ?? 5}
-                                                    onChange={e => setConfig({
-                                                        ...config,
-                                                        messaging: { ...config.messaging!, expirationReminderIntervalDays: parseInt(e.target.value) || 0 }
-                                                    })}
-                                                    className="w-16 px-2 py-1 text-center text-sm font-bold border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-300 focus:outline-none"
-                                                />
-                                                <span className="text-xs text-orange-700">días después del primer aviso</span>
-                                            </label>
-                                            <p className="text-[10px] text-orange-600/60 mt-1.5 leading-tight">
-                                                Define cuántos días de silencio esperar antes de repetir. <br />
-                                                0 = Siempre. <br />
-                                                1 = Día por medio (ej: lunes sí, martes no). <br />
-                                                2 = Dos días de espera (lunes sí, jueves sí).
-                                            </p>
-                                        </div>
-                                    )}
-                                    {config.messaging?.enableExpirationWarnings && (
-                                        <div className="space-y-4 animate-fade-in text-left border-l-2 border-orange-100 pl-4">
-                                            <div className="flex gap-2">
-                                                <div className="relative flex-1">
-                                                    <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">⏳</span>
-                                                    <textarea
-                                                        rows={2}
-                                                        value={config.messaging?.templates?.expirationWarning || ''}
-                                                        onChange={e => setConfig({
-                                                            ...config,
-                                                            messaging: {
-                                                                ...config.messaging!,
-                                                                templates: { ...config.messaging?.templates, expirationWarning: e.target.value }
-                                                            }
-                                                        })}
-                                                        placeholder={DEFAULT_TEMPLATES.expirationWarning}
-                                                        className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-orange-100 outline-none resize-none text-sm"
-                                                    />
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, expirationWarning: DEFAULT_TEMPLATES.expirationWarning } } })}
-                                                    className="px-3 py-2 text-gray-400 hover:text-orange-600 rounded-lg hover:bg-orange-50 transition"
-                                                    title="Restaurar predeterminado"
-                                                >
-                                                    ↺
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => openPreview('expirationWarning')}
-                                                    className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
-                                                    title="Previsualizar Email"
-                                                >
-                                                    <Eye size={18} />
-                                                </button>
-                                            </div>
-                                            <VariableChips vars={['siteName', 'nombre', 'puntos', 'fecha']} onSelect={v => insertVar('expirationWarning', v)} />
-
-                                            <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-100">
-                                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Canales de Envío</label>
-                                                <ChannelSelector
-                                                    channels={config.messaging?.eventConfigs?.expirationWarning?.channels || []}
-                                                    onChange={(newChannels) => setConfig({
-                                                        ...config,
-                                                        messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, expirationWarning: { channels: newChannels } } }
-                                                    })}
-                                                />
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Pet Food Alert Template */}
-                                {config.enablePetModule && (
-                                    <div className="p-4 bg-orange-50/30 rounded-xl border border-orange-100 space-y-4">
-                                        <div className="flex items-center justify-between">
-                                            <h4 className="text-sm font-bold text-gray-700 flex items-center gap-2">
-                                                🐾 Aviso de Reposición de Alimento
-                                            </h4>
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <div className="relative flex-1">
-                                                <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">🔔</span>
-                                                <textarea
-                                                    rows={2}
-                                                    value={config.messaging?.templates?.petFoodAlert || ''}
-                                                    onChange={e => setConfig({
-                                                        ...config,
-                                                        messaging: {
-                                                            ...config.messaging!,
-                                                            templates: { ...config.messaging?.templates, petFoodAlert: e.target.value }
-                                                        }
-                                                    })}
-                                                    placeholder={DEFAULT_TEMPLATES.petFoodAlert}
-                                                    className="w-full pl-10 pr-3 py-3 rounded-lg border border-orange-200 focus:ring-2 focus:ring-orange-100 outline-none resize-none text-sm"
-                                                />
-                                            </div>
-                                            <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, petFoodAlert: DEFAULT_TEMPLATES.petFoodAlert } } })} className="px-3 py-2 text-gray-400 hover:text-orange-600 rounded-lg transition" title="Restaurar predeterminado">↺</button>
-                                        </div>
-                                        <VariableChips vars={['siteName', 'nombre', 'mascota', 'marca']} onSelect={v => insertVar('petFoodAlert', v)} />
-                                        
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div className="bg-white/50 p-3 rounded-lg border border-orange-100">
-                                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Canales de Envío</label>
-                                                <ChannelSelector
-                                                    channels={config.messaging?.eventConfigs?.petFoodAlert?.channels || []}
-                                                    onChange={(newChannels) => setConfig({
-                                                        ...config,
-                                                        messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, petFoodAlert: { channels: newChannels } } }
-                                                    })}
-                                                />
-                                            </div>
-                                            <div className="bg-white/50 p-3 rounded-lg border border-orange-100">
-                                                <label className="block text-[10px] font-bold text-orange-700 uppercase tracking-widest mb-1">Anticipación de Aviso</label>
-                                                <div className="flex items-center gap-2">
-                                                    <input 
-                                                        type="number"
-                                                        value={config.petFoodAlertLeadDays || 0}
-                                                        onChange={e => setConfig({ ...config, petFoodAlertLeadDays: parseInt(e.target.value) || 0 })}
-                                                        className="w-20 p-2 bg-white rounded-lg border border-orange-100 text-sm font-bold outline-none focus:ring-2 focus:ring-orange-200"
-                                                        min="0"
-                                                        max="15"
-                                                    />
-                                                    <span className="text-xs text-gray-500 font-medium">días antes de agotarse</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                                </div>
-
-                            {/* Email Preview Button */}
-                            {config.messaging?.emailEnabled && (
-                                <div className="flex justify-end pt-4">
-                                    <button
-                                        type="button"
-                                        onClick={handleTestEmail}
-                                        className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 font-medium transition flex items-center gap-2"
-                                    >
-                                        <Monitor size={16} /> Ver Previsualización de Email
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    )
-                }
-
-                {
                     activeTab === 'advanced' && (
                         <div className="max-w-4xl mx-auto py-12 space-y-8">
                             {/* SECCIÓN HERRAMIENTAS DE TRABAJO */}

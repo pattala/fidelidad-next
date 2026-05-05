@@ -74,7 +74,7 @@ const VariableChips = ({ vars, onSelect }: { vars: string[], onSelect: (v: strin
 );
 
 export const ConfigPage = () => {
-    console.log("%c REVISIÓN 2.0 - ARQUITECTURA MODULAR ACTIVA 🚀", "color: white; background: #2563eb; padding: 5px 10px; border-radius: 5px; font-weight: bold;");
+    console.log("%c REVISIÓN 2.1 - DESPLIEGUE FORZADO [" + new Date().toLocaleTimeString() + "] 🚀", "color: white; background: #2563eb; padding: 5px 10px; border-radius: 5px; font-weight: bold;");
     const { role, loading: authLoading } = useAdminAuth();
     const navigate = useNavigate();
 

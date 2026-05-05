@@ -199,14 +199,17 @@ async function handleDelete(req, res, db) {
             let countAudit = 0;
             auditCleanupSnap.docs.forEach(doc => {
                 const data = doc.data();
-                const isRelevantType = ['prize_redemption', 'points_assignment'].includes(data.type);
+                const isRelevantType = ['prize_redemption', 'points_assignment', 'whatsapp_notification', 'whatsapp_manual'].includes(data.type);
                 
-                // Buscar si este log pertenece al usuario que estamos borrando
-                const hasMatch = data.details?.some(d => d.userId === userId || (socioNumber && d.socioNumber === socioNumber)) 
-                               || data.details?.userId === userId 
-                               || (socioNumber && data.details?.socioNumber === socioNumber);
-                
-                if (isRelevantType && hasMatch) {
+                // Búsqueda profunda en detalles (puede ser objeto o array)
+                let isTargetUser = false;
+                if (Array.isArray(data.details)) {
+                    isTargetUser = data.details.some(d => d.userId === userId || (socioNumber && (d.socioNumber === socioNumber || d.socio === socioNumber)));
+                } else if (data.details) {
+                    isTargetUser = data.details.userId === userId || (socioNumber && (data.details.socioNumber === socioNumber || data.details.socio === socioNumber));
+                }
+
+                if (isRelevantType && isTargetUser) {
                     auditBatch.delete(doc.ref);
                     countAudit++;
                 }

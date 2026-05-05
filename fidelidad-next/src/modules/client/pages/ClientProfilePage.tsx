@@ -118,7 +118,10 @@ export const ClientProfilePage = () => {
             const { updateDoc } = await import('firebase/firestore');
             const userRef = doc(db, 'users', userAuth.uid);
 
+            const wasAddressComplete = userData.domicilio?.status === 'complete';
+            const isAddressNowComplete = !!(editData.provincia && editData.localidad && editData.street && editData.number);
             const fullCalle = `${editData.street || ''} ${editData.number || ''}`.trim();
+
             const updates = {
                 name: editData.name,
                 nombre: editData.name,
@@ -141,9 +144,6 @@ export const ClientProfilePage = () => {
                 'domicilio.components.zipCode': editData.cp || '',
                 'domicilio.status': isAddressNowComplete ? 'complete' : (userData.domicilio?.status || 'pending')
             };
-
-            const wasAddressComplete = userData.domicilio?.status === 'complete';
-            const isAddressNowComplete = !!(editData.provincia && editData.localidad && editData.street && editData.number);
 
             await updateDoc(userRef, updates);
             toast.success("Perfil actualizado");

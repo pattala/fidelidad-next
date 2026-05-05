@@ -3,6 +3,7 @@ import { Save, Plus, Trash2, Palette, Calculator, Monitor, Smartphone, Settings,
 import QRCode from 'react-qr-code';
 
 console.log('RAMPET_BUILD_V2: Key fix re-applied');
+// Triggering build after hard reset to 6a5e4c4
 import { ConfigService, DEFAULT_TEMPLATES } from '../../../services/configService';
 import { EmailPreviewModal } from '../components/EmailPreviewModal';
 import { EmailService } from '../../../services/emailService';

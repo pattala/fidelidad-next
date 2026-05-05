@@ -646,46 +646,58 @@ export const ConfigPage = () => {
 
                                 <div className="space-y-4 relative z-10">
                                     {(config.expirationRules || []).map((rule, idx) => (
-                                        <div key={idx} className="flex items-center gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100 group/item">
-                                            <div className="flex-1">
-                                                <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Los puntos vencen a los</span>
-                                                <div className="flex items-center gap-2">
-                                                    <input
-                                                        type="number" min="1"
-                                                        value={rule.months}
-                                                        onChange={e => {
-                                                            const newRules = [...config.expirationRules];
-                                                            newRules[idx].months = parseInt(e.target.value) || 0;
-                                                            setConfig({ ...config, expirationRules: newRules });
-                                                        }}
-                                                        className="w-16 p-2 bg-white rounded-lg border-gray-200 text-center font-bold text-gray-700 outline-none focus:ring-2 focus:ring-blue-500"
-                                                    />
-                                                    <span className="text-sm font-bold text-gray-500">meses</span>
-                                                </div>
-                                            </div>
-                                            <div className="flex-1">
-                                                <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Si el saldo supera</span>
-                                                <div className="flex items-center gap-2">
+                                        <div key={idx} className="flex flex-col gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100 group/item">
+                                            <div className="grid grid-cols-3 gap-4">
+                                                <div>
+                                                    <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Mín. Puntos</span>
                                                     <input
                                                         type="number" min="0"
-                                                        value={rule.pointsThreshold}
+                                                        value={rule.minPoints}
                                                         onChange={e => {
-                                                            const newRules = [...config.expirationRules];
-                                                            newRules[idx].pointsThreshold = parseInt(e.target.value) || 0;
+                                                            const newRules = [...config.expirationRules!];
+                                                            newRules[idx].minPoints = parseInt(e.target.value) || 0;
                                                             setConfig({ ...config, expirationRules: newRules });
                                                         }}
-                                                        className="w-20 p-2 bg-white rounded-lg border-gray-200 text-center font-bold text-gray-700 outline-none focus:ring-2 focus:ring-blue-500"
+                                                        className="w-full p-2 bg-white rounded-lg border-gray-200 text-center font-bold text-gray-700 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
                                                     />
-                                                    <span className="text-sm font-bold text-gray-500">pts</span>
+                                                </div>
+                                                <div>
+                                                    <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Máx. Puntos</span>
+                                                    <input
+                                                        type="number" min="0"
+                                                        value={rule.maxPoints || ''}
+                                                        placeholder="∞"
+                                                        onChange={e => {
+                                                            const newRules = [...config.expirationRules!];
+                                                            newRules[idx].maxPoints = e.target.value ? parseInt(e.target.value) : null;
+                                                            setConfig({ ...config, expirationRules: newRules });
+                                                        }}
+                                                        className="w-full p-2 bg-white rounded-lg border-gray-200 text-center font-bold text-gray-700 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Validez (Días)</span>
+                                                    <input
+                                                        type="number" min="1"
+                                                        value={rule.validityDays}
+                                                        onChange={e => {
+                                                            const newRules = [...config.expirationRules!];
+                                                            newRules[idx].validityDays = parseInt(e.target.value) || 0;
+                                                            setConfig({ ...config, expirationRules: newRules });
+                                                        }}
+                                                        className="w-full p-2 bg-white rounded-lg border-gray-200 text-center font-bold text-blue-600 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+                                                    />
                                                 </div>
                                             </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => setConfig({ ...config, expirationRules: config.expirationRules.filter((_, i) => i !== idx) })}
-                                                className="p-2 text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover/item:opacity-100"
-                                            >
-                                                <Trash2 size={18} />
-                                            </button>
+                                            <div className="flex justify-end border-t border-gray-100 pt-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setConfig({ ...config, expirationRules: config.expirationRules!.filter((_, i) => i !== idx) })}
+                                                    className="flex items-center gap-2 text-[10px] text-red-500 hover:text-red-700 font-black uppercase tracking-widest transition"
+                                                >
+                                                    <Trash2 size={12} /> Eliminar Regla
+                                                </button>
+                                            </div>
                                         </div>
                                     ))}
 
@@ -755,7 +767,17 @@ export const ConfigPage = () => {
                                     Bienvenida
                                 </h3>
                                 <div className="space-y-4 relative z-10">
-                                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                                    <div className="flex items-center justify-between p-2">
+                                        <span className="text-sm font-bold text-gray-600">Activar Bonificación</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setConfig({ ...config, enableWelcomeBonus: !config.enableWelcomeBonus })}
+                                            className={`relative w-10 h-6 transition-colors rounded-full ${config.enableWelcomeBonus ? 'bg-orange-500' : 'bg-gray-200'}`}
+                                        >
+                                            <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform ${config.enableWelcomeBonus ? 'translate-x-4' : 'translate-x-0'}`} />
+                                        </button>
+                                    </div>
+                                    <div className={`bg-gray-50 p-4 rounded-xl border border-gray-200 transition-opacity ${config.enableWelcomeBonus ? 'opacity-100' : 'opacity-50 pointer-events-none'}`}>
                                         <label className="block text-sm font-semibold text-gray-700 mb-2">Puntos de Regalo al Registrarse</label>
                                         <div className="relative">
                                             <input
@@ -873,42 +895,44 @@ export const ConfigPage = () => {
                                     Reglas de Cumpleaños
                                 </h3>
                                 <div className="space-y-6 relative z-10">
-                                    <div className="bg-gray-50 p-6 rounded-2xl border border-gray-200">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <div>
-                                                <span className="text-sm font-bold text-gray-800 block">Regalo de Puntos</span>
-                                                <p className="text-[10px] text-gray-500 leading-tight">Crédito automático que recibe el socio en su día.</p>
-                                            </div>
+                                    <div className="flex items-center justify-between p-2">
+                                        <span className="text-sm font-bold text-gray-600">Activar Bonificación</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setConfig({ ...config, enableBirthdayBonus: !config.enableBirthdayBonus })}
+                                            className={`relative w-10 h-6 transition-colors rounded-full ${config.enableBirthdayBonus ? 'bg-pink-500' : 'bg-gray-200'}`}
+                                        >
+                                            <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform ${config.enableBirthdayBonus ? 'translate-x-4' : 'translate-x-0'}`} />
+                                        </button>
+                                    </div>
+                                    
+                                    <div className={`space-y-6 transition-opacity ${config.enableBirthdayBonus ? 'opacity-100' : 'opacity-50 pointer-events-none'}`}>
+                                        <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">Puntos de Regalo por Cumpleaños</label>
                                             <div className="relative">
                                                 <input
                                                     type="number" min="0"
                                                     value={config.birthdayPoints || 0}
                                                     onChange={e => setConfig({ ...config, birthdayPoints: parseInt(e.target.value) || 0 })}
-                                                    className="w-24 p-3 bg-white rounded-xl border-pink-200 border-2 text-pink-600 font-black text-lg text-center outline-none focus:ring-4 focus:ring-pink-50"
+                                                    className="w-full pl-4 pr-16 py-3 bg-white rounded-xl border-pink-200 border-2 focus:border-pink-500 focus:ring-4 focus:ring-pink-50 text-pink-700 font-black text-xl text-center outline-none transition shadow-sm"
                                                 />
-                                                <span className="absolute -top-2 -right-1 bg-pink-600 text-white text-[8px] px-1.5 py-0.5 rounded-full font-bold">PTS</span>
+                                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-pink-600 text-xs font-black uppercase tracking-tighter">Puntos</span>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-3 p-3 bg-white/50 rounded-xl border border-pink-100">
+
+                                        <div className="flex items-center justify-between p-2">
                                             <div className="flex-1">
-                                                <span className="text-xs font-bold text-gray-600 block">Habilitar Saludo Simple</span>
-                                                <p className="text-[9px] text-gray-400">Si el regalo es 0, enviar solo un mensaje de felicitación.</p>
+                                                <span className="text-sm font-bold text-gray-600">Enviar Mensaje Automático</span>
+                                                <p className="text-[10px] text-gray-400">Si se activa, el motor enviará la plantilla de cumple.</p>
                                             </div>
                                             <button
                                                 type="button"
-                                                onClick={() => setConfig({ ...config, enableBirthdayGreeting: !config.enableBirthdayGreeting })}
-                                                className={`relative w-10 h-6 transition-colors rounded-full ${config.enableBirthdayGreeting ? 'bg-pink-500' : 'bg-gray-200'}`}
+                                                onClick={() => setConfig({ ...config, enableBirthdayMessage: !config.enableBirthdayMessage })}
+                                                className={`relative w-10 h-6 transition-colors rounded-full ${config.enableBirthdayMessage ? 'bg-blue-500' : 'bg-gray-200'}`}
                                             >
-                                                <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform ${config.enableBirthdayGreeting ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform ${config.enableBirthdayMessage ? 'translate-x-4' : 'translate-x-0'}`} />
                                             </button>
                                         </div>
-                                    </div>
-
-                                    <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100">
-                                        <h4 className="text-xs font-bold text-blue-800 uppercase tracking-widest mb-2 flex items-center gap-2">
-                                            <Clock size={14} /> Ventana de Aplicación
-                                        </h4>
-                                        <p className="text-[10px] text-blue-600 mb-4">Los puntos de cumpleaños se entregan a las 00:00hs del día del aniversario.</p>
                                     </div>
                                 </div>
                             </div>
@@ -920,6 +944,43 @@ export const ConfigPage = () => {
                 {/* Pilar: COMUNICACIÓN 📢 */}
                 {activeTab === 'communication' && (
                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+                        {/* Integración Externa */}
+                        <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-indigo-50 p-3 rounded-2xl text-indigo-600">
+                                        <Zap size={24} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-black text-gray-800 tracking-tight">Integraciones Externas</h3>
+                                        <p className="text-gray-500 text-sm">Habilita el acceso a la API para sistemas de terceros.</p>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setConfig({ ...config, enableExternalIntegration: !config.enableExternalIntegration })}
+                                    className={`relative w-14 h-8 transition-colors rounded-full ${config.enableExternalIntegration ? 'bg-indigo-600' : 'bg-gray-200'}`}
+                                >
+                                    <span className={`absolute top-1 left-1 bg-white w-6 h-6 rounded-full shadow-sm transition-transform ${config.enableExternalIntegration ? 'translate-x-6' : 'translate-x-0'}`} />
+                                </button>
+                            </div>
+
+                            {config.enableExternalIntegration && (
+                                <div className="bg-indigo-50/50 p-6 rounded-2xl border border-indigo-100 animate-in fade-in zoom-in-95">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <span className="text-xs font-bold text-indigo-800 uppercase tracking-widest">Tu Clave de API</span>
+                                        <button type="button" className="text-indigo-600 hover:text-indigo-800 transition"><Copy size={16} /></button>
+                                    </div>
+                                    <code className="block bg-white p-4 rounded-xl border border-indigo-100 text-sm font-mono text-indigo-900 break-all select-all">
+                                        {import.meta.env.VITE_API_KEY || 'no_api_key_configured'}
+                                    </code>
+                                    <p className="text-[10px] text-indigo-500 mt-4 italic">
+                                        * No compartas esta clave con nadie. Permite realizar operaciones de suma y canje desde sistemas externos.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+
                         {/* 1. MASTER SWITCHES */}
                         <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
                             <div className="flex items-center gap-3 mb-8">
@@ -1384,6 +1445,7 @@ export const ConfigPage = () => {
                                             </div>
                                         </div>
                                         <p className="text-sm text-gray-600 leading-relaxed">Define el rango horario en el que el sistema tiene permitido revisar vencimientos y enviar promociones.</p>
+
 
                                         <div className="flex items-center gap-4 bg-white p-4 rounded-xl border border-blue-50">
                                             <label className="flex flex-col flex-1">

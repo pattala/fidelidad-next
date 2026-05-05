@@ -1,4 +1,4 @@
-# 💎 DOCUMENTACIÓN MAESTRA RAMPET (V.1.4.5)
+# 💎 DOCUMENTACIÓN MAESTRA RAMPET (V.1.4.6)
 
 > Este documento consolida toda la inteligencia técnica y operativa del sistema.
 

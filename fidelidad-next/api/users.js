@@ -160,7 +160,6 @@ async function handleDelete(req, res, db) {
                     const batch = db.batch();
                     snap.forEach(d => batch.delete(d.ref));
                     await batch.commit();
-                }
             }
         }
         if (authUID) await admin.auth().deleteUser(authUID).catch(() => { });

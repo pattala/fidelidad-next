@@ -1185,51 +1185,11 @@ export const ConfigPage = () => {
                                     onChange={e => setConfig({ ...config, contact: { ...config.contact!, termsContent: e.target.value } })}
                                 />
                             </div>
-                        </div>
 
-                        {/* Preview Columna Derecha */}
-                        <div className="sticky top-24">
-                            <div className="bg-gray-900 p-4 rounded-[3rem] shadow-2xl border-[8px] border-gray-800 aspect-[9/19] max-w-[320px] mx-auto overflow-hidden relative group">
-                                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-gray-800 rounded-b-2xl z-20"></div>
-                                <div className="h-full rounded-[2.2rem] overflow-hidden flex flex-col relative z-10" style={{ backgroundColor: config.backgroundColor || '#f9fafb' }}>
-                                    <div className="h-16 flex items-center px-6 bg-white border-b border-gray-100">
+                                {/* Configuración de Colores Adicionales y Logo */}
+                                <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 space-y-6">
+                                    <div className="flex flex-col md:flex-row gap-6">
                                         <div className="flex-1">
-                                            <div className="w-20 h-3 bg-gray-100 rounded-full mb-1"></div>
-                                            <span className="text-[10px] font-black uppercase tracking-tighter" style={{ color: config.primaryColor }}>{config.siteName}</span>
-                                        </div>
-                                        <div className="w-8 h-8 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-300">
-                                            <User size={14} />
-                                        </div>
-                                    </div>
-                                    <div className="p-6 space-y-4">
-                                        <div className="h-24 rounded-2xl p-4 flex flex-col justify-end" style={{ backgroundImage: `linear-gradient(135deg, ${config.primaryColor}, ${config.secondaryColor})` }}>
-                                            <div className="w-1/2 h-2 bg-white/20 rounded-full mb-2"></div>
-                                            <div className="w-3/4 h-3 bg-white rounded-full"></div>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div className="h-20 bg-white rounded-2xl border border-gray-100 p-3 shadow-sm flex flex-col gap-2">
-                                                <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-400"><Sparkles size={16} /></div>
-                                                <div className="w-full h-2 bg-gray-100 rounded-full"></div>
-                                            </div>
-                                            <div className="h-20 bg-white rounded-2xl border border-gray-100 p-3 shadow-sm flex flex-col gap-2">
-                                                <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center text-orange-400"><Gift size={16} /></div>
-                                                <div className="w-full h-2 bg-gray-100 rounded-full"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="absolute bottom-0 w-full bg-white border-t border-gray-100 flex justify-center gap-8 py-4 rounded-b-[2.2rem]">
-                                        <Home size={20} style={{ color: config.primaryColor }} />
-                                        <Gift size={20} className="text-gray-300" />
-                                        <MessageCircle size={20} className="text-gray-300" />
-                                    </div>
-                                </div>
-                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center z-30">
-                                    <span className="text-white font-black text-xs uppercase tracking-widest bg-black/50 px-4 py-2 rounded-full border border-white/20">Vista Previa</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
                                             <label className="block text-sm font-medium text-gray-700 mb-2">Color de Enlaces</label>
                                             <div className="flex items-center gap-3">
                                                 <input
@@ -1302,12 +1262,56 @@ export const ConfigPage = () => {
                                             </div>
                                         </div>
                                     </div>
+                                </div>
+                        </div>
+
+                        {/* Preview Columna Derecha */}
+                        <div className="sticky top-24">
+                            <div className="bg-gray-900 p-4 rounded-[3rem] shadow-2xl border-[8px] border-gray-800 aspect-[9/19] max-w-[320px] mx-auto overflow-hidden relative group">
+                                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-gray-800 rounded-b-2xl z-20"></div>
+                                <div className="h-full rounded-[2.2rem] overflow-hidden flex flex-col relative z-10" style={{ backgroundColor: config.backgroundColor || '#f9fafb' }}>
+                                    <div className="h-16 flex items-center px-6 bg-white border-b border-gray-100">
+                                        <div className="flex-1">
+                                            <div className="w-20 h-3 bg-gray-100 rounded-full mb-1"></div>
+                                            <span className="text-[10px] font-black uppercase tracking-tighter" style={{ color: config.primaryColor }}>{config.siteName}</span>
+                                        </div>
+                                        <div className="w-8 h-8 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-300">
+                                            <User size={14} />
+                                        </div>
+                                    </div>
+                                    <div className="p-6 space-y-4">
+                                        <div className="h-24 rounded-2xl p-4 flex flex-col justify-end" style={{ backgroundImage: `linear-gradient(135deg, ${config.primaryColor}, ${config.secondaryColor})` }}>
+                                            <div className="w-1/2 h-2 bg-white/20 rounded-full mb-2"></div>
+                                            <div className="w-3/4 h-3 bg-white rounded-full"></div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="h-20 bg-white rounded-2xl border border-gray-100 p-3 shadow-sm flex flex-col gap-2">
+                                                <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-400"><Sparkles size={16} /></div>
+                                                <div className="w-full h-2 bg-gray-100 rounded-full"></div>
+                                            </div>
+                                            <div className="h-20 bg-white rounded-2xl border border-gray-100 p-3 shadow-sm flex flex-col gap-2">
+                                                <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center text-orange-400"><Gift size={16} /></div>
+                                                <div className="w-full h-2 bg-gray-100 rounded-full"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="absolute bottom-0 w-full bg-white border-t border-gray-100 flex justify-center gap-8 py-4 rounded-b-[2.2rem]">
+                                        <Home size={20} style={{ color: config.primaryColor }} />
+                                        <Gift size={20} className="text-gray-300" />
+                                        <MessageCircle size={20} className="text-gray-300" />
+                                    </div>
+                                </div>
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center z-30">
+                                    <span className="text-white font-black text-xs uppercase tracking-widest bg-black/50 px-4 py-2 rounded-full border border-white/20">Vista Previa</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Pilar: CONFIGURACIÓN AVANZADA 🛠️ */}
                 {activeTab === 'advanced' && (
-
-                    activeTab === 'advanced' && (
-                        <div className="max-w-4xl mx-auto py-12 space-y-8">
+                    <div className="max-w-4xl mx-auto py-12 space-y-8">
                             {/* SECCIÓN HERRAMIENTAS DE TRABAJO */}
                             <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
                                 <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">

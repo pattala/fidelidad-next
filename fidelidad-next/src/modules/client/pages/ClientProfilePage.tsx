@@ -457,8 +457,8 @@ export const ClientProfilePage = () => {
                             <span className="animate-pulse">🎁</span> Invitar Amigos y Ganar Puntos
                         </button>
 
-                        {/* BANNER DE INCENTIVO: BONO DOMICILIO (Se oculta si ya está completo) */}
-                        {config.enableAddressBonus && userData.domicilio?.status !== 'complete' && (
+                        {/* BANNER DE INCENTIVO: BONO DOMICILIO (Se oculta si ya está completo o si el bono está desactivado/es 0) */}
+                        {config.enableAddressBonus && (config.pointsForAddress > 0) && userData.domicilio?.status !== 'complete' && (
                             <button
                                 onClick={() => {
                                     setEditData({

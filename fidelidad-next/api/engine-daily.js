@@ -112,6 +112,11 @@ export default async function handler(req, res) {
             }
         }
 
+        // 0. RECOLECTAR IDS DE USUARIOS ACTIVOS (Para filtrar huérfanos en auditoría)
+        const activeUserIds = new Set();
+        const allUsersSnap = await db.collection('users').select().get();
+        allUsersSnap.forEach(u => activeUserIds.add(u.id));
+
         // 1. PROCESAR CUMPLEAÑOS
         const usersSnap = await db.collection('users').where('birthDate', '!=', '').get();
         const birthdayUsers = usersSnap.docs.filter(doc => doc.data().birthDate?.endsWith(todayMD));
@@ -426,7 +431,7 @@ export default async function handler(req, res) {
             redsSnap.forEach(doc => {
                 const data = doc.data();
                 const dtl = data.details?.find(x => x.action === 'prize_redeemed');
-                if (dtl) {
+                if (dtl && activeUserIds.has(dtl.userId)) {
                     const alertId = `redemption-${dtl.socioNumber || dtl.phone || dtl.userId || doc.id}-${dtl.redemptionCode || 'N/A'}`;
                     redemptionsList.push({
                         ...dtl,
@@ -449,7 +454,7 @@ export default async function handler(req, res) {
             pointsSnap.forEach(doc => {
                 const data = doc.data();
                 const dtl = data.details?.find(x => x.action === 'points_credited');
-                if (dtl) {
+                if (dtl && activeUserIds.has(dtl.userId)) {
                     const alertId = `points-${dtl.socioNumber || dtl.phone || dtl.userId || doc.id}-${doc.id}`;
                     pointsAssignmentsList.push({
                         ...dtl,

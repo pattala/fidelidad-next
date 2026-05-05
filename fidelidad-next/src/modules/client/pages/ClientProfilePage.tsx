@@ -139,6 +139,7 @@ export const ClientProfilePage = () => {
                 'domicilio.components.partido': editData.partido || '',
                 'domicilio.components.provincia': editData.provincia || '',
                 'domicilio.components.zipCode': editData.cp || '',
+                'domicilio.status': isAddressNowComplete ? 'complete' : (userData.domicilio?.status || 'pending')
             };
 
             const wasAddressComplete = userData.domicilio?.status === 'complete';
@@ -456,7 +457,7 @@ export const ClientProfilePage = () => {
                             <span className="animate-pulse">🎁</span> Invitar Amigos y Ganar Puntos
                         </button>
 
-                        {/* BANNER DE INCENTIVO: BONO DOMICILIO */}
+                        {/* BANNER DE INCENTIVO: BONO DOMICILIO (Se oculta si ya está completo) */}
                         {config.enableAddressBonus && userData.domicilio?.status !== 'complete' && (
                             <button
                                 onClick={() => {

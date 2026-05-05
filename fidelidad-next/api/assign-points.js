@@ -359,6 +359,16 @@ export default async function handler(req, res) {
         } else {
             // Modo Reglas de Negocio (Bienvenida, Dirección, etc)
             if (reason === 'profile_address') {
+                // VERIFICACIÓN DE SEGURIDAD: ¿Ya recibió este bono?
+                const historySnap = await db.collection('users').doc(targetUid).collection('points_history')
+                    .where('reason', '==', 'profile_address')
+                    .limit(1)
+                    .get();
+                
+                if (!historySnap.empty) {
+                    return res.status(400).json({ ok: false, error: "Bono de domicilio ya otorgado anteriormente" });
+                }
+
                 points = Number(config.pointsForAddress) || 50;
             } else if (reason === 'welcome_signup') {
                 const welcomePts = Number(config.welcomePoints) || 0;

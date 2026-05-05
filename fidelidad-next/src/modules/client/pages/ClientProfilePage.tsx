@@ -406,6 +406,11 @@ export const ClientProfilePage = () => {
                     </div>
                     <h2 className="text-xl font-black text-gray-800">{userData.name || userData.nombre || 'Usuario'}</h2>
                     <p className="text-gray-500 font-medium text-sm">{userData.email}</p>
+                    {userData.birthDate && (
+                        <p className="text-[10px] font-bold text-indigo-500 mt-1 uppercase tracking-wider flex items-center gap-1 justify-center">
+                            <span>🎂</span> Cumpleaños: {new Date(userData.birthDate + 'T12:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: 'long' })}
+                        </p>
+                    )}
 
                     {/* Stats Row */}
                     <div className="flex justify-center gap-6 mt-6 border-t border-gray-100 pt-4">

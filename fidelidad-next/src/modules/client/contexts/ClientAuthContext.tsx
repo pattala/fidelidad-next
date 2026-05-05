@@ -57,15 +57,6 @@ export const ClientAuthProvider = ({ children }: { children: React.ReactNode }) 
                             if (adminSnap.exists()) {
                                 setIsAdmin(true);
                                 setUserData(null);
-                                // Trigger dashboard style call for admins (to maintain activity)
-                                fetch('/api/engine-daily?mode=daily&trigger=pwa_admin', {
-                                    method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                        'x-api-key': import.meta.env.VITE_API_KEY || ''
-                                    },
-                                    body: JSON.stringify({})
-                                }).catch(() => {});
                             } else {
                                 setIsAdmin(false);
                                 setUserData(null);

@@ -105,7 +105,9 @@ export default async function handler(req, res) {
             const pointsPerPeso = Number(configData.pointsPerPeso) || 1;
 
             // 5. Obtener Campañas Activas (Promociones)
-            const now = new Date();
+            // --- RELOJ SIMULADO ---
+            const now = await getEffectiveDate(db, req.query.simulatedDate);
+            
             // AJUSTE TIMEZONE: Argentina es UTC-3. 
             // Usamos UTC methods sobre un objeto desplazado para obtener la fecha local de AR de forma consistente en el servidor.
             const nowArg = new Date(now.getTime() - (3 * 60 * 60 * 1000));
@@ -357,10 +359,15 @@ export default async function handler(req, res) {
         } else {
             // Modo Reglas de Negocio (Bienvenida, Dirección, etc)
             if (reason === 'profile_address') {
-                // El panel guarda casi todo en 'config/general' ahora
                 points = Number(config.pointsForAddress) || 50;
             } else if (reason === 'welcome_signup') {
-                points = Number(config.welcomePoints) || 0;
+                const welcomePts = Number(config.welcomePoints) || 0;
+                const addressPts = metadata?.includeAddressBonus ? (Number(config.pointsForAddress) || 0) : 0;
+                points = welcomePts + addressPts;
+                
+                if (metadata?.includeAddressBonus && addressPts > 0) {
+                    req.body.calculatedPromoDetails = " (Registro + Domicilio)";
+                }
             } else {
                 return res.status(400).json({ ok: false, error: "Unknown reason or missing amount" });
             }

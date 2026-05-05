@@ -102,6 +102,7 @@ export const ClientsPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterMode, setFilterMode] = useState<'all' | 'dormant'>('all');
     const [config, setConfig] = useState<any>(null);
+    const [dormantDays, setDormantDays] = useState(30);
 
     // Estado del Modal CRUD
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -112,7 +113,7 @@ export const ClientsPage = () => {
     // Estado Modal Asignar Puntos
     const [pointsModalOpen, setPointsModalOpen] = useState(false);
     const [selectedClientForPoints, setSelectedClientForPoints] = useState<Client | null>(null);
-    const [pointsData, setPointsData] = useState({ amount: '', concept: 'Compra en local', isPesos: true, purchaseDate: new Date().toISOString().split('T')[0] });
+    const [pointsData, setPointsData] = useState({ amount: '', concept: 'Compra en local', isPesos: true, purchaseDate: TimeService.now().toISOString().split('T')[0] });
     const [notifyWhatsapp, setNotifyWhatsapp] = useState(false); // Checkbox state
     const [applyPromotions, setApplyPromotions] = useState(true); // New State: Default True
     const [availablePromotions, setAvailablePromotions] = useState<any[]>([]);
@@ -238,9 +239,12 @@ export const ClientsPage = () => {
 
     useEffect(() => {
         setLoading(true);
-        // Config listener
-        const unsubConfig = onSnapshot(doc(db, 'config', 'general'), (snap) => {
-            if (snap.exists()) setConfig(snap.data());
+        // Config listener (Real-time)
+        const unsubConfig = ConfigService.subscribe((fullConfig) => {
+            setConfig(fullConfig);
+            if (fullConfig.dormantDays) {
+                setDormantDays(fullConfig.dormantDays);
+            }
         });
 
         // Clients listener (Real-time) con filtro de rol en el servidor
@@ -327,7 +331,7 @@ export const ClientsPage = () => {
                     phone: formData.phone.trim(),
                     numeroSocio: Number(formData.socioNumber),
                     socioNumber: Number(formData.socioNumber),
-                    updatedAt: new Date(),
+                    updatedAt: TimeService.now(),
                     formatted_address: formattedAddress,
                     calle: `${formData.calle} ${formData.numero}`.trim(),
                     numero: formData.numero,
@@ -438,8 +442,8 @@ export const ClientsPage = () => {
                             socioNumber: Number(finalSocioId),
                             numeroSocio: Number(finalSocioId),
                             points: 0,
-                            createdAt: new Date(),
-                            updatedAt: new Date()
+                            createdAt: TimeService.now(),
+                            updatedAt: TimeService.now()
                         });
                         toast.success('Cliente registrado (Modo Local)');
                     } catch (errLocal) {
@@ -452,32 +456,45 @@ export const ClientsPage = () => {
 
                 if (newDocId) {
                     const freshConfig = await ConfigService.get();
-                    let totalWelcomePts = 0;
-                    const conceptParts: string[] = [];
-                    if (applyWelcomeBonus && Number(freshConfig?.welcomePoints || 0) > 0 && freshConfig?.enableWelcomeBonus !== false) {
-                        totalWelcomePts += Number(freshConfig?.welcomePoints);
-                        conceptParts.push('Registro');
-                    }
-                    const hasAddress = formData.calle.trim() !== '' && formData.provincia.trim() !== '' && (formData.localidad.trim() !== '' || formData.partido.trim() !== '');
-                    if (applyAddressBonus && Number(freshConfig?.pointsForAddress || 0) > 0 && freshConfig?.enableAddressBonus !== false && hasAddress) {
-                        totalWelcomePts += Number(freshConfig?.pointsForAddress);
-                        conceptParts.push('Domicilio');
-                    }
-                    if (totalWelcomePts > 0) {
-                        let days = 365;
-                        if (freshConfig?.expirationRules && freshConfig.expirationRules.length > 0) {
-                            const sortedRules = [...freshConfig.expirationRules].sort((a: any, b: any) => (a.minPoints || 0) - (b.minPoints || 0));
-                            const rule = sortedRules.find((r: any) => totalWelcomePts >= r.minPoints && (!r.maxPoints || totalWelcomePts <= r.maxPoints));
-                            if (rule) days = rule.validityDays;
-                            else { const highestRule = sortedRules[sortedRules.length - 1]; if (totalWelcomePts >= (highestRule.minPoints || 0)) days = highestRule.validityDays; }
+                    let finalWelcomePoints = 0;
+                    if (applyWelcomeBonus || applyAddressBonus) {
+                        try {
+                            const bonusReason = (applyWelcomeBonus && applyAddressBonus) ? 'welcome_signup' : (applyWelcomeBonus ? 'welcome_signup' : 'profile_address');
+                            
+                            const resBonus = await fetch('/api/assign-points', {
+                                method: 'POST',
+                                headers: { 
+                                    'Content-Type': 'application/json',
+                                    'x-api-key': import.meta.env.VITE_API_KEY || '' 
+                                },
+                                body: JSON.stringify({
+                                    uid: newDocId,
+                                    reason: bonusReason,
+                                    metadata: { 
+                                        includeAddressBonus: applyAddressBonus,
+                                        includeWelcomeBonus: applyWelcomeBonus
+                                    },
+                                    simulatedDate: freshConfig?.simulatedOffsetDays ? TimeService.now().toISOString() : undefined
+                                })
+                            });
+                            const bonusData = await resBonus.json();
+                            if (bonusData.ok) finalWelcomePoints = bonusData.points || 0;
+                        } catch (errBonus) {
+                            console.error("Error asignando bonos automáticos:", errBonus);
                         }
-                        const expiresAt = TimeService.now(); expiresAt.setDate(expiresAt.getDate() + days);
-                        const conceptStr = `🎁 Bienvenida al sistema (${conceptParts.join(' + ')})`;
-                        await addDoc(collection(db, `users/${newDocId}/points_history`), { amount: totalWelcomePts, concept: conceptStr, date: new Date(), type: 'credit', expiresAt });
-                        await updateDoc(doc(db, 'users', newDocId), { points: totalWelcomePts, historialPuntos: arrayUnion({ fechaObtencion: new Date(), puntosObtenidos: totalWelcomePts, puntosDisponibles: totalWelcomePts, diasCaducidad: days, origen: conceptStr, estado: 'Activo' }) });
                     }
+
                     const welcomeTemplate = freshConfig?.messaging?.templates?.welcome || DEFAULT_TEMPLATES.welcome;
-                    const welcomeMsg = welcomeTemplate.replace(/{nombre}/g, formData.name.split(' ')[0]).replace(/{nombre_completo}/g, formData.name).replace(/{puntos}/g, totalWelcomePts.toString()).replace(/{dni}/g, formData.dni).replace(/{email}/g, formData.email).replace(/{socio}/g, finalSocioId).replace(/{numero_socio}/g, finalSocioId).replace(/{telefono}/g, formData.phone).replace(/{siteName}/g, freshConfig?.siteName || 'nuestro Club');
+                    const welcomeMsg = welcomeTemplate
+                        .replace(/{nombre}/g, formData.name.split(' ')[0])
+                        .replace(/{nombre_completo}/g, formData.name)
+                        .replace(/{puntos}/g, finalWelcomePoints.toString())
+                        .replace(/{dni}/g, formData.dni)
+                        .replace(/{email}/g, formData.email)
+                        .replace(/{socio}/g, finalSocioId)
+                        .replace(/{numero_socio}/g, finalSocioId)
+                        .replace(/{telefono}/g, formData.phone)
+                        .replace(/{siteName}/g, freshConfig?.siteName || 'nuestro Club');
                     if (formData.phone && sendWelcomeWa) {
                         const cleanPhone = PhoneUtils.formatForWhatsApp(formData.phone);
                         if (cleanPhone) {
@@ -670,7 +687,7 @@ export const ClientsPage = () => {
     const openPointsModal = async (client: Client) => {
         if (isReadOnly) return;
         setSelectedClientForPoints(client);
-        setPointsData({ amount: '', concept: 'Compra en local', isPesos: true, purchaseDate: new Date().toISOString().split('T')[0] });
+        setPointsData({ amount: '', concept: 'Compra en local', isPesos: true, purchaseDate: TimeService.now().toISOString().split('T')[0] });
 
         const isWAEnabled = NotificationService.isChannelEnabled(config, 'pointsAdded', 'whatsapp');
         setNotifyWhatsapp(isWAEnabled);
@@ -735,7 +752,7 @@ export const ClientsPage = () => {
         const csvContent = [headers.join(';'), ...rows.map(r => r.map(v => { if (typeof v === 'number') return v.toFixed(2).replace('.', ','); return `"${v}"`; }).join(';'))].join('\n');
         const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
-        const link = document.createElement("a"); link.setAttribute("href", url); link.setAttribute("download", `clientes_${new Date().toISOString().split('T')[0]}.csv`); link.style.visibility = 'hidden'; document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        const link = document.createElement("a"); link.setAttribute("href", url); link.setAttribute("download", `clientes_${TimeService.now().toISOString().split('T')[0]}.csv`); link.style.visibility = 'hidden'; document.body.appendChild(link); link.click(); document.body.removeChild(link);
         toast.success("Excel exportado correctamente");
     }
 
@@ -1354,7 +1371,7 @@ export const ClientsPage = () => {
                                                                 className="w-full bg-gray-50 pl-10 pr-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-purple-200 outline-none text-sm font-bold transition-all text-gray-600"
                                                                 value={formData.birthDate}
                                                                 onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
-                                                                max={new Date().toISOString().split('T')[0]}
+                                                                max={TimeService.now().toISOString().split('T')[0]}
                                                             />
                                                         </div>
                                                     </div>

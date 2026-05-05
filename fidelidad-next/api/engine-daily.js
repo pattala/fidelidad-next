@@ -84,12 +84,33 @@ export default async function handler(req, res) {
             errors: []
         };
 
-        // Identificación del Ejecutor para Auditoría
+        // Identificación del Ejecutor para Auditoría (V.1.4.3)
         let executorDetail = "Sistema (Auto)";
-        if (cronHeader) executorDetail = "Sistema (Vercel Cron)";
-        else if (req.headers["x-qstash-signature"]) executorDetail = "Sistema (QStash)";
-        else if (triggerSource === 'dashboard') executorDetail = "Administrador (Panel)";
-        else if (triggerSource === 'extension') executorDetail = "Administrador (Extensión)";
+        if (cronHeader) {
+            executorDetail = "Sistema (Vercel Cron)";
+        } else if (req.headers["x-qstash-signature"]) {
+            executorDetail = "Sistema (QStash)";
+        } else {
+            // Intentar extraer identidad real del token de autorización
+            const authHeader = req.headers["authorization"];
+            if (authHeader && authHeader.startsWith("Bearer ")) {
+                try {
+                    const idToken = authHeader.split("Bearer ")[1];
+                    const decodedToken = await admin.auth().verifyIdToken(idToken);
+                    executorDetail = decodedToken.email || decodedToken.uid || "Administrador (Sesión)";
+                } catch (e) {
+                    // Fallback a triggerSource si el token falla o es API Key
+                    if (triggerSource === 'dashboard' || triggerSource === 'sidebar_manual') executorDetail = "Administrador (Panel)";
+                    else if (triggerSource === 'extension') executorDetail = "Administrador (Extensión)";
+                    else if (triggerSource === 'pwa_admin') executorDetail = "Administrador (PWA)";
+                }
+            } else {
+                // Si no hay token, usamos el triggerSource detectado
+                if (triggerSource === 'dashboard' || triggerSource === 'sidebar_manual') executorDetail = "Administrador (Panel)";
+                else if (triggerSource === 'extension') executorDetail = "Administrador (Extensión)";
+                else if (triggerSource === 'pwa_admin') executorDetail = "Administrador (PWA)";
+            }
+        }
 
         // 1. PROCESAR CUMPLEAÑOS
         const usersSnap = await db.collection('users').where('birthDate', '!=', '').get();
@@ -369,11 +390,37 @@ export default async function handler(req, res) {
         }
 
         // 4. PROCESAR CANJES (Para sincronización de WhatsApp)
+        // Buscamos si ya existe una ejecución para HOY (según fecha efectiva)
+        const startOfToday = new Date(now);
+        startOfToday.setHours(0, 0, 0, 0);
+
+        const checkSnap = await db.collection('audit_logs')
+            .where('type', '==', 'daily_engine_execution')
+            .where('status', '==', 'success')
+            .where('timestamp', '>=', admin.firestore.Timestamp.fromDate(startOfToday))
+            .limit(1)
+            .get();
+
+        if (!checkSnap.empty && !skipDuplicityCheck) {
+            console.log(`[Engine] Bloqueado: Ya se ejecutó hoy (${todayStr})`);
+            return res.status(200).json({ ok: true, message: "Already executed today", skipped: true });
+        }
+
+        // --- 11. REGISTRO DE INICIO ---
+        const auditRef = await db.collection('audit_logs').add({
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            type: 'daily_engine_execution',
+            status: 'running',
+            summary: `Iniciando motor diario (${todayStr})`,
+            executor,
+            triggerSource
+        });
+
         const redemptionsList = [];
         try {
             const redsSnap = await db.collection('audit_logs')
                 .where('type', '==', 'prize_redemption')
-                .where('timestamp', '>=', admin.firestore.Timestamp.fromDate(new Date(new Date().setHours(0,0,0,0))))
+                .where('timestamp', '>=', admin.firestore.Timestamp.fromDate(startOfToday))
                 .get();
             
             redsSnap.forEach(doc => {
@@ -396,7 +443,7 @@ export default async function handler(req, res) {
         try {
             const pointsSnap = await db.collection('audit_logs')
                 .where('type', '==', 'points_assignment')
-                .where('timestamp', '>=', admin.firestore.Timestamp.fromDate(new Date(new Date().setHours(0,0,0,0))))
+                .where('timestamp', '>=', admin.firestore.Timestamp.fromDate(startOfToday))
                 .get();
 
             pointsSnap.forEach(doc => {

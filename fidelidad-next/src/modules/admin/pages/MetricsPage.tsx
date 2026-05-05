@@ -44,8 +44,8 @@ export const MetricsPage = () => {
     // --- ESTADOS ---
     const [timeRange, setTimeRange] = useState<'today' | '30_days' | '6_months' | 'year' | 'total' | 'custom'>('30_days');
     const [customDates, setCustomDates] = useState({
-        start: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0],
-        end: new Date().toISOString().split('T')[0]
+        start: new Date(TimeService.now().getTime() - (30 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0],
+        end: TimeService.now().toISOString().split('T')[0]
     });
     const [chartData, setChartData] = useState<any[]>([]);
     const [prevChartData, setPrevChartData] = useState<any[]>([]);
@@ -62,7 +62,7 @@ export const MetricsPage = () => {
     const [heatmapMetric, setHeatmapMetric] = useState<'count' | 'revenue'>('count');
     const [heatmapSummary, setHeatmapSummary] = useState({ topDay: 'N/A', topHour: 'N/A', peakMoment: 'N/A', totalHeatmapEvents: 0 });
     const [heatmapDateRange, setHeatmapDateRange] = useState<{ start: Date, end: Date }>(() => {
-        const now = new Date();
+        const now = TimeService.now();
         const day = now.getDay();
         const diff = now.getDate() - day + (day === 0 ? -6 : 1);
         const start = new Date(now.setDate(diff));
@@ -88,8 +88,8 @@ export const MetricsPage = () => {
     const [movementsData, setMovementsData] = useState<any[]>([]);
     const [forecastData, setForecastData] = useState<any>(null);
     const [forecastDates, setForecastDates] = useState({
-        start: new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0],
-        end: new Date(new Date().setDate(new Date().getDate() + 90)).toISOString().split('T')[0]
+        start: new Date(TimeService.now().getTime() + (24 * 60 * 60 * 1000)).toISOString().split('T')[0],
+        end: new Date(TimeService.now().getTime() + (90 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0]
     });
     const [fetchingForecast, setFetchingForecast] = useState(false);
     const [isUpdating, setIsUpdating] = useState(false);
@@ -225,8 +225,7 @@ export const MetricsPage = () => {
         setIsUpdating(true);
         if (!chartData.length) setLoading(true);
         try {
-            const appConfig = await ConfigService.get();
-            setConfig(appConfig);
+            const appConfig = config || await ConfigService.get();
             const now = TimeService.now();
             let startDate = new Date(now), endDate = new Date(now);
             if (timeRange === '30_days') startDate.setDate(now.getDate() - 30);
@@ -403,7 +402,15 @@ export const MetricsPage = () => {
     }, []);
 
     useEffect(() => { fetchHeatmapData(); }, [heatmapDateRange, heatmapMode, heatmapMetric]);
-    useEffect(() => { fetchData(); }, [timeRange, customDates, heatmapMetric, heatmapMode]);
+    useEffect(() => { fetchData(); }, [timeRange, customDates, heatmapMetric, heatmapMode, config?.dormantDays, config?.pointValue]);
+
+    // Listen for config changes (Real-time)
+    useEffect(() => {
+        const unsub = ConfigService.subscribe((newConfig) => {
+            setConfig(newConfig);
+        });
+        return () => unsub();
+    }, []);
 
     // Escuchar cambios en el simulador de tiempo
     useEffect(() => {
@@ -420,7 +427,7 @@ export const MetricsPage = () => {
         const csvContent = [headers, ...rows].map(e => e.join(";")).join("\n");
         const BOM = "\ufeff"; const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a"); const url = URL.createObjectURL(blob);
-        link.setAttribute("href", url); link.setAttribute("download", `metricas_${timeRange}_${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute("href", url); link.setAttribute("download", `metricas_${timeRange}_${TimeService.now().toISOString().split('T')[0]}.csv`);
         link.style.visibility = 'hidden'; document.body.appendChild(link); link.click(); document.body.removeChild(link);
         toast.success("CSV exportado correctamente");
     }

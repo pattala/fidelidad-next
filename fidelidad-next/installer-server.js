@@ -60,6 +60,10 @@ app.post('/api/install', (req, res) => {
             fileContent += `GOOGLE_CREDENTIALS_JSON={\n  "type": "service_account"\n}\n\n`;
         }
         
+        fileContent += `# --- Automatización (Upstash) ---\n`;
+        fileContent += `QSTASH_CURRENT_SIGNING_KEY=${vars.qstashCurrent || ''}\n`;
+        fileContent += `QSTASH_NEXT_SIGNING_KEY=${vars.qstashNext || ''}\n\n`;
+
         fileContent += `# --- URL Vercel ---\n`;
         fileContent += `PWA_URL=${vars.pwaUrl || ''}\n`;
 

@@ -5,6 +5,7 @@
 import admin from "firebase-admin";
 import { sendNotificationInternal } from "./notifications.js";
 import { updateNextExpirationDate } from "../utils/_expiration-utils.js";
+import { getEffectiveDate } from "../utils/timeUtils.js";
 
 // ---------- Firebase Admin ----------
 function initFirebaseAdmin() {
@@ -34,7 +35,7 @@ export default async function handler(req, res) {
 
     try {
         const db = getDb();
-        const { uid, prizeId } = req.body || {};
+        const { uid, prizeId, simulatedDate } = req.body || {};
 
         // 1. Autenticación (Dual Mode)
         let isAdmin = false;
@@ -80,13 +81,15 @@ export default async function handler(req, res) {
         if (currentPoints < pointsNeeded) return res.status(400).json({ ok: false, error: "Insufficient points" });
         if ((Number(prizeData.stock) || 0) <= 0) return res.status(400).json({ ok: false, error: "No stock available" });
 
+        // --- RELOJ SIMULADO ---
+        const now = await getEffectiveDate(db, simulatedDate);
+
         // Expiration check
         if (prizeData.expirationDate) {
-            const today = new Date();
             const expDate = new Date(prizeData.expirationDate);
             // Adjust expDate to end of day to be generous
             expDate.setHours(23, 59, 59, 999);
-            if (today > expDate) {
+            if (now > expDate) {
                 return res.status(400).json({ ok: false, error: "Prize has expired" });
             }
         }
@@ -98,7 +101,6 @@ export default async function handler(req, res) {
 
         // 3. FIFO Logic & Transaction
         let result = { ok: false, auditDetails: [] };
-        const now = new Date();
 
         console.time("redemption-transaction");
         await db.runTransaction(async (tx) => {

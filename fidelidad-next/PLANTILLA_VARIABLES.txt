@@ -42,5 +42,9 @@ GOOGLE_CREDENTIALS_JSON={
   "universe_domain": "googleapis.com"
 }                       
 
+# --- Automatización (Upstash) ---
+QSTASH_CURRENT_SIGNING_KEY=tu_signing_key_aqui
+QSTASH_NEXT_SIGNING_KEY=tu_next_signing_key_aqui
+
 # --- URL Vercel ---
 PWA_URL=https://tu-cliente.vercel.app             

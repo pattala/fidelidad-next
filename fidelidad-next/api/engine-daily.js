@@ -172,7 +172,11 @@ export default async function handler(req, res) {
                     if (autoMessageEnabled) {
                         const templateFull = config?.messaging?.templates?.birthday || "¡Feliz cumpleaños {nombre}! 🎂 Que tengas un gran día. Te regalamos {puntos} puntos.";
                         const templateSimple = config?.messaging?.templates?.birthdaySimple || "¡Feliz cumpleaños {nombre}! 🎂 Que tengas un gran día.";
-                        const template = (pointsAdded > 0) ? templateFull : templateSimple;
+                        
+                        // Solo usar template con puntos si el bono está activo Y hay puntos > 0
+                        const usePointsTemplate = (enableBirthdayBonus && birthdayPoints > 0);
+                        const template = usePointsTemplate ? templateFull : templateSimple;
+                        
                         const msg = template.replace(/{nombre}/g, (userData.nombre || userData.name || '').split(' ')[0]).replace(/{puntos}/g, birthdayPoints.toString());
                         const title = "¡Feliz Cumpleaños! 🎂";
 
@@ -183,14 +187,14 @@ export default async function handler(req, res) {
                             await app.messaging().sendEachForMulticast({
                                 tokens: userData.fcmTokens,
                                 notification: { title, body: msg },
-                                data: { title, body: msg, url: "/profile", icon: iconUrl },
+                                data: { title, body: msg, url: `${PWA_URL}/profile`, icon: iconUrl },
                                 android: { 
                                     priority: "high",
                                     notification: { sound: "default", channelId: "fidelidad-notif-channel" }
                                 },
                                 webpush: {
                                     headers: { Urgent: "high" },
-                                    fcmOptions: { link: "/profile" }
+                                    fcmOptions: { link: `${PWA_URL}/profile` }
                                 }
                             }).catch(() => {});
                         }

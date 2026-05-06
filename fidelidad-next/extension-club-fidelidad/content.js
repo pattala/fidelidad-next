@@ -166,10 +166,12 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
         let msg = "";
         
         if (type === 'birthdays') {
-            const points = cfg?.birthdayPoints || 100;
-            if (cfg?.enableBirthdayBonus !== false) {
-                msg = (templates.birthday || `¡Feliz cumple {nombre}{socioInfo}! \u{1F382}\u{1F38A} Te regalamos {puntos} puntos. \u2728`).replace(/{puntos}/g, points.toString());
-            } else { msg = templates.birthdaySimple || `¡Feliz cumple {nombre}{socioInfo}! \u{1F382}\u{1F38A} \u2728`; }
+            const bPoints = Number(cfg?.birthdayPoints) || 0;
+            if (cfg?.enableBirthdayBonus !== false && bPoints > 0) {
+                msg = (templates.birthday || `¡Feliz cumple {nombre}{socioInfo}! \\u{1F382}\\u{1F38A} Te regalamos {puntos} puntos. \\u2728`).replace(/{puntos}/g, bPoints.toString());
+            } else { 
+                msg = templates.birthdaySimple || `¡Feliz cumple {nombre}{socioInfo}! \\u{1F382}\\u{1F38A} \\u2728`; 
+            }
         } else if (type === 'expirations') {
             msg = (templates.expirationWarning || `¡Hola {nombre}{socioInfo}! \u{1F4E3} {puntos} pts por vencer.`).replace(/{puntos}/g, extra);
         } else if (type === 'petAlerts') {

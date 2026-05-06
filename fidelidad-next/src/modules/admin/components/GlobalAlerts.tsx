@@ -366,7 +366,7 @@ export const GlobalAlerts = () => {
                         {totalPending}
                     </div>
 
-                    {/* Desglose V.1.4.32 */}
+                    {/* Desglose V.1.4.33 */}
                     {totalPending > 0 && (
                         <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-black/80 text-white text-[8px] font-black px-2 py-0.5 rounded-lg border border-white/20 whitespace-nowrap tracking-wider shadow-xl flex gap-1.5 backdrop-blur-sm">
                             {pendingB.length > 0 && <span>C:{pendingB.length}</span>}

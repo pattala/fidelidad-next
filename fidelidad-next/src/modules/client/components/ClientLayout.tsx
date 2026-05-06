@@ -9,6 +9,7 @@ import { usePWAInstall } from '../../../hooks/usePWAInstall'; // Added PWA Insta
 import { signOut } from 'firebase/auth'; // Added for Logout
 import { useClientAuth } from '../contexts/ClientAuthContext';
 import { ConfigService } from '../../../services/configService';
+import { VersionUpdater } from '../../../components/VersionUpdater';
 
 export const ClientLayout = () => {
     const { user, userData, loading: authLoading, isAdmin } = useClientAuth();
@@ -138,6 +139,7 @@ export const ClientLayout = () => {
                 className="flex flex-col h-[100dvh] w-full max-w-md mx-auto sm:my-6 sm:h-[calc(100dvh-3rem)] sm:rounded-[3rem] sm:shadow-[0_0_80px_rgba(0,0,0,0.5)] relative font-sans transition-all duration-500 overflow-hidden border-x border-gray-100/5 sm:border-t sm:border-white/10 z-10"
                 style={{ backgroundColor: config.backgroundColor || '#f5f3f7' }}
             >
+                <VersionUpdater />
 
                 {/* 1) Header / Top Bar (Fixed) */}
                 {/* 1) Header / Top Bar (Fixed) */}

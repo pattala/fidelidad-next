@@ -1725,6 +1725,27 @@ export const ClientsPage = () => {
                                                                     min="1"
                                                                 />
                                                             </div>
+
+                                                            {/* Información de Ciclo Real */}
+                                                            <div className="col-span-2 bg-orange-100/50 border border-orange-200 rounded-xl p-3 flex flex-col gap-1">
+                                                                <div className="flex justify-between items-center">
+                                                                    <span className="text-[9px] font-black text-orange-800 uppercase">Última Compra:</span>
+                                                                    <span className="text-xs font-bold text-orange-900">{pet.lastPurchaseDate ? (typeof pet.lastPurchaseDate === 'string' ? pet.lastPurchaseDate : (pet.lastPurchaseDate.toDate ? pet.lastPurchaseDate.toDate().toLocaleDateString() : 'N/A')) : 'Sin registros'}</span>
+                                                                </div>
+                                                                {pet.lastPurchaseDate && (
+                                                                    <div className="flex justify-between items-center">
+                                                                        <span className="text-[9px] font-black text-orange-800 uppercase">Próximo Aviso Estimado:</span>
+                                                                        <span className="text-xs font-bold text-orange-600 underline">
+                                                                            {(() => {
+                                                                                const last = pet.lastPurchaseDate instanceof Date ? pet.lastPurchaseDate : (pet.lastPurchaseDate.toDate ? pet.lastPurchaseDate.toDate() : new Date(pet.lastPurchaseDate));
+                                                                                const next = new Date(last);
+                                                                                next.setDate(next.getDate() + (pet.frequencyDays || 30));
+                                                                                return next.toLocaleDateString();
+                                                                            })()}
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
                                                             <div className="col-span-2 mt-2">
                                                                 <label className="flex items-center gap-2 cursor-pointer group">
                                                                     <input 

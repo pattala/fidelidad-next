@@ -48,20 +48,29 @@ export const useFcmToken = () => {
             }
 
             if (permission === 'granted') {
-                console.log('[FCM] Permission is granted. Fetching token...');
+                console.log('[FCM] Permission is granted. Checking Service Worker status...');
                 
-                // Wait for service worker to be ready with a timeout
+                const registration = await navigator.serviceWorker.getRegistration();
+                console.log('[FCM] Current SW Registration:', registration?.active ? 'ACTIVE' : 'NOT ACTIVE/PENDING');
+
+                // Wait for service worker to be ready with a strict timeout
+                console.log('[FCM] Waiting for navigator.serviceWorker.ready...');
                 const swReady = await Promise.race([
                     navigator.serviceWorker.ready,
-                    new Promise((_, reject) => setTimeout(() => reject(new Error('SW Ready Timeout')), 10000))
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT_SW_READY')), 8000))
                 ]) as ServiceWorkerRegistration;
 
-                const currentToken = await getToken(messaging, {
-                    vapidKey: VAPID_KEY,
-                    serviceWorkerRegistration: swReady
-                });
+                console.log('[FCM] SW Ready. Requesting token from Firebase Messaging...');
+                const currentToken = await Promise.race([
+                    getToken(messaging, {
+                        vapidKey: VAPID_KEY,
+                        serviceWorkerRegistration: swReady
+                    }),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT_GET_TOKEN')), 10000))
+                ]) as string;
 
                 if (currentToken) {
+                    console.log('[FCM] Token retrieved successfully!');
                     setToken(currentToken);
                     localStorage.setItem('fcm_vapid_key_vfinal', VAPID_KEY);
 
@@ -72,10 +81,9 @@ export const useFcmToken = () => {
                     if (userSnap.exists()) {
                         const userData = userSnap.data();
                         const storedToken = userData[`fcmToken_${deviceKey}`];
-                        const currentStatus = userData.permissions?.notifications?.[`${deviceKey}_status`];
                         
-                         if (storedToken !== currentToken || currentStatus !== 'granted') {
-                             console.log(`[FCM] Token changed or status desync on ${deviceKey}. Updating...`);
+                         if (storedToken !== currentToken) {
+                             console.log(`[FCM] Syncing new token to Firestore for ${deviceKey}...`);
                              await updateDoc(userRef, {
                                  fcmToken: currentToken,
                                  fcmTokens: arrayUnion(currentToken),
@@ -90,11 +98,15 @@ export const useFcmToken = () => {
                                      timestamp: new Date().toISOString()
                                  }
                              });
+                             console.log('[FCM] Firestore sync complete.');
+                         } else {
+                             console.log('[FCM] Token already in sync with Firestore.');
                          }
                     }
                     return currentToken;
                 }
-            } else {
+            }
+ else {
                 console.log(`[FCM] Permission is ${permission}. Skipping auto-sync.`);
             }
             return null;

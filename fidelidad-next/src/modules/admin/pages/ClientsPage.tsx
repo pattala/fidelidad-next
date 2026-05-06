@@ -1208,13 +1208,6 @@ export const ClientsPage = () => {
                                                     ) : realPoints > 0 ? (
                                                         <div className="text-[9px] text-gray-300 font-bold mt-1">Sin vencimientos</div>
                                                     ) : null}
-
-                                                    {/* SALDO A FAVOR (OPCIONAL) */}
-                                                    {(client.accumulated_balance || 0) > 0 && (
-                                                        <div className="text-[10px] font-bold text-gray-400 mt-0.5 mb-1 opacity-80" title="Monto remanente para el próximo punto">
-                                                            +${(client.accumulated_balance || 0).toLocaleString('es-AR')} a favor
-                                                        </div>
-                                                    )}
                                                 </>
                                             );
                                         })()}

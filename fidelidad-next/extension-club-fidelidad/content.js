@@ -274,8 +274,22 @@ function showGlobalAlert(fullData, config) {
             attachActions(ui, fullData, render);
         } else {
             ui.className = 'cf-v35-bubble';
-            const countHtml = `<div style="position:absolute; top:-8px; right:-8px; background:#ef4444; color:white; font-size:10px; font-weight:900; padding:4px 8px; border-radius:20px; border:2px solid white; box-shadow:0 4px 12px rgba(0,0,0,0.2); pointer-events:none;">${totalPending} / ${totalProcessed}</div>`;
-            ui.innerHTML = `<span style="font-size:28px;">\u{1F4E3}</span>${countHtml}`;
+            
+            // Cálculos para el desglose (V.1.4.32)
+            const parts = [];
+            if (pendingB.length > 0) parts.push(`C:${pendingB.length}`);
+            if (pendingE.length > 0) parts.push(`V:${pendingE.length}`);
+            if (pendingP.length > 0) parts.push(`A:${pendingP.length}`);
+            if (pendingR.length > 0) parts.push(`R:${pendingR.length}`);
+            if (pendingA.length > 0) parts.push(`P:${pendingA.length}`);
+            
+            const breakdownHtml = parts.length > 0 
+                ? `<div style="position:absolute; bottom:-12px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.8); color:white; font-size:8px; font-weight:900; padding:2px 6px; border-radius:10px; white-space:nowrap; border:1px solid rgba(255,255,255,0.2); letter-spacing:0.5px;">${parts.join(' ')}</div>` 
+                : "";
+
+            const countHtml = `<div style="position:absolute; top:-8px; right:-8px; background:#ef4444; color:white; font-size:10px; font-weight:900; padding:4px 8px; border-radius:20px; border:2px solid white; box-shadow:0 4px 12px rgba(0,0,0,0.2); pointer-events:none;">${totalPending}</div>`;
+            
+            ui.innerHTML = `<span style="font-size:28px;">\u{1F4E3}</span>${countHtml}${breakdownHtml}`;
             ui.onmousedown = (e) => {
                 isDragging = true; dragStart.x = e.clientX - pos.x; dragStart.y = e.clientY - pos.y;
                 document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', mouseUp);

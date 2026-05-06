@@ -363,8 +363,20 @@ export const GlobalAlerts = () => {
                     onClick={() => setIsExpanded(true)}
                     className="w-20 h-20 bg-gradient-to-tr from-violet-600 to-indigo-700 rounded-full shadow-[0_20px_60px_rgba(99,102,241,0.6)] flex items-center justify-center text-white border-4 border-white/20 hover:scale-110 active:scale-95 transition-all pointer-events-auto relative cursor-grab active:cursor-grabbing">
                     <div className="absolute -top-2 -right-2 bg-red-500 text-white text-[11px] font-black px-3 py-1 rounded-full border-2 border-white shadow-lg">
-                        {totalPending} / {totalProcessed}
+                        {totalPending}
                     </div>
+
+                    {/* Desglose V.1.4.32 */}
+                    {totalPending > 0 && (
+                        <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-black/80 text-white text-[8px] font-black px-2 py-0.5 rounded-lg border border-white/20 whitespace-nowrap tracking-wider shadow-xl flex gap-1.5 backdrop-blur-sm">
+                            {pendingB.length > 0 && <span>C:{pendingB.length}</span>}
+                            {pendingE.length > 0 && <span>V:{pendingE.length}</span>}
+                            {pendingP.length > 0 && <span>A:{pendingP.length}</span>}
+                            {pendingR.length > 0 && <span>R:{pendingR.length}</span>}
+                            {pendingA.length > 0 && <span>P:{pendingA.length}</span>}
+                        </div>
+                    )}
+
                     <Bell size={32} />
                 </button>
             )}

@@ -181,11 +181,16 @@ export default async function handler(req, res) {
 
                         // 1. PWA PUSH
                         const isPushEnabled = config.messaging?.pushEnabled !== false || config.pushEnabled === true;
-                        if (userData.fcmTokens?.length && isPushEnabled) {
+                        // Limpieza de tokens: nos aseguramos de que sean strings y no objetos
+                        const validTokens = (userData.fcmTokens || [])
+                            .map(t => typeof t === 'string' ? t : (t?.token || null))
+                            .filter(t => typeof t === 'string' && t.length > 10);
+
+                        if (validTokens.length && isPushEnabled) {
                             const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
                             const iconUrl = config.logoUrl ? getAbsoluteUrl(config.logoUrl, PWA_URL) : "";
                             await app.messaging().sendEachForMulticast({
-                                tokens: userData.fcmTokens,
+                                tokens: validTokens,
                                 notification: { title, body: msg },
                                 data: { title, body: msg, url: `${PWA_URL}/profile`, icon: iconUrl },
                                 android: { 
@@ -400,12 +405,16 @@ export default async function handler(req, res) {
                                 const msg = template.replace(/{nombre}/g, userName).replace(/{mascota}/g, pet.name).replace(/{marca}/g, pet.foodBrand || pet.brand || 'alimento');
 
                                 const isPushEnabled = config.messaging?.pushEnabled !== false || config.pushEnabled === true;
-                                if (userData.fcmTokens?.length && isPushEnabled) {
+                                const validTokens = (userData.fcmTokens || [])
+                                    .map(t => typeof t === 'string' ? t : (t?.token || null))
+                                    .filter(t => typeof t === 'string' && t.length > 10);
+
+                                if (validTokens.length && isPushEnabled) {
                                     const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
                                     const iconUrl = config.logoUrl ? getAbsoluteUrl(config.logoUrl, PWA_URL) : "";
                                     const title = "🐾 Aviso de Alimento";
                                     await app.messaging().sendEachForMulticast({
-                                        tokens: userData.fcmTokens,
+                                        tokens: validTokens,
                                         notification: { title, body: msg },
                                         data: { title, body: msg, url: `${PWA_URL}/profile`, icon: iconUrl },
                                         android: { 

@@ -383,7 +383,7 @@ export const AdminLayout = () => {
                     </div>
 
                     <div className="flex items-center gap-4 text-sm text-gray-500 hidden md:flex">
-                        <span className="bg-gray-100 text-gray-400 px-2 py-0.5 rounded text-[10px] font-black tracking-widest border border-gray-200">V.1.4.38</span>
+                        <span className="bg-gray-100 text-gray-400 px-2 py-0.5 rounded text-[10px] font-black tracking-widest border border-gray-200">V.1.4.39</span>
                         {auth.currentUser?.email}
                     </div>
                 </header>

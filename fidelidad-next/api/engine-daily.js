@@ -174,13 +174,14 @@ export default async function handler(req, res) {
                         const templateSimple = config?.messaging?.templates?.birthdaySimple || "¡Feliz cumpleaños {nombre}! 🎂 Que tengas un gran día.";
                         
                         // Lógica estricta: si está habilitado el bono, usamos template full. Si no, simple.
-                        const template = enableBirthdayBonus ? templateFull : templateSimple;
+                        const template = autoBonusEnabled ? templateFull : templateSimple;
                         
                         const msg = template.replace(/{nombre}/g, (userData.nombre || userData.name || '').split(' ')[0]).replace(/{puntos}/g, birthdayPoints.toString());
                         const title = "¡Feliz Cumpleaños! 🎂";
 
                         // 1. PWA PUSH
-                        if (userData.fcmTokens?.length && config.messaging?.pushEnabled !== false) {
+                        const isPushEnabled = config.messaging?.pushEnabled !== false || config.pushEnabled === true;
+                        if (userData.fcmTokens?.length && isPushEnabled) {
                             const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
                             const iconUrl = config.logoUrl ? getAbsoluteUrl(config.logoUrl, PWA_URL) : "";
                             await app.messaging().sendEachForMulticast({
@@ -199,7 +200,8 @@ export default async function handler(req, res) {
                         }
 
                         // 2. EMAIL
-                        if (userData.email && process.env.SMTP_USER && config.messaging?.emailEnabled !== false) {
+                        const isEmailEnabled = config.messaging?.emailEnabled !== false || config.emailEnabled === true;
+                        if (userData.email && process.env.SMTP_USER && isEmailEnabled) {
                             const innerHtml = `<div style="color: #333;"><h2 style="color: #db2777; margin-top: 0;">${title}</h2><p style="font-size: 16px; line-height: 1.6;">${msg}</p></div>`;
                             await transporter.sendMail({
                                 from: `"${config.siteName || 'Club Fidelidad'}" <${process.env.SMTP_USER}>`,
@@ -309,7 +311,8 @@ export default async function handler(req, res) {
                         .replace(/{fecha}/g, userData.nextExpirationDate);
 
                     // 1. PWA PUSH
-                    if (userData.fcmTokens?.length && config.messaging?.pushEnabled !== false) {
+                    const isPushEnabled = config.messaging?.pushEnabled !== false || config.pushEnabled === true;
+                    if (userData.fcmTokens?.length && isPushEnabled) {
                         const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
                         const iconUrl = config.logoUrl ? getAbsoluteUrl(config.logoUrl, PWA_URL) : "";
                         await app.messaging().sendEachForMulticast({
@@ -395,7 +398,8 @@ export default async function handler(req, res) {
                                 const template = config.messaging?.templates?.petFoodAlert || "¡Hola {nombre}! 🐾 Notamos que a {mascota} se le debe estar terminando su {marca}.";
                                 const msg = template.replace(/{nombre}/g, userName).replace(/{mascota}/g, pet.name).replace(/{marca}/g, pet.foodBrand || pet.brand || 'alimento');
 
-                                if (userData.fcmTokens?.length && config.messaging?.pushEnabled !== false) {
+                                const isPushEnabled = config.messaging?.pushEnabled !== false || config.pushEnabled === true;
+                                if (userData.fcmTokens?.length && isPushEnabled) {
                                     const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
                                     const iconUrl = config.logoUrl ? getAbsoluteUrl(config.logoUrl, PWA_URL) : "";
                                     const title = "🐾 Aviso de Alimento";
@@ -421,7 +425,8 @@ export default async function handler(req, res) {
                                     });
                                 }
 
-                                if (userData.email && process.env.SMTP_USER && config.messaging?.emailEnabled !== false) {
+                                const isEmailEnabled = config.messaging?.emailEnabled !== false || config.emailEnabled === true;
+                                if (userData.email && process.env.SMTP_USER && isEmailEnabled) {
                                     const title = "🐾 Aviso de Alimento";
                                     const innerHtml = `<div style="color: #333;"><h2 style="color: #6366f1; margin-top: 0;">${title}</h2><p style="font-size: 16px; line-height: 1.6;">${msg}</p></div>`;
                                     await transporter.sendMail({

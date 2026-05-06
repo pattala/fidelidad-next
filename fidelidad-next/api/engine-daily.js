@@ -174,23 +174,17 @@ export default async function handler(req, res) {
                         const templateSimple = config?.messaging?.templates?.birthdaySimple || "¡Feliz cumpleaños {nombre}! 🎂 Que tengas un gran día.";
                         
                         // Lógica estricta: si está habilitado el bono, usamos template full. Si no, simple.
-                        const template = autoBonusEnabled ? templateFull : templateSimple;
+                        const template = enableBirthdayBonus ? templateFull : templateSimple;
                         
                         const msg = template.replace(/{nombre}/g, (userData.nombre || userData.name || '').split(' ')[0]).replace(/{puntos}/g, birthdayPoints.toString());
                         const title = "¡Feliz Cumpleaños! 🎂";
 
                         // 1. PWA PUSH
-                        const isPushEnabled = config.messaging?.pushEnabled !== false || config.pushEnabled === true;
-                        // Limpieza de tokens: nos aseguramos de que sean strings y no objetos
-                        const validTokens = (userData.fcmTokens || [])
-                            .map(t => typeof t === 'string' ? t : (t?.token || null))
-                            .filter(t => typeof t === 'string' && t.length > 10);
-
-                        if (validTokens.length && isPushEnabled) {
+                        if (userData.fcmTokens?.length && config.messaging?.pushEnabled !== false) {
                             const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
                             const iconUrl = config.logoUrl ? getAbsoluteUrl(config.logoUrl, PWA_URL) : "";
                             await app.messaging().sendEachForMulticast({
-                                tokens: validTokens,
+                                tokens: userData.fcmTokens,
                                 notification: { title, body: msg },
                                 data: { title, body: msg, url: `${PWA_URL}/profile`, icon: iconUrl },
                                 android: { 
@@ -205,8 +199,7 @@ export default async function handler(req, res) {
                         }
 
                         // 2. EMAIL
-                        const isEmailEnabled = config.messaging?.emailEnabled !== false || config.emailEnabled === true;
-                        if (userData.email && process.env.SMTP_USER && isEmailEnabled) {
+                        if (userData.email && process.env.SMTP_USER && config.messaging?.emailEnabled !== false) {
                             const innerHtml = `<div style="color: #333;"><h2 style="color: #db2777; margin-top: 0;">${title}</h2><p style="font-size: 16px; line-height: 1.6;">${msg}</p></div>`;
                             await transporter.sendMail({
                                 from: `"${config.siteName || 'Club Fidelidad'}" <${process.env.SMTP_USER}>`,
@@ -316,8 +309,7 @@ export default async function handler(req, res) {
                         .replace(/{fecha}/g, userData.nextExpirationDate);
 
                     // 1. PWA PUSH
-                    const isPushEnabled = config.messaging?.pushEnabled !== false || config.pushEnabled === true;
-                    if (userData.fcmTokens?.length && isPushEnabled) {
+                    if (userData.fcmTokens?.length && config.messaging?.pushEnabled !== false) {
                         const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
                         const iconUrl = config.logoUrl ? getAbsoluteUrl(config.logoUrl, PWA_URL) : "";
                         await app.messaging().sendEachForMulticast({
@@ -368,8 +360,7 @@ export default async function handler(req, res) {
 
         // 3. PROCESAR ALERTAS DE MASCOTAS
         if (config.enablePetModule) {
-            // Traemos todos los usuarios para filtrar mascotas localmente (más robusto)
-            const petUsersSnap = await db.collection('users').get();
+            const petUsersSnap = await db.collection('users').where('pets', '!=', null).get();
             for (const userDoc of petUsersSnap.docs) {
                 try {
                     const userData = userDoc.data();
@@ -379,12 +370,11 @@ export default async function handler(req, res) {
 
                     for (let i = 0; i < nextPets.length; i++) {
                         const pet = nextPets[i];
-                        const lastPurchase = pet.lastPurchaseDate?.toDate ? pet.lastPurchaseDate.toDate() : (pet.lastPurchaseDate ? new Date(pet.lastPurchaseDate.toString().includes('T') ? pet.lastPurchaseDate : pet.lastPurchaseDate + 'T12:00:00') : null);
+                        const lastPurchase = pet.lastPurchaseDate?.toDate ? pet.lastPurchaseDate.toDate() : (pet.lastPurchaseDate ? new Date(pet.lastPurchaseDate + 'T12:00:00') : null);
                         if (!lastPurchase) continue;
 
                         const cycleDays = Number(pet.foodCycleDays || pet.frequencyDays || 30);
-                        // Priorizamos petFoodAlertLeadDays que es el campo estándar del panel
-                        const warningDays = Number(config?.petFoodAlertLeadDays || config?.messaging?.petFoodWarningDays || 3);
+                        const warningDays = Number(config?.messaging?.petFoodWarningDays || config?.petFoodAlertLeadDays || 3);
                         
                         // Fecha en la que se le acaba el alimento
                         const exhaustionDate = new Date(lastPurchase);
@@ -405,17 +395,12 @@ export default async function handler(req, res) {
                                 const template = config.messaging?.templates?.petFoodAlert || "¡Hola {nombre}! 🐾 Notamos que a {mascota} se le debe estar terminando su {marca}.";
                                 const msg = template.replace(/{nombre}/g, userName).replace(/{mascota}/g, pet.name).replace(/{marca}/g, pet.foodBrand || pet.brand || 'alimento');
 
-                                const isPushEnabled = config.messaging?.pushEnabled !== false || config.pushEnabled === true;
-                                const validTokens = (userData.fcmTokens || [])
-                                    .map(t => typeof t === 'string' ? t : (t?.token || null))
-                                    .filter(t => typeof t === 'string' && t.length > 10);
-
-                                if (validTokens.length && isPushEnabled) {
+                                if (userData.fcmTokens?.length && config.messaging?.pushEnabled !== false) {
                                     const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
                                     const iconUrl = config.logoUrl ? getAbsoluteUrl(config.logoUrl, PWA_URL) : "";
                                     const title = "🐾 Aviso de Alimento";
                                     await app.messaging().sendEachForMulticast({
-                                        tokens: validTokens,
+                                        tokens: userData.fcmTokens,
                                         notification: { title, body: msg },
                                         data: { title, body: msg, url: `${PWA_URL}/profile`, icon: iconUrl },
                                         android: { 
@@ -436,8 +421,7 @@ export default async function handler(req, res) {
                                     });
                                 }
 
-                                const isEmailEnabled = config.messaging?.emailEnabled !== false || config.emailEnabled === true;
-                                if (userData.email && process.env.SMTP_USER && isEmailEnabled) {
+                                if (userData.email && process.env.SMTP_USER && config.messaging?.emailEnabled !== false) {
                                     const title = "🐾 Aviso de Alimento";
                                     const innerHtml = `<div style="color: #333;"><h2 style="color: #6366f1; margin-top: 0;">${title}</h2><p style="font-size: 16px; line-height: 1.6;">${msg}</p></div>`;
                                     await transporter.sendMail({

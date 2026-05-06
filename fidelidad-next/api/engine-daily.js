@@ -386,11 +386,11 @@ export default async function handler(req, res) {
                         // Priorizamos petFoodAlertLeadDays que es el campo estándar del panel
                         const warningDays = Number(config?.petFoodAlertLeadDays || config?.messaging?.petFoodWarningDays || 3);
                         
-                        // Fecha en la que se le acaba el alimento (matemática exacta)
+                        // Fecha en la que se le acaba el alimento
                         const exhaustionDate = new Date(lastPurchase);
-                        exhaustionDate.setDate(lastPurchase.getDate() + (cycleDays - 1));
+                        exhaustionDate.setDate(lastPurchase.getDate() + cycleDays);
                         
-                        // Fecha en la que hay que avisar (exactamente N días antes del fin)
+                        // Fecha en la que hay que avisar
                         const alertDate = new Date(exhaustionDate);
                         alertDate.setDate(exhaustionDate.getDate() - warningDays);
 

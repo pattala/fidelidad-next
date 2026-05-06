@@ -20,7 +20,7 @@ import { ARGENTINA_LOCATIONS } from '../../../data/locations';
 import { useAdminAuth } from '../contexts/AdminAuthContext';
 import { PhoneUtils } from '../../../utils/phoneUtils';
 
-const INITIAL_CLIENT_STATE = {
+const INITIAL_CLIENT_STATE_V1_4_33 = {
     name: '',
     email: '',
     dni: '',
@@ -108,7 +108,7 @@ export const ClientsPage = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [formStep, setFormStep] = useState(1); // 1: Personal, 2: Domicilio
-    const [formData, setFormData] = useState(INITIAL_CLIENT_STATE);
+    const [formData, setFormData] = useState(INITIAL_CLIENT_STATE_V1_4_33);
 
     // Estado Modal Asignar Puntos
     const [pointsModalOpen, setPointsModalOpen] = useState(false);
@@ -500,17 +500,27 @@ export const ClientsPage = () => {
                         const cleanPhone = PhoneUtils.formatForWhatsApp(formData.phone);
                         if (cleanPhone) {
                             const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(welcomeMsg.trim())}`;
-                            // Usar un pequeño delay para asegurar que el navegador permita el popup
-                            setTimeout(() => { 
-                                const link = document.createElement('a');
-                                link.href = waUrl;
-                                link.target = '_blank';
-                                link.rel = 'noopener noreferrer';
-                                document.body.appendChild(link);
-                                link.click();
-                                document.body.removeChild(link);
-                            }, 800);
+                            // En lugar de click automático (que el navegador bloquea), avisamos al usuario
+                            toast.success((t) => (
+                                <div className="flex flex-col gap-2">
+                                    <span className="font-bold text-sm text-green-800">✅ ¡Cliente registrado!</span>
+                                    <p className="text-[10px]">Los puntos se cargaron con éxito.</p>
+                                    <button 
+                                        onClick={() => {
+                                            window.open(waUrl, '_blank');
+                                            toast.dismiss(t.id);
+                                        }}
+                                        className="bg-green-600 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 hover:bg-green-700 transition-all"
+                                    >
+                                        <MessageCircle size={14} /> Abrir WhatsApp ahora
+                                    </button>
+                                </div>
+                            ), { duration: 10000, position: 'top-center' });
+                        } else {
+                            toast.success("Cliente registrado con éxito");
                         }
+                    } else {
+                        toast.success("Cliente registrado con éxito");
                     }
 
                     if (formData.email && sendEmailNotification) {
@@ -698,7 +708,7 @@ export const ClientsPage = () => {
         setIsModalOpen(false);
         setEditingId(null);
         setFormStep(1);
-        setFormData(INITIAL_CLIENT_STATE);
+        setFormData(INITIAL_CLIENT_STATE_V1_4_33);
     };
 
     const openPointsModal = async (client: Client) => {

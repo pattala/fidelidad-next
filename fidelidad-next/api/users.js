@@ -102,6 +102,7 @@ async function handleCreate(req, res, db) {
         const now = await getEffectiveDate(db, req.query?.simulatedDate || req.body?.simulatedDate);
         if (fechaInscripcion) fsPayload.fechaInscripcion = fechaInscripcion;
         if (domicilio) fsPayload.domicilio = { ...domicilio, updatedAt: now };
+        if (req.body.pets) fsPayload.pets = req.body.pets;
 
         if (!fsDocSnap.empty) {
             fsDocRef = fsDocSnap.docs[0].ref;

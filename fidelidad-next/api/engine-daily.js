@@ -363,7 +363,8 @@ export default async function handler(req, res) {
 
         // 3. PROCESAR ALERTAS DE MASCOTAS
         if (config.enablePetModule) {
-            const petUsersSnap = await db.collection('users').where('pets', '!=', null).get();
+            // Traemos todos los usuarios para filtrar mascotas localmente (más robusto)
+            const petUsersSnap = await db.collection('users').get();
             for (const userDoc of petUsersSnap.docs) {
                 try {
                     const userData = userDoc.data();
@@ -373,7 +374,7 @@ export default async function handler(req, res) {
 
                     for (let i = 0; i < nextPets.length; i++) {
                         const pet = nextPets[i];
-                        const lastPurchase = pet.lastPurchaseDate?.toDate ? pet.lastPurchaseDate.toDate() : (pet.lastPurchaseDate ? new Date(pet.lastPurchaseDate + 'T12:00:00') : null);
+                        const lastPurchase = pet.lastPurchaseDate?.toDate ? pet.lastPurchaseDate.toDate() : (pet.lastPurchaseDate ? new Date(pet.lastPurchaseDate.toString().includes('T') ? pet.lastPurchaseDate : pet.lastPurchaseDate + 'T12:00:00') : null);
                         if (!lastPurchase) continue;
 
                         const cycleDays = Number(pet.foodCycleDays || pet.frequencyDays || 30);

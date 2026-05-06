@@ -370,20 +370,26 @@ export default async function handler(req, res) {
 
                     for (let i = 0; i < nextPets.length; i++) {
                         const pet = nextPets[i];
-                        if (!pet.receiveAlerts || !pet.lastPurchaseDate || !pet.frequencyDays) continue;
+                        const lastPurchase = pet.lastPurchaseDate?.toDate ? pet.lastPurchaseDate.toDate() : (pet.lastPurchaseDate ? new Date(pet.lastPurchaseDate + 'T12:00:00') : null);
+                        if (!lastPurchase) continue;
 
-                        const lastPurchase = pet.lastPurchaseDate.toDate ? pet.lastPurchaseDate.toDate() : new Date(pet.lastPurchaseDate);
-                        const leadDays = Number(config.petFoodAlertLeadDays || 0);
+                        const cycleDays = Number(pet.foodCycleDays || pet.frequencyDays || 30);
+                        const warningDays = Number(config?.messaging?.petFoodWarningDays || config?.petFoodAlertLeadDays || 3);
+                        
+                        // Fecha en la que se le acaba el alimento
                         const exhaustionDate = new Date(lastPurchase);
-                        exhaustionDate.setDate(lastPurchase.getDate() + Number(pet.frequencyDays));
+                        exhaustionDate.setDate(lastPurchase.getDate() + cycleDays);
+                        
+                        // Fecha en la que hay que avisar
                         const alertDate = new Date(exhaustionDate);
-                        alertDate.setDate(exhaustionDate.getDate() - leadDays);
+                        alertDate.setDate(exhaustionDate.getDate() - warningDays);
 
-                        const diffDays = Math.floor((referenceDate.getTime() - alertDate.getTime()) / (1000 * 60 * 60 * 24));
-                        const isAlertDay = (diffDays >= 0 && diffDays <= 4); 
-                        const alreadyAlerted = pet.lastFoodAlertDate === lastPurchase.toISOString().split('T')[0];
+                        const isAlertWindow = (referenceDate >= alertDate); 
+                        // Evitar duplicados: Si la última alerta enviada es >= a la fecha de esta compra, ya avisamos.
+                        const lastAlertSent = pet.lastFoodAlertDate ? new Date(pet.lastFoodAlertDate + 'T12:00:00') : null;
+                        const alreadyAlerted = lastAlertSent && lastAlertSent >= lastPurchase;
 
-                        if (isAlertDay) {
+                        if (isAlertWindow) {
                             if (!alreadyAlerted) {
                                 const userName = (userData.nombre || userData.name || '').split(' ')[0];
                                 const template = config.messaging?.templates?.petFoodAlert || "¡Hola {nombre}! 🐾 Notamos que a {mascota} se le debe estar terminando su {marca}.";
@@ -396,14 +402,14 @@ export default async function handler(req, res) {
                                     await app.messaging().sendEachForMulticast({
                                         tokens: userData.fcmTokens,
                                         notification: { title, body: msg },
-                                        data: { title, body: msg, url: "/profile", icon: iconUrl },
+                                        data: { title, body: msg, url: `${PWA_URL}/profile`, icon: iconUrl },
                                         android: { 
                                             priority: "high",
                                             notification: { sound: "default", channelId: "fidelidad-notif-channel" }
                                         },
                                         webpush: {
                                             headers: { Urgent: "high" },
-                                            fcmOptions: { link: "/profile" }
+                                            fcmOptions: { link: `${PWA_URL}/profile` }
                                         }
                                     }).catch(() => {});
                                 }
@@ -424,7 +430,7 @@ export default async function handler(req, res) {
                                     }).catch(() => {});
                                 }
 
-                                nextPets[i].lastFoodAlertDate = lastPurchase.toISOString().split('T')[0];
+                                nextPets[i].lastFoodAlertDate = todayStrShort; // Registramos que hoy enviamos la alerta
                                 updatedPets = true;
                                 results.petAlerts++;
                             }

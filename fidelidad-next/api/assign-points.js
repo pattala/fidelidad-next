@@ -455,10 +455,15 @@ export default async function handler(req, res) {
                     }].slice(-100)
                 };
 
-                // Si hay referido válido, marcarlo aquí mismo
-                if (referrerSnap && referrerSnap.exists) {
-                    clientUpdate['referralStats.processed'] = true;
-                    clientUpdate['referralStats.processedAt'] = admin.firestore.FieldValue.serverTimestamp();
+                // Mascota Food Logic (V.1.4.31) - Sincronizar ciclo desde compra
+                if (isPetFood && petIds.length > 0 && Array.isArray(cData.pets)) {
+                    const todayStr = recordDate.toISOString().split('T')[0];
+                    clientUpdate.pets = cData.pets.map(p => {
+                        if (petIds.includes(p.id)) {
+                            return { ...p, lastPurchaseDate: todayStr, lastFoodAlertDate: todayStr };
+                        }
+                        return p;
+                    });
                 }
 
                 tx.update(clientRef, clientUpdate);

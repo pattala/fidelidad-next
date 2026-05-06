@@ -674,7 +674,7 @@ export const ClientsPage = () => {
         if (isReadOnly) return;
         setEditingId(null);
         setFormStep(1);
-        setFormData(INITIAL_CLIENT_STATE);
+        setFormData(INITIAL_CLIENT_STATE_V1_4_33);
         setIsModalOpen(true);
     };
 

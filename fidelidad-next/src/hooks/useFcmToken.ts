@@ -63,13 +63,20 @@ export const useFcmToken = () => {
                     console.log('[FCM] Token Retrieved Successfully:', currentToken);
                     setToken(currentToken);
 
-                    // Registro directo en Firestore
+                    // Registro directo en Firestore con detección de dispositivo
                     const { updateDoc, serverTimestamp, arrayUnion } = await import('firebase/firestore');
                     const userRef = doc(db, 'users', user.uid);
+
+                    const isMobileDevice = () => {
+                        const ua = navigator.userAgent;
+                        return /iPhone|iPad|iPod|Android/i.test(ua) || (navigator.maxTouchPoints > 0 && /Macintosh/.test(ua));
+                    };
+                    const deviceKey = isMobileDevice() ? 'fcmToken_mobile' : 'fcmToken_pc';
 
                     await updateDoc(userRef, {
                         fcmToken: currentToken,
                         fcmTokens: arrayUnion(currentToken),
+                        [deviceKey]: currentToken, // Diferenciación para el Panel
                         lastFcmUpdate: serverTimestamp(),
                         fcmState: 'registered',
                         'permissions.notifications.status': 'granted',

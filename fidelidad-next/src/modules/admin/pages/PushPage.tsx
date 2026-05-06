@@ -229,16 +229,17 @@ export const PushPage = () => {
                                 return (
                                     <>
                                         <div className="flex items-center justify-between">
-                                            <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Estado de Conexión:</span>
+                                            <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Dispositivos con Token:</span>
                                             <div className="flex gap-2">
-                                                {hasTokens ? (
-                                                    <span className="text-xs font-black px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 shadow-sm flex items-center gap-1 animate-pulse">
-                                                        📡 CONECTADO ✓
-                                                    </span>
+                                                {info.fcmToken_pc ? (
+                                                    <span className="text-xs font-black px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200 shadow-sm flex items-center gap-1">💻 PC ✓</span>
                                                 ) : (
-                                                    <span className="text-xs font-black px-3 py-1 rounded-full bg-gray-100 text-gray-400 border border-gray-200">
-                                                        📴 SIN DISPOSITIVO ✖
-                                                    </span>
+                                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-400 border border-gray-200" title="Sin token de PC">💻 PC ✖</span>
+                                                )}
+                                                {info.fcmToken_mobile ? (
+                                                    <span className="text-xs font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 shadow-sm flex items-center gap-1">📱 Celu ✓</span>
+                                                ) : (
+                                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-400 border border-gray-200" title="Sin token de Celular">📱 Celu ✖</span>
                                                 )}
                                             </div>
                                         </div>

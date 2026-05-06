@@ -1044,3 +1044,33 @@ Una vez que se ejecuten y aprueben todos los pasos de las Fases 1 y 2, se proced
     *   Guía estricta paso a paso para levantar un nuevo gimnasio o local desde cero (Firebase, Vercel, Variables de Entorno, QStash).
 
 
+---
+## 🔔 GESTIÓN DE ALERTAS Y NOTIFICACIONES (V.1.4.32)
+
+Para una operación fluida, el sistema utiliza un sistema de **Sincronización Bidireccional** entre la Extensión de Chrome y el Panel Administrador. Todas las alertas se centralizan en un widget flotante (burbuja).
+
+### 🏷️ Diccionario de Siglas (Widget Minimizado)
+Cuando el widget de alertas está contraído, muestra un resumen rápido del trabajo pendiente usando estas siglas:
+
+*   **C**: **Cumpleaños** 🎂 (Socios que cumplen años hoy).
+*   **V**: **Vencimientos** ⏳ (Puntos que están en el periodo crítico de caducidad).
+*   **A**: **Alimento (Mascotas)** 🐾 (Avisos de reposición de comida según el ciclo de consumo).
+*   **R**: **Canjes (Redemptions)** 🎁 (Premios canjeados por socios durante el día).
+*   **P**: **Puntos (Asignaciones)** 💰 (Resumen de las cargas de puntos realizadas en la jornada).
+
+---
+
+### 🐾 Lógica del Módulo Pet (Consumo Real)
+El sistema ha evolucionado de un simple recordatorio a un **Monitor de Consumo Real**:
+
+1.  **Gatillo de Ciclo**: El ciclo de reposición NO se cuenta desde el último aviso, sino desde la **última compra real**. 
+2.  **Registro de Compra**: Al cargar puntos y marcar "Reposición de Alimento" en la extensión, el sistema guarda la `lastPurchaseDate`.
+3.  **Cálculo Proactivo**: El motor de alertas calcula: `Fecha_Compra + Ciclo_de_Días - Días_de_Antelación`. 
+4.  **Aviso Anticipado**: El mensaje se dispara `N` días antes (configurable en el panel) de que se le termine el alimento al socio, permitiendo una preventa efectiva.
+
+---
+
+### 📳 Canales de Comunicación
+*   **WhatsApp**: En la extensión, el botón de WhatsApp siempre está disponible para envío manual, incluso si la automatización global está apagada (Prioridad del Administrador).
+*   **Push PWA**: Las notificaciones móviles se envían a todos los dispositivos registrados del socio (`multi-token`). Al hacer clic, redirigen directamente al perfil del usuario en la PWA.
+*   **Email e Inbox**: Copias de seguridad de todas las alertas importantes.

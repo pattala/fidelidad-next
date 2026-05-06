@@ -185,6 +185,12 @@ La extensión de Chrome automatiza la captura del total y la resta de descuentos
 ### Lógica de Detección de Descuentos
 La extensión busca las palabras **DESCUENTO, PROMO, COMBO, BONIF** en la descripción de cada fila para identificar descuentos y restarlos del total base de puntos.
 
+### 🐾 Automatización Pet Food (Reposición)
+Cuando cargas puntos, el sistema te permite marcar el check de la mascota.
+1.  **Registro Real**: Al marcarlo, el sistema guarda la fecha actual como el inicio del nuevo ciclo de alimento.
+2.  **Cálculo Automático**: Basándose en cuántos días dura la bolsa (seteado en la ficha de la mascota), el sistema calcula el próximo vencimiento.
+3.  **Aviso Preventivo**: El motor te avisará `N` días antes del agotamiento para que puedas concretar la preventa por WhatsApp.
+
 ---
 
 ## 10. 🌐 Guía de Migración: Cambio de URL y Dominio
@@ -205,6 +211,17 @@ En la columna de cada registro verá exactamente quién disparó el proceso:
 *   **`Ejecución Manual (Admin)`**: Ejecución forzada al presionar botones en el tablero por un administrador.
 *   **`[Nombre del Admin]`**: Ediciones específicas a la base de datos (premios, configuración, carga manual de puntos).
 *   **`Ejecución (Extensión)`**: Acciones originadas desde la extensión de Chrome.
+
+### 🏷️ Diccionario de Siglas (Widget de Alertas)
+Para agilizar la operación, el widget minimizado (la burbuja flotante) muestra un resumen con estas letras:
+
+*   **C**: **Cumpleaños** 🎂 (Socios que cumplen años hoy).
+*   **V**: **Vencimientos** ⏳ (Puntos próximos a expirar).
+*   **A**: **Alimento (Mascotas)** 🐾 (Reposición estimada de comida).
+*   **R**: **Canjes (Redemptions)** 🎁 (Premios canjeados hoy).
+*   **P**: **Puntos (Asignaciones)** 💰 (Cargas de puntos realizadas hoy).
+
+---
 
 ### Diccionario de Mensajes de Auditoría
 

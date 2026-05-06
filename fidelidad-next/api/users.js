@@ -119,7 +119,7 @@ async function handleCreate(req, res, db) {
             status: 'success',
             summary: `Usuario creado: ${fsPayload.nombre} (Socio #${fsPayload.socioNumber || 'N/A'}, DNI ${fsPayload.dni})`,
             details: { email: fsPayload.email, source: fsPayload.source },
-            executor: req.headers["x-executor-email"] || "admin"
+            executor: req.headers["x-executor-email"] || "admin" // V.1.4.33
         });
 
         return res.status(200).json({ ok: true, auth: { uid: authUID, created: createdAuth }, firestore: { docId: fsDocRef.id, created: createdFs } });

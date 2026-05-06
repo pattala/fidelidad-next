@@ -1734,7 +1734,7 @@ export const ClientsPage = () => {
                                                                 </div>
                                                                 {pet.lastPurchaseDate && (
                                                                     <div className="flex justify-between items-center">
-                                                                        <span className="text-[9px] font-black text-orange-800 uppercase">Próximo Aviso Estimado:</span>
+                                                                        <span className="text-[9px] font-black text-orange-800 uppercase">Fin de Alimento Estimado:</span>
                                                                         <span className="text-xs font-bold text-orange-600 underline">
                                                                             {(() => {
                                                                                 const last = pet.lastPurchaseDate instanceof Date ? pet.lastPurchaseDate : (pet.lastPurchaseDate.toDate ? pet.lastPurchaseDate.toDate() : new Date(pet.lastPurchaseDate));

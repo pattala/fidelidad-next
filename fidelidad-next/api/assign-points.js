@@ -788,6 +788,9 @@ export default async function handler(req, res) {
                     .replace(/{vencimiento}/g, result.guestData.expirationDateStr || '')
                     .replace(/{siteName}/g, config.siteName || 'Club Fidelidad');
 
+                const eventConfig = messagingCfg.eventConfigs?.[event];
+                const channels = eventConfig?.channels || ['push', 'email'];
+
                 const isPushConfigured = messagingCfg.pushEnabled && channels.includes('push');
                 const isEmailConfigured = messagingCfg.emailEnabled && channels.includes('email');
 

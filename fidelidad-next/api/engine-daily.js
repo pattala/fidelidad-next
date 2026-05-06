@@ -447,15 +447,11 @@ export default async function handler(req, res) {
         const startOfToday = new Date(referenceDate);
         startOfToday.setHours(0, 0, 0, 0);
 
-        const checkSnap = await db.collection('audit_logs')
-            .where('type', '==', 'daily_engine_execution')
-            .where('status', '==', 'success')
-            .where('timestamp', '>=', admin.firestore.Timestamp.fromDate(startOfToday))
-            .limit(1)
-            .get();
+        const checkSnap = await db.collection('audit_logs').doc(`daily_engine_${todayStr}`).get();
+        const alreadyExecuted = checkSnap.exists && checkSnap.data().status === 'success';
 
         // --- 11. REGISTRO DE INICIO (Solo si no se saltó por duplicidad) ---
-        let skipSideEffects = !checkSnap.empty && !skipDuplicityCheck;
+        let skipSideEffects = alreadyExecuted && !skipDuplicityCheck;
         
         console.log(`[Engine] Resultados parciales: ${results.birthdays} cumple, ${results.expirations} vencim, ${results.petAlerts} mascotas. Duplicado: ${skipSideEffects}`);
 

@@ -720,58 +720,42 @@ export default async function handler(req, res) {
                 }
             }
 
-            // WhatsApp Logic (Generation for Panel)
+            // WhatsApp Logic (Generation for Panel/Extension)
             const event = 'pointsAdded';
             const templates = messagingCfg.templates || {};
-            const eventConfig = messagingCfg.eventConfigs?.[event];
-            const channels = eventConfig?.channels || [];
-            const isWhatsAppConfigured = messagingCfg.whatsappEnabled && channels.includes('whatsapp');
 
+            // Permitimos el envío manual si applyWhatsApp es true, incluso si el canal está desactivado globalmente
             if (applyWhatsApp && points > 0) {
-                if (isWhatsAppConfigured) {
-                    let waMsg = templates[event] || "¡Sumaste {puntos} puntos! Tu saldo actual es {saldo}.";
-                    const fullName = result.guestData.name || result.guestData.nombre || 'Cliente';
-                    const firstName = fullName.split(' ')[0];
+                // Si está configurado usamos el template, si no, un mensaje por defecto
+                let waMsg = templates[event] || "¡Sumaste {puntos} puntos! Tu saldo actual es {saldo}.";
+                const fullName = result.guestData.name || result.guestData.nombre || 'Cliente';
+                const firstName = fullName.split(' ')[0];
 
-                    waMsg = waMsg.replace(/{nombre}/g, firstName)
-                        .replace(/{nombre_completo}/g, fullName)
-                        .replace(/{puntos}/g, points.toString())
-                        .replace(/{saldo}/g, (result.newBalance || 0).toString())
-                        .replace(/{siteName}/g, config.siteName || 'Club Fidelidad');
+                waMsg = waMsg.replace(/{nombre}/g, firstName)
+                    .replace(/{nombre_completo}/g, fullName)
+                    .replace(/{puntos}/g, points.toString())
+                    .replace(/{saldo}/g, (result.newBalance || 0).toString())
+                    .replace(/{siteName}/g, config.siteName || 'Club Fidelidad');
 
-                    const phone = (result.guestData.phone || '').replace(/\D/g, '');
+                const phone = (result.guestData.phone || '').replace(/\D/g, '');
 
-                    if (phone.length >= 8) {
-                        result.whatsappLink = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(waMsg.trim())}`;
+                if (phone.length >= 8) {
+                    result.whatsappLink = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(waMsg.trim())}`;
 
-                        // Audit Log (Manual) - ACUMULAR
-                        result.auditDetails.push({
-                            userId: targetUid,
-                            userName: result.guestData.name,
-                            dni: result.guestData.dni || '',
-                            socioNumber: result.guestData.socioNumber || '',
-                            points,
-                            action: 'whatsapp_link_generated',
-                            status: 'link_ready',
-                            timestamp: now.toISOString()
-                        });
-                    }
-                } else {
-                    // Log Skip: Config Disabled
-                    // Log Skip: Config Disabled - ACUMULAR
+                    // Audit Log (Manual) - ACUMULAR
                     result.auditDetails.push({
                         userId: targetUid,
                         userName: result.guestData.name,
                         dni: result.guestData.dni || '',
                         socioNumber: result.guestData.socioNumber || '',
-                        action: 'whatsapp_skipped',
-                        status: 'skipped',
-                        info: 'Canal desactivado en configuración'
+                        points,
+                        action: 'whatsapp_link_generated',
+                        status: 'link_ready',
+                        timestamp: now.toISOString()
                     });
                 }
             } else if (points > 0) {
                 // Log Skip: Not checked in UI
-                // Log Skip: Not checked in UI - ACUMULAR
                 result.auditDetails.push({
                     userId: targetUid,
                     userName: result.guestData.name,

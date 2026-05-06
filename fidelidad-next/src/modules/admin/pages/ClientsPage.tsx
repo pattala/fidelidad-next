@@ -272,6 +272,13 @@ export const ClientsPage = () => {
     async function handleSave(e: React.FormEvent) {
         e.preventDefault();
         if (isReadOnly) return;
+        
+        // Pre-apertura de WhatsApp para evitar bloqueos del navegador
+        let waWindow: Window | null = null;
+        if (sendWelcomeWa && formData.phone && !editingId) {
+            waWindow = window.open('about:blank', '_blank');
+        }
+
         setActionLoading(true);
 
         const safeDni = formData.dni.trim();
@@ -501,33 +508,39 @@ export const ClientsPage = () => {
                         if (cleanPhone) {
                             const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(welcomeMsg.trim())}`;
                             
-                            // Intento de apertura directa inmediata
-                            const waWindow = window.open(waUrl, '_blank');
-                            
-                            if (!waWindow || waWindow.closed || typeof waWindow.closed === 'undefined') {
-                                toast.success((t) => (
-                                    <div className="flex flex-col gap-2">
-                                        <span className="font-bold text-sm text-green-800">✅ ¡Cliente Registrado!</span>
-                                        <p className="text-[10px]">Puntos sumados con éxito.</p>
-                                        <button 
-                                            onClick={() => {
-                                                window.open(waUrl, '_blank');
-                                                toast.dismiss(t.id);
-                                            }}
-                                            className="bg-green-600 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 hover:bg-green-700 transition-all shadow-lg"
-                                        >
-                                            <MessageCircle size={14} /> ENVIAR WHATSAPP AHORA
-                                        </button>
-                                    </div>
-                                ), { duration: 10000, position: 'top-center' });
-                            } else {
+                            // Redirigir la ventana pre-abierta o abrir una nueva si falló
+                            if (waWindow && !waWindow.closed) {
+                                waWindow.location.href = waUrl;
                                 toast.success("¡Cliente registrado y WhatsApp enviado!");
+                            } else {
+                                // Fallback por si la pre-apertura falló o fue cerrada
+                                const retryWindow = window.open(waUrl, '_blank');
+                                if (!retryWindow) {
+                                    toast.success((t) => (
+                                        <div className="flex flex-col gap-2">
+                                            <span className="font-bold text-sm text-green-800">✅ ¡Cliente Registrado!</span>
+                                            <p className="text-[10px]">Los puntos se cargaron con éxito.</p>
+                                            <button 
+                                                onClick={() => {
+                                                    window.open(waUrl, '_blank');
+                                                    toast.dismiss(t.id);
+                                                }}
+                                                className="bg-green-600 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 hover:bg-green-700 transition-all shadow-lg"
+                                            >
+                                                <MessageCircle size={14} /> ENVIAR WHATSAPP AHORA
+                                            </button>
+                                        </div>
+                                    ), { duration: 10000, position: 'top-center' });
+                                } else {
+                                    retryWindow.location.href = waUrl;
+                                    toast.success("¡Cliente registrado y WhatsApp enviado!");
+                                }
                             }
-                        } else {
-                            toast.success("Cliente registrado con éxito");
+                        } else if (waWindow) {
+                            waWindow.close();
                         }
-                    } else {
-                        toast.success("Cliente registrado con éxito");
+                    } else if (waWindow) {
+                        waWindow.close();
                     }
 
                     if (formData.email && sendEmailNotification) {

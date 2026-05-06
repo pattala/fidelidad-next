@@ -68,11 +68,11 @@ export default async function handler(req, res) {
         // RECUPERAR ALERTAS PROCESADAS PARA SINCRONIZACIÓN
         let processedAlerts = {};
         try {
-            const processedSnap = await db.collection('audit_logs').doc(`daily_alerts_${todayStr}`).get();
-            if (processedSnap.exists) {
-                processedAlerts = processedSnap.data().actions || {};
+            const statusSnap = await db.collection('audit_logs').doc(`daily_engine_${todayStr}`).get();
+            if (statusSnap.exists) {
+                processedAlerts = statusSnap.data().actions || {};
             }
-        } catch (e) { console.error("Error fetching processed alerts:", e); }
+        } catch (e) { console.error("Error fetching daily status:", e); }
 
         const todayMD = `${String(referenceDate.getMonth() + 1).padStart(2, '0')}-${String(referenceDate.getDate()).padStart(2, '0')}`;
         const currentYear = referenceDate.getFullYear().toString();
@@ -550,16 +550,17 @@ export default async function handler(req, res) {
             }
         } catch (e) { console.error("Error in transaction maintenance:", e); }
 
-        // AUDITORÍA FINAL CONSOLIDADA (Solo si se procesó)
+        // AUDITORÍA FINAL CONSOLIDADA (Con ID fijo para recuperación)
         if (!skipSideEffects) {
-            await db.collection('audit_logs').add({
+            await db.collection('audit_logs').doc(`daily_engine_${todayStr}`).set({
                 type: 'engine_daily_unified',
                 status: results.errors.length > 0 ? 'partial' : 'success',
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
                 executor: executorDetail,
-                summary: `Motor Maestro V.1.4.20: ${results.birthdays} cumple, ${results.expirations} vencim, ${results.petAlerts} mascotas.`,
-                details: results.details.length > 0 ? results.details : [{ userId: 'system', action: 'check', status: 'skipped', info: 'Sin acciones hoy' }]
-            });
+                summary: `Motor Maestro V.1.4.22: ${results.birthdays} cumple, ${results.expirations} vencim, ${results.petAlerts} mascotas.`,
+                details: results.details.length > 0 ? results.details : [{ userId: 'system', action: 'check', status: 'skipped', info: 'Sin acciones hoy' }],
+                actions: processedAlerts // Sincronización para la extensión
+            }, { merge: true });
         }
 
         // Formatear listas para la extensión/dashboard

@@ -39,7 +39,11 @@ const apiBridge = (params) => {
                 console.warn("[Bridge] Runtime Error:", msg);
                 return reject(new Error(msg));
             }
-            if (!response || !response.success) return reject(new Error(response?.error || 'API Error'));
+            if (!response || !response.success) {
+                const errorMsg = response?.data?.error || response?.error || 'API Error';
+                console.error(`❌ [Club Fidelidad] API Error calling ${params.url}:`, errorMsg);
+                return reject(new Error(errorMsg));
+            }
             resolve(response.data);
         });
     });

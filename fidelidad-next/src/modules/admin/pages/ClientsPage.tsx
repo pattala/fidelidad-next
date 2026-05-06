@@ -486,7 +486,7 @@ export const ClientsPage = () => {
                                 })
                             });
                             const bonusData = await resBonus.json();
-                            if (bonusData.ok) finalWelcomePoints = bonusData.points || 0;
+                            if (bonusData.ok) finalWelcomePoints = bonusData.pointsAdded || 0;
                         } catch (errBonus) {
                             console.error("Error asignando bonos automáticos:", errBonus);
                         }

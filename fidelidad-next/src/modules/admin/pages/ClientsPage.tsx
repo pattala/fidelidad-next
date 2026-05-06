@@ -114,7 +114,8 @@ export const ClientsPage = () => {
     const [pointsModalOpen, setPointsModalOpen] = useState(false);
     const [selectedClientForPoints, setSelectedClientForPoints] = useState<Client | null>(null);
     const [pointsData, setPointsData] = useState({ amount: '', concept: 'Compra en local', isPesos: true, purchaseDate: TimeService.now().toISOString().split('T')[0] });
-    const [notifyWhatsapp, setNotifyWhatsapp] = useState(false); // Checkbox state
+    const [notifyWhatsapp, setNotifyWhatsapp] = useState(false); 
+    const [sendEmailNotification, setSendEmailNotification] = useState(true); // New state for Welcome Email
     const [applyPromotions, setApplyPromotions] = useState(true); // New State: Default True
     const [availablePromotions, setAvailablePromotions] = useState<any[]>([]);
     const [selectedPromos, setSelectedPromos] = useState<string[]>([]);
@@ -349,7 +350,7 @@ export const ClientsPage = () => {
                             zipCode: formData.cp
                         }
                     },
-                    pets: formData.pets || [],
+                    pets: (formData.pets || []).map(p => ({ ...p, receiveAlerts: p.receiveAlerts !== false })), // Ensure receiveAlerts defaults to true
                     termsAccepted: true,
                     termsAcceptedAt: TimeService.now().toISOString()
                 };
@@ -382,7 +383,7 @@ export const ClientsPage = () => {
                     birthDate: formData.birthDate,
                     localidad: formData.localidad,
                     numeroSocio: finalSocioId,
-                    pets: formData.pets || [],
+                    pets: (formData.pets || []).map(p => ({ ...p, receiveAlerts: p.receiveAlerts !== false })),
                     domicilio: {
                         status: 'complete',
                         addressLine: formattedAddress,
@@ -499,15 +500,31 @@ export const ClientsPage = () => {
                         const cleanPhone = PhoneUtils.formatForWhatsApp(formData.phone);
                         if (cleanPhone) {
                             const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(welcomeMsg.trim())}`;
-                            setTimeout(() => { const link = document.createElement('a'); link.href = waUrl; link.target = '_blank'; link.rel = 'noopener noreferrer'; document.body.appendChild(link); link.click(); document.body.removeChild(link); }, 500);
+                            // Usar un pequeño delay para asegurar que el navegador permita el popup
+                            setTimeout(() => { 
+                                const link = document.createElement('a');
+                                link.href = waUrl;
+                                link.target = '_blank';
+                                link.rel = 'noopener noreferrer';
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                            }, 800);
                         }
                     }
-                    if (formData.email && NotificationService.isChannelEnabled(freshConfig, 'welcome', 'email')) {
+
+                    if (formData.email && sendEmailNotification) {
                         const welcomeSubject = `¡Bienvenido a ${freshConfig?.siteName || 'nuestro Club'}!`;
                         const htmlContent = EmailService.generateBrandedTemplate(freshConfig || {}, welcomeSubject, welcomeMsg);
                         EmailService.sendEmail(formData.email, welcomeSubject, htmlContent).catch(() => { });
                     }
-                    NotificationService.sendToClient(newDocId, { title: `¡Bienvenido a ${freshConfig?.siteName || 'nuestro Club'}!`, body: welcomeMsg, type: 'welcome', icon: freshConfig?.logoUrl }).catch(() => { });
+                    
+                    NotificationService.sendToClient(newDocId, { 
+                        title: `¡Bienvenido a ${freshConfig?.siteName || 'nuestro Club'}!`, 
+                        body: welcomeMsg, 
+                        type: 'welcome', 
+                        icon: freshConfig?.logoUrl 
+                    }).catch(() => { });
                 }
             }
             closeModal();
@@ -1455,38 +1472,60 @@ export const ClientsPage = () => {
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-4 gap-4">
-                                            <div className="col-span-2">
-                                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Calle</label>
-                                                <input
-                                                    type="text"
-                                                    className="w-full bg-gray-50 px-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-purple-200 outline-none text-sm font-bold transition-all"
-                                                    placeholder="Ej: Av. Santa Fe"
-                                                    value={formData.calle}
-                                                    onChange={e => setFormData({ ...formData, calle: e.target.value })}
-                                                />
+                                            <div className="grid grid-cols-4 gap-4">
+                                                <div className="col-span-1">
+                                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Calle</label>
+                                                    <input
+                                                        type="text"
+                                                        className="w-full bg-gray-50 px-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-purple-200 outline-none text-sm font-bold transition-all"
+                                                        placeholder="Ej: Av. Santa Fe"
+                                                        value={formData.calle}
+                                                        onChange={e => setFormData({ ...formData, calle: e.target.value })}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Nro</label>
+                                                    <input
+                                                        type="text"
+                                                        className="w-full bg-gray-50 px-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-purple-200 outline-none text-sm font-bold text-center transition-all"
+                                                        placeholder="1234"
+                                                        value={formData.numero}
+                                                        onChange={e => setFormData({ ...formData, numero: e.target.value })}
+                                                    />
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-1">
+                                                    <div>
+                                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Piso</label>
+                                                        <input
+                                                            type="text"
+                                                            className="w-full bg-gray-50 px-2 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-purple-200 outline-none text-sm font-bold text-center"
+                                                            placeholder="2"
+                                                            value={formData.piso}
+                                                            onChange={e => setFormData({ ...formData, piso: e.target.value })}
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Dpto</label>
+                                                        <input
+                                                            type="text"
+                                                            className="w-full bg-gray-50 px-2 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-purple-200 outline-none text-sm font-bold text-center"
+                                                            placeholder="A"
+                                                            value={formData.depto}
+                                                            onChange={e => setFormData({ ...formData, depto: e.target.value })}
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">CP</label>
+                                                    <input
+                                                        type="text"
+                                                        className="w-full bg-gray-50 px-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-purple-200 outline-none text-sm font-bold text-center transition-all"
+                                                        placeholder="1425"
+                                                        value={formData.cp}
+                                                        onChange={e => setFormData({ ...formData, cp: e.target.value })}
+                                                    />
+                                                </div>
                                             </div>
-                                            <div>
-                                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Número</label>
-                                                <input
-                                                    type="text"
-                                                    className="w-full bg-gray-50 px-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-purple-200 outline-none text-sm font-bold text-center transition-all"
-                                                    placeholder="1234"
-                                                    value={formData.numero}
-                                                    onChange={e => setFormData({ ...formData, numero: e.target.value })}
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">CP</label>
-                                                <input
-                                                    type="text"
-                                                    className="w-full bg-gray-50 px-4 py-2.5 rounded-xl border border-transparent focus:bg-white focus:border-purple-200 outline-none text-sm font-bold text-center transition-all"
-                                                    placeholder="1425"
-                                                    value={formData.cp}
-                                                    onChange={e => setFormData({ ...formData, cp: e.target.value })}
-                                                />
-                                            </div>
-                                        </div>
                                     </div>
                                 )}
 
@@ -1656,6 +1695,21 @@ export const ClientsPage = () => {
                                                                     min="1"
                                                                 />
                                                             </div>
+                                                            <div className="col-span-2 mt-2">
+                                                                <label className="flex items-center gap-2 cursor-pointer group">
+                                                                    <input 
+                                                                        type="checkbox"
+                                                                        checked={pet.receiveAlerts !== false}
+                                                                        onChange={e => {
+                                                                            const newPets = [...formData.pets];
+                                                                            newPets[idx].receiveAlerts = e.target.checked;
+                                                                            setFormData({ ...formData, pets: newPets });
+                                                                        }}
+                                                                        className="w-4 h-4 rounded border-orange-300 text-orange-600 focus:ring-orange-500"
+                                                                    />
+                                                                    <span className="text-[10px] font-bold text-orange-600 uppercase group-hover:text-orange-800 transition-colors">Activar Avisos de Alimento</span>
+                                                                </label>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1665,7 +1719,7 @@ export const ClientsPage = () => {
                                                 type="button"
                                                 onClick={() => setFormData({ 
                                                     ...formData, 
-                                                    pets: [...formData.pets, { id: Math.random().toString(36).substr(2, 9), name: '', breed: '', age: '', foodBrand: '', receiveAlerts: true, createdAt: new Date() }] 
+                                                    pets: [...formData.pets, { id: Math.random().toString(36).substr(2, 9), name: '', type: 'perro', breed: '', age: '', foodBrand: '', receiveAlerts: true, createdAt: new Date() }] 
                                                 })}
                                                 className="w-full py-3 border-2 border-dashed border-orange-200 rounded-2xl text-orange-600 font-bold text-sm hover:bg-orange-50 hover:border-orange-300 transition-all flex items-center justify-center gap-2"
                                             >
@@ -1714,9 +1768,24 @@ export const ClientsPage = () => {
                                                 />
                                                 <div className="flex flex-col">
                                                     <span className="text-sm font-bold text-green-800">
-                                                        Enviar WhatsApp de Bienvenida al guardar
+                                                        Enviar WhatsApp de Bienvenida
                                                     </span>
-                                                    <span className="text-[10px] text-green-600">Abre una pestaña de WhatsApp Web con el mensaje configurado.</span>
+                                                    <span className="text-[10px] text-green-600">Abre una pestaña de WhatsApp Web al finalizar.</span>
+                                                </div>
+                                            </label>
+
+                                            <label className="flex items-center gap-3 cursor-pointer p-2 hover:bg-blue-50 rounded-lg transition border border-transparent hover:border-blue-100">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={sendEmailNotification}
+                                                    onChange={e => setSendEmailNotification(e.target.checked)}
+                                                    className="w-5 h-5 rounded border-blue-300 text-blue-600 focus:ring-blue-500"
+                                                />
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-bold text-blue-800">
+                                                        Enviar Email de Bienvenida
+                                                    </span>
+                                                    <span className="text-[10px] text-blue-600">Envía el correo oficial con los puntos de regalo.</span>
                                                 </div>
                                             </label>
                                         </div>
@@ -1729,22 +1798,26 @@ export const ClientsPage = () => {
                                             type="button"
                                             onClick={() => setFormStep(1)}
                                             className="px-8 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition border border-gray-100"
+                                            disabled={actionLoading}
                                         >
                                             Atrás
                                         </button>
                                     )}
-                                    <button type="button" onClick={closeModal} className="px-8 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition">Cancelar</button>
+                                    <button type="button" onClick={closeModal} className="px-8 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition" disabled={actionLoading}>Cancelar</button>
                                     <button
                                         type="submit"
                                         disabled={actionLoading}
-                                        className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-100 disabled:opacity-50 flex items-center justify-center gap-2"
+                                        className="px-10 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-100 disabled:opacity-50 flex items-center justify-center min-w-[180px] gap-2"
                                     >
                                         {actionLoading ? (
-                                            <>Cargando...</>
+                                            <>
+                                                <RefreshCw className="animate-spin" size={18} />
+                                                {editingId ? 'Guardando...' : 'Registrando...'}
+                                            </>
                                         ) : (!editingId && formStep === 1 ? (
                                             <>Siguiente <ArrowRight size={18} /></>
                                         ) : (
-                                            'Guardar Cliente'
+                                            editingId ? 'Guardar Cambios' : 'Finalizar Registro'
                                         ))}
                                     </button>
                                 </div>

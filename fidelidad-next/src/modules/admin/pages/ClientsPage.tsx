@@ -1577,17 +1577,6 @@ export const ClientsPage = () => {
                                                     </div>
                                                     
                                                     <div className="flex-1">
-                                                        <button 
-                                                            type="button"
-                                                            onClick={() => {
-                                                                const newPets = [...formData.pets];
-                                                                newPets.splice(idx, 1);
-                                                                setFormData({ ...formData, pets: newPets });
-                                                            }}
-                                                            className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-600 hover:bg-white rounded-full transition-all opacity-0 group-hover:opacity-100 shadow-sm"
-                                                        >
-                                                            <Trash2 size={14} />
-                                                        </button>
                                                         <div className="grid grid-cols-2 gap-x-4 gap-y-3">
                                                             <div className="col-span-1">
                                                                 <label className="block text-[10px] font-bold text-orange-700 uppercase mb-1">Nombre</label>
@@ -1746,7 +1735,7 @@ export const ClientsPage = () => {
                                                                     </div>
                                                                 )}
                                                             </div>
-                                                            <div className="col-span-2 mt-2">
+                                                            <div className="col-span-2 mt-2 flex justify-between items-center pt-2 border-t border-orange-100/50">
                                                                 <label className="flex items-center gap-2 cursor-pointer group">
                                                                     <input 
                                                                         type="checkbox"
@@ -1760,6 +1749,18 @@ export const ClientsPage = () => {
                                                                     />
                                                                     <span className="text-[10px] font-bold text-orange-600 uppercase group-hover:text-orange-800 transition-colors">Activar Avisos de Alimento</span>
                                                                 </label>
+
+                                                                <button 
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const newPets = [...formData.pets];
+                                                                        newPets.splice(idx, 1);
+                                                                        setFormData({ ...formData, pets: newPets });
+                                                                    }}
+                                                                    className="text-red-400 hover:text-red-600 text-[10px] font-black uppercase flex items-center gap-1 px-2 py-1 hover:bg-red-50 rounded-lg transition-all"
+                                                                >
+                                                                    <Trash2 size={12} /> Eliminar Mascota
+                                                                </button>
                                                             </div>
                                                         </div>
                                                     </div>

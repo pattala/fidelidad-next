@@ -468,12 +468,23 @@ export const ClientProfilePage = () => {
                             <button
                                 onClick={() => {
                                     setEditData({
-                                        ...editData, // Use current editData if any, or spread userData
                                         name: userData.name || userData.nombre || '',
                                         email: userData.email || '',
                                         dni: userData.dni || '',
                                         phone: userData.phone || userData.telefono || userData.phone_number || '',
+                                        street: userData.domicilio?.components?.calle?.split(' ').slice(0, -1).join(' ') || userData.calle?.split(' ').slice(0, -1).join(' ') || userData.domicilio?.calle || '',
+                                        number: userData.domicilio?.components?.numero || userData.calle?.split(' ').slice(-1)[0] || userData.domicilio?.numero || '',
+                                        piso: userData.piso || userData.domicilio?.components?.piso || '',
+                                        depto: userData.depto || userData.domicilio?.components?.depto || '',
+                                        localidad: userData.localidad || userData.domicilio?.components?.localidad || '',
+                                        partido: userData.partido || userData.domicilio?.components?.partido || '',
+                                        provincia: userData.provincia || userData.domicilio?.components?.provincia || '',
+                                        cp: userData.cp || userData.domicilio?.components?.zipCode || '',
+                                        birthDate: userData.birthDate || ''
                                     });
+                                    setSelectedProv(userData.provincia || userData.domicilio?.components?.provincia || '');
+                                    setSelectedPart(userData.partido || userData.domicilio?.components?.partido || '');
+                                    setSelectedLoc(userData.localidad || userData.domicilio?.components?.localidad || '');
                                     setIsEditModalOpen(true);
                                 }}
                                 className="mt-2 w-full bg-indigo-50 border-2 border-dashed border-indigo-200 rounded-2xl p-4 flex items-center gap-4 group hover:border-indigo-400 transition-all animate-pulse"

@@ -183,9 +183,19 @@ export default async function handler(req, res) {
                         // 1. PWA PUSH
                         if (userData.fcmTokens?.length && config.messaging?.pushEnabled !== false) {
                             const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
+                            const iconUrl = config.logoUrl ? getAbsoluteUrl(config.logoUrl, PWA_URL) : "";
                             await app.messaging().sendEachForMulticast({
                                 tokens: userData.fcmTokens,
-                                data: { title, body: msg, url: "/profile", icon: config.logoUrl ? getAbsoluteUrl(config.logoUrl, PWA_URL) : "" }
+                                notification: { title, body: msg },
+                                data: { title, body: msg, url: "/profile", icon: iconUrl },
+                                android: { 
+                                    priority: "high",
+                                    notification: { sound: "default", channelId: "fidelidad-notif-channel" }
+                                },
+                                webpush: {
+                                    headers: { Urgent: "high" },
+                                    fcmOptions: { link: "/profile" }
+                                }
                             }).catch(() => {});
                         }
 
@@ -302,9 +312,19 @@ export default async function handler(req, res) {
                     // 1. PWA PUSH
                     if (userData.fcmTokens?.length && config.messaging?.pushEnabled !== false) {
                         const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
+                        const iconUrl = config.logoUrl ? getAbsoluteUrl(config.logoUrl, PWA_URL) : "";
                         await app.messaging().sendEachForMulticast({
                             tokens: userData.fcmTokens,
-                            data: { title, body: msg, url: "/profile", icon: config.logoUrl ? getAbsoluteUrl(config.logoUrl, PWA_URL) : "" }
+                            notification: { title, body: msg },
+                            data: { title, body: msg, url: "/profile", icon: iconUrl },
+                            android: { 
+                                priority: "high",
+                                notification: { sound: "default", channelId: "fidelidad-notif-channel" }
+                            },
+                            webpush: {
+                                headers: { Urgent: "high" },
+                                fcmOptions: { link: "/profile" }
+                            }
                         }).catch(() => {});
                     }
 
@@ -372,9 +392,20 @@ export default async function handler(req, res) {
 
                                 if (userData.fcmTokens?.length && config.messaging?.pushEnabled !== false) {
                                     const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
+                                    const iconUrl = config.logoUrl ? getAbsoluteUrl(config.logoUrl, PWA_URL) : "";
+                                    const title = "🐾 Aviso de Alimento";
                                     await app.messaging().sendEachForMulticast({
                                         tokens: userData.fcmTokens,
-                                        data: { title: "🐾 Aviso de Alimento", body: msg, url: "/profile", icon: config.logoUrl ? getAbsoluteUrl(config.logoUrl, PWA_URL) : "" }
+                                        notification: { title, body: msg },
+                                        data: { title, body: msg, url: "/profile", icon: iconUrl },
+                                        android: { 
+                                            priority: "high",
+                                            notification: { sound: "default", channelId: "fidelidad-notif-channel" }
+                                        },
+                                        webpush: {
+                                            headers: { Urgent: "high" },
+                                            fcmOptions: { link: "/profile" }
+                                        }
                                     }).catch(() => {});
                                 }
 

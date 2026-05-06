@@ -68,7 +68,7 @@ export default async function handler(req, res) {
         // RECUPERAR ALERTAS PROCESADAS PARA SINCRONIZACIÓN
         let processedAlerts = {};
         try {
-            const statusSnap = await db.collection('audit_logs').doc(`daily_engine_${todayStr}`).get();
+            const statusSnap = await db.collection('audit_logs').doc(`daily_alerts_${todayStr}`).get();
             if (statusSnap.exists) {
                 processedAlerts = statusSnap.data().actions || {};
             }
@@ -447,7 +447,7 @@ export default async function handler(req, res) {
         const startOfToday = new Date(referenceDate);
         startOfToday.setHours(0, 0, 0, 0);
 
-        const checkSnap = await db.collection('audit_logs').doc(`daily_engine_${todayStr}`).get();
+        const checkSnap = await db.collection('audit_logs').doc(`daily_alerts_${todayStr}`).get();
         const alreadyExecuted = checkSnap.exists && checkSnap.data().status === 'success';
 
         // --- 11. REGISTRO DE INICIO (Solo si no se saltó por duplicidad) ---
@@ -546,16 +546,16 @@ export default async function handler(req, res) {
             }
         } catch (e) { console.error("Error in transaction maintenance:", e); }
 
-        // AUDITORÍA FINAL CONSOLIDADA (Con ID fijo para recuperación)
+        // AUDITORÍA FINAL CONSOLIDADA (Con ID unificado para sincronización total)
         if (!skipSideEffects) {
-            await db.collection('audit_logs').doc(`daily_engine_${todayStr}`).set({
+            await db.collection('audit_logs').doc(`daily_alerts_${todayStr}`).set({
                 type: 'engine_daily_unified',
                 status: results.errors.length > 0 ? 'partial' : 'success',
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
                 executor: executorDetail,
                 summary: `Motor Maestro V.1.4.22: ${results.birthdays} cumple, ${results.expirations} vencim, ${results.petAlerts} mascotas.`,
                 details: results.details.length > 0 ? results.details : [{ userId: 'system', action: 'check', status: 'skipped', info: 'Sin acciones hoy' }],
-                actions: processedAlerts // Sincronización para la extensión
+                actions: processedAlerts // Sincronización para la extensión y panel
             }, { merge: true });
         }
 

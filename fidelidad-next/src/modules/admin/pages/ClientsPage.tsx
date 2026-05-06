@@ -351,7 +351,7 @@ export const ClientsPage = () => {
                     },
                     pets: formData.pets || [],
                     termsAccepted: true,
-                    termsAcceptedAt: new Date().toISOString()
+                    termsAcceptedAt: TimeService.now().toISOString()
                 };
                 await updateDoc(doc(db, 'users', editingId), clientPayload);
                 AuditService.log('user_mgmt', `Perfil actualizado: ${formData.name}`, [
@@ -400,7 +400,7 @@ export const ClientsPage = () => {
                     role: 'client',
                     source: 'local',
                     termsAccepted: true,
-                    termsAcceptedAt: new Date().toISOString(),
+                    termsAcceptedAt: TimeService.now().toISOString(),
                     isTestUser: formData.isTestUser || false
                 };
 

@@ -512,7 +512,6 @@ export default async function handler(req, res) {
                 // Lógica de Desafío (Progresivo + Deadline)
                 const challenge = config.referrals?.challenge;
                 if (challenge && challenge.enabled) {
-                    const now = new Date();
                     const todayStr = now.toISOString().split('T')[0];
                     if (todayStr >= challenge.startDate && todayStr <= challenge.endDate) {
                         // Contar cuántos referidos trajo en ESTE período de desafío
@@ -541,7 +540,7 @@ export default async function handler(req, res) {
                 const newRPoints = (Number(rData.points) || 0) + totalAwarded;
 
                 const rValidityDays = getValidityDays(totalAwarded, expirationRules);
-                const rExpirationDate = new Date();
+                const rExpirationDate = new Date(now);
                 rExpirationDate.setDate(rExpirationDate.getDate() + rValidityDays);
                 const rY = rExpirationDate.getFullYear();
                 const rM = String(rExpirationDate.getMonth() + 1).padStart(2, '0');
@@ -559,7 +558,7 @@ export default async function handler(req, res) {
                     'referralStats.count': admin.firestore.FieldValue.increment(1),
                     'referralStats.pointsEarned': admin.firestore.FieldValue.increment(totalAwarded),
                     historialPuntos: [...(rData.historialPuntos || []), {
-                        fechaObtencion: admin.firestore.Timestamp.fromDate(new Date()),
+                        fechaObtencion: admin.firestore.Timestamp.fromDate(now),
                         puntosObtenidos: totalAwarded,
                         puntosDisponibles: totalAwarded,
                         diasCaducidad: rValidityDays,
@@ -573,7 +572,7 @@ export default async function handler(req, res) {
                     type: 'credit',
                     reason: 'referral_bonus',
                     concept: conceptFinal,
-                    date: admin.firestore.Timestamp.fromDate(new Date()),
+                    date: admin.firestore.Timestamp.fromDate(now),
                     createdAt: admin.firestore.FieldValue.serverTimestamp(),
                     expiresAt: admin.firestore.Timestamp.fromDate(rExpirationDate),
                     remainingPoints: totalAwarded,
@@ -633,7 +632,7 @@ export default async function handler(req, res) {
                 action: 'points_credited',
                 status: 'success',
                 info: `+${points} pts (${(concept || 'Carga manual')})`,
-                timestamp: new Date().toISOString()
+                timestamp: now.toISOString()
             });
 
             // AUDITORIA: Registro de Inbox
@@ -643,7 +642,7 @@ export default async function handler(req, res) {
                 action: 'inbox_message_saved',
                 status: 'success',
                 info: `Mensaje guardado: +${points} pts`,
-                timestamp: new Date().toISOString()
+                timestamp: now.toISOString()
             });
         });
 
@@ -671,7 +670,7 @@ export default async function handler(req, res) {
                             const freq = Number(pet.frequencyDays || 30);
                             const lead = Number(config.petFoodAlertLeadDays || 0);
                             
-                            const baseDate = date ? new Date(date + 'T12:00:00') : new Date();
+                            const baseDate = date ? new Date(date + 'T12:00:00') : now;
                             const exhaustionDate = new Date(baseDate);
                             exhaustionDate.setDate(baseDate.getDate() + freq);
                             
@@ -754,7 +753,7 @@ export default async function handler(req, res) {
                             points,
                             action: 'whatsapp_link_generated',
                             status: 'link_ready',
-                            timestamp: new Date().toISOString()
+                            timestamp: now.toISOString()
                         });
                     }
                 } else {

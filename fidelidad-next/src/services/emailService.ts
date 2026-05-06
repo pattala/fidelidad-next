@@ -1,4 +1,5 @@
 import type { AppConfig } from '../types';
+import { TimeService } from './timeService';
 
 export const EmailService = {
     /**
@@ -103,7 +104,7 @@ export const EmailService = {
                 <p style="margin:0;font-size:12px;color:#94a3b8;">
                     <a href="${termsUrl}" style="color:#64748b;text-decoration:underline;">Términos y Condiciones</a>
                 </p>
-                <p style="margin:8px 0 0;font-size:11px;color:#cbd5e1;">&copy; ${new Date().getFullYear()} ${siteName}. Todos los derechos reservados.</p>
+                <p style="margin:8px 0 0;font-size:11px;color:#cbd5e1;">&copy; ${TimeService.now().getFullYear()} ${siteName}. Todos los derechos reservados.</p>
                 <p style="margin-top:24px;text-align:center;font-size:11px;color:#94a3b8;">Este correo fue enviado automáticamente por ${siteName}.</p>
             </div>
         </div>

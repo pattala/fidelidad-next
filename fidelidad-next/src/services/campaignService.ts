@@ -1,6 +1,7 @@
 import { collection, doc, getDocs, addDoc, updateDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { AuditService } from './auditService';
+import { TimeService } from './timeService';
 
 export interface BonusRule {
     id: string;
@@ -103,7 +104,7 @@ export const CampaignService = {
     async performMaintenance(campaigns: BonusRule[]) {
         try {
             // Get Local YYYY-MM-DD
-            const now = new Date();
+            const now = TimeService.now();
             // Manually construct YYYY-MM-DD for local time
             const year = now.getFullYear();
             const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -202,7 +203,7 @@ export const CampaignService = {
         // getAll already performs maintenance on 'active' flag based on endDate
         const all = await this.getAll();
 
-        const now = new Date();
+        const now = TimeService.now();
         const todayDay = now.getDay(); // 0-6
         const year = now.getFullYear();
         const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -227,7 +228,7 @@ export const CampaignService = {
     // Helper para obtener TODAS las campañas activas por fecha (Catalogo completo)
     async getActiveCampaignsInDateRange() {
         const all = await this.getAll();
-        const now = new Date();
+        const now = TimeService.now();
         const year = now.getFullYear();
         const month = String(now.getMonth() + 1).padStart(2, '0');
         const day = String(now.getDate()).padStart(2, '0');

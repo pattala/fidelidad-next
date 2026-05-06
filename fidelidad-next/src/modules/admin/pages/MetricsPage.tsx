@@ -148,7 +148,7 @@ export const MetricsPage = () => {
             const newHeatmap = Array(7).fill(0).map(() => Array(24).fill(0));
             snap.docs.forEach(d => {
                 const data = d.data();
-                const date = data.date?.toDate ? data.date.toDate() : (data.date ? new Date(data.date) : new Date());
+                const date = data.date?.toDate ? data.date.toDate() : (data.date ? new Date(data.date) : TimeService.now());
                 if (data.type === 'credit') {
                     const val = heatmapMetric === 'revenue' ? Number(data.moneySpent || 0) : 1;
                     newHeatmap[date.getDay()][date.getHours()] += val;
@@ -245,7 +245,7 @@ export const MetricsPage = () => {
                     const q = query(collectionGroup(db, 'points_history'), ...constraints);
                     const snap = await getDocs(q);
                     return snap.docs.map(d => {
-                        const data = d.data(), date = data.date?.toDate ? data.date.toDate() : (data.date ? new Date(data.date) : new Date());
+                        const data = d.data(), date = data.date?.toDate ? data.date.toDate() : (data.date ? new Date(data.date) : TimeService.now());
                         return { ...data, id: d.id, uid: d.ref.parent.parent?.id, date, points: Math.abs(data.amount || 0), moneySpent: data.moneySpent || 0 };
                     });
                 } catch (err) { console.error("Error in fetchRangeData:", err); return []; }

@@ -131,7 +131,7 @@ export const ClientHomePage = () => {
     const [showExpirationModal, setShowExpirationModal] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [selectedPromo, setSelectedPromo] = useState<BonusRule | null>(null);
-    const [currentTimeStore, setCurrentTimeStore] = useState(new Date());
+    const [currentTimeStore, setCurrentTimeStore] = useState(TimeService.now());
     const [activeBannerPhase, setActiveBannerPhase] = useState<'none' | 'large'>('none');
     const [zoomedPhoto, setZoomedPhoto] = useState<string | null>(null);
     const { token, retrieveToken } = useFcmToken();
@@ -141,7 +141,7 @@ export const ClientHomePage = () => {
         if (!pet.birthDate) return pet.age ? `${pet.age} años` : '';
         try {
             const birth = pet.birthDate.toDate ? pet.birthDate.toDate() : new Date(pet.birthDate);
-            const now = new Date();
+            const now = TimeService.now();
             let age = now.getFullYear() - birth.getFullYear();
             const m = now.getMonth() - birth.getMonth();
             if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) {
@@ -210,7 +210,7 @@ export const ClientHomePage = () => {
             const channel = new BroadcastChannel('fcm_diagnostic');
             channel.onmessage = (event) => {
                 if (event.data?.type === 'PUSH_RECEIVED') {
-                    const ts = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    const ts = TimeService.now().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
                     setLastPushRx(ts);
                     localStorage.setItem('rampet_last_push_rx', ts);
                     toast.success('¡Mensaje Push recibido!');
@@ -320,7 +320,7 @@ export const ClientHomePage = () => {
                 updateDoc(doc(db, 'users', user.uid), {
                     deviceContext: ctx,
                     pushStrategy: strategy,
-                    lastSeen: new Date().toISOString()
+                    lastSeen: TimeService.now().toISOString()
                 }).catch(() => {});
             }
         }
@@ -336,7 +336,7 @@ export const ClientHomePage = () => {
     const processPushResult = async (resultStatus: 'SUCCESS' | 'DENIED' | 'NO_PROMPT' | 'NO_TOKEN' | 'ERROR', extraCtx?: any) => {
         const ctx = extraCtx || getDeviceContext();
         const strategy = getPushStrategy();
-        const now = new Date().toISOString();
+        const now = TimeService.now().toISOString();
 
         console.log(`[FCM] Processing Unified Result: ${resultStatus}`, ctx);
 
@@ -453,7 +453,7 @@ export const ClientHomePage = () => {
                 
                 [`fcmDebug_${deviceKey}`]: { 
                     step: 'reset_manual', 
-                    timestamp: new Date().toISOString(),
+                    timestamp: TimeService.now().toISOString(),
                     ua: navigator.userAgent
                 },
                 // Clear all token tracks for a truly clean test
@@ -665,7 +665,7 @@ export const ClientHomePage = () => {
 
     useEffect(() => {
         const interval = setInterval(() => {
-            setCurrentTimeStore(new Date());
+            setCurrentTimeStore(TimeService.now());
         }, 60000); // Actualizar cada minuto para expirar ofertas flash
         return () => clearInterval(interval);
     }, []);

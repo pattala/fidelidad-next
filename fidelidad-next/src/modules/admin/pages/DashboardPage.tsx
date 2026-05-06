@@ -86,7 +86,7 @@ export const DashboardPage = () => {
                 const data = d.data();
                 tmg += (data.moneySpent || 0);
                 if (data.reason === 'referral_bonus') rc++;
-                const date = data.date?.toDate ? data.date.toDate() : new Date();
+                const date = data.date?.toDate ? data.date.toDate() : TimeService.now();
                 if (date >= startOfToday) {
                     dmg += (data.moneySpent || 0);
                     dpe += (data.amount || 0);
@@ -122,7 +122,7 @@ export const DashboardPage = () => {
             const activities = await Promise.all(snap.docs.map(async (d) => {
                 const data = d.data();
                 const userName = await getUserName(d.ref.parent.parent?.id || '');
-                return { id: d.id, ...data, date: data.date?.toDate ? data.date.toDate() : new Date(), userName };
+                return { id: d.id, ...data, date: data.date?.toDate ? data.date.toDate() : TimeService.now(), userName };
             }));
             setRecentActivity(activities);
         });

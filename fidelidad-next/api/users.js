@@ -4,6 +4,7 @@
 
 import admin from "firebase-admin";
 import { getValidityDays } from "../utils/_expiration-utils.js";
+import { getEffectiveDate } from "../utils/timeUtils.js";
 
 // ---------- Firebase Admin Init ----------
 function initFirebaseAdmin() {
@@ -98,8 +99,9 @@ async function handleCreate(req, res, db) {
         if (metadata) fsPayload.metadata = { ...metadata };
         if (termsAccepted !== undefined) fsPayload.termsAccepted = termsAccepted;
         if (termsAcceptedAt) fsPayload.termsAcceptedAt = termsAcceptedAt;
+        const now = await getEffectiveDate(db, req.query?.simulatedDate || req.body?.simulatedDate);
         if (fechaInscripcion) fsPayload.fechaInscripcion = fechaInscripcion;
-        if (domicilio) fsPayload.domicilio = { ...domicilio, updatedAt: new Date() };
+        if (domicilio) fsPayload.domicilio = { ...domicilio, updatedAt: now };
 
         if (!fsDocSnap.empty) {
             fsDocRef = fsDocSnap.docs[0].ref;
@@ -188,7 +190,8 @@ async function handleDelete(req, res, db) {
             }
 
             // --- NUEVO: Limpiar rastro en audit_logs para GlobalAlerts (Burbujas) ---
-            const startOfToday = new Date();
+            const nowSim = await getEffectiveDate(db, req.query?.simulatedDate || req.body?.simulatedDate);
+            const startOfToday = new Date(nowSim);
             startOfToday.setHours(0, 0, 0, 0);
 
             const auditCleanupSnap = await db.collection('audit_logs')
@@ -281,7 +284,7 @@ async function handleAssignSocio(req, res, db) {
             const validityDays = getValidityDays(totalBonus, expirationRules);
 
             // Calcular fecha de vencimiento usando reglas de escala
-            const now = new Date();
+            const now = await getEffectiveDate(db, req.query?.simulatedDate || req.body?.simulatedDate);
             const expirationDate = new Date(now);
             expirationDate.setDate(expirationDate.getDate() + validityDays);
             const expY = expirationDate.getFullYear();
@@ -333,7 +336,7 @@ async function handleAssignSocio(req, res, db) {
                     : `Tu cuenta fue creada con éxito. Número de socio: #${assignedNumber}. ¡Ya podés empezar a acumular puntos!`,
                 url: '/', type: 'welcome', read: false,
                 date: admin.firestore.FieldValue.serverTimestamp(),
-                expireAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 7776000000))
+                expireAt: admin.firestore.Timestamp.fromDate(new Date(now.getTime() + 7776000000))
             });
 
             await batch.commit();

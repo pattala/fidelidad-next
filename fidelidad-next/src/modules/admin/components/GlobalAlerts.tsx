@@ -124,10 +124,13 @@ export const GlobalAlerts = () => {
             });
             unsubs.push(unsubUsers);
 
+            const startOfSimToday = new Date(effectiveDate);
+            startOfSimToday.setHours(0, 0, 0, 0);
+
             const qReds = query(
                 collection(db, 'audit_logs'), 
                 where('type', '==', 'prize_redemption'),
-                where('timestamp', '>=', new Date(new Date().setHours(0,0,0,0)))
+                where('timestamp', '>=', startOfSimToday)
             );
             const unsubReds = onSnapshot(qReds, (snap) => {
                 const reds: any[] = [];
@@ -154,7 +157,7 @@ export const GlobalAlerts = () => {
             const qPoints = query(
                 collection(db, 'audit_logs'), 
                 where('type', '==', 'points_assignment'),
-                where('timestamp', '>=', new Date(new Date().setHours(0,0,0,0)))
+                where('timestamp', '>=', startOfSimToday)
             );
             const unsubPoints = onSnapshot(qPoints, (snap) => {
                 const pts: any[] = [];
@@ -197,7 +200,7 @@ export const GlobalAlerts = () => {
         const currentActions = { ...processedAlerts, [alertId]: action };
         
         try {
-            await setDoc(logRef, { actions: currentActions, lastUpdate: new Date() }, { merge: true });
+            await setDoc(logRef, { actions: currentActions, lastUpdate: TimeService.now() }, { merge: true });
             
             if (action === 'sent') {
                 if (item.isOrphan) {

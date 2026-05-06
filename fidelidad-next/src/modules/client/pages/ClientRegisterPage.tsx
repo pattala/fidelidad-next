@@ -10,6 +10,7 @@ import { ARGENTINA_LOCATIONS } from '../../../data/locations';
 import { EmailService } from '../../../services/emailService';
 import { DEFAULT_TEMPLATES } from '../../../services/configService';
 import { NotificationService } from '../../../services/notificationService';
+import { TimeService } from '../../../services/timeService';
 import type { AppConfig } from '../../../types';
 
 export const ClientRegisterPage = () => {
@@ -149,10 +150,10 @@ export const ClientRegisterPage = () => {
                     components: { calle: street, numero: number, piso: floor, depto: apt, localidad, partido, provincia: province, zipCode: cp }
                 },
                 localidad: localidad || '', partido: partido || '', provincia: province || '', calle: street || '', numero: number || '', piso: floor || '', depto: apt || '', cp: cp || '',
-                role: 'client', createdAt: new Date(), fechaInscripcion: new Date().toISOString(),
+                role: 'client', createdAt: TimeService.now(), fechaInscripcion: TimeService.now().toISOString(),
                 points: totalPoints, puntos: totalPoints, accumulated_balance: 0,
                 permissions: { notifications: { status: 'pending' }, geolocation: { status: 'pending' } },
-                termsAccepted: true, termsAcceptedAt: new Date().toISOString(),
+                termsAccepted: true, termsAcceptedAt: TimeService.now().toISOString(),
                 source: 'pwa', referralCode: myRefCode, referredBy: inviterUid,
                 referralStats: { count: 0, pointsEarned: 0 },
                 metadata: { createdFrom: 'pwa', version: '2.6-3step', bonusDetails: { welcome: wBonus, address: aBonus } }

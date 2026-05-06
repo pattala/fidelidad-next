@@ -1,4 +1,5 @@
 import admin from "firebase-admin";
+import { getEffectiveDate } from "../utils/timeUtils.js";
 
 function getDb() {
     if (!admin.apps.length) {
@@ -25,7 +26,7 @@ export default async function handler(req, res) {
 
     try {
         const db = getDb();
-        const now = new Date();
+        const now = await getEffectiveDate(db, req.query?.simulatedDate || req.body?.simulatedDate);
         const todayStr = now.toISOString().split('T')[0];
 
         // Obtener valor del punto respetando la configuración del panel

@@ -59,6 +59,7 @@ export default async function handler(req, res) {
 
         const simulatedDateStr = req.body?.simulatedDate || req.query?.simulatedDate;
         const triggerSource = req.body?.source || req.query?.source || req.query?.trigger || 'auto';
+        const skipDuplicityCheck = req.query?.ignoreDeduplication === 'true' || req.body?.ignoreDeduplication === true;
         
         // Usamos la utilidad centralizada para respetar el Simulador
         const referenceDate = await getEffectiveDate(db, simulatedDateStr);
@@ -119,7 +120,27 @@ export default async function handler(req, res) {
 
         // 1. PROCESAR CUMPLEAÑOS
         const usersSnap = await db.collection('users').where('birthDate', '!=', '').get();
-        const birthdayUsers = usersSnap.docs.filter(doc => doc.data().birthDate?.endsWith(todayMD));
+        const birthdayUsers = usersSnap.docs.filter(doc => {
+            const bDate = doc.data().birthDate;
+            if (!bDate) return false;
+            // Normalizar: convertir YYYY-MM-DD o DD/MM/YYYY a MM-DD para comparar
+            let normalized = bDate;
+            if (bDate.includes('/')) {
+                const parts = bDate.split('/');
+                if (parts.length === 3) normalized = `${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+            } else if (bDate.includes('-')) {
+                const parts = bDate.split('-');
+                if (parts.length === 3) {
+                    // Si es YYYY-MM-DD (estándar HTML5)
+                    if (parts[0].length === 4) normalized = `${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+                    // Si es DD-MM-YYYY
+                    else normalized = `${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                }
+            }
+            return normalized.endsWith(todayMD);
+        });
+
+        console.log(`[Engine] Evaluando ${usersSnap.size} usuarios con fecha de nacimiento. Encontrados hoy (${todayMD}): ${birthdayUsers.length}`);
 
         for (const userDoc of birthdayUsers) {
             try {
@@ -230,7 +251,7 @@ export default async function handler(req, res) {
                     batch.update(doc.ref, { points: admin.firestore.FieldValue.increment(-total), nextExpirationDate: null });
                     batch.set(history.doc(), { 
                         amount: -total, concept: 'Vencimiento automático de puntos acumulados (Auto)', 
-                        date: admin.firestore.FieldValue.serverTimestamp(), type: 'debit' 
+                        date: admin.firestore.Timestamp.fromDate(referenceDate), type: 'debit' 
                     });
                     await batch.commit();
                     results.expirations++;
@@ -396,7 +417,7 @@ export default async function handler(req, res) {
 
         // 4. PROCESAR CANJES (Para sincronización de WhatsApp)
         // Buscamos si ya existe una ejecución para HOY (según fecha efectiva)
-        const startOfToday = new Date(now);
+        const startOfToday = new Date(referenceDate);
         startOfToday.setHours(0, 0, 0, 0);
 
         const checkSnap = await db.collection('audit_logs')
@@ -406,20 +427,21 @@ export default async function handler(req, res) {
             .limit(1)
             .get();
 
-        if (!checkSnap.empty && !skipDuplicityCheck) {
-            console.log(`[Engine] Bloqueado: Ya se ejecutó hoy (${todayStr})`);
-            return res.status(200).json({ ok: true, message: "Already executed today", skipped: true });
-        }
+        // --- 11. REGISTRO DE INICIO (Solo si no se saltó por duplicidad) ---
+        let skipSideEffects = !checkSnap.empty && !skipDuplicityCheck;
+        
+        console.log(`[Engine] Resultados parciales: ${results.birthdays} cumple, ${results.expirations} vencim, ${results.petAlerts} mascotas. Duplicado: ${skipSideEffects}`);
 
-        // --- 11. REGISTRO DE INICIO ---
-        const auditRef = await db.collection('audit_logs').add({
-            timestamp: admin.firestore.FieldValue.serverTimestamp(),
-            type: 'daily_engine_execution',
-            status: 'running',
-            summary: `Iniciando motor diario (${todayStr})`,
-            executor,
-            triggerSource
-        });
+        if (!skipSideEffects) {
+            await db.collection('audit_logs').add({
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                type: 'daily_engine_execution',
+                status: 'running',
+                summary: `Iniciando motor diario (${todayStr})`,
+                executor: executorDetail,
+                triggerSource
+            });
+        }
 
         const redemptionsList = [];
         try {
@@ -501,15 +523,17 @@ export default async function handler(req, res) {
             }
         } catch (e) { console.error("Error in transaction maintenance:", e); }
 
-        // AUDITORÍA FINAL CONSOLIDADA
-        await db.collection('audit_logs').add({
-            type: 'engine_daily_unified',
-            status: results.errors.length > 0 ? 'partial' : 'success',
-            timestamp: admin.firestore.FieldValue.serverTimestamp(),
-            executor: executorDetail,
-            summary: `Motor Maestro V.1.3.6: ${results.birthdays} cumple, ${results.expirations} vencim, ${results.petAlerts} mascotas.`,
-            details: results.details.length > 0 ? results.details : [{ userId: 'system', action: 'check', status: 'skipped', info: 'Sin acciones hoy' }]
-        });
+        // AUDITORÍA FINAL CONSOLIDADA (Solo si se procesó)
+        if (!skipSideEffects) {
+            await db.collection('audit_logs').add({
+                type: 'engine_daily_unified',
+                status: results.errors.length > 0 ? 'partial' : 'success',
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                executor: executorDetail,
+                summary: `Motor Maestro V.1.4.20: ${results.birthdays} cumple, ${results.expirations} vencim, ${results.petAlerts} mascotas.`,
+                details: results.details.length > 0 ? results.details : [{ userId: 'system', action: 'check', status: 'skipped', info: 'Sin acciones hoy' }]
+            });
+        }
 
         // Formatear listas para la extensión/dashboard
         const birthdaysList = results.details.filter(d => d.action === "birthday_greeting").map(d => ({...d, name: d.userName}));
@@ -526,7 +550,8 @@ export default async function handler(req, res) {
             pointsAssignments: pointsAssignmentsList,
             processedAlerts: processedAlerts,
             config: config,
-            referenceDate: todayStr // Enviamos la fecha de referencia (simulada o real)
+            referenceDate: todayStr,
+            skipped: skipSideEffects
         });
 
     } catch (e) {

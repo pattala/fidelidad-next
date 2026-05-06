@@ -12,6 +12,7 @@ import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom
 import { useFcmToken } from '../../../hooks/useFcmToken';
 import { useClientAuth } from '../contexts/ClientAuthContext';
 import { ARGENTINA_LOCATIONS } from '../../../data/locations';
+import { TimeService } from '../../../services/timeService';
 
 // Assuming AppConfig is defined elsewhere or is a type alias for the config object
 // For the purpose of this edit, we'll assume it's a valid type.
@@ -24,7 +25,7 @@ export const ClientProfilePage = () => {
         if (!pet.birthDate) return pet.age ? `${pet.age} años` : '';
         try {
             const birth = pet.birthDate.toDate ? pet.birthDate.toDate() : new Date(pet.birthDate);
-            const now = new Date();
+            const now = TimeService.now();
             let age = now.getFullYear() - birth.getFullYear();
             const m = now.getMonth() - birth.getMonth();
             if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) {
@@ -226,7 +227,7 @@ export const ClientProfilePage = () => {
             if (petFormData.age && (!editingPet || petFormData.age !== editingPet.age)) {
                 const ageNum = parseInt(petFormData.age.toString());
                 if (!isNaN(ageNum)) {
-                    const now = new Date();
+                    const now = TimeService.now();
                     // Store the approximate date of birth
                     calculatedBirthDate = new Date(now.getFullYear() - ageNum, now.getMonth(), now.getDate());
                 }
@@ -244,7 +245,7 @@ export const ClientProfilePage = () => {
                 frequencyDays: Number(petFormData.frequencyDays) || 30,
                 receiveAlerts: !!petFormData.receiveAlerts,
                 photoUrl: petPhotoBase64 || editingPet?.photoUrl || '',
-                createdAt: editingPet?.createdAt || new Date(),
+                createdAt: editingPet?.createdAt || TimeService.now(),
                 lastPurchaseDate: editingPet?.lastPurchaseDate || null
             };
 
@@ -356,7 +357,7 @@ export const ClientProfilePage = () => {
             await updateDoc(doc(db, 'users', userAuth.uid), {
                 [`permissions.${type}.status`]: newStatus,
                 [`permissions.${type}.${prefix}status`]: newStatus,
-                [`permissions.${type}.updatedAt`]: new Date().getTime()
+                [`permissions.${type}.updatedAt`]: TimeService.now().getTime()
             });
             toast.success(`${type === 'notifications' ? 'Notificaciones' : 'Ubicación'} ${newStatus === 'granted' ? 'activadas' : 'desactivadas'}`);
         } catch (e) {

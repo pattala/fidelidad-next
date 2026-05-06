@@ -203,7 +203,7 @@ export default async function handler(req, res) {
                 action: 'prize_redeemed',
                 status: 'success',
                 info: `Canjeó ${pData.name} por ${pointsNeeded} pts`,
-                timestamp: new Date().toISOString()
+                timestamp: now.toISOString()
             });
 
             // Update Prize Stock
@@ -442,7 +442,7 @@ export default async function handler(req, res) {
 
                         // --- SINCRO AUTO: Si se generó el WhatsApp, marcar como 'sent' en el log diario ---
                         if (result.whatsappLink) {
-                            const todayStr = new Date().toISOString().split('T')[0];
+                            const todayStr = now.toISOString().split('T')[0];
                             const todaySyncRef = db.collection('audit_logs').doc(`daily_alerts_${todayStr}`);
                             const alertId = `redemption-${clientData.socioNumber || clientData.numeroSocio || clientData.phone || targetUid}-${result.redemptionCode || 'N/A'}`;
                             

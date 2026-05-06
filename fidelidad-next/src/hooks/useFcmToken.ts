@@ -28,6 +28,7 @@ export const useFcmToken = () => {
         isRetrieving.current = true;
 
         try {
+            // 1. Clean up old VAPID if necessary
             const storedVapid = localStorage.getItem('fcm_vapid_key_vfinal');
             if (storedVapid && storedVapid !== VAPID_KEY) {
                 try {
@@ -36,11 +37,28 @@ export const useFcmToken = () => {
                 } catch (err) { console.warn('[FCM] Token cleanup failed:', err); }
             }
 
-            if (Notification.permission === 'granted') {
-                const registration = await navigator.serviceWorker.ready;
+            // 2. Check permission state
+            let permission = Notification.permission;
+            
+            // If we think we have permission but it's 'default', try to check again
+            // this handles some edge cases where the permission state is not updated yet.
+            if (permission === 'default' && (navigator as any).permissions) {
+                const status = await (navigator as any).permissions.query({ name: 'notifications' });
+                permission = status.state as NotificationPermission;
+            }
+
+            if (permission === 'granted') {
+                console.log('[FCM] Permission is granted. Fetching token...');
+                
+                // Wait for service worker to be ready with a timeout
+                const swReady = await Promise.race([
+                    navigator.serviceWorker.ready,
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('SW Ready Timeout')), 10000))
+                ]) as ServiceWorkerRegistration;
+
                 const currentToken = await getToken(messaging, {
                     vapidKey: VAPID_KEY,
-                    serviceWorkerRegistration: registration
+                    serviceWorkerRegistration: swReady
                 });
 
                 if (currentToken) {
@@ -66,25 +84,24 @@ export const useFcmToken = () => {
                                  fcmState: `registered_${deviceKey}_ok`,
                                  'permissions.notifications.status': 'granted',
                                  [`permissions.notifications.${deviceKey}_status`]: 'granted',
-                                 lastActive: serverTimestamp()
+                                 lastActive: serverTimestamp(),
+                                 [`fcmDebug_${deviceKey}`]: {
+                                     step: 'sync_ok',
+                                     timestamp: new Date().toISOString()
+                                 }
                              });
                          }
                     }
                     return currentToken;
                 }
             } else {
-                console.log(`[FCM] Permission is ${Notification.permission}. Skipping auto-sync.`);
+                console.log(`[FCM] Permission is ${permission}. Skipping auto-sync.`);
             }
             return null;
         } catch (e: any) {
             console.error(`[FCM] Error (Attempt ${retryCount}):`, e);
             const errorMsg = e.message || String(e);
             
-            // Show visible toast for manual retriggers
-            if (retryCount === 0) {
-                toast.error(`Error FCM: ${errorMsg.substring(0, 50)}...`);
-            }
-
             if (user?.uid) {
                 await updateDoc(doc(db, 'users', user.uid), {
                     fcmState: `error_${deviceKey}`,
@@ -98,7 +115,7 @@ export const useFcmToken = () => {
                 }).catch(() => { });
             }
 
-            if (retryCount < 2) {
+            if (retryCount < 2 && !errorMsg.includes('Permission denied')) {
                 await new Promise(r => setTimeout(r, 3000));
                 isRetrieving.current = false;
                 return retrieveToken(retryCount + 1);

@@ -330,7 +330,8 @@ function showGlobalAlert(fullData, config) {
             'pointsAssignment': 'pointsAdded'
         };
         const eventName = eventMap[type] || type;
-        const showWaBtn = isChannelEnabled(config, eventName, 'whatsapp');
+        // FORZAR: Siempre mostrar el botón si hay teléfono, para permitir el envío manual
+        const showWaBtn = !!(item.phone || item.telefono);
 
         return `<div class="cf-v35-card" style="${mode === 'processed' ? 'opacity:0.8; filter:grayscale(0.5);' : ''}">
             <div style="display:flex; justify-content:space-between; align-items:start;">
@@ -342,7 +343,7 @@ function showGlobalAlert(fullData, config) {
                         ${type === 'pet' ? `🐾 ${item.petName}` : type === 'expiration' ? `⏳ ${item.points} pts` : type === 'redemption' ? `🎁 ${item.prizeName}` : type === 'pointsAssignment' ? `💰 +${item.points} pts` : '🎂 Cumpleaños'}
                     </div>
                 </div>
-                ${mode === 'pending' ? `<button class="cf-v35-card-close" data-id="${id}">×</button>` : `<button class="cf-v35-card-delete" data-id="${id}" style="background:none; border:none; color:white; opacity:0.4; cursor:pointer;">🗑️</button>`}
+                ${mode === 'pending' ? `<button class="cf-v35-card-close" data-id="${id}">×</button>` : `<button class="cf-v35-card-delete" data-id="${id}" style="background:none; border:none; color:white; opacity:0.4; cursor:pointer;" title="Restaurar a Pendientes">🔄</button>`}
             </div>
             ${showWaBtn ? `
             <div style="margin-top:10px;">

@@ -950,33 +950,56 @@ function showFidelidadPanel() {
                 const clientPets = selectedClient.pets || [];
 
                 if (petFoodSection) {
+                    const petLabel = petFoodSection.querySelector('.cf-checkbox-label');
                     if (enablePetModule && clientPets.length > 0) {
                         petFoodSection.style.display = 'block';
-                        // Renderizar checkboxes de mascotas si hay más de una
-                        if (petListDiv) {
-                            if (clientPets.length > 1) {
+                        
+                        // Si es 1 sola mascota, mostrar fecha en el label principal
+                        if (clientPets.length === 1) {
+                            const pet = clientPets[0];
+                            const lastDate = pet.lastFoodAlertDate;
+                            const cycle = Number(pet.foodCycleDays) || 30;
+                            let dateText = "";
+                            if (lastDate) {
+                                const date = new Date(lastDate + 'T12:00:00');
+                                date.setDate(date.getDate() + cycle);
+                                dateText = ` (vence ${date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })})`;
+                            }
+                            if (petLabel) petLabel.innerHTML = `<input type="checkbox" id="cf-pet-food-check"> \u{1F43E} Reposición ${pet.name || 'Alimento'}${dateText}`;
+                            if (petListDiv) petListDiv.style.display = 'none';
+                        } else {
+                            // Mas de 1 mascota: label genérico y lista de checks
+                            if (petLabel) petLabel.innerHTML = `<input type="checkbox" id="cf-pet-food-check"> \u{1F43E} Reposición de Alimento`;
+                            if (petListDiv) {
                                 petListDiv.style.display = 'flex';
-                                petListDiv.innerHTML = clientPets.map(pet =>
-                                    `<label style="display:flex; align-items:center; gap:4px; background:#fff7ed; border:1px solid #fed7aa; padding:3px 8px; border-radius:8px; cursor:pointer; font-size:10px; font-weight:700; color:#9a3412;">
-                                        <input type="checkbox" class="cf-pet-check" value="${pet.id}" checked> ${pet.name || 'Mascota'}
-                                    </label>`
-                                ).join('');
-                            } else {
-                                // Solo 1 mascota: sin checkboxes individuales
-                                petListDiv.style.display = 'none';
+                                petListDiv.innerHTML = clientPets.map(pet => {
+                                    const lastDate = pet.lastFoodAlertDate;
+                                    const cycle = Number(pet.foodCycleDays) || 30;
+                                    let refillText = "";
+                                    if (lastDate) {
+                                        const date = new Date(lastDate + 'T12:00:00');
+                                        date.setDate(date.getDate() + cycle);
+                                        const formatted = date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' });
+                                        refillText = ` <span style="opacity:0.6; font-weight:400;">(vence ${formatted})</span>`;
+                                    }
+                                    return `<label style="display:flex; align-items:center; gap:4px; background:#fff7ed; border:1px solid #fed7aa; padding:3px 8px; border-radius:8px; cursor:pointer; font-size:10px; font-weight:700; color:#9a3412;">
+                                        <input type="checkbox" class="cf-pet-check" value="${pet.id}" checked> ${pet.name || 'Mascota'}${refillText}
+                                    </label>`;
+                                }).join('');
                             }
                         }
-                        // Toggle: mostrar/ocultar lista al marcar el check principal
-                        if (petFoodCheck) {
-                            petFoodCheck.onchange = () => {
+                        
+                        // Re-vincular el listener del check principal (porque borramos el innerHTML)
+                        const newCheck = document.getElementById('cf-pet-food-check');
+                        if (newCheck) {
+                            newCheck.onchange = () => {
                                 if (petListDiv && clientPets.length > 1) {
-                                    petListDiv.style.display = petFoodCheck.checked ? 'flex' : 'none';
+                                    petListDiv.style.display = newCheck.checked ? 'flex' : 'none';
                                 }
                             };
                         }
                     } else {
                         petFoodSection.style.display = 'none';
-                        if (petFoodCheck) petFoodCheck.checked = false;
                     }
                 }
 

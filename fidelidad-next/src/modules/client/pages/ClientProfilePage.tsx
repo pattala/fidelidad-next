@@ -584,12 +584,6 @@ export const ClientProfilePage = () => {
                                                 >
                                                     <PenLine size={16} />
                                                 </button>
-                                                <button
-                                                    onClick={() => handleDeletePet(pet)}
-                                                    className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
                                             </div>
                                         </div>
                                     ))}
@@ -1203,6 +1197,19 @@ export const ClientProfilePage = () => {
                                     editingPet ? 'Actualizar Mascota' : 'Registrar Mascota'
                                 )}
                             </button>
+
+                            {editingPet && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        handleDeletePet(editingPet);
+                                        setIsPetModalOpen(false);
+                                    }}
+                                    className="w-full py-3 mt-4 text-red-500 font-bold text-xs uppercase tracking-widest hover:bg-red-50 rounded-xl transition-colors flex items-center justify-center gap-2"
+                                >
+                                    <Trash2 size={14} /> Eliminar Mascota
+                                </button>
+                            )}
                         </form>
                     </div>
                 </div>

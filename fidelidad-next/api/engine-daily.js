@@ -173,9 +173,8 @@ export default async function handler(req, res) {
                         const templateFull = config?.messaging?.templates?.birthday || "¡Feliz cumpleaños {nombre}! 🎂 Que tengas un gran día. Te regalamos {puntos} puntos.";
                         const templateSimple = config?.messaging?.templates?.birthdaySimple || "¡Feliz cumpleaños {nombre}! 🎂 Que tengas un gran día.";
                         
-                        // Solo usar template con puntos si el bono está activo Y hay puntos > 0
-                        const usePointsTemplate = (enableBirthdayBonus && birthdayPoints > 0);
-                        const template = usePointsTemplate ? templateFull : templateSimple;
+                        // Lógica estricta: si está habilitado el bono, usamos template full. Si no, simple.
+                        const template = enableBirthdayBonus ? templateFull : templateSimple;
                         
                         const msg = template.replace(/{nombre}/g, (userData.nombre || userData.name || '').split(' ')[0]).replace(/{puntos}/g, birthdayPoints.toString());
                         const title = "¡Feliz Cumpleaños! 🎂";

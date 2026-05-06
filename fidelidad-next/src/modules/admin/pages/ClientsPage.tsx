@@ -657,16 +657,6 @@ export const ClientsPage = () => {
                     </div>
                 ), { duration: 6000 });
 
-                const userRef = doc(db, 'users', selectedClientForPoints.id);
-                const updates: any = {};
-                if (isPetFoodPurchase && selectedClientForPoints.pets) {
-                    const updatedPets = selectedClientForPoints.pets.map(pet => {
-                        if (selectedPetsForFood.includes(pet.id)) return { ...pet, lastPurchaseDate: Timestamp.fromDate(new Date(pointsData.purchaseDate)) };
-                        return pet;
-                    });
-                    updates.pets = updatedPets;
-                }
-                if (Object.keys(updates).length > 0) await updateDoc(userRef, updates);
                 ExpirationService.updateNextExpirationCache(selectedClientForPoints.id);
                 closePointsModal();
                 fetchData();

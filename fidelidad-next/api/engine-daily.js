@@ -383,7 +383,8 @@ export default async function handler(req, res) {
                         if (!lastPurchase) continue;
 
                         const cycleDays = Number(pet.foodCycleDays || pet.frequencyDays || 30);
-                        const warningDays = Number(config?.messaging?.petFoodWarningDays || config?.petFoodAlertLeadDays || 3);
+                        // Priorizamos petFoodAlertLeadDays que es el campo estándar del panel
+                        const warningDays = Number(config?.petFoodAlertLeadDays || config?.messaging?.petFoodWarningDays || 3);
                         
                         // Fecha en la que se le acaba el alimento
                         const exhaustionDate = new Date(lastPurchase);

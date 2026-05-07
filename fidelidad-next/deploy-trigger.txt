@@ -1,5 +1,5 @@
-Deployment Trigger: 2026-05-07 13:30:00
-V.1.4.51
-Fix: Session resilience in AdminAuthContext.
-Fix: Silent error handling for snapshot listeners to prevent logouts during multi-tab testing.
+Deployment Trigger: 2026-05-07 13:42:00
+V.1.4.52
+Fix: Undefined name in WhatsApp messages for pet alerts.
+Fix: Name normalization in GlobalAlerts component (nombre vs name).
 Fix: Robust versioning sync.

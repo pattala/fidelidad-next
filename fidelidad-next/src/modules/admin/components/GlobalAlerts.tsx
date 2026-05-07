@@ -213,7 +213,8 @@ export const GlobalAlerts = () => {
                 if (!p.startsWith('54') && p.length === 10) p = '549' + p;
                 
                 let msg = "";
-                const firstName = item.name?.split(' ')[0];
+                const fullName = item.nombre || item.name || 'Socio';
+                const firstName = fullName.split(' ')[0];
                 const socioInfo = item.socioNumber ? ` (Socio #${item.socioNumber})` : "";
                 
                 if (type === 'birthday') {
@@ -401,7 +402,7 @@ const AlertCard = ({ item, type, onAction, onDelete, status }: any) => {
             <div className="flex justify-between items-start">
                 <div>
                     <h5 className="font-bold text-white text-[15px] flex items-center gap-2">
-                        {item.name} <span className="text-[10px] text-white/30 font-bold tracking-tighter">#{item.socioNumber || 'S/N'}</span>
+                        {item.nombre || item.name || 'Socio'} <span className="text-[10px] text-white/30 font-bold tracking-tighter">#{item.socioNumber || 'S/N'}</span>
                         {isSent && <span className="text-[#25D366] text-xs font-black drop-shadow-[0_0_2px_rgba(37,211,102,0.5)]">✓✓</span>}
                         {isDismissed && <span className="text-red-500 text-xs font-black">✓</span>}
                     </h5>

@@ -112,8 +112,15 @@ export const ClientLoginPage = () => {
                                 lastLoginAt: new Date()
                             });
 
-                            // 2. Delete the old document (to avoid duplicates)
-                            await deleteDoc(doc(db, 'users', userDoc.id));
+                            // 2. Borrar el documento antiguo usando el API para limpieza profunda (evita fantasmas)
+                            await fetch('/api/users?action=delete', {
+                                method: 'POST',
+                                headers: { 
+                                    'Content-Type': 'application/json',
+                                    'x-api-key': import.meta.env.VITE_API_KEY || ''
+                                },
+                                body: JSON.stringify({ docId: userDoc.id })
+                            });
 
                             // Trigger Campaign Engine (Silent)
                             fetch('/api/engine-campaigns?trigger=pwa', {

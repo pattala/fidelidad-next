@@ -179,13 +179,13 @@ async function handleDelete(req, res, db) {
             tSnap2.forEach(d => tBatch.delete(d.ref));
             if (tSnap1.size > 0 || tSnap2.size > 0) await tBatch.commit();
             
-            // 2. Borrar subcolecciones
-            const collections = ['points_history', 'inbox', 'redemptions', 'transactions', 'visit_history'];
-            for (const collName of collections) {
-                const subSnap = await userRef.collection(collName).get();
+            // 2. Borrar subcolecciones de forma recursiva y dinámica
+            const subcollections = await userRef.listCollections();
+            for (const sub of subcollections) {
+                const subSnap = await sub.get();
                 if (!subSnap.empty) {
                     const batch = db.batch();
-                    subSnap.docs.forEach(doc => batch.delete(doc.ref));
+                    subSnap.docs.forEach(d => batch.delete(d.ref));
                     await batch.commit();
                 }
             }

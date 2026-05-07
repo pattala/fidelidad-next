@@ -397,34 +397,36 @@ export default async function handler(req, res) {
                                 const template = config.messaging?.templates?.petFoodAlert || "¡Hola {nombre}! 🐾 Notamos que a {mascota} se le debe estar terminando su {marca}.";
                                 const msg = template.replace(/{nombre}/g, userName).replace(/{mascota}/g, pet.name).replace(/{marca}/g, pet.foodBrand || pet.brand || 'alimento');
 
-                                if (userData.fcmTokens?.length && config.messaging?.pushEnabled !== false) {
+                                // Saneamiento de tokens (Asegurar que sean strings)
+                                const cleanTokens = (userData.fcmTokens || [])
+                                    .filter(t => t && typeof t === 'string' && t.length > 10);
+
+                                // DIAGNÓSTICO PUSH
+                                if (!userData.fcmTokens?.length) results.errors.push(`Pet ${userDoc.id}: Sin tokens FCM`);
+                                if (config.messaging?.pushEnabled === false) results.errors.push(`Pet ${userDoc.id}: Push desactivado en config`);
+
+                                if (cleanTokens.length > 0 && config.messaging?.pushEnabled !== false) {
                                     const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
                                     const iconUrl = config.logoUrl ? getAbsoluteUrl(config.logoUrl, PWA_URL) : "";
                                     const title = "🐾 Aviso de Alimento";
                                     
-                                    // Saneamiento de tokens (Asegurar que sean strings)
-                                    const cleanTokens = userData.fcmTokens
-                                        .filter(t => t && typeof t === 'string' && t.length > 10);
-
-                                    if (cleanTokens.length > 0) {
-                                        try {
-                                            const response = await app.messaging().sendEachForMulticast({
-                                                tokens: cleanTokens,
-                                                notification: { title, body: msg },
-                                                data: { title, body: msg, url: `${PWA_URL}/profile`, icon: iconUrl },
-                                                android: { 
-                                                    priority: "high",
-                                                    notification: { sound: "default", channelId: "fidelidad-notif-channel" }
-                                                },
-                                                webpush: {
-                                                    headers: { Urgent: "high" },
-                                                    fcmOptions: { link: `${PWA_URL}/profile` }
-                                                }
-                                            });
-                                            console.log(`[Push Alimento] Éxito: ${response.successCount}, Fallos: ${response.failureCount}`);
-                                        } catch (pushErr) {
-                                            console.error("[Push Alimento] Error crítico FCM:", pushErr.message);
-                                        }
+                                    try {
+                                        const response = await app.messaging().sendEachForMulticast({
+                                            tokens: cleanTokens,
+                                            notification: { title, body: msg },
+                                            data: { title, body: msg, url: `${PWA_URL}/profile`, icon: iconUrl },
+                                            android: { 
+                                                priority: "high",
+                                                notification: { sound: "default", channelId: "fidelidad-notif-channel" }
+                                            },
+                                            webpush: {
+                                                headers: { Urgent: "high" },
+                                                fcmOptions: { link: `${PWA_URL}/profile` }
+                                            }
+                                        });
+                                        results.details.push({ action: "push_sent", userId: userDoc.id, success: response.successCount });
+                                    } catch (pushErr) {
+                                        results.errors.push(`Pet ${userDoc.id} Push Error: ${pushErr.message}`);
                                     }
                                 }
 
@@ -435,13 +437,23 @@ export default async function handler(req, res) {
                                     });
                                 }
 
+                                // DIAGNÓSTICO EMAIL
+                                if (!userData.email) results.errors.push(`Pet ${userDoc.id}: Sin email`);
+                                if (!process.env.SMTP_USER) results.errors.push(`Pet ${userDoc.id}: SMTP no configurado en servidor`);
+                                if (config.messaging?.emailEnabled === false) results.errors.push(`Pet ${userDoc.id}: Email desactivado en config`);
+
                                 if (userData.email && process.env.SMTP_USER && config.messaging?.emailEnabled !== false) {
                                     const title = "🐾 Aviso de Alimento";
                                     const innerHtml = `<div style="color: #333;"><h2 style="color: #6366f1; margin-top: 0;">${title}</h2><p style="font-size: 16px; line-height: 1.6;">${msg}</p></div>`;
-                                    await transporter.sendMail({
-                                        from: `"${config.siteName || 'Club Fidelidad'}" <${process.env.SMTP_USER}>`,
-                                        to: userData.email, subject: title, html: buildHtmlLayout(innerHtml, config)
-                                    }).catch(() => {});
+                                    try {
+                                        await transporter.sendMail({
+                                            from: `"${config.siteName || 'Club Fidelidad'}" <${process.env.SMTP_USER}>`,
+                                            to: userData.email, subject: title, html: buildHtmlLayout(innerHtml, config)
+                                        });
+                                        results.details.push({ action: "email_sent", userId: userDoc.id });
+                                    } catch (mailErr) {
+                                        results.errors.push(`Pet ${userDoc.id} Mail Error: ${mailErr.message}`);
+                                    }
                                 }
 
                                 nextPets[i].lastFoodAlertDate = todayStrShort; // Registramos que hoy enviamos la alerta

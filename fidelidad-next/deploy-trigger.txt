@@ -1,4 +1,6 @@
-Deployment Trigger: 2026-05-07 13:45:00
-V.1.4.53
-Fix: Detailed executor identification in audit logs (Vercel Cron, QStash, Extension, Manual).
+Deployment Trigger: 2026-05-07 14:02:00
+V.1.4.54
+Fix: Sync pet food expiration date between PWA and Admin Panel.
+Fix: Removed leadDays subtraction from PWA display to show real expiration date.
+Fix: Updated PWA label to "Fin de alimento".
 Fix: Robust versioning sync.

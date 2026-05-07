@@ -559,11 +559,10 @@ export const ClientProfilePage = () => {
                                                     </span>
                                                     {pet.lastPurchaseDate && pet.frequencyDays && (
                                                         <span className="text-[9px] font-black text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full flex items-center gap-1">
-                                                            📅 Próximo aviso: {(() => {
+                                                            📅 Fin de alimento: {(() => {
                                                                 const last = pet.lastPurchaseDate.toDate ? pet.lastPurchaseDate.toDate() : new Date(pet.lastPurchaseDate);
-                                                                const leadDays = Number(config?.petFoodAlertLeadDays || 0);
                                                                 const next = new Date(last);
-                                                                next.setDate(last.getDate() + Number(pet.frequencyDays) - leadDays);
+                                                                next.setDate(last.getDate() + Number(pet.frequencyDays));
                                                                 return next.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' });
                                                             })()}
                                                         </span>

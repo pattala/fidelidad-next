@@ -460,7 +460,7 @@ export default async function handler(req, res) {
                     const todayStr = recordDate.toISOString().split('T')[0];
                     clientUpdate.pets = cData.pets.map(p => {
                         if (petIds.includes(p.id)) {
-                            return { ...p, lastPurchaseDate: todayStr, lastFoodAlertDate: todayStr };
+                            return { ...p, lastPurchaseDate: todayStr };
                         }
                         return p;
                     });

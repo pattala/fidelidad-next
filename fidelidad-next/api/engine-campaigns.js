@@ -113,7 +113,12 @@ export default async function handler(req, res) {
             }
         }
 
-        // 2. OBTENER TODAS LAS CAMPAÑAS ACTIVAS
+        // 2. VERIFICAR SIMULADOR
+        if (config.simulationConfig?.campaigns === false) {
+            return res.status(200).json({ ok: true, skipped: true, message: "Campañas desactivadas en el simulador" });
+        }
+
+        // 3. OBTENER TODAS LAS CAMPAÑAS ACTIVAS
         const snapshot = await db.collection('campanas').where('active', '==', true).get();
 
         const results = {

@@ -141,10 +141,12 @@ export default async function handler(req, res) {
         for (const userDoc of birthdayUsers) {
             try {
                 const userData = userDoc.data();
+                const simCfg = config?.simulationConfig || { birthdays: true, expirations: true, petAlerts: true, campaigns: true };
+                const skipBirthdays = simCfg.birthdays === false;
                 const alreadyGreeted = userData.lastBirthdayGreetingYear === currentYear;
 
-                // Lógica Automática (Solo si no se saludó hoy)
-                if (!alreadyGreeted) {
+                // Lógica Automática (Solo si no se saludó hoy o forzamos repetición)
+                if (!skipBirthdays && (!alreadyGreeted || skipDuplicityCheck)) {
                     const birthdayPoints = Number(config?.birthdayPoints || 100);
                     const autoBonusEnabled = config?.enableBirthdayBonus === true;
                     const autoMessageEnabled = config?.enableBirthdayMessage !== false;
@@ -298,9 +300,10 @@ export default async function handler(req, res) {
             const userData = doc.data();
             if ((userData.points || 0) > 0) {
                 const todayStrShort = todayStr;
+                const skipExpirations = (config?.simulationConfig?.expirations === false);
                 const alreadyNotified = userData.lastExpirationWarningDate === todayStrShort;
 
-                if (!alreadyNotified && config?.enableExpirationMessage !== false) {
+                if (!skipExpirations && (!alreadyNotified || skipDuplicityCheck) && config?.enableExpirationMessage !== false) {
                     const title = "⚠️ ¡Tus puntos vencen pronto!";
                     const template = config?.messaging?.templates?.expirationWarning || "¡Hola {nombre}! 📢 Te recordamos que tus {puntos} puntos vencen el {fecha}. ¡No los pierdas!";
                     const msg = template
@@ -364,6 +367,9 @@ export default async function handler(req, res) {
             for (const userDoc of petUsersSnap.docs) {
                 try {
                     const userData = userDoc.data();
+                    const skipPets = (config?.simulationConfig?.petAlerts === false);
+                    if (skipPets) continue;
+
                     const pets = userData.pets || [];
                     let updatedPets = false;
                     const nextPets = [...pets];
@@ -593,6 +599,14 @@ export default async function handler(req, res) {
                 actions: processedAlerts // Sincronización para la extensión y panel
             }, { merge: true });
         }
+
+        // 7. DISPARAR MOTOR DE CAMPAÑAS (Sincronizado)
+        const baseUrl = process.env.PUBLIC_BASE_URL || `https://${req.headers.host}`;
+        fetch(`${baseUrl}/api/engine-campaigns?trigger=engine-daily&isManual=${skipDuplicityCheck}`, {
+            method: 'POST',
+            headers: { 'x-api-key': process.env.API_SECRET_KEY || '' },
+            body: JSON.stringify({ simulatedDate: simulatedDateStr })
+        }).catch(() => { });
 
         // Formatear listas para la extensión/dashboard
         const birthdaysList = results.details.filter(d => d.action === "birthday_greeting").map(d => ({...d, name: d.userName}));

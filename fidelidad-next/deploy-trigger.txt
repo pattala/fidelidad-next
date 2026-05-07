@@ -1,5 +1,4 @@
-Deployment Trigger: 2026-05-07 13:42:00
-V.1.4.52
-Fix: Undefined name in WhatsApp messages for pet alerts.
-Fix: Name normalization in GlobalAlerts component (nombre vs name).
+Deployment Trigger: 2026-05-07 13:45:00
+V.1.4.53
+Fix: Detailed executor identification in audit logs (Vercel Cron, QStash, Extension, Manual).
 Fix: Robust versioning sync.

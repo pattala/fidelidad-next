@@ -85,31 +85,31 @@ export default async function handler(req, res) {
             errors: []
         };
 
-        // Identificación del Ejecutor para Auditoría (V.1.4.3)
-        let executorDetail = "Sistema (Auto)";
+        // Identificación del Ejecutor para Auditoría (V.1.4.53)
+        let executorDetail = "Sistema (Desconocido)";
         if (cronHeader) {
             executorDetail = "Sistema (Vercel Cron)";
         } else if (req.headers["x-qstash-signature"]) {
-            executorDetail = "Sistema (QStash)";
+            executorDetail = "Sistema (QStash Scheduler)";
+        } else if (triggerSource === 'extension') {
+            executorDetail = "Sistema (Extensión Chrome)";
+        } else if (triggerSource === 'sidebar_manual') {
+            executorDetail = "Sistema (Simulador Manual)";
+        } else if (triggerSource === 'dashboard') {
+            executorDetail = "Sistema (Panel Admin)";
         } else {
-            // Intentar extraer identidad real del token de autorización
+            // Intentar extraer identidad real del token si existe
             const authHeader = req.headers["authorization"];
             if (authHeader && authHeader.startsWith("Bearer ")) {
                 try {
                     const idToken = authHeader.split("Bearer ")[1];
                     const decodedToken = await admin.auth().verifyIdToken(idToken);
-                    executorDetail = decodedToken.email || decodedToken.uid || "Administrador (Sesión)";
+                    executorDetail = decodedToken.email || "Administrador (Sesión)";
                 } catch (e) {
-                    // Fallback a triggerSource si el token falla o es API Key
-                    if (triggerSource === 'dashboard' || triggerSource === 'sidebar_manual') executorDetail = "Administrador (Panel)";
-                    else if (triggerSource === 'extension') executorDetail = "Administrador (Extensión)";
-                    else if (triggerSource === 'pwa_admin') executorDetail = "Administrador (PWA)";
+                    executorDetail = "Sistema (Auth Fallida)";
                 }
             } else {
-                // Si no hay token, usamos el triggerSource detectado
-                if (triggerSource === 'dashboard' || triggerSource === 'sidebar_manual') executorDetail = "Administrador (Panel)";
-                else if (triggerSource === 'extension') executorDetail = "Administrador (Extensión)";
-                else if (triggerSource === 'pwa_admin') executorDetail = "Administrador (PWA)";
+                executorDetail = `Sistema (${triggerSource})`;
             }
         }
 

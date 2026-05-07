@@ -1,5 +1,5 @@
-Deployment Trigger: 2026-05-07 14:11:00
-V.1.4.55
-Fix: Deep delete user logic now explicitly clears visit_history.
-Fix: Handled phantom document leftovers in Firestore.
-Fix: Updated versioning.
+Deployment Trigger: 2026-05-07 18:18:00
+V.1.4.56
+Fix: Push notification navigation route corrected from /profile to /perfil.
+Fix: Added router redirect for legacy /profile links.
+Fix: Added debug logs to Service Worker click handler.

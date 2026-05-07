@@ -98,6 +98,7 @@ self.addEventListener('notificationclick', (event) => {
                 }
             }
             if (self.clients.openWindow) {
+                console.log('[SW] Opening URL:', urlToOpen);
                 return self.clients.openWindow(urlToOpen);
             }
         })

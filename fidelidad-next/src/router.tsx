@@ -71,6 +71,10 @@ export const router = createBrowserRouter([
                 element: <ClientProfilePage />
             },
             {
+                path: "profile",
+                element: <Navigate to="/perfil" replace />
+            },
+            {
                 path: "activity",
                 element: <ClientActivityPage />
             },

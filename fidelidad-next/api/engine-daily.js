@@ -188,14 +188,14 @@ export default async function handler(req, res) {
                             await app.messaging().sendEachForMulticast({
                                 tokens: userData.fcmTokens,
                                 notification: { title, body: msg },
-                                data: { title, body: msg, url: `${PWA_URL}/profile`, icon: iconUrl },
+                                data: { title, body: msg, url: `${PWA_URL}/perfil`, icon: iconUrl },
                                 android: { 
                                     priority: "high",
                                     notification: { sound: "default", channelId: "fidelidad-notif-channel" }
                                 },
                                 webpush: {
                                     headers: { Urgent: "high" },
-                                    fcmOptions: { link: `${PWA_URL}/profile` }
+                                    fcmOptions: { link: `${PWA_URL}/perfil` }
                                 }
                             }).catch(() => {});
                         }
@@ -212,7 +212,7 @@ export default async function handler(req, res) {
                         // 3. INBOX
                         if (config.messaging?.inboxEnabled !== false) {
                             await userDoc.ref.collection('inbox').add({
-                                title, body: msg, url: "/profile", type: "birthday", read: false,
+                                title, body: msg, url: "/perfil", type: "birthday", read: false,
                                 date: admin.firestore.Timestamp.fromDate(referenceDate)
                             });
                         }
@@ -318,14 +318,14 @@ export default async function handler(req, res) {
                         await app.messaging().sendEachForMulticast({
                             tokens: userData.fcmTokens,
                             notification: { title, body: msg },
-                            data: { title, body: msg, url: "/profile", icon: iconUrl },
+                            data: { title, body: msg, url: "/perfil", icon: iconUrl },
                             android: { 
                                 priority: "high",
                                 notification: { sound: "default", channelId: "fidelidad-notif-channel" }
                             },
                             webpush: {
                                 headers: { Urgent: "high" },
-                                fcmOptions: { link: "/profile" }
+                                fcmOptions: { link: "/perfil" }
                             }
                         }).catch(() => {});
                     }
@@ -333,7 +333,7 @@ export default async function handler(req, res) {
                     // 2. INBOX
                     if (config.messaging?.inboxEnabled !== false) {
                         await doc.ref.collection('inbox').add({
-                            title, body: msg, url: "/profile", type: "expiration_warning", read: false,
+                            title, body: msg, url: "/perfil", type: "expiration_warning", read: false,
                             date: admin.firestore.Timestamp.fromDate(referenceDate)
                         });
                     }
@@ -420,14 +420,14 @@ export default async function handler(req, res) {
                                         const response = await app.messaging().sendEachForMulticast({
                                             tokens: cleanTokens,
                                             notification: { title, body: msg },
-                                            data: { title, body: msg, url: `${PWA_URL}/profile`, icon: iconUrl },
+                                            data: { title, body: msg, url: `${PWA_URL}/perfil`, icon: iconUrl },
                                             android: { 
                                                 priority: "high",
                                                 notification: { sound: "default", channelId: "fidelidad-notif-channel" }
                                             },
                                             webpush: {
                                                 headers: { Urgent: "high" },
-                                                fcmOptions: { link: `${PWA_URL}/profile` }
+                                                fcmOptions: { link: `${PWA_URL}/perfil` }
                                             }
                                         });
                                         results.details.push({ action: "push_sent", userId: userDoc.id, success: response.successCount });
@@ -438,7 +438,7 @@ export default async function handler(req, res) {
 
                                 if (config.messaging?.inboxEnabled !== false) {
                                     await userDoc.ref.collection('inbox').add({
-                                        title: "🐾 Aviso de Alimento", body: msg, url: "/profile", type: "pet_alert",
+                                        title: "🐾 Aviso de Alimento", body: msg, url: "/perfil", type: "pet_alert",
                                         read: false, date: admin.firestore.Timestamp.fromDate(referenceDate)
                                     });
                                 }

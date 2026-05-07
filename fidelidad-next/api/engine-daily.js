@@ -384,8 +384,10 @@ export default async function handler(req, res) {
                         const alertDate = new Date(exhaustionDate);
                         alertDate.setDate(exhaustionDate.getDate() - warningDays);
 
-                        const isAlertWindow = (referenceDate >= alertDate); 
+                        const isAlertWindow = (referenceDate >= alertDate);
+                        
                         // Evitar duplicados: Si la última alerta enviada es >= a la fecha de esta compra, ya avisamos.
+                        // Usamos mediodía (T12) para evitar errores de zona horaria al comparar fechas.
                         const lastAlertSent = pet.lastFoodAlertDate ? new Date(pet.lastFoodAlertDate + 'T12:00:00') : null;
                         const alreadyAlerted = lastAlertSent && lastAlertSent >= lastPurchase;
 

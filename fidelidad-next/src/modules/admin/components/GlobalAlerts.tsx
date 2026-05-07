@@ -104,8 +104,9 @@ export const GlobalAlerts = () => {
                     
                     if (data.pets) {
                         data.pets.forEach((p: any) => {
-                            const pId = `pet-${userIdentifier}-${p.name}-${p.lastFoodAlertDate || 'today'}-${data.points || 0}`;
-                            if (p.nextFoodAlertDate === todayStr) {
+                            const pId = `pet-${userIdentifier}-${p.name}-${p.nextFoodAlertDate || 'today'}`;
+                            // Mostrar si la fecha es hoy O ya pasó, y si no fue procesado aún
+                            if (p.nextFoodAlertDate && p.nextFoodAlertDate <= todayStr) {
                                 pets.push({ ...data, petName: p.name, alertId: pId, id: d.id });
                             }
                         });

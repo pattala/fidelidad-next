@@ -25,7 +25,7 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 
 async function updateRemoteVersion() {
-    const version = "V.1.4.54";
+    const version = "V.1.4.55";
     await db.collection('config').doc('general').update({
         latestVersion: version
     });

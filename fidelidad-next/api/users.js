@@ -180,6 +180,16 @@ async function handleDelete(req, res, db) {
             if (tSnap1.size > 0 || tSnap2.size > 0) await tBatch.commit();
             
             // 2. Borrar subcolecciones de forma recursiva y dinámica
+            const commonSubs = ['visit_history', 'points_history', 'inbox', 'notifications', 'fcmTokens'];
+            for (const subName of commonSubs) {
+                const subSnap = await userRef.collection(subName).get();
+                if (!subSnap.empty) {
+                    const batch = db.batch();
+                    subSnap.docs.forEach(d => batch.delete(d.ref));
+                    await batch.commit();
+                }
+            }
+
             const subcollections = await userRef.listCollections();
             for (const sub of subcollections) {
                 const subSnap = await sub.get();

@@ -1,6 +1,5 @@
-Deployment Trigger: 2026-05-07 14:02:00
-V.1.4.54
-Fix: Sync pet food expiration date between PWA and Admin Panel.
-Fix: Removed leadDays subtraction from PWA display to show real expiration date.
-Fix: Updated PWA label to "Fin de alimento".
-Fix: Robust versioning sync.
+Deployment Trigger: 2026-05-07 14:11:00
+V.1.4.55
+Fix: Deep delete user logic now explicitly clears visit_history.
+Fix: Handled phantom document leftovers in Firestore.
+Fix: Updated versioning.

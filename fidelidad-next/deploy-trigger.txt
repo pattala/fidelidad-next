@@ -1,7 +1,5 @@
-Deployment Trigger: 2026-05-07 13:17:00
-at 2026-05-07 13:17 (UTC-3)
-V.1.4.50
-Fix: Chained engine-daily to engine-campaigns.
-Fix: Engine respects simulation toggles from Sidebar.
-Fix: Aggressive deduplication bypass enabled for manual tests.
-Fix: Recursive user deletion (No ghost users).
+Deployment Trigger: 2026-05-07 13:30:00
+V.1.4.51
+Fix: Session resilience in AdminAuthContext.
+Fix: Silent error handling for snapshot listeners to prevent logouts during multi-tab testing.
+Fix: Robust versioning sync.

@@ -62,6 +62,8 @@ export const AdminLayout = () => {
                     link.href = data.logoUrl;
                 }
             }
+        }, (err) => {
+            console.warn("[AdminLayout] Config sync paused:", err.code);
         });
         return () => unsubConfig();
     }, []);

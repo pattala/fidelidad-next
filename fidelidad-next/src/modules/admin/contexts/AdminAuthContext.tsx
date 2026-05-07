@@ -82,8 +82,18 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
 
                         setUser(firebaseUser);
                         setLoading(false);
-                    } catch (e) {
+                    } catch (e: any) {
                         console.error(`Error fetching admin role (attempt ${retryCount + 1}):`, e);
+
+                        // SI es error de permisos y tenemos cache, asumimos que la sesión se pisó
+                        // en otra pestaña pero NO matamos la sesión actual del admin.
+                        if (e.code === 'permission-denied' && cachedRole) {
+                            console.warn("[AdminAuth] Permission denied. Maintaining cached role to prevent false logout.");
+                            setRole(cachedRole);
+                            setUser(firebaseUser);
+                            setLoading(false);
+                            return;
+                        }
 
                         if (retryCount < 2) {
                             setTimeout(() => fetchRole(retryCount + 1), 1000);

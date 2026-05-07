@@ -401,19 +401,31 @@ export default async function handler(req, res) {
                                     const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
                                     const iconUrl = config.logoUrl ? getAbsoluteUrl(config.logoUrl, PWA_URL) : "";
                                     const title = "🐾 Aviso de Alimento";
-                                    await app.messaging().sendEachForMulticast({
-                                        tokens: userData.fcmTokens,
-                                        notification: { title, body: msg },
-                                        data: { title, body: msg, url: `${PWA_URL}/profile`, icon: iconUrl },
-                                        android: { 
-                                            priority: "high",
-                                            notification: { sound: "default", channelId: "fidelidad-notif-channel" }
-                                        },
-                                        webpush: {
-                                            headers: { Urgent: "high" },
-                                            fcmOptions: { link: `${PWA_URL}/profile` }
+                                    
+                                    // Saneamiento de tokens (Asegurar que sean strings)
+                                    const cleanTokens = userData.fcmTokens
+                                        .filter(t => t && typeof t === 'string' && t.length > 10);
+
+                                    if (cleanTokens.length > 0) {
+                                        try {
+                                            const response = await app.messaging().sendEachForMulticast({
+                                                tokens: cleanTokens,
+                                                notification: { title, body: msg },
+                                                data: { title, body: msg, url: `${PWA_URL}/profile`, icon: iconUrl },
+                                                android: { 
+                                                    priority: "high",
+                                                    notification: { sound: "default", channelId: "fidelidad-notif-channel" }
+                                                },
+                                                webpush: {
+                                                    headers: { Urgent: "high" },
+                                                    fcmOptions: { link: `${PWA_URL}/profile` }
+                                                }
+                                            });
+                                            console.log(`[Push Alimento] Éxito: ${response.successCount}, Fallos: ${response.failureCount}`);
+                                        } catch (pushErr) {
+                                            console.error("[Push Alimento] Error crítico FCM:", pushErr.message);
                                         }
-                                    }).catch(() => {});
+                                    }
                                 }
 
                                 if (config.messaging?.inboxEnabled !== false) {

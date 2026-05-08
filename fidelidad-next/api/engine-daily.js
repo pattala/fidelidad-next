@@ -38,6 +38,14 @@ function getAbsoluteUrl(url, baseUrl) {
     return `${base}${url.startsWith("/") ? url : `/${url}`}`;
 }
 
+function formatDateToDisplay(dateStr) {
+    if (!dateStr || typeof dateStr !== 'string' || !dateStr.includes('-')) return dateStr;
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    const [y, m, d] = parts;
+    return `${d}/${m}/${y}`;
+}
+
 export default async function handler(req, res) {
     if (req.method === 'OPTIONS') return res.status(200).end();
 
@@ -85,31 +93,37 @@ export default async function handler(req, res) {
             errors: []
         };
 
-        // Identificación del Ejecutor para Auditoría (V.1.4.53)
+        // Identificación del Ejecutor para Auditoría (V.1.4.57)
         let executorDetail = "Sistema (Desconocido)";
-        if (cronHeader) {
-            executorDetail = "Sistema (Vercel Cron)";
-        } else if (req.headers["x-qstash-signature"]) {
-            executorDetail = "Sistema (QStash Scheduler)";
-        } else if (triggerSource === 'extension') {
-            executorDetail = "Sistema (Extensión Chrome)";
-        } else if (triggerSource === 'sidebar_manual') {
-            executorDetail = "Sistema (Simulador Manual)";
-        } else if (triggerSource === 'dashboard') {
-            executorDetail = "Sistema (Panel Admin)";
-        } else {
-            // Intentar extraer identidad real del token si existe
-            const authHeader = req.headers["authorization"];
-            if (authHeader && authHeader.startsWith("Bearer ")) {
-                try {
-                    const idToken = authHeader.split("Bearer ")[1];
-                    const decodedToken = await admin.auth().verifyIdToken(idToken);
-                    executorDetail = decodedToken.email || "Administrador (Sesión)";
-                } catch (e) {
-                    executorDetail = "Sistema (Auth Fallida)";
-                }
+        
+        // 1. Prioridad: Intentar extraer identidad real del token si existe
+        const authHeader = req.headers["authorization"];
+        if (authHeader && authHeader.startsWith("Bearer ")) {
+            try {
+                const idToken = authHeader.split("Bearer ")[1];
+                const decodedToken = await admin.auth().verifyIdToken(idToken);
+                executorDetail = decodedToken.email || "Administrador (Sesión)";
+            } catch (e) {
+                executorDetail = "Sistema (Token Inválido/Expirado)";
+            }
+        } 
+        
+        // 2. Si no hay token, identificar por encabezados de sistema o triggerSource
+        if (executorDetail.startsWith("Sistema")) {
+            if (cronHeader) {
+                executorDetail = "Sistema (Cron Job Vercel)";
+            } else if (req.headers["x-qstash-signature"]) {
+                executorDetail = "Sistema (QStash Scheduler)";
+            } else if (triggerSource === 'extension') {
+                executorDetail = "Sistema (Extensión Chrome)";
+            } else if (triggerSource === 'sidebar_manual') {
+                executorDetail = "Sistema (Gatillo Manual Sidebar)";
+            } else if (triggerSource === 'dashboard') {
+                executorDetail = "Sistema (Panel Admin)";
+            } else if (triggerSource === 'auto') {
+                executorDetail = "Sistema (Ejecución Automática)";
             } else {
-                executorDetail = `Sistema (${triggerSource})`;
+                executorDetail = `Sistema (Origen: ${triggerSource})`;
             }
         }
 
@@ -176,7 +190,7 @@ export default async function handler(req, res) {
                         const templateSimple = config?.messaging?.templates?.birthdaySimple || "¡Feliz cumpleaños {nombre}! 🎂 Que tengas un gran día.";
                         
                         // Lógica estricta: si está habilitado el bono, usamos template full. Si no, simple.
-                        const template = enableBirthdayBonus ? templateFull : templateSimple;
+                        const template = autoBonusEnabled ? templateFull : templateSimple;
                         
                         const msg = template.replace(/{nombre}/g, (userData.nombre || userData.name || '').split(' ')[0]).replace(/{puntos}/g, birthdayPoints.toString());
                         const title = "¡Feliz Cumpleaños! 🎂";
@@ -299,9 +313,8 @@ export default async function handler(req, res) {
         for (const doc of upcomingExpsSnap.docs) {
             const userData = doc.data();
             if ((userData.points || 0) > 0) {
-                const todayStrShort = todayStr;
                 const skipExpirations = (config?.simulationConfig?.expirations === false);
-                const alreadyNotified = userData.lastExpirationWarningDate === todayStrShort;
+                const alreadyNotified = userData.lastExpirationWarningDate === todayStr;
 
                 if (!skipExpirations && (!alreadyNotified || skipDuplicityCheck) && config?.enableExpirationMessage !== false) {
                     const title = "⚠️ ¡Tus puntos vencen pronto!";
@@ -309,7 +322,7 @@ export default async function handler(req, res) {
                     const msg = template
                         .replace(/{nombre}/g, (userData.nombre || userData.name || 'Socio').split(' ')[0])
                         .replace(/{puntos}/g, userData.points.toString())
-                        .replace(/{fecha}/g, userData.nextExpirationDate);
+                        .replace(/{fecha}/g, formatDateToDisplay(userData.nextExpirationDate));
 
                     // 1. PWA PUSH
                     if (userData.fcmTokens?.length && config.messaging?.pushEnabled !== false) {
@@ -347,14 +360,14 @@ export default async function handler(req, res) {
                         }).catch(() => {});
                     }
 
-                    await doc.ref.update({ lastExpirationWarningDate: todayStrShort });
+                    await doc.ref.update({ lastExpirationWarningDate: todayStr });
                 }
 
                 results.details.push({
                     userId: doc.id, userName: userData.nombre || userData.name || 'Socio',
                     socioNumber: userData.socioNumber || userData.numeroSocio || '',
                     dni: userData.dni || '', action: "expiration_warning", status: "info",
-                    info: `${userData.points} pts próximos a vencer el ${userData.nextExpirationDate}`,
+                    info: `${userData.points} pts próximos a vencer el ${formatDateToDisplay(userData.nextExpirationDate)}`,
                     phone: userData.phone || userData.telefono || '',
                     points: userData.points, nextExpirationDate: userData.nextExpirationDate
                 });
@@ -401,7 +414,17 @@ export default async function handler(req, res) {
                             if (!alreadyAlerted) {
                                 const userName = (userData.nombre || userData.name || '').split(' ')[0];
                                 const template = config.messaging?.templates?.petFoodAlert || "¡Hola {nombre}! 🐾 Notamos que a {mascota} se le debe estar terminando su {marca}.";
-                                const msg = template.replace(/{nombre}/g, userName).replace(/{mascota}/g, pet.name).replace(/{marca}/g, pet.foodBrand || pet.brand || 'alimento');
+                                
+                                // Formatear fecha de vencimiento (agotamiento) para el mensaje
+                                const exhaustionStr = exhaustionDate.toISOString().split('T')[0];
+                                const formattedExhaustion = formatDateToDisplay(exhaustionStr);
+
+                                const msg = template
+                                    .replace(/{nombre}/g, userName)
+                                    .replace(/{mascota}/g, pet.name)
+                                    .replace(/{marca}/g, pet.foodBrand || pet.brand || 'alimento')
+                                    .replace(/{fecha}/g, formattedExhaustion)
+                                    .replace(/{vencimiento}/g, formattedExhaustion);
 
                                 // Saneamiento de tokens (Asegurar que sean strings)
                                 const cleanTokens = (userData.fcmTokens || [])
@@ -462,7 +485,7 @@ export default async function handler(req, res) {
                                     }
                                 }
 
-                                nextPets[i].lastFoodAlertDate = todayStrShort; // Registramos que hoy enviamos la alerta
+                                nextPets[i].lastFoodAlertDate = todayStr; // Registramos que hoy enviamos la alerta
                                 updatedPets = true;
                                 results.petAlerts++;
                             }
@@ -589,12 +612,25 @@ export default async function handler(req, res) {
 
         // AUDITORÍA FINAL CONSOLIDADA (Con ID unificado para sincronización total)
         if (!skipSideEffects) {
+            const finalSummary = `Motor Maestro: ${results.birthdays} cumple, ${results.expirations} vencim, ${results.petAlerts} mascotas.`;
+            
+            // 1. Registro de Historia (Para Auditoría General - No se sobreescribe)
+            await db.collection('audit_logs').add({
+                type: 'engine_daily_execution_finished',
+                status: results.errors.length > 0 ? 'partial' : 'success',
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                executor: executorDetail,
+                summary: finalSummary,
+                details: results.details
+            });
+
+            // 2. Registro de Estado (Fijo para el Dashboard y GlobalAlerts)
             await db.collection('audit_logs').doc(`daily_alerts_${todayStr}`).set({
                 type: 'engine_daily_unified',
                 status: results.errors.length > 0 ? 'partial' : 'success',
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
                 executor: executorDetail,
-                summary: `Motor Maestro V.1.4.22: ${results.birthdays} cumple, ${results.expirations} vencim, ${results.petAlerts} mascotas.`,
+                summary: finalSummary,
                 details: results.details.length > 0 ? results.details : [{ userId: 'system', action: 'check', status: 'skipped', info: 'Sin acciones hoy' }],
                 actions: processedAlerts // Sincronización para la extensión y panel
             }, { merge: true });

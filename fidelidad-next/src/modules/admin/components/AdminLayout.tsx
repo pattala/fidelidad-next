@@ -130,9 +130,14 @@ export const AdminLayout = () => {
             const body: any = { source: 'sidebar_manual', ignoreDeduplication };
             if (TimeService.getOffsetInDays() !== 0) body.simulatedDate = TimeService.now().toISOString();
 
+            const token = await auth.currentUser?.getIdToken();
             const res = await fetch(`/api/engine-daily?mode=all&trigger=sidebar_manual&ignoreDeduplication=${ignoreDeduplication}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-api-key': import.meta.env.VITE_API_KEY || '' },
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'x-api-key': import.meta.env.VITE_API_KEY || '',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify(body)
             });
 

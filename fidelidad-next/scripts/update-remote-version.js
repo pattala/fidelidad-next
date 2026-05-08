@@ -15,7 +15,7 @@ initializeApp({
 const db = getFirestore();
 
 async function updateVersion() {
-  const version = 'V.1.4.43';
+  const version = 'V.1.4.57';
   console.log(`Actualizando versión remota a ${version}...`);
   
   await db.collection('config').doc('general').set({

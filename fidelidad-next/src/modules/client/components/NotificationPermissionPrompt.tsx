@@ -201,7 +201,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
                             [`permissions.geolocation.updatedAt`]: ts,
                             lastLocation: { lat: pos.coords.latitude, lng: pos.coords.longitude, timestamp: new Date(ts) }
                         });
-                        toast.success('Ubicación activada');
+                        toast.success('Ofertas locales activadas');
                         setLoading(false);
                         moveToNextOrEnd('geolocation');
                     },
@@ -282,13 +282,13 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
                     </div>
                     
                     <h3 className="text-2xl font-black text-gray-800 leading-tight mb-3 uppercase tracking-tight">
-                        {isGeo ? 'Ubicación' : (isRepairMode ? 'Sincronizar avisos' : 'Avisos de Premios')}
+                        {isGeo ? 'Ofertas en tu zona' : (isRepairMode ? 'Sincronizar avisos' : 'Avisos de Premios')}
                     </h3>
                     
                     <p className="text-sm text-gray-500 font-medium leading-relaxed mb-6 px-2">
                         {loading ? 'Procesando, espera un momento...' : (
                             isGeo 
-                                ? 'Descubre beneficios exclusivos cerca tuyo.' 
+                                ? 'Descubrí beneficios exclusivos y novedades cerca tuyo.' 
                                 : (isRepairMode 
                                     ? 'Detectamos que tu dispositivo no está recibiendo los avisos correctamente. Vamos a re-conectarlo.'
                                     : 'Entérate al instante cuando ganes puntos o premios exclusivos.')
@@ -303,7 +303,7 @@ export const NotificationPermissionPrompt = ({ user, userData, config, onNotific
                             onClick={handleYes} 
                             className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2 ${loading ? 'bg-gray-300 text-white shadow-none' : (isGeo ? 'bg-emerald-600 text-white shadow-emerald-200' : (isRepairMode ? 'bg-amber-600 text-white shadow-amber-200' : 'bg-purple-600 text-white shadow-purple-200'))}`}
                         >
-                            {loading ? 'Cargando...' : (isGeo ? 'Activar ahora' : (isRepairMode ? 'Sincronizar ahora' : 'Sí, activar avisos'))}
+                            {loading ? 'Cargando...' : (isGeo ? 'Ver beneficios cercanos' : (isRepairMode ? 'Sincronizar ahora' : 'Sí, activar avisos'))}
                         </button>
                         
                         {!loading && (

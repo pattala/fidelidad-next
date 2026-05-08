@@ -347,7 +347,7 @@ export const ClientProfilePage = () => {
                     navigator.geolocation.getCurrentPosition(() => resolve('granted'), () => resolve('denied'));
                 });
                 if (p !== 'granted') {
-                    toast.error("Permiso de ubicación denegado");
+                    toast.error("No pudimos activar los beneficios locales");
                     return;
                 }
             }
@@ -359,7 +359,8 @@ export const ClientProfilePage = () => {
                 [`permissions.${type}.${prefix}status`]: newStatus,
                 [`permissions.${type}.updatedAt`]: TimeService.now().getTime()
             });
-            toast.success(`${type === 'notifications' ? 'Notificaciones' : 'Ubicación'} ${newStatus === 'granted' ? 'activadas' : 'desactivadas'}`);
+            const label = type === 'notifications' ? 'Notificaciones' : 'Ofertas locales';
+            toast.success(`${label} ${newStatus === 'granted' ? 'activadas' : 'desactivadas'}`);
         } catch (e) {
             console.error(e);
         }

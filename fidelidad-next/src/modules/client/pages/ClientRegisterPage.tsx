@@ -225,7 +225,7 @@ export const ClientRegisterPage = () => {
                         <div className="bg-white p-6 sm:p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 border border-gray-100 backdrop-blur-sm animate-fade-in">
                             <div className="mb-6 text-center">
                                 <h2 className="text-lg font-bold text-gray-800">
-                                    {step === 1 ? 'Completa tus Datos' : step === 2 ? 'Dirección de Entrega' : '¡Ya eres parte del Club! 🐾'}
+                                    {step === 1 ? 'Completa tus Datos' : step === 2 ? '¿A dónde enviamos tus beneficios?' : '¡Ya eres parte del Club! 🐾'}
                                 </h2>
                                 <div className="flex justify-center gap-2 mt-4">
                                     {(config?.enablePetModule ? [1, 2, 3] : [1, 2]).map(i => <div key={i} className={`h-1.5 w-8 rounded-full ${step === i ? 'bg-purple-600' : 'bg-gray-100'}`}></div>)}
@@ -274,6 +274,19 @@ export const ClientRegisterPage = () => {
                                 </form>
                             ) : step === 2 ? (
                                 <form onSubmit={handleRegister} className="space-y-4">
+                                    {/* Incentive Banner */}
+                                    {config?.enableAddressBonus && (
+                                        <div className="bg-purple-50 border border-purple-100 rounded-2xl p-4 mb-2 flex items-center gap-4 animate-fade-in">
+                                            <div className="bg-white p-2 rounded-xl shadow-sm text-2xl">🏠</div>
+                                            <div className="text-left">
+                                                <p className="text-[10px] font-black text-purple-600 uppercase tracking-widest">Bono Extendido</p>
+                                                <p className="text-xs font-bold text-purple-900 leading-tight">
+                                                    Sumá <span className="text-indigo-600 font-black">{config.pointsForAddress || 50} puntos</span> adicionales y recibí ofertas en tu zona.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <div className="space-y-2">
                                         <select value={province} onChange={e => { setProvince(e.target.value); setPartido(''); setLocalidad(''); }} className="w-full bg-gray-50 px-4 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none">
                                             <option value="">Provincia</option>
@@ -304,7 +317,9 @@ export const ClientRegisterPage = () => {
                                     <button type="submit" disabled={loading} className="w-full bg-purple-600 text-white py-4 rounded-2xl font-bold text-sm shadow-lg shadow-purple-200 hover:bg-purple-700 transition-all">
                                         {loading ? 'Registrando...' : 'Finalizar Registro'}
                                     </button>
-                                    <button type="button" onClick={e => handleRegister(e)} className="w-full text-center text-xs text-gray-400 underline">Saltar dirección por ahora</button>
+                                    <button type="button" onClick={handleRegister} className="w-full text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest hover:text-purple-600 transition pt-2">
+                                        Continuar sin el bono de puntos
+                                    </button>
                                 </form>
                             ) : (
                                 <div className="text-center py-4 animate-fade-in">

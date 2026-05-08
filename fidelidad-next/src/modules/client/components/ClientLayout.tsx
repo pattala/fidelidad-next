@@ -413,7 +413,7 @@ export const ClientLayout = () => {
                                                         <MapPin size={24} />
                                                     </div>
                                                     <div className="text-left">
-                                                        <p className="font-black text-gray-800 uppercase text-xs tracking-widest">Ubicación</p>
+                                                        <p className="font-black text-gray-800 uppercase text-xs tracking-widest">Visitanos</p>
                                                         <p className="text-xs text-gray-600 font-bold max-w-[200px] line-clamp-2">{config.contact.address}</p>
                                                         <p className="text-[10px] text-blue-600 font-black mt-1 uppercase tracking-tight flex items-center gap-1">
                                                             Mira cómo llegar <span>↗</span>

@@ -27,3 +27,4 @@ backups/
 *.zip
 .vercel
 .env*.local
+.dev_creds.json

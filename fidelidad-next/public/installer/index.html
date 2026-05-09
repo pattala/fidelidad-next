@@ -625,6 +625,25 @@
     }
 
     // Funciones Firebase
+    async function loadDevCreds() {
+        try {
+            const response = await fetch('/api/firebase/load-creds');
+            const data = await response.json();
+            if (data.projectId) document.getElementById('devProjectId').value = data.projectId;
+            if (data.credentials) document.getElementById('devCredentials').value = data.credentials;
+        } catch (e) { console.error('Error cargando credenciales guardadas'); }
+    }
+
+    async function saveDevCreds() {
+        const projectId = document.getElementById('devProjectId').value;
+        const credentials = document.getElementById('devCredentials').value;
+        fetch('/api/firebase/save-creds', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ projectId, credentials })
+        });
+    }
+
     async function checkFirestoreVersion() {
         const projectId = document.getElementById('devProjectId').value;
         const credentials = document.getElementById('devCredentials').value;
@@ -632,6 +651,7 @@
         if (!projectId || !credentials) return alert('Ingresa el ID y las Credenciales de desarrollo.');
 
         document.getElementById('v-firestore').textContent = '...';
+        saveDevCreds(); // Guardar automáticamente al verificar
 
         try {
             const response = await fetch('/api/firebase/check-version', {
@@ -650,6 +670,7 @@
     async function captureRules() {
         const projectId = document.getElementById('devProjectId').value;
         if (!projectId) return alert('Ingresa el ID del proyecto de desarrollo.');
+        saveDevCreds(); // Guardar al capturar
 
         const consoleContainer = document.getElementById('consoleContainer');
         const consoleOutput = document.getElementById('consoleOutput');
@@ -705,7 +726,10 @@
     }
 
     // Cargar versiones al inicio
-    window.addEventListener('load', refreshVersions);
+    window.addEventListener('load', () => {
+        refreshVersions();
+        loadDevCreds();
+    });
 </script>
 
 </body>

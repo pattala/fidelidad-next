@@ -295,6 +295,25 @@ app.post('/api/firebase/check-version', async (req, res) => {
     }
 });
 
+// Endpoint: Cargar Credenciales Guardadas
+app.get('/api/firebase/load-creds', (req, res) => {
+    const credsPath = path.join(__dirname, '.dev_creds.json');
+    if (fs.existsSync(credsPath)) {
+        const data = fs.readFileSync(credsPath, 'utf8');
+        res.json(JSON.parse(data));
+    } else {
+        res.json({ projectId: 'fidelidad-next', credentials: '' });
+    }
+});
+
+// Endpoint: Guardar Credenciales
+app.post('/api/firebase/save-creds', (req, res) => {
+    const { projectId, credentials } = req.body;
+    const credsPath = path.join(__dirname, '.dev_creds.json');
+    fs.writeFileSync(credsPath, JSON.stringify({ projectId, credentials }, null, 2), 'utf8');
+    res.json({ status: 'ok' });
+});
+
 // Ruta por defecto: Redirigir al frontend
 app.get('/', (req, res) => {
     res.redirect('/installer');

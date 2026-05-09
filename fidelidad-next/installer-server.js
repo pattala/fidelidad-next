@@ -155,35 +155,32 @@ app.get('/api/versions', async (req, res) => {
 
         // Intentar obtener versiones de ramas remotas
         const getRemoteVersion = (branch) => {
-            return new Promise((resolve) => {
-                // Forzamos la ruta relativa correcta para este proyecto
-                const fullPath = `fidelidad-next/package.json`;
-                const cmd = `git show ${branch}:${fullPath}`;
+            return new Promise(async (resolve) => {
+                // Probamos dos rutas: una relativa al repo y otra directa
+                const pathsToTry = [`fidelidad-next/package.json`, `package.json` ];
+                let finalVersion = 'N/A';
+
+                for (const p of pathsToTry) {
+                    const success = await new Promise((res) => {
+                        console.log(`👉 Probando: git show ${branch}:${p}`);
+                        const proc = spawn('git', ['show', `${branch}:${p}`], { shell: true });
+                        let output = '';
+                        proc.stdout.on('data', (data) => output += data.toString());
+                        proc.on('close', (code) => {
+                            if (code === 0) {
+                                try {
+                                    const pkg = JSON.parse(output);
+                                    finalVersion = pkg.version;
+                                    res(true);
+                                } catch (e) { res(false); }
+                            } else { res(false); }
+                        });
+                    });
+                    if (success) break;
+                }
                 
-                console.log(`👉 Ejecutando: ${cmd}`);
-                const proc = spawn('git', ['show', `${branch}:${fullPath}`], { shell: true });
-                
-                let output = '';
-                let errorOutput = '';
-                
-                proc.stdout.on('data', (data) => output += data.toString());
-                proc.stderr.on('data', (data) => errorOutput += data.toString());
-                
-                proc.on('close', (code) => {
-                    if (code === 0) {
-                        try {
-                            const pkg = JSON.parse(output);
-                            console.log(`✅ ${branch}: ${pkg.version}`);
-                            resolve(pkg.version);
-                        } catch (e) { 
-                            console.log(`❌ Error parseando JSON de ${branch}`);
-                            resolve('Error JSON'); 
-                        }
-                    } else {
-                        console.log(`❌ Error git show ${branch}: ${errorOutput.trim()}`);
-                        resolve('N/A');
-                    }
-                });
+                console.log(finalVersion !== 'N/A' ? `✅ ${branch}: ${finalVersion}` : `❌ ${branch}: No encontrado`);
+                resolve(finalVersion);
             });
         };
 

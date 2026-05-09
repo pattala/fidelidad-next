@@ -1,0 +1,23 @@
+{
+  "short_name": "Club Demo",
+  "name": "Club Demo",
+  "description": "Programa de fidelización de Demo",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "theme_color": "#e11d48",
+  "background_color": "#ffffff",
+  "icons": [
+    {
+      "src": "images/mi_logo_192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "images/mi_logo_512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "gcm_sender_id": "103953800507"
+}

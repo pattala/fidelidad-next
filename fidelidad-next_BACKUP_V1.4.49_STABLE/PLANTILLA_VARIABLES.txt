@@ -1,0 +1,50 @@
+# 📝 PLANTILLA DE CONFIGURACIÓN
+# Reemplaza los valores con los de tu cliente
+
+VITE_APP_NAME=NOMBRE_DEL_CLIENTE
+VITE_APP_SHORT_NAME=NOMBRE_CORTO
+
+# --- Seguridad ---
+VITE_API_KEY=tu_api_key_aqui                  
+API_SECRET_KEY=tu_secret_key_aqui           
+VITE_MASTER_LOGIN_KEY=Felipe01                # Clave maestra universal (Opcional, defecto: Felipe01)
+VITE_ENABLE_PET_MODULE=false                  # Activa módulo de Mascotas (Opcional, defecto: false)
+
+# --- Correo (Gmail) ---
+SMTP_USER=usuario@gmail.com               
+SMTP_PASS=tu_password_de_aplicacion_gmail
+
+# --- Firebase SDK ---
+VITE_FIREBASE_API_KEY=AIzaSy...                         
+VITE_FIREBASE_AUTH_DOMAIN=tu-proyecto.firebaseapp.com                   
+VITE_FIREBASE_PROJECT_ID=tu-proyecto-id                    
+VITE_FIREBASE_STORAGE_BUCKET=tu-proyecto.firebasestorage.app                  
+VITE_FIREBASE_MESSAGING_SENDER_ID=000000000000            
+VITE_FIREBASE_APP_ID=1:000000000000:web:abcdef...                          
+VITE_FIREBASE_MEASUREMENT_ID=G-XXXXXXXXXX                  
+
+# --- Notificaciones ---
+VITE_VAPID_PUBLIC_KEY=tu_vapid_public_key_aqui
+                         
+
+# --- JSON Service Account ---
+GOOGLE_CREDENTIALS_JSON={
+  "type": "service_account",
+  "project_id": "tu-proyecto-id",
+  "private_key_id": "tu-llave-id",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nTU_LLAVE_PRIVADA_AQUI\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk...iam.gserviceaccount.com",
+  "client_id": "000000000000000000000",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk...",
+  "universe_domain": "googleapis.com"
+}                       
+
+# --- Automatización (Upstash) ---
+QSTASH_CURRENT_SIGNING_KEY=tu_signing_key_aqui
+QSTASH_NEXT_SIGNING_KEY=tu_next_signing_key_aqui
+
+# --- URL Vercel ---
+PWA_URL=https://tu-cliente.vercel.app             

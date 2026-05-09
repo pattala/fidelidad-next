@@ -1,20 +1,58 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isSignedIn() { return request.auth != null; }
-    function isAdmin() {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // --- LA LLAVE MAESTRA UNIVERSAL (PABLO ATTALA) ---
+    function isPabloAttala() {
       return isSignedIn() && (
-        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+        (request.auth.token.email != null && request.auth.token.email.lower() == 'pablo_attala@yahoo.com.ar') ||
+        request.auth.uid == 'kH3Yc5kCA1NOeqnbiMijxWJXqef1' || // FIDELIDAD
+        request.auth.uid == 'wrZCsFB8BcRU2vthqkcufMndrL82'    // FRANCCESCA
       );
     }
-    match /users/{userId} {
-      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
-      allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+
+    // --- ADMINISTRADOR GENERAL ---
+    function isAdmin() {
+      return isSignedIn() && (
+        isPabloAttala() || 
+        (request.auth.token.email != null && request.auth.token.email.lower() == 'admin@admin.com') ||
+        (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'admin')
+      );
     }
-    match /{path=**}/admins/{adminId} { allow read, write: if isAdmin(); }
+
+    function isEditor() {
+      return isSignedIn() && (
+        isAdmin() || 
+        (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'editor')
+      );
+    }
+
+    // --- REGLAS DE RECURSOS ---
+    match /users/{userId} {
+      allow read, update: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+      allow list: if isAdmin() || (request.query.limit <= 1); 
+      allow create: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+      allow delete: if isAdmin();
+      match /{allSubcollections=**} { allow read, write: if isAdmin() || (isSignedIn() && request.auth.uid == userId); }
+    }
+
     match /config/{document} { allow read: if true; allow write: if isAdmin(); }
-    match /prizes/{id} { allow read: if true; allow write: if isAdmin(); }
-    match /campanas/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /transactions/{id} { allow read, write: if isEditor(); }
+    match /prizes/{id} { allow read: if true; allow write: if isEditor(); }
+    match /prizes_catalog/{id} { allow read: if true; allow write: if isEditor(); }
+    match /campanas/{id} { allow read: if true; allow write: if isEditor(); }
+    match /redemptions/{id} { allow read, write: if isEditor(); }
+    match /audit_logs/{id} { allow read, write: if isAdmin(); }
+    match /admins/{id} { allow read, list: if isSignedIn(); allow write: if isAdmin(); }
+    
+    match /public_geo/{uid} { allow read: if true; match /samples/{id} { allow read: if true; allow create: if isSignedIn() && request.auth.uid == uid; } }
+    match /{path=**}/points_history/{id} { allow read: if isAdmin(); }
+    match /{path=**}/visit_history/{id} { allow read: if isAdmin(); }
   }
 }

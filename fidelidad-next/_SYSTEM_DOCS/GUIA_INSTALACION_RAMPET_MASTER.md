@@ -159,23 +159,20 @@ Utilice este motor para pasar todas las funciones nuevas desde desarrollo a prod
 3.  Actualiza automáticamente todos los sitios Vercel conectados.
 
 ### C. Motor B: Inteligencia de Datos (Firebase)
-Este motor es independiente y permite actualizar la lógica de la base de datos sin tocar el código.
+Este motor es independiente y permite actualizar la lógica de la base de datos (reglas e índices) sin tocar el código.
 
-**¿Dónde obtengo los datos para sincronizar?**
-*   **ID de Proyecto**: Lo encuentras en la consola de Firebase > Configuración del Proyecto > ID del proyecto.
-*   **Service Account JSON**: 
-    1. Ve a la consola de Firebase > Configuración del Proyecto > Cuentas de Servicio.
-    2. Haz clic en el botón azul **"Generar nueva clave privada"**.
-    3. Se descargará un archivo `.json`. Abre ese archivo y copia TODO su contenido.
+**¿Cómo funciona? (Flujo de Trabajo)**
+1.  **Configuración Única**: Pega el ID de tu proyecto de laboratorio (`fidelidad-v2-f2ff4`) y su Service Account JSON. El sistema lo recordará automáticamente en el archivo local `.dev_creds.json`.
+2.  **Captura (Sello de Versión)**: Al darle a **"Capturar"**, el sistema usa la API de Google para bajar las reglas a tu PC y marca automáticamente la versión actual en Firestore. *No requiere hacer `firebase login` en la terminal.*
+3.  **Despliegue Masivo**: Ingresa los IDs de los clientes (separados por coma) y dale a **"Desplegar"**. Esto inyecta la inteligencia de tu laboratorio en todos los clientes simultáneamente.
 
-**Persistencia de Credenciales (Memoria)**:
-El instalador guarda automáticamente tus credenciales de desarrollo en un archivo local llamado `.dev_creds.json`. 
-*   **Seguridad**: Este archivo está ignorado por Git, por lo que tus claves nunca se subirán a GitHub.
-*   **Comodidad**: Una vez configurado la primera vez, el instalador recordará siempre tu "Laboratorio" cada vez que lo abras.
+**Solución de Problemas Comunes:**
+*   **Error Código 1 en Despliegue**: Asegúrate de tener instalado el Firebase CLI en tu PC (`npm install -g firebase-tools`) y de haber iniciado sesión con `firebase login` si el despliegue masivo lo requiere.
+*   **Firestore Online N/A**: Aparece cuando el proyecto no ha sido "sellado" aún. Dale al botón verde de **Capturar** para inicializar la versión en la nube.
 
-**Pasos de uso:**
-1.  **Captura**: Si hiciste cambios en las reglas desde la consola de Firebase online, dale a **"Capturar"**. Esto bajará las reglas a tu PC.
-2.  **Despliegue Masivo**: Ingresa los IDs de los proyectos de tus clientes (ej: `franccesca-martinez-96763`) y dale a **"Desplegar"**. El sistema actualizará las reglas e índices en todos los clientes de un tirón.
+---
+> [!IMPORTANT]
+> **REGLA DE ORO**: Siempre haz el Merge de Código (Motor A) primero, y mientras Vercel procesa, ejecuta el Despliegue de Firebase (Motor B). Así garantizas que la web nueva no dé errores de base de datos al cargar.
 
 ---
 > [!IMPORTANT]

@@ -148,43 +148,52 @@ app.post('/api/git-sync', (req, res) => {
 
 // Endpoint: Obtener versiones comparativas
 app.get('/api/versions', async (req, res) => {
+    console.log("🔍 Consultando versiones...");
     try {
         const pkgLocal = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
         const versionLocal = pkgLocal.version;
 
-        // Obtener prefijo de ruta si el proyecto está en una subcarpeta
-        const getGitPrefix = () => {
-            return new Promise((resolve) => {
-                const proc = spawn('git', ['rev-parse', '--show-prefix'], { shell: true });
-                let output = '';
-                proc.stdout.on('data', (data) => output += data.toString());
-                proc.on('close', () => resolve(output.trim()));
-            });
-        };
-
-        const prefix = await getGitPrefix();
-
-        // Intentar obtener versiones de ramas remotas (requiere git fetch)
+        // Intentar obtener versiones de ramas remotas
         const getRemoteVersion = (branch) => {
             return new Promise((resolve) => {
-                const fullPath = `${prefix}package.json`;
+                // Forzamos la ruta relativa correcta para este proyecto
+                const fullPath = `fidelidad-next/package.json`;
+                const cmd = `git show ${branch}:${fullPath}`;
+                
+                console.log(`👉 Ejecutando: ${cmd}`);
                 const proc = spawn('git', ['show', `${branch}:${fullPath}`], { shell: true });
+                
                 let output = '';
+                let errorOutput = '';
+                
                 proc.stdout.on('data', (data) => output += data.toString());
+                proc.stderr.on('data', (data) => errorOutput += data.toString());
+                
                 proc.on('close', (code) => {
                     if (code === 0) {
                         try {
                             const pkg = JSON.parse(output);
+                            console.log(`✅ ${branch}: ${pkg.version}`);
                             resolve(pkg.version);
-                        } catch { resolve('N/A'); }
-                    } else { resolve('N/A'); }
+                        } catch (e) { 
+                            console.log(`❌ Error parseando JSON de ${branch}`);
+                            resolve('Error JSON'); 
+                        }
+                    } else {
+                        console.log(`❌ Error git show ${branch}: ${errorOutput.trim()}`);
+                        resolve('N/A');
+                    }
                 });
             });
         };
 
         // Ejecutar un fetch previo para estar al día
+        console.log("📡 Sincronizando con GitHub (git fetch)...");
         const fetchProc = spawn('git', ['fetch', 'origin'], { shell: true });
-        fetchProc.on('close', async () => {
+        
+        fetchProc.on('close', async (code) => {
+            if (code !== 0) console.log("⚠️ Advertencia: git fetch falló.");
+            
             const versionMain = await getRemoteVersion('origin/main');
             const versionDesarrollo = await getRemoteVersion('origin/desarrollo');
             
@@ -196,6 +205,7 @@ app.get('/api/versions', async (req, res) => {
         });
 
     } catch (error) {
+        console.log(`❌ ERROR CRÍTICO: ${error.message}`);
         res.status(500).json({ error: error.message });
     }
 });

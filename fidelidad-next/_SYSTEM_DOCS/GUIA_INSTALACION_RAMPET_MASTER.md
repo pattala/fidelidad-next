@@ -160,6 +160,12 @@ Utilice este motor para pasar todas las funciones nuevas desde desarrollo a prod
 
 ### C. Motor B: Inteligencia de Datos (Firebase)
 Este motor es independiente y permite actualizar la lógica de la base de datos sin tocar el código.
+
+**¿Dónde obtengo los datos para sincronizar?**
+*   **ID de Proyecto**: Lo encuentras en la consola de Firebase > Configuración del Proyecto > ID del proyecto.
+*   **Service Account JSON**: En Firebase > Configuración del Proyecto > Cuentas de Servicio > Botón "Generar nueva clave privada". Pega todo el contenido del archivo descargado en el instalador.
+
+**Pasos de uso:**
 1.  **Captura**: Si hiciste cambios en las reglas desde la consola de Firebase online, dale a **"Capturar"**. Esto bajará las reglas a tu PC.
 2.  **Despliegue Masivo**: Ingresa los IDs de los proyectos de tus clientes y dale a **"Desplegar"**. El sistema actualizará las reglas e índices en todos los clientes de un tirón.
 

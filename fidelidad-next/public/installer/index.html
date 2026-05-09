@@ -473,12 +473,14 @@
             <div class="form-grid" style="grid-template-columns: 1fr; gap: 15px;">
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                     <div class="input-group">
-                        <label>ID Proyecto Desarrollo</label>
-                        <input type="text" id="devProjectId" placeholder="ej: rampet-dev-123">
+                        <label>ID Proyecto Desarrollo <span>(Laboratorio)</span></label>
+                        <input type="text" id="devProjectId" value="fidelidad-next" placeholder="ej: fidelidad-next">
+                        <span style="font-size: 11px; color: var(--text-muted);">Lo sacas de "Configuración del Proyecto" en Firebase.</span>
                     </div>
                     <div class="input-group">
-                        <label>Service Account JSON (Desarrollo)</label>
+                        <label>Service Account JSON <span>(Llave Maestra)</span></label>
                         <textarea id="devCredentials" rows="1" placeholder="Pega el JSON aquí..." style="height: 38px;"></textarea>
+                        <span style="font-size: 11px; color: var(--text-muted);">Genera el archivo en "Cuentas de Servicio" > "Generar clave privada".</span>
                     </div>
                 </div>
                 

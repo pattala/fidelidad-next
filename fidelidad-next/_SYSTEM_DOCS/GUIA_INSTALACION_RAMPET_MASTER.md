@@ -142,7 +142,30 @@ Para una experiencia sin códigos, utilice el **Instalador Visual Rampet**:
 
 ---
 
-## 🔄 Ciclo de Desarrollo y Actualizaciones (Git Workflow)
+## 🔄 Ciclo de Desarrollo y Actualizaciones (Super Merge)
+
+A partir de la versión **V.1.4.57**, el sistema cuenta con un **Centro de Mandos** visual para gestionar las actualizaciones sin errores.
+
+### A. Comparación de Versiones
+Al abrir la solapa de **Actualizador** en el Instalador Visual, verás un tablero comparativo:
+1.  **Local**: Versión en tu carpeta de trabajo.
+2.  **Nube Desarrollo**: Versión que ya subiste a tu proyecto de pruebas.
+3.  **Nube Producción**: Versión que tienen actualmente tus clientes (Main).
+
+### B. Motor A: Sincronización de Código (Web)
+Utilice este motor para pasar todas las funciones nuevas desde desarrollo a producción.
+1.  El sistema realiza un `git pull` automático para asegurar que no se pierda nada.
+2.  Une las ramas (`desarrollo` -> `main`) con un rastro de auditoría.
+3.  Actualiza automáticamente todos los sitios Vercel conectados.
+
+### C. Motor B: Inteligencia de Datos (Firebase)
+Este motor es independiente y permite actualizar la lógica de la base de datos sin tocar el código.
+1.  **Captura**: Si hiciste cambios en las reglas desde la consola de Firebase online, dale a **"Capturar"**. Esto bajará las reglas a tu PC.
+2.  **Despliegue Masivo**: Ingresa los IDs de los proyectos de tus clientes y dale a **"Desplegar"**. El sistema actualizará las reglas e índices en todos los clientes de un tirón.
+
+---
+> [!IMPORTANT]
+> **Regla de Oro**: Antes de un gran despliegue, siempre verifique que el salto de versión (ej: 1.4.56 -> 1.4.57) sea el correcto en el tablero visual.
 
 Para mantener el sistema actualizado y desplegar nuevas funciones, siga estos pasos desde su terminal según el entorno al que desee subir los cambios.
 

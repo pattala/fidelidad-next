@@ -335,88 +335,152 @@
 
     <!-- TAB 1: INSTALADOR -->
     <div id="install-tab" class="tab-content active">
+        <div style="background: rgba(99, 102, 241, 0.1); border: 1px solid var(--primary); border-radius: 12px; padding: 15px; margin-bottom: 25px; font-size: 14px;">
+            💡 <strong>Consejo:</strong> Abre tu consola de Firebase y Vercel en otras pestañas. Sigue los textos en gris debajo de cada campo para saber de dónde sacar los datos.
+        </div>
         <form id="installForm">
             <div class="form-grid">
                 <div class="input-group">
-                    <label>Nombre del Comercio <span>(Ej: Rampet Mascotas)</span></label>
-                    <input type="text" id="appName" placeholder="Ingresa el nombre" required>
+                    <label>Nombre del Comercio <span>(Público)</span></label>
+                    <input type="text" id="appName" placeholder="Ej: Veterinaria San Roque" required>
+                    <span style="font-size: 11px; color: var(--text-muted);">Es el nombre que verán los clientes en la App.</span>
                 </div>
                 
                 <div class="input-group">
-                    <label>Nombre Corto <span>(Ej: RAMPET)</span></label>
-                    <input type="text" id="appShortName" placeholder="Nombre para el menú" required>
+                    <label>Nombre Corto <span>(Menú)</span></label>
+                    <input type="text" id="appShortName" placeholder="Ej: SAN ROQUE" required>
+                    <span style="font-size: 11px; color: var(--text-muted);">Nombre resumido para el menú del celular.</span>
                 </div>
 
                 <div class="input-group">
-                    <label>API Key Interna <span>(Usa palabras largas)</span></label>
-                    <input type="password" id="apiKey" placeholder="rampet_secure_..." required>
+                    <label>API Key Interna <span>(Seguridad)</span></label>
+                    <input type="password" id="apiKey" placeholder="Inventa una clave larga..." required>
+                    <span style="font-size: 11px; color: var(--text-muted);">Inventa una palabra secreta (ej: club_secreto_2024).</span>
                 </div>
 
                 <div class="input-group">
-                    <label>Master Login Key <span>(Universal de Soporte)</span></label>
+                    <label>Master Login Key <span>(Soporte)</span></label>
                     <input type="text" id="masterKey" value="Felipe01" placeholder="Felipe01">
+                    <span style="font-size: 11px; color: var(--text-muted);">Clave universal para entrar a cualquier cuenta (Opcional).</span>
                 </div>
 
                 <div class="input-group full-width">
                     <div class="switch-group">
-                        <label>Activar Módulo de Mascotas <span>(Vacunas, Alertas de Alimento)</span></label>
+                        <label>Activar Módulo de Mascotas <span>(Recomendado)</span></label>
                         <label class="switch">
-                            <input type="checkbox" id="enablePetModule">
+                            <input type="checkbox" id="enablePetModule" checked>
                             <span class="slider"></span>
                         </label>
                     </div>
                 </div>
 
                 <div class="input-group">
-                    <label>Gmail Usuario <span>(SMTP)</span></label>
-                    <input type="email" id="smtpUser" placeholder="usuario@gmail.com" required>
+                    <label>Gmail del Negocio <span>(Envío de Mails)</span></label>
+                    <input type="email" id="smtpUser" placeholder="negocio@gmail.com" required>
+                    <span style="font-size: 11px; color: var(--text-muted);">Email desde donde se enviarán los premios y avisos.</span>
                 </div>
 
                 <div class="input-group">
-                    <label>Contraseña de Aplicación Gmail <span>(16 letras)</span></label>
+                    <label>Clave de Aplicación Google <span>(16 letras)</span></label>
                     <input type="password" id="smtpPass" placeholder="xxxx xxxx xxxx xxxx" required>
+                    <a href="https://myaccount.google.com/apppasswords" target="_blank" style="font-size: 11px; color: var(--accent); text-decoration: none;">🔗 Click aquí para generar esta clave</a>
                 </div>
 
                 <div class="input-group full-width">
-                    <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.05); margin: 10px 0;">
+                    <div style="height: 1px; background: rgba(255,255,255,0.05); margin: 10px 0;"></div>
+                    <p style="font-weight: 800; font-size: 12px; color: var(--primary); text-transform: uppercase; letter-spacing: 1px;">⚙️ Conexión con la Nube (Firebase & Vercel)</p>
                 </div>
 
                 <div class="input-group">
                     <label>Firebase Project ID</label>
-                    <input type="text" id="fbProjectId" placeholder="tu-proyecto-firebase-id" required>
+                    <input type="text" id="fbProjectId" placeholder="tu-proyecto-id" required>
+                    <span style="font-size: 11px; color: var(--text-muted);">Lo sacas de "Configuración del Proyecto" en Firebase.</span>
                 </div>
 
                 <div class="input-group">
                     <label>Firebase API Key</label>
                     <input type="text" id="fbApiKey" placeholder="AIzaSy..." required>
+                    <span style="font-size: 11px; color: var(--text-muted);">Está en la pestaña "General" de Firebase.</span>
                 </div>
 
                 <div class="input-group">
-                    <label>VAPID Public Key <span>(Web Push)</span></label>
-                    <input type="text" id="vapidKey" placeholder="Tu llave de notificaciones push" required>
+                    <label>VAPID Public Key <span>(Push)</span></label>
+                    <input type="text" id="vapidKey" placeholder="Llave larga de Cloud Messaging" required>
+                    <span style="font-size: 11px; color: var(--text-muted);">En "Cloud Messaging" > "Web Push certificates".</span>
                 </div>
 
                 <div class="input-group">
-                    <label>URL Vercel <span>(PWA Completa)</span></label>
-                    <input type="url" id="pwaUrl" placeholder="https://tu-cliente.vercel.app" required>
+                    <label>URL de Vercel <span>(Final)</span></label>
+                    <input type="url" id="pwaUrl" placeholder="https://cliente.vercel.app" required>
+                    <span style="font-size: 11px; color: var(--text-muted);">La dirección web donde vivirá la App.</span>
                 </div>
 
                 <div class="input-group full-width">
-                    <label>Firebase Service Account JSON <span>(Grupo Admin SDK)</span></label>
-                    <textarea id="fbCredentialsJson" rows="6" placeholder='{ "type": "service_account", ... }' required></textarea>
+                    <label>Firebase Service Account JSON <span>(Copia el texto del archivo)</span></label>
+                    <textarea id="fbCredentialsJson" rows="5" placeholder='{ "type": "service_account", ... }' required></textarea>
+                    <span style="font-size: 11px; color: var(--text-muted);">Descarga el JSON en "Cuentas de Servicio" > "Generar nueva clave privada" y pégalo aquí.</span>
                 </div>
             </div>
 
-            <button type="submit" class="btn-primary">🚀 Crear y Desplegar Instancia</button>
+            <button type="submit" class="btn-primary" style="margin-top: 30px;">🚀 Iniciar Instalación Automática</button>
         </form>
     </div>
 
-    <!-- TAB 2: ACTUALIZADOR GIT -->
+    <!-- TAB 2: ACTUALIZADOR (SUPER MERGE) -->
     <div id="git-tab" class="tab-content">
-        <p style="color: var(--text-muted); font-size: 15px; margin-bottom: 20px; line-height: 1.6;">
-            Esta acción tomará todo el progreso verificado en la rama <strong style="color: var(--accent);">desarrollo</strong> y lo unificará automáticamente con la rama <strong style="color: var(--primary);">main</strong> (Producción) para impactar los cambios en todos los clientes.
-        </p>
-        <button id="btnGitSync" class="btn-primary btn-git" onclick="runGitSync()">🚀 Sincronizar Desarrollo -> Producción (Main)</button>
+        <div style="background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 20px; margin-bottom: 25px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: var(--primary);">📊 Estado de Versiones</h3>
+                <button onclick="refreshVersions()" style="background: none; border: none; color: var(--accent); cursor: pointer; font-size: 12px; font-weight: 600;">🔄 Refrescar</button>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; text-align: center;">
+                <div style="background: rgba(255,255,255,0.02); padding: 15px; border-radius: 12px;">
+                    <p style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">PC Local</p>
+                    <p id="v-local" style="font-size: 18px; font-weight: 800; color: var(--text-main);">...</p>
+                </div>
+                <div style="background: rgba(16, 185, 129, 0.05); padding: 15px; border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.1);">
+                    <p style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">Nube Desarrollo</p>
+                    <p id="v-dev" style="font-size: 18px; font-weight: 800; color: var(--accent);">...</p>
+                </div>
+                <div style="background: rgba(99, 102, 241, 0.05); padding: 15px; border-radius: 12px; border: 1px solid rgba(99, 102, 241, 0.1);">
+                    <p style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">Nube Producción</p>
+                    <p id="v-main" style="font-size: 18px; font-weight: 800; color: var(--primary);">...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- MOTOR A: CODIGO -->
+        <div style="margin-bottom: 30px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 30px;">
+            <h4 style="font-size: 15px; margin-bottom: 10px;">🚀 Motor A: Sincronización de Código (Web)</h4>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px; line-height: 1.5;">
+                Actualiza todos los sitios Vercel de tus clientes pasando los cambios de <strong>desarrollo</strong> a <strong>main</strong>.
+            </p>
+            <button id="btnGitSync" class="btn-primary btn-git" onclick="confirmGitSync()">🔄 Sincronizar Código Desarrollo -> Producción</button>
+        </div>
+
+        <!-- MOTOR B: FIREBASE -->
+        <div>
+            <h4 style="font-size: 15px; margin-bottom: 10px;">🔥 Motor B: Sincronización de Inteligencia (Firebase)</h4>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px; line-height: 1.5;">
+                Gestiona reglas e índices de seguridad sin tocar el código.
+            </p>
+            
+            <div class="form-grid" style="grid-template-columns: 1fr; gap: 15px;">
+                <div class="input-group">
+                    <label>ID Proyecto Desarrollo <span>(De donde traemos las reglas)</span></label>
+                    <input type="text" id="devProjectId" placeholder="ej: rampet-dev-123">
+                </div>
+                <button class="btn-primary" style="background: var(--accent); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); margin: 0;" onclick="captureRules()">📥 Capturar Reglas desde Desarrollo Online</button>
+                
+                <div style="height: 10px;"></div>
+
+                <div class="input-group">
+                    <label>IDs Proyectos Producción <span>(Separados por coma)</span></label>
+                    <textarea id="prodProjectIds" rows="3" placeholder="proyecto-cliente-1, proyecto-cliente-2, ..."></textarea>
+                </div>
+                <button class="btn-primary" style="background: #ef4444; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3); margin: 0;" onclick="confirmFirebaseDeploy()">📤 Desplegar Reglas a Todos los Clientes</button>
+            </div>
+        </div>
     </div>
 
     <!-- CONSOLA DE LOGS -->
@@ -486,7 +550,21 @@
         }
     });
 
-    // Git Sync POST
+    // Sincronización Git con Confirmación
+    async function confirmGitSync() {
+        const vMain = document.getElementById('v-main').textContent;
+        const vDev = document.getElementById('v-dev').textContent;
+        
+        if (vMain === '...' || vDev === '...') {
+            alert('Por favor, refresca las versiones primero.');
+            return;
+        }
+
+        if (confirm(`¿Estás seguro de pasar de la versión ${vMain} a la ${vDev} en PRODUCCIÓN (Main)?\n\nEsto actualizará la web de todos los clientes.`)) {
+            runGitSync();
+        }
+    }
+
     async function runGitSync() {
         const consoleContainer = document.getElementById('consoleContainer');
         const consoleOutput = document.getElementById('consoleOutput');
@@ -495,10 +573,7 @@
         consoleOutput.textContent = 'Iniciando flujo de Git...\n';
 
         try {
-            const response = await fetch('/api/git-sync', {
-                method: 'POST'
-            });
-
+            const response = await fetch('/api/git-sync', { method: 'POST' });
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
 
@@ -508,10 +583,90 @@
                 consoleOutput.textContent += decoder.decode(value);
                 consoleOutput.scrollTop = consoleOutput.scrollHeight;
             }
+            refreshVersions();
         } catch (error) {
             consoleOutput.textContent += `\n❌ Error de red: ${error.message}`;
         }
     }
+
+    // Funciones de Versión
+    async function refreshVersions() {
+        try {
+            document.getElementById('v-local').textContent = '...';
+            document.getElementById('v-dev').textContent = '...';
+            document.getElementById('v-main').textContent = '...';
+
+            const response = await fetch('/api/versions');
+            const data = await response.json();
+            
+            document.getElementById('v-local').textContent = data.local;
+            document.getElementById('v-dev').textContent = data.desarrollo;
+            document.getElementById('v-main').textContent = data.main;
+        } catch (e) {
+            console.error('Error cargando versiones:', e);
+        }
+    }
+
+    // Funciones Firebase
+    async function captureRules() {
+        const projectId = document.getElementById('devProjectId').value;
+        if (!projectId) return alert('Ingresa el ID del proyecto de desarrollo.');
+
+        const consoleContainer = document.getElementById('consoleContainer');
+        const consoleOutput = document.getElementById('consoleOutput');
+        consoleContainer.style.display = 'block';
+        consoleOutput.textContent = 'Capturando reglas...\n';
+
+        try {
+            const response = await fetch('/api/firebase/capture-rules', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ projectId })
+            });
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                consoleOutput.textContent += decoder.decode(value);
+            }
+        } catch (e) { consoleOutput.textContent += `\n❌ Error: ${e.message}`; }
+    }
+
+    async function confirmFirebaseDeploy() {
+        const ids = document.getElementById('prodProjectIds').value;
+        if (!ids) return alert('Ingresa al menos un ID de proyecto de producción.');
+        
+        if (confirm(`¿Estás seguro de desplegar las reglas e índices locales a los siguientes proyectos?\n\n${ids}`)) {
+            runFirebaseDeploy(ids.split(','));
+        }
+    }
+
+    async function runFirebaseDeploy(projectIds) {
+        const consoleContainer = document.getElementById('consoleContainer');
+        const consoleOutput = document.getElementById('consoleOutput');
+        consoleContainer.style.display = 'block';
+        consoleOutput.textContent = 'Iniciando despliegue masivo de Firebase...\n';
+
+        try {
+            const response = await fetch('/api/firebase/deploy-rules', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ projectIds })
+            });
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                consoleOutput.textContent += decoder.decode(value);
+                consoleOutput.scrollTop = consoleOutput.scrollHeight;
+            }
+        } catch (e) { consoleOutput.textContent += `\n❌ Error: ${e.message}`; }
+    }
+
+    // Cargar versiones al inicio
+    window.addEventListener('load', refreshVersions);
 </script>
 
 </body>

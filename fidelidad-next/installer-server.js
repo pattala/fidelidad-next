@@ -110,7 +110,8 @@ app.post('/api/git-sync', (req, res) => {
 
     const commands = [
         { cmd: 'git', args: ['checkout', 'main'] },
-        { cmd: 'git', args: ['merge', 'desarrollo', '-m', '"Merge automático desde instalador visual"'] },
+        { cmd: 'git', args: ['pull', 'origin', 'main'] },
+        { cmd: 'git', args: ['merge', 'desarrollo', '--no-ff', '-m', '"Merge automático desde instalador visual"'] },
         { cmd: 'git', args: ['push', 'origin', 'main'] },
         { cmd: 'git', args: ['checkout', 'desarrollo'] }
     ];
@@ -142,6 +143,109 @@ app.post('/api/git-sync', (req, res) => {
     };
 
     runNextCommand();
+});
+
+// Endpoint: Obtener versiones comparativas
+app.get('/api/versions', async (req, res) => {
+    try {
+        const pkgLocal = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+        const versionLocal = pkgLocal.version;
+
+        // Intentar obtener versiones de ramas remotas (requiere git fetch)
+        const getRemoteVersion = (branch) => {
+            return new Promise((resolve) => {
+                const proc = spawn('git', ['show', `${branch}:package.json`], { shell: true });
+                let output = '';
+                proc.stdout.on('data', (data) => output += data.toString());
+                proc.on('close', (code) => {
+                    if (code === 0) {
+                        try {
+                            const pkg = JSON.parse(output);
+                            resolve(pkg.version);
+                        } catch { resolve('N/A'); }
+                    } else { resolve('N/A'); }
+                });
+            });
+        };
+
+        // Ejecutar un fetch previo para estar al día
+        const fetchProc = spawn('git', ['fetch', 'origin'], { shell: true });
+        fetchProc.on('close', async () => {
+            const versionMain = await getRemoteVersion('origin/main');
+            const versionDesarrollo = await getRemoteVersion('origin/desarrollo');
+            
+            res.json({
+                local: versionLocal,
+                main: versionMain,
+                desarrollo: versionDesarrollo
+            });
+        });
+
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Endpoint: Capturar Reglas de Desarrollo
+app.post('/api/firebase/capture-rules', (req, res) => {
+    const { projectId } = req.body;
+    if (!projectId) return res.status(400).send("Falta Project ID de Desarrollo.");
+
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.write(`📥 Capturando reglas desde el proyecto: ${projectId}...\n`);
+
+    const proc = spawn('firebase', ['firestore:rules:get', '--project', projectId], { shell: true });
+    let rulesOutput = '';
+    
+    proc.stdout.on('data', (data) => {
+        rulesOutput += data.toString();
+    });
+
+    proc.on('close', (code) => {
+        if (code === 0) {
+            fs.writeFileSync(path.join(__dirname, 'firestore.rules'), rulesOutput, 'utf8');
+            res.write("✅ Reglas capturadas y guardadas en firestore.rules.\n");
+        } else {
+            res.write(`❌ Error capturando reglas (Código ${code}).\n`);
+        }
+        res.end();
+    });
+});
+
+// Endpoint: Desplegar Reglas a Producción
+app.post('/api/firebase/deploy-rules', (req, res) => {
+    const { projectIds } = req.body;
+    if (!projectIds || !Array.isArray(projectIds)) return res.status(400).send("Falta lista de Project IDs.");
+
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.write(`🚀 Iniciando despliegue masivo de reglas a ${projectIds.length} proyectos...\n`);
+
+    let currentIdx = 0;
+
+    const deployNext = () => {
+        if (currentIdx >= projectIds.length) {
+            res.write("\n✨ Despliegue masivo completado.\n");
+            return res.end();
+        }
+
+        const pid = projectIds[currentIdx].trim();
+        if (!pid) { currentIdx++; return deployNext(); }
+
+        res.write(`\n👉 Desplegando en: ${pid}...\n`);
+        const proc = spawn('firebase', ['deploy', '--only', 'firestore:rules,firestore:indexes', '--project', pid], { shell: true });
+
+        proc.stdout.on('data', (data) => res.write(data.toString()));
+        proc.stderr.on('data', (data) => res.write(data.toString()));
+
+        proc.on('close', (code) => {
+            if (code === 0) res.write(`✅ Éxito en ${pid}\n`);
+            else res.write(`❌ Error en ${pid} (Código ${code})\n`);
+            currentIdx++;
+            deployNext();
+        });
+    };
+
+    deployNext();
 });
 
 // Ruta por defecto: Redirigir al frontend

@@ -163,11 +163,19 @@ Este motor es independiente y permite actualizar la lógica de la base de datos 
 
 **¿Dónde obtengo los datos para sincronizar?**
 *   **ID de Proyecto**: Lo encuentras en la consola de Firebase > Configuración del Proyecto > ID del proyecto.
-*   **Service Account JSON**: En Firebase > Configuración del Proyecto > Cuentas de Servicio > Botón "Generar nueva clave privada". Pega todo el contenido del archivo descargado en el instalador.
+*   **Service Account JSON**: 
+    1. Ve a la consola de Firebase > Configuración del Proyecto > Cuentas de Servicio.
+    2. Haz clic en el botón azul **"Generar nueva clave privada"**.
+    3. Se descargará un archivo `.json`. Abre ese archivo y copia TODO su contenido.
+
+**Persistencia de Credenciales (Memoria)**:
+El instalador guarda automáticamente tus credenciales de desarrollo en un archivo local llamado `.dev_creds.json`. 
+*   **Seguridad**: Este archivo está ignorado por Git, por lo que tus claves nunca se subirán a GitHub.
+*   **Comodidad**: Una vez configurado la primera vez, el instalador recordará siempre tu "Laboratorio" cada vez que lo abras.
 
 **Pasos de uso:**
 1.  **Captura**: Si hiciste cambios en las reglas desde la consola de Firebase online, dale a **"Capturar"**. Esto bajará las reglas a tu PC.
-2.  **Despliegue Masivo**: Ingresa los IDs de los proyectos de tus clientes y dale a **"Desplegar"**. El sistema actualizará las reglas e índices en todos los clientes de un tirón.
+2.  **Despliegue Masivo**: Ingresa los IDs de los proyectos de tus clientes (ej: `franccesca-martinez-96763`) y dale a **"Desplegar"**. El sistema actualizará las reglas e índices en todos los clientes de un tirón.
 
 ---
 > [!IMPORTANT]

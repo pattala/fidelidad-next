@@ -460,23 +460,38 @@
 
         <!-- MOTOR B: FIREBASE -->
         <div>
-            <h4 style="font-size: 15px; margin-bottom: 10px;">🔥 Motor B: Sincronización de Inteligencia (Firebase)</h4>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h4 style="font-size: 15px; margin: 0;">🔥 Motor B: Sincronización de Inteligencia (Firebase)</h4>
+                <div style="background: rgba(255,255,255,0.05); padding: 5px 12px; border-radius: 8px; font-size: 11px;">
+                    Firestore Online: <strong id="v-firestore" style="color: var(--accent);">N/A</strong>
+                </div>
+            </div>
             <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px; line-height: 1.5;">
                 Gestiona reglas e índices de seguridad sin tocar el código.
             </p>
             
             <div class="form-grid" style="grid-template-columns: 1fr; gap: 15px;">
-                <div class="input-group">
-                    <label>ID Proyecto Desarrollo <span>(De donde traemos las reglas)</span></label>
-                    <input type="text" id="devProjectId" placeholder="ej: rampet-dev-123">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="input-group">
+                        <label>ID Proyecto Desarrollo</label>
+                        <input type="text" id="devProjectId" placeholder="ej: rampet-dev-123">
+                    </div>
+                    <div class="input-group">
+                        <label>Service Account JSON (Desarrollo)</label>
+                        <textarea id="devCredentials" rows="1" placeholder="Pega el JSON aquí..." style="height: 38px;"></textarea>
+                    </div>
                 </div>
-                <button class="btn-primary" style="background: var(--accent); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); margin: 0;" onclick="captureRules()">📥 Capturar Reglas desde Desarrollo Online</button>
                 
-                <div style="height: 10px;"></div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <button class="btn-primary" style="background: var(--primary); margin: 0;" onclick="checkFirestoreVersion()">🔍 Verificar Versión Firestore</button>
+                    <button class="btn-primary" style="background: var(--accent); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); margin: 0;" onclick="captureRules()">📥 Capturar Reglas (Online -> PC)</button>
+                </div>
+                
+                <div style="height: 15px; border-top: 1px dashed rgba(255,255,255,0.1); margin-top: 5px;"></div>
 
                 <div class="input-group">
                     <label>IDs Proyectos Producción <span>(Separados por coma)</span></label>
-                    <textarea id="prodProjectIds" rows="3" placeholder="proyecto-cliente-1, proyecto-cliente-2, ..."></textarea>
+                    <textarea id="prodProjectIds" rows="2" placeholder="proyecto-cliente-1, proyecto-cliente-2, ..."></textarea>
                 </div>
                 <button class="btn-primary" style="background: #ef4444; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3); margin: 0;" onclick="confirmFirebaseDeploy()">📤 Desplegar Reglas a Todos los Clientes</button>
             </div>
@@ -608,6 +623,28 @@
     }
 
     // Funciones Firebase
+    async function checkFirestoreVersion() {
+        const projectId = document.getElementById('devProjectId').value;
+        const credentials = document.getElementById('devCredentials').value;
+        
+        if (!projectId || !credentials) return alert('Ingresa el ID y las Credenciales de desarrollo.');
+
+        document.getElementById('v-firestore').textContent = '...';
+
+        try {
+            const response = await fetch('/api/firebase/check-version', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ projectId, credentials })
+            });
+            const data = await response.json();
+            document.getElementById('v-firestore').textContent = data.version || 'N/A';
+        } catch (e) {
+            alert('Error consultando Firestore: ' + e.message);
+            document.getElementById('v-firestore').textContent = 'Error';
+        }
+    }
+
     async function captureRules() {
         const projectId = document.getElementById('devProjectId').value;
         if (!projectId) return alert('Ingresa el ID del proyecto de desarrollo.');

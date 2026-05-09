@@ -1,5 +1,6 @@
 import express from 'express';
 import { spawn } from 'child_process';
+import admin from 'firebase-admin';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -151,10 +152,23 @@ app.get('/api/versions', async (req, res) => {
         const pkgLocal = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
         const versionLocal = pkgLocal.version;
 
+        // Obtener prefijo de ruta si el proyecto está en una subcarpeta
+        const getGitPrefix = () => {
+            return new Promise((resolve) => {
+                const proc = spawn('git', ['rev-parse', '--show-prefix'], { shell: true });
+                let output = '';
+                proc.stdout.on('data', (data) => output += data.toString());
+                proc.on('close', () => resolve(output.trim()));
+            });
+        };
+
+        const prefix = await getGitPrefix();
+
         // Intentar obtener versiones de ramas remotas (requiere git fetch)
         const getRemoteVersion = (branch) => {
             return new Promise((resolve) => {
-                const proc = spawn('git', ['show', `${branch}:package.json`], { shell: true });
+                const fullPath = `${prefix}package.json`;
+                const proc = spawn('git', ['show', `${branch}:${fullPath}`], { shell: true });
                 let output = '';
                 proc.stdout.on('data', (data) => output += data.toString());
                 proc.on('close', (code) => {
@@ -246,6 +260,32 @@ app.post('/api/firebase/deploy-rules', (req, res) => {
     };
 
     deployNext();
+});
+
+// Endpoint: Consultar Versión en Firestore (Online)
+app.post('/api/firebase/check-version', async (req, res) => {
+    const { projectId, credentials } = req.body;
+    if (!projectId || !credentials) return res.status(400).send("Faltan datos de conexión.");
+
+    try {
+        const appName = `check-${Date.now()}`;
+        const firebaseApp = admin.initializeApp({
+            credential: admin.credential.cert(JSON.parse(credentials)),
+            projectId: projectId
+        }, appName);
+
+        const db = firebaseApp.firestore();
+        const doc = await db.collection('config').doc('general').get();
+        const data = doc.exists ? doc.data() : {};
+        
+        const onlineVersion = data.appVersion || 'N/A';
+        
+        await firebaseApp.delete();
+        res.json({ version: onlineVersion });
+
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // Ruta por defecto: Redirigir al frontend

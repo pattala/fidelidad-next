@@ -669,19 +669,20 @@
 
     async function captureRules() {
         const projectId = document.getElementById('devProjectId').value;
+        const credentials = document.getElementById('devCredentials').value;
         if (!projectId) return alert('Ingresa el ID del proyecto de desarrollo.');
         saveDevCreds(); // Guardar al capturar
 
         const consoleContainer = document.getElementById('consoleContainer');
         const consoleOutput = document.getElementById('consoleOutput');
         consoleContainer.style.display = 'block';
-        consoleOutput.textContent = 'Capturando reglas...\n';
+        consoleOutput.textContent = '🚀 Iniciando captura...\n';
 
         try {
             const response = await fetch('/api/firebase/capture-rules', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ projectId })
+                body: JSON.stringify({ projectId, credentials })
             });
             const reader = response.body.getReader();
             const decoder = new TextDecoder();

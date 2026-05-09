@@ -208,24 +208,49 @@ app.get('/api/versions', async (req, res) => {
 });
 
 // Endpoint: Capturar Reglas de Desarrollo
-app.post('/api/firebase/capture-rules', (req, res) => {
-    const { projectId } = req.body;
+app.post('/api/firebase/capture-rules', async (req, res) => {
+    const { projectId, credentials } = req.body;
     if (!projectId) return res.status(400).send("Falta Project ID de Desarrollo.");
 
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.write(`📥 Capturando reglas desde el proyecto: ${projectId}...\n`);
 
+    // 1. Ejecutar comando de captura de reglas
     const proc = spawn('firebase', ['firestore:rules:get', '--project', projectId], { shell: true });
     let rulesOutput = '';
     
-    proc.stdout.on('data', (data) => {
-        rulesOutput += data.toString();
-    });
+    proc.stdout.on('data', (data) => rulesOutput += data.toString());
 
-    proc.on('close', (code) => {
+    proc.on('close', async (code) => {
         if (code === 0) {
             fs.writeFileSync(path.join(__dirname, 'firestore.rules'), rulesOutput, 'utf8');
             res.write("✅ Reglas capturadas y guardadas en firestore.rules.\n");
+
+            // 2. ACTUALIZAR VERSIÓN EN FIRESTORE (Si hay credenciales)
+            if (credentials) {
+                try {
+                    res.write("🏷️ Sincronizando etiqueta de versión en Firestore...\n");
+                    const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+                    const version = pkg.version;
+
+                    const appName = `sync-${Date.now()}`;
+                    const firebaseApp = admin.initializeApp({
+                        credential: admin.credential.cert(JSON.parse(credentials)),
+                        projectId: projectId
+                    }, appName);
+
+                    const db = firebaseApp.firestore();
+                    await db.collection('config').doc('general').set({ 
+                        appVersion: version,
+                        lastSync: admin.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+
+                    res.write(`✅ Versión ${version} marcada en Firestore de Desarrollo.\n`);
+                    await firebaseApp.delete();
+                } catch (e) {
+                    res.write(`⚠️ No se pudo actualizar la versión en DB: ${e.message}\n`);
+                }
+            }
         } else {
             res.write(`❌ Error capturando reglas (Código ${code}).\n`);
         }

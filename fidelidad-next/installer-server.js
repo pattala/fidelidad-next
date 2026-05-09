@@ -1,6 +1,7 @@
 import express from 'express';
 import { spawn } from 'child_process';
 import admin from 'firebase-admin';
+import { GoogleAuth } from 'google-auth-library';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -210,52 +211,77 @@ app.get('/api/versions', async (req, res) => {
 // Endpoint: Capturar Reglas de Desarrollo
 app.post('/api/firebase/capture-rules', async (req, res) => {
     const { projectId, credentials } = req.body;
-    if (!projectId) return res.status(400).send("Falta Project ID de Desarrollo.");
+    if (!projectId || !credentials) return res.status(400).send("Faltan datos de conexión.");
 
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.write(`📥 Capturando reglas desde el proyecto: ${projectId}...\n`);
+    res.write(`📥 Capturando reglas desde el proyecto: ${projectId} (vía API)...\n`);
 
-    // 1. Ejecutar comando de captura de reglas
-    const proc = spawn('firebase', ['firestore:rules:get', '--project', projectId], { shell: true });
-    let rulesOutput = '';
-    
-    proc.stdout.on('data', (data) => rulesOutput += data.toString());
+    try {
+        // 1. AUTENTICACIÓN
+        const auth = new GoogleAuth({
+            credentials: JSON.parse(credentials),
+            scopes: ['https://www.googleapis.com/auth/cloud-platform']
+        });
+        const client = await auth.getClient();
+        const tokenResponse = await client.getAccessToken();
+        const token = tokenResponse.token;
 
-    proc.on('close', async (code) => {
-        if (code === 0) {
-            fs.writeFileSync(path.join(__dirname, 'firestore.rules'), rulesOutput, 'utf8');
-            res.write("✅ Reglas capturadas y guardadas en firestore.rules.\n");
+        // 2. OBTENER RELEASES (Para encontrar el ruleset actual)
+        const releasesUrl = `https://firebaserules.googleapis.com/v1/projects/${projectId}/releases`;
+        const releasesRes = await fetch(releasesUrl, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const releasesData = await releasesRes.json();
 
-            // 2. ACTUALIZAR VERSIÓN EN FIRESTORE (Si hay credenciales)
-            if (credentials) {
-                try {
-                    res.write("🏷️ Sincronizando etiqueta de versión en Firestore...\n");
-                    const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
-                    const version = pkg.version;
-
-                    const appName = `sync-${Date.now()}`;
-                    const firebaseApp = admin.initializeApp({
-                        credential: admin.credential.cert(JSON.parse(credentials)),
-                        projectId: projectId
-                    }, appName);
-
-                    const db = firebaseApp.firestore();
-                    await db.collection('config').doc('general').set({ 
-                        appVersion: version,
-                        lastSync: admin.firestore.FieldValue.serverTimestamp()
-                    }, { merge: true });
-
-                    res.write(`✅ Versión ${version} marcada en Firestore de Desarrollo.\n`);
-                    await firebaseApp.delete();
-                } catch (e) {
-                    res.write(`⚠️ No se pudo actualizar la versión en DB: ${e.message}\n`);
-                }
-            }
-        } else {
-            res.write(`❌ Error capturando reglas (Código ${code}).\n`);
+        if (!releasesData.releases) {
+            throw new Error("No se encontraron despliegues de reglas en este proyecto.");
         }
-        res.end();
-    });
+
+        // Buscar el release de firestore
+        const firestoreRelease = releasesData.releases.find(r => r.name.includes('cloud.firestore'));
+        if (!firestoreRelease) throw new Error("No se encontró release de Firestore.");
+
+        // 3. OBTENER EL CONTENIDO DEL RULESET
+        const rulesetUrl = `https://firebaserules.googleapis.com/v1/${firestoreRelease.rulesetName}`;
+        const rulesetRes = await fetch(rulesetUrl, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const rulesetData = await rulesetRes.json();
+
+        if (!rulesetData.source || !rulesetData.source.files) {
+            throw new Error("No se pudo leer el contenido del ruleset.");
+        }
+
+        const rulesContent = rulesetData.source.files[0].content;
+
+        // 4. GUARDAR LOCALMENTE
+        fs.writeFileSync(path.join(__dirname, 'firestore.rules'), rulesContent, 'utf8');
+        res.write("✅ Reglas capturadas y guardadas en firestore.rules.\n");
+
+        // 5. SELLAR VERSIÓN EN FIRESTORE
+        res.write("🏷️ Sincronizando etiqueta de versión en Firestore...\n");
+        const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+        const version = pkg.version;
+
+        const appName = `sync-${Date.now()}`;
+        const firebaseApp = admin.initializeApp({
+            credential: admin.credential.cert(JSON.parse(credentials)),
+            projectId: projectId
+        }, appName);
+
+        const db = firebaseApp.firestore();
+        await db.collection('config').doc('general').set({ 
+            appVersion: version,
+            lastSync: admin.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+
+        res.write(`✅ Versión ${version} marcada en Firestore.\n`);
+        await firebaseApp.delete();
+
+    } catch (error) {
+        res.write(`❌ ERROR CRÍTICO: ${error.message}\n`);
+    }
+    res.end();
 });
 
 // Endpoint: Desplegar Reglas a Producción

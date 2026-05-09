@@ -28,3 +28,5 @@ backups/
 .vercel
 .env*.local
 .dev_creds.json
+_OLD_BACKUPS/
+backups/

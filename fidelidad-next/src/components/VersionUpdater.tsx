@@ -29,6 +29,25 @@ export const VersionUpdater = () => {
         },
     });
 
+    // Función para comparar versiones tipo "V.1.4.59"
+    const isNewer = (remote: string, local: string): boolean => {
+        try {
+            const clean = (v: string) => v.replace(/[^0-9.]/g, '').split('.').map(Number);
+            const r = clean(remote);
+            const l = clean(local);
+            
+            for (let i = 0; i < Math.max(r.length, l.length); i++) {
+                const rv = r[i] || 0;
+                const lv = l[i] || 0;
+                if (rv > lv) return true;
+                if (rv < lv) return false;
+            }
+            return false;
+        } catch (e) {
+            return remote !== local; // Fallback
+        }
+    };
+
     // AGGRESSIVE CHECK: Compare local APP_VERSION with Firestore version
     useEffect(() => {
         const checkVersion = async () => {
@@ -36,9 +55,12 @@ export const VersionUpdater = () => {
                 const config = await ConfigService.get();
                 const latest = (config as any).latestVersion || APP_VERSION;
                 
-                if (latest !== APP_VERSION) {
-                    console.log(`[PWA] Diferencia de versión detectada: Local=${APP_VERSION}, Remote=${latest}`);
+                if (isNewer(latest, APP_VERSION)) {
+                    console.log(`[PWA] Nueva versión disponible: Local=${APP_VERSION}, Remote=${latest}`);
                     setRemoteVersion(latest);
+                } else {
+                    // Si la remota es igual o vieja, limpiar el estado de remoteVersion
+                    if (remoteVersion) setRemoteVersion(null);
                 }
             } catch (err) {
                 console.error('[PWA] Error verificando versión remota:', err);
@@ -48,11 +70,12 @@ export const VersionUpdater = () => {
         checkVersion();
         const interval = setInterval(checkVersion, 2 * 60 * 1000); // Cada 2 minutos
         return () => clearInterval(interval);
-    }, []);
+    }, [remoteVersion]);
 
     useEffect(() => {
-        if (needRefresh || (remoteVersion && remoteVersion !== APP_VERSION)) {
-            console.log('[PWA] Nueva versión detectada (SW o Firestore)');
+        // Solo mostrar si hay un needRefresh del SW o si la remota es realmente más nueva
+        if (needRefresh || (remoteVersion && isNewer(remoteVersion, APP_VERSION))) {
+            console.log('[PWA] Mostrando aviso de actualización');
             
             // Si ya hay un toast, no duplicar
             if (toast.hasOwnProperty('pwa-update-toast')) return;
@@ -104,45 +127,6 @@ export const VersionUpdater = () => {
             setOfflineReady(false);
         }
     }, [offlineReady, setOfflineReady]);
-
-    useEffect(() => {
-        if (needRefresh) {
-            console.log('[PWA] Nueva versión detectada');
-
-            // Mostrar un toast con acción para actualizar
-            toast((t) => (
-                <div className="flex flex-col gap-2">
-                    <span className="font-bold text-sm">
-                        🚀 ¡Nueva versión disponible!
-                    </span>
-                    <p className="text-xs opacity-80">
-                        Actualiza para ver los últimos cambios y mejoras.
-                    </p>
-                    <div className="flex gap-2 mt-1">
-                        <button
-                            onClick={() => {
-                                updateServiceWorker(true);
-                                toast.dismiss(t.id);
-                            }}
-                            className="bg-purple-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg shadow-purple-200 active:scale-95 transition-all"
-                        >
-                            Actualizar ahora
-                        </button>
-                        <button
-                            onClick={() => toast.dismiss(t.id)}
-                            className="bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-bold active:scale-95 transition-all"
-                        >
-                            Más tarde
-                        </button>
-                    </div>
-                </div>
-            ), {
-                duration: Infinity,
-                position: 'bottom-right',
-                id: 'pwa-update-toast'
-            });
-        }
-    }, [needRefresh, updateServiceWorker]);
 
     return null; // Este componente no renderiza nada visual directamente al DOM
 };

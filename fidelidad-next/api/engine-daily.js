@@ -94,37 +94,35 @@ export default async function handler(req, res) {
         };
 
         // Identificación del Ejecutor para Auditoría (V.1.4.57)
-        let executorDetail = "Sistema (Desconocido)";
+        let executorDetail = "Sistema (Auto)";
         
-        // 1. Prioridad: Intentar extraer identidad real del token si existe
-        const authHeader = req.headers["authorization"];
-        if (authHeader && authHeader.startsWith("Bearer ")) {
-            try {
-                const idToken = authHeader.split("Bearer ")[1];
-                const decodedToken = await admin.auth().verifyIdToken(idToken);
-                executorDetail = decodedToken.email || "Administrador (Sesión)";
-            } catch (e) {
-                executorDetail = "Sistema (Token Inválido/Expirado)";
-            }
+        // 1. Prioridad: Identificar si es el Simulador
+        if (simulatedDateStr) {
+            executorDetail = `SIMULADOR (${formatDateToDisplay(simulatedDateStr)})`;
         } 
-        
-        // 2. Si no hay token, identificar por encabezados de sistema o triggerSource
-        if (executorDetail.startsWith("Sistema")) {
-            if (cronHeader) {
-                executorDetail = "Sistema (Cron Job Vercel)";
-            } else if (req.headers["x-qstash-signature"]) {
-                executorDetail = "Sistema (QStash Scheduler)";
-            } else if (triggerSource === 'extension') {
-                executorDetail = "Sistema (Extensión Chrome)";
-            } else if (triggerSource === 'sidebar_manual') {
-                executorDetail = "Sistema (Gatillo Manual Sidebar)";
-            } else if (triggerSource === 'dashboard') {
-                executorDetail = "Sistema (Panel Admin)";
-            } else if (triggerSource === 'auto') {
-                executorDetail = "Sistema (Ejecución Automática)";
-            } else {
-                executorDetail = `Sistema (Origen: ${triggerSource})`;
+        // 2. Si no es simulador, ver si es el Panel Admin
+        else if (triggerSource === 'dashboard' || triggerSource === 'sidebar_manual') {
+            executorDetail = "BOTÓN MANUAL (Panel)";
+            
+            // Intentar extraer email del token si existe
+            const authHeaderVal = req.headers["authorization"];
+            if (authHeaderVal && authHeaderVal.startsWith("Bearer ")) {
+                try {
+                    const idToken = authHeaderVal.split("Bearer ")[1];
+                    const decodedToken = await admin.auth().verifyIdToken(idToken);
+                    if (decodedToken.email) executorDetail = `ADMIN (${decodedToken.email})`;
+                } catch (e) { /* silent fail */ }
             }
+        }
+        // 3. Identificar otros orígenes automáticos
+        else if (cronHeader) {
+            executorDetail = "AUTOMÁTICO (Cron Vercel)";
+        } else if (req.headers["x-qstash-signature"]) {
+            executorDetail = "AUTOMÁTICO (QStash)";
+        } else if (triggerSource === 'extension') {
+            executorDetail = "AUTOMÁTICO (Extensión)";
+        } else {
+            executorDetail = `SISTEMA (${triggerSource})`;
         }
 
 
@@ -612,7 +610,7 @@ export default async function handler(req, res) {
 
         // AUDITORÍA FINAL CONSOLIDADA (Con ID unificado para sincronización total)
         if (!skipSideEffects) {
-            const finalSummary = `Motor Maestro: ${results.birthdays} cumple, ${results.expirations} vencim, ${results.petAlerts} mascotas.`;
+            const finalSummary = `Motor Maestro (${executorDetail}): ${results.birthdays} cumple, ${results.expirations} vencim, ${results.petAlerts} mascotas.`;
             
             // 1. Registro de Historia (Para Auditoría General - No se sobreescribe)
             await db.collection('audit_logs').add({
@@ -621,7 +619,8 @@ export default async function handler(req, res) {
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
                 executor: executorDetail,
                 summary: finalSummary,
-                details: results.details
+                details: results.details,
+                simulated: !!simulatedDateStr
             });
 
             // 2. Registro de Estado (Fijo para el Dashboard y GlobalAlerts)
@@ -632,7 +631,8 @@ export default async function handler(req, res) {
                 executor: executorDetail,
                 summary: finalSummary,
                 details: results.details.length > 0 ? results.details : [{ userId: 'system', action: 'check', status: 'skipped', info: 'Sin acciones hoy' }],
-                actions: processedAlerts // Sincronización para la extensión y panel
+                actions: processedAlerts, // Sincronización para la extensión y panel
+                lastUpdate: admin.firestore.FieldValue.serverTimestamp()
             }, { merge: true });
         }
 

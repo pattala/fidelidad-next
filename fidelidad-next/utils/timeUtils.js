@@ -3,7 +3,7 @@
  * respetando el Simulador de Fecha configurado en Firestore.
  */
 export async function getEffectiveDate(db, simulatedDateParam = null) {
-    const today = new Date();
+    const today = new Date(new Date().toLocaleString("en-US", {timeZone: "America/Argentina/Buenos_Aires"}));
     
     // 1. Prioridad: Parámetro explícito en la request (body o query)
     if (simulatedDateParam) {
@@ -26,8 +26,9 @@ export async function getEffectiveDate(db, simulatedDateParam = null) {
         console.error("[TimeUtils] Error leyendo config:", e.message);
     }
 
-    // 3. Por defecto: Fecha real
-    return today;
+    // 3. Por defecto: Fecha real (Forzada a Argentina para evitar desfasaje en la nube)
+    const argentinaDate = new Date(new Date().toLocaleString("en-US", {timeZone: "America/Argentina/Buenos_Aires"}));
+    return argentinaDate;
 }
 
 /**

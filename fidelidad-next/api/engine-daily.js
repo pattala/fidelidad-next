@@ -562,6 +562,10 @@ export default async function handler(req, res) {
         
         console.log(`[Engine] Resultados parciales: ${results.birthdays} cumple, ${results.expirations} vencim, ${results.petAlerts} mascotas. Duplicado: ${skipSideEffects}`);
 
+        // V.1.4.64: Consolidar Resumen y Detalles para Auditoría Completa
+        const finalSummary = `Motor Diario (${executorDetail}): ${results.birthdays} cumple, ${results.expirations} vencim, ${results.petAlerts} mascotas.`;
+        const finalStatus = results.errors.length > 0 ? 'partial' : 'success';
+
         if (!skipSideEffects) {
             await db.collection('audit_logs').add({
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
@@ -572,15 +576,15 @@ export default async function handler(req, res) {
                 triggerSource
             });
         } else {
-            // V.1.4.62: Registramos el Check para TODOS los orígenes (QStash, Extensión, etc.)
-            // Antes estaba limitado solo a 'dashboard', por eso no veías los logs automáticos.
+            // Log de Verificación Enriquecido
             await db.collection('audit_logs').add({
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
                 type: 'daily_check_info',
                 status: 'skipped',
-                summary: `Motor al día. Ya se procesó la fecha: ${formatDateToDisplay(todayStr)}`,
+                summary: `Motor al día. ${finalSummary}`,
                 executor: executorDetail,
                 triggerSource,
+                details: results.details,
                 simulated: !!simulatedDateStr
             });
         }
@@ -607,7 +611,6 @@ export default async function handler(req, res) {
             });
         } catch (e) { console.error("Error fetching redemptions for engine:", e); }
 
-        // 5. PROCESAR ASIGNACIONES DE PUNTOS (Manuales)
         const pointsAssignmentsList = [];
         try {
             const pointsSnap = await db.collection('audit_logs')
@@ -631,9 +634,7 @@ export default async function handler(req, res) {
             });
         } catch (e) { console.error("Error fetching points assignments for engine:", e); }
 
-        // 6. MANTENIMIENTO GLOBAL DE TRANSACCIONES (3 AÑOS O 5000 REGISTROS)
         try {
-            // A. Borrar por antigüedad (3 años = 1095 días)
             const threeYearsAgo = new Date(referenceDate);
             threeYearsAgo.setDate(threeYearsAgo.getDate() - 1095);
             const oldTransSnap = await db.collection('transactions')
@@ -645,10 +646,8 @@ export default async function handler(req, res) {
                 const batch = db.batch();
                 oldTransSnap.docs.forEach(doc => batch.delete(doc.ref));
                 await batch.commit();
-                console.log(`[engine] Purged ${oldTransSnap.size} transactions older than 3 years.`);
             }
 
-            // B. Borrar por cantidad (Cap: 5000)
             const transCountSnap = await db.collection('transactions').count().get();
             const totalTrans = transCountSnap.data().count;
             if (totalTrans > 5000) {
@@ -661,18 +660,15 @@ export default async function handler(req, res) {
                 const batch = db.batch();
                 excessSnap.docs.forEach(doc => batch.delete(doc.ref));
                 await batch.commit();
-                console.log(`[engine] Purged ${excessSnap.size} excess transactions (Total was ${totalTrans}).`);
             }
         } catch (e) { console.error("Error in transaction maintenance:", e); }
 
-        // AUDITORÍA FINAL CONSOLIDADA (Con ID unificado para sincronización total)
+        // AUDITORÍA FINAL CONSOLIDADA
         if (!skipSideEffects) {
-            const finalSummary = `Motor Maestro (${executorDetail}): ${results.birthdays} cumple, ${results.expirations} vencim, ${results.petAlerts} mascotas.`;
-            
-            // 1. Registro de Historia (Para Auditoría General - No se sobreescribe)
+            // 1. Registro de Historia (No se sobreescribe)
             await db.collection('audit_logs').add({
                 type: 'engine_daily_execution_finished',
-                status: results.errors.length > 0 ? 'partial' : 'success',
+                status: finalStatus,
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
                 executor: executorDetail,
                 summary: finalSummary,
@@ -680,15 +676,15 @@ export default async function handler(req, res) {
                 simulated: !!simulatedDateStr
             });
 
-            // 2. Registro de Estado (Fijo para el Dashboard y GlobalAlerts)
+            // 2. Registro de Estado (Fijo para Dashboard)
             await db.collection('audit_logs').doc(`daily_alerts_${todayStr}`).set({
                 type: 'engine_daily_unified',
-                status: results.errors.length > 0 ? 'partial' : 'success',
+                status: finalStatus,
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
                 executor: executorDetail,
                 summary: finalSummary,
                 details: results.details.length > 0 ? results.details : [{ userId: 'system', action: 'check', status: 'skipped', info: 'Sin acciones hoy' }],
-                actions: processedAlerts, // Sincronización para la extensión y panel
+                actions: processedAlerts,
                 lastUpdate: admin.firestore.FieldValue.serverTimestamp()
             }, { merge: true });
         }

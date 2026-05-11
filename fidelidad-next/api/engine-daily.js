@@ -562,18 +562,17 @@ export default async function handler(req, res) {
                 triggerSource
             });
         } else {
-            // V.1.4.58: Añadimos un log de "Check" aunque salte, para dar feedback al Admin de que la verificación ocurrió.
-            if (triggerSource === 'dashboard' || triggerSource === 'sidebar_manual') {
-                await db.collection('audit_logs').add({
-                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                    type: 'daily_check_info',
-                    status: 'skipped',
-                    summary: `Motor al día. Ya se procesó la fecha: ${formatDateToDisplay(todayStr)}`,
-                    executor: executorDetail,
-                    triggerSource,
-                    simulated: !!simulatedDateStr
-                });
-            }
+            // V.1.4.62: Registramos el Check para TODOS los orígenes (QStash, Extensión, etc.)
+            // Antes estaba limitado solo a 'dashboard', por eso no veías los logs automáticos.
+            await db.collection('audit_logs').add({
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                type: 'daily_check_info',
+                status: 'skipped',
+                summary: `Motor al día. Ya se procesó la fecha: ${formatDateToDisplay(todayStr)}`,
+                executor: executorDetail,
+                triggerSource,
+                simulated: !!simulatedDateStr
+            });
         }
 
         const redemptionsList = [];

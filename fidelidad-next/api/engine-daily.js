@@ -165,19 +165,29 @@ export default async function handler(req, res) {
         const usersSnap = await db.collection('users').where('birthDate', '!=', '').get();
         const birthdayUsers = usersSnap.docs.filter(doc => {
             const bDate = doc.data().birthDate;
-            if (!bDate) return false;
-            // Normalizar: convertir YYYY-MM-DD o DD/MM/YYYY a MM-DD para comparar
+            if (!bDate || typeof bDate !== 'string') return false;
+            
+            // V.1.4.63: Normalización Robusta (Soporta DD/MM, DD/MM/YYYY, YYYY-MM-DD, etc)
             let normalized = bDate;
-            if (bDate.includes('/')) {
-                const parts = bDate.split('/');
-                if (parts.length === 3) normalized = `${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-            } else if (bDate.includes('-')) {
-                const parts = bDate.split('-');
-                if (parts.length === 3) {
-                    // Si es YYYY-MM-DD (estándar HTML5)
-                    if (parts[0].length === 4) normalized = `${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
-                    // Si es DD-MM-YYYY
-                    else normalized = `${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+            const separator = bDate.includes('/') ? '/' : (bDate.includes('-') ? '-' : null);
+            
+            if (separator) {
+                const parts = bDate.split(separator).map(p => p.trim());
+                if (parts.length >= 2) {
+                    let day, month;
+                    // Caso A: YYYY-MM-DD (o similar con año al principio)
+                    if (parts[0].length === 4) {
+                        month = parts[1];
+                        day = parts[2];
+                    } 
+                    // Caso B: DD-MM... (Formato latino o sin año)
+                    else {
+                        day = parts[0];
+                        month = parts[1];
+                    }
+                    if (day && month) {
+                        normalized = `${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                    }
                 }
             }
             return normalized.endsWith(todayMD);

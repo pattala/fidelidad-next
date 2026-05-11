@@ -177,7 +177,8 @@ export default async function handler(req, res) {
             if (targetDays && Array.isArray(targetDays) && targetDays.length > 0 && !targetDays.includes(todayDay)) continue;
 
             // 4. ¿Estamos en el momento de la Antelación?
-            if (camp.startTime) {
+            // V.1.4.67: Si es TRADICIONAL, no esperamos a la hora de inicio, se manda apenas arranca el día.
+            if (camp.startTime && camp.isFlash) {
                 const [startH, startM] = camp.startTime.split(':').map(Number);
                 const startTimeDate = new Date(now);
                 startTimeDate.setHours(startH, startM, 0, 0);
@@ -193,6 +194,9 @@ export default async function handler(req, res) {
                 const sixHoursLater = new Date(startTimeDate);
                 sixHoursLater.setHours(sixHoursLater.getHours() + 6);
                 if (now > sixHoursLater && !isManualSim) continue;
+            } else if (!camp.isFlash) {
+                // Para tradicionales, simplemente verificamos que la fecha de inicio ya haya llegado
+                if (camp.startDate && camp.startDate > todayStr) continue;
             }
 
             // --- EJECUCIÓN DEL BROADCAST ---

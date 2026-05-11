@@ -327,6 +327,7 @@ export default async function handler(req, res) {
 
                 // SIEMPRE añadir a detalles para la extensión si tiene puntos o venció hoy
                 if (total > 0 || (userData.points || 0) > 0) {
+                    const nextAmt = userData.nextExpirationAmount || userData.points || 0;
                     results.details.push({
                         userId: doc.id,
                         userName: userData.nombre || userData.name || 'Socio',
@@ -334,9 +335,9 @@ export default async function handler(req, res) {
                         dni: userData.dni || '',
                         action: "points_expired",
                         status: "success",
-                        info: total > 0 ? `-${total} pts vencidos hoy` : 'Vencimiento pendiente de aviso',
+                        info: total > 0 ? `-${total} pts han vencido hoy.` : `Tiene ${nextAmt} pts por vencer pronto.`,
                         phone: userData.phone || userData.telefono || '',
-                        points: total > 0 ? total : (userData.points || 0)
+                        points: total > 0 ? total : nextAmt
                     });
                 }
             } catch (e) { results.errors.push(`Expiration ${doc.id}: ${e.message}`); }
@@ -406,13 +407,14 @@ export default async function handler(req, res) {
                     await doc.ref.update({ lastExpirationWarningDate: todayStr });
                 }
 
+                const nextAmt = userData.nextExpirationAmount || userData.points || 0;
                 results.details.push({
                     userId: doc.id, userName: userData.nombre || userData.name || 'Socio',
                     socioNumber: userData.socioNumber || userData.numeroSocio || '',
                     dni: userData.dni || '', action: "expiration_warning", status: "info",
-                    info: `${userData.points} pts próximos a vencer el ${formatDateToDisplay(userData.nextExpirationDate)}`,
+                    info: `Vencen ${nextAmt} pts el ${formatDateToDisplay(userData.nextExpirationDate)}`,
                     phone: userData.phone || userData.telefono || '',
-                    points: userData.points, nextExpirationDate: userData.nextExpirationDate
+                    points: nextAmt, nextExpirationDate: userData.nextExpirationDate
                 });
             }
         }

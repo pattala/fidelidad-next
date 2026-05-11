@@ -92,12 +92,14 @@ export const GlobalAlerts = () => {
                     const eId = `expiration-${userIdentifier}-${data.nextExpirationDate || 'today'}-${data.points || 0}`;
                     
                     const userBD = data.birthDate || data.fechaNacimiento;
-                    if (userBD && userBD.endsWith(dMD)) {
+                    const alreadyGreeted = data.lastBirthdayGreetingYear === curY;
+                    if (userBD && userBD.endsWith(dMD) && !alreadyGreeted) {
                         births.push({ ...data, alertId: bId, id: d.id });
                     }
                     
                     if (data.nextExpirationDate && data.nextExpirationDate >= todayStr && data.nextExpirationDate <= winEndStr) {
-                        if ((data.points || 0) > 0) {
+                        const alreadyNotified = data.lastExpirationWarningDate === todayStr;
+                        if ((data.points || 0) > 0 && !alreadyNotified) {
                             exps.push({ ...data, alertId: eId, id: d.id });
                         }
                     }
@@ -105,8 +107,9 @@ export const GlobalAlerts = () => {
                     if (data.pets) {
                         data.pets.forEach((p: any) => {
                             const pId = `pet-${userIdentifier}-${p.name}-${p.nextFoodAlertDate || 'today'}`;
-                            // Mostrar si la fecha es hoy O ya pasó, y si no fue procesado aún
-                            if (p.nextFoodAlertDate && p.nextFoodAlertDate <= todayStr) {
+                            // No mostrar si ya se avisó hoy o después de la última compra
+                            const alreadyNotified = p.lastFoodAlertDate === todayStr;
+                            if (p.nextFoodAlertDate && p.nextFoodAlertDate <= todayStr && !alreadyNotified) {
                                 pets.push({ ...data, petName: p.name, alertId: pId, id: d.id });
                             }
                         });

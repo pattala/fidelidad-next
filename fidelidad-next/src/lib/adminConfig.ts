@@ -1,7 +1,7 @@
 /**
  * APP VERSION & REVISION
  */
-export const APP_VERSION = 'V.1.4.63';
+export const APP_VERSION = 'V.1.4.65';
 
 /**
  * CONFIGURACIÓN DE SEGURIDAD ADMINISTRATIVA (White Label)

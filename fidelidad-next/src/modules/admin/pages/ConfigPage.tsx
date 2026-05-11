@@ -648,29 +648,7 @@ export const ConfigPage = () => {
                                                     </div>
                                                 )}
 
-                                                {/* NUEVO: Factor K (Recuperación por Descuento) */}
-                                                <div className="pt-4 border-t border-gray-100">
-                                                    <div className="flex items-center justify-between mb-2">
-                                                        <div className="flex-1">
-                                                            <span className="text-sm font-bold text-blue-600 flex items-center gap-2">
-                                                                <Sparkles size={16} /> Factor K: Recuperación por Descuentos
-                                                            </span>
-                                                            <p className="text-xs text-gray-500 mt-0.5">Otorga puntos sobre el monto neto de descuentos (ej: Combos, Cupones).</p>
-                                                        </div>
-                                                        <div className="flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">
-                                                            <input
-                                                                type="number" min="0" max="100"
-                                                                value={config.discountRecoveryRatio || 0}
-                                                                onChange={e => setConfig({ ...config, discountRecoveryRatio: parseInt(e.target.value) || 0 })}
-                                                                className="w-16 bg-transparent outline-none font-black text-blue-700 text-right pr-1"
-                                                            />
-                                                            <span className="text-blue-600 font-bold text-xs">%</span>
-                                                        </div>
-                                                    </div>
-                                                    <p className="text-[10px] text-gray-400 italic">
-                                                        Ejemplo: Con 10%, si un cliente usa un cupón de $5000 (equivale a 50 pts), recibirá **5 pts** de bono adicional.
-                                                    </p>
-                                                </div>
+
 
 
                                                 {/* NUEVO: Bono por Domicilio */}
@@ -872,79 +850,7 @@ export const ConfigPage = () => {
                                                 </table>
                                             </div>
 
-                                            {/* SECCIÓN NUEVA: Itinerancia y Avisos */}
-                                            <div className="mt-6 pt-6 border-t border-gray-100 space-y-4">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <span className="bg-orange-100 text-orange-600 p-1.5 rounded-lg"><Clock size={16} /></span>
-                                                    <h4 className="text-sm font-bold text-gray-800">Itinerancia de Avisos (Recordatorios)</h4>
-                                                </div>
 
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    <div className="bg-orange-50/30 p-4 rounded-xl border border-orange-100/50">
-                                                        <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Anticipación del Aviso</label>
-                                                        <div className="flex items-center gap-3">
-                                                            <input
-                                                                type="number"
-                                                                value={config.messaging?.expirationWarningDays ?? 5}
-                                                                onChange={e => setConfig({
-                                                                    ...config,
-                                                                    messaging: { ...config.messaging!, expirationWarningDays: parseInt(e.target.value) || 0 }
-                                                                })}
-                                                                className="w-20 p-2 rounded-lg border border-gray-200 outline-none focus:ring-2 focus:ring-orange-100 font-bold text-center"
-                                                            />
-                                                            <div className="flex flex-col">
-                                                                <span className="text-sm font-medium text-gray-600">Días antes del vencimiento (Anticipo de primer aviso).</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="bg-blue-50/30 p-4 rounded-xl border border-blue-100/50 flex items-center justify-between">
-                                                        <div>
-                                                            <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Repetir Avisos</label>
-                                                            <span className="text-[10px] text-gray-500 font-medium">Habilita la "Itinerancia" (múltiples avisos).</span>
-                                                        </div>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setConfig({
-                                                                ...config,
-                                                                messaging: { ...config.messaging!, repeatExpirationWarnings: !config.messaging?.repeatExpirationWarnings }
-                                                            })}
-                                                            className={`relative w-10 h-6 transition-colors rounded-full shadow-inner ${config.messaging?.repeatExpirationWarnings ? 'bg-blue-600' : 'bg-gray-200'}`}
-                                                        >
-                                                            <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform ${config.messaging?.repeatExpirationWarnings ? 'translate-x-4' : 'translate-x-0'}`} />
-                                                        </button>
-                                                    </div>
-                                                </div>
-
-                                                {/* Intervalo de Repetición (Vencimientos) */}
-                                                {config.messaging?.repeatExpirationWarnings && (
-                                                    <div className="bg-white p-4 rounded-xl border-2 border-dashed border-blue-100 animate-fade-in mt-4">
-                                                        <label className="block text-xs font-bold text-blue-600 uppercase mb-2 ml-1 flex items-center gap-2">
-                                                            <Clock size={12} /> Intervalo de Repetición
-                                                        </label>
-                                                        <div className="flex items-center gap-3">
-                                                            <input
-                                                                type="number"
-                                                                value={config.messaging?.expirationReminderIntervalDays ?? 5}
-                                                                onChange={e => setConfig({
-                                                                    ...config,
-                                                                    messaging: { ...config.messaging!, expirationReminderIntervalDays: parseInt(e.target.value) || 0 }
-                                                                })}
-                                                                className="w-20 p-2 rounded-lg border border-blue-200 outline-none focus:ring-2 focus:ring-blue-50 font-black text-center text-blue-700"
-                                                            />
-                                                            <div className="flex flex-col">
-                                                                <span className="text-sm font-bold text-gray-700">Días de silencio (espera) entre avisos.</span>
-                                                                <p className="text-[9px] text-gray-400 italic leading-tight mt-1">
-                                                                    0 = Enviar siempre. <br />
-                                                                    1 = Día por medio (Lunes sí, Martes no, Miércoles sí). <br />
-                                                                    2 = Dos días de espera (Lunes sí, Mar y Mié no, Jueves sí).
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                            </div>
                                         </div>
                                     </div>
                                 </div>

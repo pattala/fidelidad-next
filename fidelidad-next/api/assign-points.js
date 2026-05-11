@@ -198,7 +198,7 @@ export default async function handler(req, res) {
                 clients: Array.from(results.values()),
                 pointsMoneyBase,
                 pointsPerPeso,
-                discountRecoveryRatio: Number(configData.discountRecoveryRatio) || 0,
+
                 enablePetModule: configData.enablePetModule === true,  // Flag para la extensión
                 activePromotions,
                 activePrizes,

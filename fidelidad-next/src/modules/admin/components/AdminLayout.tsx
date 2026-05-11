@@ -77,6 +77,43 @@ export const AdminLayout = () => {
         setIsMobileMenuOpen(false);
     }, [location.pathname]);
 
+    // V.1.4.58: Motor Diario Automático (Global para el Panel Admin)
+    // Se ejecuta al entrar al panel y cada vez que se cambia el día en el simulador.
+    useEffect(() => {
+        if (!config) return;
+        
+        const runDailyCheck = async () => {
+            try {
+                // Solo si está habilitado en config
+                if (config.messaging?.enableDashboardTrigger === false) return;
+                
+                const SECRET = import.meta.env.VITE_API_KEY || ConfigService.getApiKey() || '';
+                if (!SECRET) {
+                    console.warn("[AdminLayout] Skip engine: No API Key found");
+                    return;
+                }
+
+                const body: any = { source: 'dashboard' };
+                // Si hay simulador activo, pasamos la fecha simulada
+                if (TimeService.getOffsetInDays() !== 0) {
+                    body.simulatedDate = TimeService.now().toISOString();
+                }
+
+                await fetch('/api/engine-daily?mode=daily&trigger=dashboard', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET },
+                    body: JSON.stringify(body)
+                });
+            } catch (e) { 
+                console.warn("[AdminLayout] Engine check failed:", e); 
+            }
+        };
+
+        // Ejecutar con un pequeño delay para no sobrecargar el inicio
+        const timer = setTimeout(runDailyCheck, 1500);
+        return () => clearTimeout(timer);
+    }, [config?.simulatedOffsetDays]);
+
     // Role Label Mapping
     const getRoleLabel = () => {
         switch (role) {

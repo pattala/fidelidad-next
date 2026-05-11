@@ -73,7 +73,62 @@ export default async function handler(req, res) {
         const referenceDate = await getEffectiveDate(db, simulatedDateStr);
         const todayStr = referenceDate.toISOString().split('T')[0];
         
-        // RECUPERAR ALERTAS PROCESADAS PARA SINCRONIZACIÓN
+        // V.1.4.59: Validaciones de Ventana Horaria y Gatillos (Master Control)
+        const currentHour = referenceDate.getHours();
+        const startHour = Number(config.messaging?.engineAllowedStartHour ?? 6);
+        const endHour = Number(config.messaging?.engineAllowedEndHour ?? 6);
+        
+        // 1. Validar Ventana Horaria (Si start === end, es 24hs según el usuario)
+        let isInsideWindow = true;
+        if (startHour !== endHour) {
+            if (startHour < endHour) {
+                isInsideWindow = (currentHour >= startHour && currentHour < endHour);
+            } else {
+                // Ventana nocturna (ej: 22 a 06)
+                isInsideWindow = (currentHour >= startHour || currentHour < endHour);
+            }
+        }
+
+        // 2. Identificación del Ejecutor para Auditoría
+        let executorDetail = "SISTEMA (Auto)";
+        if (simulatedDateStr) {
+            executorDetail = `SIMULADOR (${formatDateToDisplay(simulatedDateStr)})`;
+        } else if (triggerSource === 'dashboard' || triggerSource === 'sidebar_manual') {
+            executorDetail = "SISTEMA (Panel)";
+            const authHeaderVal = req.headers["authorization"];
+            if (authHeaderVal && authHeaderVal.startsWith("Bearer ")) {
+                try {
+                    const idToken = authHeaderVal.split("Bearer ")[1];
+                    const decodedToken = await admin.auth().verifyIdToken(idToken);
+                    if (decodedToken.email) executorDetail = `ADMIN (${decodedToken.email})`;
+                } catch (e) { }
+            }
+        } else if (req.headers["x-qstash-signature"] || triggerSource === 'qstash') {
+            executorDetail = "SISTEMA (QStash)";
+        } else if (triggerSource === 'extension') {
+            executorDetail = "SISTEMA (Extensión)";
+        } else if (cronHeader) {
+            executorDetail = "SISTEMA (Cron Vercel)";
+        }
+
+        // 3. Validar si el gatillo está habilitado en Config
+        let isTriggerEnabled = true;
+        if (triggerSource === 'qstash' && config.messaging?.enableQStashTrigger === false) isTriggerEnabled = false;
+        if (triggerSource === 'extension' && config.messaging?.enableExtensionTrigger === false) isTriggerEnabled = false;
+        if (triggerSource === 'dashboard' && config.messaging?.enableDashboardTrigger === false) isTriggerEnabled = false;
+
+        // 4. Bloqueo de ejecución si no cumple las reglas (A menos que sea manual o simulador)
+        const isManual = (triggerSource === 'sidebar_manual' || simulatedDateStr);
+        if (!isManual) {
+            if (!isInsideWindow) {
+                return res.status(200).json({ ok: true, skipped: true, reason: 'Fuera de ventana horaria permitida', hour: currentHour });
+            }
+            if (!isTriggerEnabled) {
+                return res.status(200).json({ ok: true, skipped: true, reason: 'Gatillo desactivado en configuración', trigger: triggerSource });
+            }
+        }
+
+        // V.1.4.59: Restaurar variables de estado necesarias para el resto del motor
         let processedAlerts = {};
         try {
             const statusSnap = await db.collection('audit_logs').doc(`daily_alerts_${todayStr}`).get();
@@ -92,38 +147,6 @@ export default async function handler(req, res) {
             details: [],
             errors: []
         };
-
-        // Identificación del Ejecutor para Auditoría (V.1.4.57)
-        let executorDetail = "Sistema (Auto)";
-        
-        // 1. Prioridad: Identificar si es el Simulador
-        if (simulatedDateStr) {
-            executorDetail = `SIMULADOR (${formatDateToDisplay(simulatedDateStr)})`;
-        } 
-        // 2. Si no es simulador, ver si es el Panel Admin
-        else if (triggerSource === 'dashboard' || triggerSource === 'sidebar_manual') {
-            executorDetail = "BOTÓN MANUAL (Panel)";
-            
-            // Intentar extraer email del token si existe
-            const authHeaderVal = req.headers["authorization"];
-            if (authHeaderVal && authHeaderVal.startsWith("Bearer ")) {
-                try {
-                    const idToken = authHeaderVal.split("Bearer ")[1];
-                    const decodedToken = await admin.auth().verifyIdToken(idToken);
-                    if (decodedToken.email) executorDetail = `ADMIN (${decodedToken.email})`;
-                } catch (e) { /* silent fail */ }
-            }
-        }
-        // 3. Identificar otros orígenes automáticos
-        else if (cronHeader) {
-            executorDetail = "AUTOMÁTICO (Cron Vercel)";
-        } else if (req.headers["x-qstash-signature"]) {
-            executorDetail = "AUTOMÁTICO (QStash)";
-        } else if (triggerSource === 'extension') {
-            executorDetail = "AUTOMÁTICO (Extensión)";
-        } else {
-            executorDetail = `SISTEMA (${triggerSource})`;
-        }
 
 
         // 1. PROCESAR CUMPLEAÑOS
@@ -526,6 +549,19 @@ export default async function handler(req, res) {
                 executor: executorDetail,
                 triggerSource
             });
+        } else {
+            // V.1.4.58: Añadimos un log de "Check" aunque salte, para dar feedback al Admin de que la verificación ocurrió.
+            if (triggerSource === 'dashboard' || triggerSource === 'sidebar_manual') {
+                await db.collection('audit_logs').add({
+                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                    type: 'daily_check_info',
+                    status: 'skipped',
+                    summary: `Motor al día. Ya se procesó la fecha: ${formatDateToDisplay(todayStr)}`,
+                    executor: executorDetail,
+                    triggerSource,
+                    simulated: !!simulatedDateStr
+                });
+            }
         }
 
         const redemptionsList = [];

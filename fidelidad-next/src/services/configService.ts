@@ -164,6 +164,10 @@ export const ConfigService = {
                 callback(fullConfig);
             }
         });
+    },
+
+    getApiKey() {
+        return import.meta.env.VITE_API_KEY || '';
     }
 };
 

@@ -135,21 +135,6 @@ export const DashboardPage = () => {
     useEffect(() => {
         if (!config || stats.usersCount === 0) return;
 
-        const runDailyCheck = async () => {
-            try {
-                const SECRET = import.meta.env.VITE_API_KEY || ConfigService.getApiKey() || '';
-                if (!SECRET || config.messaging?.enableDashboardTrigger === false) return;
-                const body: any = { source: 'dashboard' };
-                if (TimeService.getOffsetInDays() !== 0) body.simulatedDate = TimeService.now().toISOString();
-
-                await fetch('/api/engine-daily?mode=daily&trigger=dashboard', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET },
-                    body: JSON.stringify(body)
-                });
-            } catch (e) { console.warn("Engine check skip/failed:", e); }
-        };
-
         const fetchForecast = async () => {
             setFetchingForecast(true);
             try {
@@ -162,7 +147,6 @@ export const DashboardPage = () => {
             finally { setFetchingForecast(false); }
         };
 
-        runDailyCheck();
         fetchForecast();
     }, [config?.simulatedOffsetDays, stats.usersCount]);
 

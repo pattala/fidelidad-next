@@ -277,7 +277,13 @@ export default async function handler(req, res) {
                 const costPerPoint = base / ratio;
 
                 const totalVal = Number(finalAmount) + currentAccumulated;
-                basePoints = Math.floor(totalVal / costPerPoint);
+                
+                // Puntos exclusivos de esta compra
+                const purchasePoints = Math.floor(Number(finalAmount) / costPerPoint);
+                // Puntos que se completan gracias al saldo acumulado previo
+                const pointsFromBalance = Math.floor(totalVal / costPerPoint) - purchasePoints;
+                
+                basePoints = purchasePoints + pointsFromBalance;
                 newAccumulatedBalance = totalVal % costPerPoint;
             } else {
                 // Modo Manual (ya viene en puntos)
@@ -593,7 +599,7 @@ export default async function handler(req, res) {
                     date: admin.firestore.FieldValue.serverTimestamp()
                 });
 
-                tx.set(db.collection('transactions').doc(), {
+                tx.set(rRef.collection('transactions').doc(), {
                     uid: rRef.id,
                     clientName: rData.name || 'Referente',
                     points: totalAwarded,

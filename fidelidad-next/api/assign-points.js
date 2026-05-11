@@ -258,7 +258,9 @@ export default async function handler(req, res) {
 
         // 4. Determinar Monto de Puntos y Saldo Acumulado
         let points = 0;
-        let newAccumulatedBalance = 0;
+        const clientSnap = await db.collection('users').doc(targetUid).get();
+        const currentAccumulated = clientSnap.exists ? Number(clientSnap.data().accumulated_balance ?? 0) : 0;
+        let newAccumulatedBalance = currentAccumulated; // Por defecto mantenemos el saldo anterior
         const finalAmount = amountOverride || amount;
 
         // --- RELOJ SIMULADO ---
@@ -267,10 +269,6 @@ export default async function handler(req, res) {
         const todayStr = now.toISOString().split('T')[0];
 
         if (isAdmin && finalAmount) {
-            // Obtener saldo acumulado actual del cliente para el cálculo
-            const clientSnap = await db.collection('users').doc(targetUid).get();
-            const currentAccumulated = clientSnap.exists ? Number(clientSnap.data().accumulated_balance ?? 0) : 0;
-
             let basePoints = 0;
             if (reason === 'external_integration') {
                 // --- CÁLCULO DE PUNTOS ---

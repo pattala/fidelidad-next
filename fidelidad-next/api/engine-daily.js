@@ -48,6 +48,11 @@ function formatDateToDisplay(dateStr) {
 
 export default async function handler(req, res) {
     if (req.method === 'OPTIONS') return res.status(200).end();
+    
+    // V.1.4.61: Debug Inicial en Consola del Servidor (Vercel)
+    const debugTrigger = req.query?.trigger || req.query?.source || req.body?.source || 'auto';
+    console.log(`[Engine-Daily] Inicio: ${req.method} | Trigger: ${debugTrigger} | Signature: ${!!req.headers["x-qstash-signature"]} | Cron: ${!!req.headers["x-vercel-cron"]}`);
+
     const authHeader = req.headers["x-api-key"] || req.headers["authorization"] || req.headers["X-API-Key"];
     const cronHeader = req.headers["x-vercel-cron"] || req.headers["X-Vercel-Cron"];
     const qstashHeader = req.headers["x-qstash-signature"];

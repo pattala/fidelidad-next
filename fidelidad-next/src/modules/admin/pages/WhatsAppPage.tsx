@@ -142,10 +142,38 @@ export const WhatsAppPage = () => {
         // Process message variables
         const firstName = client.name.split(' ')[0];
 
+        let finalPoints = client.points || 0;
+        let finalFecha = '';
+
+        if (notificationType === 'expiration') {
+            if ((client as any).expirationDetails && Array.isArray((client as any).expirationDetails) && (client as any).expirationDetails.length > 1) {
+                const details = (client as any).expirationDetails;
+                let totalExpiring = 0;
+                const dateParts = [];
+                details.forEach((d: any) => {
+                    const pts = d.points || 0;
+                    totalExpiring += pts;
+                    const jsDate = d.date?.toDate ? d.date.toDate() : new Date(d.date);
+                    const dStr = `${String(jsDate.getDate()).padStart(2, '0')}/${String(jsDate.getMonth() + 1).padStart(2, '0')}/${jsDate.getFullYear()}`;
+                    dateParts.push(`${dStr} (${pts} pts)`);
+                });
+                finalPoints = totalExpiring;
+                if (dateParts.length === 2) {
+                    finalFecha = dateParts.join(' y ');
+                } else {
+                    const last = dateParts.pop();
+                    finalFecha = dateParts.join(', ') + ' y ' + last;
+                }
+            } else {
+                finalPoints = (client as any).nextExpirationAmount !== undefined ? (client as any).nextExpirationAmount : finalPoints;
+            }
+        }
+
         const processedMsg = message
             .replace(/{nombre}/g, firstName)
             .replace(/{nombre_completo}/g, client.name)
-            .replace(/{puntos}/g, (notificationType === 'expiration' && (client as any).nextExpirationAmount !== undefined ? (client as any).nextExpirationAmount : (client.points || 0)).toString())
+            .replace(/{puntos}/g, finalPoints.toString())
+            .replace(/{fecha}/g, finalFecha)
             .replace(/{dni}/g, client.dni || '')
             .replace(/{email}/g, client.email || '');
 

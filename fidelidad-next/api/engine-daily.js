@@ -364,8 +364,28 @@ export default async function handler(req, res) {
                 if (!skipExpirations && (!alreadyNotified || skipDuplicityCheck) && config?.enableExpirationMessage !== false) {
                     const title = "⚠️ ¡Tus puntos vencen pronto!";
                     const template = config?.messaging?.templates?.expirationWarning || "¡Hola {nombre}! 📢 Te recordamos que tus {puntos} puntos vencen el {fecha}. ¡No los pierdas!";
-                    let nextAmt = userData.nextExpirationAmount;
-                    if (nextAmt === undefined) {
+                    let nextAmt = userData.nextExpirationAmount || userData.points || 0;
+                    let dateStr = formatDateToDisplay(userData.nextExpirationDate);
+
+                    if (userData.expirationDetails && Array.isArray(userData.expirationDetails) && userData.expirationDetails.length > 1) {
+                        const details = userData.expirationDetails;
+                        let totalExpiring = 0;
+                        const dateParts = [];
+                        details.forEach((d, index) => {
+                            const pts = d.points || 0;
+                            totalExpiring += pts;
+                            const jsDate = d.date?.toDate ? d.date.toDate() : new Date(d.date);
+                            const dStr = `${String(jsDate.getDate()).padStart(2, '0')}/${String(jsDate.getMonth() + 1).padStart(2, '0')}/${jsDate.getFullYear()}`;
+                            dateParts.push(`${dStr} (${pts} pts)`);
+                        });
+                        nextAmt = totalExpiring;
+                        if (dateParts.length === 2) {
+                            dateStr = dateParts.join(' y ');
+                        } else {
+                            const last = dateParts.pop();
+                            dateStr = dateParts.join(', ') + ' y ' + last;
+                        }
+                    } else if (userData.nextExpirationAmount === undefined) {
                         const historySnap = await db.collection('users').doc(doc.id).collection('points_history').where('type', '==', 'credit').get();
                         let calc = 0;
                         historySnap.docs.forEach(h => {
@@ -387,7 +407,7 @@ export default async function handler(req, res) {
                     const msg = template
                         .replace(/{nombre}/g, (userData.nombre || userData.name || 'Socio').split(' ')[0])
                         .replace(/{puntos}/g, nextAmt.toString())
-                        .replace(/{fecha}/g, formatDateToDisplay(userData.nextExpirationDate));
+                        .replace(/{fecha}/g, dateStr);
 
                     // 1. PWA PUSH
                     if (userData.fcmTokens?.length && config.messaging?.pushEnabled !== false) {
@@ -428,8 +448,23 @@ export default async function handler(req, res) {
                     await doc.ref.update({ lastExpirationWarningDate: todayStr });
                 }
 
-                let nextAmt = userData.nextExpirationAmount;
-                if (nextAmt === undefined) {
+                let auditNextAmt = userData.nextExpirationAmount || userData.points || 0;
+                let auditDateStr = formatDateToDisplay(userData.nextExpirationDate);
+                
+                if (userData.expirationDetails && Array.isArray(userData.expirationDetails) && userData.expirationDetails.length > 1) {
+                    const details = userData.expirationDetails;
+                    let totalExpiring = 0;
+                    const dateParts = [];
+                    details.forEach((d, index) => {
+                        const pts = d.points || 0;
+                        totalExpiring += pts;
+                        const jsDate = d.date?.toDate ? d.date.toDate() : new Date(d.date);
+                        const dStr = `${String(jsDate.getDate()).padStart(2, '0')}/${String(jsDate.getMonth() + 1).padStart(2, '0')}/${jsDate.getFullYear()}`;
+                        dateParts.push(`${pts} pts el ${dStr}`);
+                    });
+                    auditNextAmt = totalExpiring;
+                    auditDateStr = dateParts.join(' | ');
+                } else if (userData.nextExpirationAmount === undefined) {
                     const historySnap = await db.collection('users').doc(doc.id).collection('points_history').where('type', '==', 'credit').get();
                     let calc = 0;
                     historySnap.docs.forEach(h => {
@@ -442,18 +477,18 @@ export default async function handler(req, res) {
                             }
                         }
                     });
-                    nextAmt = calc > 0 ? calc : (userData.points || 0);
-                } else if (nextAmt === 0) {
-                    nextAmt = userData.points || 0;
+                    auditNextAmt = calc > 0 ? calc : (userData.points || 0);
+                } else if (auditNextAmt === 0) {
+                    auditNextAmt = userData.points || 0;
                 }
 
                 results.details.push({
                     userId: doc.id, userName: userData.nombre || userData.name || 'Socio',
                     socioNumber: userData.socioNumber || userData.numeroSocio || '',
                     dni: userData.dni || '', action: "expiration_warning", status: "info",
-                    info: `Vencen ${nextAmt} pts el ${formatDateToDisplay(userData.nextExpirationDate)}`,
+                    info: `Vencen ${auditNextAmt} pts: ${auditDateStr}`,
                     phone: userData.phone || userData.telefono || '',
-                    points: nextAmt, nextExpirationDate: userData.nextExpirationDate
+                    points: auditNextAmt, nextExpirationDate: userData.nextExpirationDate
                 });
             }
         }

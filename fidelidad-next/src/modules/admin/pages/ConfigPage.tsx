@@ -2852,15 +2852,131 @@ export const ConfigPage = () => {
                                         Aprovecha para usar <b>*negritas*</b> o <i>_cursivas_</i> propias de WhatsApp.
                                     </p>
 
+                                    {/* Bienvenida WhatsApp */}
+                                    <div className="p-4 bg-green-50/30 rounded-xl border border-green-100">
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">👋 Bienvenida</label>
+                                        <div className="flex gap-2">
+                                            <div className="relative flex-1">
+                                                <textarea rows={2}
+                                                    value={config.messaging?.templates?.whatsappWelcome || '¡Bienvenido a {siteName}, {nombre}! 👋 Ya tienes {puntos} puntos de regalo. 🎁'}
+                                                    onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappWelcome: e.target.value } } })}
+                                                    className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-300 outline-none resize-none"
+                                                />
+                                            </div>
+                                            <button type="button" onClick={() => window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(config.messaging?.templates?.whatsappWelcome || '¡Bienvenido a {siteName}, {nombre}! 👋 Ya tienes {puntos} puntos de regalo. 🎁')}`, '_blank')} className="px-3 py-2 text-green-500 hover:text-green-700 rounded-lg hover:bg-green-50 transition border border-green-100" title="Previsualizar WhatsApp">
+                                                <MessageCircle size={18} />
+                                            </button>
+                                        </div>
+                                        <VariableChips vars={['nombre', 'siteName', 'puntos']} onSelect={v => {
+                                            const val = (config.messaging?.templates?.whatsappWelcome || '¡Bienvenido a {siteName}, {nombre}! 👋 Ya tienes {puntos} puntos de regalo. 🎁') + ` {${v}}`;
+                                            setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappWelcome: val } } });
+                                        }} />
+                                    </div>
+
+                                    {/* Suma de Puntos WhatsApp */}
+                                    <div className="p-4 bg-green-50/30 rounded-xl border border-green-100">
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">💰 Suma de Puntos (Manual)</label>
+                                        <div className="flex gap-2">
+                                            <div className="relative flex-1">
+                                                <textarea rows={2}
+                                                    value={config.messaging?.templates?.whatsappPointsAdded || '¡Hola {nombre}! 🎉 Sumaste {puntos} puntos. Tu nuevo saldo es {saldo} 🚀'}
+                                                    onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappPointsAdded: e.target.value } } })}
+                                                    className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-300 outline-none resize-none"
+                                                />
+                                            </div>
+                                            <button type="button" onClick={() => window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(config.messaging?.templates?.whatsappPointsAdded || '¡Hola {nombre}! 🎉 Sumaste {puntos} puntos. Tu nuevo saldo es {saldo} 🚀')}`, '_blank')} className="px-3 py-2 text-green-500 hover:text-green-700 rounded-lg hover:bg-green-50 transition border border-green-100" title="Previsualizar WhatsApp">
+                                                <MessageCircle size={18} />
+                                            </button>
+                                        </div>
+                                        <VariableChips vars={['nombre', 'puntos', 'saldo']} onSelect={v => {
+                                            const val = (config.messaging?.templates?.whatsappPointsAdded || '¡Hola {nombre}! 🎉 Sumaste {puntos} puntos. Tu nuevo saldo es {saldo} 🚀') + ` {${v}}`;
+                                            setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappPointsAdded: val } } });
+                                        }} />
+                                    </div>
+
+                                    {/* Referidos: Recompensa (Amigo) WhatsApp */}
+                                    {config.referrals?.enabled && (
+                                    <div className="p-4 bg-green-50/30 rounded-xl border border-green-100">
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">🎁 Referidos: Regalo de Bienvenida</label>
+                                        <div className="flex gap-2">
+                                            <div className="relative flex-1">
+                                                <textarea rows={2}
+                                                    value={config.messaging?.templates?.whatsappReferralReward || '¡Hola {nombre}! 🎁 Ganaste {puntos} puntos porque tu amigo {amigo} te invitó a {siteName}. ✨'}
+                                                    onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappReferralReward: e.target.value } } })}
+                                                    className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-300 outline-none resize-none"
+                                                />
+                                            </div>
+                                            <button type="button" onClick={() => window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(config.messaging?.templates?.whatsappReferralReward || '¡Hola {nombre}! 🎁 Ganaste {puntos} puntos porque tu amigo {amigo} te invitó a {siteName}. ✨')}`, '_blank')} className="px-3 py-2 text-green-500 hover:text-green-700 rounded-lg hover:bg-green-50 transition border border-green-100" title="Previsualizar WhatsApp">
+                                                <MessageCircle size={18} />
+                                            </button>
+                                        </div>
+                                        <VariableChips vars={['nombre', 'amigo', 'puntos', 'siteName']} onSelect={v => {
+                                            const val = (config.messaging?.templates?.whatsappReferralReward || '¡Hola {nombre}! 🎁 Ganaste {puntos} puntos porque tu amigo {amigo} te invitó a {siteName}. ✨') + ` {${v}}`;
+                                            setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappReferralReward: val } } });
+                                        }} />
+                                    </div>
+                                    )}
+
+                                    {/* Referidos: Puntos Ganados (Referidor) WhatsApp */}
+                                    {config.referrals?.enabled && (
+                                    <div className="p-4 bg-green-50/30 rounded-xl border border-green-100">
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">🚀 Referidos: Ganancia por Invitar</label>
+                                        <div className="flex gap-2">
+                                            <div className="relative flex-1">
+                                                <textarea rows={2}
+                                                    value={config.messaging?.templates?.whatsappReferralPoints || '🎁 ¡Buenas noticias! Ganaste {puntos} puntos porque {nombre_referido} se unió a {siteName}. 🚀'}
+                                                    onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappReferralPoints: e.target.value } } })}
+                                                    className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-300 outline-none resize-none"
+                                                />
+                                            </div>
+                                            <button type="button" onClick={() => window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(config.messaging?.templates?.whatsappReferralPoints || '🎁 ¡Buenas noticias! Ganaste {puntos} puntos porque {nombre_referido} se unió a {siteName}. 🚀')}`, '_blank')} className="px-3 py-2 text-green-500 hover:text-green-700 rounded-lg hover:bg-green-50 transition border border-green-100" title="Previsualizar WhatsApp">
+                                                <MessageCircle size={18} />
+                                            </button>
+                                        </div>
+                                        <VariableChips vars={['nombre_referido', 'puntos', 'siteName']} onSelect={v => {
+                                            const val = (config.messaging?.templates?.whatsappReferralPoints || '🎁 ¡Buenas noticias! Ganaste {puntos} puntos porque {nombre_referido} se unió a {siteName}. 🚀') + ` {${v}}`;
+                                            setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappReferralPoints: val } } });
+                                        }} />
+                                    </div>
+                                    )}
+
+                                    {/* Desafío de Referidos WhatsApp */}
+                                    {config.referrals?.enabled && config.referrals?.challenge?.active && (
+                                    <div className="p-4 bg-green-50/30 rounded-xl border border-green-100">
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">🏆 Desafío de Referidos</label>
+                                        <div className="flex gap-2">
+                                            <div className="relative flex-1">
+                                                <textarea rows={2}
+                                                    value={config.messaging?.templates?.whatsappReferralChallenge || '¡NUEVO DESAFÍO! 🚀 Traé amigos a {siteName} y ganá bonos extra. Válido hasta {vencimiento}. 🎁'}
+                                                    onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappReferralChallenge: e.target.value } } })}
+                                                    className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-300 outline-none resize-none"
+                                                />
+                                            </div>
+                                            <button type="button" onClick={() => window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(config.messaging?.templates?.whatsappReferralChallenge || '¡NUEVO DESAFÍO! 🚀 Traé amigos a {siteName} y ganá bonos extra. Válido hasta {vencimiento}. 🎁')}`, '_blank')} className="px-3 py-2 text-green-500 hover:text-green-700 rounded-lg hover:bg-green-50 transition border border-green-100" title="Previsualizar WhatsApp">
+                                                <MessageCircle size={18} />
+                                            </button>
+                                        </div>
+                                        <VariableChips vars={['siteName', 'vencimiento', 'puntos', 'meta']} onSelect={v => {
+                                            const val = (config.messaging?.templates?.whatsappReferralChallenge || '¡NUEVO DESAFÍO! 🚀 Traé amigos a {siteName} y ganá bonos extra. Válido hasta {vencimiento}. 🎁') + ` {${v}}`;
+                                            setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappReferralChallenge: val } } });
+                                        }} />
+                                    </div>
+                                    )}
+
                                     {/* Cumpleaños WhatsApp */}
                                     <div className="p-4 bg-green-50/30 rounded-xl border border-green-100">
                                         <label className="block text-sm font-semibold text-gray-700 mb-2">🎂 Feliz Cumpleaños</label>
-                                        <div className="relative">
-                                            <textarea rows={2}
-                                                value={config.messaging?.templates?.whatsappBirthday || '¡Feliz cumple {nombre}! 🎂 Te regalamos puntos. ✨'}
-                                                onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappBirthday: e.target.value } } })}
-                                                className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-300 outline-none resize-none"
-                                            />
+                                        <div className="flex gap-2">
+                                            <div className="relative flex-1">
+                                                <textarea rows={2}
+                                                    value={config.messaging?.templates?.whatsappBirthday || '¡Feliz cumple {nombre}! 🎂 Te regalamos puntos. ✨'}
+                                                    onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappBirthday: e.target.value } } })}
+                                                    className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-300 outline-none resize-none"
+                                                />
+                                            </div>
+                                            <button type="button" onClick={() => window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(config.messaging?.templates?.whatsappBirthday || '¡Feliz cumple {nombre}! 🎂 Te regalamos puntos. ✨')}`, '_blank')} className="px-3 py-2 text-green-500 hover:text-green-700 rounded-lg hover:bg-green-50 transition border border-green-100" title="Previsualizar WhatsApp">
+                                                <MessageCircle size={18} />
+                                            </button>
                                         </div>
                                         <VariableChips vars={['nombre', 'nombre_completo']} onSelect={v => {
                                             const val = (config.messaging?.templates?.whatsappBirthday || '¡Feliz cumple {nombre}! 🎂 Te regalamos puntos. ✨') + ` {${v}}`;
@@ -2871,12 +2987,17 @@ export const ConfigPage = () => {
                                     {/* Vencimiento WhatsApp */}
                                     <div className="p-4 bg-green-50/30 rounded-xl border border-green-100">
                                         <label className="block text-sm font-semibold text-gray-700 mb-2">📢 Vencimiento de Puntos</label>
-                                        <div className="relative">
-                                            <textarea rows={2}
-                                                value={config.messaging?.templates?.whatsappExpiration || '¡Hola {nombre}! 📢 Tus puntos ({puntos} pts) vencen pronto.'}
-                                                onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappExpiration: e.target.value } } })}
-                                                className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-300 outline-none resize-none"
-                                            />
+                                        <div className="flex gap-2">
+                                            <div className="relative flex-1">
+                                                <textarea rows={2}
+                                                    value={config.messaging?.templates?.whatsappExpiration || '¡Hola {nombre}! 📢 Tus puntos ({puntos} pts) vencen pronto.'}
+                                                    onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappExpiration: e.target.value } } })}
+                                                    className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-300 outline-none resize-none"
+                                                />
+                                            </div>
+                                            <button type="button" onClick={() => window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(config.messaging?.templates?.whatsappExpiration || '¡Hola {nombre}! 📢 Tus puntos ({puntos} pts) vencen pronto.')}`, '_blank')} className="px-3 py-2 text-green-500 hover:text-green-700 rounded-lg hover:bg-green-50 transition border border-green-100" title="Previsualizar WhatsApp">
+                                                <MessageCircle size={18} />
+                                            </button>
                                         </div>
                                         <VariableChips vars={['nombre', 'puntos']} onSelect={v => {
                                             const val = (config.messaging?.templates?.whatsappExpiration || '¡Hola {nombre}! 📢 Tus puntos ({puntos} pts) vencen pronto.') + ` {${v}}`;
@@ -2887,12 +3008,17 @@ export const ConfigPage = () => {
                                     {/* Canje WhatsApp */}
                                     <div className="p-4 bg-green-50/30 rounded-xl border border-green-100">
                                         <label className="block text-sm font-semibold text-gray-700 mb-2">🎁 Canje Exitoso</label>
-                                        <div className="relative">
-                                            <textarea rows={2}
-                                                value={config.messaging?.templates?.whatsappRedemption || '¡Canje exitoso {nombre}! 🎁 Canjeaste {premio}. Código: {codigo}'}
-                                                onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappRedemption: e.target.value } } })}
-                                                className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-300 outline-none resize-none"
-                                            />
+                                        <div className="flex gap-2">
+                                            <div className="relative flex-1">
+                                                <textarea rows={2}
+                                                    value={config.messaging?.templates?.whatsappRedemption || '¡Canje exitoso {nombre}! 🎁 Canjeaste {premio}. Código: {codigo}'}
+                                                    onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappRedemption: e.target.value } } })}
+                                                    className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-300 outline-none resize-none"
+                                                />
+                                            </div>
+                                            <button type="button" onClick={() => window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(config.messaging?.templates?.whatsappRedemption || '¡Canje exitoso {nombre}! 🎁 Canjeaste {premio}. Código: {codigo}')}`, '_blank')} className="px-3 py-2 text-green-500 hover:text-green-700 rounded-lg hover:bg-green-50 transition border border-green-100" title="Previsualizar WhatsApp">
+                                                <MessageCircle size={18} />
+                                            </button>
                                         </div>
                                         <VariableChips vars={['nombre', 'premio', 'codigo']} onSelect={v => {
                                             const val = (config.messaging?.templates?.whatsappRedemption || '¡Canje exitoso {nombre}! 🎁 Canjeaste {premio}. Código: {codigo}') + ` {${v}}`;
@@ -2904,12 +3030,17 @@ export const ConfigPage = () => {
                                     {config.enablePetModule && (
                                     <div className="p-4 bg-green-50/30 rounded-xl border border-green-100">
                                         <label className="block text-sm font-semibold text-gray-700 mb-2">🐾 Recordatorio de Alimento</label>
-                                        <div className="relative">
-                                            <textarea rows={2}
-                                                value={config.messaging?.templates?.whatsappPetFood || '¡Hola {nombre}! 🐾 Recordatorio de alimento para {mascota}. Marca: {marca}.'}
-                                                onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappPetFood: e.target.value } } })}
-                                                className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-300 outline-none resize-none"
-                                            />
+                                        <div className="flex gap-2">
+                                            <div className="relative flex-1">
+                                                <textarea rows={2}
+                                                    value={config.messaging?.templates?.whatsappPetFood || '¡Hola {nombre}! 🐾 Recordatorio de alimento para {mascota}. Marca: {marca}.'}
+                                                    onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappPetFood: e.target.value } } })}
+                                                    className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-300 outline-none resize-none"
+                                                />
+                                            </div>
+                                            <button type="button" onClick={() => window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(config.messaging?.templates?.whatsappPetFood || '¡Hola {nombre}! 🐾 Recordatorio de alimento para {mascota}. Marca: {marca}.')}`, '_blank')} className="px-3 py-2 text-green-500 hover:text-green-700 rounded-lg hover:bg-green-50 transition border border-green-100" title="Previsualizar WhatsApp">
+                                                <MessageCircle size={18} />
+                                            </button>
                                         </div>
                                         <VariableChips vars={['nombre', 'mascota', 'marca']} onSelect={v => {
                                             const val = (config.messaging?.templates?.whatsappPetFood || '¡Hola {nombre}! 🐾 Recordatorio de alimento para {mascota}. Marca: {marca}.') + ` {${v}}`;

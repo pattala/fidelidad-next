@@ -330,11 +330,12 @@ async function handleAssignSocio(req, res, db) {
             }
 
             if (totalBonus > 0) {
-                // Actualizar nextExpirationDate en el user doc
+                // Actualizar puntos y vencimiento en el user doc
                 batch.update(clienteRef, {
+                    points: admin.firestore.FieldValue.increment(totalBonus),
+                    puntos: admin.firestore.FieldValue.increment(totalBonus),
                     nextExpirationDate: `${expY}-${expM}-${expD}`,
-                    nextExpirationAmount: totalBonus,
-                    accumulated_balance: admin.firestore.FieldValue.increment(totalBonus)
+                    nextExpirationAmount: totalBonus
                 });
             }
 

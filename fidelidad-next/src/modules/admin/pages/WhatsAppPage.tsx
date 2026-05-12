@@ -145,7 +145,7 @@ export const WhatsAppPage = () => {
         const processedMsg = message
             .replace(/{nombre}/g, firstName)
             .replace(/{nombre_completo}/g, client.name)
-            .replace(/{puntos}/g, (client.points || 0).toString())
+            .replace(/{puntos}/g, (notificationType === 'expiration' && (client as any).nextExpirationAmount !== undefined ? (client as any).nextExpirationAmount : (client.points || 0)).toString())
             .replace(/{dni}/g, client.dni || '')
             .replace(/{email}/g, client.email || '');
 

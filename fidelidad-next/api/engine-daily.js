@@ -2,6 +2,7 @@ import admin from "firebase-admin";
 import nodemailer from 'nodemailer';
 import { buildHtmlLayout } from "../utils/emailLayout.js";
 import { getEffectiveDate } from "../utils/timeUtils.js";
+import { updateNextExpirationDate } from "../utils/_expiration-utils.js";
 
 // ---------- Inicialización Firebase Admin ----------
 function initFirebaseAdmin() {
@@ -363,7 +364,26 @@ export default async function handler(req, res) {
                 if (!skipExpirations && (!alreadyNotified || skipDuplicityCheck) && config?.enableExpirationMessage !== false) {
                     const title = "⚠️ ¡Tus puntos vencen pronto!";
                     const template = config?.messaging?.templates?.expirationWarning || "¡Hola {nombre}! 📢 Te recordamos que tus {puntos} puntos vencen el {fecha}. ¡No los pierdas!";
-                    const nextAmt = userData.nextExpirationAmount || userData.points || 0;
+                    let nextAmt = userData.nextExpirationAmount;
+                    if (nextAmt === undefined) {
+                        const historySnap = await db.collection('users').doc(doc.id).collection('points_history').where('type', '==', 'credit').get();
+                        let calc = 0;
+                        historySnap.docs.forEach(h => {
+                            const hd = h.data();
+                            if (hd.status !== 'expired' && hd.expiresAt) {
+                                const eDate = hd.expiresAt.toDate();
+                                const eStr = `${eDate.getFullYear()}-${String(eDate.getMonth() + 1).padStart(2, '0')}-${String(eDate.getDate()).padStart(2, '0')}`;
+                                if (eStr === userData.nextExpirationDate) {
+                                    calc += (hd.remainingPoints !== undefined ? Number(hd.remainingPoints) : Number(hd.amount));
+                                }
+                            }
+                        });
+                        nextAmt = calc > 0 ? calc : (userData.points || 0);
+                        updateNextExpirationDate(db, doc.id, referenceDate).catch(() => {});
+                    } else if (nextAmt === 0) {
+                        nextAmt = userData.points || 0;
+                    }
+
                     const msg = template
                         .replace(/{nombre}/g, (userData.nombre || userData.name || 'Socio').split(' ')[0])
                         .replace(/{puntos}/g, nextAmt.toString())
@@ -408,7 +428,25 @@ export default async function handler(req, res) {
                     await doc.ref.update({ lastExpirationWarningDate: todayStr });
                 }
 
-                const nextAmt = userData.nextExpirationAmount || userData.points || 0;
+                let nextAmt = userData.nextExpirationAmount;
+                if (nextAmt === undefined) {
+                    const historySnap = await db.collection('users').doc(doc.id).collection('points_history').where('type', '==', 'credit').get();
+                    let calc = 0;
+                    historySnap.docs.forEach(h => {
+                        const hd = h.data();
+                        if (hd.status !== 'expired' && hd.expiresAt) {
+                            const eDate = hd.expiresAt.toDate();
+                            const eStr = `${eDate.getFullYear()}-${String(eDate.getMonth() + 1).padStart(2, '0')}-${String(eDate.getDate()).padStart(2, '0')}`;
+                            if (eStr === userData.nextExpirationDate) {
+                                calc += (hd.remainingPoints !== undefined ? Number(hd.remainingPoints) : Number(hd.amount));
+                            }
+                        }
+                    });
+                    nextAmt = calc > 0 ? calc : (userData.points || 0);
+                } else if (nextAmt === 0) {
+                    nextAmt = userData.points || 0;
+                }
+
                 results.details.push({
                     userId: doc.id, userName: userData.nombre || userData.name || 'Socio',
                     socioNumber: userData.socioNumber || userData.numeroSocio || '',

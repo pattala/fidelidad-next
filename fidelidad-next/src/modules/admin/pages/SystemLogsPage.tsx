@@ -607,7 +607,8 @@ export const SystemLogsPage = () => {
                                                                                             navigate('/admin/whatsapp', {
                                                                                                 state: {
                                                                                                     message: defaultMsg,
-                                                                                                    clientIds: userIds
+                                                                                                    clientIds: userIds,
+                                                                                                    notificationType: isExpirationLog ? 'expiration' : 'birthday'
                                                                                                 }
                                                                                             });
                                                                                         }}

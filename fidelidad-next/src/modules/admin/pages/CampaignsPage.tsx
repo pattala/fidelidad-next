@@ -749,7 +749,7 @@ export const CampaignsPage = () => {
 
                             {/* Tags de Tipo */}
                             <div className="absolute bottom-4 left-4 flex flex-wrap gap-2">
-                                <FlashStatusTag bonus={bonus} />
+                                {bonus.isFlash && <FlashStatusTag bonus={bonus} />}
                                 {bonus.isFlash && (bonus.flashRewardType === 'TEXT' ? (
                                     <span className="bg-orange-500 text-white text-[10px] font-black px-3 py-1 rounded-full flex items-center gap-1 shadow-lg shadow-orange-200">
                                         <Type size={10} fill="white" /> {bonus.flashRewardText || 'PROMO'}

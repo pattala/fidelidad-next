@@ -363,9 +363,10 @@ export default async function handler(req, res) {
                 if (!skipExpirations && (!alreadyNotified || skipDuplicityCheck) && config?.enableExpirationMessage !== false) {
                     const title = "⚠️ ¡Tus puntos vencen pronto!";
                     const template = config?.messaging?.templates?.expirationWarning || "¡Hola {nombre}! 📢 Te recordamos que tus {puntos} puntos vencen el {fecha}. ¡No los pierdas!";
+                    const nextAmt = userData.nextExpirationAmount || userData.points || 0;
                     const msg = template
                         .replace(/{nombre}/g, (userData.nombre || userData.name || 'Socio').split(' ')[0])
-                        .replace(/{puntos}/g, userData.points.toString())
+                        .replace(/{puntos}/g, nextAmt.toString())
                         .replace(/{fecha}/g, formatDateToDisplay(userData.nextExpirationDate));
 
                     // 1. PWA PUSH

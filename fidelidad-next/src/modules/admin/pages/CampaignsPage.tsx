@@ -221,6 +221,7 @@ export const CampaignsPage = () => {
                 startTime: isFlashMode ? formData.startTime : '',
                 endTime: isFlashMode ? (formData.endTime || '') : '',
                 broadcastLeadMins: formData.autoBroadcast ? (formData.broadcastLeadMins || 15) : 0,
+                autoBroadcast: !!formData.autoBroadcast,
                 isInternal: !!formData.isInternal
             };
             if (editingId) {
@@ -429,6 +430,7 @@ export const CampaignsPage = () => {
             }
 
             if (selectedChannels.whatsapp) {
+                toast.info('Redirigiendo a Envíos WhatsApp...', { icon: '💬', duration: 3000 });
                 navigate('/admin/whatsapp', { state: { message: msg } });
             }
 

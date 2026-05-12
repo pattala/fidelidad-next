@@ -110,7 +110,7 @@ export const GlobalAlerts = () => {
                             // No mostrar si ya se avisó hoy o después de la última compra
                             const alreadyNotified = p.lastFoodAlertDate === todayStr;
                             if (p.nextFoodAlertDate && p.nextFoodAlertDate <= todayStr && !alreadyNotified) {
-                                pets.push({ ...data, petName: p.name, alertId: pId, id: d.id });
+                                pets.push({ ...data, petName: p.name, foodBrand: p.foodBrand || p.brand || '', alertId: pId, id: d.id });
                             }
                         });
                     }
@@ -229,7 +229,8 @@ export const GlobalAlerts = () => {
                 } else if (type === 'points') {
                     msg = `¡Hola ${firstName}! 💰 Sumaste ${item.points} puntos. Tu saldo actual es ${item.balanceAfter || 'N/A'}.`;
                 } else {
-                    msg = `¡Hola ${firstName}${socioInfo}! 🐾 Recordatorio de alimento para ${item.petName}.`;
+                    const brandStr = item.foodBrand ? ` Marca: ${item.foodBrand}.` : '';
+                    msg = `¡Hola ${firstName}${socioInfo}! 🐾 Recordatorio de alimento para ${item.petName}.${brandStr}`;
                 }
                 window.open(`https://api.whatsapp.com/send?phone=${p}&text=${encodeURIComponent(msg)}`, '_blank');
             }

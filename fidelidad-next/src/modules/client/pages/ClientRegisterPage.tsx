@@ -151,7 +151,7 @@ export const ClientRegisterPage = () => {
                 },
                 localidad: localidad || '', partido: partido || '', provincia: province || '', calle: street || '', numero: number || '', piso: floor || '', depto: apt || '', cp: cp || '',
                 role: 'client', createdAt: TimeService.now(), fechaInscripcion: TimeService.now().toISOString(),
-                points: totalPoints, puntos: totalPoints, accumulated_balance: 0,
+                points: 0, puntos: 0, accumulated_balance: 0,
                 permissions: { notifications: { status: 'pending' }, geolocation: { status: 'pending' } },
                 termsAccepted: true, termsAcceptedAt: TimeService.now().toISOString(),
                 source: 'pwa', referralCode: myRefCode, referredBy: inviterUid,

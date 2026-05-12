@@ -221,16 +221,19 @@ export const GlobalAlerts = () => {
                 const socioInfo = item.socioNumber ? ` (Socio #${item.socioNumber})` : "";
                 
                 if (type === 'birthday') {
-                    msg = `¡Feliz cumple ${firstName}${socioInfo}! 🎂 Te regalamos puntos. ✨`;
+                    const tpl = config.messaging?.templates?.whatsappBirthday || '¡Feliz cumple {nombre}! 🎂 Te regalamos puntos. ✨';
+                    msg = tpl.replace(/{nombre}/g, firstName).replace(/{nombre_completo}/g, fullName);
                 } else if (type === 'expiration') {
-                    msg = `¡Hola ${firstName}${socioInfo}! 📢 Tus puntos (${item.points || item.pointsRedeemed} pts) vencen pronto.`;
+                    const tpl = config.messaging?.templates?.whatsappExpiration || '¡Hola {nombre}! 📢 Tus puntos ({puntos} pts) vencen pronto.';
+                    msg = tpl.replace(/{nombre}/g, firstName).replace(/{puntos}/g, (item.points || item.pointsRedeemed).toString());
                 } else if (type === 'redemption') {
-                    msg = `¡Canje exitoso ${firstName}! 🎁 Canjeaste ${item.prizeName}. Código: ${item.redemptionCode || 'N/A'}`;
+                    const tpl = config.messaging?.templates?.whatsappRedemption || '¡Canje exitoso {nombre}! 🎁 Canjeaste {premio}. Código: {codigo}';
+                    msg = tpl.replace(/{nombre}/g, firstName).replace(/{premio}/g, item.prizeName || 'Premio').replace(/{codigo}/g, item.redemptionCode || 'N/A');
                 } else if (type === 'points') {
                     msg = `¡Hola ${firstName}! 💰 Sumaste ${item.points} puntos. Tu saldo actual es ${item.balanceAfter || 'N/A'}.`;
                 } else {
-                    const brandStr = item.foodBrand ? ` Marca: ${item.foodBrand}.` : '';
-                    msg = `¡Hola ${firstName}${socioInfo}! 🐾 Recordatorio de alimento para ${item.petName}.${brandStr}`;
+                    const tpl = config.messaging?.templates?.whatsappPetFood || '¡Hola {nombre}! 🐾 Recordatorio de alimento para {mascota}. Marca: {marca}.';
+                    msg = tpl.replace(/{nombre}/g, firstName).replace(/{mascota}/g, item.petName || '').replace(/{marca}/g, item.foodBrand || '');
                 }
                 window.open(`https://api.whatsapp.com/send?phone=${p}&text=${encodeURIComponent(msg)}`, '_blank');
             }

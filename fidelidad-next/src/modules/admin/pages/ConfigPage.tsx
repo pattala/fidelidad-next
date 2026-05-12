@@ -151,6 +151,7 @@ export const ConfigPage = () => {
 
     const { isReadOnly, user } = useAdminAuth();
     const [activeTab, setActiveTab] = useState<'rules' | 'branding' | 'messaging' | 'legales' | 'advanced'>('rules');
+    const [activeMsgTab, setActiveMsgTab] = useState<'auto' | 'whatsapp'>('auto');
     const [resetOptions, setResetOptions] = useState({
         socios_total: false,
         socios_historial: false,
@@ -2084,9 +2085,27 @@ export const ConfigPage = () => {
                                 </div>
                             </div>
 
-                            {/* 3. AUTOMATIC EVENTS */}
-                            <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 space-y-8 animate-fade-in-up">
-                                <h3 className="text-xl font-bold text-gray-800 border-b pb-4">🤖 Mensajes Automáticos (Reglas)</h3>
+                            {/* SUB-TABS ENRUTADOR */}
+                            <div className="flex border-b border-gray-200 bg-white rounded-t-2xl pt-2 mt-8">
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveMsgTab('auto')}
+                                    className={`flex-1 py-4 text-sm font-bold uppercase tracking-wider transition-colors ${activeMsgTab === 'auto' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+                                >
+                                    🤖 Automáticos (Push/Email)
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveMsgTab('whatsapp')}
+                                    className={`flex-1 py-4 text-sm font-bold uppercase tracking-wider transition-colors ${activeMsgTab === 'whatsapp' ? 'border-b-2 border-green-600 text-green-600' : 'text-gray-400 hover:text-gray-600'}`}
+                                >
+                                    💬 WhatsApp (Manual)
+                                </button>
+                            </div>
+
+                            {activeMsgTab === 'auto' && (
+                            <div className="bg-white p-8 rounded-b-2xl shadow-sm border border-gray-100 space-y-8 animate-fade-in-up">
+                                <h3 className="text-xl font-bold text-gray-800 border-b pb-4">🤖 Mensajes Automáticos (Reglas Nocturnas)</h3>
 
                                 {/* Points Added */}
                                 <div>
@@ -2821,6 +2840,86 @@ export const ConfigPage = () => {
                                     </div>
                                 )}
                                 </div>
+                            )}
+
+                            {activeMsgTab === 'whatsapp' && (
+                                <div className="bg-white p-8 rounded-b-2xl shadow-sm border border-gray-100 space-y-8 animate-fade-in-up">
+                                    <h3 className="text-xl font-bold text-green-700 border-b pb-4 flex items-center gap-2">
+                                        <MessageCircle size={24} /> Plantillas de WhatsApp (Acciones Manuales)
+                                    </h3>
+                                    <p className="text-sm text-gray-500 mb-6">
+                                        Estos textos se usarán exclusivamente cuando presiones los botones verdes de WhatsApp en los historiales y alertas globales. 
+                                        Aprovecha para usar <b>*negritas*</b> o <i>_cursivas_</i> propias de WhatsApp.
+                                    </p>
+
+                                    {/* Cumpleaños WhatsApp */}
+                                    <div className="p-4 bg-green-50/30 rounded-xl border border-green-100">
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">🎂 Feliz Cumpleaños</label>
+                                        <div className="relative">
+                                            <textarea rows={2}
+                                                value={config.messaging?.templates?.whatsappBirthday || '¡Feliz cumple {nombre}! 🎂 Te regalamos puntos. ✨'}
+                                                onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappBirthday: e.target.value } } })}
+                                                className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-300 outline-none resize-none"
+                                            />
+                                        </div>
+                                        <VariableChips vars={['nombre', 'nombre_completo']} onSelect={v => {
+                                            const val = (config.messaging?.templates?.whatsappBirthday || '¡Feliz cumple {nombre}! 🎂 Te regalamos puntos. ✨') + ` {${v}}`;
+                                            setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappBirthday: val } } });
+                                        }} />
+                                    </div>
+
+                                    {/* Vencimiento WhatsApp */}
+                                    <div className="p-4 bg-green-50/30 rounded-xl border border-green-100">
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">📢 Vencimiento de Puntos</label>
+                                        <div className="relative">
+                                            <textarea rows={2}
+                                                value={config.messaging?.templates?.whatsappExpiration || '¡Hola {nombre}! 📢 Tus puntos ({puntos} pts) vencen pronto.'}
+                                                onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappExpiration: e.target.value } } })}
+                                                className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-300 outline-none resize-none"
+                                            />
+                                        </div>
+                                        <VariableChips vars={['nombre', 'puntos']} onSelect={v => {
+                                            const val = (config.messaging?.templates?.whatsappExpiration || '¡Hola {nombre}! 📢 Tus puntos ({puntos} pts) vencen pronto.') + ` {${v}}`;
+                                            setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappExpiration: val } } });
+                                        }} />
+                                    </div>
+
+                                    {/* Canje WhatsApp */}
+                                    <div className="p-4 bg-green-50/30 rounded-xl border border-green-100">
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">🎁 Canje Exitoso</label>
+                                        <div className="relative">
+                                            <textarea rows={2}
+                                                value={config.messaging?.templates?.whatsappRedemption || '¡Canje exitoso {nombre}! 🎁 Canjeaste {premio}. Código: {codigo}'}
+                                                onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappRedemption: e.target.value } } })}
+                                                className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-300 outline-none resize-none"
+                                            />
+                                        </div>
+                                        <VariableChips vars={['nombre', 'premio', 'codigo']} onSelect={v => {
+                                            const val = (config.messaging?.templates?.whatsappRedemption || '¡Canje exitoso {nombre}! 🎁 Canjeaste {premio}. Código: {codigo}') + ` {${v}}`;
+                                            setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappRedemption: val } } });
+                                        }} />
+                                    </div>
+
+                                    {/* Alimento WhatsApp */}
+                                    {config.enablePetModule && (
+                                    <div className="p-4 bg-green-50/30 rounded-xl border border-green-100">
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">🐾 Recordatorio de Alimento</label>
+                                        <div className="relative">
+                                            <textarea rows={2}
+                                                value={config.messaging?.templates?.whatsappPetFood || '¡Hola {nombre}! 🐾 Recordatorio de alimento para {mascota}. Marca: {marca}.'}
+                                                onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappPetFood: e.target.value } } })}
+                                                className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-300 outline-none resize-none"
+                                            />
+                                        </div>
+                                        <VariableChips vars={['nombre', 'mascota', 'marca']} onSelect={v => {
+                                            const val = (config.messaging?.templates?.whatsappPetFood || '¡Hola {nombre}! 🐾 Recordatorio de alimento para {mascota}. Marca: {marca}.') + ` {${v}}`;
+                                            setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappPetFood: val } } });
+                                        }} />
+                                    </div>
+                                    )}
+
+                                </div>
+                            )}
 
                             {/* Email Preview Button */}
                             {config.messaging?.emailEnabled && (

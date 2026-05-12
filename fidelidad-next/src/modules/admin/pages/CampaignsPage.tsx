@@ -1604,25 +1604,29 @@ export const CampaignsPage = () => {
                                                             {formData.autoBroadcast && (
                                                                 <>
                                                                     <p className="mt-4 text-[10px] text-blue-800 font-medium bg-white/50 p-3 rounded-xl border border-blue-200/50 italic">
-                                                                        ✨ El sistema enviará automáticamente las notificaciones a todos los socios unos minutos antes de que la campaña comience (o al inicio si eliges 0).
+                                                                        {isFlashMode 
+                                                                            ? "✨ El sistema enviará automáticamente las notificaciones a todos los socios unos minutos antes de que la campaña comience (o al inicio si eliges 0)."
+                                                                            : "✨ El sistema enviará automáticamente las notificaciones a todos los socios al iniciar el día programado de la campaña."}
                                                                     </p>
-                                                                    <div className="mt-4 bg-white/40 p-4 rounded-2xl border border-blue-200/30 space-y-3">
-                                                                        <div className="flex justify-between items-center">
-                                                                            <label className="text-[10px] font-black text-blue-900 uppercase">Antelación del Mensaje</label>
-                                                                            <span className="text-xs font-black text-blue-600 bg-white px-3 py-1 rounded-full shadow-sm">{formData.broadcastLeadMins || 0} Min</span>
+                                                                    {isFlashMode && (
+                                                                        <div className="mt-4 bg-white/40 p-4 rounded-2xl border border-blue-200/30 space-y-3">
+                                                                            <div className="flex justify-between items-center">
+                                                                                <label className="text-[10px] font-black text-blue-900 uppercase">Antelación del Mensaje</label>
+                                                                                <span className="text-xs font-black text-blue-600 bg-white px-3 py-1 rounded-full shadow-sm">{formData.broadcastLeadMins || 0} Min</span>
+                                                                            </div>
+                                                                            <input
+                                                                                type="range" min="0" max="120" step="5"
+                                                                                className="w-full h-2 bg-blue-100 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                                                                                value={formData.broadcastLeadMins || 0}
+                                                                                onChange={e => setFormData({ ...formData, broadcastLeadMins: parseInt(e.target.value) })}
+                                                                            />
+                                                                            <p className="text-[9px] text-blue-400 font-bold italic text-center">
+                                                                                {formData.broadcastLeadMins === 0
+                                                                                    ? "El mensaje saldrá exactamente al inicio."
+                                                                                    : `El mensaje saldrá ${formData.broadcastLeadMins} minutos antes del inicio.`}
+                                                                            </p>
                                                                         </div>
-                                                                        <input
-                                                                            type="range" min="0" max="120" step="5"
-                                                                            className="w-full h-2 bg-blue-100 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                                                                            value={formData.broadcastLeadMins || 0}
-                                                                            onChange={e => setFormData({ ...formData, broadcastLeadMins: parseInt(e.target.value) })}
-                                                                        />
-                                                                        <p className="text-[9px] text-blue-400 font-bold italic text-center">
-                                                                            {formData.broadcastLeadMins === 0
-                                                                                ? "El mensaje saldrá exactamente al inicio."
-                                                                                : `El mensaje saldrá ${formData.broadcastLeadMins} minutos antes del inicio.`}
-                                                                        </p>
-                                                                    </div>
+                                                                    )}
                                                                 </>
                                                             )}
                                                         </section>

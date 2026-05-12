@@ -45,6 +45,7 @@ export const SystemLogsPage = () => {
     const [isRunningExpirations, setIsRunningExpirations] = useState(false);
     const [ignoreDeduplication, setIgnoreDeduplication] = useState(false);
     const [isSavingConfig, setIsSavingConfig] = useState(false);
+    const [config, setConfig] = useState<any>(null);
 
     const handleRunEngine = async () => {
         if (!window.confirm("¿Deseas ejecutar ahora el Motor Unificado? Esto procesará Cumpleaños, Vencimientos, Campañas y Alertas de Mascotas en un solo paso.")) return;
@@ -83,9 +84,9 @@ export const SystemLogsPage = () => {
 
     useEffect(() => {
         const loadConfig = async () => {
-            const config = await ConfigService.get();
-            // Invertimos la lógica: "ignoreDeduplication" es true si "enableDuplicateControl" es false
-            setIgnoreDeduplication(config.enableDuplicateControl === false);
+            const cfg = await ConfigService.get();
+            setConfig(cfg);
+            setIgnoreDeduplication(cfg.enableDuplicateControl === false);
         };
         loadConfig();
     }, []);
@@ -600,9 +601,9 @@ export const SystemLogsPage = () => {
                                                                                     <button
                                                                                         onClick={(e) => {
                                                                                             e.stopPropagation();
-                                                                                            const defaultMsg = isExpirationLog
-                                                                                                ? '¡Hola {nombre}! 📢 Tienes {puntos} puntos próximos a vencer. ⏳ Entrá a la App para ver el detalle y aprovecharlos antes de que se venzan. 🎁'
-                                                                                                : '¡Feliz Cumpleaños {nombre}! 🎂🎉 Desde el Club te deseamos un gran día. ¡Entrá a la App para ver tu sorpresa! 🎁';
+                                                                                            const tplExp = config?.messaging?.templates?.whatsappExpiration || '¡Hola {nombre}! 📢 Tienes {puntos} puntos próximos a vencer. ⏳ Entrá a la App para ver el detalle y aprovecharlos antes de que se venzan. 🎁';
+                                                                                            const tplBday = config?.messaging?.templates?.whatsappBirthday || '¡Feliz Cumpleaños {nombre}! 🎂🎉 Desde el Club te deseamos un gran día. ¡Entrá a la App para ver tu sorpresa! 🎁';
+                                                                                            const defaultMsg = isExpirationLog ? tplExp : tplBday;
                                                                                             navigate('/admin/whatsapp', {
                                                                                                 state: {
                                                                                                     message: defaultMsg,

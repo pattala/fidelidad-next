@@ -286,9 +286,15 @@ async function handleAssignSocio(req, res, db) {
 
         // 3. Registrar puntos de bienvenida en points_history (con expiresAt)
         if (sendWelcome) {
-            const bonusDetails = clientData.metadata?.bonusDetails || {};
-            const wPoints = Number(bonusDetails.welcome || 0);
-            const aPoints = Number(bonusDetails.address || 0);
+            // Recalculate bonus points robustly
+            const welcomePoints = Number(config.welcomePoints) || 0;
+            const addressPoints = Number(config.pointsForAddress) || 0;
+            const isAddressComplete = !!(clientData.provincia && clientData.localidad && clientData.calle && clientData.numero);
+            
+            const metadataBonus = clientData.metadata?.bonusDetails || {};
+            const wPoints = metadataBonus.welcome !== undefined ? Number(metadataBonus.welcome) : welcomePoints;
+            const aPoints = metadataBonus.address !== undefined ? Number(metadataBonus.address) : (isAddressComplete ? addressPoints : 0);
+            
             const totalBonus = wPoints + aPoints;
 
             const expirationRules = config.expirationRules || [];

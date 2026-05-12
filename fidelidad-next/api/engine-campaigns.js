@@ -77,7 +77,7 @@ export default async function handler(req, res) {
 
         // --- DEDUPLICACIÓN INTELIGENTE (RED DE SEGURIDAD) ---
         const triggerSource = req.query?.trigger || req.body?.trigger || "unknown";
-        const isManualSim = req.body?.isManual === true || req.query?.isManual === 'true';
+        const isManualSim = req.body?.isManual === true || req.query?.isManual === 'true' || req.query?.ignoreDeduplication === 'true';
 
         if (!isManualSim && triggerSource !== 'dashboard') {
             const arFormatter = new Intl.DateTimeFormat('en-CA', {
@@ -135,20 +135,19 @@ export default async function handler(req, res) {
             results.processed++;
 
             // --- A. MANTENIMIENTO PREVENTIVO (24/7) ---
-            // Si la campaña ya expiró, desactivar y saltar difusión.
+            // Solo desactivar si tiene una FECHA de fin explícita y ya pasó.
+            // Las campañas Flash recurrentes NO deben desactivarse solas.
             if (camp.endDate && camp.endDate < todayStr) {
                 await doc.ref.update({ active: false });
                 results.deactivated++;
                 continue;
             }
 
-            // Si es hoy, verificar hora de fin + gracia
-            if (camp.endDate === todayStr && camp.endTime) {
+            // Si es hoy, verificar hora de fin + gracia (Solo para TRADICIONALES con fecha de fin hoy)
+            if (!camp.isFlash && camp.endDate === todayStr && camp.endTime) {
                 const [endH, endM] = camp.endTime.split(':').map(Number);
-                const graceMins = camp.isFlash ? (camp.flashGraceMins || 15) : 0;
                 const endTimeDate = new Date(now);
                 endTimeDate.setHours(endH, endM, 0, 0);
-                endTimeDate.setMinutes(endTimeDate.getMinutes() + graceMins);
 
                 if (now > endTimeDate) {
                     await doc.ref.update({ active: false });
@@ -178,24 +177,29 @@ export default async function handler(req, res) {
 
             // 4. ¿Estamos en el momento de la Antelación?
             // V.1.4.67: Si es TRADICIONAL, no esperamos a la hora de inicio, se manda apenas arranca el día.
-            if (camp.startTime && camp.isFlash) {
+            // PERO si tiene startTime definido, lo respetamos (V.1.4.79)
+            if (camp.startTime) {
                 const [startH, startM] = camp.startTime.split(':').map(Number);
                 const startTimeDate = new Date(now);
                 startTimeDate.setHours(startH, startM, 0, 0);
 
-                const leadMins = camp.broadcastLeadMins || 0;
-                startTimeDate.setMinutes(startTimeDate.getMinutes() - leadMins);
+                if (camp.isFlash) {
+                    const leadMins = camp.broadcastLeadMins || 0;
+                    startTimeDate.setMinutes(startTimeDate.getMinutes() - leadMins);
+                }
 
                 // Si aún falta para llegar al margen de antelación, saltar.
                 if (now < startTimeDate) continue;
 
                 // Si ya pasó mucho tiempo (ej. más de 6 horas desde el inicio), 
                 // ya no tiene sentido mandar la notificación masiva de "inicio".
-                const sixHoursLater = new Date(startTimeDate);
-                sixHoursLater.setHours(sixHoursLater.getHours() + 6);
-                if (now > sixHoursLater && !isManualSim) continue;
+                if (camp.isFlash) {
+                    const sixHoursLater = new Date(startTimeDate);
+                    sixHoursLater.setHours(sixHoursLater.getHours() + 6);
+                    if (now > sixHoursLater && !isManualSim) continue;
+                }
             } else if (!camp.isFlash) {
-                // Para tradicionales, simplemente verificamos que la fecha de inicio ya haya llegado
+                // Para tradicionales sin startTime, simplemente verificamos que la fecha de inicio ya haya llegado
                 if (camp.startDate && camp.startDate > todayStr) continue;
             }
 
@@ -256,8 +260,8 @@ export default async function handler(req, res) {
             }
         }
 
-        // Marcar como ejecutado para deduplicación
-        if (triggerSource !== 'dashboard' && !isManualSim) {
+        // Marcar como ejecutado para deduplicación (SOLO si estamos en la ventana de notificación)
+        if (triggerSource !== 'dashboard' && !isManualSim && isWithinNotificationWindow) {
             const arFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires', year: 'numeric', month: '2-digit', day: '2-digit' });
             await db.collection('config').doc('campaignCheck').set({
                 lastRunDate: arFormatter.format(now),

@@ -92,14 +92,15 @@ export const GlobalAlerts = () => {
                     const eId = `expiration-${userIdentifier}-${data.nextExpirationDate || 'today'}-${data.points || 0}`;
                     
                     const userBD = data.birthDate || data.fechaNacimiento;
-                    const alreadyGreeted = data.lastBirthdayGreetingYear === curY;
-                    if (userBD && userBD.endsWith(dMD) && !alreadyGreeted) {
+                    // Ignoramos alreadyGreeted (lastBirthdayGreetingYear) para el panel administrativo
+                    // para que el botón de WhatsApp manual no desaparezca solo.
+                    if (userBD && userBD.endsWith(dMD)) {
                         births.push({ ...data, alertId: bId, id: d.id });
                     }
                     
                     if (data.nextExpirationDate && data.nextExpirationDate >= todayStr && data.nextExpirationDate <= winEndStr) {
-                        const alreadyNotified = data.lastExpirationWarningDate === todayStr;
-                        if ((data.points || 0) > 0 && !alreadyNotified) {
+                        // Ignoramos alreadyNotified (lastExpirationWarningDate) para el panel administrativo
+                        if ((data.points || 0) > 0) {
                             exps.push({ ...data, alertId: eId, id: d.id });
                         }
                     }
@@ -107,9 +108,8 @@ export const GlobalAlerts = () => {
                     if (data.pets) {
                         data.pets.forEach((p: any) => {
                             const pId = `pet-${userIdentifier}-${p.name}-${p.nextFoodAlertDate || 'today'}`;
-                            // No mostrar si ya se avisó hoy o después de la última compra
-                            const alreadyNotified = p.lastFoodAlertDate === todayStr;
-                            if (p.nextFoodAlertDate && p.nextFoodAlertDate <= todayStr && !alreadyNotified) {
+                            // Ignoramos alreadyNotified (lastFoodAlertDate) para el panel administrativo
+                            if (p.nextFoodAlertDate && p.nextFoodAlertDate <= todayStr) {
                                 pets.push({ ...data, petName: p.name, foodBrand: p.foodBrand || p.brand || '', alertId: pId, id: d.id });
                             }
                         });

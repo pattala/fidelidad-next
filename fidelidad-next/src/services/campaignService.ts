@@ -118,9 +118,10 @@ export const CampaignService = {
 
                     // Calculation for time-based expiration including grace
                     let isExpiredTime = false;
-                    if (b.endDate === todayStr && b.endTime) {
+                    // Solo para TRADICIONALES con fecha de fin hoy.
+                    if (!b.isFlash && b.endDate === todayStr && b.endTime) {
                         const [h, m] = b.endTime.split(':').map(Number);
-                        const grace = b.isFlash ? (Number(b.flashGraceMins) || 0) : 0;
+                        const grace = 0; // Eliminamos gracia para evitar confusiones de estado
 
                         const expireTimestamp = new Date(now);
                         expireTimestamp.setHours(h, m + grace, 0, 0);

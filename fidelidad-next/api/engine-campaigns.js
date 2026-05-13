@@ -2,7 +2,22 @@
 // Gestor de campañas: Maneja el auto-despacho (broadcast) y mantenimiento de campañas activas.
 
 import admin from "firebase-admin";
+import nodemailer from 'nodemailer';
+import { buildHtmlLayout } from "../utils/emailLayout.js";
 import { getEffectiveDate } from "../utils/timeUtils.js";
+
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+    tls: { rejectUnauthorized: false }
+});
+
+function getAbsoluteUrl(url, baseUrl) {
+    if (!url) return "";
+    if (url.startsWith("http")) return url;
+    const base = (baseUrl || "").replace(/\/$/, "");
+    return `${base}${url.startsWith("/") ? url : `/${url}`}`;
+}
 
 function initFirebaseAdmin() {
     try {
@@ -210,33 +225,63 @@ export default async function handler(req, res) {
             const body = camp.flashDescription || camp.description || "¡Nueva promoción disponible!";
             const url = camp.link || "/";
 
-            // Obtener todos los socios con FCM o Email (simplificado)
+            const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
+            const iconUrl = config.logoUrl ? getAbsoluteUrl(config.logoUrl, PWA_URL) : "";
             const usersSnap = await db.collection('users').get();
             const fcmTokens = [];
+            const userDocs = [];
             const emails = [];
 
             usersSnap.forEach(u => {
                 const uData = u.data();
+                if (uData.role === 'admin') return;
+                userDocs.push({ id: u.id, ref: u.ref, data: uData });
                 if (uData.fcmTokens?.length > 0) fcmTokens.push(...uData.fcmTokens);
-                if (uData.email) emails.push({ email: uData.email, name: uData.name });
+                if (uData.email) emails.push({ email: uData.email, name: uData.name || uData.nombre || '' });
             });
 
             if (fcmTokens.length > 0 || emails.length > 0) {
                 try {
-                    // 1. ENVIAR PUSH (BATCH)
-                    if (fcmTokens.length > 0) {
+                    // 1. ENVIAR PUSH (BATCH) con logo
+                    if (fcmTokens.length > 0 && config.messaging?.pushEnabled !== false) {
                         const chunks = [];
                         for (let i = 0; i < fcmTokens.length; i += 500) chunks.push(fcmTokens.slice(i, i + 500));
                         for (const chunk of chunks) {
                             await app.messaging().sendEachForMulticast({
                                 tokens: chunk,
-                                notification: { title, body },
-                                data: { url, type: "campaign" }
+                                notification: { title, body, icon: iconUrl || undefined },
+                                data: { url, type: "campaign", icon: iconUrl },
+                                webpush: { fcmOptions: { link: `${PWA_URL}${url.startsWith('/') ? url : '/' + url}` } }
                             });
                         }
                     }
 
-                    // 2. ENVIAR EMAILS (Placeholder para integraciones futuras)
+                    // 2. ENVIAR EMAILS
+                    if (emails.length > 0 && process.env.SMTP_USER && config.messaging?.emailEnabled !== false) {
+                        const innerHtml = `<div style="color:#333"><h2 style="color:#6366f1;margin-top:0">${title}</h2><p style="font-size:16px;line-height:1.6">${body}</p>${url && url !== '/' ? `<p><a href="${PWA_URL}${url}" style="background:#6366f1;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold">Ver Oferta</a></p>` : ''}</div>`;
+                        const emailPromises = emails.map(({ email, name }) =>
+                            transporter.sendMail({
+                                from: `"${config.siteName || 'Club Fidelidad'}" <${process.env.SMTP_USER}>`,
+                                to: email,
+                                subject: title,
+                                html: buildHtmlLayout(innerHtml, config)
+                            }).catch(e => console.error(`Campaign email error for ${email}:`, e.message))
+                        );
+                        await Promise.allSettled(emailPromises);
+                    }
+
+                    // 3. INBOX (por usuario)
+                    if (config.messaging?.inboxEnabled !== false) {
+                        const inboxBatch = db.batch();
+                        userDocs.forEach(u => {
+                            const inboxRef = u.ref.collection('inbox').doc();
+                            inboxBatch.set(inboxRef, {
+                                title, body, url, type: 'campaign', read: false,
+                                date: admin.firestore.Timestamp.now()
+                            });
+                        });
+                        await inboxBatch.commit();
+                    }
 
                     // 3. ACTUALIZAR MARCA DE ENVÍO
                     await doc.ref.update({ broadcastSentAt: todayStr });

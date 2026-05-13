@@ -14,7 +14,9 @@ export const GlobalAlerts = () => {
     const [processedAlerts, setProcessedAlerts] = useState<any>({});
     const [config, setConfig] = useState<any>(null);
     
-    const [activeTab, setActiveTab] = useState<'pending' | 'processed'>('pending');
+    const [activeTab, setActiveTab] = useState<'pending' | 'processed'>(
+        () => (localStorage.getItem('globalAlerts_activeTab') as 'pending' | 'processed') || 'pending'
+    );
     const [isExpanded, setIsExpanded] = useState(false);
     
     // Draggable Logic
@@ -222,10 +224,13 @@ export const GlobalAlerts = () => {
                 
                 if (type === 'birthday') {
                     const tpl = config.messaging?.templates?.whatsappBirthday || '¡Feliz cumple {nombre}! 🎂 Te regalamos puntos. ✨';
-                    msg = tpl.replace(/{nombre}/g, firstName).replace(/{nombre_completo}/g, fullName);
+                    const bdPoints = (item.pointsAdded || config?.birthdayPoints || '').toString();
+                    msg = tpl.replace(/{nombre}/g, firstName).replace(/{nombre_completo}/g, fullName).replace(/{puntos}/g, bdPoints);
                 } else if (type === 'expiration') {
                     const tpl = config.messaging?.templates?.whatsappExpiration || '¡Hola {nombre}! 📢 Tus puntos ({puntos} pts) vencen pronto.';
-                    msg = tpl.replace(/{nombre}/g, firstName).replace(/{puntos}/g, (item.points || item.pointsRedeemed).toString());
+                    // Usar nextExpirationAmount (puntos reales que vencen) no el total de puntos del socio
+                    const expPts = (item.nextExpirationAmount || item.nextExpirationAmt || item.points || 0).toString();
+                    msg = tpl.replace(/{nombre}/g, firstName).replace(/{puntos}/g, expPts);
                 } else if (type === 'redemption') {
                     const tpl = config.messaging?.templates?.whatsappRedemption || '¡Canje exitoso {nombre}! 🎁 Canjeaste {premio}. Código: {codigo}';
                     msg = tpl.replace(/{nombre}/g, firstName).replace(/{premio}/g, item.prizeName || 'Premio').replace(/{codigo}/g, item.redemptionCode || 'N/A');
@@ -285,10 +290,10 @@ export const GlobalAlerts = () => {
                     </div>
 
                     <div className="flex bg-black/40 p-1 mx-4 mt-4 rounded-2xl border border-white/5">
-                        <button onClick={() => setActiveTab('pending')} className={`flex-1 py-2 rounded-xl text-[10px] font-black transition-all ${activeTab === 'pending' ? 'bg-white/10 text-white shadow-lg' : 'text-white/30'}`}>
+                        <button onClick={() => { setActiveTab('pending'); localStorage.setItem('globalAlerts_activeTab', 'pending'); }} className={`flex-1 py-2 rounded-xl text-[10px] font-black transition-all ${activeTab === 'pending' ? 'bg-white/10 text-white shadow-lg' : 'text-white/30'}`}>
                             PENDIENTES ({totalPending})
                         </button>
-                        <button onClick={() => setActiveTab('processed')} className={`flex-1 py-2 rounded-xl text-[10px] font-black transition-all ${activeTab === 'processed' ? 'bg-white/10 text-white shadow-lg' : 'text-white/30'}`}>
+                        <button onClick={() => { setActiveTab('processed'); localStorage.setItem('globalAlerts_activeTab', 'processed'); }} className={`flex-1 py-2 rounded-xl text-[10px] font-black transition-all ${activeTab === 'processed' ? 'bg-white/10 text-white shadow-lg' : 'text-white/30'}`}>
                             PROCESADOS
                         </button>
                     </div>

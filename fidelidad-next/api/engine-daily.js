@@ -359,7 +359,10 @@ export default async function handler(req, res) {
             const userData = doc.data();
             if ((userData.points || 0) > 0) {
                 const skipExpirations = (config?.simulationConfig?.expirations === false);
-                const alreadyNotified = userData.lastExpirationWarningDate === todayStr;
+                // V.1.4.81: Tracking por fecha de vencimiento específica (evita que una fecha bloquee a la otra)
+                const warningDates = userData.lastExpirationWarningDates || {};
+                const nextExpDate = userData.nextExpirationDate;
+                const alreadyNotified = warningDates[nextExpDate] === todayStr;
 
                 if (!skipExpirations && (!alreadyNotified || skipDuplicityCheck) && config?.enableExpirationMessage !== false) {
                     const title = "⚠️ ¡Tus puntos vencen pronto!";
@@ -445,7 +448,9 @@ export default async function handler(req, res) {
                         }).catch(() => {});
                     }
 
-                    await doc.ref.update({ lastExpirationWarningDate: todayStr });
+                    // V.1.4.81: Guardar tracking por fecha específica de vencimiento
+                    const updatedWarningDates = { ...warningDates, [nextExpDate]: todayStr };
+                    await doc.ref.update({ lastExpirationWarningDates: updatedWarningDates });
                 }
 
                 let auditNextAmt = userData.nextExpirationAmount || userData.points || 0;
@@ -488,7 +493,9 @@ export default async function handler(req, res) {
                     dni: userData.dni || '', action: "expiration_warning", status: "info",
                     info: `Vencen ${auditNextAmt} pts: ${auditDateStr}`,
                     phone: userData.phone || userData.telefono || '',
-                    points: auditNextAmt, nextExpirationDate: userData.nextExpirationDate
+                    points: auditNextAmt,
+                    nextExpirationAmount: auditNextAmt,
+                    nextExpirationDate: userData.nextExpirationDate
                 });
             }
         }

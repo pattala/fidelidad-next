@@ -169,13 +169,21 @@ export const WhatsAppPage = () => {
             }
         }
 
-        const processedMsg = message
+        let processedMsg = message
             .replace(/{nombre}/g, firstName)
             .replace(/{nombre_completo}/g, client.name)
-            .replace(/{puntos}/g, finalPoints.toString())
-            .replace(/{fecha}/g, finalFecha)
             .replace(/{dni}/g, client.dni || '')
             .replace(/{email}/g, client.email || '');
+
+        if (notificationType === 'birthday') {
+            const bdPointsStr = (client.pointsAdded || '').toString();
+            processedMsg = processedMsg.replace(/{puntos}/g, bdPointsStr);
+        } else if (notificationType === 'expiration') {
+            processedMsg = processedMsg.replace(/{puntos}/g, finalPoints.toString()).replace(/{fecha}/g, finalFecha);
+        } else {
+            // Fallback for other types
+            processedMsg = processedMsg.replace(/{puntos}/g, finalPoints.toString()).replace(/{fecha}/g, finalFecha);
+        }
 
         return `https://api.whatsapp.com/send?phone=${phoneNum}&text=${encodeURIComponent(processedMsg.trim())}`;
     };
@@ -191,6 +199,19 @@ export const WhatsAppPage = () => {
 
             if (notificationType === 'birthday') {
                 updates.lastBirthdayGreetingYear = arTodayDate.getFullYear().toString();
+            } else if (notificationType === 'pet_food') {
+                // Actualizamos la mascota específica para que no vuelva a aparecer en la burbuja
+                // Para simplificar, buscamos la mascota en el cliente y le actualizamos la fecha
+                const client = clients.find(c => c.id === clientId);
+                if (client && client.pets) {
+                    const updatedPets = client.pets.map(p => {
+                        // Actualizamos la mascota específica para que no vuelva a aparecer en la burbuja
+                        // La fecha de WhatsApp va por separado del envío automático del motor
+                        return { ...p, lastWhatsAppDate: todayAR };
+                    });
+                    updates.pets = updatedPets;
+                }
+                updates.lastWhatsAppManualDate = todayAR;
             } else {
                 updates.lastWhatsAppManualDate = todayAR;  // oculta burbuja dashboard
                 updates.lastExpirationNotice = todayAR;    // actualiza contador extensión

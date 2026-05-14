@@ -11,6 +11,7 @@ export const GlobalAlerts = () => {
     const [petAlerts, setPetAlerts] = useState<any[]>([]);
     const [redemptions, setRedemptions] = useState<any[]>([]);
     const [pointsAssignments, setPointsAssignments] = useState<any[]>([]);
+    const [campaignAlerts, setCampaignAlerts] = useState<any[]>([]);
     const [processedAlerts, setProcessedAlerts] = useState<any>({});
     const [config, setConfig] = useState<any>(null);
     
@@ -110,9 +111,27 @@ export const GlobalAlerts = () => {
                     if (data.pets) {
                         data.pets.forEach((p: any) => {
                             const pId = `pet-${userIdentifier}-${p.name}-${p.nextFoodAlertDate || 'today'}`;
-                            // Ignoramos alreadyNotified (lastFoodAlertDate) para el panel administrativo
-                            if (p.nextFoodAlertDate && p.nextFoodAlertDate <= todayStr) {
-                                pets.push({ ...data, petName: p.name, foodBrand: p.foodBrand || p.brand || '', alertId: pId, id: d.id });
+                            const lastPurchase = p.lastPurchaseDate?.toDate ? p.lastPurchaseDate.toDate() : (p.lastPurchaseDate ? new Date(p.lastPurchaseDate + 'T12:00:00') : null);
+                            if (lastPurchase) {
+                                const cycleDays = Number(p.foodCycleDays || p.frequencyDays || 30);
+                                // Fallbacks in case config is not fully loaded here
+                                const warningDays = Number(config?.messaging?.petFoodWarningDays || config?.petFoodAlertLeadDays || 3);
+                                
+                                const exhaustionDate = new Date(lastPurchase);
+                                exhaustionDate.setDate(lastPurchase.getDate() + cycleDays);
+                                
+                                const alertDate = new Date(exhaustionDate);
+                                alertDate.setDate(exhaustionDate.getDate() - warningDays);
+                                
+                                const todayDate = new Date(todayStr + 'T12:00:00');
+                                const isAlertWindow = (todayDate >= alertDate && todayDate <= exhaustionDate);
+                                
+                                const lastWa = p.lastWhatsAppDate ? new Date(p.lastWhatsAppDate + 'T12:00:00') : null;
+                                const waSent = lastWa && lastWa >= lastPurchase;
+
+                                if (isAlertWindow && !waSent) {
+                                    pets.push({ ...data, petName: p.name, foodBrand: p.foodBrand || p.brand || '', alertId: pId, id: d.id });
+                                }
                             }
                         });
                     }
@@ -186,6 +205,31 @@ export const GlobalAlerts = () => {
                 setPointsAssignments(pts);
             });
             unsubs.push(unsubPoints);
+
+            const qCampaigns = query(
+                collection(db, 'audit_logs'), 
+                where('type', '==', 'campaign_broadcast'),
+                where('timestamp', '>=', startOfSimToday)
+            );
+            const unsubCampaigns = onSnapshot(qCampaigns, (snap) => {
+                const camps: any[] = [];
+                snap.forEach(d => {
+                    const data = d.data();
+                    const dtl = data.details?.find((x: any) => x.action === 'campaign_broadcasted');
+                    if (dtl) {
+                        const alertId = `campaign-${dtl.campId}-${d.id}`;
+                        camps.push({ 
+                            ...dtl, 
+                            name: dtl.campName || dtl.title, 
+                            alertId, 
+                            id: d.id,
+                            timestamp: data.timestamp
+                        });
+                    }
+                });
+                setCampaignAlerts(camps);
+            });
+            unsubs.push(unsubCampaigns);
         };
 
         refreshAlerts();
@@ -213,6 +257,12 @@ export const GlobalAlerts = () => {
                     toast.error("El usuario ya no existe. Solo podés descartar este aviso.");
                     return;
                 }
+                
+                if (type === 'campaign') {
+                    window.location.href = '/admin/campaigns';
+                    return; // Ya marcamos en Firestore, redirigimos y listo.
+                }
+
                 const phone = (item.phone || item.telefono || '').replace(/\D/g, '');
                 let p = phone;
                 if (!p.startsWith('54') && p.length === 10) p = '549' + p;
@@ -223,22 +273,57 @@ export const GlobalAlerts = () => {
                 const socioInfo = item.socioNumber ? ` (Socio #${item.socioNumber})` : "";
                 
                 if (type === 'birthday') {
-                    const tpl = config.messaging?.templates?.whatsappBirthday || '¡Feliz cumple {nombre}! 🎂 Te regalamos puntos. ✨';
-                    const bdPoints = (item.pointsAdded || config?.birthdayPoints || '').toString();
-                    msg = tpl.replace(/{nombre}/g, firstName).replace(/{nombre_completo}/g, fullName).replace(/{puntos}/g, bdPoints);
+                    const bdPointsStr = (item.pointsAdded || config?.birthdayPoints || '').toString();
+                    const hasPoints = bdPointsStr && bdPointsStr !== '0';
+                    const defaultTpl = hasPoints 
+                        ? '¡Feliz cumpleaños {nombre}! 🎂 Que tengas un gran día. Te regalamos {puntos} puntos.' 
+                        : '¡Feliz cumpleaños {nombre}! 🎂 Que tengas un gran día.';
+                    
+                    const tpl = config.messaging?.templates?.whatsappBirthday || defaultTpl;
+                    msg = tpl.replace(/{nombre}/g, firstName).replace(/{nombre_completo}/g, fullName).replace(/{puntos}/g, bdPointsStr);
                 } else if (type === 'expiration') {
-                    const tpl = config.messaging?.templates?.whatsappExpiration || '¡Hola {nombre}! 📢 Tus puntos ({puntos} pts) vencen pronto.';
+                    const tpl = config.messaging?.templates?.whatsappExpiration || '¡Hola {nombre}! 📢 Te recordamos que tus {puntos} puntos están por vencer: {fecha}. ¡No los pierdas!';
                     // Usar nextExpirationAmount (puntos reales que vencen) no el total de puntos del socio
                     const expPts = (item.nextExpirationAmount || item.nextExpirationAmt || item.points || 0).toString();
-                    msg = tpl.replace(/{nombre}/g, firstName).replace(/{puntos}/g, expPts);
+                    
+                    let finalFecha = item.nextExpirationDate ? TimeService.formatDisplayDate(item.nextExpirationDate) : 'pronto';
+                    if (item.expirationDetails && Array.isArray(item.expirationDetails) && item.expirationDetails.length > 1) {
+                        const dateParts: string[] = [];
+                        item.expirationDetails.forEach((d: any) => {
+                            const pts = d.points || 0;
+                            const jsDate = d.date?.toDate ? d.date.toDate() : new Date(d.date);
+                            const dStr = `${String(jsDate.getDate()).padStart(2, '0')}/${String(jsDate.getMonth() + 1).padStart(2, '0')}/${jsDate.getFullYear()}`;
+                            dateParts.push(`${dStr} (${pts} pts)`);
+                        });
+                        if (dateParts.length === 2) {
+                            finalFecha = dateParts.join(' y ');
+                        } else {
+                            const last = dateParts.pop();
+                            finalFecha = dateParts.join(', ') + ' y ' + last;
+                        }
+                    }
+                    
+                    msg = tpl.replace(/{nombre}/g, firstName).replace(/{puntos}/g, expPts).replace(/{fecha}/g, finalFecha);
                 } else if (type === 'redemption') {
                     const tpl = config.messaging?.templates?.whatsappRedemption || '¡Canje exitoso {nombre}! 🎁 Canjeaste {premio}. Código: {codigo}';
                     msg = tpl.replace(/{nombre}/g, firstName).replace(/{premio}/g, item.prizeName || 'Premio').replace(/{codigo}/g, item.redemptionCode || 'N/A');
                 } else if (type === 'points') {
                     msg = `¡Hola ${firstName}! 💰 Sumaste ${item.points} puntos. Tu saldo actual es ${item.balanceAfter || 'N/A'}.`;
                 } else {
-                    const tpl = config.messaging?.templates?.whatsappPetFood || '¡Hola {nombre}! 🐾 Recordatorio de alimento para {mascota}. Marca: {marca}.';
+                    const tpl = config.messaging?.templates?.whatsappPetFood || '¡Hola {nombre}! 🐾 Notamos que a {mascota} se le debe estar terminando su alimento Marca: {marca}.';
                     msg = tpl.replace(/{nombre}/g, firstName).replace(/{mascota}/g, item.petName || '').replace(/{marca}/g, item.foodBrand || '');
+                    
+                    // Actualizar lastWhatsAppDate en Firestore para que no vuelva a aparecer mañana
+                    if (item.id && item.pets) {
+                        const userRef = doc(db, 'users', item.id);
+                        const updatedPets = item.pets.map((p: any) => {
+                            if (p.name === item.petName) {
+                                return { ...p, lastWhatsAppDate: todayStr };
+                            }
+                            return p;
+                        });
+                        updateDoc(userRef, { pets: updatedPets }).catch(e => console.error("Error updating pet wa date:", e));
+                    }
                 }
                 window.open(`https://api.whatsapp.com/send?phone=${p}&text=${encodeURIComponent(msg)}`, '_blank');
             }
@@ -260,15 +345,17 @@ export const GlobalAlerts = () => {
     const pendingP = petAlerts.filter(u => !processedAlerts[u.alertId]);
     const pendingR = redemptions.filter(u => !processedAlerts[u.alertId]);
     const pendingA = pointsAssignments.filter(u => !processedAlerts[u.alertId]);
+    const pendingC = campaignAlerts.filter(u => !processedAlerts[u.alertId]);
 
     const procB = birthdaysOfToday.filter(u => processedAlerts[u.alertId]);
     const procE = expiringUsers.filter(u => processedAlerts[u.alertId]);
     const procP = petAlerts.filter(u => processedAlerts[u.alertId]);
     const procR = redemptions.filter(u => processedAlerts[u.alertId]);
     const procA = pointsAssignments.filter(u => processedAlerts[u.alertId]);
+    const procC = campaignAlerts.filter(u => processedAlerts[u.alertId]);
 
-    const totalPending = pendingB.length + pendingE.length + pendingP.length + pendingR.length + pendingA.length;
-    const totalProcessed = procB.length + procE.length + procP.length + procR.length + procA.length;
+    const totalPending = pendingB.length + pendingE.length + pendingP.length + pendingR.length + pendingA.length + pendingC.length;
+    const totalProcessed = procB.length + procE.length + procP.length + procR.length + procA.length + procC.length;
 
     if (totalPending === 0 && totalProcessed === 0) return null;
 
@@ -301,6 +388,12 @@ export const GlobalAlerts = () => {
                     <div className="p-6 max-h-[480px] overflow-y-auto space-y-6 custom-scrollbar">
                         {activeTab === 'pending' ? (
                             <>
+                                {pendingC.length > 0 && (
+                                    <div>
+                                        <div className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-3 flex items-center gap-2">📢 Campañas Activas</div>
+                                        <div className="space-y-3">{pendingC.map(u => <AlertCard key={u.alertId} item={u} type="campaign" onAction={handleAction} status="pending" />)}</div>
+                                    </div>
+                                )}
                                 {pendingB.length > 0 && (
                                     <div>
                                         <div className="text-[10px] font-black text-pink-500 uppercase tracking-widest mb-3 flex items-center gap-2">🎂 Cumpleaños</div>
@@ -335,6 +428,12 @@ export const GlobalAlerts = () => {
                             </>
                         ) : (
                             <>
+                                {procC.length > 0 && (
+                                    <div>
+                                        <div className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-3 flex items-center gap-2 opacity-50">📢 Campañas Activas</div>
+                                        <div className="space-y-3">{procC.map(u => <AlertCard key={u.alertId} item={u} type="campaign" onAction={handleAction} onDelete={deleteProcessed} status={processedAlerts[u.alertId]} />)}</div>
+                                    </div>
+                                )}
                                 {procB.length > 0 && (
                                     <div>
                                         <div className="text-[10px] font-black text-pink-500 uppercase tracking-widest mb-3 flex items-center gap-2 opacity-50">🎂 Cumpleaños</div>
@@ -383,11 +482,11 @@ export const GlobalAlerts = () => {
                     {/* Desglose V.1.4.33 */}
                     {totalPending > 0 && (
                         <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-black/80 text-white text-[8px] font-black px-2 py-0.5 rounded-lg border border-white/20 whitespace-nowrap tracking-wider shadow-xl flex gap-1.5 backdrop-blur-sm">
-                            {pendingB.length > 0 && <span>C:{pendingB.length}</span>}
-                            {pendingE.length > 0 && <span>V:{pendingE.length}</span>}
-                            {pendingP.length > 0 && <span>A:{pendingP.length}</span>}
-                            {pendingR.length > 0 && <span>R:{pendingR.length}</span>}
-                            {pendingA.length > 0 && <span>P:{pendingA.length}</span>}
+                            {pendingC.length > 0 && <span className="text-blue-400">Cp:{pendingC.length}</span>}
+                            {pendingB.length > 0 && <span className="text-pink-400">C:{pendingB.length}</span>}
+                            {pendingE.length > 0 && <span className="text-amber-400">V:{pendingE.length}</span>}
+                            {pendingP.length > 0 && <span className="text-indigo-400">A:{pendingP.length}</span>}
+                            {pendingR.length > 0 && <span className="text-emerald-400">R:{pendingR.length}</span>}
                         </div>
                     )}
 
@@ -414,19 +513,20 @@ const AlertCard = ({ item, type, onAction, onDelete, status }: any) => {
             <div className="flex justify-between items-start">
                 <div>
                     <h5 className="font-bold text-white text-[15px] flex items-center gap-2">
-                        {item.nombre || item.name || 'Socio'} <span className="text-[10px] text-white/30 font-bold tracking-tighter">#{item.socioNumber || 'S/N'}</span>
+                        {type === 'campaign' ? 'Campaña Iniciada' : (item.nombre || item.name || 'Socio')} 
+                        {type !== 'campaign' && <span className="text-[10px] text-white/30 font-bold tracking-tighter">#{item.socioNumber || 'S/N'}</span>}
                         {isSent && <span className="text-[#25D366] text-xs font-black drop-shadow-[0_0_2px_rgba(37,211,102,0.5)]">✓✓</span>}
                         {isDismissed && <span className="text-red-500 text-xs font-black">✓</span>}
                     </h5>
                     <p className="text-[9px] text-white/40 font-bold uppercase tracking-wider mt-1">
-                        {type === 'pet' ? `🐾 ${item.petName}` : type === 'expiration' ? `⏳ ${item.points} pts` : type === 'redemption' ? `🎁 ${item.prizeName}` : type === 'points' ? `💰 +${item.points} pts` : '🎂 Cumpleaños'}
+                        {type === 'campaign' ? `📢 ${item.name}` : type === 'pet' ? `🐾 ${item.petName}` : type === 'expiration' ? `⏳ ${item.points} pts` : type === 'redemption' ? `🎁 ${item.prizeName}` : type === 'points' ? `💰 +${item.points} pts` : '🎂 Cumpleaños'}
                         {item.isOrphan && <span className="ml-2 text-red-400 bg-red-400/10 px-1.5 py-0.5 rounded border border-red-400/20 text-[7px]">USUARIO ELIMINADO</span>}
                     </p>
                 </div>
             </div>
 
             <button onClick={() => onAction(item, type, 'sent')} className={`py-3 rounded-2xl text-[10px] font-black transition-all ${isPending ? 'bg-white text-black hover:scale-[1.02]' : 'bg-white/5 text-white/40'}`}>
-                {isPending ? '📳 ENVIAR WHATSAPP' : '🔄 RE-ENVIAR'}
+                {isPending ? (type === 'campaign' ? '📥 DESCARGAR CSV (VER)' : '📳 ENVIAR WHATSAPP') : (type === 'campaign' ? '🔄 IR A CAMPAÑAS' : '🔄 RE-ENVIAR')}
             </button>
         </div>
     );

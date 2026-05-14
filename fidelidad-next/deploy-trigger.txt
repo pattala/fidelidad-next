@@ -1,5 +1,6 @@
-Deployment Trigger: 2026-05-14 18:30:00
-V.1.4.82
-Fix: Activada la lógica de itinerancia de vencimientos en api/engine-daily.js.
-Fix: Sincronizada la versión global a V.1.4.82 en UI y backend.
-Fix: El sistema ahora respeta el intervalo de días (expirationReminderIntervalDays) configurado en el panel.
+Deployment Trigger: 2026-05-14 20:32:00
+V.1.4.83
+Fix: Integración de Exportación CSV Masiva para WhatsApp en Campañas.
+Fix: Filtro estricto FCM para evitar caída silenciosa de Multicast en engine-campaigns.js.
+Fix: Unificación total de plantillas y resuelto 'bucle fantasma' de mascotas en campanita.
+Fix: Botón inteligente de Forzar Envío en panel administrativo.

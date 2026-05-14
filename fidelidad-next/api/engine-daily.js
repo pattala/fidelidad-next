@@ -382,7 +382,7 @@ export default async function handler(req, res) {
                 if (!skipExpirations && (!alreadyNotified || skipDuplicityCheck) && config?.enableExpirationMessage !== false) {
                     const title = "⚠️ ¡Tus puntos vencen pronto!";
                     const template = config?.messaging?.templates?.expirationWarning || "¡Hola {nombre}! 📢 Te recordamos que tus {puntos} puntos vencen el {fecha}. ¡No los pierdas!";
-                    let nextAmt = userData.nextExpirationAmount || userData.points || 0;
+                    let nextAmt = userData.nextExpirationAmount !== undefined ? userData.nextExpirationAmount : null;
                     let dateStr = formatDateToDisplay(userData.nextExpirationDate);
 
                     if (userData.expirationDetails && Array.isArray(userData.expirationDetails) && userData.expirationDetails.length > 1) {
@@ -403,7 +403,7 @@ export default async function handler(req, res) {
                             const last = dateParts.pop();
                             dateStr = dateParts.join(', ') + ' y ' + last;
                         }
-                    } else if (userData.nextExpirationAmount === undefined) {
+                    } else if (nextAmt === null || nextAmt === undefined) {
                         const historySnap = await db.collection('users').doc(doc.id).collection('points_history').where('type', '==', 'credit').get();
                         let calc = 0;
                         historySnap.docs.forEach(h => {
@@ -416,10 +416,13 @@ export default async function handler(req, res) {
                                 }
                             }
                         });
-                        nextAmt = calc > 0 ? calc : (userData.points || 0);
+                        nextAmt = calc;
                         updateNextExpirationDate(db, doc.id, referenceDate).catch(() => {});
-                    } else if (nextAmt === 0) {
-                        nextAmt = userData.points || 0;
+                    }
+                    
+                    if (nextAmt === 0 && (userData.points || 0) > 0) {
+                        // Prevent sending confusing 0 point expirations. The cache update will fix it for tomorrow.
+                        return;
                     }
 
                     const msg = template

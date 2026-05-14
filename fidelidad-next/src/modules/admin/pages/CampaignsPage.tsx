@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
     Plus, Trash2, Calendar, Target, Award, Save, X, Megaphone, Sparkles,
     ToggleLeft, ToggleRight, Edit, Send, Monitor, Layout, Clock, Image as ImageIcon,
-    ChevronRight, Zap, Info, MousePointer2, MessageCircle, Type, Smartphone, AlignLeft, AlignCenter, AlignRight, Bold, Play, Shield, Copy
+    ChevronRight, Zap, Info, MousePointer2, MessageCircle, Type, Smartphone, AlignLeft, AlignCenter, AlignRight, Bold, Play, Shield, Copy, Download, CheckCircle
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { CampaignService, type BonusRule } from '../../../services/campaignService';
@@ -342,6 +342,80 @@ export const CampaignsPage = () => {
         }
     };
 
+    const handleDownloadCSV = async (bonus: BonusRule) => {
+        if (isReadOnly) return;
+        const load = toast.loading('Generando CSV...');
+        try {
+            const config = await ConfigService.get();
+            // @ts-ignore
+            const eventType = bonus.rewardType === 'INFO' || bonus.rewardType === 'TEXT' ? 'offer' : 'campaign';
+            
+            let template = "";
+            if (bonus.isFlash) {
+                template = config?.messaging?.templates?.flashOffer || DEFAULT_TEMPLATES.flashOffer;
+            } else if (bonus.rewardType === 'INFO' || (bonus.rewardType as any) === 'TEXT') {
+                template = config?.messaging?.templates?.offer || DEFAULT_TEMPLATES.offer;
+            } else {
+                template = config?.messaging?.templates?.campaign || DEFAULT_TEMPLATES.campaign;
+            }
+
+            const q = query(collection(db, 'users'));
+            const snap = await getDocs(q);
+            
+            let csvContent = "Nombre,Telefono,Mensaje\n";
+            
+            snap.forEach(doc => {
+                const data = doc.data();
+                if (data.role === 'admin' || !data.phone) return;
+                
+                let phoneNum = data.phone.replace(/\D/g, '');
+                if (!phoneNum.startsWith('54') && phoneNum.length === 10) phoneNum = '549' + phoneNum;
+
+                const userName = data.name || data.nombre || '';
+                const firstName = userName.split(' ')[0];
+                
+                let msg = template.replace(/{nombre}/g, firstName).replace(/{nombre_completo}/g, userName);
+                
+                if (bonus.isFlash) {
+                    const horario = bonus.endTime || '23:59';
+                    msg = msg.replace(/{titulo}/g, bonus.flashTitle || bonus.title || bonus.name)
+                             .replace(/{detalle}/g, bonus.flashDescription || bonus.description || (bonus.rewardText ? `¡${bonus.rewardText}!` : 'Consultanos.'))
+                             .replace(/{horario}/g, horario);
+                } else if (bonus.rewardType === 'INFO' || (bonus.rewardType as any) === 'TEXT') {
+                    const vencimiento = bonus.endDate ? new Date(bonus.endDate + 'T00:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : 'agotar stock';
+                    msg = msg.replace(/{titulo}/g, bonus.title || bonus.name)
+                             .replace(/{detalle}/g, bonus.description || (bonus.rewardText ? `¡${bonus.rewardText}!` : 'Consultanos.'))
+                             .replace(/{vencimiento}/g, vencimiento);
+                } else {
+                    msg = msg.replace(/{titulo}/g, bonus.title || bonus.name)
+                             .replace(/{descripcion}/g, bonus.description || '¡Sumá más puntos!');
+                }
+
+                const escapeCSV = (str: string) => `"${str.replace(/"/g, '""')}"`;
+                csvContent += `${escapeCSV(userName)},${phoneNum},${escapeCSV(msg)}\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `Campaña_${bonus.name.replace(/\s+/g, '_')}_WhatsApp.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            toast.success('CSV descargado', { id: load });
+            
+            await AuditService.log('campaign_whatsapp_csv', `Descarga CSV WhatsApp: ${bonus.name}`, [
+                { action: 'csv_downloaded', campaignId: bonus.id }
+            ]);
+
+        } catch (e) {
+            toast.error('Error al generar CSV', { id: load });
+            console.error(e);
+        }
+    };
+
     const handleBroadcast = async (bonus: BonusRule) => {
         try {
             const config = await ConfigService.get();
@@ -430,8 +504,8 @@ export const CampaignsPage = () => {
             }
 
             if (selectedChannels.whatsapp) {
-                toast.info('Redirigiendo a Envíos WhatsApp...', { icon: '💬', duration: 3000 });
-                navigate('/admin/whatsapp', { state: { message: msg } });
+                toast.success('Descargando CSV para WhatsApp...', { duration: 3000 });
+                handleDownloadCSV(bonus);
             }
 
             // --- AUDITORIA ---
@@ -841,11 +915,25 @@ export const CampaignsPage = () => {
                                                 <Copy size={18} />
                                             </button>
                                             <button
-                                                onClick={() => handleBroadcast(bonus)}
-                                                className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all transform active:scale-90"
-                                                title="Difundir"
+                                                onClick={() => handleDownloadCSV(bonus)}
+                                                className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-xl transition-all transform active:scale-90"
+                                                title="Descargar CSV WhatsApp"
                                             >
-                                                <Play size={18} />
+                                                <Download size={18} />
+                                            </button>
+                                            
+                                            <button
+                                                onClick={() => {
+                                                    const todayStr = TimeService.now().toISOString().split('T')[0];
+                                                    if (bonus.broadcastSentAt === todayStr) {
+                                                        if(!confirm("Esta campaña ya fue enviada automáticamente hoy. ¿Estás seguro que deseas FORZAR un re-envío a todos?")) return;
+                                                    }
+                                                    handleBroadcast(bonus);
+                                                }}
+                                                className={`p-2 rounded-xl transition-all transform active:scale-90 ${bonus.broadcastSentAt === TimeService.now().toISOString().split('T')[0] ? 'text-green-500 bg-green-50/50 hover:bg-green-100 hover:text-green-700' : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'}`}
+                                                title={bonus.broadcastSentAt === TimeService.now().toISOString().split('T')[0] ? "✅ Enviado Hoy (Forzar Re-envío)" : "Forzar Envío"}
+                                            >
+                                                {bonus.broadcastSentAt === TimeService.now().toISOString().split('T')[0] ? <CheckCircle size={18} /> : <Play size={18} />}
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(bonus.id, bonus.name)}

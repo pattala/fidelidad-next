@@ -236,7 +236,10 @@ export default async function handler(req, res) {
                 const uData = u.data();
                 if (uData.role === 'admin') return;
                 userDocs.push({ id: u.id, ref: u.ref, data: uData });
-                if (uData.fcmTokens?.length > 0) fcmTokens.push(...uData.fcmTokens);
+                if (uData.fcmTokens?.length > 0) {
+                    const validTokens = uData.fcmTokens.filter((t: any) => t && typeof t === 'string' && t.length > 10);
+                    if (validTokens.length > 0) fcmTokens.push(...validTokens);
+                }
                 if (uData.email) emails.push({ email: uData.email, name: uData.name || uData.nombre || '' });
             });
 
@@ -288,13 +291,13 @@ export default async function handler(req, res) {
                     results.notified++;
                     results.details.push({ id: campId, name: camp.name, tokens: fcmTokens.length });
 
-                    // Auditoría
+                    // Auditoría + Recordatorio de WhatsApp
                     await db.collection('audit_logs').add({
                         timestamp: admin.firestore.FieldValue.serverTimestamp(),
                         type: 'campaign_broadcast',
                         status: 'success',
                         summary: `Difusión automática: ${camp.name}`,
-                        details: [{ campId, notifiedCount: fcmTokens.length, title, trigger: req.query.trigger || 'auto' }],
+                        details: [{ campId, notifiedCount: fcmTokens.length, title, trigger: req.query.trigger || 'auto', action: 'campaign_broadcasted', campName: camp.name }],
                         executor: 'system'
                     });
 

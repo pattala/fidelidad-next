@@ -1,5 +1,5 @@
-Deployment Trigger: 2026-05-10 00:18:00
-V.1.4.59
-Fix: Mejorada la lógica de comparación de versiones en VersionUpdater para evitar bucles.
-Fix: Sincronizada la versión remota en Firestore a V.1.4.59.
-Fix: Solo se solicita actualizar si la versión remota es estrictamente mayor que la local.
+Deployment Trigger: 2026-05-14 18:30:00
+V.1.4.82
+Fix: Activada la lógica de itinerancia de vencimientos en api/engine-daily.js.
+Fix: Sincronizada la versión global a V.1.4.82 en UI y backend.
+Fix: El sistema ahora respeta el intervalo de días (expirationReminderIntervalDays) configurado en el panel.

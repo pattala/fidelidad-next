@@ -362,7 +362,22 @@ export default async function handler(req, res) {
                 // V.1.4.81: Tracking por fecha de vencimiento específica (evita que una fecha bloquee a la otra)
                 const warningDates = userData.lastExpirationWarningDates || {};
                 const nextExpDate = userData.nextExpirationDate;
-                const alreadyNotified = warningDates[nextExpDate] === todayStr;
+                let alreadyNotified = warningDates[nextExpDate] === todayStr;
+
+                // V.1.4.82: Lógica de Itinerancia (Respetar intervalo de repetición)
+                if (!alreadyNotified && warningDates[nextExpDate]) {
+                    const lastWarnStr = warningDates[nextExpDate];
+                    const repeat = config.messaging?.repeatExpirationWarnings === true;
+                    if (repeat) {
+                        const d1 = new Date(lastWarnStr + 'T12:00:00');
+                        const d2 = new Date(todayStr + 'T12:00:00');
+                        const diffDays = Math.round((d2.getTime() - d1.getTime()) / 86400000);
+                        const interval = Number(config.messaging?.expirationReminderIntervalDays || 0);
+                        if (diffDays < interval) alreadyNotified = true;
+                    } else {
+                        alreadyNotified = true; // No repetir si la itinerancia está apagada
+                    }
+                }
 
                 if (!skipExpirations && (!alreadyNotified || skipDuplicityCheck) && config?.enableExpirationMessage !== false) {
                     const title = "⚠️ ¡Tus puntos vencen pronto!";

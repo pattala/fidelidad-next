@@ -102,7 +102,10 @@ export default async function handler(req, res) {
 
         // Usamos la utilidad centralizada para respetar el Simulador
         const referenceDate = await getEffectiveDate(db, simulatedDateStr);
-        const todayStr = referenceDate.toISOString().split('T')[0];
+        const y = referenceDate.getFullYear();
+        const m = String(referenceDate.getMonth() + 1).padStart(2, '0');
+        const d = String(referenceDate.getDate()).padStart(2, '0');
+        const todayStr = `${y}-${m}-${d}`;
         
         // Validaciones de Ventana Horaria y Gatillos (Master Control)
         const currentHour = referenceDate.getHours();

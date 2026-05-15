@@ -96,7 +96,11 @@ export const AdminLayout = () => {
                 const body: any = { source: 'dashboard' };
                 // Si hay simulador activo, pasamos la fecha simulada
                 if (TimeService.getOffsetInDays() !== 0) {
-                    body.simulatedDate = TimeService.now().toISOString();
+                    const simDate = TimeService.now();
+                    const y = simDate.getFullYear();
+                    const m = String(simDate.getMonth() + 1).padStart(2, '0');
+                    const d = String(simDate.getDate()).padStart(2, '0');
+                    body.simulatedDate = `${y}-${m}-${d}`;
                 }
 
                 await fetch('/api/engine-daily?mode=daily&trigger=dashboard', {
@@ -166,7 +170,13 @@ export const AdminLayout = () => {
         const toastId = toast.loading("Ejecutando motor de notificaciones...");
         try {
             const body: any = { source: 'sidebar_manual', ignoreDeduplication };
-            if (TimeService.getOffsetInDays() !== 0) body.simulatedDate = TimeService.now().toISOString();
+            if (TimeService.getOffsetInDays() !== 0) {
+                const simDate = TimeService.now();
+                const y = simDate.getFullYear();
+                const m = String(simDate.getMonth() + 1).padStart(2, '0');
+                const d = String(simDate.getDate()).padStart(2, '0');
+                body.simulatedDate = `${y}-${m}-${d}`;
+            }
 
             const token = await auth.currentUser?.getIdToken();
             const res = await fetch(`/api/engine-daily?mode=all&trigger=sidebar_manual&ignoreDeduplication=${ignoreDeduplication}`, {

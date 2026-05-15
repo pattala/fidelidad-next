@@ -395,7 +395,7 @@ export const CampaignsPage = () => {
                 csvContent += `${escapeCSV(userName)},${phoneNum},${escapeCSV(msg)}\n`;
             });
 
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             const url = URL.createObjectURL(blob);
             link.setAttribute("href", url);
@@ -509,9 +509,11 @@ export const CampaignsPage = () => {
             }
 
             // --- AUDITORIA ---
-            await AuditService.log('campaign_diffusion', `Difusión masiva de campaña: ${bonus.name}`, [
+            await AuditService.log('campaign_broadcast', `Difusión masiva de campaña: ${bonus.name}`, [
                 {
-                    action: 'broadcast_executed',
+                    campId: bonus.id,
+                    campName: bonus.name,
+                    action: 'campaign_broadcasted',
                     status: 'success',
                     info: `Canales: ${Object.entries(selectedChannels).filter(([_, v]) => v).map(([k]) => k).join(', ')} | Tipo: ${bonus.isFlash ? 'Flash' : 'Estándar'}`
                 }

@@ -293,7 +293,7 @@ export default async function handler(req, res) {
 
                     // Auditoría + Recordatorio de WhatsApp
                     await db.collection('audit_logs').add({
-                        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                        timestamp: admin.firestore.Timestamp.fromDate(now),
                         type: 'campaign_broadcast',
                         status: 'success',
                         summary: `Difusión automática: ${camp.name}`,

@@ -1,6 +1,8 @@
-Deployment Trigger: 2026-05-14 20:32:00
-V.1.4.83
-Fix: Integración de Exportación CSV Masiva para WhatsApp en Campañas.
-Fix: Filtro estricto FCM para evitar caída silenciosa de Multicast en engine-campaigns.js.
-Fix: Unificación total de plantillas y resuelto 'bucle fantasma' de mascotas en campanita.
-Fix: Botón inteligente de Forzar Envío en panel administrativo.
+REALEASE V.1.4.84
+- FIX: UTC Timezone bug in date simulation (prevent early birthdays/expirations).
+- FIX: GlobalAlerts loop stability (synchronized todayStr construction).
+- FIX: Missing campaign alerts in Dashboard (unidied audit types).
+- FIX: Missing name and balance in points alerts.
+- FIX: CSV encoding for Excel (UTF-8 BOM).
+- FIX: Simulation audit log timestamps.
+- STABILITY: Enforced local date extraction across frontend/backend.

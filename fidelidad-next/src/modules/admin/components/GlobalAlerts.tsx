@@ -62,16 +62,22 @@ export const GlobalAlerts = () => {
             unsubs = [];
 
             const effectiveDate = TimeService.now();
-            const todayStr = effectiveDate.toISOString().split('T')[0];
-            const curY = effectiveDate.getFullYear().toString();
-            const dM = String(effectiveDate.getMonth() + 1).padStart(2, '0');
-            const dD = String(effectiveDate.getDate()).padStart(2, '0');
-            const dMD = `${dM}-${dD}`;
+            // Evitar toISOString que corre el día por UTC
+            const year = effectiveDate.getFullYear();
+            const month = String(effectiveDate.getMonth() + 1).padStart(2, '0');
+            const day = String(effectiveDate.getDate()).padStart(2, '0');
+            const todayStr = `${year}-${month}-${day}`;
+            const curY = year.toString();
+            const dMD = `${month}-${day}`;
             
             const leadDays = Number(config?.messaging?.expirationWarningDays || 7);
             const winEnd = new Date(effectiveDate);
             winEnd.setDate(winEnd.getDate() + leadDays);
-            const winEndStr = winEnd.toISOString().split('T')[0];
+            
+            const winEndY = winEnd.getFullYear();
+            const winEndM = String(winEnd.getMonth() + 1).padStart(2, '0');
+            const winEndD = String(winEnd.getDate()).padStart(2, '0');
+            const winEndStr = `${winEndY}-${winEndM}-${winEndD}`;
 
             const unsubProcessed = onSnapshot(doc(db, 'audit_logs', `daily_alerts_${todayStr}`), (snap) => {
                 if (snap.exists()) setProcessedAlerts(snap.data().actions || {});
@@ -243,7 +249,11 @@ export const GlobalAlerts = () => {
     }, [config]);
 
     const handleAction = async (item: any, type: string, action: 'sent' | 'dismissed') => {
-        const todayStr = TimeService.now().toISOString().split('T')[0];
+        const effectiveDate = TimeService.now();
+        const year = effectiveDate.getFullYear();
+        const month = String(effectiveDate.getMonth() + 1).padStart(2, '0');
+        const day = String(effectiveDate.getDate()).padStart(2, '0');
+        const todayStr = `${year}-${month}-${day}`;
         const alertId = item.alertId;
 
         const logRef = doc(db, 'audit_logs', `daily_alerts_${todayStr}`);
@@ -308,7 +318,8 @@ export const GlobalAlerts = () => {
                     const tpl = config.messaging?.templates?.whatsappRedemption || '¡Canje exitoso {nombre}! 🎁 Canjeaste {premio}. Código: {codigo}';
                     msg = tpl.replace(/{nombre}/g, firstName).replace(/{premio}/g, item.prizeName || 'Premio').replace(/{codigo}/g, item.redemptionCode || 'N/A');
                 } else if (type === 'points') {
-                    msg = `¡Hola ${firstName}! 💰 Sumaste ${item.points} puntos. Tu saldo actual es ${item.balanceAfter || 'N/A'}.`;
+                    const balance = item.balanceAfter || item.balance || 'N/A';
+                    msg = `¡Hola ${firstName}! 💰 Sumaste ${item.points} puntos. Tu saldo actual es ${balance}.`;
                 } else {
                     const tpl = config.messaging?.templates?.whatsappPetFood || '¡Hola {nombre}! 🐾 Notamos que a {mascota} se le debe estar terminando su alimento Marca: {marca}.';
                     msg = tpl.replace(/{nombre}/g, firstName).replace(/{mascota}/g, item.petName || '').replace(/{marca}/g, item.foodBrand || '');
@@ -333,7 +344,11 @@ export const GlobalAlerts = () => {
     };
 
     const deleteProcessed = async (alertId: string) => {
-        const todayStr = TimeService.now().toISOString().split('T')[0];
+        const effectiveDate = TimeService.now();
+        const year = effectiveDate.getFullYear();
+        const month = String(effectiveDate.getMonth() + 1).padStart(2, '0');
+        const day = String(effectiveDate.getDate()).padStart(2, '0');
+        const todayStr = `${year}-${month}-${day}`;
         const newActions = { ...processedAlerts };
         delete newActions[alertId];
         const logRef = doc(db, 'audit_logs', `daily_alerts_${todayStr}`);

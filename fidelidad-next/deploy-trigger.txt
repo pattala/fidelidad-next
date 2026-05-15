@@ -1,8 +1,6 @@
-REALEASE V.1.4.84
-- FIX: UTC Timezone bug in date simulation (prevent early birthdays/expirations).
-- FIX: GlobalAlerts loop stability (synchronized todayStr construction).
-- FIX: Missing campaign alerts in Dashboard (unidied audit types).
-- FIX: Missing name and balance in points alerts.
-- FIX: CSV encoding for Excel (UTF-8 BOM).
-- FIX: Simulation audit log timestamps.
-- STABILITY: Enforced local date extraction across frontend/backend.
+REALEASE V.1.4.85
+- FIX: Automatic campaign diffusion (removed overly aggressive smart deduplication).
+- FIX: Simulation date propagation between daily engine and campaign engine (added JSON headers).
+- FIX: Local date consistency in engine-campaigns.js.
+- FIX: Audit and inbox timestamps to match simulated time.
+- STABILITY: Campaigns now fire based on broadcastSentAt check only.

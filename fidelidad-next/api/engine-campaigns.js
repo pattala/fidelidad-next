@@ -82,7 +82,10 @@ export default async function handler(req, res) {
             console.log(`[Engine-Campaigns] Usando fecha efectiva (simulada): ${now.toISOString().split('T')[0]}`);
         }
 
-        const todayStr = now.toISOString().split('T')[0];
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        const todayStr = `${y}-${m}-${d}`;
         const todayDay = now.getDay();
         const currentH = now.getHours();
 
@@ -90,43 +93,17 @@ export default async function handler(req, res) {
         const allowedEnd = config.messaging?.engineAllowedEndHour ?? 21;
         const isWithinNotificationWindow = currentH >= allowedStart && currentH < allowedEnd;
 
-        // --- DEDUPLICACIÓN INTELIGENTE (RED DE SEGURIDAD) ---
+        // --- DEDUPLICACIÓN DE SEGURIDAD ---
         const triggerSource = req.query?.trigger || req.body?.trigger || "unknown";
         const isManualSim = req.body?.isManual === true || req.query?.isManual === 'true' || req.query?.ignoreDeduplication === 'true';
+        
+        // Formateador para logs y comparaciones consistentes
+        const arFormatter = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'America/Argentina/Buenos_Aires',
+            year: 'numeric', month: '2-digit', day: '2-digit'
+        });
+        const todayAR = arFormatter.format(now);
 
-        if (!isManualSim && triggerSource !== 'dashboard') {
-            const arFormatter = new Intl.DateTimeFormat('en-CA', {
-                timeZone: 'America/Argentina/Buenos_Aires',
-                year: 'numeric', month: '2-digit', day: '2-digit'
-            });
-            const todayAR = arFormatter.format(now);
-
-            // Usamos un marcador específico para campañas para no interferir con el diario
-            const checkSnap = await db.collection('config').doc('campaignCheck').get();
-            const checkData = checkSnap.exists ? checkSnap.data() : {};
-            const lastRunDate = checkData.lastRunDate;
-            const lastRunTimestamp = checkData.lastRunTimestamp || null;
-
-            // Si ya corrió hoy, verificamos si hubo cambios administrativos
-            if (lastRunDate === todayAR && lastRunTimestamp) {
-                try {
-                    const recentAudits = await db.collection('audit_logs')
-                        .where('timestamp', '>', lastRunTimestamp)
-                        .where('type', 'in', ['campaign_mgmt', 'config_updated'])
-                        .limit(1)
-                        .get();
-
-                    if (recentAudits.empty) {
-                        console.log(`[Engine-Campaigns] Todo al día. Gatillo ${triggerSource} saltado para ahorrar cuota.`);
-                        return res.status(200).json({ ok: true, skipped: true, message: "Todo al día" });
-                    }
-                    console.log(`[Engine-Campaigns] Detectados cambios en campañas. Forzando ejecución para gatillo ${triggerSource}.`);
-                } catch (auditErr) {
-                    // Si el índice falla o hay otro error, continuamos de todas formas como Red de Seguridad
-                    console.warn(`[Engine-Campaigns] Error consultando auditoría (posible falta de índice): ${auditErr.message}. Continuando ejecución por seguridad.`);
-                }
-            }
-        }
 
         // 2. VERIFICAR SIMULADOR
         if (config.simulationConfig?.campaigns === false) {
@@ -280,7 +257,7 @@ export default async function handler(req, res) {
                             const inboxRef = u.ref.collection('inbox').doc();
                             inboxBatch.set(inboxRef, {
                                 title, body, url, type: 'campaign', read: false,
-                                date: admin.firestore.Timestamp.now()
+                                date: admin.firestore.Timestamp.fromDate(now)
                             });
                         });
                         await inboxBatch.commit();
@@ -313,7 +290,7 @@ export default async function handler(req, res) {
             const arFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires', year: 'numeric', month: '2-digit', day: '2-digit' });
             await db.collection('config').doc('campaignCheck').set({
                 lastRunDate: arFormatter.format(now),
-                lastRunTimestamp: admin.firestore.FieldValue.serverTimestamp(),
+                lastRunTimestamp: admin.firestore.Timestamp.fromDate(now),
                 trigger: triggerSource
             }, { merge: true });
         }

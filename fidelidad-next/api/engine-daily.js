@@ -797,7 +797,10 @@ export default async function handler(req, res) {
         const baseUrl = process.env.PUBLIC_BASE_URL || `https://${req.headers.host}`;
         fetch(`${baseUrl}/api/engine-campaigns?trigger=engine-daily&isManual=${skipDuplicityCheck}`, {
             method: 'POST',
-            headers: { 'x-api-key': process.env.API_SECRET_KEY || '' },
+            headers: { 
+                'x-api-key': process.env.API_SECRET_KEY || '',
+                'Content-Type': 'application/json'
+            },
             body: JSON.stringify({ simulatedDate: simulatedDateStr })
         }).catch(() => { });
 

@@ -230,30 +230,31 @@ export default async function handler(req, res) {
 
             if (userDocs.length > 0 || emails.length > 0) {
                 try {
-                    // 1. ENVIAR PUSH INDIVIDUAL (Mismo método que engine-daily para máxima fiabilidad)
+                    // 1. ENVIAR PUSH (BATCH OPTIMIZADO)
                     if (config.messaging?.pushEnabled !== false) {
-                        for (const u of userDocs) {
-                            const tokens = u.data.fcmTokens?.filter((t) => t && typeof t === 'string' && t.length > 10) || [];
-                            if (tokens.length > 0) {
-                                await app.messaging().sendEachForMulticast({
-                                    tokens: tokens,
-                                    notification: { title, body, icon: iconUrl || undefined },
-                                    data: { 
-                                        title, 
-                                        body, 
-                                        url, 
-                                        type: "campaign", 
-                                        icon: iconUrl 
-                                    },
-                                    android: {
-                                        priority: "high",
-                                        notification: { sound: "default", channelId: "fidelidad-notif-channel" }
-                                    },
-                                    webpush: { 
-                                        headers: { Urgent: "high" },
-                                        fcmOptions: { link: `${PWA_URL}${url.startsWith('/') ? url : '/' + url}` } 
-                                    }
-                                }).catch(e => console.error(`Error push individual para ${u.id}:`, e.message));
+                        const allTokens = [];
+                        userDocs.forEach(u => {
+                            const valid = u.data.fcmTokens?.filter((t) => t && typeof t === 'string' && t.length > 10) || [];
+                            allTokens.push(...valid);
+                        });
+
+                        if (allTokens.length > 0) {
+                            const chunks = [];
+                            for (let i = 0; i < allTokens.length; i += 500) chunks.push(allTokens.slice(i, i + 500));
+                            
+                            for (const chunk of chunks) {
+                                try {
+                                    await app.messaging().sendEachForMulticast({
+                                        tokens: chunk,
+                                        notification: { title, body, icon: iconUrl || undefined },
+                                        data: { title, body, url, type: "campaign", icon: iconUrl },
+                                        android: { priority: "high", notification: { sound: "default", channelId: "fidelidad-notif-channel" } },
+                                        webpush: { headers: { Urgent: "high" }, fcmOptions: { link: `${PWA_URL}${url.startsWith('/') ? url : '/' + url}` } }
+                                    });
+                                    console.log(`[Engine-Campaigns] Push batch of ${chunk.length} sent.`);
+                                } catch (pError) {
+                                    console.error("[Engine-Campaigns] Push chunk error:", pError.message);
+                                }
                             }
                         }
                     }

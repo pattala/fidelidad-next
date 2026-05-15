@@ -604,7 +604,11 @@ let detectTimeout = null;
 const observer = new MutationObserver(() => {
     // Debounce reducido para activación más rápida
     if (detectTimeout) clearTimeout(detectTimeout);
-    detectTimeout = setTimeout(() => detectAmount(), 150);
+    detectTimeout = setTimeout(() => {
+        detectAmount();
+        // V.1.4.91: Restaurar reactividad de alertas sin F5
+        refreshAlertCounts();
+    }, 150);
 });
 observer.observe(document.body, { childList: true, subtree: true, attributes: true, characterData: true });
 // Initial detection sequence

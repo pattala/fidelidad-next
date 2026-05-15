@@ -246,12 +246,12 @@ export default async function handler(req, res) {
                                 try {
                                     await app.messaging().sendEachForMulticast({
                                         tokens: chunk,
-                                        notification: { title, body, icon: iconUrl || undefined },
+                                        notification: { title, body },
                                         data: { title, body, url, type: "campaign", icon: iconUrl },
                                         android: { priority: "high", notification: { sound: "default", channelId: "fidelidad-notif-channel" } },
-                                        webpush: { headers: { Urgent: "high" }, fcmOptions: { link: `${PWA_URL}${url.startsWith('/') ? url : '/' + url}` } }
+                                        webpush: { fcmOptions: { link: `${PWA_URL}${url.startsWith('/') ? url : '/' + url}` } }
                                     });
-                                    console.log(`[Engine-Campaigns] Push batch of ${chunk.length} sent.`);
+                                    console.log(`[Engine-Campaigns] Push batch sent.`);
                                 } catch (pError) {
                                     console.error("[Engine-Campaigns] Push chunk error:", pError.message);
                                 }

@@ -1,4 +1,4 @@
-REALEASE V.1.4.90
+REALEASE V.1.4.91
 - FIX: Re-sending fixes to 'desarrollo' branch.
 - FIX: Automatic campaign diffusion (deduplication & JSON headers).
 - STABILITY: Enforced local date extraction in engine-campaigns.js.

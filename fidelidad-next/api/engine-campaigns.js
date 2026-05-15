@@ -238,8 +238,21 @@ export default async function handler(req, res) {
                             await app.messaging().sendEachForMulticast({
                                 tokens: chunk,
                                 notification: { title, body, icon: iconUrl || undefined },
-                                data: { url, type: "campaign", icon: iconUrl },
-                                webpush: { fcmOptions: { link: `${PWA_URL}${url.startsWith('/') ? url : '/' + url}` } }
+                                data: { 
+                                    title, 
+                                    body, 
+                                    url, 
+                                    type: "campaign", 
+                                    icon: iconUrl 
+                                },
+                                android: {
+                                    priority: "high",
+                                    notification: { sound: "default", channelId: "fidelidad-notif-channel" }
+                                },
+                                webpush: { 
+                                    headers: { Urgent: "high" },
+                                    fcmOptions: { link: `${PWA_URL}${url.startsWith('/') ? url : '/' + url}` } 
+                                }
                             });
                         }
                     }

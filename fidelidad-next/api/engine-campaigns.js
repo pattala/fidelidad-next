@@ -228,36 +228,37 @@ export default async function handler(req, res) {
                 if (uData.email) emails.push({ email: uData.email, name: uData.name || uData.nombre || '' });
             });
 
-            if (fcmTokens.length > 0 || emails.length > 0) {
+            if (userDocs.length > 0 || emails.length > 0) {
                 try {
-                    // 1. ENVIAR PUSH (BATCH) con logo
-                    if (fcmTokens.length > 0 && config.messaging?.pushEnabled !== false) {
-                        const chunks = [];
-                        for (let i = 0; i < fcmTokens.length; i += 500) chunks.push(fcmTokens.slice(i, i + 500));
-                        for (const chunk of chunks) {
-                            await app.messaging().sendEachForMulticast({
-                                tokens: chunk,
-                                notification: { title, body, icon: iconUrl || undefined },
-                                data: { 
-                                    title, 
-                                    body, 
-                                    url, 
-                                    type: "campaign", 
-                                    icon: iconUrl 
-                                },
-                                android: {
-                                    priority: "high",
-                                    notification: { sound: "default", channelId: "fidelidad-notif-channel" }
-                                },
-                                webpush: { 
-                                    headers: { Urgent: "high" },
-                                    fcmOptions: { link: `${PWA_URL}${url.startsWith('/') ? url : '/' + url}` } 
-                                }
-                            });
+                    // 1. ENVIAR PUSH INDIVIDUAL (Mismo método que engine-daily para máxima fiabilidad)
+                    if (config.messaging?.pushEnabled !== false) {
+                        for (const u of userDocs) {
+                            const tokens = u.data.fcmTokens?.filter((t) => t && typeof t === 'string' && t.length > 10) || [];
+                            if (tokens.length > 0) {
+                                await app.messaging().sendEachForMulticast({
+                                    tokens: tokens,
+                                    notification: { title, body, icon: iconUrl || undefined },
+                                    data: { 
+                                        title, 
+                                        body, 
+                                        url, 
+                                        type: "campaign", 
+                                        icon: iconUrl 
+                                    },
+                                    android: {
+                                        priority: "high",
+                                        notification: { sound: "default", channelId: "fidelidad-notif-channel" }
+                                    },
+                                    webpush: { 
+                                        headers: { Urgent: "high" },
+                                        fcmOptions: { link: `${PWA_URL}${url.startsWith('/') ? url : '/' + url}` } 
+                                    }
+                                }).catch(e => console.error(`Error push individual para ${u.id}:`, e.message));
+                            }
                         }
                     }
 
-                    // 2. ENVIAR EMAILS
+                    // 2. ENVIAR EMAILS (Se mantiene igual)
                     if (emails.length > 0 && process.env.SMTP_USER && config.messaging?.emailEnabled !== false) {
                         const innerHtml = `<div style="color:#333"><h2 style="color:#6366f1;margin-top:0">${title}</h2><p style="font-size:16px;line-height:1.6">${body}</p>${url && url !== '/' ? `<p><a href="${PWA_URL}${url}" style="background:#6366f1;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold">Ver Oferta</a></p>` : ''}</div>`;
                         const emailPromises = emails.map(({ email, name }) =>

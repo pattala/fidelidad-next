@@ -743,6 +743,22 @@ export default async function handler(req, res) {
             });
         } catch (e) { console.error("Error fetching points assignments for engine:", e); }
 
+        const campaignsList = [];
+        try {
+            const campSnapshot = await db.collection('campanas').where('active', '==', true).get();
+            campSnapshot.forEach(doc => {
+                const camp = doc.data();
+                const alertId = `campaign-${doc.id}-${todayStr}`;
+                campaignsList.push({
+                    ...camp,
+                    alertId,
+                    campId: doc.id,
+                    name: camp.name || camp.title,
+                    action: 'campaign_alert'
+                });
+            });
+        } catch (e) { console.error("Error fetching campaigns for engine:", e); }
+
         try {
             const threeYearsAgo = new Date(referenceDate);
             threeYearsAgo.setDate(threeYearsAgo.getDate() - 1095);
@@ -822,6 +838,7 @@ export default async function handler(req, res) {
             petAlerts: petAlertsList,
             redemptions: redemptionsList,
             pointsAssignments: pointsAssignmentsList,
+            campaigns: campaignsList,
             processedAlerts: processedAlerts,
             config: config,
             referenceDate: todayStr,

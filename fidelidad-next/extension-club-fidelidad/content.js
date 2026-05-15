@@ -101,8 +101,9 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                         const filteredPetAlerts = pList.filter(p => getStatus(`pet-${getIdentifier(p)}-${p.petName}-${p.lastFoodAlertDate || 'today'}-${p.points || 0}`) === 'pending');
                         const filteredRedemptions = rList.filter(r => getStatus(r.alertId) === 'pending');
                         const filteredAssignments = aList.filter(a => getStatus(a.alertId) === 'pending');
+                        const filteredCampaigns = (data.campaigns || []).filter(c => getStatus(c.alertId) === 'pending');
 
-                        const total = filteredBirthdays.length + filteredExpirations.length + filteredPetAlerts.length + filteredRedemptions.length + filteredAssignments.length;
+                        const total = filteredBirthdays.length + filteredExpirations.length + filteredPetAlerts.length + filteredRedemptions.length + filteredAssignments.length + filteredCampaigns.length;
                         const processedData = {
                             ...data,
                             dismissedAlerts: localList,
@@ -110,7 +111,8 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                             expirations: { list: eList },
                             petAlerts: { list: pList },
                             redemptions: { list: rList },
-                            pointsAssignments: { list: aList }
+                            pointsAssignments: { list: aList },
+                            campaigns: { list: data.campaigns || [] }
                         };
 
                         if (total > 0 || localList.length > 0) {
@@ -235,9 +237,10 @@ function showGlobalAlert(fullData, config) {
         const procP = petAlerts.filter(p => getStatus(`pet-${getIdentifier(p)}-${p.petName}-${p.lastFoodAlertDate || 'today'}-${p.points || 0}`) !== 'pending');
         const procR = (fullData.redemptions?.list || []).filter(r => getStatus(r.alertId) !== 'pending');
         const procA = (fullData.pointsAssignments?.list || []).filter(a => getStatus(a.alertId) !== 'pending');
+        const procC = (fullData.campaigns?.list || []).filter(c => getStatus(c.alertId) !== 'pending');
 
-        const totalPending = pendingB.length + pendingE.length + pendingP.length + pendingR.length + pendingA.length;
-        const totalProcessed = [...procB, ...procE, ...procP, ...procR, ...procA].length;
+        const totalPending = pendingB.length + pendingE.length + pendingP.length + pendingR.length + pendingA.length + (fullData.campaigns?.list || []).filter(c => getStatus(c.alertId) === 'pending').length;
+        const totalProcessed = [...procB, ...procE, ...procP, ...procR, ...procA, ...procC].length;
 
         if (isExpanded) {
             ui.className = 'cf-v35-glass cf-v35-panel';
@@ -261,7 +264,7 @@ function showGlobalAlert(fullData, config) {
                     </button>
                 </div>
                 <div style="padding:16px; overflow-y:auto; flex:1;" class="cf-scrollbar">
-                    ${activeTab === 'pending' ? renderList(pendingB, pendingE, pendingP, pendingR, pendingA, 'pending', curY, fullData) : renderList(procB, procE, procP, procR, procA, 'processed', curY, fullData)}
+                    ${activeTab === 'pending' ? renderList(pendingB, pendingE, pendingP, pendingR, pendingA, (fullData.campaigns?.list || []).filter(c => getStatus(c.alertId) === 'pending'), 'pending', curY, fullData) : renderList(procB, procE, procP, procR, procA, (fullData.campaigns?.list || []).filter(c => getStatus(c.alertId) !== 'pending'), 'processed', curY, fullData)}
                 </div>
             `;
             ui.querySelector('#cf-v35-drag').onmousedown = (e) => {
@@ -299,8 +302,13 @@ function showGlobalAlert(fullData, config) {
         container.appendChild(ui);
     };
 
-    const renderList = (births, exps, pets, reds, asigs, mode, curY, fullData) => {
+    const renderList = (births, exps, pets, reds, asigs, camps, mode, curY, fullData) => {
         let html = '';
+        if (camps && camps.length > 0) {
+            html += `<div style="margin-bottom:16px;"><div style="font-size:10px; font-weight:900; color:#3b82f6; text-transform:uppercase; margin-bottom:8px;">\u{1F4E3} Campañas Activas</div>`;
+            html += camps.map(c => renderCard(c, 'campaign', c.alertId, mode, fullData)).join('');
+            html += `</div>`;
+        }
         if (births.length > 0) {
             html += `<div style="margin-bottom:16px;"><div style="font-size:10px; font-weight:900; color:#ec4899; text-transform:uppercase; margin-bottom:8px;">\u{1F382} Cumpleaños</div>`;
             html += births.map(c => renderCard(c, 'birthday', `birthday-${getIdentifier(c)}-${curY}`, mode, fullData)).join('');
@@ -343,7 +351,8 @@ function showGlobalAlert(fullData, config) {
             'expiration': 'expirationWarning',
             'pet': 'petFoodAlert',
             'redemption': 'redemption',
-            'pointsAssignment': 'pointsAdded'
+            'pointsAssignment': 'pointsAdded',
+            'campaign': 'campaign'
         };
         const eventName = eventMap[type] || type;
         // FORZAR: Siempre mostrar el botón si hay teléfono, para permitir el envío manual
@@ -353,15 +362,23 @@ function showGlobalAlert(fullData, config) {
             <div style="display:flex; justify-content:space-between; align-items:start;">
                 <div style="flex:1;">
                     <div style="font-weight:800; font-size:14px; display:flex; align-items:center; gap:6px;">
-                        ${item.name} <span style="font-size:9px; opacity:0.4;">#${item.socioNumber || 'S/N'}</span> ${statusIcon}
+                        ${type === 'campaign' ? 'Campaña Activa' : item.name} 
+                        ${type !== 'campaign' ? `<span style="font-size:9px; opacity:0.4;">#${item.socioNumber || 'S/N'}</span>` : ''} 
+                        ${statusIcon}
                     </div>
                     <div style="font-size:10px; opacity:0.6; margin-top:2px;">
-                        ${type === 'pet' ? `🐾 ${item.petName}` : type === 'expiration' ? `⏳ ${item.points} pts` : type === 'redemption' ? `🎁 ${item.prizeName}` : type === 'pointsAssignment' ? `💰 +${item.points} pts` : '🎂 Cumpleaños'}
+                        ${type === 'campaign' ? `📢 ${item.name}` : type === 'pet' ? `🐾 ${item.petName}` : type === 'expiration' ? `⏳ ${item.points} pts` : type === 'redemption' ? `🎁 ${item.prizeName}` : type === 'pointsAssignment' ? `💰 +${item.points} pts` : '🎂 Cumpleaños'}
                     </div>
                 </div>
                 ${mode === 'pending' ? `<button class="cf-v35-card-close" data-id="${id}">×</button>` : `<button class="cf-v35-card-delete" data-id="${id}" style="background:none; border:none; color:white; opacity:0.4; cursor:pointer;" title="Restaurar a Pendientes">🔄</button>`}
             </div>
-            ${showWaBtn ? `
+            ${type === 'campaign' ? `
+            <div style="margin-top:10px;">
+                <button class="cf-v35-btn-wa" data-id="${id}" data-type="campaign" style="${mode === 'processed' ? 'background:rgba(255,255,255,0.1);' : ''}">
+                    ${mode === 'pending' ? '📥 Ir a Campañas' : '🔄 Ver Campañas'}
+                </button>
+            </div>
+            ` : showWaBtn ? `
             <div style="margin-top:10px;">
                 <button class="cf-v35-btn-wa" data-id="${id}" data-type="${type === 'pet' ? 'petAlerts' : type === 'redemption' ? 'redemptions' : type === 'pointsAssignment' ? 'pointsAssignments' : type + 's'}" data-phone="${item.phone}" data-name="${item.name}" data-socio="${type === 'redemption' ? (item.redemptionCode || '') : (item.socioNumber || '')}" data-extra="${type === 'pet' ? item.petName : type === 'redemption' ? item.prizeName : item.points || ''}" style="${mode === 'processed' ? 'background:rgba(255,255,255,0.1);' : ''}">
                     ${mode === 'pending' ? '📳 Enviar WhatsApp' : '🔄 Re-enviar'}
@@ -401,8 +418,12 @@ function showGlobalAlert(fullData, config) {
         ui.querySelectorAll('.cf-v35-card-close').forEach(btn => btn.onclick = () => updateStorage(btn.dataset.id, 'dismissed'));
         ui.querySelectorAll('.cf-v35-card-delete').forEach(btn => btn.onclick = () => updateStorage(btn.dataset.id, null));
         ui.querySelectorAll('.cf-v35-btn-wa').forEach(btn => btn.onclick = () => {
-            const url = generateWhatsAppToken(btn.dataset.type, btn.dataset.phone, btn.dataset.name, btn.dataset.extra, config, btn.dataset.socio);
-            if (url) window.open(url, '_blank');
+            if (btn.dataset.type === 'campaign') {
+                window.open(`${config.apiUrl}/admin/campaigns`, '_blank');
+            } else {
+                const url = generateWhatsAppToken(btn.dataset.type, btn.dataset.phone, btn.dataset.name, btn.dataset.extra, config, btn.dataset.socio);
+                if (url) window.open(url, '_blank');
+            }
             updateStorage(btn.dataset.id, 'sent');
         });
     };

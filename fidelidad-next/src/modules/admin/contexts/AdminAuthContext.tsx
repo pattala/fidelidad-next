@@ -36,15 +36,20 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
                 // If we have a cached role, use it immediately and stop loading
                 // The background refresh will update if the role changed
                 if (cachedRole) {
+                    console.log(`[AdminAuth] Found cached role: ${cachedRole} for ${firebaseUser.uid}. UI unblocked.`);
                     setRole(cachedRole);
                     setUser(firebaseUser);
                     setLoading(false); // ← fix: don't block UI waiting for network
+                } else {
+                    console.log(`[AdminAuth] No cached role for ${firebaseUser.uid}. Fetching...`);
                 }
 
                 const fetchRole = async (retryCount = 0): Promise<void> => {
                     try {
                         const isMaster = MASTER_ADMINS.map(e => e.toLowerCase()).includes(userEmail);
                         const isDefaultAdmin = userEmail === 'admin@admin.com';
+
+                        console.log(`[AdminAuth] Checking role for ${userEmail}. Master: ${isMaster}, Default: ${isDefaultAdmin}`);
 
                         let resolvedRole: AdminRole = null;
 
@@ -58,13 +63,15 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
                             ]);
 
                             const hasExternalAdmins = !adminsColSnap.empty;
+                            console.log(`[AdminAuth] Docs fetched. AdminDoc exists: ${adminDoc.exists()}, UserDoc exists: ${userDoc.exists()}, HasOtherAdmins: ${hasExternalAdmins}`);
 
                             // Bootstrap Mode: admin@admin only works as fallback if NO other admins exist
                             if (userEmail === 'admin@admin.com') {
                                 if (!hasExternalAdmins) {
                                     resolvedRole = 'admin';
                                 } else {
-                                    resolvedRole = null; // Block factory default if real admins exist
+                                    console.warn("[AdminAuth] Factory admin blocked because other admins exist.");
+                                    resolvedRole = null; 
                                 }
                             } else if (adminDoc.exists()) {
                                 resolvedRole = adminDoc.data().role as AdminRole;
@@ -73,21 +80,24 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
                             }
                         }
 
+                        console.log(`[AdminAuth] Resolved role: ${resolvedRole}`);
+
                         if (resolvedRole) {
                             localStorage.setItem(cacheKey, resolvedRole);
                             setRole(resolvedRole);
                         } else if (!cachedRole) {
+                            console.warn("[AdminAuth] No role resolved and no cache found.");
                             setRole(null);
                         }
 
                         setUser(firebaseUser);
                         setLoading(false);
                     } catch (e: any) {
-                        console.error(`Error fetching admin role (attempt ${retryCount + 1}):`, e);
+                        console.error(`[AdminAuth] Error fetching role (attempt ${retryCount + 1}):`, e);
 
                         // SI es error de permisos y tenemos cache, asumimos que la sesión se pisó
                         // en otra pestaña pero NO matamos la sesión actual del admin.
-                        if (e.code === 'permission-denied' && cachedRole) {
+                        if ((e.code === 'permission-denied' || e.message?.includes('permission')) && cachedRole) {
                             console.warn("[AdminAuth] Permission denied. Maintaining cached role to prevent false logout.");
                             setRole(cachedRole);
                             setUser(firebaseUser);
@@ -96,12 +106,15 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
                         }
 
                         if (retryCount < 2) {
+                            console.log("[AdminAuth] Retrying in 1s...");
                             setTimeout(() => fetchRole(retryCount + 1), 1000);
                         } else {
                             if (cachedRole) {
-                                console.warn("Using cached role due to persistent network errors.");
+                                console.warn("[AdminAuth] Using cached role due to persistent network errors.");
                                 setRole(cachedRole);
+                                setUser(firebaseUser);
                             } else {
+                                console.error("[AdminAuth] Final attempt failed. No cache. Access denied.");
                                 setRole(null);
                             }
                             setLoading(false);

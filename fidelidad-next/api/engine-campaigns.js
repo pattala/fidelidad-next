@@ -57,6 +57,14 @@ export default async function handler(req, res) {
     const SECRET = (process.env.API_SECRET_KEY || "").trim();
     const authHeader = req.headers["x-api-key"] || req.headers["authorization"];
 
+    // V.1.4.87: Debug Extendido de Parámetros
+    const simulatedDateStr = req.body?.simulatedDate || req.query?.simulatedDate;
+    const triggerSource = req.query?.trigger || req.body?.trigger || "unknown";
+    const isManualSim = req.body?.isManual === true || req.query?.isManual === 'true' || req.query?.ignoreDeduplication === 'true';
+
+    console.log(`[Engine-Campaigns] RUN PARAMS -> simulatedDate: ${simulatedDateStr || 'NONE'} | trigger: ${triggerSource} | isManual: ${isManualSim}`);
+    console.log(`[Engine-Campaigns] REQUEST -> Method: ${req.method} | Cron: ${!!req.headers["x-vercel-cron"]} | Auth: ${!!authHeader}`);
+
     // Solo permitir acceso con la clave secreta o cron
     if (!req.headers["x-vercel-cron"] && (!authHeader || !authHeader.includes(SECRET))) {
         return res.status(401).json({ ok: false, error: "Unauthorized" });
@@ -214,7 +222,7 @@ export default async function handler(req, res) {
                 if (uData.role === 'admin') return;
                 userDocs.push({ id: u.id, ref: u.ref, data: uData });
                 if (uData.fcmTokens?.length > 0) {
-                    const validTokens = uData.fcmTokens.filter((t: any) => t && typeof t === 'string' && t.length > 10);
+                    const validTokens = uData.fcmTokens.filter((t) => t && typeof t === 'string' && t.length > 10);
                     if (validTokens.length > 0) fcmTokens.push(...validTokens);
                 }
                 if (uData.email) emails.push({ email: uData.email, name: uData.name || uData.nombre || '' });

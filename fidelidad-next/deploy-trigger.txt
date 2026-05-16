@@ -1,5 +1,1 @@
-REALEASE V.1.4.93
-- FIX: Re-sending fixes to 'desarrollo' branch.
-- FIX: Automatic campaign diffusion (deduplication & JSON headers).
-- STABILITY: Enforced local date extraction in engine-campaigns.js.
-- REVERT: Main branch restored to V.1.4.83.
+V.1.4.94 - Added Extension Refresh Interval setting + Safe Throttle logic in extension.

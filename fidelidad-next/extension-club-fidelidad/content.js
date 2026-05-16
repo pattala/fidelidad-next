@@ -203,6 +203,7 @@ function showGlobalAlert(fullData, config) {
     if (container) container.remove();
     container = document.createElement('div');
     container.id = 'cf-v35-bubble';
+    container.className = 'fidelidad-ignore-mutation';
     container.style.cssText = `position:fixed; bottom:30px; right:30px; z-index:999999999; pointer-events:none; font-family: 'Outfit', sans-serif;`;
 
     const mouseUp = () => { isDragging = false; document.removeEventListener('mousemove', onMouseMove); };
@@ -602,17 +603,28 @@ function detectAmount() {
 
 let detectTimeout = null;
 let lastAlertRefresh = 0;
-const observer = new MutationObserver(() => {
+const observer = new MutationObserver((mutations) => {
+    // V.1.4.94: Ignorar cambios provocados por la propia extensión para evitar bucles
+    const isExtensionChange = mutations.some(m => 
+        m.target.closest?.('.fidelidad-ignore-mutation') || 
+        m.target.id === 'fidelidad-panel' || 
+        m.target.id === 'cf-v35-bubble'
+    );
+    if (isExtensionChange) return;
+
     // Debounce para detección de montos (Siempre activo y rápido)
     if (detectTimeout) clearTimeout(detectTimeout);
     detectTimeout = setTimeout(() => {
         detectAmount();
 
-        // V.1.4.93: Reactividad inteligente bajo demanda (Throttling de 2 minutos)
+        // V.1.4.94: Reactividad inteligente con intervalo configurable
         const now = Date.now();
-        if (now - lastAlertRefresh > 2 * 60 * 1000) {
+        const intervalMinutes = (config.extensionRefreshInterval || 2);
+        const intervalMs = intervalMinutes * 60 * 1000;
+
+        if (now - lastAlertRefresh > intervalMs) {
             lastAlertRefresh = now;
-            console.log("🔄 [Club Fidelidad] Acción detectada: Refrescando alertas...");
+            console.log(`🔄 [Club Fidelidad] Acción detectada: Refrescando alertas (Intervalo: ${intervalMinutes} min)...`);
             refreshAlertCounts();
         }
     }, 150);

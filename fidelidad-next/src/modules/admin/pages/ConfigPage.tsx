@@ -877,6 +877,26 @@ export const ConfigPage = () => {
                                                 <span className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${config.enableExternalIntegration !== false ? 'translate-x-5' : 'translate-x-0'}`} />
                                             </button>
                                         </div>
+
+                                        {/* NUEVO: Intervalo de Refresco de la Extensión */}
+                                        <div className="mt-4 pt-4 border-t border-purple-100 flex items-center justify-between">
+                                            <div className="flex-1">
+                                                <span className="text-sm font-bold text-gray-800">Intervalo de Sincronización</span>
+                                                <p className="text-xs text-gray-500">Tiempo de espera entre actualizaciones mientras el operador trabaja.</p>
+                                            </div>
+                                            <div className="relative flex items-center gap-2">
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    max="60"
+                                                    value={config.extensionRefreshInterval || 2}
+                                                    onChange={e => setConfig({ ...config, extensionRefreshInterval: parseInt(e.target.value) || 1 })}
+                                                    className="w-20 p-2 bg-white rounded-lg border-purple-200 border-2 focus:border-purple-500 text-purple-700 font-bold text-center outline-none transition"
+                                                />
+                                                <span className="text-xs font-bold text-purple-600 uppercase">Min.</span>
+                                            </div>
+                                        </div>
+
                                         <p className="text-[10px] text-purple-400 mt-3 italic">
                                             * Esta opción controla si el servidor procesa puntos enviados desde herramientas externas como el facturador.
                                         </p>

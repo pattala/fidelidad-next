@@ -601,23 +601,28 @@ function detectAmount() {
 }
 
 let detectTimeout = null;
+let lastAlertRefresh = 0;
 const observer = new MutationObserver(() => {
-    // Debounce para detección de montos (SEGURO, no llama a API de alertas)
+    // Debounce para detección de montos (Siempre activo y rápido)
     if (detectTimeout) clearTimeout(detectTimeout);
     detectTimeout = setTimeout(() => {
         detectAmount();
+
+        // V.1.4.93: Reactividad inteligente bajo demanda (Throttling de 2 minutos)
+        const now = Date.now();
+        if (now - lastAlertRefresh > 2 * 60 * 1000) {
+            lastAlertRefresh = now;
+            console.log("🔄 [Club Fidelidad] Acción detectada: Refrescando alertas...");
+            refreshAlertCounts();
+        }
     }, 150);
 });
 observer.observe(document.body, { childList: true, subtree: true, attributes: true, characterData: true });
+
 // Initial detection sequence
 detectAmount();
 setTimeout(detectAmount, 1000);
 setTimeout(detectAmount, 2500);
-
-// V.1.4.92: Refresco seguro cada 5 minutos (evita consumo excesivo)
-setInterval(() => {
-    refreshAlertCounts();
-}, 5 * 60 * 1000);
 
 function showFidelidadPanel() {
     if (document.getElementById('fidelidad-panel')) {

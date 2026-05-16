@@ -602,12 +602,10 @@ function detectAmount() {
 
 let detectTimeout = null;
 const observer = new MutationObserver(() => {
-    // Debounce reducido para activación más rápida
+    // Debounce para detección de montos (SEGURO, no llama a API de alertas)
     if (detectTimeout) clearTimeout(detectTimeout);
     detectTimeout = setTimeout(() => {
         detectAmount();
-        // V.1.4.91: Restaurar reactividad de alertas sin F5
-        refreshAlertCounts();
     }, 150);
 });
 observer.observe(document.body, { childList: true, subtree: true, attributes: true, characterData: true });
@@ -615,6 +613,11 @@ observer.observe(document.body, { childList: true, subtree: true, attributes: tr
 detectAmount();
 setTimeout(detectAmount, 1000);
 setTimeout(detectAmount, 2500);
+
+// V.1.4.92: Refresco seguro cada 5 minutos (evita consumo excesivo)
+setInterval(() => {
+    refreshAlertCounts();
+}, 5 * 60 * 1000);
 
 function showFidelidadPanel() {
     if (document.getElementById('fidelidad-panel')) {

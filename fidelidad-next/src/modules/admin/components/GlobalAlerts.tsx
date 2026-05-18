@@ -14,6 +14,7 @@ export const GlobalAlerts = () => {
     const [campaignAlerts, setCampaignAlerts] = useState<any[]>([]);
     const [processedAlerts, setProcessedAlerts] = useState<any>({});
     const [config, setConfig] = useState<any>(null);
+    const [activeCampaignIds, setActiveCampaignIds] = useState<Set<string>>(new Set());
     
     const [activeTab, setActiveTab] = useState<'pending' | 'processed'>(
         () => (localStorage.getItem('globalAlerts_activeTab') as 'pending' | 'processed') || 'pending'
@@ -236,6 +237,17 @@ export const GlobalAlerts = () => {
                 setCampaignAlerts(camps);
             });
             unsubs.push(unsubCampaigns);
+
+            const unsubCamps = onSnapshot(query(collection(db, 'campanas')), (snap) => {
+                const activeIds = new Set<string>();
+                snap.forEach(doc => {
+                    if (doc.data().active) {
+                        activeIds.add(doc.id);
+                    }
+                });
+                setActiveCampaignIds(activeIds);
+            });
+            unsubs.push(unsubCamps);
         };
 
         refreshAlerts();
@@ -360,14 +372,14 @@ export const GlobalAlerts = () => {
     const pendingP = petAlerts.filter(u => !processedAlerts[u.alertId]);
     const pendingR = redemptions.filter(u => !processedAlerts[u.alertId]);
     const pendingA = pointsAssignments.filter(u => !processedAlerts[u.alertId]);
-    const pendingC = campaignAlerts.filter(u => !processedAlerts[u.alertId]);
+    const pendingC = campaignAlerts.filter(u => !processedAlerts[u.alertId] && activeCampaignIds.has(u.campId));
 
     const procB = birthdaysOfToday.filter(u => processedAlerts[u.alertId]);
     const procE = expiringUsers.filter(u => processedAlerts[u.alertId]);
     const procP = petAlerts.filter(u => processedAlerts[u.alertId]);
     const procR = redemptions.filter(u => processedAlerts[u.alertId]);
     const procA = pointsAssignments.filter(u => processedAlerts[u.alertId]);
-    const procC = campaignAlerts.filter(u => processedAlerts[u.alertId]);
+    const procC = campaignAlerts.filter(u => processedAlerts[u.alertId] && activeCampaignIds.has(u.campId));
 
     const totalPending = pendingB.length + pendingE.length + pendingP.length + pendingR.length + pendingA.length + pendingC.length;
     const totalProcessed = procB.length + procE.length + procP.length + procR.length + procA.length + procC.length;

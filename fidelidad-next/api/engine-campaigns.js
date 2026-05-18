@@ -102,8 +102,8 @@ export default async function handler(req, res) {
         const isWithinNotificationWindow = currentH >= allowedStart && currentH < allowedEnd;
 
         // --- DEDUPLICACIÓN DE SEGURIDAD ---
-        const triggerSource = req.query?.trigger || req.body?.trigger || "unknown";
-        const isManualSim = req.body?.isManual === true || req.query?.isManual === 'true' || req.query?.ignoreDeduplication === 'true';
+        const triggerSourceParam = req.query?.trigger || req.body?.trigger || "unknown";
+        const isManualSimParam = req.body?.isManual === true || req.query?.isManual === 'true' || req.query?.ignoreDeduplication === 'true';
         
         // Formateador para logs y comparaciones consistentes
         const arFormatter = new Intl.DateTimeFormat('en-CA', {
@@ -111,6 +111,28 @@ export default async function handler(req, res) {
             year: 'numeric', month: '2-digit', day: '2-digit'
         });
         const todayAR = arFormatter.format(now);
+
+        // Identificación de Ejecutor para Auditoría
+        let executorDetail = "SISTEMA (Auto)";
+        if (simulatedDateParam) {
+            executorDetail = `SIMULADOR (${simulatedDateParam})`;
+        } else if (triggerSourceParam === 'dashboard' || triggerSourceParam === 'sidebar_manual' || triggerSourceParam === 'manual') {
+            executorDetail = "SISTEMA (Panel)";
+        } else if (triggerSourceParam === 'extension') {
+            executorDetail = "SISTEMA (Extensión)";
+        }
+
+        // Registrar inicio del motor de campañas en auditoría
+        await db.collection('audit_logs').add({
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            type: 'campaign_engine_execution',
+            status: 'running',
+            summary: `Iniciando motor de campañas (${todayStr})`,
+            executor: executorDetail,
+            triggerSource: triggerSourceParam,
+            simulated: !!simulatedDateParam
+        });
+
 
 
         // 2. VERIFICAR SIMULADOR

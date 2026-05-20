@@ -15,6 +15,7 @@ export const GlobalAlerts = () => {
     const [processedAlerts, setProcessedAlerts] = useState<any>({});
     const [config, setConfig] = useState<any>(null);
     const [activeCampaignIds, setActiveCampaignIds] = useState<Set<string>>(new Set());
+    const [hasLoadedCampaignIds, setHasLoadedCampaignIds] = useState(false);
     
     const [activeTab, setActiveTab] = useState<'pending' | 'processed'>(
         () => (localStorage.getItem('globalAlerts_activeTab') as 'pending' | 'processed') || 'pending'
@@ -246,6 +247,7 @@ export const GlobalAlerts = () => {
                     }
                 });
                 setActiveCampaignIds(activeIds);
+                setHasLoadedCampaignIds(true);
             });
             unsubs.push(unsubCamps);
         };
@@ -259,6 +261,25 @@ export const GlobalAlerts = () => {
             window.removeEventListener('time-simulation-change', handleSimChange);
         };
     }, [config]);
+
+    // Opción D: Auto-archivar alertas de campañas expiradas → pasan a "Procesados" sin intervención del operador
+    useEffect(() => {
+        if (!hasLoadedCampaignIds || campaignAlerts.length === 0) return;
+        const expiredPending = campaignAlerts.filter(
+            u => !processedAlerts[u.alertId] && !activeCampaignIds.has(u.campId)
+        );
+        if (expiredPending.length === 0) return;
+        const effectiveDate = TimeService.now();
+        const year = effectiveDate.getFullYear();
+        const month = String(effectiveDate.getMonth() + 1).padStart(2, '0');
+        const day = String(effectiveDate.getDate()).padStart(2, '0');
+        const todayStr = `${year}-${month}-${day}`;
+        const logRef = doc(db, 'audit_logs', `daily_alerts_${todayStr}`);
+        const newActions = { ...processedAlerts };
+        expiredPending.forEach(u => { newActions[u.alertId] = 'sent'; });
+        setDoc(logRef, { actions: newActions, lastUpdate: TimeService.now() }, { merge: true })
+            .catch(e => console.error('[GlobalAlerts] Error auto-archivando campañas expiradas:', e));
+    }, [campaignAlerts, activeCampaignIds, processedAlerts, hasLoadedCampaignIds]);
 
     const handleAction = async (item: any, type: string, action: 'sent' | 'dismissed') => {
         const effectiveDate = TimeService.now();
@@ -372,14 +393,14 @@ export const GlobalAlerts = () => {
     const pendingP = petAlerts.filter(u => !processedAlerts[u.alertId]);
     const pendingR = redemptions.filter(u => !processedAlerts[u.alertId]);
     const pendingA = pointsAssignments.filter(u => !processedAlerts[u.alertId]);
-    const pendingC = campaignAlerts.filter(u => !processedAlerts[u.alertId] && activeCampaignIds.has(u.campId));
+    const pendingC = campaignAlerts.filter(u => !processedAlerts[u.alertId]);
 
     const procB = birthdaysOfToday.filter(u => processedAlerts[u.alertId]);
     const procE = expiringUsers.filter(u => processedAlerts[u.alertId]);
     const procP = petAlerts.filter(u => processedAlerts[u.alertId]);
     const procR = redemptions.filter(u => processedAlerts[u.alertId]);
     const procA = pointsAssignments.filter(u => processedAlerts[u.alertId]);
-    const procC = campaignAlerts.filter(u => processedAlerts[u.alertId] && activeCampaignIds.has(u.campId));
+    const procC = campaignAlerts.filter(u => processedAlerts[u.alertId]);
 
     const totalPending = pendingB.length + pendingE.length + pendingP.length + pendingR.length + pendingA.length + pendingC.length;
     const totalProcessed = procB.length + procE.length + procP.length + procR.length + procA.length + procC.length;

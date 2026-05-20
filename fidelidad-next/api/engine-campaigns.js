@@ -99,7 +99,17 @@ export default async function handler(req, res) {
 
         const allowedStart = config.messaging?.engineAllowedStartHour ?? 9;
         const allowedEnd = config.messaging?.engineAllowedEndHour ?? 21;
-        const isWithinNotificationWindow = currentH >= allowedStart && currentH < allowedEnd;
+        // Soporta rangos nocturnos que cruzan la medianoche (ej: 9 a 3 → allowedEnd < allowedStart)
+        let isWithinNotificationWindow = true;
+        if (allowedStart !== allowedEnd) {
+            if (allowedStart < allowedEnd) {
+                // Rango normal: ej. 9 a 21 → hora debe ser >=9 Y <21
+                isWithinNotificationWindow = (currentH >= allowedStart && currentH < allowedEnd);
+            } else {
+                // Rango nocturno: ej. 9 a 3 → hora debe ser >=9 O <3
+                isWithinNotificationWindow = (currentH >= allowedStart || currentH < allowedEnd);
+            }
+        }
 
         // --- DEDUPLICACIÓN DE SEGURIDAD ---
         const triggerSourceParam = req.query?.trigger || req.body?.trigger || "unknown";

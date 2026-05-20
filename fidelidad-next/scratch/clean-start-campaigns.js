@@ -54,11 +54,17 @@ async function resetAll() {
             'permissions.global_lastPcDismissal': 0
         });
 
-        // Resetear lastFoodAlertDate y lastWhatsAppDate de todas las mascotas
+        // Resetear lastFoodAlertDate, lastWhatsAppDate Y lastPurchaseDate de todas las mascotas
+        // Sin lastPurchaseDate el panel no puede calcular la ventana de alerta → no aparece ninguna alerta espuria
         if (userData.pets && Array.isArray(userData.pets) && userData.pets.length > 0) {
-            const resetPets = userData.pets.map(p => ({ ...p, lastFoodAlertDate: null, lastWhatsAppDate: null }));
+            const resetPets = userData.pets.map(p => ({
+                ...p,
+                lastFoodAlertDate: null,
+                lastWhatsAppDate: null,
+                lastPurchaseDate: null    // evita alertas residuales de compras de pruebas anteriores
+            }));
             batch.update(userRef, { pets: resetPets });
-            console.log(`   - ${resetPets.length} mascota(s) reseteada(s).`);
+            console.log(`   - ${resetPets.length} mascota(s) reseteada(s) (incluyendo lastPurchaseDate).`);
         }
 
         console.log("   - Usuario Pablo reseteado con éxito.");
@@ -66,13 +72,18 @@ async function resetAll() {
         console.log("   - [!] No se encontró el usuario Pablo.");
     }
 
-    // 3. Limpiar el log de alertas diarias del panel admin (hoy)
-    console.log("\n🗂️  3. Limpiando alertas procesadas del panel admin (hoy)...");
+    // 3. Limpiar logs de alertas diarias: hoy + próximos 7 días simulados
+    // Evita que alertas "procesadas" de sesiones anteriores persistan al avanzar el simulador
+    console.log("\n🗂️  3. Limpiando alertas procesadas del panel admin (hoy + 7 días simulados)...");
     const now = new Date();
-    const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-    const dailyLogRef = db.collection("audit_logs").doc(`daily_alerts_${todayStr}`);
-    batch.set(dailyLogRef, { actions: {}, lastUpdate: admin.firestore.FieldValue.serverTimestamp() }, { merge: false });
-    console.log(`   - Log diario "${todayStr}" limpiado.`);
+    for (let i = 0; i <= 7; i++) {
+        const d = new Date(now);
+        d.setDate(now.getDate() + i);
+        const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        const dailyLogRef = db.collection("audit_logs").doc(`daily_alerts_${dateStr}`);
+        batch.set(dailyLogRef, { actions: {}, lastUpdate: admin.firestore.FieldValue.serverTimestamp() }, { merge: false });
+        console.log(`   - Log diario "${dateStr}" limpiado.`);
+    }
 
     // 4. Ejecutar todo
     await batch.commit();

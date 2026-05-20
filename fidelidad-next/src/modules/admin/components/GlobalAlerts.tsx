@@ -263,17 +263,29 @@ export const GlobalAlerts = () => {
     }, [config]);
 
     // Opción D: Auto-archivar alertas de campañas expiradas → pasan a "Procesados" sin intervención del operador
+    // Solo archiva alertas de días ANTERIORES. Las de hoy quedan pendientes hasta que el operador descargue el CSV.
     useEffect(() => {
         if (!hasLoadedCampaignIds || campaignAlerts.length === 0) return;
-        const expiredPending = campaignAlerts.filter(
-            u => !processedAlerts[u.alertId] && !activeCampaignIds.has(u.campId)
-        );
-        if (expiredPending.length === 0) return;
+
         const effectiveDate = TimeService.now();
         const year = effectiveDate.getFullYear();
         const month = String(effectiveDate.getMonth() + 1).padStart(2, '0');
         const day = String(effectiveDate.getDate()).padStart(2, '0');
         const todayStr = `${year}-${month}-${day}`;
+
+        const expiredPending = campaignAlerts.filter(u => {
+            if (processedAlerts[u.alertId]) return false;           // ya procesado
+            if (activeCampaignIds.has(u.campId)) return false;      // campaña aún activa
+            // No archivar alertas generadas HOY — el operador tiene el día completo para descargar el CSV
+            if (u.timestamp) {
+                const alertDate = u.timestamp.toDate ? u.timestamp.toDate() : new Date(u.timestamp);
+                const alertDateStr = `${alertDate.getFullYear()}-${String(alertDate.getMonth() + 1).padStart(2, '0')}-${String(alertDate.getDate()).padStart(2, '0')}`;
+                if (alertDateStr >= todayStr) return false;
+            }
+            return true; // expirada y de un día anterior → archivar
+        });
+
+        if (expiredPending.length === 0) return;
         const logRef = doc(db, 'audit_logs', `daily_alerts_${todayStr}`);
         const newActions = { ...processedAlerts };
         expiredPending.forEach(u => { newActions[u.alertId] = 'sent'; });

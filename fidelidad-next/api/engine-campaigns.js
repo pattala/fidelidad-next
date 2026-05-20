@@ -220,8 +220,8 @@ export default async function handler(req, res) {
                     startTimeDate.setMinutes(startTimeDate.getMinutes() - leadMins);
                 }
 
-                // Si aún falta para llegar al margen de antelación, saltar.
-                if (now < startTimeDate) continue;
+                // Si aún falta para llegar al margen de antelación, saltar (salvo modo manual).
+                if (now < startTimeDate && !isManualSim) continue;
 
                 // Si ya pasó mucho tiempo (ej. más de 6 horas desde el inicio), 
                 // ya no tiene sentido mandar la notificación masiva de "inicio".

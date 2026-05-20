@@ -464,7 +464,7 @@ export default async function handler(req, res) {
                     const todayStr = recordDate.toISOString().split('T')[0];
                     clientUpdate.pets = cData.pets.map(p => {
                         if (petIds.includes(p.id)) {
-                            return { ...p, lastPurchaseDate: todayStr };
+                            return { ...p, lastPurchaseDate: todayStr, lastFoodAlertDate: null };
                         }
                         return p;
                     });
@@ -693,6 +693,7 @@ export default async function handler(req, res) {
                             return { 
                                 ...pet, 
                                 lastPurchaseDate: purchaseTimestamp,
+                                lastFoodAlertDate: null, // Resetear para que el motor avise en el nuevo ciclo
                                 nextFoodAlertDate: nextDateStr // Sincronizamos para la barra lateral
                             };
                         }

@@ -67,16 +67,22 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                     let localList = store.dismissedAlerts || [];
                     if (!Array.isArray(localList)) localList = [];
 
-                    // 1. MEZCLAR estados del servidor con locales
-                    Object.keys(serverProcessed).forEach(id => {
-                        const status = serverProcessed[id];
-                        const exists = localList.find(d => d.id === id);
-                        if (!exists) {
-                            localList.push({ id, status, timestamp: Date.now() });
-                        } else if (exists.status !== status) {
-                            exists.status = status; // Prioridad al servidor
-                        }
-                    });
+                    // Si el servidor está vacío (reset detectado), limpiar también el storage local
+                    // Esto sincroniza la extensión con el clean-start del panel admin
+                    if (Object.keys(serverProcessed).length === 0 && localList.length > 0) {
+                        localList = [];
+                    } else {
+                        // MEZCLAR estados del servidor con locales
+                        Object.keys(serverProcessed).forEach(id => {
+                            const status = serverProcessed[id];
+                            const exists = localList.find(d => d.id === id);
+                            if (!exists) {
+                                localList.push({ id, status, timestamp: Date.now() });
+                            } else if (exists.status !== status) {
+                                exists.status = status; // Prioridad al servidor
+                            }
+                        });
+                    }
 
                     chrome.storage.local.set({ dismissedAlerts: localList }, () => {
                         const curY = new Date().getFullYear().toString();

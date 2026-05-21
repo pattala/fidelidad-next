@@ -199,11 +199,18 @@ export default async function handler(req, res) {
 
             // 2. ¿Dentro de la Ventana de Notificación?
             if (!isWithinNotificationWindow && !isManualSim) {
-                // Si la campaña empieza antes de las 9 AM, se notificará a las 9 AM exactas.
                 continue;
             }
 
-            // 3. ¿Es el día de la semana correcto?
+            // 3. ¿La fecha de inicio ya llegó? (aplica a TODAS las campañas, incluyendo Flash)
+            // Sin este chequeo, una campaña Flash sin flashDays dispara en cualquier día anterior a su fecha.
+            const campStartDate = camp.startDate || camp.flashDate || null;
+            if (campStartDate && campStartDate > todayStr && !isManualSim) {
+                results.skipped++;
+                continue;
+            }
+
+            // 4. ¿Es el día de la semana correcto?
             const targetDays = camp.isFlash ? camp.flashDays : camp.daysOfWeek;
             if (targetDays && Array.isArray(targetDays) && targetDays.length > 0 && !targetDays.includes(todayDay)) continue;
 

@@ -1,4 +1,4 @@
-import { db } from '../lib/firebase';
+﻿import { db } from '../lib/firebase';
 import { doc, getDoc, updateDoc, increment, collection, addDoc, query, where, getDocs, limit, serverTimestamp } from 'firebase/firestore';
 import { TimeService } from './timeService';
 import { NotificationService } from './notificationService';
@@ -81,6 +81,7 @@ export const BirthdayService = {
             const validityDays = getValidityDays(birthdayPoints, expirationRules);
             const expirationDate = new Date(now);
             expirationDate.setDate(expirationDate.getDate() + validityDays);
+            expirationDate.setHours(12, 0, 0, 0); // Normalize to midday to prevent timezone drift
 
             await addDoc(historyRef, {
                 amount: birthdayPoints,

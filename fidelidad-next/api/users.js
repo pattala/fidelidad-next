@@ -1,4 +1,4 @@
-// /api/users.js
+﻿// /api/users.js
 // Consolidated users API: Create, Delete, and Assign Socio Number.
 // Actions: 'create' (default), 'delete', 'assign-socio'
 
@@ -304,6 +304,7 @@ async function handleAssignSocio(req, res, db) {
             const now = await getEffectiveDate(db, req.query?.simulatedDate || req.body?.simulatedDate);
             const expirationDate = new Date(now);
             expirationDate.setDate(expirationDate.getDate() + validityDays);
+            expirationDate.setHours(12, 0, 0, 0); // Normalize to midday to prevent timezone drift
             const expY = expirationDate.getFullYear();
             const expM = String(expirationDate.getMonth() + 1).padStart(2, '0');
             const expD = String(expirationDate.getDate()).padStart(2, '0');

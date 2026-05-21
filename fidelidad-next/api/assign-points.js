@@ -1,4 +1,4 @@
-
+﻿
 // api/assign-points.js
 // Asigna puntos a un cliente de forma segura.
 // Soporta modo ADMIN (x-api-key) y modo USUARIO (Token Firebase).
@@ -406,6 +406,7 @@ export default async function handler(req, res) {
         const validityDays = getValidityDays(points, expirationRules);
         const expirationDate = new Date(recordDate);
         expirationDate.setDate(expirationDate.getDate() + validityDays);
+        expirationDate.setHours(12, 0, 0, 0); // Normalize to midday to prevent timezone drift
         let expirationDateStr = "";
         if (points > 0) {
             const y = expirationDate.getFullYear();
@@ -551,6 +552,7 @@ export default async function handler(req, res) {
                 const rValidityDays = getValidityDays(totalAwarded, expirationRules);
                 const rExpirationDate = new Date(now);
                 rExpirationDate.setDate(rExpirationDate.getDate() + rValidityDays);
+                rExpirationDate.setHours(12, 0, 0, 0); // Normalize to midday to prevent timezone drift
                 const rY = rExpirationDate.getFullYear();
                 const rM = String(rExpirationDate.getMonth() + 1).padStart(2, '0');
                 const rD = String(rExpirationDate.getDate()).padStart(2, '0');

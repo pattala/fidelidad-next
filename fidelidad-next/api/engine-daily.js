@@ -1,4 +1,4 @@
-import admin from "firebase-admin";
+﻿import admin from "firebase-admin";
 import nodemailer from 'nodemailer';
 import { buildHtmlLayout } from "../utils/emailLayout.js";
 import { getEffectiveDate } from "../utils/timeUtils.js";
@@ -222,6 +222,7 @@ export default async function handler(req, res) {
                         const historyRef = userDoc.ref.collection('points_history');
                         let expirationDate = new Date(referenceDate);
                         expirationDate.setDate(expirationDate.getDate() + 365);
+                        expirationDate.setHours(12, 0, 0, 0); // Normalize to midday to prevent timezone drift
 
                         await historyRef.add({
                             amount: birthdayPoints, concept: '🎂 ¡Feliz Cumpleaños! Regalo del Club',

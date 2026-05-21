@@ -110,17 +110,17 @@ export default async function handler(req, res) {
             
             // AJUSTE TIMEZONE: Argentina es UTC-3. 
             // Usamos UTC methods sobre un objeto desplazado para obtener la fecha local de AR de forma consistente en el servidor.
-            const nowArg = new Date(now.getTime() - (3 * 60 * 60 * 1000));
+            const nowArg = now;
 
-            const todayDay = nowArg.getUTCDay();
-            const year = nowArg.getUTCFullYear();
-            const month = String(nowArg.getUTCMonth() + 1).padStart(2, '0');
-            const day = String(nowArg.getUTCDate()).padStart(2, '0');
+            const todayDay = nowArg.getDay();
+            const year = nowArg.getFullYear();
+            const month = String(nowArg.getMonth() + 1).padStart(2, '0');
+            const day = String(nowArg.getDate()).padStart(2, '0');
             const todayStr = `${year}-${month}-${day}`;
 
             // Marketing Dinámico: Obtener hora actual en HH:mm (Local AR)
-            const currentHour = String(nowArg.getUTCHours()).padStart(2, '0');
-            const currentMin = String(nowArg.getUTCMinutes()).padStart(2, '0');
+            const currentHour = String(now.getHours()).padStart(2, '0');
+            const currentMin = String(now.getMinutes()).padStart(2, '0');
             const currentTimeStr = `${currentHour}:${currentMin}`;
 
             const campSnap = await db.collection('campanas').where('active', '==', true).get();
@@ -142,10 +142,10 @@ export default async function handler(req, res) {
                 if (b.endTime && typeof b.endTime === 'string') {
                     // Si ya pasó la hora final, verificar si está dentro del buffer de tolerancia
                     const [endH, endM] = b.endTime.split(':').map(Number);
-                    const endTimestamp = new Date(nowArg);
-                    endTimestamp.setUTCHours(endH, endM + flashGrace, 0, 0);
+                    const endTimestamp = new Date(now);
+                    endTimestamp.setHours(endH, endM + flashGrace, 0, 0);
 
-                    if (nowArg > endTimestamp) return; // Excedió la tolerancia (o la hora final si grace es 0)
+                    if (now > endTimestamp) return; // Excedió la tolerancia (o la hora final si grace es 0)
                 }
 
                 // 2. Filtro por día de la semana (priorizar flashDays si es isFlash)

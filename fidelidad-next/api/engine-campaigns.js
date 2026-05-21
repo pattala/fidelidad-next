@@ -245,8 +245,14 @@ export default async function handler(req, res) {
             // --- EJECUCIÓN DEL BROADCAST ---
             console.log(`[Engine-Campaigns] Executing Broadcast for: ${camp.name}`);
 
-            const title = camp.flashTitle || camp.title || camp.name;
-            const body = camp.flashDescription || camp.description || "¡Nueva promoción disponible!";
+            let title = camp.flashTitle || camp.title || camp.name;
+            let body = camp.flashDescription || camp.description || "¡Nueva promoción disponible!";
+
+            // Reemplazar etiquetas dinámicas {hora_inicio} y {descripcion}
+            const startTimeVal = camp.startTime || '';
+            const descVal = camp.flashDescription || camp.description || '';
+            title = title.replace(/{hora_inicio}/g, startTimeVal).replace(/{descripcion}/g, descVal);
+            body = body.replace(/{hora_inicio}/g, startTimeVal).replace(/{descripcion}/g, descVal);
             const url = camp.link || "/";
 
             const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;

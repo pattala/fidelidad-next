@@ -1,1 +1,1 @@
-V.1.4.94 - Added Extension Refresh Interval setting + Safe Throttle logic in extension.
+V.1.5.0 - QA Bug Fixes (Vencimientos diario, extensión chrome, tolerancia flash grace period, tags dinámicos, cumpleaños puntos sync).

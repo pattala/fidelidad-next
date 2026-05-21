@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Users, Search, Plus, Filter, Mail, Phone, MapPin, Trash2, Edit, X, Download, Gift, ArrowRight, History, Calendar, Star, CheckCircle2, AlertCircle, Camera, User, Zap, MessageCircle, Eye, Clock, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -42,7 +42,7 @@ const INITIAL_CLIENT_STATE_V1_4_33 = {
 };
 
 
-const PointsTimer = ({ endTime }: { endTime?: string }) => {
+const PointsTimer = ({ endTime, graceMins = 15 }: { endTime?: string; graceMins?: number }) => {
     const [timeLeft, setTimeLeft] = useState<string>('');
     const [isGrace, setIsGrace] = useState(false);
 
@@ -63,7 +63,7 @@ const PointsTimer = ({ endTime }: { endTime?: string }) => {
                 setTimeLeft(`${mm}:${ss.toString().padStart(2, '0')}`);
             } else {
                 setIsGrace(true);
-                const graceDiff = diff + (15 * 60 * 1000);
+                const graceDiff = diff + (graceMins * 60 * 1000);
                 if (graceDiff > 0) {
                     const mm = Math.floor(graceDiff / (1000 * 60));
                     const ss = Math.floor((graceDiff % (1000 * 60)) / 1000);
@@ -2016,7 +2016,7 @@ export const ClientsPage = () => {
                                                                 const isActiveNow = !isExpiredToday;
 
                                                                 return (
-                                                                    <PointsTimer endTime={promo.endTime} />
+                                                                    <PointsTimer endTime={promo.endTime} graceMins={promo.flashGraceMins} />
                                                                 );
                                                             })()}
                                                         </div>

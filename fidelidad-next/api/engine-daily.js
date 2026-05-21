@@ -151,10 +151,12 @@ export default async function handler(req, res) {
 
         // Restaurar variables de estado necesarias para el resto del motor
         let processedAlerts = {};
+        let alreadyExecuted = false;
         try {
             const statusSnap = await db.collection('audit_logs').doc(`daily_alerts_${todayStr}`).get();
             if (statusSnap.exists) {
                 processedAlerts = statusSnap.data().actions || {};
+                alreadyExecuted = statusSnap.data().status === 'success';
             }
         } catch (e) { console.error("Error fetching daily status:", e); }
 
@@ -208,7 +210,7 @@ export default async function handler(req, res) {
             try {
                 const userData = userDoc.data();
                 const simCfg = config?.simulationConfig || { birthdays: true, expirations: true, petAlerts: true, campaigns: true };
-                const skipBirthdays = simCfg.birthdays === false;
+                const skipBirthdays = (simCfg.birthdays === false) || (alreadyExecuted && !skipDuplicityCheck);
                 const alreadyGreeted = userData.lastBirthdayGreetingYear === currentYear;
 
                 // Lógica Automática (Solo si no se saludó hoy o forzamos repetición)
@@ -233,8 +235,11 @@ export default async function handler(req, res) {
 
                         await userDoc.ref.update({
                             points: admin.firestore.FieldValue.increment(birthdayPoints),
+                            puntos: admin.firestore.FieldValue.increment(birthdayPoints), // sync legacy field
                             lastBirthdayPointsYear: currentYear
                         });
+                        // Recalculate expiration cache so dashboard shows birthday points
+                        updateNextExpirationDate(db, userDoc.id, referenceDate).catch(() => {});
                         pointsAdded = birthdayPoints;
                     }
 
@@ -367,15 +372,23 @@ export default async function handler(req, res) {
         for (const doc of upcomingExpsSnap.docs) {
             const userData = doc.data();
             if ((userData.points || 0) > 0) {
-                const skipExpirations = (config?.simulationConfig?.expirations === false);
+                const skipExpirations = (config?.simulationConfig?.expirations === false) || (alreadyExecuted && !skipDuplicityCheck);
                 // V.1.4.81: Tracking por fecha de vencimiento específica (evita que una fecha bloquee a la otra)
                 const warningDates = userData.lastExpirationWarningDates || {};
                 const nextExpDate = userData.nextExpirationDate;
                 let alreadyNotified = warningDates[nextExpDate] === todayStr;
 
+                // Encontrar la fecha de notificación más reciente de cualquier vencimiento
+                let lastAnyWarnStr = null;
+                Object.values(warningDates).forEach(warnDateStr => {
+                    if (!lastAnyWarnStr || warnDateStr > lastAnyWarnStr) {
+                        lastAnyWarnStr = warnDateStr;
+                    }
+                });
+
                 // V.1.4.82: Lógica de Itinerancia (Respetar intervalo de repetición)
-                if (!alreadyNotified && warningDates[nextExpDate]) {
-                    const lastWarnStr = warningDates[nextExpDate];
+                if (!alreadyNotified && lastAnyWarnStr) {
+                    const lastWarnStr = lastAnyWarnStr;
                     const repeat = config.messaging?.repeatExpirationWarnings === true;
                     if (repeat) {
                         const d1 = new Date(lastWarnStr + 'T12:00:00');
@@ -533,7 +546,7 @@ export default async function handler(req, res) {
             for (const userDoc of petUsersSnap.docs) {
                 try {
                     const userData = userDoc.data();
-                    const skipPets = (config?.simulationConfig?.petAlerts === false);
+                    const skipPets = (config?.simulationConfig?.petAlerts === false) || (alreadyExecuted && !skipDuplicityCheck);
                     if (skipPets) continue;
 
                     const pets = userData.pets || [];
@@ -665,7 +678,7 @@ export default async function handler(req, res) {
         startOfToday.setHours(0, 0, 0, 0);
 
         const checkSnap = await db.collection('audit_logs').doc(`daily_alerts_${todayStr}`).get();
-        const alreadyExecuted = checkSnap.exists && checkSnap.data().status === 'success';
+        alreadyExecuted = checkSnap.exists && checkSnap.data().status === 'success';
 
         // --- 11. REGISTRO DE INICIO (Solo si no se saltó por duplicidad) ---
         let skipSideEffects = alreadyExecuted && !skipDuplicityCheck;

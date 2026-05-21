@@ -1,4 +1,4 @@
-// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V45 - RESCUE STABLE)
+﻿// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V45 - RESCUE STABLE)
 if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin') || window.location.href.includes('pattala.com')) {
     console.log("🛡️ [Club Fidelidad] Extensión desactivada en el Dashboard.");
 } else {
@@ -1137,6 +1137,7 @@ function showFidelidadPanel() {
                         const { h: curH, m: curM, hhmm: curHHmm, now } = getARTime();
 
                         activePromos.forEach(p => {
+                            const promoGraceMins = (p.flashGraceMins && p.flashGraceMins > 0) ? p.flashGraceMins : GRACE_PERIOD_MINS;
                             const container = promosList.querySelector(`.cf-promo-status-container[data-id="${p.id}"]`);
                             if (!container) return;
 
@@ -1151,7 +1152,7 @@ function showFidelidadPanel() {
                                     const [endH, endM] = p.endTime.split(':').map(Number);
                                     const endTimeDate = new Date(now);
                                     endTimeDate.setHours(endH, endM, 0, 0);
-                                    let diff = (endTimeDate.getTime() + (GRACE_PERIOD_MINS * 60 * 1000)) - now.getTime();
+                                    let diff = (endTimeDate.getTime() + (promoGraceMins * 60 * 1000)) - now.getTime();
 
                                     if (diff > 0) {
                                         const mm = Math.floor(diff / (1000 * 60));

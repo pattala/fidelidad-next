@@ -1137,7 +1137,7 @@ function showFidelidadPanel() {
                         const { h: curH, m: curM, hhmm: curHHmm, now } = getARTime();
 
                         activePromos.forEach(p => {
-                            const promoGraceMins = (p.flashGraceMins && p.flashGraceMins > 0) ? p.flashGraceMins : GRACE_PERIOD_MINS;
+                            const promoGraceMins = (p.flashGraceMins !== undefined && p.flashGraceMins !== null) ? Number(p.flashGraceMins) : GRACE_PERIOD_MINS;
                             const container = promosList.querySelector(`.cf-promo-status-container[data-id="${p.id}"]`);
                             if (!container) return;
 

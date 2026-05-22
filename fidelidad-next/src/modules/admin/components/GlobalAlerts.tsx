@@ -15,6 +15,8 @@ export const GlobalAlerts = () => {
     const [processedAlerts, setProcessedAlerts] = useState<any>({});
     const [config, setConfig] = useState<any>(null);
     const [activeCampaignIds, setActiveCampaignIds] = useState<Set<string>>(new Set());
+    const [campaignsMap, setCampaignsMap] = useState<Map<string, any>>(new Map());
+    const [timeTrigger, setTimeTrigger] = useState(0);
     const [hasLoadedCampaignIds, setHasLoadedCampaignIds] = useState(false);
     
     const [activeTab, setActiveTab] = useState<'pending' | 'processed'>(
@@ -160,10 +162,15 @@ export const GlobalAlerts = () => {
             const startOfSimToday = new Date(effectiveDate);
             startOfSimToday.setHours(0, 0, 0, 0);
 
+            // NUEVO: Sincronización del simulador para no omitir transacciones físicas de hoy real
+            const realToday = new Date();
+            realToday.setHours(0, 0, 0, 0);
+            const minQueryTimestamp = startOfSimToday < realToday ? startOfSimToday : realToday;
+
             const qReds = query(
                 collection(db, 'audit_logs'), 
                 where('type', '==', 'prize_redemption'),
-                where('timestamp', '>=', startOfSimToday)
+                where('timestamp', '>=', minQueryTimestamp)
             );
             const unsubReds = onSnapshot(qReds, (snap) => {
                 const reds: any[] = [];
@@ -190,7 +197,7 @@ export const GlobalAlerts = () => {
             const qPoints = query(
                 collection(db, 'audit_logs'), 
                 where('type', '==', 'points_assignment'),
-                where('timestamp', '>=', startOfSimToday)
+                where('timestamp', '>=', minQueryTimestamp)
             );
             const unsubPoints = onSnapshot(qPoints, (snap) => {
                 const pts: any[] = [];
@@ -217,7 +224,7 @@ export const GlobalAlerts = () => {
             const qCampaigns = query(
                 collection(db, 'audit_logs'), 
                 where('type', '==', 'campaign_broadcast'),
-                where('timestamp', '>=', startOfSimToday)
+                where('timestamp', '>=', minQueryTimestamp)
             );
             const unsubCampaigns = onSnapshot(qCampaigns, (snap) => {
                 const camps: any[] = [];
@@ -241,11 +248,14 @@ export const GlobalAlerts = () => {
 
             const unsubCamps = onSnapshot(query(collection(db, 'campanas')), (snap) => {
                 const activeIds = new Set<string>();
+                const cmap = new Map<string, any>();
                 snap.forEach(doc => {
+                    cmap.set(doc.id, { id: doc.id, ...doc.data() });
                     if (doc.data().active) {
                         activeIds.add(doc.id);
                     }
                 });
+                setCampaignsMap(cmap);
                 setActiveCampaignIds(activeIds);
                 setHasLoadedCampaignIds(true);
             });
@@ -262,8 +272,17 @@ export const GlobalAlerts = () => {
         };
     }, [config]);
 
+    // Intervalo liviano para evaluar campañas flash que expiren horariamente hoy en segundo plano
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setTimeTrigger(prev => prev + 1);
+        }, 15000); // 15 segundos
+        return () => clearInterval(interval);
+    }, []);
+
     // Opción D: Auto-archivar alertas de campañas expiradas → pasan a "Procesados" sin intervención del operador
-    // Solo archiva alertas de días ANTERIORES. Las de hoy quedan pendientes hasta que el operador descargue el CSV.
+        // Opción D: Auto-archivar alertas de campañas expiradas -> pasan a "Procesados" sin intervención del operador
+    // Archiva alertas de días anteriores Y campañas flash de HOY que ya finalizaron su horario (con su tolerancia de gracia)
     useEffect(() => {
         if (!hasLoadedCampaignIds || campaignAlerts.length === 0) return;
 
@@ -271,30 +290,54 @@ export const GlobalAlerts = () => {
         const year = effectiveDate.getFullYear();
         const month = String(effectiveDate.getMonth() + 1).padStart(2, '0');
         const day = String(effectiveDate.getDate()).padStart(2, '0');
-        const todayStr = `${year}-${month}-${day}`;
+        const todayStr = year + "-" + month + "-" + day;
 
         const expiredPending = campaignAlerts.filter(u => {
-            if (processedAlerts[u.alertId]) return false;           // ya procesado
+            if (processedAlerts[u.alertId]) return false; // ya procesado
             
-            // Si la campaña ya no está activa (terminó o se desactivó), la archivamos inmediatamente
-            if (!activeCampaignIds.has(u.campId)) return true;
+            const camp = campaignsMap.get(u.campId);
+            
+            // Si la campaña ya no existe o ya no está activa, la archivamos inmediatamente
+            if (!camp || !camp.active) return true;
 
-            // Si la campaña sigue activa, solo la archivamos si es de un día anterior
+            // 1. Verificación horaria para Campañas Flash del día de HOY
+            if (camp.isFlash) {
+                if (camp.endTime) {
+                    const [endH, endM] = camp.endTime.split(':').map(Number);
+                    
+                    // Si el campo flashGraceMins no existe (campañas legacy), aplicamos 15 minutos por defecto.
+                    // Si el campo existe y es 0, respetamos 0.
+                    const grace = (camp.flashGraceMins !== undefined && camp.flashGraceMins !== null) ? Number(camp.flashGraceMins) : 15;
+                    
+                    const endTimeDate = new Date(effectiveDate);
+                    endTimeDate.setHours(endH, endM + grace, 0, 0);
+                    
+                    if (effectiveDate > endTimeDate) {
+                        console.log("[GlobalAlerts] Auto-archivando campaña flash expirada hoy: " + camp.name + " (Hora Fin + Gracia: " + camp.endTime + " + " + grace + "m)");
+                        return true; // Finalizada hoy, archivar de inmediato
+                    }
+                }
+            }
+
+            // 2. Verificación de vigencia por día para campañas tradicionales
             if (u.timestamp) {
                 const alertDate = u.timestamp.toDate ? u.timestamp.toDate() : new Date(u.timestamp);
-                const alertDateStr = `${alertDate.getFullYear()}-${String(alertDate.getMonth() + 1).padStart(2, '0')}-${String(alertDate.getDate()).padStart(2, '0')}`;
+                const alertDateStr = alertDate.getFullYear() + "-" + String(alertDate.getMonth() + 1).padStart(2, '0') + "-" + String(alertDate.getDate()).padStart(2, '0');
+                
+                // Si la alerta es de hoy o del futuro, se mantiene pendiente (a menos que sea flash y haya expirado arriba)
                 if (alertDateStr >= todayStr) return false;
             }
-            return true; // expirada y de un día anterior → archivar
+            
+            return true; // Expirada y de un día anterior -> archivar
         });
 
         if (expiredPending.length === 0) return;
-        const logRef = doc(db, 'audit_logs', `daily_alerts_${todayStr}`);
+        const logRef = doc(db, 'audit_logs', "daily_alerts_" + todayStr);
         const newActions = { ...processedAlerts };
         expiredPending.forEach(u => { newActions[u.alertId] = 'sent'; });
         setDoc(logRef, { actions: newActions, lastUpdate: TimeService.now() }, { merge: true })
             .catch(e => console.error('[GlobalAlerts] Error auto-archivando campañas expiradas:', e));
-    }, [campaignAlerts, activeCampaignIds, processedAlerts, hasLoadedCampaignIds]);
+    }, [campaignAlerts, campaignsMap, processedAlerts, hasLoadedCampaignIds, timeTrigger]);
 
     const handleAction = async (item: any, type: string, action: 'sent' | 'dismissed') => {
         const effectiveDate = TimeService.now();

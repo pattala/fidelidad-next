@@ -1,1 +1,1 @@
-V.1.5.0 - QA Bug Fixes (Vencimientos diario, extensión chrome, tolerancia flash grace period, tags dinámicos, cumpleaños puntos sync).
+V.1.6.0 - QA Bug Fixes & Mejoras (Tolerancia estricta configurada, simulación de alertas y auto-archivado dinámico de campañas flash).

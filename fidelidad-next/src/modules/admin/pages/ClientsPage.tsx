@@ -55,6 +55,7 @@ const PointsTimer = ({ endTime, graceMins = 15 }: { endTime?: string; graceMins?
             target.setHours(h, m, 0, 0);
 
             const diff = target.getTime() - now.getTime();
+            const finalGrace = (graceMins !== undefined && graceMins !== null && !isNaN(Number(graceMins))) ? Number(graceMins) : 15;
 
             if (diff > 0) {
                 setIsGrace(false);
@@ -63,7 +64,7 @@ const PointsTimer = ({ endTime, graceMins = 15 }: { endTime?: string; graceMins?
                 setTimeLeft(`${mm}:${ss.toString().padStart(2, '0')}`);
             } else {
                 setIsGrace(true);
-                const graceDiff = diff + (graceMins * 60 * 1000);
+                const graceDiff = diff + (finalGrace * 60 * 1000);
                 if (graceDiff > 0) {
                     const mm = Math.floor(graceDiff / (1000 * 60));
                     const ss = Math.floor((graceDiff % (1000 * 60)) / 1000);

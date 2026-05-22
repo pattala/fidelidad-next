@@ -76,7 +76,7 @@ export const CampaignsPage = () => {
         const startTimeInt = parseInt((bonus.startTime || '00:00').replace(':', ''));
         const endTimeInt = parseInt((bonus.endTime || '23:59').replace(':', ''));
 
-        const graceMins = bonus.flashGraceMins || 15;
+        const graceMins = (bonus.flashGraceMins !== undefined && bonus.flashGraceMins !== null) ? bonus.flashGraceMins : 15;
         const endDateTime = new Date(`1970-01-01T${bonus.endTime || '23:59'}:00`);
         endDateTime.setMinutes(endDateTime.getMinutes() + graceMins);
         const extendedEndTimeInt = endDateTime.getHours() * 100 + endDateTime.getMinutes();

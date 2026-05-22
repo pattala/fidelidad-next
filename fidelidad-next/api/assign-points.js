@@ -135,7 +135,7 @@ export default async function handler(req, res) {
 
                 // 3. Filtro de hora (Marketing Dinámico / Ofertas Flash)
                 // Usamos un buffer de tolerancia para el GET para que el front pueda mostrar "TOLERANCIA"
-                const flashGrace = b.isFlash ? (Number(b.flashGraceMins) ?? 15) : 0;
+                const flashGrace = b.isFlash ? ((b.flashGraceMins !== undefined && b.flashGraceMins !== null && !isNaN(Number(b.flashGraceMins))) ? Number(b.flashGraceMins) : 15) : 0;
 
                 if (b.startTime && typeof b.startTime === 'string' && b.startTime > currentTimeStr) return;
 
@@ -314,7 +314,7 @@ export default async function handler(req, res) {
                             let isBeforeEnd = true;
                             if (b.endTime) {
                                 const [endH, endM] = b.endTime.split(':').map(Number);
-                                const flashGrace = Number(b.flashGraceMins) || 0;
+                                const flashGrace = (b.flashGraceMins !== undefined && b.flashGraceMins !== null && !isNaN(Number(b.flashGraceMins))) ? Number(b.flashGraceMins) : 15;
                                 const endTimestamp = new Date(now);
                                 endTimestamp.setHours(endH, endM + flashGrace, 0, 0);
 

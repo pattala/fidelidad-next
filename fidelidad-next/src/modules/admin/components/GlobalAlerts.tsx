@@ -275,8 +275,11 @@ export const GlobalAlerts = () => {
 
         const expiredPending = campaignAlerts.filter(u => {
             if (processedAlerts[u.alertId]) return false;           // ya procesado
-            if (activeCampaignIds.has(u.campId)) return false;      // campaña aún activa
-            // No archivar alertas generadas HOY — el operador tiene el día completo para descargar el CSV
+            
+            // Si la campaña ya no está activa (terminó o se desactivó), la archivamos inmediatamente
+            if (!activeCampaignIds.has(u.campId)) return true;
+
+            // Si la campaña sigue activa, solo la archivamos si es de un día anterior
             if (u.timestamp) {
                 const alertDate = u.timestamp.toDate ? u.timestamp.toDate() : new Date(u.timestamp);
                 const alertDateStr = `${alertDate.getFullYear()}-${String(alertDate.getMonth() + 1).padStart(2, '0')}-${String(alertDate.getDate()).padStart(2, '0')}`;
@@ -451,7 +454,7 @@ export const GlobalAlerts = () => {
                                 {pendingC.length > 0 && (
                                     <div>
                                         <div className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-3 flex items-center gap-2">📢 Campañas Activas</div>
-                                        <div className="space-y-3">{pendingC.map(u => <AlertCard key={u.alertId} item={u} type="campaign" onAction={handleAction} status="pending" />)}</div>
+                                        <div className="space-y-3">{pendingC.map(u => <AlertCard key={u.alertId} item={u} type="campaign" onAction={handleAction} status="pending" isCampaignActive={activeCampaignIds.has(u.campId)} />)}</div>
                                     </div>
                                 )}
                                 {pendingB.length > 0 && (
@@ -491,7 +494,7 @@ export const GlobalAlerts = () => {
                                 {procC.length > 0 && (
                                     <div>
                                         <div className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-3 flex items-center gap-2 opacity-50">📢 Campañas Activas</div>
-                                        <div className="space-y-3">{procC.map(u => <AlertCard key={u.alertId} item={u} type="campaign" onAction={handleAction} onDelete={deleteProcessed} status={processedAlerts[u.alertId]} />)}</div>
+                                        <div className="space-y-3">{procC.map(u => <AlertCard key={u.alertId} item={u} type="campaign" onAction={handleAction} onDelete={deleteProcessed} status={processedAlerts[u.alertId]} isCampaignActive={activeCampaignIds.has(u.campId)} />)}</div>
                                     </div>
                                 )}
                                 {procB.length > 0 && (
@@ -557,7 +560,7 @@ export const GlobalAlerts = () => {
     );
 };
 
-const AlertCard = ({ item, type, onAction, onDelete, status }: any) => {
+const AlertCard = ({ item, type, onAction, onDelete, status, isCampaignActive }: any) => {
     const isPending = status === 'pending';
     const isSent = status === 'sent';
     const isDismissed = status === 'dismissed';
@@ -573,7 +576,18 @@ const AlertCard = ({ item, type, onAction, onDelete, status }: any) => {
             <div className="flex justify-between items-start">
                 <div>
                     <h5 className="font-bold text-white text-[15px] flex items-center gap-2">
-                        {type === 'campaign' ? 'Campaña Iniciada' : (item.nombre || item.name || 'Socio')} 
+                        {type === 'campaign' ? (
+                            <span className="flex items-center gap-1.5">
+                                Campaña Iniciada
+                                {!isCampaignActive && (
+                                    <span className="bg-red-500/20 text-red-400 border border-red-500/30 text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                        Terminada
+                                    </span>
+                                )}
+                            </span>
+                        ) : (
+                            item.nombre || item.name || 'Socio'
+                        )} 
                         {type !== 'campaign' && <span className="text-[10px] text-white/30 font-bold tracking-tighter">#{item.socioNumber || 'S/N'}</span>}
                         {isSent && <span className="text-[#25D366] text-xs font-black drop-shadow-[0_0_2px_rgba(37,211,102,0.5)]">✓✓</span>}
                         {isDismissed && <span className="text-red-500 text-xs font-black">✓</span>}

@@ -179,15 +179,19 @@ export const GlobalAlerts = () => {
                     const data = d.data();
                     const dtl = data.details?.find((x: any) => x.action === 'prize_redeemed');
                     if (dtl) {
-                        const alertId = `redemption-${dtl.socioNumber || dtl.phone || dtl.userId || d.id}-${dtl.redemptionCode || 'N/A'}`;
-                        reds.push({ 
-                            ...dtl, 
-                            name: dtl.userName, 
-                            alertId, 
-                            id: d.id,
-                            timestamp: data.timestamp,
-                            isOrphan: dtl.userId ? !activeIds.has(dtl.userId) : false
-                        });
+                        const detailDateStr = dtl.timestamp ? dtl.timestamp.split('T')[0] : '';
+                        const isOrphan = dtl.userId ? !activeIds.has(dtl.userId) : false;
+                        if (detailDateStr === todayStr && !isOrphan) {
+                            const alertId = `redemption-${dtl.socioNumber || dtl.phone || dtl.userId || d.id}-${dtl.redemptionCode || 'N/A'}`;
+                            reds.push({ 
+                                ...dtl, 
+                                name: dtl.userName, 
+                                alertId, 
+                                id: d.id,
+                                timestamp: data.timestamp,
+                                isOrphan
+                            });
+                        }
                     }
                 });
                 setRedemptions(reds);
@@ -206,15 +210,19 @@ export const GlobalAlerts = () => {
                     const data = d.data();
                     const dtl = data.details?.find((x: any) => x.action === 'points_credited');
                     if (dtl) {
-                        const alertId = `points-${dtl.socioNumber || dtl.phone || dtl.userId || d.id}-${d.id}`;
-                        pts.push({ 
-                            ...dtl, 
-                            name: dtl.userName, 
-                            alertId, 
-                            id: d.id,
-                            timestamp: data.timestamp,
-                            isOrphan: dtl.userId ? !activeIds.has(dtl.userId) : false
-                        });
+                        const detailDateStr = dtl.timestamp ? dtl.timestamp.split('T')[0] : '';
+                        const isOrphan = dtl.userId ? !activeIds.has(dtl.userId) : false;
+                        if (detailDateStr === todayStr && !isOrphan) {
+                            const alertId = `points-${dtl.socioNumber || dtl.phone || dtl.userId || d.id}-${d.id}`;
+                            pts.push({ 
+                                ...dtl, 
+                                name: dtl.userName, 
+                                alertId, 
+                                id: d.id,
+                                timestamp: data.timestamp,
+                                isOrphan
+                            });
+                        }
                     }
                 });
                 setPointsAssignments(pts);
@@ -232,14 +240,21 @@ export const GlobalAlerts = () => {
                     const data = d.data();
                     const dtl = data.details?.find((x: any) => x.action === 'campaign_broadcasted');
                     if (dtl) {
-                        const alertId = `campaign-${dtl.campId}-${d.id}`;
-                        camps.push({ 
-                            ...dtl, 
-                            name: dtl.campName || dtl.title, 
-                            alertId, 
-                            id: d.id,
-                            timestamp: data.timestamp
-                        });
+                        const detailDateStr = dtl.timestamp ? dtl.timestamp.split('T')[0] : '';
+                        const logDate = data.timestamp?.toDate ? data.timestamp.toDate() : new Date();
+                        const logDateStr = logDate.getFullYear() + '-' + String(logDate.getMonth() + 1).padStart(2, '0') + '-' + String(logDate.getDate()).padStart(2, '0');
+                        const finalDateStr = detailDateStr || logDateStr;
+
+                        if (finalDateStr === todayStr) {
+                            const alertId = `campaign-${dtl.campId}-${d.id}`;
+                            camps.push({ 
+                                ...dtl, 
+                                name: dtl.campName || dtl.title, 
+                                alertId, 
+                                id: d.id,
+                                timestamp: data.timestamp
+                            });
+                        }
                     }
                 });
                 setCampaignAlerts(camps);
@@ -451,14 +466,40 @@ export const GlobalAlerts = () => {
     const pendingP = petAlerts.filter(u => !processedAlerts[u.alertId]);
     const pendingR = redemptions.filter(u => !processedAlerts[u.alertId]);
     const pendingA = pointsAssignments.filter(u => !processedAlerts[u.alertId]);
-    const pendingC = campaignAlerts.filter(u => !processedAlerts[u.alertId]);
+    const pendingC = campaignAlerts.filter(u => {
+        if (processedAlerts[u.alertId]) return false;
+        const camp = campaignsMap.get(u.campId);
+        if (!camp) return false; // Excluye campañas eliminadas (huérfanas)
+        if (!camp.active) return false; // Excluye campañas desactivadas
+        
+        // Excluir si la fecha de inicio es futura en la simulación
+        const campStartDate = camp.startDate || camp.flashDate || null;
+        if (campStartDate && campStartDate > todayStr) return false;
+        // Excluir si la fecha de fin ya pasó en la simulación
+        if (camp.endDate && camp.endDate < todayStr) return false;
+
+        return true;
+    });
 
     const procB = birthdaysOfToday.filter(u => processedAlerts[u.alertId]);
     const procE = expiringUsers.filter(u => processedAlerts[u.alertId]);
     const procP = petAlerts.filter(u => processedAlerts[u.alertId]);
     const procR = redemptions.filter(u => processedAlerts[u.alertId]);
     const procA = pointsAssignments.filter(u => processedAlerts[u.alertId]);
-    const procC = campaignAlerts.filter(u => processedAlerts[u.alertId]);
+    const procC = campaignAlerts.filter(u => {
+        if (!processedAlerts[u.alertId]) return false;
+        const camp = campaignsMap.get(u.campId);
+        if (!camp) return false; // Excluye campañas eliminadas (huérfanas)
+        if (!camp.active) return false; // Excluye campañas desactivadas
+
+        // Excluir si la fecha de inicio es futura en la simulación
+        const campStartDate = camp.startDate || camp.flashDate || null;
+        if (campStartDate && campStartDate > todayStr) return false;
+        // Excluir si la fecha de fin ya pasó en la simulación
+        if (camp.endDate && camp.endDate < todayStr) return false;
+
+        return true;
+    });
 
     const totalPending = pendingB.length + pendingE.length + pendingP.length + pendingR.length + pendingA.length + pendingC.length;
     const totalProcessed = procB.length + procE.length + procP.length + procR.length + procA.length + procC.length;

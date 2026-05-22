@@ -715,24 +715,35 @@ export default async function handler(req, res) {
             });
         }
 
+        const realToday = new Date();
+        realToday.setHours(0, 0, 0, 0);
+        const minQueryTimestamp = startOfToday < realToday ? startOfToday : realToday;
+
+        // Obtener IDs de usuarios activos para saneamiento de huérfanos
+        const activeUsersSnap = await db.collection('users').get();
+        const activeUserIds = new Set(activeUsersSnap.docs.map(doc => doc.id));
+
         const redemptionsList = [];
         try {
             const redsSnap = await db.collection('audit_logs')
                 .where('type', '==', 'prize_redemption')
-                .where('timestamp', '>=', admin.firestore.Timestamp.fromDate(startOfToday))
+                .where('timestamp', '>=', admin.firestore.Timestamp.fromDate(minQueryTimestamp))
                 .get();
             
             redsSnap.forEach(doc => {
                 const data = doc.data();
                 const dtl = data.details?.find(x => x.action === 'prize_redeemed');
                 if (dtl) {
-                    const alertId = `redemption-${dtl.socioNumber || dtl.phone || dtl.userId || doc.id}-${dtl.redemptionCode || 'N/A'}`;
-                    redemptionsList.push({
-                        ...dtl,
-                        alertId,
-                        name: dtl.userName,
-                        action: 'prize_redemption'
-                    });
+                    const detailDateStr = dtl.timestamp ? dtl.timestamp.split('T')[0] : '';
+                    if (detailDateStr === todayStr && activeUserIds.has(dtl.userId)) {
+                        const alertId = `redemption-${dtl.socioNumber || dtl.phone || dtl.userId || doc.id}-${dtl.redemptionCode || 'N/A'}`;
+                        redemptionsList.push({
+                            ...dtl,
+                            alertId,
+                            name: dtl.userName,
+                            action: 'prize_redemption'
+                        });
+                    }
                 }
             });
         } catch (e) { console.error("Error fetching redemptions for engine:", e); }
@@ -741,21 +752,24 @@ export default async function handler(req, res) {
         try {
             const pointsSnap = await db.collection('audit_logs')
                 .where('type', '==', 'points_assignment')
-                .where('timestamp', '>=', admin.firestore.Timestamp.fromDate(startOfToday))
+                .where('timestamp', '>=', admin.firestore.Timestamp.fromDate(minQueryTimestamp))
                 .get();
 
             pointsSnap.forEach(doc => {
                 const data = doc.data();
                 const dtl = data.details?.find(x => x.action === 'points_credited');
                 if (dtl) {
-                    const alertId = `points-${dtl.socioNumber || dtl.phone || dtl.userId || doc.id}-${doc.id}`;
-                    pointsAssignmentsList.push({
-                        ...dtl,
-                        alertId,
-                        name: dtl.userName,
-                        action: 'points_assignment',
-                        points: dtl.points
-                    });
+                    const detailDateStr = dtl.timestamp ? dtl.timestamp.split('T')[0] : '';
+                    if (detailDateStr === todayStr && activeUserIds.has(dtl.userId)) {
+                        const alertId = `points-${dtl.socioNumber || dtl.phone || dtl.userId || doc.id}-${doc.id}`;
+                        pointsAssignmentsList.push({
+                            ...dtl,
+                            alertId,
+                            name: dtl.userName,
+                            action: 'points_assignment',
+                            points: dtl.points
+                        });
+                    }
                 }
             });
         } catch (e) { console.error("Error fetching points assignments for engine:", e); }
@@ -765,6 +779,10 @@ export default async function handler(req, res) {
             const campSnapshot = await db.collection('campanas').where('active', '==', true).get();
             campSnapshot.forEach(doc => {
                 const camp = doc.data();
+                const campStartDate = camp.startDate || camp.flashDate || null;
+                if (campStartDate && campStartDate > todayStr) {
+                    return; // Excluir campañas futuras
+                }
                 const alertId = `campaign-${doc.id}-${todayStr}`;
                 campaignsList.push({
                     ...camp,
@@ -843,9 +861,143 @@ export default async function handler(req, res) {
         }).catch(() => { });
 
         // Formatear listas para la extensión/dashboard
-        const birthdaysList = results.details.filter(d => d.action === "birthday_greeting").map(d => ({...d, name: d.userName}));
-        const expirationsList = results.details.filter(d => d.action === "points_expired" || d.action === "expiration_warning").map(d => ({...d, name: d.userName}));
-        const petAlertsList = results.details.filter(d => d.action === "pet_food_alert").map(d => ({...d, name: d.userName}));
+        // Reconstrucción independiente y dinámica de cumpleaños, vencimientos y mascotas
+        const birthdaysList = [];
+        try {
+            const usersForBirthdays = await db.collection('users').where('birthDate', '!=', '').get();
+            usersForBirthdays.docs.forEach(doc => {
+                const userData = doc.data();
+                const bDate = userData.birthDate;
+                if (!bDate || typeof bDate !== 'string') return;
+                
+                let normalized = bDate;
+                const separator = bDate.includes('/') ? '/' : (bDate.includes('-') ? '-' : null);
+                if (separator) {
+                    const parts = bDate.split(separator).map(p => p.trim());
+                    if (parts.length >= 2) {
+                        let day, month;
+                        if (parts[0].length === 4) {
+                            month = parts[1];
+                            day = parts[2];
+                        } else {
+                            day = parts[0];
+                            month = parts[1];
+                        }
+                        if (day && month) {
+                            normalized = `${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                        }
+                    }
+                }
+                if (normalized === todayMD && activeUserIds.has(doc.id)) {
+                    birthdaysList.push({
+                        userId: doc.id,
+                        userName: userData.nombre || userData.name || 'Socio',
+                        name: userData.nombre || userData.name || 'Socio',
+                        socioNumber: userData.socioNumber || userData.numeroSocio || '',
+                        dni: userData.dni || '',
+                        action: "birthday_greeting",
+                        status: "success",
+                        info: 'Cumpleaños hoy',
+                        phone: userData.phone || userData.telefono || ''
+                    });
+                }
+            });
+        } catch (e) { console.error("Error reconstructing birthdaysList:", e); }
+
+        const expirationsList = [];
+        try {
+            const warningDays = Number(config?.messaging?.expirationWarningDays || 7);
+            const warningLimit = new Date(referenceDate);
+            warningLimit.setDate(warningLimit.getDate() + warningDays);
+            const warningLimitStr = warningLimit.toISOString().split('T')[0];
+
+            const expUsersSnap = await db.collection('users').where('nextExpirationDate', '!=', null).get();
+            expUsersSnap.docs.forEach(doc => {
+                const userData = doc.data();
+                const nextExpDate = userData.nextExpirationDate;
+                if (!nextExpDate || typeof nextExpDate !== 'string' || !activeUserIds.has(doc.id)) return;
+                
+                if (nextExpDate <= todayStr) {
+                    if ((userData.points || 0) > 0) {
+                        const nextAmt = userData.nextExpirationAmount || userData.points || 0;
+                        expirationsList.push({
+                            userId: doc.id,
+                            userName: userData.nombre || userData.name || 'Socio',
+                            name: userData.nombre || userData.name || 'Socio',
+                            socioNumber: userData.socioNumber || userData.numeroSocio || '',
+                            dni: userData.dni || '',
+                            action: "points_expired",
+                            status: "success",
+                            info: `${nextAmt} pts vencen hoy o ya vencieron.`,
+                            phone: userData.phone || userData.telefono || '',
+                            points: nextAmt,
+                            nextExpirationAmount: nextAmt,
+                            nextExpirationDate: nextExpDate
+                        });
+                    }
+                } else if (nextExpDate <= warningLimitStr) {
+                    if ((userData.points || 0) > 0) {
+                        const nextAmt = userData.nextExpirationAmount || userData.points || 0;
+                        expirationsList.push({
+                            userId: doc.id,
+                            userName: userData.nombre || userData.name || 'Socio',
+                            name: userData.nombre || userData.name || 'Socio',
+                            socioNumber: userData.socioNumber || userData.numeroSocio || '',
+                            dni: userData.dni || '',
+                            action: "expiration_warning",
+                            status: "info",
+                            info: `Vencen ${nextAmt} pts: ${formatDateToDisplay(nextExpDate)}`,
+                            phone: userData.phone || userData.telefono || '',
+                            points: nextAmt,
+                            nextExpirationAmount: nextAmt,
+                            nextExpirationDate: nextExpDate
+                        });
+                    }
+                }
+            });
+        } catch (e) { console.error("Error reconstructing expirationsList:", e); }
+
+        const petAlertsList = [];
+        try {
+            if (config.enablePetModule) {
+                const petUsersSnap = await db.collection('users').where('pets', '!=', null).get();
+                petUsersSnap.docs.forEach(doc => {
+                    const userData = doc.data();
+                    if (!activeUserIds.has(doc.id)) return;
+                    const pets = userData.pets || [];
+                    pets.forEach(pet => {
+                        const lastPurchase = pet.lastPurchaseDate?.toDate ? pet.lastPurchaseDate.toDate() : (pet.lastPurchaseDate ? new Date(pet.lastPurchaseDate + 'T12:00:00') : null);
+                        if (!lastPurchase) return;
+
+                        const cycleDays = Number(pet.foodCycleDays || pet.frequencyDays || 30);
+                        const warningDays = Number(config?.messaging?.petFoodWarningDays || config?.petFoodAlertLeadDays || 3);
+                        
+                        const exhaustionDate = new Date(lastPurchase);
+                        exhaustionDate.setDate(lastPurchase.getDate() + cycleDays);
+                        
+                        const alertDate = new Date(exhaustionDate);
+                        alertDate.setDate(exhaustionDate.getDate() - warningDays);
+
+                        const isAlertWindow = (referenceDate >= alertDate);
+                        if (isAlertWindow) {
+                            petAlertsList.push({
+                                userId: doc.id,
+                                userName: userData.nombre || userData.name || 'Socio',
+                                name: userData.nombre || userData.name || 'Socio',
+                                socioNumber: userData.socioNumber || userData.numeroSocio || '',
+                                dni: userData.dni || '',
+                                action: "pet_food_alert",
+                                status: "info",
+                                info: `Aviso de alimento para ${pet.name}`,
+                                phone: userData.phone || userData.telefono || '',
+                                petName: pet.name,
+                                foodBrand: pet.foodBrand || pet.brand || ''
+                            });
+                        }
+                    });
+                });
+            }
+        } catch (e) { console.error("Error reconstructing petAlertsList:", e); }
 
         return res.status(200).json({ 
             ok: true, 

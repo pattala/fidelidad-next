@@ -122,6 +122,22 @@ export default async function handler(req, res) {
         });
         const todayAR = arFormatter.format(now);
 
+        // Bloqueo activo para evitar ejecuciones duplicadas (crons concurrentes)
+        if (triggerSource !== 'dashboard' && !isManualSim && isWithinNotificationWindow) {
+            const campaignCheckSnap = await db.collection('config').doc('campaignCheck').get();
+            if (campaignCheckSnap.exists) {
+                const checkData = campaignCheckSnap.data();
+                if (checkData.lastRunDate === todayAR) {
+                    console.log(`[Engine-Campaigns] Campaign engine already executed today (${todayAR}) by trigger ${checkData.trigger}. Skipping duplicate run.`);
+                    return res.status(200).json({
+                        ok: true,
+                        skipped: true,
+                        message: `Engine already executed today (${todayAR}).`
+                    });
+                }
+            }
+        }
+
         // Identificación de Ejecutor para Auditoría
         let executorDetail = "SISTEMA (Auto)";
         if (simulatedDateParam) {
@@ -205,7 +221,7 @@ export default async function handler(req, res) {
             // 3. ¿La fecha de inicio ya llegó? (aplica a TODAS las campañas, incluyendo Flash)
             // Sin este chequeo, una campaña Flash sin flashDays dispara en cualquier día anterior a su fecha.
             const campStartDate = camp.startDate || camp.flashDate || null;
-            if (campStartDate && campStartDate > todayStr && !isManualSim) {
+            if (campStartDate && campStartDate > todayStr) {
                 results.skipped++;
                 continue;
             }
@@ -342,7 +358,7 @@ export default async function handler(req, res) {
                         type: 'campaign_broadcast',
                         status: 'success',
                         summary: `Difusión automática: ${camp.name}`,
-                        details: [{ campId, notifiedCount: fcmTokens.length, title, trigger: req.query.trigger || 'auto', action: 'campaign_broadcasted', campName: camp.name }],
+                        details: [{ campId, notifiedCount: fcmTokens.length, userCount: userDocs.length, title, trigger: req.query.trigger || 'auto', action: 'campaign_broadcasted', campName: camp.name, timestamp: now.toISOString() }],
                         executor: 'system'
                     });
 

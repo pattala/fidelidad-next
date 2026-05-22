@@ -65,7 +65,16 @@ export const CampaignsPage = () => {
         const timer = setInterval(() => {
             setNow(TimeService.now());
         }, 1000);
-        return () => clearInterval(timer);
+
+        const handleSimChange = () => {
+            setNow(TimeService.now());
+        };
+        window.addEventListener('time-simulation-change', handleSimChange);
+
+        return () => {
+            clearInterval(timer);
+            window.removeEventListener('time-simulation-change', handleSimChange);
+        };
     }, []);
 
     // COMPONENTE AISLADO PARA EL RELOJ (EVITA RE-RENDER GLOBAL)
@@ -81,11 +90,16 @@ export const CampaignsPage = () => {
         endDateTime.setMinutes(endDateTime.getMinutes() + graceMins);
         const extendedEndTimeInt = endDateTime.getHours() * 100 + endDateTime.getMinutes();
 
-        const isCurrentlyOn = isDayMatch && currentTime >= startTimeInt && currentTime <= endTimeInt && bonus.active;
-        const isGracePeriod = isDayMatch && currentTime > endTimeInt && currentTime <= extendedEndTimeInt && bonus.active;
-        const isFinishedToday = isDayMatch && currentTime > extendedEndTimeInt;
-        const isFutureDay = bonus.active && !isDayMatch;
-        const isFutureTime = bonus.active && isDayMatch && currentTime < startTimeInt;
+        const todayStr = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, '0') + "-" + String(now.getDate()).padStart(2, '0');
+        const campStartDate = bonus.startDate || bonus.flashDate || null;
+        const isFutureStartDate = campStartDate && campStartDate > todayStr;
+        const isExpiredEndDate = bonus.endDate && bonus.endDate < todayStr;
+
+        const isCurrentlyOn = !isFutureStartDate && !isExpiredEndDate && isDayMatch && currentTime >= startTimeInt && currentTime <= endTimeInt && bonus.active;
+        const isGracePeriod = !isFutureStartDate && !isExpiredEndDate && isDayMatch && currentTime > endTimeInt && currentTime <= extendedEndTimeInt && bonus.active;
+        const isFinishedToday = isExpiredEndDate || (isDayMatch && currentTime > extendedEndTimeInt);
+        const isFutureDay = bonus.active && !isFutureStartDate && !isExpiredEndDate && !isDayMatch;
+        const isFutureTime = bonus.active && !isFutureStartDate && !isExpiredEndDate && isDayMatch && currentTime < startTimeInt;
 
         if (isCurrentlyOn) {
             return (
@@ -466,11 +480,15 @@ export const CampaignsPage = () => {
         setIsBroadcastModalOpen(false);
 
         try {
+            // Obtener usuarios no administradores una sola vez para optimizar lecturas
+            const q = query(collection(db, 'users'));
+            const snap = await getDocs(q);
+            const clientsDocs = snap.docs.filter(doc => doc.data().role !== 'admin');
+            const totalUsers = clientsDocs.length;
+
             if (selectedChannels.push) {
                 const loadingToast = toast.loading('Enviando Pushes...');
-                const q = query(collection(db, 'users'));
-                const snap = await getDocs(q);
-                const pushPromises = snap.docs.map(doc => {
+                const pushPromises = clientsDocs.map(doc => {
                     const data = doc.data();
                     const userName = data.name || '';
                     const personalizedMsg = msg.replace(/{nombre}/g, userName.split(' ')[0]).replace(/{nombre_completo}/g, userName);
@@ -487,9 +505,7 @@ export const CampaignsPage = () => {
 
             if (selectedChannels.email) {
                 const loadingToast = toast.loading('Enviando Emails...');
-                const q = query(collection(db, 'users'));
-                const snap = await getDocs(q);
-                const emailPromises = snap.docs.map(doc => {
+                const emailPromises = clientsDocs.map(doc => {
                     const data = doc.data();
                     if (data.email) {
                         const userName = data.name || '';
@@ -515,10 +531,11 @@ export const CampaignsPage = () => {
                     campName: bonus.name,
                     action: 'campaign_broadcasted',
                     status: 'success',
+                    userCount: totalUsers, // Logeado para mostrar correctamente los Socios Afectados
+                    timestamp: now.toISOString(),
                     info: `Canales: ${Object.entries(selectedChannels).filter(([_, v]) => v).map(([k]) => k).join(', ')} | Tipo: ${bonus.isFlash ? 'Flash' : 'Estándar'}`
                 }
-            ]);
-        } catch (error) {
+            ]);} catch (error) {
             toast.error('Error durante la difusión');
             console.error(error);
         }

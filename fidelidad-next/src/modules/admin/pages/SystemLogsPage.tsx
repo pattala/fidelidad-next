@@ -485,7 +485,13 @@ export const SystemLogsPage = () => {
                                                                         groupedByUser[uid].actions.push(d);
                                                                     });
 
-                                                                    const actualUserCount = Object.keys(groupedByUser).filter(uid => uid !== 'system').length;
+                                                                    let actualUserCount = Object.keys(groupedByUser).filter(uid => uid !== 'system').length;
+                                                                    if (log.type === 'campaign_broadcast') {
+                                                                        const firstDetail = log.details?.[0];
+                                                                        if (firstDetail) {
+                                                                            actualUserCount = firstDetail.userCount ?? firstDetail.notifiedCount ?? 0;
+                                                                        }
+                                                                    }
 
                                                                     return (
                                                                         <div className="space-y-4">

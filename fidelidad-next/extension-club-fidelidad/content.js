@@ -103,8 +103,8 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                         };
 
                         const filteredBirthdays = bList.filter(b => getStatus(`birthday-${getIdentifier(b)}-${curY}`) === 'pending');
-                        const filteredExpirations = eList.filter(e => getStatus(`expiration-${getIdentifier(e)}-${e.nextExpirationDate || 'today'}-${e.points || 0}`) === 'pending');
-                        const filteredPetAlerts = pList.filter(p => getStatus(`pet-${getIdentifier(p)}-${p.petName}-${p.lastFoodAlertDate || 'today'}-${p.points || 0}`) === 'pending');
+                        const filteredExpirations = eList.filter(e => getStatus(`expiration-${getIdentifier(e)}-${e.nextExpirationDate || 'today'}`) === 'pending');
+                        const filteredPetAlerts = pList.filter(p => getStatus(`pet-${getIdentifier(p)}-${p.petName}-${p.lastFoodAlertDate || 'today'}`) === 'pending');
                         const filteredRedemptions = rList.filter(r => getStatus(r.alertId) === 'pending');
                         const filteredAssignments = aList.filter(a => getStatus(a.alertId) === 'pending');
                         const filteredCampaigns = (data.campaigns || []).filter(c => getStatus(c.alertId) === 'pending');
@@ -164,7 +164,16 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
         document.head.appendChild(style);
     }
 
-    const generateWhatsAppToken = (type, phone, name, extra, cfg, socioNumber) => {
+    const formatDateString = (dateStr) => {
+        if (!dateStr || typeof dateStr !== 'string') return 'pronto';
+        const parts = dateStr.split('-');
+        if (parts.length === 3) {
+            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+        return dateStr;
+    };
+
+    const generateWhatsAppToken = (type, phone, name, extra, cfg, socioNumber, extraDate) => {
         if (!phone) return null;
         let p = phone.replace(/\D/g, '');
         if (!p.startsWith('54') && p.length === 10) p = '549' + p;
@@ -175,25 +184,27 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
         
         if (type === 'birthdays') {
             const bPoints = Number(cfg?.birthdayPoints) || 0;
-            if (cfg?.enableBirthdayBonus !== false) {
-                msg = (templates.birthday || `¡Feliz cumple {nombre}{socioInfo}! \\u{1F382}\\u{1F38A} Te regalamos {puntos} puntos. \\u2728`).replace(/{puntos}/g, bPoints.toString());
-            } else { 
-                msg = templates.birthdaySimple || `¡Feliz cumple {nombre}{socioInfo}! \\u{1F382}\\u{1F38A} \\u2728`; 
-            }
+            const tpl = templates.whatsappBirthday || templates.birthday || `¡Feliz cumple {nombre}{socioInfo}! 🎂🎉 Te regalamos {puntos} puntos. ✨`;
+            msg = tpl.replace(/{puntos}/g, bPoints.toString());
         } else if (type === 'expirations') {
-            msg = (templates.expirationWarning || `¡Hola {nombre}{socioInfo}! \u{1F4E3} {puntos} pts por vencer.`).replace(/{puntos}/g, extra);
+            const tpl = templates.whatsappExpiration || templates.expirationWarning || `¡Hola {nombre}{socioInfo}! 📢 {puntos} pts por vencer.`;
+            const dateStr = extraDate ? formatDateString(extraDate) : 'pronto';
+            msg = tpl.replace(/{puntos}/g, extra).replace(/{fecha}/g, dateStr);
         } else if (type === 'petAlerts') {
-            msg = (templates.petFoodAlert || `¡Hola {nombre}{socioInfo}! \u{1F43E} Reposición de {mascota}.`).replace(/{mascota}/g, extra);
+            const tpl = templates.whatsappPetFood || templates.petFoodAlert || `¡Hola {nombre}{socioInfo}! 🐾 Reposición de {mascota}.`;
+            msg = tpl.replace(/{mascota}/g, extra);
         } else if (type === 'redemptions') {
-            msg = (templates.redemption || `¡Canje exitoso {nombre}! \u{1F381} Canjeaste {premio}. Código: {codigo}`).replace(/{premio}/g, extra).replace(/{codigo}/g, socioNumber);
+            const tpl = templates.whatsappRedemption || templates.redemption || `¡Canje exitoso {nombre}! 🎁 Canjeaste {premio}. Código: {codigo}`;
+            msg = tpl.replace(/{premio}/g, extra).replace(/{codigo}/g, socioNumber);
         } else if (type === 'pointsAssignments') {
-            msg = (templates.pointsAdded || `¡Hola {nombre}! \u{1F4B0} Sumaste {puntos} puntos.`).replace(/{puntos}/g, extra);
+            const tpl = templates.whatsappPointsAdded || templates.pointsAdded || `¡Hola {nombre}! 💰 Sumaste {puntos} puntos.`;
+            msg = tpl.replace(/{puntos}/g, extra);
         }
         msg = msg.replace(/{nombre}/g, firstName).replace(/{socioInfo}/g, socioInfo).replace(/{tienda}/g, cfg?.siteName || cfg?.appName || 'la tienda');
         return `https://api.whatsapp.com/send?phone=${p}&text=${encodeURIComponent(msg)}`;
     };
 
-function showGlobalAlert(fullData, config) {
+    function showGlobalAlert(fullData, config) {
     const curY = new Date().getFullYear().toString();
     const birthdays = fullData.birthdays?.list || [];
     const expirations = fullData.expirations?.list || [];
@@ -234,14 +245,14 @@ function showGlobalAlert(fullData, config) {
         const curY = new Date().getFullYear().toString();
 
         const pendingB = birthdays.filter(b => getStatus(`birthday-${getIdentifier(b)}-${curY}`) === 'pending');
-        const pendingE = expirations.filter(e => getStatus(`expiration-${getIdentifier(e)}-${e.nextExpirationDate || 'today'}-${e.points || 0}`) === 'pending');
-        const pendingP = petAlerts.filter(p => getStatus(`pet-${getIdentifier(p)}-${p.petName}-${p.lastFoodAlertDate || 'today'}-${p.points || 0}`) === 'pending');
+        const pendingE = expirations.filter(e => getStatus(`expiration-${getIdentifier(e)}-${e.nextExpirationDate || 'today'}`) === 'pending');
+        const pendingP = petAlerts.filter(p => getStatus(`pet-${getIdentifier(p)}-${p.petName}-${p.lastFoodAlertDate || 'today'}`) === 'pending');
         const pendingR = (fullData.redemptions?.list || []).filter(r => getStatus(r.alertId) === 'pending');
         const pendingA = (fullData.pointsAssignments?.list || []).filter(a => getStatus(a.alertId) === 'pending');
         
         const procB = birthdays.filter(b => getStatus(`birthday-${getIdentifier(b)}-${curY}`) !== 'pending');
-        const procE = expirations.filter(e => getStatus(`expiration-${getIdentifier(e)}-${e.nextExpirationDate || 'today'}-${e.points || 0}`) !== 'pending');
-        const procP = petAlerts.filter(p => getStatus(`pet-${getIdentifier(p)}-${p.petName}-${p.lastFoodAlertDate || 'today'}-${p.points || 0}`) !== 'pending');
+        const procE = expirations.filter(e => getStatus(`expiration-${getIdentifier(e)}-${e.nextExpirationDate || 'today'}`) !== 'pending');
+        const procP = petAlerts.filter(p => getStatus(`pet-${getIdentifier(p)}-${p.petName}-${p.lastFoodAlertDate || 'today'}`) !== 'pending');
         const procR = (fullData.redemptions?.list || []).filter(r => getStatus(r.alertId) !== 'pending');
         const procA = (fullData.pointsAssignments?.list || []).filter(a => getStatus(a.alertId) !== 'pending');
         const procC = (fullData.campaigns?.list || []).filter(c => getStatus(c.alertId) !== 'pending');
@@ -323,12 +334,12 @@ function showGlobalAlert(fullData, config) {
         }
         if (exps.length > 0) {
             html += `<div style="margin-bottom:16px;"><div style="font-size:10px; font-weight:900; color:#f59e0b; text-transform:uppercase; margin-bottom:8px;">\u23F3 Vencimientos</div>`;
-            html += exps.map(e => renderCard(e, 'expiration', `expiration-${getIdentifier(e)}-${e.nextExpirationDate || 'today'}-${e.points || 0}`, mode, fullData)).join('');
+            html += exps.map(e => renderCard(e, 'expiration', `expiration-${getIdentifier(e)}-${e.nextExpirationDate || 'today'}`, mode, fullData)).join('');
             html += `</div>`;
         }
         if (pets.length > 0) {
             html += `<div style="margin-bottom:16px;"><div style="font-size:10px; font-weight:900; color:#6366f1; text-transform:uppercase; margin-bottom:8px;">\u{1F43E} Mascotas</div>`;
-            html += pets.map(p => renderCard(p, 'pet', `pet-${getIdentifier(p)}-${p.petName}-${p.lastFoodAlertDate || 'today'}-${p.points || 0}`, mode, fullData)).join('');
+            html += pets.map(p => renderCard(p, 'pet', `pet-${getIdentifier(p)}-${p.petName}-${p.lastFoodAlertDate || 'today'}`, mode, fullData)).join('');
             html += `</div>`;
         }
         if (reds.length > 0) {
@@ -387,7 +398,7 @@ function showGlobalAlert(fullData, config) {
             </div>
             ` : showWaBtn ? `
             <div style="margin-top:10px;">
-                <button class="cf-v35-btn-wa" data-id="${id}" data-type="${type === 'pet' ? 'petAlerts' : type === 'redemption' ? 'redemptions' : type === 'pointsAssignment' ? 'pointsAssignments' : type + 's'}" data-phone="${item.phone}" data-name="${item.name}" data-socio="${type === 'redemption' ? (item.redemptionCode || '') : (item.socioNumber || '')}" data-extra="${type === 'pet' ? item.petName : type === 'redemption' ? item.prizeName : item.points || ''}" style="${mode === 'processed' ? 'background:rgba(255,255,255,0.1);' : ''}">
+                <button class="cf-v35-btn-wa" data-id="${id}" data-type="${type === 'pet' ? 'petAlerts' : type === 'redemption' ? 'redemptions' : type === 'pointsAssignment' ? 'pointsAssignments' : type + 's'}" data-phone="${item.phone}" data-name="${item.name}" data-socio="${type === 'redemption' ? (item.redemptionCode || '') : (item.socioNumber || '')}" data-extra="${type === 'pet' ? item.petName : type === 'redemption' ? item.prizeName : item.points || ''}" data-date="${item.nextExpirationDate || ''}" style="${mode === 'processed' ? 'background:rgba(255,255,255,0.1);' : ''}">
                     ${mode === 'pending' ? '📳 Enviar WhatsApp' : '🔄 Re-enviar'}
                 </button>
             </div>
@@ -428,7 +439,7 @@ function showGlobalAlert(fullData, config) {
             if (btn.dataset.type === 'campaign') {
                 window.open(`${config.apiUrl}/admin/campaigns`, '_blank');
             } else {
-                const url = generateWhatsAppToken(btn.dataset.type, btn.dataset.phone, btn.dataset.name, btn.dataset.extra, config, btn.dataset.socio);
+                const url = generateWhatsAppToken(btn.dataset.type, btn.dataset.phone, btn.dataset.name, btn.dataset.extra, config, btn.dataset.socio, btn.dataset.date);
                 if (url) window.open(url, '_blank');
             }
             updateStorage(btn.dataset.id, 'sent');
@@ -478,8 +489,8 @@ async function refreshAlertCounts() {
                     };
 
                     const filteredBirthdays = bList.filter(b => getStatus(`birthday-${getIdentifier(b)}-${curY}`) === 'pending');
-                    const filteredExpirations = eList.filter(e => getStatus(`expiration-${getIdentifier(e)}-${e.nextExpirationDate || 'today'}-${e.points || 0}`) === 'pending');
-                    const filteredPetAlerts = pList.filter(p => getStatus(`pet-${getIdentifier(p)}-${p.petName}-${p.lastFoodAlertDate || 'today'}-${p.points || 0}`) === 'pending');
+                    const filteredExpirations = eList.filter(e => getStatus(`expiration-${getIdentifier(e)}-${e.nextExpirationDate || 'today'}`) === 'pending');
+                    const filteredPetAlerts = pList.filter(p => getStatus(`pet-${getIdentifier(p)}-${p.petName}-${p.lastFoodAlertDate || 'today'}`) === 'pending');
                     const filteredRedemptions = rList.filter(r => getStatus(r.alertId) === 'pending');
                     const filteredAssignments = aList.filter(a => getStatus(a.alertId) === 'pending');
 

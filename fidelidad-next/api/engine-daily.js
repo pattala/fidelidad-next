@@ -210,11 +210,12 @@ export default async function handler(req, res) {
             try {
                 const userData = userDoc.data();
                 const simCfg = config?.simulationConfig || { birthdays: true, expirations: true, petAlerts: true, campaigns: true };
-                const skipBirthdays = (simCfg.birthdays === false) || (alreadyExecuted && !skipDuplicityCheck);
+                const skipBirthdays = (simCfg.birthdays === false);
                 const alreadyGreeted = userData.lastBirthdayGreetingYear === currentYear;
+                const shouldSendGreeting = !skipBirthdays && (!alreadyGreeted || skipDuplicityCheck) && (!alreadyExecuted || skipDuplicityCheck);
 
                 // Lógica Automática (Solo si no se saludó hoy o forzamos repetición)
-                if (!skipBirthdays && (!alreadyGreeted || skipDuplicityCheck)) {
+                if (shouldSendGreeting) {
                     const birthdayPoints = Number(config?.birthdayPoints || 100);
                     const autoBonusEnabled = config?.enableBirthdayBonus === true;
                     const autoMessageEnabled = config?.enableBirthdayMessage !== false;
@@ -372,7 +373,7 @@ export default async function handler(req, res) {
         for (const doc of upcomingExpsSnap.docs) {
             const userData = doc.data();
             if ((userData.points || 0) > 0) {
-                const skipExpirations = (config?.simulationConfig?.expirations === false) || (alreadyExecuted && !skipDuplicityCheck);
+                const skipExpirations = (config?.simulationConfig?.expirations === false);
                 // V.1.4.81: Tracking por fecha de vencimiento específica (evita que una fecha bloquee a la otra)
                 const warningDates = userData.lastExpirationWarningDates || {};
                 const nextExpDate = userData.nextExpirationDate;
@@ -401,7 +402,8 @@ export default async function handler(req, res) {
                     }
                 }
 
-                if (!skipExpirations && (!alreadyNotified || skipDuplicityCheck) && config?.enableExpirationMessage !== false) {
+                const shouldSendExpiration = !skipExpirations && (!alreadyNotified || skipDuplicityCheck) && (!alreadyExecuted || skipDuplicityCheck);
+                if (shouldSendExpiration && config?.enableExpirationMessage !== false) {
                     const title = "⚠️ ¡Tus puntos vencen pronto!";
                     const template = config?.messaging?.templates?.expirationWarning || "¡Hola {nombre}! 📢 Te recordamos que tus {puntos} puntos vencen el {fecha}. ¡No los pierdas!";
                     let nextAmt = userData.nextExpirationAmount !== undefined ? userData.nextExpirationAmount : null;
@@ -546,7 +548,7 @@ export default async function handler(req, res) {
             for (const userDoc of petUsersSnap.docs) {
                 try {
                     const userData = userDoc.data();
-                    const skipPets = (config?.simulationConfig?.petAlerts === false) || (alreadyExecuted && !skipDuplicityCheck);
+                    const skipPets = (config?.simulationConfig?.petAlerts === false);
                     if (skipPets) continue;
 
                     const pets = userData.pets || [];
@@ -577,7 +579,8 @@ export default async function handler(req, res) {
                         const alreadyAlerted = lastAlertSent && lastAlertSent >= lastPurchase;
 
                         if (isAlertWindow) {
-                            if (!alreadyAlerted) {
+                            const shouldSendPetAlert = (!alreadyAlerted) && (!alreadyExecuted || skipDuplicityCheck);
+                            if (shouldSendPetAlert) {
                                 const userName = (userData.nombre || userData.name || '').split(' ')[0];
                                 const template = config.messaging?.templates?.petFoodAlert || "¡Hola {nombre}! 🐾 Notamos que a {mascota} se le debe estar terminando su {marca}.";
                                 

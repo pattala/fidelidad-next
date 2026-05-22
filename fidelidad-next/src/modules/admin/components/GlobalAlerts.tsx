@@ -102,7 +102,7 @@ export const GlobalAlerts = () => {
                     
                     const userIdentifier = data.socioNumber || data.phone || data.telefono || data.dni || d.id;
                     const bId = `birthday-${userIdentifier}-${curY}`;
-                    const eId = `expiration-${userIdentifier}-${data.nextExpirationDate || 'today'}-${data.points || 0}`;
+                    const eId = `expiration-${userIdentifier}-${data.nextExpirationDate || 'today'}`;
                     
                     const userBD = data.birthDate || data.fechaNacimiento;
                     // Ignoramos alreadyGreeted (lastBirthdayGreetingYear) para el panel administrativo

@@ -734,7 +734,30 @@ export default async function handler(req, res) {
                 const data = doc.data();
                 const dtl = data.details?.find(x => x.action === 'prize_redeemed');
                 if (dtl) {
-                    const detailDateStr = dtl.timestamp ? dtl.timestamp.split('T')[0] : '';
+                    let detailDateStr = '';
+                    if (dtl.timestamp) {
+                        try {
+                            const dDate = new Date(dtl.timestamp);
+                            if (!isNaN(dDate.getTime())) {
+                                const tzDate = new Date(dDate.toLocaleString("en-US", {timeZone: "America/Argentina/Buenos_Aires"}));
+                                const y = tzDate.getFullYear();
+                                const m = String(tzDate.getMonth() + 1).padStart(2, '0');
+                                const d = String(tzDate.getDate()).padStart(2, '0');
+                                detailDateStr = `${y}-${m}-${d}`;
+                            }
+                        } catch (e) {
+                            detailDateStr = dtl.timestamp.split('T')[0];
+                        }
+                    }
+                    if (!detailDateStr) {
+                        const logDate = data.timestamp?.toDate ? data.timestamp.toDate() : new Date();
+                        const tzDate = new Date(logDate.toLocaleString("en-US", {timeZone: "America/Argentina/Buenos_Aires"}));
+                        const y = tzDate.getFullYear();
+                        const m = String(tzDate.getMonth() + 1).padStart(2, '0');
+                        const d = String(tzDate.getDate()).padStart(2, '0');
+                        detailDateStr = `${y}-${m}-${d}`;
+                    }
+
                     if (detailDateStr === todayStr && activeUserIds.has(dtl.userId)) {
                         const alertId = `redemption-${dtl.socioNumber || dtl.phone || dtl.userId || doc.id}-${dtl.redemptionCode || 'N/A'}`;
                         redemptionsList.push({
@@ -759,7 +782,30 @@ export default async function handler(req, res) {
                 const data = doc.data();
                 const dtl = data.details?.find(x => x.action === 'points_credited');
                 if (dtl) {
-                    const detailDateStr = dtl.timestamp ? dtl.timestamp.split('T')[0] : '';
+                    let detailDateStr = '';
+                    if (dtl.timestamp) {
+                        try {
+                            const dDate = new Date(dtl.timestamp);
+                            if (!isNaN(dDate.getTime())) {
+                                const tzDate = new Date(dDate.toLocaleString("en-US", {timeZone: "America/Argentina/Buenos_Aires"}));
+                                const y = tzDate.getFullYear();
+                                const m = String(tzDate.getMonth() + 1).padStart(2, '0');
+                                const d = String(tzDate.getDate()).padStart(2, '0');
+                                detailDateStr = `${y}-${m}-${d}`;
+                            }
+                        } catch (e) {
+                            detailDateStr = dtl.timestamp.split('T')[0];
+                        }
+                    }
+                    if (!detailDateStr) {
+                        const logDate = data.timestamp?.toDate ? data.timestamp.toDate() : new Date();
+                        const tzDate = new Date(logDate.toLocaleString("en-US", {timeZone: "America/Argentina/Buenos_Aires"}));
+                        const y = tzDate.getFullYear();
+                        const m = String(tzDate.getMonth() + 1).padStart(2, '0');
+                        const d = String(tzDate.getDate()).padStart(2, '0');
+                        detailDateStr = `${y}-${m}-${d}`;
+                    }
+
                     if (detailDateStr === todayStr && activeUserIds.has(dtl.userId)) {
                         const alertId = `points-${dtl.socioNumber || dtl.phone || dtl.userId || doc.id}-${doc.id}`;
                         pointsAssignmentsList.push({

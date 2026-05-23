@@ -72,10 +72,43 @@ export const VersionUpdater = () => {
         return () => clearInterval(interval);
     }, [remoteVersion]);
 
+    const handleUpdate = async (toastId: string) => {
+        toast.dismiss(toastId);
+        console.log('[PWA] Iniciando Hard Reset programático de PWA...');
+        
+        // 1. Desregistrar todos los Service Workers activos
+        if ('serviceWorker' in navigator) {
+            try {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (const registration of registrations) {
+                    await registration.unregister();
+                }
+                console.log('[PWA] Service Workers desregistrados con éxito.');
+            } catch (e) {
+                console.error('[PWA] Error desregistrando SW:', e);
+            }
+        }
+        
+        // 2. Eliminar todas las memorias Caché físicas (Cache Storage API)
+        if ('caches' in window) {
+            try {
+                const keys = await caches.keys();
+                for (const key of keys) {
+                    await caches.delete(key);
+                }
+                console.log('[PWA] Memoria Caché eliminada con éxito.');
+            } catch (e) {
+                console.error('[PWA] Error eliminando Caché:', e);
+            }
+        }
+        
+        // 3. Forzar la recarga completa salteando la caché del navegador
+        window.location.reload();
+    };
+
     useEffect(() => {
-        // Solo mostrar si hay un needRefresh del SW o si la remota es realmente más nueva
         if (needRefresh || (remoteVersion && isNewer(remoteVersion, APP_VERSION))) {
-            console.log('[PWA] Mostrando aviso de actualización');
+            console.log('[PWA] Mostrando aviso de actualización programática');
             
             // Si ya hay un toast, no duplicar
             if (toast.hasOwnProperty('pwa-update-toast')) return;
@@ -83,21 +116,14 @@ export const VersionUpdater = () => {
             toast((t) => (
                 <div className="flex flex-col gap-2">
                     <span className="font-bold text-sm">
-                        🚀 ¡Nueva versión disponible! {remoteVersion || ''}
+                        ⚠️ ¡Nueva versión disponible! {remoteVersion || ''}
                     </span>
                     <p className="text-xs opacity-80">
                         Hay cambios importantes. Actualiza para ver las mejoras.
                     </p>
                     <div className="flex gap-2 mt-1">
                         <button
-                            onClick={() => {
-                                if (needRefresh) {
-                                    updateServiceWorker(true);
-                                } else {
-                                    window.location.reload();
-                                }
-                                toast.dismiss(t.id);
-                            }}
+                            onClick={() => handleUpdate(t.id)}
                             className="bg-purple-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg shadow-purple-200 active:scale-95 transition-all"
                         >
                             Actualizar ahora

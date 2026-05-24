@@ -520,8 +520,21 @@ export const CampaignsPage = () => {
             }
 
             if (selectedChannels.whatsapp) {
+                // 1. Descargar el CSV para uso masivo externo
                 toast.success('Descargando CSV para WhatsApp...', { duration: 3000 });
                 handleDownloadCSV(bonus);
+
+                // 2. Redirigir a la cola interactiva interna precargando mensaje y clientes
+                setTimeout(() => {
+                    toast.success('Redirigiendo a cola de difusión de WhatsApp...');
+                    navigate('/admin/whatsapp', {
+                        state: {
+                            message: msg,
+                            clientIds: clientsDocs.map(d => d.id),
+                            notificationType: 'campaign'
+                        }
+                    });
+                }, 1500);
             }
 
             // --- AUDITORIA ---

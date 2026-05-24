@@ -1,1 +1,1 @@
-V.1.6.3 - QA Timezone & Scope Fixes (Solucionado timezone double-shifting en compras y ReferenceError de campaña flash).
+V.1.6.4 - Campaign engine refactoring, global lock removal, and dual WhatsApp flow (CSV + interactive queue).

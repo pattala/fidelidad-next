@@ -12,6 +12,12 @@ const transporter = nodemailer.createTransport({
     tls: { rejectUnauthorized: false }
 });
 
+const DEFAULT_TEMPLATES = {
+    campaign: "🚀 ¡Nueva Campaña!: {titulo}. {descripcion}. ¡No te la pierdas! 🔥",
+    offer: "🔥 ¡Oferta Especial! {titulo}: {detalle}. Válido hasta el {vencimiento}. 📢",
+    flashOffer: "⚡ ¡OFERTA FLASH! {titulo}: {detalle}. Solo disponible hoy hasta las {horario} hs. 🔥"
+};
+
 function getAbsoluteUrl(url, baseUrl) {
     if (!url) return "";
     if (url.startsWith("http")) return url;
@@ -57,7 +63,7 @@ export default async function handler(req, res) {
     const SECRET = (process.env.API_SECRET_KEY || "").trim();
     const authHeader = req.headers["x-api-key"] || req.headers["authorization"];
 
-    // V.1.4.87: Debug Extendido de Parámetros
+    // V.1.6.4: Debug de Parámetros
     const simulatedDateStr = req.body?.simulatedDate || req.query?.simulatedDate;
     const triggerSource = req.query?.trigger || req.body?.trigger || "unknown";
     const isManualSim = req.body?.isManual === true || req.query?.isManual === 'true' || req.query?.ignoreDeduplication === 'true';
@@ -72,6 +78,7 @@ export default async function handler(req, res) {
 
     const app = initFirebaseAdmin();
     const db = app.firestore();
+    let auditLogRef = null;
 
     try {
         // 1. CARGAR CONFIGURACIÓN GLOBAL
@@ -99,44 +106,19 @@ export default async function handler(req, res) {
 
         const allowedStart = config.messaging?.engineAllowedStartHour ?? 9;
         const allowedEnd = config.messaging?.engineAllowedEndHour ?? 21;
-        // Soporta rangos nocturnos que cruzan la medianoche (ej: 9 a 3 → allowedEnd < allowedStart)
+        // Soporta rangos nocturnos que cruzan la medianoche
         let isWithinNotificationWindow = true;
         if (allowedStart !== allowedEnd) {
             if (allowedStart < allowedEnd) {
-                // Rango normal: ej. 9 a 21 → hora debe ser >=9 Y <21
+                // Rango normal
                 isWithinNotificationWindow = (currentH >= allowedStart && currentH < allowedEnd);
             } else {
-                // Rango nocturno: ej. 9 a 3 → hora debe ser >=9 O <3
+                // Rango nocturno
                 isWithinNotificationWindow = (currentH >= allowedStart || currentH < allowedEnd);
             }
         }
 
-        // --- DEDUPLICACIÓN DE SEGURIDAD ---
         const triggerSourceParam = req.query?.trigger || req.body?.trigger || "unknown";
-        const isManualSimParam = req.body?.isManual === true || req.query?.isManual === 'true' || req.query?.ignoreDeduplication === 'true';
-        
-        // Formateador para logs y comparaciones consistentes
-        const arFormatter = new Intl.DateTimeFormat('en-CA', {
-            timeZone: 'America/Argentina/Buenos_Aires',
-            year: 'numeric', month: '2-digit', day: '2-digit'
-        });
-        const todayAR = arFormatter.format(now);
-
-        // Bloqueo activo para evitar ejecuciones duplicadas (crons concurrentes)
-        if (triggerSource !== 'dashboard' && !isManualSim && isWithinNotificationWindow) {
-            const campaignCheckSnap = await db.collection('config').doc('campaignCheck').get();
-            if (campaignCheckSnap.exists) {
-                const checkData = campaignCheckSnap.data();
-                if (checkData.lastRunDate === todayAR) {
-                    console.log(`[Engine-Campaigns] Campaign engine already executed today (${todayAR}) by trigger ${checkData.trigger}. Skipping duplicate run.`);
-                    return res.status(200).json({
-                        ok: true,
-                        skipped: true,
-                        message: `Engine already executed today (${todayAR}).`
-                    });
-                }
-            }
-        }
 
         // Identificación de Ejecutor para Auditoría
         let executorDetail = "SISTEMA (Auto)";
@@ -148,21 +130,23 @@ export default async function handler(req, res) {
             executorDetail = "SISTEMA (Extensión)";
         }
 
-        // Registrar inicio del motor de campañas en auditoría
-        await db.collection('audit_logs').add({
+        // V.1.6.4: Registrar SIEMPRE el inicio en la auditoría al comienzo
+        auditLogRef = await db.collection('audit_logs').add({
             timestamp: admin.firestore.FieldValue.serverTimestamp(),
             type: 'campaign_engine_execution',
             status: 'running',
-            summary: `Iniciando motor de campañas (${todayStr})`,
+            summary: `Ejecutando motor de campañas (${todayStr})`,
             executor: executorDetail,
             triggerSource: triggerSourceParam,
             simulated: !!simulatedDateParam
         });
 
-
-
-        // 2. VERIFICAR SIMULADOR
+        // 2. VERIFICAR CONFIGURACIÓN SIMULADOR
         if (config.simulationConfig?.campaigns === false) {
+            await auditLogRef.update({
+                status: 'skipped',
+                summary: "Motor omitido: Campañas desactivadas en el simulador"
+            });
             return res.status(200).json({ ok: true, skipped: true, message: "Campañas desactivadas en el simulador" });
         }
 
@@ -183,15 +167,13 @@ export default async function handler(req, res) {
             results.processed++;
 
             // --- A. MANTENIMIENTO PREVENTIVO (24/7) ---
-            // Solo desactivar si tiene una FECHA de fin explícita y ya pasó.
-            // Las campañas Flash recurrentes NO deben desactivarse solas.
             if (camp.endDate && camp.endDate < todayStr) {
                 await doc.ref.update({ active: false });
                 results.deactivated++;
                 continue;
             }
 
-            // Si es hoy, verificar hora de fin + gracia (Solo para TRADICIONALES con fecha de fin hoy)
+            // Si es hoy, verificar hora de fin + gracia
             if (!camp.isFlash && camp.endDate === todayStr && camp.endTime) {
                 const [endH, endM] = camp.endTime.split(':').map(Number);
                 const endTimeDate = new Date(now);
@@ -204,8 +186,11 @@ export default async function handler(req, res) {
                 }
             }
 
-            // --- B. DIFUSIÓN AUTOMÁTICA (Respetando Ventana) ---
-            if (!camp.autoBroadcast) continue;
+            // --- B. DIFUSIÓN AUTOMÁTICA ---
+            if (!camp.autoBroadcast) {
+                results.skipped++;
+                continue;
+            }
 
             // 1. ¿Ya se envió hoy?
             if (camp.broadcastSentAt === todayStr && !isManualSim) {
@@ -215,11 +200,11 @@ export default async function handler(req, res) {
 
             // 2. ¿Dentro de la Ventana de Notificación?
             if (!isWithinNotificationWindow && !isManualSim) {
+                results.skipped++;
                 continue;
             }
 
-            // 3. ¿La fecha de inicio ya llegó? (aplica a TODAS las campañas, incluyendo Flash)
-            // Sin este chequeo, una campaña Flash sin flashDays dispara en cualquier día anterior a su fecha.
+            // 3. ¿La fecha de inicio ya llegó?
             const campStartDate = camp.startDate || camp.flashDate || null;
             if (campStartDate && campStartDate > todayStr) {
                 results.skipped++;
@@ -228,11 +213,12 @@ export default async function handler(req, res) {
 
             // 4. ¿Es el día de la semana correcto?
             const targetDays = camp.isFlash ? camp.flashDays : camp.daysOfWeek;
-            if (targetDays && Array.isArray(targetDays) && targetDays.length > 0 && !targetDays.includes(todayDay)) continue;
+            if (targetDays && Array.isArray(targetDays) && targetDays.length > 0 && !targetDays.includes(todayDay)) {
+                results.skipped++;
+                continue;
+            }
 
-            // 4. ¿Estamos en el momento de la Antelación?
-            // V.1.4.67: Si es TRADICIONAL, no esperamos a la hora de inicio, se manda apenas arranca el día.
-            // PERO si tiene startTime definido, lo respetamos (V.1.4.79)
+            // 5. ¿Estamos en el momento de la Antelación?
             if (camp.startTime) {
                 const [startH, startM] = camp.startTime.split(':').map(Number);
                 const startTimeDate = new Date(now);
@@ -244,31 +230,64 @@ export default async function handler(req, res) {
                 }
 
                 // Si aún falta para llegar al margen de antelación, saltar (salvo modo manual).
-                if (now < startTimeDate && !isManualSim) continue;
+                if (now < startTimeDate && !isManualSim) {
+                    results.skipped++;
+                    continue;
+                }
 
-                // Si ya pasó mucho tiempo (ej. más de 6 horas desde el inicio), 
-                // ya no tiene sentido mandar la notificación masiva de "inicio".
+                // Si ya pasó mucho tiempo (ej. más de 6 horas desde el inicio), ya no enviar.
                 if (camp.isFlash) {
                     const sixHoursLater = new Date(startTimeDate);
                     sixHoursLater.setHours(sixHoursLater.getHours() + 6);
-                    if (now > sixHoursLater && !isManualSim) continue;
+                    if (now > sixHoursLater && !isManualSim) {
+                        results.skipped++;
+                        continue;
+                    }
                 }
             } else if (!camp.isFlash) {
-                // Para tradicionales sin startTime, simplemente verificamos que la fecha de inicio ya haya llegado
-                if (camp.startDate && camp.startDate > todayStr) continue;
+                if (camp.startDate && camp.startDate > todayStr) {
+                    results.skipped++;
+                    continue;
+                }
             }
 
             // --- EJECUCIÓN DEL BROADCAST ---
             console.log(`[Engine-Campaigns] Executing Broadcast for: ${camp.name}`);
 
-            let title = camp.flashTitle || camp.title || camp.name;
-            let body = camp.flashDescription || camp.description || "¡Nueva promoción disponible!";
+            // V.1.6.4: Construir los mensajes utilizando el formato estético premium de plantillas
+            let template = "";
+            let msg = "";
 
-            // Reemplazar etiquetas dinámicas {hora_inicio} y {descripcion}
+            if (camp.isFlash) {
+                template = config.messaging?.templates?.flashOffer || DEFAULT_TEMPLATES.flashOffer;
+                const horario = camp.endTime || '23:59';
+                msg = template
+                    .replace(/{titulo}/g, camp.flashTitle || camp.title || camp.name)
+                    .replace(/{detalle}/g, camp.flashDescription || camp.description || (camp.rewardText ? `¡${camp.rewardText}!` : 'Consultanos.'))
+                    .replace(/{horario}/g, horario);
+            } else if (camp.rewardType === 'INFO' || camp.rewardType === 'TEXT') {
+                template = config.messaging?.templates?.offer || DEFAULT_TEMPLATES.offer;
+                const vencimiento = camp.endDate
+                    ? new Date(camp.endDate + 'T00:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
+                    : 'agotar stock';
+                msg = template
+                    .replace(/{titulo}/g, camp.title || camp.name)
+                    .replace(/{detalle}/g, camp.description || (camp.rewardText ? `¡${camp.rewardText}!` : 'Consultanos.'))
+                    .replace(/{vencimiento}/g, vencimiento);
+            } else {
+                template = config.messaging?.templates?.campaign || DEFAULT_TEMPLATES.campaign;
+                msg = template
+                    .replace(/{titulo}/g, camp.title || camp.name)
+                    .replace(/{descripcion}/g, camp.description || '¡Sumá más puntos!');
+            }
+
+            // Reemplazar etiquetas dinámicas heredadas si existen
             const startTimeVal = camp.startTime || '';
             const descVal = camp.flashDescription || camp.description || '';
-            title = title.replace(/{hora_inicio}/g, startTimeVal).replace(/{descripcion}/g, descVal);
-            body = body.replace(/{hora_inicio}/g, startTimeVal).replace(/{descripcion}/g, descVal);
+            msg = msg.replace(/{hora_inicio}/g, startTimeVal).replace(/{descripcion}/g, descVal);
+
+            const title = camp.isFlash ? "⚡ ¡OFERTA FLASH!" : (camp.rewardType === 'INFO' ? "🔥 ¡Oferta Especial!" : "🚀 ¡Nueva Campaña!");
+            const body = msg;
             const url = camp.link || "/";
 
             const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
@@ -291,7 +310,7 @@ export default async function handler(req, res) {
 
             if (userDocs.length > 0 || emails.length > 0) {
                 try {
-                    // 1. ENVIAR PUSH (BATCH OPTIMIZADO)
+                    // 1. ENVIAR PUSH
                     if (config.messaging?.pushEnabled !== false) {
                         const allTokens = [];
                         userDocs.forEach(u => {
@@ -320,7 +339,7 @@ export default async function handler(req, res) {
                         }
                     }
 
-                    // 2. ENVIAR EMAILS (Se mantiene igual)
+                    // 2. ENVIAR EMAILS
                     if (emails.length > 0 && process.env.SMTP_USER && config.messaging?.emailEnabled !== false) {
                         const innerHtml = `<div style="color:#333"><h2 style="color:#6366f1;margin-top:0">${title}</h2><p style="font-size:16px;line-height:1.6">${body}</p>${url && url !== '/' ? `<p><a href="${PWA_URL}${url}" style="background:#6366f1;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold">Ver Oferta</a></p>` : ''}</div>`;
                         const emailPromises = emails.map(({ email, name }) =>
@@ -334,7 +353,7 @@ export default async function handler(req, res) {
                         await Promise.allSettled(emailPromises);
                     }
 
-                    // 3. INBOX (por usuario)
+                    // 3. INBOX
                     if (config.messaging?.inboxEnabled !== false) {
                         const inboxBatch = db.batch();
                         userDocs.forEach(u => {
@@ -369,20 +388,39 @@ export default async function handler(req, res) {
             }
         }
 
-        // Marcar como ejecutado para deduplicación (SOLO si estamos en la ventana de notificación)
-        if (triggerSource !== 'dashboard' && !isManualSim && isWithinNotificationWindow) {
-            const arFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires', year: 'numeric', month: '2-digit', day: '2-digit' });
-            await db.collection('config').doc('campaignCheck').set({
-                lastRunDate: arFormatter.format(now),
-                lastRunTimestamp: admin.firestore.Timestamp.fromDate(now),
-                trigger: triggerSource
-            }, { merge: true });
+        // V.1.6.4: Actualizar auditoría con éxito al finalizar
+        if (auditLogRef) {
+            await auditLogRef.update({
+                status: 'success',
+                summary: `Motor de campañas finalizado: ${results.notified} difusiones, ${results.deactivated} desactivadas.`,
+                details: [results]
+            });
         }
+
+        // Registrar timestamp del último run sin bloquear futuras ejecuciones
+        const arFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires', year: 'numeric', month: '2-digit', day: '2-digit' });
+        await db.collection('config').doc('campaignCheck').set({
+            lastRunDate: arFormatter.format(now),
+            lastRunTimestamp: admin.firestore.Timestamp.fromDate(now),
+            trigger: triggerSource
+        }, { merge: true });
 
         return res.status(200).json({ ok: true, results });
 
     } catch (error) {
         console.error("[Engine-Campaigns] Fatal Error:", error);
+        
+        try {
+            if (auditLogRef) {
+                await auditLogRef.update({
+                    status: 'failed',
+                    summary: `Falla en motor de campañas: ${error.message}`
+                });
+            }
+        } catch (auditErr) {
+            console.error("Failed to update audit log error:", auditErr);
+        }
+
         return res.status(500).json({ ok: false, error: error.message });
     }
 }

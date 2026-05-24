@@ -310,7 +310,7 @@ export default async function handler(req, res) {
 
             if (userDocs.length > 0 || emails.length > 0) {
                 try {
-                    // 1. ENVIAR PUSH
+                    // 1. ENVIAR PUSH (V.1.6.6: Ajustado a data-only para evitar que Chrome bypasee el Service Worker)
                     if (config.messaging?.pushEnabled !== false) {
                         const allTokens = [];
                         userDocs.forEach(u => {
@@ -319,19 +319,41 @@ export default async function handler(req, res) {
                         });
 
                         if (allTokens.length > 0) {
+                            // Reemplazar {nombre} por "Socio" para el envío masivo (multicast)
+                            const pushBody = body.replace(/{nombre}/g, 'Socio');
+                            
                             const chunks = [];
                             for (let i = 0; i < allTokens.length; i += 500) chunks.push(allTokens.slice(i, i + 500));
                             
                             for (const chunk of chunks) {
                                 try {
+                                    // IMPORTANTE: Se usa SOLO el campo 'data' (sin 'notification' top-level)
+                                    // para asegurar que el SW siempre procese la notificación en segundo plano.
                                     await app.messaging().sendEachForMulticast({
                                         tokens: chunk,
-                                        notification: { title, body },
-                                        data: { title, body, url, type: "campaign", icon: iconUrl },
-                                        android: { priority: "high", notification: { sound: "default", channelId: "fidelidad-notif-channel" } },
-                                        webpush: { fcmOptions: { link: `${PWA_URL}${url.startsWith('/') ? url : '/' + url}` } }
+                                        data: { 
+                                            id: db.collection("_ids").doc().id,
+                                            title, 
+                                            body: pushBody, 
+                                            url, 
+                                            click_action: url,
+                                            type: "campaign", 
+                                            icon: iconUrl,
+                                            badge: iconUrl
+                                        },
+                                        android: { 
+                                            priority: "high",
+                                            notification: {
+                                                sound: "default",
+                                                channelId: "fidelidad-notif-channel"
+                                            }
+                                        },
+                                        webpush: { 
+                                            headers: { Urgent: "high" },
+                                            fcmOptions: { link: `${PWA_URL}${url.startsWith('/') ? url : '/' + url}` } 
+                                        }
                                     });
-                                    console.log(`[Engine-Campaigns] Push batch sent.`);
+                                    console.log(`[Engine-Campaigns] Push batch sent (data-only).`);
                                 } catch (pError) {
                                     console.error("[Engine-Campaigns] Push chunk error:", pError.message);
                                 }
@@ -339,36 +361,46 @@ export default async function handler(req, res) {
                         }
                     }
 
-                    // 2. ENVIAR EMAILS (V.1.6.5: Refactorizado usando el endpoint unificado de notifications)
+                    // 2. ENVIAR EMAILS (V.1.6.6: Envío directo por SMTP para evitar fallos de fetch loopback)
                     if (emails.length > 0 && config.messaging?.emailEnabled !== false) {
-                        const SECRET = (process.env.API_SECRET_KEY || process.env.VITE_API_KEY || "").trim();
-                        const emailPromises = emails.map(({ email, name }) => {
-                            const htmlContent = buildHtmlLayout(`<div style="color:#333"><h2 style="color:#6366f1;margin-top:0">${title}</h2><p style="font-size:16px;line-height:1.6">${body}</p>${url && url !== '/' ? `<p><a href="${PWA_URL}${url}" style="background:#6366f1;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold">Ver Oferta</a></p>` : ''}</div>`, config);
-                            
-                            return fetch(`${PWA_URL}/api/notifications?action=email`, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'x-api-key': SECRET
-                                },
-                                body: JSON.stringify({
+                        const emailPromises = emails.map(async ({ email, name }) => {
+                            // Personalizar {nombre} en el cuerpo
+                            const personalizedBody = body.replace(/{nombre}/g, name || 'Socio');
+                            const htmlContent = buildHtmlLayout(
+                                `<div style="color:#333">
+                                    <h2 style="color:#6366f1;margin-top:0">${title}</h2>
+                                    <p style="font-size:16px;line-height:1.6">${personalizedBody}</p>
+                                    ${url && url !== '/' ? `<p><a href="${PWA_URL}${url}" style="background:#6366f1;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold">Ver Oferta</a></p>` : ''}
+                                 </div>`,
+                                config
+                            );
+
+                            try {
+                                const sendInfo = await transporter.sendMail({
+                                    from: `"${config.siteName || 'Club Fidelidad'}" <${process.env.SMTP_USER}>`,
                                     to: email,
-                                    templateId: 'manual_override',
-                                    templateData: {
-                                        htmlContent: htmlContent,
-                                        subject: title
-                                    },
-                                    executor: 'system'
-                                })
-                            }).then(async (r) => {
-                                if (!r.ok) {
-                                    const text = await r.text();
-                                    throw new Error(`HTTP ${r.status}: ${text}`);
+                                    subject: title,
+                                    html: htmlContent
+                                });
+
+                                // Auditoría de éxito
+                                let userId = 'unknown';
+                                const userQuery = await db.collection('users').where('email', '==', email).limit(1).get();
+                                if (!userQuery.empty) {
+                                    userId = userQuery.docs[0].id;
                                 }
-                                return r.json();
-                            }).catch(e => {
+
+                                return db.collection('audit_logs').add({
+                                    timestamp: admin.firestore.Timestamp.fromDate(now),
+                                    type: 'email_notification',
+                                    status: 'success',
+                                    summary: `Email enviado a ${name} (${email}): "${title}"`,
+                                    details: [{ userId, userName: name, to: email, subject: title, messageId: sendInfo.messageId, campName: camp.name }],
+                                    executor: 'system'
+                                });
+                            } catch (e) {
                                 console.error(`[Engine-Campaigns] Campaign email error for ${email}:`, e.message);
-                                // Registrar error en la base de datos para diagnóstico del cliente
+                                // Auditoría de error
                                 return db.collection('audit_logs').add({
                                     timestamp: admin.firestore.Timestamp.fromDate(now),
                                     type: 'campaign_email_error',
@@ -377,19 +409,27 @@ export default async function handler(req, res) {
                                     details: [{ email, error: e.message, campName: camp.name }],
                                     executor: 'system'
                                 });
-                            });
+                            }
                         });
                         await Promise.allSettled(emailPromises);
                     }
 
-                    // 3. INBOX
+                    // 3. INBOX (V.1.6.6: Reemplazo dinámico de {nombre} y campos extendidos)
                     if (config.messaging?.inboxEnabled !== false) {
                         const inboxBatch = db.batch();
                         userDocs.forEach(u => {
                             const inboxRef = u.ref.collection('inbox').doc();
+                            // Personalizar {nombre} en el cuerpo
+                            const personalizedBody = body.replace(/{nombre}/g, u.data.name || u.data.nombre || 'Socio');
                             inboxBatch.set(inboxRef, {
-                                title, body, url, type: 'campaign', read: false,
-                                date: admin.firestore.Timestamp.fromDate(now)
+                                title, 
+                                body: personalizedBody, 
+                                url, 
+                                type: 'campaign', 
+                                read: false,
+                                date: admin.firestore.Timestamp.fromDate(now),
+                                sentAt: admin.firestore.Timestamp.fromDate(now),
+                                status: "sent"
                             });
                         });
                         await inboxBatch.commit();

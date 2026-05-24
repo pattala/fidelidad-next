@@ -179,21 +179,7 @@ export const GlobalAlerts = () => {
                     const data = d.data();
                     const dtl = data.details?.find((x: any) => x.action === 'prize_redeemed');
                     if (dtl) {
-                        let detailDateStr = '';
-                        if (dtl.timestamp) {
-                            try {
-                                const dDate = new Date(dtl.timestamp);
-                                if (!isNaN(dDate.getTime())) {
-                                    const tzDate = new Date(dDate.toLocaleString("en-US", {timeZone: "America/Argentina/Buenos_Aires"}));
-                                    const y = tzDate.getFullYear();
-                                    const m = String(tzDate.getMonth() + 1).padStart(2, '0');
-                                    const d = String(tzDate.getDate()).padStart(2, '0');
-                                    detailDateStr = `${y}-${m}-${d}`;
-                                }
-                            } catch (e) {
-                                detailDateStr = dtl.timestamp.split('T')[0];
-                            }
-                        }
+                        let detailDateStr = dtl.timestamp ? dtl.timestamp.split('T')[0] : '';
                         if (!detailDateStr) {
                             const logDate = data.timestamp?.toDate ? data.timestamp.toDate() : new Date();
                             const tzDate = new Date(logDate.toLocaleString("en-US", {timeZone: "America/Argentina/Buenos_Aires"}));
@@ -233,21 +219,7 @@ export const GlobalAlerts = () => {
                     const data = d.data();
                     const dtl = data.details?.find((x: any) => x.action === 'points_credited');
                     if (dtl) {
-                        let detailDateStr = '';
-                        if (dtl.timestamp) {
-                            try {
-                                const dDate = new Date(dtl.timestamp);
-                                if (!isNaN(dDate.getTime())) {
-                                    const tzDate = new Date(dDate.toLocaleString("en-US", {timeZone: "America/Argentina/Buenos_Aires"}));
-                                    const y = tzDate.getFullYear();
-                                    const m = String(tzDate.getMonth() + 1).padStart(2, '0');
-                                    const d = String(tzDate.getDate()).padStart(2, '0');
-                                    detailDateStr = `${y}-${m}-${d}`;
-                                }
-                            } catch (e) {
-                                detailDateStr = dtl.timestamp.split('T')[0];
-                            }
-                        }
+                        let detailDateStr = dtl.timestamp ? dtl.timestamp.split('T')[0] : '';
                         if (!detailDateStr) {
                             const logDate = data.timestamp?.toDate ? data.timestamp.toDate() : new Date();
                             const tzDate = new Date(logDate.toLocaleString("en-US", {timeZone: "America/Argentina/Buenos_Aires"}));

@@ -6,6 +6,12 @@ import { ChevronDown, Sparkles, Bell, EyeOff, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export const GlobalAlerts = () => {
+    const effectiveDate = TimeService.now();
+    const year = effectiveDate.getFullYear();
+    const month = String(effectiveDate.getMonth() + 1).padStart(2, '0');
+    const day = String(effectiveDate.getDate()).padStart(2, '0');
+    const todayStr = `${year}-${month}-${day}`;
+
     const [birthdaysOfToday, setBirthdaysOfToday] = useState<any[]>([]);
     const [expiringUsers, setExpiringUsers] = useState<any[]>([]);
     const [petAlerts, setPetAlerts] = useState<any[]>([]);

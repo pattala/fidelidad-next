@@ -1,1 +1,1 @@
-V.1.6.0 - QA Bug Fixes & Mejoras (Tolerancia estricta configurada, simulación de alertas y auto-archivado dinámico de campañas flash).
+V.1.6.3 - QA Timezone & Scope Fixes (Solucionado timezone double-shifting en compras y ReferenceError de campaña flash).

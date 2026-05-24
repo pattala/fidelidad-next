@@ -263,7 +263,7 @@ export default async function handler(req, res) {
     const db = initFirebaseAdmin().firestore();
 
     // Auth Check
-    const SECRET = (process.env.API_SECRET_KEY || "").trim();
+    const SECRET = (process.env.API_SECRET_KEY || process.env.VITE_API_KEY || "").trim();
     const receivedKey = req.headers["x-api-key"] || req.headers["X-API-Key"] || req.body?.apiKey;
     const authHeader = req.headers["authorization"];
     let authorized = (receivedKey && receivedKey === SECRET);

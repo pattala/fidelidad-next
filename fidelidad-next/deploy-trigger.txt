@@ -1,1 +1,1 @@
-V.1.6.4 - Campaign engine refactoring, global lock removal, and dual WhatsApp flow (CSV + interactive queue).
+V.1.6.5 - Unify campaign emails under notifications API, support VITE_API_KEY frontend fallback authorization, and boost PWA clock reactivity to 10s.

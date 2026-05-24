@@ -339,17 +339,46 @@ export default async function handler(req, res) {
                         }
                     }
 
-                    // 2. ENVIAR EMAILS
-                    if (emails.length > 0 && process.env.SMTP_USER && config.messaging?.emailEnabled !== false) {
-                        const innerHtml = `<div style="color:#333"><h2 style="color:#6366f1;margin-top:0">${title}</h2><p style="font-size:16px;line-height:1.6">${body}</p>${url && url !== '/' ? `<p><a href="${PWA_URL}${url}" style="background:#6366f1;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold">Ver Oferta</a></p>` : ''}</div>`;
-                        const emailPromises = emails.map(({ email, name }) =>
-                            transporter.sendMail({
-                                from: `"${config.siteName || 'Club Fidelidad'}" <${process.env.SMTP_USER}>`,
-                                to: email,
-                                subject: title,
-                                html: buildHtmlLayout(innerHtml, config)
-                            }).catch(e => console.error(`Campaign email error for ${email}:`, e.message))
-                        );
+                    // 2. ENVIAR EMAILS (V.1.6.5: Refactorizado usando el endpoint unificado de notifications)
+                    if (emails.length > 0 && config.messaging?.emailEnabled !== false) {
+                        const SECRET = (process.env.API_SECRET_KEY || process.env.VITE_API_KEY || "").trim();
+                        const emailPromises = emails.map(({ email, name }) => {
+                            const htmlContent = buildHtmlLayout(`<div style="color:#333"><h2 style="color:#6366f1;margin-top:0">${title}</h2><p style="font-size:16px;line-height:1.6">${body}</p>${url && url !== '/' ? `<p><a href="${PWA_URL}${url}" style="background:#6366f1;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold">Ver Oferta</a></p>` : ''}</div>`, config);
+                            
+                            return fetch(`${PWA_URL}/api/notifications?action=email`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'x-api-key': SECRET
+                                },
+                                body: JSON.stringify({
+                                    to: email,
+                                    templateId: 'manual_override',
+                                    templateData: {
+                                        htmlContent: htmlContent,
+                                        subject: title
+                                    },
+                                    executor: 'system'
+                                })
+                            }).then(async (r) => {
+                                if (!r.ok) {
+                                    const text = await r.text();
+                                    throw new Error(`HTTP ${r.status}: ${text}`);
+                                }
+                                return r.json();
+                            }).catch(e => {
+                                console.error(`[Engine-Campaigns] Campaign email error for ${email}:`, e.message);
+                                // Registrar error en la base de datos para diagnóstico del cliente
+                                return db.collection('audit_logs').add({
+                                    timestamp: admin.firestore.Timestamp.fromDate(now),
+                                    type: 'campaign_email_error',
+                                    status: 'failed',
+                                    summary: `Error al enviar email a ${name} (${email})`,
+                                    details: [{ email, error: e.message, campName: camp.name }],
+                                    executor: 'system'
+                                });
+                            });
+                        });
                         await Promise.allSettled(emailPromises);
                     }
 

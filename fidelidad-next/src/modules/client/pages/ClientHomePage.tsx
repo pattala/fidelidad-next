@@ -666,7 +666,7 @@ export const ClientHomePage = () => {
     useEffect(() => {
         const interval = setInterval(() => {
             setCurrentTimeStore(TimeService.now());
-        }, 60000); // Actualizar cada minuto para expirar ofertas flash
+        }, 10000); // V.1.6.5: Actualizar cada 10 segundos para activación instantánea
         return () => clearInterval(interval);
     }, []);
 

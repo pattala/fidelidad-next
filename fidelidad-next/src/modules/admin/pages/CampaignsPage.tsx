@@ -341,7 +341,7 @@ export const CampaignsPage = () => {
         const load = toast.loading('Duplicando campaña...');
         try {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { id, ...rest } = bonus;
+            const { id, broadcastSentAt, lastBroadcastDate, lastBroadcastCount, ...rest } = bonus;
             const newBonus = {
                 ...rest,
                 name: `${bonus.name} (COPIA)`,

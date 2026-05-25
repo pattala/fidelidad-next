@@ -671,7 +671,7 @@ export const ClientHomePage = () => {
                 window.__enginePinging = true;
                 fetch('/api/engine-campaigns?trigger=pwa', { method: 'POST', headers: { 'x-api-key': import.meta.env.VITE_API_KEY || '' } }).finally(() => { window.__enginePinging = false; }).catch(() => {});
             }
-        }, 60000); // V.1.6.5: Actualizar cada 10 segundos para activación instantánea
+        }, 10000); // V.1.6.5: Actualizar cada 10 segundos para activación instantánea
         return () => clearInterval(interval);
     }, []);
 

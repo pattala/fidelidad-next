@@ -442,8 +442,7 @@ export default async function handler(req, res) {
                     // 3. ACTUALIZAR MARCA DE ENVÍO
                     await doc.ref.update({ broadcastSentAt: todayStr });
                     results.notified++;
-                    const affected = userDocs.map(u => ({ id: u.id, name: u.data.name || u.data.nombre || 'Socio', email: u.data.email }));
-                    results.details.push({ id: campId, name: camp.name, tokens: fcmTokens.length, users: affected });
+                    results.details.push({ id: campId, name: camp.name, tokens: fcmTokens.length });
 
                     // Auditoría + Recordatorio de WhatsApp
                     await db.collection('audit_logs').add({
@@ -451,7 +450,7 @@ export default async function handler(req, res) {
                         type: 'campaign_broadcast',
                         status: 'success',
                         summary: `Difusión automática: ${camp.name}`,
-                        details: [{ campId, notifiedCount: fcmTokens.length, userCount: userDocs.length, title, trigger: req.query.trigger || 'auto', action: 'campaign_broadcasted', campName: camp.name, timestamp: now.toISOString(), affectedUsers: affected }],
+                        details: [{ campId, notifiedCount: fcmTokens.length, userCount: userDocs.length, title, trigger: req.query.trigger || 'auto', action: 'campaign_broadcasted', campName: camp.name, timestamp: now.toISOString() }],
                         executor: 'system'
                     });
 

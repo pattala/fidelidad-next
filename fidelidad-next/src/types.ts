@@ -102,6 +102,7 @@ export interface User {
 export type MessagingChannel = 'whatsapp' | 'email' | 'push';
 
 export interface AppConfig {
+    extensionRefreshInterval?: number;
     // Branding
     siteName: string;
     primaryColor: string;
@@ -183,6 +184,7 @@ export interface AppConfig {
         };
 
         templates?: {
+            // Cuerpo Principal (Email/Push body) - campos existentes
             pointsAdded?: string;
             redemption?: string;
             welcome?: string;
@@ -191,11 +193,37 @@ export interface AppConfig {
             flashOffer?: string;
             birthday?: string;
             birthdaySimple?: string;
-            expirationWarning?: string; // Tono: Tenés {puntos} pts para gastar antes del {fecha}! Mirá lo que podés llevarte →
+            expirationWarning?: string;
             referralChallenge?: string;
             referralReward?: string;
             referralPoints?: string;
             petFoodAlert?: string;
+            // Títulos para Email/Push (asunto del email / título del push)
+            pointsAdded_title?: string;
+            redemption_title?: string;
+            welcome_title?: string;
+            campaign_title?: string;
+            offer_title?: string;
+            flashOffer_title?: string;
+            birthday_title?: string;
+            expirationWarning_title?: string;
+            referralChallenge_title?: string;
+            referralReward_title?: string;
+            referralPoints_title?: string;
+            petFoodAlert_title?: string;
+            // Cuerpo específico de WhatsApp (si difiere del cuerpo principal)
+            pointsAdded_whatsapp?: string;
+            redemption_whatsapp?: string;
+            welcome_whatsapp?: string;
+            campaign_whatsapp?: string;
+            offer_whatsapp?: string;
+            flashOffer_whatsapp?: string;
+            birthday_whatsapp?: string;
+            expirationWarning_whatsapp?: string;
+            referralChallenge_whatsapp?: string;
+            referralReward_whatsapp?: string;
+            referralPoints_whatsapp?: string;
+            petFoodAlert_whatsapp?: string;
         };
         enableExpirationWarnings?: boolean;
         repeatExpirationWarnings?: boolean;

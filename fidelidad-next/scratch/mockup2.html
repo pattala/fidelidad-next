@@ -1,0 +1,716 @@
+﻿<!DOCTYPE html>
+<html lang='es'>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>Mockup Panel de Mensajería</title>
+    <script src='https://cdn.tailwindcss.com'></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; }
+
+        /* Modal Styles */
+        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
+        .modal-content { background-color: #fff; margin: 8% auto; padding: 24px; border-radius: 16px; width: 90%; max-width: 500px; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.15), 0 8px 10px -6px rgb(0 0 0 / 0.15); border: 1px solid #e5e7eb; position: relative; }
+        
+        /* WhatsApp Formatting */
+        .wa-bubble { background-color: #dcf8c6; padding: 12px 16px; border-radius: 12px; border-top-left-radius: 0; display: inline-block; max-w: 85%; position: relative; margin-top: 10px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 15px; line-height: 1.4; color: #111; box-shadow: 0 1px 0.5px rgba(0,0,0,0.13); }
+        .wa-bubble::before { content: ''; position: absolute; top: 0; left: -10px; border-width: 0 10px 10px 0; border-style: solid; border-color: transparent #dcf8c6 transparent transparent; }
+        
+        /* Email Formatting */
+        .email-container { border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
+        .email-header { background-color: #f9fafb; padding: 14px 18px; border-bottom: 1px solid #e5e7eb; }
+        .email-body { padding: 24px; background-color: #ffffff; color: #374151; font-size: 15.5px; line-height: 1.6; }
+
+    </style>
+</head>
+<body class='p-8 text-gray-800'>
+    <div class='max-w-3xl mx-auto space-y-8'>
+        
+        <div class='mb-8 bg-blue-50 p-6 rounded-xl border border-blue-100'>
+            <h1 class='text-3xl font-bold text-blue-900'>Propuesta: Nuevo Gestor de Mensajes</h1>
+            <p class='text-blue-700 mt-2 font-medium'>Acá están <b>TODOS</b> los mensajes del sistema armados. Las cajas de 'Título' están pre-cargadas con los textos que hoy estaban ocultos en el código. Podés probar los botones de Vista Previa para ver cómo se diferencian el Mail y el WhatsApp.</p>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- IMAGEN 1: CONTROLES MAESTROS (NO SE TOCAN) -->
+        <!-- ========================================== -->
+        
+        <!-- 1. MASTER SWITCHES (Global Control) -->
+        <div class='bg-white p-6 rounded-2xl shadow-sm border border-gray-200'>
+            <h3 class='text-lg font-bold text-gray-800 mb-4 flex items-center gap-2'>
+                ⚙️ Control Maestro de Canales
+            </h3>
+            <div class='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                <!-- WhatsApp Switch -->
+                <div class='p-4 rounded-xl border flex flex-col items-center gap-3 bg-green-50 border-green-200'>
+                    <div class='flex items-center gap-2 font-bold text-gray-700'>
+                        <span class='text-green-500 text-xl'>💬</span> WhatsApp
+                    </div>
+                    <button type='button' class='relative inline-flex h-6 w-11 items-center rounded-full transition-colors bg-green-500'>
+                        <span class='inline-block h-4 w-4 transform rounded-full bg-white transition translate-x-6'></span>
+                    </button>
+                </div>
+
+                <!-- Email Switch -->
+                <div class='p-4 rounded-xl border flex flex-col items-center gap-3 bg-blue-50 border-blue-200'>
+                    <div class='flex items-center gap-2 font-bold text-gray-700'>
+                        <span class='text-blue-500 text-xl'>✉️</span> Email
+                    </div>
+                    <button type='button' class='relative inline-flex h-6 w-11 items-center rounded-full transition-colors bg-blue-500'>
+                        <span class='inline-block h-4 w-4 transform rounded-full bg-white transition translate-x-6'></span>
+                    </button>
+                </div>
+
+                <!-- Push Switch -->
+                <div class='p-4 rounded-xl border flex flex-col items-center gap-3 bg-purple-50 border-purple-200'>
+                    <div class='flex items-center gap-2 font-bold text-gray-700'>
+                        <span class='text-purple-500 text-xl'>🔔</span> Push
+                    </div>
+                    <button type='button' class='relative inline-flex h-6 w-11 items-center rounded-full transition-colors bg-purple-500'>
+                        <span class='inline-block h-4 w-4 transform rounded-full bg-white transition translate-x-6'></span>
+                    </button>
+                </div>
+            </div>
+            <p class='text-xs text-gray-400 mt-3 text-center'>Estos interruptores son globales. Si apagas uno aquí, ningún mensaje saldrá por ese canal, sin importar las reglas de abajo.</p>
+        </div>
+
+        <!-- 2. Permisos y Refuerzo Contextual (PWA) -->
+        <div class='bg-white p-6 rounded-2xl shadow-sm border border-gray-200 space-y-6'>
+            <h3 class='text-lg font-bold text-gray-800 flex items-center gap-2'>
+                🔔 Permisos y Refuerzo Contextual (PWA)
+            </h3>
+            
+            <div class='space-y-4'>
+                <div class='bg-white p-4 rounded-xl border border-purple-100 flex items-center justify-between shadow-sm'>
+                    <div class='flex items-center gap-3'>
+                        <div class='w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-500'>
+                            <span class='text-lg'>🔔</span>
+                        </div>
+                        <div>
+                            <h4 class='font-black text-gray-800 uppercase tracking-tighter text-sm'>RE-INTENTO DE PERMISOS PWA</h4>
+                            <p class='text-xs text-gray-500'>Volver a mostrar carteles si el cliente eligió "Quizás Luego".</p>
+                        </div>
+                    </div>
+                    <button type='button' class='relative inline-flex h-6 w-12 items-center rounded-full transition-colors bg-purple-600'>
+                        <span class='absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform translate-x-5'></span>
+                    </button>
+                </div>
+
+                <div class='bg-white p-4 rounded-xl border border-purple-100 flex items-center gap-6 shadow-sm'>
+                    <div class='w-24 h-16 bg-purple-50/50 rounded-lg border border-purple-100 flex items-center justify-center'>
+                        <span class='font-black text-2xl text-purple-600'>3</span>
+                    </div>
+                    <div>
+                        <span class='font-bold text-gray-800 block text-sm'>Días para volver a preguntar.</span>
+                        <p class='text-[10px] text-gray-400 leading-tight'>Días de silencio antes de volver a molestar con el cartel de Notificaciones o Beneficios Locales.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configuración de Carteles PWA -->
+            <div class='bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4'>
+                <div class='flex items-center gap-3 mb-2'>
+                    <div class='w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-500'>
+                        <span class='text-lg'>🔔</span>
+                    </div>
+                    <div>
+                        <h4 class='font-black text-gray-800 uppercase tracking-tighter text-sm'>CONFIGURACIÓN DE CARTELES PWA</h4>
+                        <p class='text-xs text-gray-500'>Límites y tiempos para mostrar los avisos a los clientes.</p>
+                    </div>
+                </div>
+
+                <div class='p-4 bg-blue-50/50 rounded-xl border border-dashed border-blue-200 space-y-4'>
+                    <div class='grid grid-cols-2 gap-4'>
+                        <div class='bg-white p-3 rounded-lg border border-blue-100 shadow-sm text-center'>
+                            <label class='block text-[10px] font-bold text-gray-400 uppercase mb-1'>MÁX. INTENTOS PC</label>
+                            <span class='font-bold text-lg text-gray-800'>2</span>
+                        </div>
+                        <div class='bg-white p-3 rounded-lg border border-blue-100 shadow-sm text-center'>
+                            <label class='block text-[10px] font-bold text-gray-400 uppercase mb-1'>MÁX. INTENTOS CELULAR</label>
+                            <span class='font-bold text-lg text-gray-800'>2</span>
+                        </div>
+                    </div>
+                    
+                    <div class='bg-white p-3 rounded-lg border border-blue-100 shadow-sm'>
+                        <span class='text-[10px] font-bold text-blue-700 block mb-2'>⏳ Cooldown para Celulares (Programado)</span>
+                        <div class='grid grid-cols-3 gap-2 text-center'>
+                            <div class='bg-gray-50 p-2 rounded border border-gray-100'>
+                                <span class='block text-[9px] font-bold text-gray-400 uppercase'>HORAS</span>
+                                <span class='font-bold text-sm text-gray-700'>0</span>
+                            </div>
+                            <div class='bg-gray-50 p-2 rounded border border-gray-100'>
+                                <span class='block text-[9px] font-bold text-gray-400 uppercase'>MINUTOS</span>
+                                <span class='font-bold text-sm text-gray-700'>2</span>
+                            </div>
+                            <div class='bg-gray-50 p-2 rounded border border-gray-100'>
+                                <span class='block text-[9px] font-bold text-gray-400 uppercase'>SEGUNDOS</span>
+                                <span class='font-bold text-sm text-gray-700'>0</span>
+                            </div>
+                        </div>
+                        <p class='text-[9px] text-gray-400 mt-2 leading-tight italic'>Si el cliente elige "Quizás luego", esta configuración determina cuánto tiempo debe pasar para volver a preguntar. Total decimal: 0.0333 hs.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Configuración de WhatsApp -->
+        <div class='bg-white p-6 rounded-2xl shadow-sm border border-gray-200 space-y-4'>
+            <h3 class='text-lg font-bold text-gray-800 flex items-center gap-2'>
+                ⚙️ Configuración de WhatsApp
+            </h3>
+            <div>
+                <label class='block text-xs font-bold text-gray-500 mb-2'>Tu Número (Business)</label>
+                <input type='text' value='+5491169616261' disabled class='w-full px-4 py-2.5 rounded-lg border border-gray-200 bg-gray-50 text-gray-700 font-medium outline-none'>
+                <p class='text-[10px] text-gray-400 mt-1 italic'>Formato: 54911xxxxxxxx (Sin 0 ni 15)</p>
+            </div>
+        </div>
+
+        <hr class='border-gray-200 my-8'>
+
+
+        <!-- SECCIÓN A: CAMPAÑAS -->
+        <div>
+            <h2 class='text-2xl font-bold mb-4 flex items-center gap-2'><span class='text-blue-500'>📢</span> SECCIÓN A: Campañas Masivas</h2>
+            
+            <div class='bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mb-6'>
+                <h3 class='text-lg font-bold text-gray-800 mb-4 flex items-center gap-2'>⚡ 1. Oferta Flash <span class='text-[10px] bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full uppercase'>Crítico</span></h3>
+                <div class='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                    <div class='bg-blue-50/30 p-4 rounded-xl border border-blue-100'>
+                        <label class='block text-sm font-bold text-blue-800 mb-2'>A. Título (Asunto Mail / Push)</label>
+                        <input id='t1' type='text' value='⚡ ¡OFERTA FLASH!' class='w-full px-3 py-2 rounded-lg border border-blue-200 mb-4 font-medium'>
+                        <label class='block text-sm font-bold text-blue-800 mb-2'>B. Cuerpo Principal</label>
+                        <textarea id='b1' rows='3' class='w-full px-3 py-2 rounded-lg border border-blue-200 mb-2'>⚡ ¡OFERTA FLASH! {titulo}: {detalle}. Solo disponible hoy hasta las {horario} hs. 👇</textarea>
+                        <button onclick='previewMail("t1","b1")' class='text-sm text-blue-600 font-bold hover:underline'>👁️ Vista Previa Email</button>
+                    </div>
+                    <div class='bg-green-50/30 p-4 rounded-xl border border-green-100'>
+                        <label class='block text-sm font-bold text-green-800 mb-2'>C. Cuerpo WhatsApp (Específico)</label>
+                        <textarea id='w1' rows='3' class='w-full px-3 py-2 rounded-lg border border-green-200 mb-2'>*OFERTA FLASH* ⚡
+{titulo}: {detalle}. Solo disponible hoy hasta las {horario} hs.</textarea>
+                        <button onclick='previewWhatsApp("w1")' class='text-sm text-green-600 font-bold hover:underline'>🟢 Previsualizar WhatsApp</button>
+                    </div>
+                </div>
+
+                <!-- CANALES DE ENVÍO -->
+                <div class='mt-4 bg-gray-50/50 p-3 rounded-xl border border-gray-100'>
+                    <span class='text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2'>Canales de Envío</span>
+                    <div class='flex gap-4'>
+                        <label class='flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer hover:bg-white px-2 py-1 rounded border border-transparent hover:border-gray-200 transition'>
+                            <input type='checkbox' checked class='rounded text-green-600 focus:ring-green-500 border-gray-300'> WhatsApp
+                        </label>
+                        <label class='flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer hover:bg-white px-2 py-1 rounded border border-transparent hover:border-gray-200 transition'>
+                            <input type='checkbox' checked class='rounded text-blue-600 focus:ring-blue-500 border-gray-300'> Email
+                        </label>
+                        <label class='flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer hover:bg-white px-2 py-1 rounded border border-transparent hover:border-gray-200 transition'>
+                            <input type='checkbox' checked class='rounded text-purple-600 focus:ring-purple-500 border-gray-300'> Push
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class='bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mb-6'>
+                <h3 class='text-lg font-bold text-gray-800 mb-4 flex items-center gap-2'>🏷️ 2. Oferta Especial</h3>
+                <div class='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                    <div class='bg-blue-50/30 p-4 rounded-xl border border-blue-100'>
+                        <label class='block text-sm font-bold text-blue-800 mb-2'>A. Título (Asunto Mail / Push)</label>
+                        <input id='t2' type='text' value='🏷️ ¡Oferta Especial!' class='w-full px-3 py-2 rounded-lg border border-blue-200 mb-4 font-medium'>
+                        <label class='block text-sm font-bold text-blue-800 mb-2'>B. Cuerpo Principal</label>
+                        <textarea id='b2' rows='3' class='w-full px-3 py-2 rounded-lg border border-blue-200 mb-2'>🏷️ ¡Oferta Especial! {titulo}: {detalle}. Válido hasta {vencimiento}.</textarea>
+                        <button onclick='previewMail("t2","b2")' class='text-sm text-blue-600 font-bold hover:underline'>👁️ Vista Previa Email</button>
+                    </div>
+                    <div class='bg-green-50/30 p-4 rounded-xl border border-green-100'>
+                        <label class='block text-sm font-bold text-green-800 mb-2'>C. Cuerpo WhatsApp (Específico)</label>
+                        <textarea id='w2' rows='3' class='w-full px-3 py-2 rounded-lg border border-green-200 mb-2'>*¡Oferta Especial!* 🏷️
+{titulo}: {detalle}. Válido hasta {vencimiento}.</textarea>
+                        <button onclick='previewWhatsApp("w2")' class='text-sm text-green-600 font-bold hover:underline'>🟢 Previsualizar WhatsApp</button>
+                    </div>
+                </div>
+
+                <!-- CANALES DE ENVÍO -->
+                <div class='mt-4 bg-gray-50/50 p-3 rounded-xl border border-gray-100'>
+                    <span class='text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2'>Canales de Envío</span>
+                    <div class='flex gap-4'>
+                        <label class='flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer hover:bg-white px-2 py-1 rounded border border-transparent hover:border-gray-200 transition'>
+                            <input type='checkbox' checked class='rounded text-green-600 focus:ring-green-500 border-gray-300'> WhatsApp
+                        </label>
+                        <label class='flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer hover:bg-white px-2 py-1 rounded border border-transparent hover:border-gray-200 transition'>
+                            <input type='checkbox' checked class='rounded text-blue-600 focus:ring-blue-500 border-gray-300'> Email
+                        </label>
+                        <label class='flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer hover:bg-white px-2 py-1 rounded border border-transparent hover:border-gray-200 transition'>
+                            <input type='checkbox' checked class='rounded text-purple-600 focus:ring-purple-500 border-gray-300'> Push
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class='bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mb-6'>
+                <h3 class='text-lg font-bold text-gray-800 mb-4 flex items-center gap-2'>🚀 3. Nueva Campaña</h3>
+                <div class='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                    <div class='bg-blue-50/30 p-4 rounded-xl border border-blue-100'>
+                        <label class='block text-sm font-bold text-blue-800 mb-2'>A. Título (Asunto Mail / Push)</label>
+                        <input id='t3' type='text' value='🚀 ¡Nueva Campaña!' class='w-full px-3 py-2 rounded-lg border border-blue-200 mb-4 font-medium'>
+                        <label class='block text-sm font-bold text-blue-800 mb-2'>B. Cuerpo Principal</label>
+                        <textarea id='b3' rows='3' class='w-full px-3 py-2 rounded-lg border border-blue-200 mb-2'>🚀 ¡Nueva Campaña! {titulo}: {descripcion}</textarea>
+                        <button onclick='previewMail("t3","b3")' class='text-sm text-blue-600 font-bold hover:underline'>👁️ Vista Previa Email</button>
+                    </div>
+                    <div class='bg-green-50/30 p-4 rounded-xl border border-green-100'>
+                        <label class='block text-sm font-bold text-green-800 mb-2'>C. Cuerpo WhatsApp</label>
+                        <textarea id='w3' rows='3' class='w-full px-3 py-2 rounded-lg border border-green-200 mb-2'>🚀 *{titulo}*
+{descripcion}</textarea>
+                        <button onclick='previewWhatsApp("w3")' class='text-sm text-green-600 font-bold hover:underline'>🟢 Previsualizar WhatsApp</button>
+                    </div>
+                </div>
+
+                <!-- CANALES DE ENVÍO -->
+                <div class='mt-4 bg-gray-50/50 p-3 rounded-xl border border-gray-100'>
+                    <span class='text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2'>Canales de Envío</span>
+                    <div class='flex gap-4'>
+                        <label class='flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer hover:bg-white px-2 py-1 rounded border border-transparent hover:border-gray-200 transition'>
+                            <input type='checkbox' checked class='rounded text-green-600 focus:ring-green-500 border-gray-300'> WhatsApp
+                        </label>
+                        <label class='flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer hover:bg-white px-2 py-1 rounded border border-transparent hover:border-gray-200 transition'>
+                            <input type='checkbox' checked class='rounded text-blue-600 focus:ring-blue-500 border-gray-300'> Email
+                        </label>
+                        <label class='flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer hover:bg-white px-2 py-1 rounded border border-transparent hover:border-gray-200 transition'>
+                            <input type='checkbox' checked class='rounded text-purple-600 focus:ring-purple-500 border-gray-300'> Push
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- SECCIÓN B: EVENTOS DIARIOS -->
+        <div>
+            <h2 class='text-2xl font-bold mb-4 mt-8 flex items-center gap-2'><span class='text-purple-500'>⚙️</span> SECCIÓN B: Eventos Automáticos</h2>
+            
+            <div class='bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mb-6'>
+                <h3 class='text-lg font-bold text-gray-800 mb-4 flex items-center gap-2'>🌟 4. Suma de Puntos (Escáner/Carga)</h3>
+                <div class='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                    <div class='bg-blue-50/30 p-4 rounded-xl border border-blue-100'>
+                        <label class='block text-sm font-bold text-blue-800 mb-2'>A. Título (Asunto Mail / Push)</label>
+                        <input id='t4' type='text' value='🎉 ¡Puntos Sumados! 🌟' class='w-full px-3 py-2 rounded-lg border border-blue-200 mb-4 font-medium'>
+                        <label class='block text-sm font-bold text-blue-800 mb-2'>B. Cuerpo Principal</label>
+                        <textarea id='b4' rows='3' class='w-full px-3 py-2 rounded-lg border border-blue-200 mb-2'>🌟 ¡Hola {nombre}! 🎉 Sumaste {puntos} puntos. Tu nuevo saldo es {saldo} 🎁</textarea>
+                        <button onclick='previewMail("t4","b4")' class='text-sm text-blue-600 font-bold hover:underline'>👁️ Vista Previa Email</button>
+                    </div>
+                    <div class='bg-green-50/30 p-4 rounded-xl border border-green-100'>
+                        <label class='block text-sm font-bold text-green-800 mb-2'>C. Cuerpo WhatsApp</label>
+                        <textarea id='w4' rows='3' class='w-full px-3 py-2 rounded-lg border border-green-200 mb-2'>¡Hola *{nombre}*! 🎉 Sumaste *{puntos} puntos*. Tu nuevo saldo es {saldo} 🎁</textarea>
+                        <button onclick='previewWhatsApp("w4")' class='text-sm text-green-600 font-bold hover:underline'>🟢 Previsualizar WhatsApp</button>
+                    </div>
+                </div>
+
+                <!-- CANALES DE ENVÍO -->
+                <div class='mt-4 bg-gray-50/50 p-3 rounded-xl border border-gray-100'>
+                    <span class='text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2'>Canales de Envío</span>
+                    <div class='flex gap-4'>
+                        <label class='flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer hover:bg-white px-2 py-1 rounded border border-transparent hover:border-gray-200 transition'>
+                            <input type='checkbox' checked class='rounded text-green-600 focus:ring-green-500 border-gray-300'> WhatsApp
+                        </label>
+                        <label class='flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer hover:bg-white px-2 py-1 rounded border border-transparent hover:border-gray-200 transition'>
+                            <input type='checkbox' checked class='rounded text-blue-600 focus:ring-blue-500 border-gray-300'> Email
+                        </label>
+                        <label class='flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer hover:bg-white px-2 py-1 rounded border border-transparent hover:border-gray-200 transition'>
+                            <input type='checkbox' checked class='rounded text-purple-600 focus:ring-purple-500 border-gray-300'> Push
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class='bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mb-6'>
+                <h3 class='text-lg font-bold text-gray-800 mb-4 flex items-center gap-2'>🎁 5. Canje de Premios</h3>
+                <div class='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                    <div class='bg-blue-50/30 p-4 rounded-xl border border-blue-100'>
+                        <label class='block text-sm font-bold text-blue-800 mb-2'>A. Título (Asunto Mail / Push)</label>
+                        <input id='t5' type='text' value='🎁 ¡Canje Exitoso! ✨' class='w-full px-3 py-2 rounded-lg border border-blue-200 mb-4 font-medium'>
+                        <label class='block text-sm font-bold text-blue-800 mb-2'>B. Cuerpo Principal</label>
+                        <textarea id='b5' rows='3' class='w-full px-3 py-2 rounded-lg border border-blue-200 mb-2'>¡Canje exitoso {nombre}! 🎁 Canjeaste {premio}. Código: {codigo}</textarea>
+                        <button onclick='previewMail("t5","b5")' class='text-sm text-blue-600 font-bold hover:underline'>👁️ Vista Previa Email</button>
+                    </div>
+                    <div class='bg-green-50/30 p-4 rounded-xl border border-green-100'>
+                        <label class='block text-sm font-bold text-green-800 mb-2'>C. Cuerpo WhatsApp</label>
+                        <textarea id='w5' rows='3' class='w-full px-3 py-2 rounded-lg border border-green-200 mb-2'>¡Canje exitoso *{nombre}*! 🎁 Canjeaste *{premio}*. Código: {codigo}</textarea>
+                        <button onclick='previewWhatsApp("w5")' class='text-sm text-green-600 font-bold hover:underline'>🟢 Previsualizar WhatsApp</button>
+                    </div>
+                </div>
+
+                <!-- CANALES DE ENVÍO -->
+                <div class='mt-4 bg-gray-50/50 p-3 rounded-xl border border-gray-100'>
+                    <span class='text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2'>Canales de Envío</span>
+                    <div class='flex gap-4'>
+                        <label class='flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer hover:bg-white px-2 py-1 rounded border border-transparent hover:border-gray-200 transition'>
+                            <input type='checkbox' checked class='rounded text-green-600 focus:ring-green-500 border-gray-300'> WhatsApp
+                        </label>
+                        <label class='flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer hover:bg-white px-2 py-1 rounded border border-transparent hover:border-gray-200 transition'>
+                            <input type='checkbox' checked class='rounded text-blue-600 focus:ring-blue-500 border-gray-300'> Email
+                        </label>
+                        <label class='flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer hover:bg-white px-2 py-1 rounded border border-transparent hover:border-gray-200 transition'>
+                            <input type='checkbox' checked class='rounded text-purple-600 focus:ring-purple-500 border-gray-300'> Push
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class='bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mb-6'>
+                <h3 class='text-lg font-bold text-gray-800 mb-4 flex items-center gap-2'>🎂 6. Cumpleaños <span class='text-sm font-normal text-gray-500'>(Parámetro activo: Regala {puntos} pts)</span></h3>
+                <div class='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                    <div class='bg-blue-50/30 p-4 rounded-xl border border-blue-100'>
+                        <label class='block text-sm font-bold text-blue-800 mb-2'>A. Título (Asunto Mail / Push)</label>
+                        <input id='t6' type='text' value='🎂 ¡Feliz Cumpleaños! 🎉' class='w-full px-3 py-2 rounded-lg border border-blue-200 mb-4 font-medium'>
+                        <label class='block text-sm font-bold text-blue-800 mb-2'>B. Cuerpo Principal</label>
+                        <textarea id='b6' rows='3' class='w-full px-3 py-2 rounded-lg border border-blue-200 mb-2'>¡Feliz cumple {nombre}! 🎂 Te regalamos {puntos} puntos. 🎁</textarea>
+                        <button onclick='previewMail("t6","b6")' class='text-sm text-blue-600 font-bold hover:underline'>👁️ Vista Previa Email</button>
+                    </div>
+                    <div class='bg-green-50/30 p-4 rounded-xl border border-green-100'>
+                        <label class='block text-sm font-bold text-green-800 mb-2'>C. Cuerpo WhatsApp</label>
+                        <textarea id='w6' rows='3' class='w-full px-3 py-2 rounded-lg border border-green-200 mb-2'>¡Feliz cumple *{nombre}*! 🎂 Te regalamos *{puntos} puntos*. 🎁</textarea>
+                        <button onclick='previewWhatsApp("w6")' class='text-sm text-green-600 font-bold hover:underline'>🟢 Previsualizar WhatsApp</button>
+                    </div>
+                </div>
+
+                <!-- CANALES DE ENVÍO -->
+                <div class='mt-4 bg-gray-50/50 p-3 rounded-xl border border-gray-100'>
+                    <span class='text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2'>Canales de Envío</span>
+                    <div class='flex gap-4'>
+                        <label class='flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer hover:bg-white px-2 py-1 rounded border border-transparent hover:border-gray-200 transition'>
+                            <input type='checkbox' checked class='rounded text-green-600 focus:ring-green-500 border-gray-300'> WhatsApp
+                        </label>
+                        <label class='flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer hover:bg-white px-2 py-1 rounded border border-transparent hover:border-gray-200 transition'>
+                            <input type='checkbox' checked class='rounded text-blue-600 focus:ring-blue-500 border-gray-300'> Email
+                        </label>
+                        <label class='flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer hover:bg-white px-2 py-1 rounded border border-transparent hover:border-gray-200 transition'>
+                            <input type='checkbox' checked class='rounded text-purple-600 focus:ring-purple-500 border-gray-300'> Push
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class='bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mb-6'>
+                <h3 class='text-lg font-bold text-gray-800 mb-4 flex items-center gap-2'>⚠️ 7. Vencimiento <span class='text-sm font-normal text-gray-500'>(Avisa X días antes)</span></h3>
+                <div class='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                    <div class='bg-blue-50/30 p-4 rounded-xl border border-blue-100'>
+                        <label class='block text-sm font-bold text-blue-800 mb-2'>A. Título (Asunto Mail / Push)</label>
+                        <input id='t7' type='text' value='⚠️ ¡Tus puntos vencen pronto!' class='w-full px-3 py-2 rounded-lg border border-blue-200 mb-4 font-medium'>
+                        <label class='block text-sm font-bold text-blue-800 mb-2'>B. Cuerpo Principal</label>
+                        <textarea id='b7' rows='3' class='w-full px-3 py-2 rounded-lg border border-blue-200 mb-2'>¡Hola {nombre}! ⚠️ Tus puntos ({puntos} pts) vencen el {vencimiento}.</textarea>
+                        <button onclick='previewMail("t7","b7")' class='text-sm text-blue-600 font-bold hover:underline'>👁️ Vista Previa Email</button>
+                    </div>
+                    <div class='bg-green-50/30 p-4 rounded-xl border border-green-100'>
+                        <label class='block text-sm font-bold text-green-800 mb-2'>C. Cuerpo WhatsApp</label>
+                        <textarea id='w7' rows='3' class='w-full px-3 py-2 rounded-lg border border-green-200 mb-2'>¡Hola *{nombre}*! ⚠️ Tus puntos ({puntos} pts) vencen el *{vencimiento}*.</textarea>
+                        <button onclick='previewWhatsApp("w7")' class='text-sm text-green-600 font-bold hover:underline'>🟢 Previsualizar WhatsApp</button>
+                    </div>
+                </div>
+
+                <!-- CANALES DE ENVÍO -->
+                <div class='mt-4 bg-gray-50/50 p-3 rounded-xl border border-gray-100'>
+                    <span class='text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2'>Canales de Envío</span>
+                    <div class='flex gap-4'>
+                        <label class='flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer hover:bg-white px-2 py-1 rounded border border-transparent hover:border-gray-200 transition'>
+                            <input type='checkbox' checked class='rounded text-green-600 focus:ring-green-500 border-gray-300'> WhatsApp
+                        </label>
+                        <label class='flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer hover:bg-white px-2 py-1 rounded border border-transparent hover:border-gray-200 transition'>
+                            <input type='checkbox' checked class='rounded text-blue-600 focus:ring-blue-500 border-gray-300'> Email
+                        </label>
+                        <label class='flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer hover:bg-white px-2 py-1 rounded border border-transparent hover:border-gray-200 transition'>
+                            <input type='checkbox' checked class='rounded text-purple-600 focus:ring-purple-500 border-gray-300'> Push
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class='bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mb-6'>
+                <h3 class='text-lg font-bold text-gray-800 mb-4 flex items-center gap-2'>🐶 8. Alimento <span class='text-sm font-normal text-gray-500'>(Avisa X días antes)</span></h3>
+                <div class='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                    <div class='bg-blue-50/30 p-4 rounded-xl border border-blue-100'>
+                        <label class='block text-sm font-bold text-blue-800 mb-2'>A. Título (Asunto Mail / Push)</label>
+                        <input id='t8' type='text' value='🐶 Aviso de Alimento' class='w-full px-3 py-2 rounded-lg border border-blue-200 mb-4 font-medium'>
+                        <label class='block text-sm font-bold text-blue-800 mb-2'>B. Cuerpo Principal</label>
+                        <textarea id='b8' rows='3' class='w-full px-3 py-2 rounded-lg border border-blue-200 mb-2'>¡Hola {nombre}! 🐾 Recordatorio de alimento para {mascota}. Marca: {marca}.</textarea>
+                        <button onclick='previewMail("t8","b8")' class='text-sm text-blue-600 font-bold hover:underline'>👁️ Vista Previa Email</button>
+                    </div>
+                    <div class='bg-green-50/30 p-4 rounded-xl border border-green-100'>
+                        <label class='block text-sm font-bold text-green-800 mb-2'>C. Cuerpo WhatsApp</label>
+                        <textarea id='w8' rows='3' class='w-full px-3 py-2 rounded-lg border border-green-200 mb-2'>¡Hola *{nombre}*! 🐾 Recordatorio de alimento para *{mascota}*. Marca: {marca}.</textarea>
+                        <button onclick='previewWhatsApp("w8")' class='text-sm text-green-600 font-bold hover:underline'>🟢 Previsualizar WhatsApp</button>
+                    </div>
+                </div>
+
+                <!-- CANALES DE ENVÍO -->
+                <div class='mt-4 bg-gray-50/50 p-3 rounded-xl border border-gray-100'>
+                    <span class='text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2'>Canales de Envío</span>
+                    <div class='flex gap-4'>
+                        <label class='flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer hover:bg-white px-2 py-1 rounded border border-transparent hover:border-gray-200 transition'>
+                            <input type='checkbox' checked class='rounded text-green-600 focus:ring-green-500 border-gray-300'> WhatsApp
+                        </label>
+                        <label class='flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer hover:bg-white px-2 py-1 rounded border border-transparent hover:border-gray-200 transition'>
+                            <input type='checkbox' checked class='rounded text-blue-600 focus:ring-blue-500 border-gray-300'> Email
+                        </label>
+                        <label class='flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer hover:bg-white px-2 py-1 rounded border border-transparent hover:border-gray-200 transition'>
+                            <input type='checkbox' checked class='rounded text-purple-600 focus:ring-purple-500 border-gray-300'> Push
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class='bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mb-6'>
+                <h3 class='text-lg font-bold text-gray-800 mb-4 flex items-center gap-2'>👋 9. Bienvenida (Nuevo Socio)</h3>
+                <div class='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                    <div class='bg-blue-50/30 p-4 rounded-xl border border-blue-100'>
+                        <label class='block text-sm font-bold text-blue-800 mb-2'>A. Título (Asunto Mail / Push)</label>
+                        <input id='t9' type='text' value='🎉 ¡Bienvenido/a a {siteName}! ✨' class='w-full px-3 py-2 rounded-lg border border-blue-200 mb-4 font-medium'>
+                        <label class='block text-sm font-bold text-blue-800 mb-2'>B. Cuerpo Principal</label>
+                        <textarea id='b9' rows='3' class='w-full px-3 py-2 rounded-lg border border-blue-200 mb-2'>¡Bienvenido a {siteName}, {nombre}! 🎉 Ya tienes {puntos} puntos de regalo. 🎁</textarea>
+                        <button onclick='previewMail("t9","b9")' class='text-sm text-blue-600 font-bold hover:underline'>👁️ Vista Previa Email</button>
+                    </div>
+                    <div class='bg-green-50/30 p-4 rounded-xl border border-green-100'>
+                        <label class='block text-sm font-bold text-green-800 mb-2'>C. Cuerpo WhatsApp</label>
+                        <textarea id='w9' rows='3' class='w-full px-3 py-2 rounded-lg border border-green-200 mb-2'>¡Bienvenido a *{siteName}*, *{nombre}*! 🎉 Ya tienes *{puntos} puntos* de regalo. 🎁</textarea>
+                        <button onclick='previewWhatsApp("w9")' class='text-sm text-green-600 font-bold hover:underline'>🟢 Previsualizar WhatsApp</button>
+                    </div>
+                </div>
+
+                <!-- CANALES DE ENVÍO -->
+                <div class='mt-4 bg-gray-50/50 p-3 rounded-xl border border-gray-100'>
+                    <span class='text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2'>Canales de Envío</span>
+                    <div class='flex gap-4'>
+                        <label class='flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer hover:bg-white px-2 py-1 rounded border border-transparent hover:border-gray-200 transition'>
+                            <input type='checkbox' checked class='rounded text-green-600 focus:ring-green-500 border-gray-300'> WhatsApp
+                        </label>
+                        <label class='flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer hover:bg-white px-2 py-1 rounded border border-transparent hover:border-gray-200 transition'>
+                            <input type='checkbox' checked class='rounded text-blue-600 focus:ring-blue-500 border-gray-300'> Email
+                        </label>
+                        <label class='flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer hover:bg-white px-2 py-1 rounded border border-transparent hover:border-gray-200 transition'>
+                            <input type='checkbox' checked class='rounded text-purple-600 focus:ring-purple-500 border-gray-300'> Push
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- SECCIÓN C: REFERIDOS -->
+        <div>
+            <h2 class='text-2xl font-bold mb-4 mt-8 flex items-center gap-2'><span class='text-orange-500'>🤝</span> SECCIÓN C: Referidos</h2>
+            
+            <div class='bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mb-6'>
+                <h3 class='text-lg font-bold text-gray-800 mb-4 flex items-center gap-2'>🎯 10. Desafío de Referidos</h3>
+                <div class='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                    <div class='bg-blue-50/30 p-4 rounded-xl border border-blue-100'>
+                        <label class='block text-sm font-bold text-blue-800 mb-2'>A. Título (Asunto Mail / Push)</label>
+                        <input id='t10' type='text' value='🎯 ¡Nuevo Desafío de Referidos!' class='w-full px-3 py-2 rounded-lg border border-blue-200 mb-4 font-medium'>
+                        <label class='block text-sm font-bold text-blue-800 mb-2'>B. Cuerpo Principal</label>
+                        <textarea id='b10' rows='3' class='w-full px-3 py-2 rounded-lg border border-blue-200 mb-2'>¡NUEVO DESAFÍO! 🚀 Traé amigos a {siteName} y ganá bonos extra. Válido hasta {vencimiento}. 🎁</textarea>
+                        <button onclick='previewMail("t10","b10")' class='text-sm text-blue-600 font-bold hover:underline'>👁️ Vista Previa Email</button>
+                    </div>
+                    <div class='bg-green-50/30 p-4 rounded-xl border border-green-100'>
+                        <label class='block text-sm font-bold text-green-800 mb-2'>C. Cuerpo WhatsApp</label>
+                        <textarea id='w10' rows='3' class='w-full px-3 py-2 rounded-lg border border-green-200 mb-2'>*¡NUEVO DESAFÍO!* 🚀 Traé amigos a {siteName} y ganá bonos extra. Válido hasta {vencimiento}. 🎁</textarea>
+                        <button onclick='previewWhatsApp("w10")' class='text-sm text-green-600 font-bold hover:underline'>🟢 Previsualizar WhatsApp</button>
+                    </div>
+                </div>
+
+                <!-- CANALES DE ENVÍO -->
+                <div class='mt-4 bg-gray-50/50 p-3 rounded-xl border border-gray-100'>
+                    <span class='text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2'>Canales de Envío</span>
+                    <div class='flex gap-4'>
+                        <label class='flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer hover:bg-white px-2 py-1 rounded border border-transparent hover:border-gray-200 transition'>
+                            <input type='checkbox' checked class='rounded text-green-600 focus:ring-green-500 border-gray-300'> WhatsApp
+                        </label>
+                        <label class='flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer hover:bg-white px-2 py-1 rounded border border-transparent hover:border-gray-200 transition'>
+                            <input type='checkbox' checked class='rounded text-blue-600 focus:ring-blue-500 border-gray-300'> Email
+                        </label>
+                        <label class='flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer hover:bg-white px-2 py-1 rounded border border-transparent hover:border-gray-200 transition'>
+                            <input type='checkbox' checked class='rounded text-purple-600 focus:ring-purple-500 border-gray-300'> Push
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class='bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mb-6'>
+                <h3 class='text-lg font-bold text-gray-800 mb-4 flex items-center gap-2'>🤝 11. Premio por Referido (Invitado)</h3>
+                <div class='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                    <div class='bg-blue-50/30 p-4 rounded-xl border border-blue-100'>
+                        <label class='block text-sm font-bold text-blue-800 mb-2'>A. Título (Asunto Mail / Push)</label>
+                        <input id='t11' type='text' value='🎁 ¡Bono de Referido! 🌟' class='w-full px-3 py-2 rounded-lg border border-blue-200 mb-4 font-medium'>
+                        <label class='block text-sm font-bold text-blue-800 mb-2'>B. Cuerpo Principal</label>
+                        <textarea id='b11' rows='3' class='w-full px-3 py-2 rounded-lg border border-blue-200 mb-2'>¡Hola {nombre}! 🎁 Ganaste {puntos} puntos porque tu amigo {amigo} te invitó a {siteName}. 🎉</textarea>
+                        <button onclick='previewMail("t11","b11")' class='text-sm text-blue-600 font-bold hover:underline'>👁️ Vista Previa Email</button>
+                    </div>
+                    <div class='bg-green-50/30 p-4 rounded-xl border border-green-100'>
+                        <label class='block text-sm font-bold text-green-800 mb-2'>C. Cuerpo WhatsApp</label>
+                        <textarea id='w11' rows='3' class='w-full px-3 py-2 rounded-lg border border-green-200 mb-2'>¡Hola *{nombre}*! 🎁 Ganaste *{puntos} puntos* porque tu amigo *{amigo}* te invitó a {siteName}. 🎉</textarea>
+                        <button onclick='previewWhatsApp("w11")' class='text-sm text-green-600 font-bold hover:underline'>🟢 Previsualizar WhatsApp</button>
+                    </div>
+                </div>
+
+                <!-- CANALES DE ENVÍO -->
+                <div class='mt-4 bg-gray-50/50 p-3 rounded-xl border border-gray-100'>
+                    <span class='text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2'>Canales de Envío</span>
+                    <div class='flex gap-4'>
+                        <label class='flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer hover:bg-white px-2 py-1 rounded border border-transparent hover:border-gray-200 transition'>
+                            <input type='checkbox' checked class='rounded text-green-600 focus:ring-green-500 border-gray-300'> WhatsApp
+                        </label>
+                        <label class='flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer hover:bg-white px-2 py-1 rounded border border-transparent hover:border-gray-200 transition'>
+                            <input type='checkbox' checked class='rounded text-blue-600 focus:ring-blue-500 border-gray-300'> Email
+                        </label>
+                        <label class='flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer hover:bg-white px-2 py-1 rounded border border-transparent hover:border-gray-200 transition'>
+                            <input type='checkbox' checked class='rounded text-purple-600 focus:ring-purple-500 border-gray-300'> Push
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class='bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mb-6'>
+                <h3 class='text-lg font-bold text-gray-800 mb-4 flex items-center gap-2'>🏆 12. Puntos por Referido (Anfitrión)</h3>
+                <div class='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                    <div class='bg-blue-50/30 p-4 rounded-xl border border-blue-100'>
+                        <label class='block text-sm font-bold text-blue-800 mb-2'>A. Título (Asunto Mail / Push)</label>
+                        <input id='t12' type='text' value='🎉 ¡Puntos por Referido! 🌟' class='w-full px-3 py-2 rounded-lg border border-blue-200 mb-4 font-medium'>
+                        <label class='block text-sm font-bold text-blue-800 mb-2'>B. Cuerpo Principal</label>
+                        <textarea id='b12' rows='3' class='w-full px-3 py-2 rounded-lg border border-blue-200 mb-2'>🎁 ¡Buenas noticias! Ganaste {puntos} puntos porque {nombre_referido} se unió a {siteName}. 🚀</textarea>
+                        <button onclick='previewMail("t12","b12")' class='text-sm text-blue-600 font-bold hover:underline'>👁️ Vista Previa Email</button>
+                    </div>
+                    <div class='bg-green-50/30 p-4 rounded-xl border border-green-100'>
+                        <label class='block text-sm font-bold text-green-800 mb-2'>C. Cuerpo WhatsApp</label>
+                        <textarea id='w12' rows='3' class='w-full px-3 py-2 rounded-lg border border-green-200 mb-2'>🎁 *¡Buenas noticias!* Ganaste *{puntos} puntos* porque *{nombre_referido}* se unió a {siteName}. 🚀</textarea>
+                        <button onclick='previewWhatsApp("w12")' class='text-sm text-green-600 font-bold hover:underline'>🟢 Previsualizar WhatsApp</button>
+                    </div>
+                </div>
+
+                <!-- CANALES DE ENVÍO -->
+                <div class='mt-4 bg-gray-50/50 p-3 rounded-xl border border-gray-100'>
+                    <span class='text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2'>Canales de Envío</span>
+                    <div class='flex gap-4'>
+                        <label class='flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer hover:bg-white px-2 py-1 rounded border border-transparent hover:border-gray-200 transition'>
+                            <input type='checkbox' checked class='rounded text-green-600 focus:ring-green-500 border-gray-300'> WhatsApp
+                        </label>
+                        <label class='flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer hover:bg-white px-2 py-1 rounded border border-transparent hover:border-gray-200 transition'>
+                            <input type='checkbox' checked class='rounded text-blue-600 focus:ring-blue-500 border-gray-300'> Email
+                        </label>
+                        <label class='flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer hover:bg-white px-2 py-1 rounded border border-transparent hover:border-gray-200 transition'>
+                            <input type='checkbox' checked class='rounded text-purple-600 focus:ring-purple-500 border-gray-300'> Push
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Modals -->
+    <div id='mailModal' class='modal'>
+        <div class='modal-content'>
+            <div class='flex justify-between items-center mb-4'>
+                <h2 class='text-xl font-bold text-gray-800'>Vista Previa Email</h2>
+                <button onclick='document.getElementById("mailModal").style.display="none"' class='text-gray-500 hover:text-red-500 font-bold text-xl'>&times;</button>
+            </div>
+            <div class='email-container shadow-sm'>
+                <div class='email-header'>
+                    <div class='text-xs text-gray-500 mb-1'>Asunto:</div>
+                    <div id='mailSubject' class='font-bold text-gray-800'></div>
+                </div>
+                <div class='p-4 bg-gray-50 flex justify-center'>
+                    <div class='w-20 h-8 bg-gray-300 rounded animate-pulse'></div>
+                </div>
+                <div class='email-body' id='mailBody'>
+                </div>
+                <div class='p-4 bg-gray-100 text-xs text-center text-gray-500'>
+                    Footer de tu empresa
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id='waModal' class='modal'>
+        <div class='modal-content bg-[#efeae2] relative'>
+            <!-- Fake Header -->
+            <div class='absolute top-0 left-0 w-full bg-[#075e54] text-white p-3 rounded-t-xl flex items-center gap-3'>
+                <div class='w-8 h-8 bg-white rounded-full'></div>
+                <div class='font-bold'>Tu Negocio</div>
+            </div>
+            
+            <div class='pt-16 pb-4 px-2 flex flex-col'>
+                <!-- Fake Customer Message -->
+                <div class='bg-white p-2 rounded-lg rounded-tr-none self-end max-w-[80%] text-sm mb-4'>
+                    Hola, quiero saber mis puntos.
+                </div>
+                <!-- Our Template Message -->
+                <div class='wa-bubble' id='waBody'>
+                </div>
+            </div>
+            
+            <button onclick='document.getElementById("waModal").style.display="none"' class='mt-4 w-full bg-gray-800 text-white py-2 rounded-lg font-bold'>Cerrar Simulación</button>
+        </div>
+    </div>
+
+    <script>
+        // Formateador simple de asteriscos a negritas
+        function formatWhatsApp(text) {
+            let formatted = text.replace(/\*([^\*]+)\*/g, '<strong>$1</strong>');
+            formatted = formatted.replace(/\n/g, '<br>');
+            return formatted;
+        }
+
+        function formatMail(text) {
+            return text.replace(/\n/g, '<br>');
+        }
+
+        function previewMail(titleId, bodyId) {
+            const title = document.getElementById(titleId).value;
+            const body = document.getElementById(bodyId).value;
+            
+            document.getElementById('mailSubject').innerText = title;
+            document.getElementById('mailBody').innerHTML = formatMail(body);
+            
+            document.getElementById('mailModal').style.display = 'block';
+        }
+
+        function previewWhatsApp(bodyId) {
+            const body = document.getElementById(bodyId).value;
+            document.getElementById('waBody').innerHTML = formatWhatsApp(body);
+            document.getElementById('waModal').style.display = 'block';
+        }
+
+        // Simular interactividad básica de toggles en los controles maestros
+        document.querySelectorAll('button[type="button"]').forEach(btn => {
+            btn.onclick = function() {
+                const isSelected = btn.classList.contains('bg-green-500') || btn.classList.contains('bg-blue-500') || btn.classList.contains('bg-purple-500') || btn.classList.contains('bg-purple-600');
+                if (isSelected) {
+                    btn.className = 'relative inline-flex h-6 w-11 items-center rounded-full transition-colors bg-gray-300';
+                    btn.innerHTML = '<span class="inline-block h-4 w-4 transform rounded-full bg-white transition translate-x-1"></span>';
+                } else {
+                    let activeBg = 'bg-green-500';
+                    if (btn.closest('.bg-blue-50')) activeBg = 'bg-blue-500';
+                    else if (btn.closest('.bg-purple-50') || btn.closest('.bg-white') || btn.closest('.bg-purple-600') || btn.closest('.space-y-4')) activeBg = 'bg-purple-600';
+                    
+                    btn.className = 'relative inline-flex h-6 w-11 items-center rounded-full transition-colors ' + activeBg;
+                    btn.innerHTML = '<span class="inline-block h-4 w-4 transform rounded-full bg-white transition translate-x-6"></span>';
+                }
+            }
+        });
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('mailModal')) {
+                document.getElementById('mailModal').style.display = "none";
+            }
+            if (event.target == document.getElementById('waModal')) {
+                document.getElementById('waModal').style.display = "none";
+            }
+        }
+    </script>
+</body>
+
+</html>

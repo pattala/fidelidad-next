@@ -5,7 +5,7 @@ if (!admin.apps.length) admin.initializeApp({ credential: admin.credential.cert(
 const db = admin.firestore();
 
 async function check() {
-    const snap = await db.collection("config").doc("global").get();
+    const snap = await db.collection("config").doc("general").get();
     console.dir(snap.data().messaging, {depth: null});
 }
 check();

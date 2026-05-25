@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Save, Plus, Trash2, Palette, Calculator, Monitor, Smartphone, Settings, Home, Gift, MessageCircle, FileText, AlertTriangle, RefreshCw, ShieldAlert, Shield, Users, Clock, Eye, Sparkles, Cake, Zap, UserPlus, Megaphone, Bell, MapPin, Download, QrCode, KeyRound, Copy, Dog } from 'lucide-react';
+import { Save, Plus, Trash2, Palette, Calculator, Monitor, Smartphone, Settings, Home, Gift, MessageCircle, FileText, AlertTriangle, RefreshCw, ShieldAlert, Shield, Users, Clock, Eye, Sparkles, Cake, Zap, UserPlus, Megaphone, Bell, MapPin, Download, QrCode, KeyRound, Copy, Dog, Rocket, Search, CheckCircle2 } from 'lucide-react';
 import QRCode from 'react-qr-code';
 
 console.log('RAMPET_BUILD_V2: Key fix re-applied');
@@ -151,7 +151,6 @@ export const ConfigPage = () => {
 
     const { isReadOnly, user } = useAdminAuth();
     const [activeTab, setActiveTab] = useState<'rules' | 'branding' | 'messaging' | 'legales' | 'advanced'>('rules');
-    const [activeMsgTab, setActiveMsgTab] = useState<'auto' | 'whatsapp'>('auto');
     const [resetOptions, setResetOptions] = useState({
         socios_total: false,
         socios_historial: false,
@@ -181,6 +180,63 @@ export const ConfigPage = () => {
         title: '',
         content: ''
     });
+
+
+    // WhatsApp Preview State
+            // Efecto para vincular el click del usuario de prueba desde el HTML crudo
+    useEffect(() => {
+        (window as any)._selectTestUser = (idx: number) => {
+            const users = (window as any)._testUsers || [];
+            const user = users[idx];
+            if (user) {
+                (window as any)._selectedUserForTest = user;
+                const resultsDiv = document.getElementById('testUserResults');
+                const selectedDiv = document.getElementById('selectedTestUser');
+                const selName = document.getElementById('selUserName');
+                const selData = document.getElementById('selUserData');
+                
+                if (resultsDiv) resultsDiv.innerHTML = '';
+                if (selectedDiv) selectedDiv.classList.remove('hidden');
+                if (selName) selName.innerText = user.name || 'Usuario';
+                if (selData) selData.innerText = (user.email || user.phone || '') + ' - ' + (user.points || 0) + ' pts';
+            }
+        };
+    }, []);
+
+    const [testMessageModal, setTestMessageModal] = useState({
+        isOpen: false,
+        templateKey: '',
+        title: '',
+        body: '',
+        waBody: '',
+        channels: [] as string[]
+    });
+
+    const openTestModal = (key: string, customTitle?: string) => {
+        const templates = config.messaging?.templates as any;
+        const events = config.messaging?.eventConfigs as any;
+        const t = templates?.[key] || '';
+        const title = templates?.[key + '_title'] || customTitle || '';
+        const wa = templates?.[key + '_whatsapp'] || '';
+        const ch = events?.[key]?.channels || [];
+        setTestMessageModal({
+            isOpen: true,
+            templateKey: key,
+            title: title,
+            body: t,
+            waBody: wa,
+            channels: ch
+        });
+    };
+
+    const [waPreview, setWaPreview] = useState({
+        isOpen: false,
+        content: ''
+    });
+
+    const openWaPreview = (text: string) => {
+        setWaPreview({ isOpen: true, content: text });
+    };
 
     const openPreview = (templateId: string, title?: string) => {
         const content = config.messaging?.templates?.[templateId as keyof typeof config.messaging.templates] || DEFAULT_TEMPLATES[templateId as keyof typeof DEFAULT_TEMPLATES] || '';
@@ -2105,985 +2161,822 @@ export const ConfigPage = () => {
                                 </div>
                             </div>
 
-                            {/* SUB-TABS ENRUTADOR */}
-                            <div className="flex border-b border-gray-200 bg-white rounded-t-2xl pt-2 mt-8">
-                                <button
-                                    type="button"
-                                    onClick={() => setActiveMsgTab('auto')}
-                                    className={`flex-1 py-4 text-sm font-bold uppercase tracking-wider transition-colors ${activeMsgTab === 'auto' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
-                                >
-                                    🤖 Automáticos (Push/Email)
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setActiveMsgTab('whatsapp')}
-                                    className={`flex-1 py-4 text-sm font-bold uppercase tracking-wider transition-colors ${activeMsgTab === 'whatsapp' ? 'border-b-2 border-green-600 text-green-600' : 'text-gray-400 hover:text-gray-600'}`}
-                                >
-                                    💬 WhatsApp (Manual)
-                                </button>
-                            </div>
-
-                            {activeMsgTab === 'auto' && (
-                            <div className="bg-white p-8 rounded-b-2xl shadow-sm border border-gray-100 space-y-8 animate-fade-in-up">
-                                <h3 className="text-xl font-bold text-gray-800 border-b pb-4">🤖 Mensajes Automáticos (Reglas Nocturnas)</h3>
-
-                                {/* Points Added */}
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Al Sumar Puntos (Compra)</label>
-                                    <div className="flex gap-2">
-                                        <div className="relative flex-1">
-                                            <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">🎉</span>
-                                            <textarea
-                                                rows={2}
-                                                value={config.messaging?.templates?.pointsAdded || ''}
-                                                onChange={e => setConfig({
-                                                    ...config,
-                                                    messaging: {
-                                                        ...config.messaging!,
-                                                        templates: { ...config.messaging?.templates, pointsAdded: e.target.value }
-                                                    }
-                                                })}
-                                                placeholder={DEFAULT_TEMPLATES.pointsAdded}
-                                                className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none resize-none"
-                                            />
-                                        </div>
-                                        <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, pointsAdded: DEFAULT_TEMPLATES.pointsAdded } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition" title="Restaurar predeterminado">↺</button>
-                                        <button
-                                            type="button"
-                                            onClick={() => openPreview('pointsAdded')}
-                                            className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
-                                            title="Previsualizar Email"
-                                        >
-                                            <Eye size={18} />
-                                        </button>
-                                    </div>
-                                    <VariableChips vars={['siteName', 'nombre', 'nombre_completo', 'puntos', 'saldo']} onSelect={v => insertVar('pointsAdded', v)} />
-                                    <ChannelSelector
-                                        channels={config.messaging?.eventConfigs?.pointsAdded?.channels || []}
-                                        onChange={(newChannels) => setConfig({
-                                            ...config,
-                                            messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, pointsAdded: { channels: newChannels } } }
-                                        })}
-                                    />
-                                </div>
-
-                                {/* Redemption */}
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Al Canjear Premio</label>
-                                    <div className="flex gap-2">
-                                        <div className="relative flex-1">
-                                            <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">🎁</span>
-                                            <textarea
-                                                rows={2}
-                                                value={config.messaging?.templates?.redemption || ''}
-                                                onChange={e => setConfig({
-                                                    ...config,
-                                                    messaging: {
-                                                        ...config.messaging!,
-                                                        templates: { ...config.messaging?.templates, redemption: e.target.value }
-                                                    }
-                                                })}
-                                                placeholder={DEFAULT_TEMPLATES.redemption}
-                                                className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none resize-none"
-                                            />
-                                        </div>
-                                        <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, redemption: DEFAULT_TEMPLATES.redemption } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition" title="Restaurar predeterminado">↺</button>
-                                        <button
-                                            type="button"
-                                            onClick={() => openPreview('redemption')}
-                                            className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
-                                            title="Previsualizar Email"
-                                        >
-                                            <Eye size={18} />
-                                        </button>
-                                    </div>
-                                    <VariableChips vars={['siteName', 'nombre', 'nombre_completo', 'premio', 'codigo']} onSelect={v => insertVar('redemption', v)} />
-                                    <ChannelSelector
-                                        channels={config.messaging?.eventConfigs?.redemption?.channels || []}
-                                        onChange={(newChannels) => setConfig({
-                                            ...config,
-                                            messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, redemption: { channels: newChannels } } }
-                                        })}
-                                    />
-                                </div>
-
-                                {/* Welcome */}
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Bienvenida (Nuevo Cliente)</label>
-                                    <div className="flex gap-2">
-                                        <div className="relative flex-1">
-                                            <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">👋</span>
-                                            <textarea
-                                                rows={2}
-                                                value={config.messaging?.templates?.welcome || ''}
-                                                onChange={e => setConfig({
-                                                    ...config,
-                                                    messaging: {
-                                                        ...config.messaging!,
-                                                        templates: { ...config.messaging?.templates, welcome: e.target.value }
-                                                    }
-                                                })}
-                                                placeholder={DEFAULT_TEMPLATES.welcome}
-                                                className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none resize-none"
-                                            />
-                                        </div>
-                                        <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, welcome: DEFAULT_TEMPLATES.welcome } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition" title="Restaurar predeterminado">↺</button>
-                                        <button
-                                            type="button"
-                                            onClick={() => openPreview('welcome')}
-                                            className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
-                                            title="Previsualizar Email"
-                                        >
-                                            <Eye size={18} />
-                                        </button>
-                                    </div>
-                                    <VariableChips vars={['siteName', 'nombre', 'nombre_completo', 'puntos', 'socio', 'dni']} onSelect={v => insertVar('welcome', v)} />
-                                    <ChannelSelector
-                                        channels={config.messaging?.eventConfigs?.welcome?.channels || []}
-                                        onChange={(newChannels) => setConfig({
-                                            ...config,
-                                            messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, welcome: { channels: newChannels } } }
-                                        })}
-                                    />
-                                </div>
-
-                                {/* Campaign Template */}
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Promo Manual (Campaña)</label>
-                                    <div className="flex gap-2">
-                                        <div className="relative flex-1">
-                                            <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">🚀</span>
-                                            <textarea
-                                                rows={2}
-                                                value={config.messaging?.templates?.campaign || ''}
-                                                onChange={e => setConfig({
-                                                    ...config,
-                                                    messaging: {
-                                                        ...config.messaging!,
-                                                        templates: { ...config.messaging?.templates, campaign: e.target.value }
-                                                    }
-                                                })}
-                                                placeholder={DEFAULT_TEMPLATES.campaign}
-                                                className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none resize-none"
-                                            />
-                                        </div>
-                                        <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, campaign: DEFAULT_TEMPLATES.campaign } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition" title="Restaurar predeterminado">↺</button>
-                                        <button
-                                            type="button"
-                                            onClick={() => openPreview('campaign')}
-                                            className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
-                                            title="Previsualizar Email"
-                                        >
-                                            <Eye size={18} />
-                                        </button>
-                                    </div>
-                                    <VariableChips vars={['siteName', 'titulo', 'descripcion']} onSelect={v => insertVar('campaign', v)} />
-                                    <ChannelSelector
-                                        channels={config.messaging?.eventConfigs?.campaign?.channels || []}
-                                        onChange={(newChannels) => setConfig({
-                                            ...config,
-                                            messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, campaign: { channels: newChannels } } }
-                                        })}
-                                    />
-                                </div>
-
-                                {/* Offer Template */}
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Oferta Especial</label>
-                                    <div className="flex gap-2">
-                                        <div className="relative flex-1">
-                                            <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">🔥</span>
-                                            <textarea
-                                                rows={2}
-                                                value={config.messaging?.templates?.offer || ''}
-                                                onChange={e => setConfig({
-                                                    ...config,
-                                                    messaging: {
-                                                        ...config.messaging!,
-                                                        templates: { ...config.messaging?.templates, offer: e.target.value }
-                                                    }
-                                                })}
-                                                placeholder={DEFAULT_TEMPLATES.offer}
-                                                className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none resize-none"
-                                            />
-                                        </div>
-                                        <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, offer: DEFAULT_TEMPLATES.offer } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition" title="Restaurar predeterminado">↺</button>
-                                        <button
-                                            type="button"
-                                            onClick={() => openPreview('offer')}
-                                            className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
-                                            title="Previsualizar Email"
-                                        >
-                                            <Eye size={18} />
-                                        </button>
-                                    </div>
-                                    <VariableChips vars={['siteName', 'titulo', 'detalle', 'vencimiento']} onSelect={v => insertVar('offer', v)} />
-                                    <ChannelSelector
-                                        channels={config.messaging?.eventConfigs?.offer?.channels || []}
-                                        onChange={(newChannels) => setConfig({
-                                            ...config,
-                                            messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, offer: { channels: newChannels } } }
-                                        })}
-                                    />
-                                </div>
-
-                                {/* Flash Offer Template */}
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2 font-mono flex items-center gap-2">
-                                        ⚡ Oferta Flash <span className="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full uppercase">Crítico / Urgente</span>
-                                    </label>
-                                    <div className="flex gap-2">
-                                        <div className="relative flex-1">
-                                            <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">⚡</span>
-                                            <textarea
-                                                rows={2}
-                                                value={config.messaging?.templates?.flashOffer || ''}
-                                                onChange={e => setConfig({
-                                                    ...config,
-                                                    messaging: {
-                                                        ...config.messaging!,
-                                                        templates: { ...config.messaging?.templates, flashOffer: e.target.value }
-                                                    }
-                                                })}
-                                                placeholder={DEFAULT_TEMPLATES.flashOffer}
-                                                className="w-full pl-10 pr-3 py-3 rounded-lg border border-yellow-200 focus:ring-2 focus:ring-yellow-100 outline-none resize-none"
-                                            />
-                                        </div>
-                                        <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, flashOffer: DEFAULT_TEMPLATES.flashOffer } } })} className="px-3 py-2 text-gray-400 hover:text-yellow-600 rounded-lg hover:bg-yellow-50 transition" title="Restaurar predeterminado">↺</button>
-                                        <button
-                                            type="button"
-                                            onClick={() => openPreview('flashOffer')}
-                                            className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
-                                            title="Previsualizar Email"
-                                        >
-                                            <Eye size={18} />
-                                        </button>
-                                    </div>
-                                    <VariableChips vars={['siteName', 'titulo', 'detalle', 'horario']} onSelect={v => insertVar('flashOffer', v)} />
-                                    <p className="text-[10px] text-gray-400 mt-1 italic">
-                                        * Se usa automáticamente para campañas marcadas como "Flash".
-                                    </p>
-                                </div>
-
-                                {/* Birthday Template */}
-                                <div className="space-y-6">
-                                    <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-                                        <h4 className="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
-                                            🎂 Cumpleaños
-                                        </h4>
-
-                                        <div className="space-y-4">
-                                            {/* Full Gift Greeting */}
+                            {/* WhatsApp Preview Modal */}
+                            {waPreview.isOpen && (
+                                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setWaPreview({ ...waPreview, isOpen: false })}>
+                                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+                                    <div className="relative bg-[#0a1929] rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
+                                        <div className="bg-[#128C7E] px-5 py-4 flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-white text-lg">&#128100;</div>
                                             <div>
-                                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Mensaje CON Regalo (Puntos)</label>
-                                                <div className="flex gap-2">
-                                                    <div className="relative flex-1">
-                                                        <span className="absolute top-3 left-3 text-xl">🎁</span>
-                                                        <textarea
-                                                            rows={2}
-                                                            value={config.messaging?.templates?.birthday || ''}
-                                                            onChange={e => setConfig({
-                                                                ...config,
-                                                                messaging: {
-                                                                    ...config.messaging!,
-                                                                    templates: { ...config.messaging?.templates, birthday: e.target.value }
-                                                                }
-                                                            })}
-                                                            placeholder={DEFAULT_TEMPLATES.birthday}
-                                                            className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-pink-100 outline-none resize-none text-sm"
-                                                        />
-                                                    </div>
-                                                    <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, birthday: DEFAULT_TEMPLATES.birthday } } })} className="px-3 py-2 text-gray-300 hover:text-pink-600 transition" title="Restaurar predeterminado">↺</button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => openPreview('birthday')}
-                                                        className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
-                                                        title="Previsualizar Email"
-                                                    >
-                                                        <Eye size={18} />
-                                                    </button>
-                                                </div>
-                                                <VariableChips vars={['siteName', 'nombre', 'nombre_completo', 'puntos']} onSelect={v => insertVar('birthday', v)} />
+                                                <div className="text-white font-bold text-sm">Vista Previa WhatsApp</div>
+                                                <div className="text-green-200 text-xs">En lÃ­nea</div>
                                             </div>
-
-                                            {/* Simple Greeting */}
-                                            <div className="pt-4 border-t border-gray-100">
-                                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Mensaje SIN Regalo (Solo Saludo)</label>
-                                                <div className="flex gap-2">
-                                                    <div className="relative flex-1">
-                                                        <span className="absolute top-3 left-3 text-xl">👋</span>
-                                                        <textarea
-                                                            rows={2}
-                                                            value={config.messaging?.templates?.birthdaySimple || ''}
-                                                            onChange={e => setConfig({
-                                                                ...config,
-                                                                messaging: {
-                                                                    ...config.messaging!,
-                                                                    templates: { ...config.messaging?.templates, birthdaySimple: e.target.value }
-                                                                }
-                                                            })}
-                                                            placeholder={DEFAULT_TEMPLATES.birthdaySimple}
-                                                            className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none resize-none text-sm"
-                                                        />
-                                                    </div>
-                                                    <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, birthdaySimple: DEFAULT_TEMPLATES.birthdaySimple } } })} className="px-3 py-2 text-gray-300 hover:text-blue-600 transition" title="Restaurar predeterminado">↺</button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => openPreview('birthdaySimple')}
-                                                        className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
-                                                        title="Previsualizar Email"
-                                                    >
-                                                        <Eye size={18} />
-                                                    </button>
-                                                </div>
-                                                <VariableChips vars={['siteName', 'nombre', 'nombre_completo']} onSelect={v => insertVar('birthdaySimple', v)} />
-                                            </div>
+                                            <button onClick={() => setWaPreview({ ...waPreview, isOpen: false })} className="ml-auto text-white/70 hover:text-white text-xl">âœ•</button>
                                         </div>
-
-                                        <div className="mt-4 pt-4 border-t border-gray-100">
-                                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Canales de Envío Automático</label>
-                                            <ChannelSelector
-                                                channels={config.messaging?.eventConfigs?.birthday?.channels || []}
-                                                onChange={(newChannels) => setConfig({
-                                                    ...config,
-                                                    messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, birthday: { channels: newChannels } } }
-                                                })}
-                                            />
-                                            <p className="text-[10px] text-gray-400 mt-2 italic">
-                                                * El sistema detecta automáticamente si enviar el mensaje con o sin puntos según la configuración de "Reglas de Juego".
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <hr className="border-gray-50" />
-
-                                {/* Referral Reward Template */}
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Recompensa por Referido</label>
-                                    <div className="flex gap-2">
-                                        <div className="relative flex-1">
-                                            <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">💎</span>
-                                            <textarea
-                                                rows={2}
-                                                value={config.messaging?.templates?.referralReward || ''}
-                                                onChange={e => setConfig({
-                                                    ...config,
-                                                    messaging: {
-                                                        ...config.messaging!,
-                                                        templates: { ...config.messaging?.templates, referralReward: e.target.value }
+                                        <div className="p-5 min-h-[120px] bg-[#0d2137]">
+                                            <div className="bg-[#1a3a2a] rounded-2xl rounded-tl-none px-4 py-3 max-w-[85%] shadow-md">
+                                                <p className="text-[#e8f5e9] text-sm whitespace-pre-wrap leading-relaxed">
+                                                    {waPreview.content
+                                                        .replace(/{nombre}/g, 'MarÃ­a')
+                                                        .replace(/{nombre_completo}/g, 'MarÃ­a GarcÃ­a')
+                                                        .replace(/{puntos}/g, '350')
+                                                        .replace(/{saldo}/g, '350')
+                                                        .replace(/{siteName}/g, config.siteName || 'El Club')
+                                                        .replace(/{premio}/g, 'CafÃ© Gratis')
+                                                        .replace(/{codigo}/g, 'ABC-123')
+                                                        .replace(/{fecha}/g, '31/12/2025')
+                                                        .replace(/{amigo}/g, 'Luis')
+                                                        .replace(/{mascota}/g, 'Lola')
+                                                        .replace(/{marca}/g, 'Royal Canin')
+                                                        .replace(/{titulo}/g, 'Gran Promo')
+                                                        .replace(/{descripcion}/g, 'Doble puntos')
+                                                        .replace(/{detalle}/g, '2x1 en todo')
+                                                        .replace(/{vencimiento}/g, '31/12/2025')
+                                                        .replace(/{horario}/g, '20:00')
                                                     }
-                                                })}
-                                                placeholder={DEFAULT_TEMPLATES.referralReward}
-                                                className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-100 outline-none resize-none"
-                                            />
-                                        </div>
-                                        <button onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, referralReward: DEFAULT_TEMPLATES.referralReward } } })} className="px-3 py-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition" title="Restaurar predeterminado">↺</button>
-                                        <button
-                                            type="button"
-                                            onClick={() => openPreview('referralReward')}
-                                            className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
-                                            title="Previsualizar Email"
-                                        >
-                                            <Eye size={18} />
-                                        </button>
-                                    </div>
-                                    <VariableChips vars={['siteName', 'nombre', 'amigo', 'puntos']} onSelect={v => insertVar('referralReward', v)} />
-                                    <ChannelSelector
-                                        channels={config.messaging?.eventConfigs?.referralReward?.channels || []}
-                                        onChange={(newChannels) => setConfig({
-                                            ...config,
-                                            messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, referralReward: { channels: newChannels } } }
-                                        })}
-                                    />
-                                </div>
-
-                                {/* Referral Points Template (Puntos por referir) */}
-                                <div className="p-4 bg-orange-50/30 rounded-xl border border-orange-100">
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">🎁 Puntos a Favor (Referidor)</label>
-                                    <p className="text-[10px] text-gray-500 mb-2 leading-tight">Mismo evento que el anterior, pero enfocado en avisar los puntos ganados.</p>
-                                    <div className="flex gap-2">
-                                        <div className="relative flex-1">
-                                            <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">🚀</span>
-                                            <textarea
-                                                rows={2}
-                                                value={config.messaging?.templates?.referralPoints || ''}
-                                                onChange={e => setConfig({
-                                                    ...config,
-                                                    messaging: {
-                                                        ...config.messaging!,
-                                                        templates: { ...config.messaging?.templates, referralPoints: e.target.value }
-                                                    }
-                                                })}
-                                                placeholder={DEFAULT_TEMPLATES.referralPoints}
-                                                className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-orange-100 outline-none resize-none"
-                                            />
-                                        </div>
-                                        <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, referralPoints: DEFAULT_TEMPLATES.referralPoints } } })} className="px-3 py-2 text-gray-400 hover:text-orange-600 rounded-lg hover:bg-orange-50 transition" title="Restaurar predeterminado">↺</button>
-                                        <button
-                                            type="button"
-                                            onClick={() => openPreview('referralPoints')}
-                                            className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
-                                            title="Previsualizar Email"
-                                        >
-                                            <Eye size={18} />
-                                        </button>
-                                    </div>
-                                    <VariableChips vars={['siteName', 'nombre', 'nombre_referido', 'puntos']} onSelect={v => insertVar('referralPoints', v)} />
-                                </div>
-
-                                {/* Referral Challenge Template */}
-                                <div className="p-4 bg-orange-50/50 rounded-xl border border-orange-200">
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2 font-mono flex items-center gap-2">
-                                        ⚡ Desafío de Referidos <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full uppercase">Difusión Manual</span>
-                                    </label>
-                                    <p className="text-[10px] text-gray-500 mb-2 leading-tight">Envía este mensaje de forma manual para motivar a los usuarios durante un desafío activo.</p>
-                                    <div className="flex gap-2">
-                                        <div className="relative flex-1">
-                                            <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">🚀</span>
-                                            <textarea
-                                                rows={2}
-                                                value={config.messaging?.templates?.referralChallenge || ''}
-                                                onChange={e => setConfig({
-                                                    ...config,
-                                                    messaging: {
-                                                        ...config.messaging!,
-                                                        templates: { ...config.messaging?.templates, referralChallenge: e.target.value }
-                                                    }
-                                                })}
-                                                placeholder={DEFAULT_TEMPLATES.referralChallenge || '¡Tenemos un nuevo desafío!'}
-                                                className="w-full pl-10 pr-3 py-3 rounded-lg border border-orange-200 focus:ring-2 focus:ring-orange-100 outline-none resize-none"
-                                            />
-                                        </div>
-                                        <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, referralChallenge: DEFAULT_TEMPLATES.referralChallenge } } })} className="px-3 py-2 text-gray-400 hover:text-orange-600 rounded-lg hover:bg-orange-50 transition" title="Restaurar predeterminado">↺</button>
-                                        <button
-                                            type="button"
-                                            onClick={() => openPreview('referralChallenge', '¡NUEVO DESAFÍO ACTIVO! 🚀')}
-                                            className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
-                                            title="Previsualizar Email"
-                                        >
-                                            <Eye size={18} />
-                                        </button>
-                                    </div>
-                                    <VariableChips vars={['siteName', 'nombre', 'nombre_completo', 'fecha_limite', 'puntos', 'meta']} onSelect={v => insertVar('referralChallenge', v)} />
-
-                                    <div className="mt-4 flex flex-col sm:flex-row items-center gap-4 justify-between bg-white p-3 rounded-lg border border-orange-100">
-                                        <div className="w-full sm:w-auto">
-                                            <ChannelSelector
-                                                channels={challengeChannels}
-                                                onChange={setChallengeChannels}
-                                            />
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={async () => {
-                                                const channelsStr = challengeChannels.join(', ') || 'Ninguno';
-                                                if (challengeChannels.length === 0) {
-                                                    toast.error("Selecciona al menos un canal");
-                                                    return;
-                                                }
-                                                if (!window.confirm(`¿Deseas difundir el desafío a todos los clientes a través de: ${channelsStr}?`)) return;
-
-                                                const toastId = toast.loading('Iniciando difusión...');
-                                                const title = '¡NUEVO DESAFÍO ACTIVO! 🚀';
-                                                const templateText = config.messaging?.templates?.referralChallenge || DEFAULT_TEMPLATES.referralChallenge || 'Desafío Activo';
-
-                                                try {
-                                                    // Get challenge end date from config for {fecha_limite} replacement
-                                                    const challengeEndDateRaw = config.referrals?.challenge?.endDate;
-                                                    let expirationDateFormatted = 'pronto';
-                                                    if (challengeEndDateRaw) {
-                                                        const [year, month, day] = challengeEndDateRaw.split('-');
-                                                        expirationDateFormatted = `${day}/${month}/${year}`;
-                                                    }
-
-                                                    const q = query(collection(db, 'users'));
-                                                    const snap = await getDocs(q);
-
-                                                    if (challengeChannels.includes('push')) {
-                                                        const pushPromises = snap.docs.map(doc => {
-                                                            const d = doc.data();
-                                                            const userName = d.name || '';
-                                                            let personalizedMsg = templateText
-                                                                .replace(/{nombre}/g, userName.split(' ')[0])
-                                                                .replace(/{nombre_completo}/g, userName)
-                                                                .replace(/{fecha_limite}/g, expirationDateFormatted)
-                                                                .replace(/{vencimiento}/g, expirationDateFormatted)
-                                                                .replace(/{puntos}/g, config.referrals?.challenge?.tiers?.[0]?.bonus?.toString() || '0')
-                                                                .replace(/{meta}/g, config.referrals?.challenge?.tiers?.[0]?.count?.toString() || '0');
-
-                                                            return NotificationService.sendToClient(doc.id, {
-                                                                title: title,
-                                                                body: personalizedMsg,
-                                                                type: 'campaign',
-                                                                icon: config.logoUrl || '/pwa-192x192.png'
-                                                            });
-                                                        });
-                                                        await Promise.allSettled(pushPromises);
-                                                    }
-
-                                                    if (challengeChannels.includes('email')) {
-                                                        const emailPromises = snap.docs.map(doc => {
-                                                            const d = doc.data();
-                                                            if (d.email) {
-                                                                const userName = d.name || '';
-                                                                let personalizedMsg = templateText
-                                                                    .replace(/{nombre}/g, userName.split(' ')[0])
-                                                                    .replace(/{nombre_completo}/g, userName)
-                                                                    .replace(/{fecha_limite}/g, expirationDateFormatted)
-                                                                    .replace(/{vencimiento}/g, expirationDateFormatted)
-                                                                    .replace(/{puntos}/g, config.referrals?.challenge?.tiers?.[0]?.bonus?.toString() || '0')
-                                                                    .replace(/{meta}/g, config.referrals?.challenge?.tiers?.[0]?.count?.toString() || '0');
-
-                                                                const htmlContent = EmailService.generateBrandedTemplate(config, title, personalizedMsg);
-                                                                return EmailService.sendEmail(d.email, title, htmlContent);
-                                                            }
-                                                            return null;
-                                                        }).filter(Boolean);
-                                                        await Promise.allSettled(emailPromises);
-                                                    }
-
-                                                    if (challengeChannels.includes('whatsapp')) {
-                                                        let waMsg = templateText
-                                                            .replace(/{fecha_limite}/g, expirationDateFormatted)
-                                                            .replace(/{vencimiento}/g, expirationDateFormatted)
-                                                            .replace(/{puntos}/g, config.referrals?.challenge?.tiers?.[0]?.bonus?.toString() || '0')
-                                                            .replace(/{meta}/g, config.referrals?.challenge?.tiers?.[0]?.count?.toString() || '0');
-                                                        navigate('/admin/whatsapp', { state: { message: waMsg } });
-                                                    }
-
-                                                    toast.success('¡Difusión completada!', { id: toastId });
-                                                } catch (e) {
-                                                    toast.error('Error en la difusión', { id: toastId });
-                                                }
-                                            }}
-                                            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-rose-600 text-white rounded-xl text-sm font-black shadow-lg shadow-orange-200 hover:scale-105 transition active:scale-95 whitespace-nowrap"
-                                        >
-                                            <Megaphone size={18} />
-                                            ¡Difundir Desafío a Todos!
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Points Expiration Warning Configuration */}
-                                <div className="pt-6 mt-6 border-t border-gray-100">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-xl">📢</span>
-                                            <div>
-                                                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-tight">Aviso de Vencimiento de Puntos</h3>
-                                                <div className="flex items-center gap-1 text-[10px] text-gray-400">
-                                                    <span>Notifica a los socios</span>
-                                                    <input
-                                                        type="number"
-                                                        min="1" max="90"
-                                                        value={config.messaging?.expirationWarningDays || 7}
-                                                        onChange={e => setConfig({
-                                                            ...config,
-                                                            messaging: { ...config.messaging!, expirationWarningDays: parseInt(e.target.value) || 7 }
-                                                        })}
-                                                        className="w-10 bg-transparent border-b border-gray-300 text-center font-bold focus:border-orange-500 outline-none text-orange-600"
-                                                    />
-                                                    <span>días antes de que pierdan sus puntos.</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => setConfig({
-                                                ...config,
-                                                messaging: { ...config.messaging!, enableExpirationWarnings: !config.messaging?.enableExpirationWarnings }
-                                            })}
-                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.messaging?.enableExpirationWarnings ? 'bg-orange-500' : 'bg-gray-300'}`}
-                                        >
-                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${config.messaging?.enableExpirationWarnings ? 'translate-x-6' : 'translate-x-1'}`} />
-                                        </button>
-                                    </div>
-
-                                    {/* Itinerancy / Repeat Notifications Toggle */}
-                                    <div className="mt-4 p-4 bg-orange-50/50 rounded-xl border border-orange-100 flex items-center justify-between mb-6">
-                                        <div className="flex items-start gap-3">
-                                            <div className="p-2 bg-white rounded-lg shadow-sm">
-                                                <div className="w-5 h-5 flex items-center justify-center text-orange-600">🔁</div>
-                                            </div>
-                                            <div>
-                                                <h4 className="text-sm font-bold text-orange-900">Itinerancia de Avisos</h4>
-                                                <p className="text-[11px] text-orange-800/70 leading-tight mt-1">
-                                                    Si está activo, el sistema volverá a enviar notificaciones aunque no haya cambios en los puntos.<br />
-                                                    Ideal para recordar periódicamente los vencimientos.
                                                 </p>
+                                                <div className="text-right text-[10px] text-green-300/60 mt-1">âœ“âœ“ 10:30</div>
                                             </div>
                                         </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => setConfig({
-                                                ...config,
-                                                messaging: { ...config.messaging!, repeatExpirationWarnings: !config.messaging?.repeatExpirationWarnings }
-                                            })}
-                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.messaging?.repeatExpirationWarnings ? 'bg-orange-500' : 'bg-gray-300'}`}
-                                        >
-                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${config.messaging?.repeatExpirationWarnings ? 'translate-x-6' : 'translate-x-1'}`} />
-                                        </button>
                                     </div>
-                                    {/* Interval days input - visible when itinerancy is ON */}
-                                    {config.messaging?.repeatExpirationWarnings && (
-                                        <div className="mt-3 ml-10 p-3 bg-white rounded-lg border border-orange-100 animate-fade-in">
-                                            <label className="flex items-center gap-3">
-                                                <span className="text-xs font-bold text-orange-800 whitespace-nowrap">Recordar cada</span>
-                                                <input
-                                                    type="number"
-                                                    min={0}
-                                                    max={30}
-                                                    value={config.messaging?.expirationReminderIntervalDays ?? 5}
-                                                    onChange={e => setConfig({
-                                                        ...config,
-                                                        messaging: { ...config.messaging!, expirationReminderIntervalDays: parseInt(e.target.value) || 0 }
-                                                    })}
-                                                    className="w-16 px-2 py-1 text-center text-sm font-bold border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-300 focus:outline-none"
-                                                />
-                                                <span className="text-xs text-orange-700">días después del primer aviso</span>
-                                            </label>
-                                            <p className="text-[10px] text-orange-600/60 mt-1.5 leading-tight">
-                                                Define cuántos días de silencio esperar antes de repetir. <br />
-                                                0 = Siempre. <br />
-                                                1 = Día por medio (ej: lunes sí, martes no). <br />
-                                                2 = Dos días de espera (lunes sí, jueves sí).
-                                            </p>
-                                        </div>
-                                    )}
-                                    {config.messaging?.enableExpirationWarnings && (
-                                        <div className="space-y-4 animate-fade-in text-left border-l-2 border-orange-100 pl-4">
-                                            <div className="flex gap-2">
-                                                <div className="relative flex-1">
-                                                    <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">⏳</span>
-                                                    <textarea
-                                                        rows={2}
-                                                        value={config.messaging?.templates?.expirationWarning || ''}
-                                                        onChange={e => setConfig({
-                                                            ...config,
-                                                            messaging: {
-                                                                ...config.messaging!,
-                                                                templates: { ...config.messaging?.templates, expirationWarning: e.target.value }
-                                                            }
-                                                        })}
-                                                        placeholder={DEFAULT_TEMPLATES.expirationWarning}
-                                                        className="w-full pl-10 pr-3 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-orange-100 outline-none resize-none text-sm"
+                                </div>
+                            )}
+
+                            {/* GESTOR DE MENSAJES */}
+                            <div className="mt-8 space-y-6">
+
+                                {/* SECCIÃ“N A: CAMPAÃ‘AS MASIVAS */}
+                                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                                    <div className="bg-gradient-to-r from-orange-500 to-red-600 px-6 py-4">
+                                        <h3 className="text-white font-black text-base flex items-center gap-2">âš¡ CampaÃ±as Masivas</h3>
+                                        <p className="text-orange-100 text-xs mt-1">Mensajes de difusiÃ³n manual para promociones y eventos especiales.</p>
+                                    </div>
+                                    <div className="divide-y divide-gray-50">
+
+                                        {/* FLASH OFFER */}
+                                        <div className="p-6 space-y-4">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xl">âš¡</span>
+                                                <div>
+                                                    <h4 className="font-black text-gray-800 text-sm uppercase tracking-tight">Oferta Flash</h4>
+                                                    <p className="text-[10px] text-gray-400 mt-0.5">Para campaÃ±as urgentes. Se usa automÃ¡ticamente en campaÃ±as marcadas como "Flash".</p>
+                                                </div>
+                                                <span className="ml-auto text-[10px] bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-bold uppercase">Urgente</span>
+                                            </div>
+                                            <div className="grid gap-3">
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">A. TÃ­tulo (Asunto Email / TÃ­tulo Push)</label>
+                                                    <input type="text"
+                                                        value={config.messaging?.templates?.flashOffer_title || ''}
+                                                        onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, flashOffer_title: e.target.value } } })}
+                                                        placeholder="âš¡ Â¡OFERTA FLASH! {titulo}"
+                                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-yellow-100 outline-none text-sm"
                                                     />
                                                 </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, expirationWarning: DEFAULT_TEMPLATES.expirationWarning } } })}
-                                                    className="px-3 py-2 text-gray-400 hover:text-orange-600 rounded-lg hover:bg-orange-50 transition"
-                                                    title="Restaurar predeterminado"
-                                                >
-                                                    ↺
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => openPreview('expirationWarning')}
-                                                    className="px-3 py-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition border border-blue-100"
-                                                    title="Previsualizar Email"
-                                                >
-                                                    <Eye size={18} />
-                                                </button>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">B. Cuerpo Principal (Email / Push)</label>
+                                                    <div className="flex gap-2">
+                                                        <textarea rows={2} value={config.messaging?.templates?.flashOffer || ''}
+                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, flashOffer: e.target.value } } })}
+                                                            placeholder={DEFAULT_TEMPLATES.flashOffer}
+                                                            className="w-full px-3 py-2 rounded-lg border border-yellow-200 focus:ring-2 focus:ring-yellow-100 outline-none resize-none text-sm"
+                                                        />
+                                                        <div className="flex flex-col gap-1">
+                                                            <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, flashOffer: DEFAULT_TEMPLATES.flashOffer } } })} className="px-2 py-1.5 text-gray-400 hover:text-yellow-600 rounded hover:bg-yellow-50 transition text-sm" title="Restaurar">â†º</button>
+                                                            <button type="button" onClick={() => openPreview('flashOffer')} className="px-2 py-1.5 text-blue-500 hover:text-blue-700 rounded hover:bg-blue-50 transition border border-blue-100" title="Vista Previa Email"><Eye size={16} /></button>
+                                                        </div>
+                                                    </div>
+                                                    <VariableChips vars={['siteName', 'titulo', 'detalle', 'horario']} onSelect={v => insertVar('flashOffer', v)} />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-green-600 uppercase tracking-widest mb-1">C. Cuerpo WhatsApp (opcional, si difiere)</label>
+                                                    <div className="flex gap-2">
+                                                        <textarea rows={2} value={config.messaging?.templates?.flashOffer_whatsapp || ''}
+                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, flashOffer_whatsapp: e.target.value } } })}
+                                                            placeholder="VacÃ­o = usa el Cuerpo Principal. AprovechÃ¡ *negritas* y _cursivas_."
+                                                            className="w-full px-3 py-2 rounded-lg border border-green-200 focus:ring-2 focus:ring-green-100 outline-none resize-none text-sm"
+                                                        />
+                                                        <button type="button" onClick={() => openWaPreview(config.messaging?.templates?.flashOffer_whatsapp || config.messaging?.templates?.flashOffer || DEFAULT_TEMPLATES.flashOffer)} className="px-2 py-1.5 text-green-600 hover:text-green-800 rounded hover:bg-green-50 transition border border-green-200" title="Vista Previa WhatsApp"><MessageCircle size={16} /></button>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <VariableChips vars={['siteName', 'nombre', 'puntos', 'fecha']} onSelect={v => insertVar('expirationWarning', v)} />
-
-                                            <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-100">
-                                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Canales de Envío</label>
-                                                <ChannelSelector
-                                                    channels={config.messaging?.eventConfigs?.expirationWarning?.channels || []}
-                                                    onChange={(newChannels) => setConfig({
-                                                        ...config,
-                                                        messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, expirationWarning: { channels: newChannels } } }
-                                                    })}
-                                                />
+                                            <div className="pt-2">
+                                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Canales de EnvÃ­o</label>
+                                                <ChannelSelector channels={config.messaging?.eventConfigs?.offer?.channels || []} onChange={(ch) => setConfig({ ...config, messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, offer: { channels: ch } } } })} />
                                             </div>
                                         </div>
-                                    )}
+
+                                        {/* OFERTA ESPECIAL */}
+                                        <div className="p-6 space-y-4">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xl">ðŸ·ï¸</span>
+                                                <div>
+                                                    <h4 className="font-black text-gray-800 text-sm uppercase tracking-tight">Oferta Especial</h4>
+                                                    <p className="text-[10px] text-gray-400 mt-0.5">Promociones con vencimiento. Se usa para campaÃ±as tipo "Oferta".</p>
+                                                </div>
+                                            </div>
+                                            <div className="grid gap-3">
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">A. TÃ­tulo</label>
+                                                    <input type="text" value={config.messaging?.templates?.offer_title || ''}
+                                                        onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, offer_title: e.target.value } } })}
+                                                        placeholder="ðŸ”¥ Â¡Oferta Especial! {titulo}"
+                                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-orange-100 outline-none text-sm"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">B. Cuerpo Principal</label>
+                                                    <div className="flex gap-2">
+                                                        <textarea rows={2} value={config.messaging?.templates?.offer || ''}
+                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, offer: e.target.value } } })}
+                                                            placeholder={DEFAULT_TEMPLATES.offer}
+                                                            className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-orange-100 outline-none resize-none text-sm"
+                                                        />
+                                                        <div className="flex flex-col gap-1">
+                                                            <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, offer: DEFAULT_TEMPLATES.offer } } })} className="px-2 py-1.5 text-gray-400 hover:text-orange-600 rounded hover:bg-orange-50 transition text-sm" title="Restaurar">â†º</button>
+                                                            <button type="button" onClick={() => openPreview('offer')} className="px-2 py-1.5 text-blue-500 hover:text-blue-700 rounded hover:bg-blue-50 transition border border-blue-100" title="Vista Previa Email"><Eye size={16} /></button>
+                                                        </div>
+                                                    </div>
+                                                    <VariableChips vars={['siteName', 'titulo', 'detalle', 'vencimiento']} onSelect={v => insertVar('offer', v)} />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-green-600 uppercase tracking-widest mb-1">C. Cuerpo WhatsApp (opcional)</label>
+                                                    <div className="flex gap-2">
+                                                        <textarea rows={2} value={config.messaging?.templates?.offer_whatsapp || ''}
+                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, offer_whatsapp: e.target.value } } })}
+                                                            placeholder="VacÃ­o = usa el Cuerpo Principal."
+                                                            className="w-full px-3 py-2 rounded-lg border border-green-200 focus:ring-2 focus:ring-green-100 outline-none resize-none text-sm"
+                                                        />
+                                                        <button type="button" onClick={() => openWaPreview(config.messaging?.templates?.offer_whatsapp || config.messaging?.templates?.offer || DEFAULT_TEMPLATES.offer)} className="px-2 py-1.5 text-green-600 hover:text-green-800 rounded hover:bg-green-50 transition border border-green-200" title="Vista Previa WhatsApp"><MessageCircle size={16} /></button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="pt-2">
+                                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Canales de EnvÃ­o</label>
+                                                <ChannelSelector channels={config.messaging?.eventConfigs?.offer?.channels || []} onChange={(ch) => setConfig({ ...config, messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, offer: { channels: ch } } } })} />
+                                            </div>
+                                        </div>
+
+                                        {/* CAMPAÃ‘A */}
+                                        <div className="p-6 space-y-4">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xl">ðŸš€</span>
+                                                <div>
+                                                    <h4 className="font-black text-gray-800 text-sm uppercase tracking-tight">Nueva CampaÃ±a (Promo Manual)</h4>
+                                                    <p className="text-[10px] text-gray-400 mt-0.5">Mensaje de difusiÃ³n general para campaÃ±as sin urgencia.</p>
+                                                </div>
+                                            </div>
+                                            <div className="grid gap-3">
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">A. TÃ­tulo</label>
+                                                    <input type="text" value={config.messaging?.templates?.campaign_title || ''}
+                                                        onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, campaign_title: e.target.value } } })}
+                                                        placeholder="ðŸš€ Â¡Nueva CampaÃ±a! {titulo}"
+                                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">B. Cuerpo Principal</label>
+                                                    <div className="flex gap-2">
+                                                        <textarea rows={2} value={config.messaging?.templates?.campaign || ''}
+                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, campaign: e.target.value } } })}
+                                                            placeholder={DEFAULT_TEMPLATES.campaign}
+                                                            className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none resize-none text-sm"
+                                                        />
+                                                        <div className="flex flex-col gap-1">
+                                                            <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, campaign: DEFAULT_TEMPLATES.campaign } } })} className="px-2 py-1.5 text-gray-400 hover:text-blue-600 rounded hover:bg-blue-50 transition text-sm" title="Restaurar">â†º</button>
+                                                            <button type="button" onClick={() => openPreview('campaign')} className="px-2 py-1.5 text-blue-500 hover:text-blue-700 rounded hover:bg-blue-50 transition border border-blue-100" title="Vista Previa Email"><Eye size={16} /></button>
+                                                        </div>
+                                                    </div>
+                                                    <VariableChips vars={['siteName', 'titulo', 'descripcion']} onSelect={v => insertVar('campaign', v)} />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-green-600 uppercase tracking-widest mb-1">C. Cuerpo WhatsApp (opcional)</label>
+                                                    <div className="flex gap-2">
+                                                        <textarea rows={2} value={config.messaging?.templates?.campaign_whatsapp || ''}
+                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, campaign_whatsapp: e.target.value } } })}
+                                                            placeholder="VacÃ­o = usa el Cuerpo Principal."
+                                                            className="w-full px-3 py-2 rounded-lg border border-green-200 focus:ring-2 focus:ring-green-100 outline-none resize-none text-sm"
+                                                        />
+                                                        <button type="button" onClick={() => openWaPreview(config.messaging?.templates?.campaign_whatsapp || config.messaging?.templates?.campaign || DEFAULT_TEMPLATES.campaign)} className="px-2 py-1.5 text-green-600 hover:text-green-800 rounded hover:bg-green-50 transition border border-green-200" title="Vista Previa WhatsApp"><MessageCircle size={16} /></button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="pt-2">
+                                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Canales de EnvÃ­o</label>
+                                                <ChannelSelector channels={config.messaging?.eventConfigs?.campaign?.channels || []} onChange={(ch) => setConfig({ ...config, messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, campaign: { channels: ch } } } })} />
+                                            </div>
+                                        </div>
+
+                                    </div>
                                 </div>
 
-                                {/* Pet Food Alert Template */}
-                                {config.enablePetModule && (
-                                    <div className="p-4 bg-orange-50/30 rounded-xl border border-orange-100 space-y-4">
-                                        <div className="flex items-center justify-between">
-                                            <h4 className="text-sm font-bold text-gray-700 flex items-center gap-2">
-                                                🐾 Aviso de Reposición de Alimento
-                                            </h4>
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <div className="relative flex-1">
-                                                <span className="absolute top-3 left-3 text-xl pointer-events-none select-none">🔔</span>
-                                                <textarea
-                                                    rows={2}
-                                                    value={config.messaging?.templates?.petFoodAlert || ''}
-                                                    onChange={e => setConfig({
-                                                        ...config,
-                                                        messaging: {
-                                                            ...config.messaging!,
-                                                            templates: { ...config.messaging?.templates, petFoodAlert: e.target.value }
-                                                        }
-                                                    })}
-                                                    placeholder={DEFAULT_TEMPLATES.petFoodAlert}
-                                                    className="w-full pl-10 pr-3 py-3 rounded-lg border border-orange-200 focus:ring-2 focus:ring-orange-100 outline-none resize-none text-sm"
-                                                />
+                                {/* SECCIÃ“N B: EVENTOS AUTOMÃTICOS */}
+                                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                                    <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-4">
+                                        <h3 className="text-white font-black text-base flex items-center gap-2">ðŸ¤– Eventos AutomÃ¡ticos</h3>
+                                        <p className="text-blue-100 text-xs mt-1">Mensajes disparados automÃ¡ticamente por el sistema segÃºn reglas configuradas.</p>
+                                    </div>
+                                    <div className="divide-y divide-gray-50">
+
+                                        {/* SUMA DE PUNTOS */}
+                                        <div className="p-6 space-y-4">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xl">ðŸŒŸ</span>
+                                                <div>
+                                                    <h4 className="font-black text-gray-800 text-sm uppercase tracking-tight">Suma de Puntos (Compra)</h4>
+                                                    <p className="text-[10px] text-gray-400 mt-0.5">Se envÃ­a al cliente cada vez que acumula puntos por una compra.</p>
+                                                </div>
                                             </div>
-                                            <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, petFoodAlert: DEFAULT_TEMPLATES.petFoodAlert } } })} className="px-3 py-2 text-gray-400 hover:text-orange-600 rounded-lg transition" title="Restaurar predeterminado">↺</button>
-                                        </div>
-                                        <VariableChips vars={['siteName', 'nombre', 'mascota', 'marca']} onSelect={v => insertVar('petFoodAlert', v)} />
-                                        
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div className="bg-white/50 p-3 rounded-lg border border-orange-100">
-                                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Canales de Envío</label>
-                                                <ChannelSelector
-                                                    channels={config.messaging?.eventConfigs?.petFoodAlert?.channels || []}
-                                                    onChange={(newChannels) => setConfig({
-                                                        ...config,
-                                                        messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, petFoodAlert: { channels: newChannels } } }
-                                                    })}
-                                                />
-                                            </div>
-                                            <div className="bg-white/50 p-3 rounded-lg border border-orange-100">
-                                                <label className="block text-[10px] font-bold text-orange-700 uppercase tracking-widest mb-1">Anticipación de Aviso</label>
-                                                <div className="flex items-center gap-2">
-                                                    <input 
-                                                        type="number"
-                                                        value={config.petFoodAlertLeadDays || 0}
-                                                        onChange={e => setConfig({ ...config, petFoodAlertLeadDays: parseInt(e.target.value) || 0 })}
-                                                        className="w-20 p-2 bg-white rounded-lg border border-orange-100 text-sm font-bold outline-none focus:ring-2 focus:ring-orange-200"
-                                                        min="0"
-                                                        max="15"
+                                            <div className="grid gap-3">
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">A. TÃ­tulo</label>
+                                                    <input type="text" value={config.messaging?.templates?.pointsAdded_title || ''}
+                                                        onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, pointsAdded_title: e.target.value } } })}
+                                                        placeholder="ðŸŽ‰ Â¡Sumaste puntos en {siteName}!"
+                                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
                                                     />
-                                                    <span className="text-xs text-gray-500 font-medium">días antes de agotarse</span>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">B. Cuerpo Principal</label>
+                                                    <div className="flex gap-2">
+                                                        <textarea rows={2} value={config.messaging?.templates?.pointsAdded || ''}
+                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, pointsAdded: e.target.value } } })}
+                                                            placeholder={DEFAULT_TEMPLATES.pointsAdded}
+                                                            className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none resize-none text-sm"
+                                                        />
+                                                        <div className="flex flex-col gap-1">
+                                                            <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, pointsAdded: DEFAULT_TEMPLATES.pointsAdded } } })} className="px-2 py-1.5 text-gray-400 hover:text-blue-600 rounded hover:bg-blue-50 transition text-sm" title="Restaurar">â†º</button>
+                                                            <button type="button" onClick={() => openPreview('pointsAdded')} className="px-2 py-1.5 text-blue-500 hover:text-blue-700 rounded hover:bg-blue-50 transition border border-blue-100" title="Vista Previa Email"><Eye size={16} /></button>
+                                                        </div>
+                                                    </div>
+                                                    <VariableChips vars={['siteName', 'nombre', 'nombre_completo', 'puntos', 'saldo']} onSelect={v => insertVar('pointsAdded', v)} />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-green-600 uppercase tracking-widest mb-1">C. Cuerpo WhatsApp (opcional)</label>
+                                                    <div className="flex gap-2">
+                                                        <textarea rows={2} value={config.messaging?.templates?.pointsAdded_whatsapp || ''}
+                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, pointsAdded_whatsapp: e.target.value } } })}
+                                                            placeholder="VacÃ­o = usa el Cuerpo Principal."
+                                                            className="w-full px-3 py-2 rounded-lg border border-green-200 focus:ring-2 focus:ring-green-100 outline-none resize-none text-sm"
+                                                        />
+                                                        <button type="button" onClick={() => openWaPreview(config.messaging?.templates?.pointsAdded_whatsapp || config.messaging?.templates?.pointsAdded || DEFAULT_TEMPLATES.pointsAdded)} className="px-2 py-1.5 text-green-600 hover:text-green-800 rounded hover:bg-green-50 transition border border-green-200" title="Vista Previa WhatsApp"><MessageCircle size={16} /></button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="pt-2">
+                                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Canales de EnvÃ­o</label>
+                                                <ChannelSelector channels={config.messaging?.eventConfigs?.pointsAdded?.channels || []} onChange={(ch) => setConfig({ ...config, messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, pointsAdded: { channels: ch } } } })} />
+                                            </div>
+                                        </div>
+
+                                        {/* CANJE */}
+                                        <div className="p-6 space-y-4">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xl">ðŸŽ</span>
+                                                <div>
+                                                    <h4 className="font-black text-gray-800 text-sm uppercase tracking-tight">Canje de Premio</h4>
+                                                    <p className="text-[10px] text-gray-400 mt-0.5">ConfirmaciÃ³n automÃ¡tica cuando un cliente canjea un premio.</p>
+                                                </div>
+                                            </div>
+                                            <div className="grid gap-3">
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">A. TÃ­tulo</label>
+                                                    <input type="text" value={config.messaging?.templates?.redemption_title || ''}
+                                                        onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, redemption_title: e.target.value } } })}
+                                                        placeholder="ðŸŽ Â¡Canje confirmado!"
+                                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">B. Cuerpo Principal</label>
+                                                    <div className="flex gap-2">
+                                                        <textarea rows={2} value={config.messaging?.templates?.redemption || ''}
+                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, redemption: e.target.value } } })}
+                                                            placeholder={DEFAULT_TEMPLATES.redemption}
+                                                            className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none resize-none text-sm"
+                                                        />
+                                                        <div className="flex flex-col gap-1">
+                                                            <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, redemption: DEFAULT_TEMPLATES.redemption } } })} className="px-2 py-1.5 text-gray-400 hover:text-blue-600 rounded hover:bg-blue-50 transition text-sm" title="Restaurar">â†º</button>
+                                                            <button type="button" onClick={() => openPreview('redemption')} className="px-2 py-1.5 text-blue-500 hover:text-blue-700 rounded hover:bg-blue-50 transition border border-blue-100" title="Vista Previa Email"><Eye size={16} /></button>
+                                                        </div>
+                                                    </div>
+                                                    <VariableChips vars={['siteName', 'nombre', 'nombre_completo', 'premio', 'codigo']} onSelect={v => insertVar('redemption', v)} />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-green-600 uppercase tracking-widest mb-1">C. Cuerpo WhatsApp (opcional)</label>
+                                                    <div className="flex gap-2">
+                                                        <textarea rows={2} value={config.messaging?.templates?.redemption_whatsapp || ''}
+                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, redemption_whatsapp: e.target.value } } })}
+                                                            placeholder="VacÃ­o = usa el Cuerpo Principal."
+                                                            className="w-full px-3 py-2 rounded-lg border border-green-200 focus:ring-2 focus:ring-green-100 outline-none resize-none text-sm"
+                                                        />
+                                                        <button type="button" onClick={() => openWaPreview(config.messaging?.templates?.redemption_whatsapp || config.messaging?.templates?.redemption || DEFAULT_TEMPLATES.redemption)} className="px-2 py-1.5 text-green-600 hover:text-green-800 rounded hover:bg-green-50 transition border border-green-200" title="Vista Previa WhatsApp"><MessageCircle size={16} /></button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="pt-2">
+                                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Canales de EnvÃ­o</label>
+                                                <ChannelSelector channels={config.messaging?.eventConfigs?.redemption?.channels || []} onChange={(ch) => setConfig({ ...config, messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, redemption: { channels: ch } } } })} />
+                                            </div>
+                                        </div>
+
+                                        {/* CUMPLEAÃ‘OS */}
+                                        <div className="p-6 space-y-4">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xl">ðŸŽ‚</span>
+                                                <div>
+                                                    <h4 className="font-black text-gray-800 text-sm uppercase tracking-tight">CumpleaÃ±os</h4>
+                                                    <p className="text-[10px] text-gray-400 mt-0.5">Se envÃ­a el dÃ­a del cumpleaÃ±os. El sistema elige con o sin puntos segÃºn configuraciÃ³n.</p>
+                                                </div>
+                                            </div>
+                                            <div className="grid gap-3">
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">A. TÃ­tulo</label>
+                                                    <input type="text" value={config.messaging?.templates?.birthday_title || ''}
+                                                        onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, birthday_title: e.target.value } } })}
+                                                        placeholder="ðŸŽ‚ Â¡Feliz CumpleaÃ±os {nombre}!"
+                                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-pink-100 outline-none text-sm"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">B. Cuerpo CON Regalo (Puntos)</label>
+                                                    <div className="flex gap-2">
+                                                        <textarea rows={2} value={config.messaging?.templates?.birthday || ''}
+                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, birthday: e.target.value } } })}
+                                                            placeholder={DEFAULT_TEMPLATES.birthday}
+                                                            className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-pink-100 outline-none resize-none text-sm"
+                                                        />
+                                                        <div className="flex flex-col gap-1">
+                                                            <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, birthday: DEFAULT_TEMPLATES.birthday } } })} className="px-2 py-1.5 text-gray-400 hover:text-pink-600 rounded hover:bg-pink-50 transition text-sm" title="Restaurar">â†º</button>
+                                                            <button type="button" onClick={() => openPreview('birthday')} className="px-2 py-1.5 text-blue-500 hover:text-blue-700 rounded hover:bg-blue-50 transition border border-blue-100" title="Vista Previa Email"><Eye size={16} /></button>
+                                                        </div>
+                                                    </div>
+                                                    <VariableChips vars={['siteName', 'nombre', 'nombre_completo', 'puntos']} onSelect={v => insertVar('birthday', v)} />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">B2. Cuerpo SIN Regalo (Solo Saludo)</label>
+                                                    <div className="flex gap-2">
+                                                        <textarea rows={2} value={config.messaging?.templates?.birthdaySimple || ''}
+                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, birthdaySimple: e.target.value } } })}
+                                                            placeholder={DEFAULT_TEMPLATES.birthdaySimple}
+                                                            className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-pink-100 outline-none resize-none text-sm"
+                                                        />
+                                                        <div className="flex flex-col gap-1">
+                                                            <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, birthdaySimple: DEFAULT_TEMPLATES.birthdaySimple } } })} className="px-2 py-1.5 text-gray-400 hover:text-pink-600 rounded hover:bg-pink-50 transition text-sm" title="Restaurar">â†º</button>
+                                                            <button type="button" onClick={() => openPreview('birthdaySimple')} className="px-2 py-1.5 text-blue-500 hover:text-blue-700 rounded hover:bg-blue-50 transition border border-blue-100" title="Vista Previa Email"><Eye size={16} /></button>
+                                                        </div>
+                                                    </div>
+                                                    <VariableChips vars={['siteName', 'nombre', 'nombre_completo']} onSelect={v => insertVar('birthdaySimple', v)} />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-green-600 uppercase tracking-widest mb-1">C. Cuerpo WhatsApp (opcional)</label>
+                                                    <div className="flex gap-2">
+                                                        <textarea rows={2} value={config.messaging?.templates?.birthday_whatsapp || ''}
+                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, birthday_whatsapp: e.target.value } } })}
+                                                            placeholder="VacÃ­o = usa el Cuerpo Principal. Ej: Â¡Feliz cumple *{nombre}*! ðŸŽ‚"
+                                                            className="w-full px-3 py-2 rounded-lg border border-green-200 focus:ring-2 focus:ring-green-100 outline-none resize-none text-sm"
+                                                        />
+                                                        <button type="button" onClick={() => openWaPreview(config.messaging?.templates?.birthday_whatsapp || config.messaging?.templates?.birthday || DEFAULT_TEMPLATES.birthday)} className="px-2 py-1.5 text-green-600 hover:text-green-800 rounded hover:bg-green-50 transition border border-green-200" title="Vista Previa WhatsApp"><MessageCircle size={16} /></button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="pt-2">
+                                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Canales de EnvÃ­o</label>
+                                                <ChannelSelector channels={config.messaging?.eventConfigs?.birthday?.channels || []} onChange={(ch) => setConfig({ ...config, messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, birthday: { channels: ch } } } })} />
+                                                <p className="text-[10px] text-gray-400 mt-2 italic">* El sistema detecta automÃ¡ticamente si enviar el mensaje con o sin puntos segÃºn la configuraciÃ³n de "Reglas del Juego".</p>
+                                            </div>
+                                        </div>
+
+                                        {/* BIENVENIDA */}
+                                        <div className="p-6 space-y-4">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xl">ðŸ‘‹</span>
+                                                <div>
+                                                    <h4 className="font-black text-gray-800 text-sm uppercase tracking-tight">Bienvenida (Nuevo Cliente)</h4>
+                                                    <p className="text-[10px] text-gray-400 mt-0.5">Se envÃ­a al completar el registro en la PWA.</p>
+                                                </div>
+                                            </div>
+                                            <div className="grid gap-3">
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">A. TÃ­tulo</label>
+                                                    <input type="text" value={config.messaging?.templates?.welcome_title || ''}
+                                                        onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, welcome_title: e.target.value } } })}
+                                                        placeholder="ðŸ‘‹ Â¡Bienvenido a {siteName}!"
+                                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-100 outline-none text-sm"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">B. Cuerpo Principal</label>
+                                                    <div className="flex gap-2">
+                                                        <textarea rows={2} value={config.messaging?.templates?.welcome || ''}
+                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, welcome: e.target.value } } })}
+                                                            placeholder={DEFAULT_TEMPLATES.welcome}
+                                                            className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-100 outline-none resize-none text-sm"
+                                                        />
+                                                        <div className="flex flex-col gap-1">
+                                                            <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, welcome: DEFAULT_TEMPLATES.welcome } } })} className="px-2 py-1.5 text-gray-400 hover:text-indigo-600 rounded hover:bg-indigo-50 transition text-sm" title="Restaurar">â†º</button>
+                                                            <button type="button" onClick={() => openPreview('welcome')} className="px-2 py-1.5 text-blue-500 hover:text-blue-700 rounded hover:bg-blue-50 transition border border-blue-100" title="Vista Previa Email"><Eye size={16} /></button>
+                                                        </div>
+                                                    </div>
+                                                    <VariableChips vars={['siteName', 'nombre', 'nombre_completo', 'puntos', 'socio', 'dni']} onSelect={v => insertVar('welcome', v)} />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-green-600 uppercase tracking-widest mb-1">C. Cuerpo WhatsApp (opcional)</label>
+                                                    <div className="flex gap-2">
+                                                        <textarea rows={2} value={config.messaging?.templates?.welcome_whatsapp || ''}
+                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, welcome_whatsapp: e.target.value } } })}
+                                                            placeholder="VacÃ­o = usa el Cuerpo Principal."
+                                                            className="w-full px-3 py-2 rounded-lg border border-green-200 focus:ring-2 focus:ring-green-100 outline-none resize-none text-sm"
+                                                        />
+                                                        <button type="button" onClick={() => openWaPreview(config.messaging?.templates?.welcome_whatsapp || config.messaging?.templates?.welcome || DEFAULT_TEMPLATES.welcome)} className="px-2 py-1.5 text-green-600 hover:text-green-800 rounded hover:bg-green-50 transition border border-green-200" title="Vista Previa WhatsApp"><MessageCircle size={16} /></button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="pt-2">
+                                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Canales de EnvÃ­o</label>
+                                                <ChannelSelector channels={config.messaging?.eventConfigs?.welcome?.channels || []} onChange={(ch) => setConfig({ ...config, messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, welcome: { channels: ch } } } })} />
+                                            </div>
+                                        </div>
+
+                                        {/* VENCIMIENTO */}
+                                        <div className="p-6 space-y-4">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xl">âš ï¸</span>
+                                                    <div>
+                                                        <h4 className="font-black text-gray-800 text-sm uppercase tracking-tight">Aviso de Vencimiento</h4>
+                                                        <p className="text-[10px] text-gray-400 mt-0.5">Alerta enviada antes del vencimiento de puntos.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex items-center gap-1 text-xs text-gray-500">
+                                                        <span>Avisar</span>
+                                                        <input type="number" min="1" max="90" value={config.messaging?.expirationWarningDays || 7}
+                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, expirationWarningDays: parseInt(e.target.value) || 7 } })}
+                                                            className="w-12 bg-transparent border-b border-gray-300 text-center font-bold focus:border-orange-500 outline-none text-orange-600"
+                                                        />
+                                                        <span>dÃ­as antes</span>
+                                                    </div>
+                                                    <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, enableExpirationWarnings: !config.messaging?.enableExpirationWarnings } })}
+                                                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${config.messaging?.enableExpirationWarnings ? 'bg-orange-500' : 'bg-gray-300'}`}>
+                                                        <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition ${config.messaging?.enableExpirationWarnings ? 'translate-x-5' : 'translate-x-1'}`} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            {config.messaging?.enableExpirationWarnings && (
+                                            <div className="grid gap-3 animate-fade-in">
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">A. TÃ­tulo</label>
+                                                    <input type="text" value={config.messaging?.templates?.expirationWarning_title || ''}
+                                                        onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, expirationWarning_title: e.target.value } } })}
+                                                        placeholder="â³ Tus puntos estÃ¡n por vencer"
+                                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-orange-100 outline-none text-sm"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">B. Cuerpo Principal</label>
+                                                    <div className="flex gap-2">
+                                                        <textarea rows={2} value={config.messaging?.templates?.expirationWarning || ''}
+                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, expirationWarning: e.target.value } } })}
+                                                            placeholder={DEFAULT_TEMPLATES.expirationWarning}
+                                                            className="w-full px-3 py-2 rounded-lg border border-orange-200 focus:ring-2 focus:ring-orange-100 outline-none resize-none text-sm"
+                                                        />
+                                                        <div className="flex flex-col gap-1">
+                                                            <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, expirationWarning: DEFAULT_TEMPLATES.expirationWarning } } })} className="px-2 py-1.5 text-gray-400 hover:text-orange-600 rounded hover:bg-orange-50 transition text-sm" title="Restaurar">â†º</button>
+                                                            <button type="button" onClick={() => openPreview('expirationWarning')} className="px-2 py-1.5 text-blue-500 hover:text-blue-700 rounded hover:bg-blue-50 transition border border-blue-100" title="Vista Previa Email"><Eye size={16} /></button>
+                                                        </div>
+                                                    </div>
+                                                    <VariableChips vars={['siteName', 'nombre', 'puntos', 'fecha']} onSelect={v => insertVar('expirationWarning', v)} />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-green-600 uppercase tracking-widest mb-1">C. Cuerpo WhatsApp (opcional)</label>
+                                                    <div className="flex gap-2">
+                                                        <textarea rows={2} value={config.messaging?.templates?.expirationWarning_whatsapp || ''}
+                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, expirationWarning_whatsapp: e.target.value } } })}
+                                                            placeholder="VacÃ­o = usa el Cuerpo Principal."
+                                                            className="w-full px-3 py-2 rounded-lg border border-green-200 focus:ring-2 focus:ring-green-100 outline-none resize-none text-sm"
+                                                        />
+                                                        <button type="button" onClick={() => openWaPreview(config.messaging?.templates?.expirationWarning_whatsapp || config.messaging?.templates?.expirationWarning || DEFAULT_TEMPLATES.expirationWarning)} className="px-2 py-1.5 text-green-600 hover:text-green-800 rounded hover:bg-green-50 transition border border-green-200" title="Vista Previa WhatsApp"><MessageCircle size={16} /></button>
+                                                    </div>
+                                                </div>
+                                                <div className="pt-2">
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Canales de EnvÃ­o</label>
+                                                    <ChannelSelector channels={config.messaging?.eventConfigs?.expirationWarning?.channels || []} onChange={(ch) => setConfig({ ...config, messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, expirationWarning: { channels: ch } } } })} />
+                                                </div>
+                                                <div className="p-3 bg-orange-50/50 rounded-xl border border-orange-100 flex items-center justify-between">
+                                                    <div>
+                                                        <h4 className="text-xs font-bold text-orange-900">ðŸ” Itinerancia de Avisos</h4>
+                                                        <p className="text-[10px] text-orange-700/70 leading-tight mt-0.5">Repetir notificaciones aunque no haya cambios en puntos.</p>
+                                                    </div>
+                                                    <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, repeatExpirationWarnings: !config.messaging?.repeatExpirationWarnings } })}
+                                                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${config.messaging?.repeatExpirationWarnings ? 'bg-orange-500' : 'bg-gray-300'}`}>
+                                                        <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition ${config.messaging?.repeatExpirationWarnings ? 'translate-x-5' : 'translate-x-1'}`} />
+                                                    </button>
+                                                </div>
+                                                {config.messaging?.repeatExpirationWarnings && (
+                                                    <div className="ml-4 p-3 bg-white rounded-lg border border-orange-100 animate-fade-in">
+                                                        <label className="flex items-center gap-2">
+                                                            <span className="text-xs font-bold text-orange-800 whitespace-nowrap">Recordar cada</span>
+                                                            <input type="number" min={0} max={30} value={config.messaging?.expirationReminderIntervalDays ?? 5}
+                                                                onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, expirationReminderIntervalDays: parseInt(e.target.value) || 0 } })}
+                                                                className="w-14 px-2 py-1 text-center text-xs font-bold border border-orange-200 rounded focus:outline-none"
+                                                            />
+                                                            <span className="text-xs text-orange-700">dÃ­as</span>
+                                                        </label>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            )}
+                                        </div>
+
+                                        {/* ALIMENTO (Pet Module) */}
+                                        {config.enablePetModule && (
+                                        <div className="p-6 space-y-4">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xl">ðŸ¶</span>
+                                                <div>
+                                                    <h4 className="font-black text-gray-800 text-sm uppercase tracking-tight">Aviso de Alimento (MÃ³dulo Mascotas)</h4>
+                                                    <p className="text-[10px] text-gray-400 mt-0.5">Recordatorio automÃ¡tico cuando le queda poco alimento a la mascota.</p>
+                                                </div>
+                                            </div>
+                                            <div className="grid gap-3">
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">A. TÃ­tulo</label>
+                                                    <input type="text" value={config.messaging?.templates?.petFoodAlert_title || ''}
+                                                        onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, petFoodAlert_title: e.target.value } } })}
+                                                        placeholder="ðŸ¾ Recordatorio de alimento para {mascota}"
+                                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-orange-100 outline-none text-sm"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">B. Cuerpo Principal</label>
+                                                    <div className="flex gap-2">
+                                                        <textarea rows={2} value={config.messaging?.templates?.petFoodAlert || ''}
+                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, petFoodAlert: e.target.value } } })}
+                                                            placeholder={DEFAULT_TEMPLATES.petFoodAlert}
+                                                            className="w-full px-3 py-2 rounded-lg border border-orange-200 focus:ring-2 focus:ring-orange-100 outline-none resize-none text-sm"
+                                                        />
+                                                        <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, petFoodAlert: DEFAULT_TEMPLATES.petFoodAlert } } })} className="px-2 py-1.5 text-gray-400 hover:text-orange-600 rounded hover:bg-orange-50 transition text-sm" title="Restaurar">â†º</button>
+                                                            <button type="button" onClick={() => openPreview('petFoodAlert')} className="px-2 py-1.5 text-blue-500 hover:text-blue-700 rounded hover:bg-blue-50 transition border border-blue-100" title="Vista Previa Email"><Eye size={16} /></button>
+                                                            <button type="button" onClick={() => openTestModal('petFoodAlert')} className="px-2 py-1.5 text-purple-600 hover:text-purple-800 rounded hover:bg-purple-50 transition border border-purple-200" title="Probar EnvÃ­o a Usuario"><Rocket size={16} /></button>
+                                                    </div>
+                                                    <VariableChips vars={['siteName', 'nombre', 'mascota', 'marca']} onSelect={v => insertVar('petFoodAlert', v)} />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-green-600 uppercase tracking-widest mb-1">C. Cuerpo WhatsApp (opcional)</label>
+                                                    <div className="flex gap-2">
+                                                        <textarea rows={2} value={config.messaging?.templates?.petFoodAlert_whatsapp || ''}
+                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, petFoodAlert_whatsapp: e.target.value } } })}
+                                                            placeholder="VacÃ­o = usa el Cuerpo Principal."
+                                                            className="w-full px-3 py-2 rounded-lg border border-green-200 focus:ring-2 focus:ring-green-100 outline-none resize-none text-sm"
+                                                        />
+                                                        <button type="button" onClick={() => openWaPreview(config.messaging?.templates?.petFoodAlert_whatsapp || config.messaging?.templates?.petFoodAlert || DEFAULT_TEMPLATES.petFoodAlert)} className="px-2 py-1.5 text-green-600 hover:text-green-800 rounded hover:bg-green-50 transition border border-green-200" title="Vista Previa WhatsApp"><MessageCircle size={16} /></button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Canales de EnvÃ­o</label>
+                                                    <ChannelSelector channels={config.messaging?.eventConfigs?.petFoodAlert?.channels || []} onChange={(ch) => setConfig({ ...config, messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, petFoodAlert: { channels: ch } } } })} />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-orange-700 uppercase tracking-widest mb-1">AnticipaciÃ³n de Aviso</label>
+                                                    <div className="flex items-center gap-2">
+                                                        <input type="number" value={config.petFoodAlertLeadDays || 0} onChange={e => setConfig({ ...config, petFoodAlertLeadDays: parseInt(e.target.value) || 0 })} className="w-16 p-2 bg-white rounded-lg border border-orange-100 text-sm font-bold outline-none" min="0" max="15" />
+                                                        <span className="text-xs text-gray-500">dÃ­as antes de agotarse</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
+                                        )}
+
+                                    </div>
+                                </div>
+
+                                {/* SECCIÃ“N C: REFERIDOS */}
+                                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                                    <div className="bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-4">
+                                        <h3 className="text-white font-black text-base flex items-center gap-2">ðŸ¤ Sistema de Referidos</h3>
+                                        <p className="text-purple-100 text-xs mt-1">Mensajes del programa de referidos y desafÃ­os.</p>
+                                    </div>
+                                    <div className="divide-y divide-gray-50">
+
+                                        {/* DESAFÃO */}
+                                        <div className="p-6 space-y-4">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xl">ðŸŽ¯</span>
+                                                <div>
+                                                    <h4 className="font-black text-gray-800 text-sm uppercase tracking-tight">DesafÃ­o de Referidos</h4>
+                                                    <p className="text-[10px] text-gray-400 mt-0.5">DifusiÃ³n manual para motivar durante un desafÃ­o activo.</p>
+                                                </div>
+                                                <span className="ml-auto text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold uppercase">DifusiÃ³n Manual</span>
+                                            </div>
+                                            <div className="grid gap-3">
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">A. TÃ­tulo</label>
+                                                    <input type="text" value={config.messaging?.templates?.referralChallenge_title || ''}
+                                                        onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, referralChallenge_title: e.target.value } } })}
+                                                        placeholder="ðŸš€ Â¡NUEVO DESAFÃO ACTIVO!"
+                                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-purple-100 outline-none text-sm"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">B. Cuerpo Principal</label>
+                                                    <div className="flex gap-2">
+                                                        <textarea rows={2} value={config.messaging?.templates?.referralChallenge || ''}
+                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, referralChallenge: e.target.value } } })}
+                                                            placeholder={DEFAULT_TEMPLATES.referralChallenge || 'Â¡Tenemos un nuevo desafÃ­o!'}
+                                                            className="w-full px-3 py-2 rounded-lg border border-orange-200 focus:ring-2 focus:ring-orange-100 outline-none resize-none text-sm"
+                                                        />
+                                                        <div className="flex flex-col gap-1">
+                                                            <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, referralChallenge: DEFAULT_TEMPLATES.referralChallenge } } })} className="px-2 py-1.5 text-gray-400 hover:text-orange-600 rounded hover:bg-orange-50 transition text-sm" title="Restaurar">â†º</button>
+                                                            <button type="button" onClick={() => openPreview('referralChallenge', 'Â¡NUEVO DESAFÃO ACTIVO! ðŸš€')} className="px-2 py-1.5 text-blue-500 hover:text-blue-700 rounded hover:bg-blue-50 transition border border-blue-100" title="Vista Previa Email"><Eye size={16} /></button>
+                                                        </div>
+                                                    </div>
+                                                    <VariableChips vars={['siteName', 'nombre', 'nombre_completo', 'fecha_limite', 'puntos', 'meta']} onSelect={v => insertVar('referralChallenge', v)} />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-green-600 uppercase tracking-widest mb-1">C. Cuerpo WhatsApp (opcional)</label>
+                                                    <div className="flex gap-2">
+                                                        <textarea rows={2} value={config.messaging?.templates?.referralChallenge_whatsapp || ''}
+                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, referralChallenge_whatsapp: e.target.value } } })}
+                                                            placeholder="VacÃ­o = usa el Cuerpo Principal."
+                                                            className="w-full px-3 py-2 rounded-lg border border-green-200 focus:ring-2 focus:ring-green-100 outline-none resize-none text-sm"
+                                                        />
+                                                        <button type="button" onClick={() => openWaPreview(config.messaging?.templates?.referralChallenge_whatsapp || config.messaging?.templates?.referralChallenge || DEFAULT_TEMPLATES.referralChallenge || 'Â¡Tenemos un desafÃ­o!')} className="px-2 py-1.5 text-green-600 hover:text-green-800 rounded hover:bg-green-50 transition border border-green-200" title="Vista Previa WhatsApp"><MessageCircle size={16} /></button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between bg-orange-50/50 p-3 rounded-xl border border-orange-100">
+                                                <div className="w-full sm:w-auto">
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Canales de DifusiÃ³n</label>
+                                                    <ChannelSelector channels={challengeChannels} onChange={setChallengeChannels} />
+                                                </div>
+                                                <button type="button" onClick={async () => {
+                                                    const channelsStr = challengeChannels.join(', ') || 'Ninguno';
+                                                    if (challengeChannels.length === 0) { toast.error('Selecciona al menos un canal'); return; }
+                                                    if (!window.confirm(`Â¿Deseas difundir el desafÃ­o a todos los clientes a travÃ©s de: ${channelsStr}?`)) return;
+                                                    const toastId = toast.loading('Iniciando difusiÃ³n...');
+                                                    const title = 'Â¡NUEVO DESAFÃO ACTIVO! ðŸš€';
+                                                    const templateText = config.messaging?.templates?.referralChallenge || DEFAULT_TEMPLATES.referralChallenge || 'DesafÃ­o Activo';
+                                                    try {
+                                                        const challengeEndDateRaw = config.referrals?.challenge?.endDate;
+                                                        let expirationDateFormatted = 'pronto';
+                                                        if (challengeEndDateRaw) {
+                                                            const [year, month, day] = challengeEndDateRaw.split('-');
+                                                            expirationDateFormatted = `${day}/${month}/${year}`;
+                                                        }
+                                                        const q = query(collection(db, 'users'));
+                                                        const snap = await getDocs(q);
+                                                        if (challengeChannels.includes('push')) {
+                                                            const pushPromises = snap.docs.map(doc => {
+                                                                const d = doc.data(); const userName = d.name || '';
+                                                                let personalizedMsg = templateText.replace(/{nombre}/g, userName.split(' ')[0]).replace(/{nombre_completo}/g, userName).replace(/{fecha_limite}/g, expirationDateFormatted).replace(/{vencimiento}/g, expirationDateFormatted).replace(/{puntos}/g, config.referrals?.challenge?.tiers?.[0]?.bonus?.toString() || '0').replace(/{meta}/g, config.referrals?.challenge?.tiers?.[0]?.count?.toString() || '0');
+                                                                return NotificationService.sendToClient(doc.id, { title, body: personalizedMsg, type: 'campaign', icon: config.logoUrl || '/pwa-192x192.png' });
+                                                            });
+                                                            await Promise.allSettled(pushPromises);
+                                                        }
+                                                        if (challengeChannels.includes('email')) {
+                                                            const emailPromises = snap.docs.map(doc => {
+                                                                const d = doc.data();
+                                                                if (d.email) {
+                                                                    const userName = d.name || '';
+                                                                    let personalizedMsg = templateText.replace(/{nombre}/g, userName.split(' ')[0]).replace(/{nombre_completo}/g, userName).replace(/{fecha_limite}/g, expirationDateFormatted).replace(/{vencimiento}/g, expirationDateFormatted).replace(/{puntos}/g, config.referrals?.challenge?.tiers?.[0]?.bonus?.toString() || '0').replace(/{meta}/g, config.referrals?.challenge?.tiers?.[0]?.count?.toString() || '0');
+                                                                    const htmlContent = EmailService.generateBrandedTemplate(config, title, personalizedMsg);
+                                                                    return EmailService.sendEmail(d.email, title, htmlContent);
+                                                                }
+                                                                return null;
+                                                            }).filter(Boolean);
+                                                            await Promise.allSettled(emailPromises);
+                                                        }
+                                                        if (challengeChannels.includes('whatsapp')) {
+                                                            let waMsg = templateText.replace(/{fecha_limite}/g, expirationDateFormatted).replace(/{vencimiento}/g, expirationDateFormatted).replace(/{puntos}/g, config.referrals?.challenge?.tiers?.[0]?.bonus?.toString() || '0').replace(/{meta}/g, config.referrals?.challenge?.tiers?.[0]?.count?.toString() || '0');
+                                                            navigate('/admin/whatsapp', { state: { message: waMsg } });
+                                                        }
+                                                        toast.success('Â¡DifusiÃ³n completada!', { id: toastId });
+                                                    } catch (e) { toast.error('Error en la difusiÃ³n', { id: toastId }); }
+                                                }} className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-orange-500 to-rose-600 text-white rounded-xl text-sm font-black shadow-lg hover:scale-105 transition whitespace-nowrap">
+                                                    <Megaphone size={16} /> Â¡Difundir a Todos!
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* RECOMPENSA POR REFERIDO */}
+                                        <div className="p-6 space-y-4">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xl">ðŸ¤</span>
+                                                <div>
+                                                    <h4 className="font-black text-gray-800 text-sm uppercase tracking-tight">Premio por Referido (al Nuevo Socio)</h4>
+                                                    <p className="text-[10px] text-gray-400 mt-0.5">Se envÃ­a al nuevo cliente cuando completa el ciclo de referido.</p>
+                                                </div>
+                                            </div>
+                                            <div className="grid gap-3">
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">A. TÃ­tulo</label>
+                                                    <input type="text" value={config.messaging?.templates?.referralReward_title || ''}
+                                                        onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, referralReward_title: e.target.value } } })}
+                                                        placeholder="ðŸŽ Â¡Tu amigo te regalÃ³ puntos!"
+                                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-purple-100 outline-none text-sm"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">B. Cuerpo Principal</label>
+                                                    <div className="flex gap-2">
+                                                        <textarea rows={2} value={config.messaging?.templates?.referralReward || ''}
+                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, referralReward: e.target.value } } })}
+                                                            placeholder={DEFAULT_TEMPLATES.referralReward}
+                                                            className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-purple-100 outline-none resize-none text-sm"
+                                                        />
+                                                        <div className="flex flex-col gap-1">
+                                                            <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, referralReward: DEFAULT_TEMPLATES.referralReward } } })} className="px-2 py-1.5 text-gray-400 hover:text-purple-600 rounded hover:bg-purple-50 transition text-sm" title="Restaurar">â†º</button>
+                                                            <button type="button" onClick={() => openPreview('referralReward')} className="px-2 py-1.5 text-blue-500 hover:text-blue-700 rounded hover:bg-blue-50 transition border border-blue-100" title="Vista Previa Email"><Eye size={16} /></button>
+                                                        </div>
+                                                    </div>
+                                                    <VariableChips vars={['siteName', 'nombre', 'amigo', 'puntos']} onSelect={v => insertVar('referralReward', v)} />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-green-600 uppercase tracking-widest mb-1">C. Cuerpo WhatsApp (opcional)</label>
+                                                    <div className="flex gap-2">
+                                                        <textarea rows={2} value={config.messaging?.templates?.referralReward_whatsapp || ''}
+                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, referralReward_whatsapp: e.target.value } } })}
+                                                            placeholder="VacÃ­o = usa el Cuerpo Principal."
+                                                            className="w-full px-3 py-2 rounded-lg border border-green-200 focus:ring-2 focus:ring-green-100 outline-none resize-none text-sm"
+                                                        />
+                                                        <button type="button" onClick={() => openWaPreview(config.messaging?.templates?.referralReward_whatsapp || config.messaging?.templates?.referralReward || DEFAULT_TEMPLATES.referralReward)} className="px-2 py-1.5 text-green-600 hover:text-green-800 rounded hover:bg-green-50 transition border border-green-200" title="Vista Previa WhatsApp"><MessageCircle size={16} /></button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="pt-2">
+                                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Canales de EnvÃ­o</label>
+                                                <ChannelSelector channels={config.messaging?.eventConfigs?.referralReward?.channels || []} onChange={(ch) => setConfig({ ...config, messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, referralReward: { channels: ch } } } })} />
+                                            </div>
+                                        </div>
+
+                                        {/* PUNTOS POR REFERIR */}
+                                        <div className="p-6 space-y-4">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xl">ðŸ†</span>
+                                                <div>
+                                                    <h4 className="font-black text-gray-800 text-sm uppercase tracking-tight">Puntos por Referir (al AnfitriÃ³n)</h4>
+                                                    <p className="text-[10px] text-gray-400 mt-0.5">Se envÃ­a al socio que invitÃ³ cuando su referido completa el ciclo.</p>
+                                                </div>
+                                            </div>
+                                            <div className="grid gap-3">
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">A. TÃ­tulo</label>
+                                                    <input type="text" value={config.messaging?.templates?.referralPoints_title || ''}
+                                                        onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, referralPoints_title: e.target.value } } })}
+                                                        placeholder="ðŸ† Â¡Ganaste puntos por tu invitaciÃ³n!"
+                                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-purple-100 outline-none text-sm"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">B. Cuerpo Principal</label>
+                                                    <div className="flex gap-2">
+                                                        <textarea rows={2} value={config.messaging?.templates?.referralPoints || ''}
+                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, referralPoints: e.target.value } } })}
+                                                            placeholder={DEFAULT_TEMPLATES.referralPoints}
+                                                            className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-purple-100 outline-none resize-none text-sm"
+                                                        />
+                                                        <div className="flex flex-col gap-1">
+                                                            <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, referralPoints: DEFAULT_TEMPLATES.referralPoints } } })} className="px-2 py-1.5 text-gray-400 hover:text-purple-600 rounded hover:bg-purple-50 transition text-sm" title="Restaurar">â†º</button>
+                                                            <button type="button" onClick={() => openPreview('referralPoints')} className="px-2 py-1.5 text-blue-500 hover:text-blue-700 rounded hover:bg-blue-50 transition border border-blue-100" title="Vista Previa Email"><Eye size={16} /></button>
+                                                        </div>
+                                                    </div>
+                                                    <VariableChips vars={['siteName', 'nombre', 'nombre_referido', 'puntos']} onSelect={v => insertVar('referralPoints', v)} />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-green-600 uppercase tracking-widest mb-1">C. Cuerpo WhatsApp (opcional)</label>
+                                                    <div className="flex gap-2">
+                                                        <textarea rows={2} value={config.messaging?.templates?.referralPoints_whatsapp || ''}
+                                                            onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, referralPoints_whatsapp: e.target.value } } })}
+                                                            placeholder="VacÃ­o = usa el Cuerpo Principal."
+                                                            className="w-full px-3 py-2 rounded-lg border border-green-200 focus:ring-2 focus:ring-green-100 outline-none resize-none text-sm"
+                                                        />
+                                                        <button type="button" onClick={() => openWaPreview(config.messaging?.templates?.referralPoints_whatsapp || config.messaging?.templates?.referralPoints || DEFAULT_TEMPLATES.referralPoints)} className="px-2 py-1.5 text-green-600 hover:text-green-800 rounded hover:bg-green-50 transition border border-green-200" title="Vista Previa WhatsApp"><MessageCircle size={16} /></button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="pt-2">
+                                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Canales de EnvÃ­o</label>
+                                                <ChannelSelector channels={config.messaging?.eventConfigs?.referralPoints?.channels || []} onChange={(ch) => setConfig({ ...config, messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, referralPoints: { channels: ch } } } })} />
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </div>
+
+                                {/* Email Preview Button */}
+                                {config.messaging?.emailEnabled && (
+                                    <div className="flex justify-end pt-2">
+                                        <button type="button" onClick={handleTestEmail} className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 font-medium transition flex items-center gap-2">
+                                            <Monitor size={16} /> Ver PrevisualizaciÃ³n de Email
+                                        </button>
                                     </div>
                                 )}
-                                </div>
-                            )}
-
-                            {activeMsgTab === 'whatsapp' && (
-                                <div className="bg-white p-8 rounded-b-2xl shadow-sm border border-gray-100 space-y-8 animate-fade-in-up">
-                                    <h3 className="text-xl font-bold text-green-700 border-b pb-4 flex items-center gap-2">
-                                        <MessageCircle size={24} /> Plantillas de WhatsApp (Acciones Manuales)
-                                    </h3>
-                                    <p className="text-sm text-gray-500 mb-6">
-                                        Estos textos se usarán exclusivamente cuando presiones los botones verdes de WhatsApp en los historiales y alertas globales. 
-                                        Aprovecha para usar <b>*negritas*</b> o <i>_cursivas_</i> propias de WhatsApp.
-                                    </p>
-
-                                    {/* Bienvenida WhatsApp */}
-                                    <div className="p-4 bg-green-50/30 rounded-xl border border-green-100">
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">👋 Bienvenida</label>
-                                        <div className="flex gap-2">
-                                            <div className="relative flex-1">
-                                                <textarea rows={2}
-                                                    value={config.messaging?.templates?.whatsappWelcome || '¡Bienvenido a {siteName}, {nombre}! 👋 Ya tienes {puntos} puntos de regalo. 🎁'}
-                                                    onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappWelcome: e.target.value } } })}
-                                                    className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-300 outline-none resize-none"
-                                                />
-                                            </div>
-                                            <button type="button" onClick={() => window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(config.messaging?.templates?.whatsappWelcome || '¡Bienvenido a {siteName}, {nombre}! 👋 Ya tienes {puntos} puntos de regalo. 🎁')}`, '_blank')} className="px-3 py-2 text-green-500 hover:text-green-700 rounded-lg hover:bg-green-50 transition border border-green-100" title="Previsualizar WhatsApp">
-                                                <MessageCircle size={18} />
-                                            </button>
-                                        </div>
-                                        <VariableChips vars={['nombre', 'siteName', 'puntos']} onSelect={v => {
-                                            const val = (config.messaging?.templates?.whatsappWelcome || '¡Bienvenido a {siteName}, {nombre}! 👋 Ya tienes {puntos} puntos de regalo. 🎁') + ` {${v}}`;
-                                            setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappWelcome: val } } });
-                                        }} />
-                                    </div>
-
-                                    {/* Suma de Puntos WhatsApp */}
-                                    <div className="p-4 bg-green-50/30 rounded-xl border border-green-100">
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">💰 Suma de Puntos (Manual)</label>
-                                        <div className="flex gap-2">
-                                            <div className="relative flex-1">
-                                                <textarea rows={2}
-                                                    value={config.messaging?.templates?.whatsappPointsAdded || '¡Hola {nombre}! 🎉 Sumaste {puntos} puntos. Tu nuevo saldo es {saldo} 🚀'}
-                                                    onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappPointsAdded: e.target.value } } })}
-                                                    className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-300 outline-none resize-none"
-                                                />
-                                            </div>
-                                            <button type="button" onClick={() => window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(config.messaging?.templates?.whatsappPointsAdded || '¡Hola {nombre}! 🎉 Sumaste {puntos} puntos. Tu nuevo saldo es {saldo} 🚀')}`, '_blank')} className="px-3 py-2 text-green-500 hover:text-green-700 rounded-lg hover:bg-green-50 transition border border-green-100" title="Previsualizar WhatsApp">
-                                                <MessageCircle size={18} />
-                                            </button>
-                                        </div>
-                                        <VariableChips vars={['nombre', 'puntos', 'saldo']} onSelect={v => {
-                                            const val = (config.messaging?.templates?.whatsappPointsAdded || '¡Hola {nombre}! 🎉 Sumaste {puntos} puntos. Tu nuevo saldo es {saldo} 🚀') + ` {${v}}`;
-                                            setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappPointsAdded: val } } });
-                                        }} />
-                                    </div>
-
-                                    {/* Referidos: Recompensa (Amigo) WhatsApp */}
-                                    {config.referrals?.enabled && (
-                                    <div className="p-4 bg-green-50/30 rounded-xl border border-green-100">
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">🎁 Referidos: Regalo de Bienvenida</label>
-                                        <div className="flex gap-2">
-                                            <div className="relative flex-1">
-                                                <textarea rows={2}
-                                                    value={config.messaging?.templates?.whatsappReferralReward || '¡Hola {nombre}! 🎁 Ganaste {puntos} puntos porque tu amigo {amigo} te invitó a {siteName}. ✨'}
-                                                    onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappReferralReward: e.target.value } } })}
-                                                    className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-300 outline-none resize-none"
-                                                />
-                                            </div>
-                                            <button type="button" onClick={() => window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(config.messaging?.templates?.whatsappReferralReward || '¡Hola {nombre}! 🎁 Ganaste {puntos} puntos porque tu amigo {amigo} te invitó a {siteName}. ✨')}`, '_blank')} className="px-3 py-2 text-green-500 hover:text-green-700 rounded-lg hover:bg-green-50 transition border border-green-100" title="Previsualizar WhatsApp">
-                                                <MessageCircle size={18} />
-                                            </button>
-                                        </div>
-                                        <VariableChips vars={['nombre', 'amigo', 'puntos', 'siteName']} onSelect={v => {
-                                            const val = (config.messaging?.templates?.whatsappReferralReward || '¡Hola {nombre}! 🎁 Ganaste {puntos} puntos porque tu amigo {amigo} te invitó a {siteName}. ✨') + ` {${v}}`;
-                                            setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappReferralReward: val } } });
-                                        }} />
-                                    </div>
-                                    )}
-
-                                    {/* Referidos: Puntos Ganados (Referidor) WhatsApp */}
-                                    {config.referrals?.enabled && (
-                                    <div className="p-4 bg-green-50/30 rounded-xl border border-green-100">
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">🚀 Referidos: Ganancia por Invitar</label>
-                                        <div className="flex gap-2">
-                                            <div className="relative flex-1">
-                                                <textarea rows={2}
-                                                    value={config.messaging?.templates?.whatsappReferralPoints || '🎁 ¡Buenas noticias! Ganaste {puntos} puntos porque {nombre_referido} se unió a {siteName}. 🚀'}
-                                                    onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappReferralPoints: e.target.value } } })}
-                                                    className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-300 outline-none resize-none"
-                                                />
-                                            </div>
-                                            <button type="button" onClick={() => window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(config.messaging?.templates?.whatsappReferralPoints || '🎁 ¡Buenas noticias! Ganaste {puntos} puntos porque {nombre_referido} se unió a {siteName}. 🚀')}`, '_blank')} className="px-3 py-2 text-green-500 hover:text-green-700 rounded-lg hover:bg-green-50 transition border border-green-100" title="Previsualizar WhatsApp">
-                                                <MessageCircle size={18} />
-                                            </button>
-                                        </div>
-                                        <VariableChips vars={['nombre_referido', 'puntos', 'siteName']} onSelect={v => {
-                                            const val = (config.messaging?.templates?.whatsappReferralPoints || '🎁 ¡Buenas noticias! Ganaste {puntos} puntos porque {nombre_referido} se unió a {siteName}. 🚀') + ` {${v}}`;
-                                            setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappReferralPoints: val } } });
-                                        }} />
-                                    </div>
-                                    )}
-
-                                    {/* Desafío de Referidos WhatsApp */}
-                                    {config.referrals?.enabled && config.referrals?.challenge?.active && (
-                                    <div className="p-4 bg-green-50/30 rounded-xl border border-green-100">
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">🏆 Desafío de Referidos</label>
-                                        <div className="flex gap-2">
-                                            <div className="relative flex-1">
-                                                <textarea rows={2}
-                                                    value={config.messaging?.templates?.whatsappReferralChallenge || '¡NUEVO DESAFÍO! 🚀 Traé amigos a {siteName} y ganá bonos extra. Válido hasta {vencimiento}. 🎁'}
-                                                    onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappReferralChallenge: e.target.value } } })}
-                                                    className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-300 outline-none resize-none"
-                                                />
-                                            </div>
-                                            <button type="button" onClick={() => window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(config.messaging?.templates?.whatsappReferralChallenge || '¡NUEVO DESAFÍO! 🚀 Traé amigos a {siteName} y ganá bonos extra. Válido hasta {vencimiento}. 🎁')}`, '_blank')} className="px-3 py-2 text-green-500 hover:text-green-700 rounded-lg hover:bg-green-50 transition border border-green-100" title="Previsualizar WhatsApp">
-                                                <MessageCircle size={18} />
-                                            </button>
-                                        </div>
-                                        <VariableChips vars={['siteName', 'vencimiento', 'puntos', 'meta']} onSelect={v => {
-                                            const val = (config.messaging?.templates?.whatsappReferralChallenge || '¡NUEVO DESAFÍO! 🚀 Traé amigos a {siteName} y ganá bonos extra. Válido hasta {vencimiento}. 🎁') + ` {${v}}`;
-                                            setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappReferralChallenge: val } } });
-                                        }} />
-                                    </div>
-                                    )}
-
-                                    {/* Cumpleaños WhatsApp */}
-                                    <div className="p-4 bg-green-50/30 rounded-xl border border-green-100">
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">🎂 Feliz Cumpleaños</label>
-                                        <div className="flex gap-2">
-                                            <div className="relative flex-1">
-                                                <textarea rows={2}
-                                                    value={config.messaging?.templates?.whatsappBirthday || '¡Feliz cumple {nombre}! 🎂 Te regalamos puntos. ✨'}
-                                                    onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappBirthday: e.target.value } } })}
-                                                    className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-300 outline-none resize-none"
-                                                />
-                                            </div>
-                                            <button type="button" onClick={() => window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(config.messaging?.templates?.whatsappBirthday || '¡Feliz cumple {nombre}! 🎂 Te regalamos puntos. ✨')}`, '_blank')} className="px-3 py-2 text-green-500 hover:text-green-700 rounded-lg hover:bg-green-50 transition border border-green-100" title="Previsualizar WhatsApp">
-                                                <MessageCircle size={18} />
-                                            </button>
-                                        </div>
-                                        <VariableChips vars={['nombre', 'nombre_completo']} onSelect={v => {
-                                            const val = (config.messaging?.templates?.whatsappBirthday || '¡Feliz cumple {nombre}! 🎂 Te regalamos puntos. ✨') + ` {${v}}`;
-                                            setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappBirthday: val } } });
-                                        }} />
-                                    </div>
-
-                                    {/* Vencimiento WhatsApp */}
-                                    <div className="p-4 bg-green-50/30 rounded-xl border border-green-100">
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">📢 Vencimiento de Puntos</label>
-                                        <div className="flex gap-2">
-                                            <div className="relative flex-1">
-                                                <textarea rows={2}
-                                                    value={config.messaging?.templates?.whatsappExpiration || '¡Hola {nombre}! 📢 Tus puntos ({puntos} pts) vencen pronto.'}
-                                                    onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappExpiration: e.target.value } } })}
-                                                    className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-300 outline-none resize-none"
-                                                />
-                                            </div>
-                                            <button type="button" onClick={() => window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(config.messaging?.templates?.whatsappExpiration || '¡Hola {nombre}! 📢 Tus puntos ({puntos} pts) vencen pronto.')}`, '_blank')} className="px-3 py-2 text-green-500 hover:text-green-700 rounded-lg hover:bg-green-50 transition border border-green-100" title="Previsualizar WhatsApp">
-                                                <MessageCircle size={18} />
-                                            </button>
-                                        </div>
-                                        <VariableChips vars={['nombre', 'puntos']} onSelect={v => {
-                                            const val = (config.messaging?.templates?.whatsappExpiration || '¡Hola {nombre}! 📢 Tus puntos ({puntos} pts) vencen pronto.') + ` {${v}}`;
-                                            setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappExpiration: val } } });
-                                        }} />
-                                    </div>
-
-                                    {/* Canje WhatsApp */}
-                                    <div className="p-4 bg-green-50/30 rounded-xl border border-green-100">
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">🎁 Canje Exitoso</label>
-                                        <div className="flex gap-2">
-                                            <div className="relative flex-1">
-                                                <textarea rows={2}
-                                                    value={config.messaging?.templates?.whatsappRedemption || '¡Canje exitoso {nombre}! 🎁 Canjeaste {premio}. Código: {codigo}'}
-                                                    onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappRedemption: e.target.value } } })}
-                                                    className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-300 outline-none resize-none"
-                                                />
-                                            </div>
-                                            <button type="button" onClick={() => window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(config.messaging?.templates?.whatsappRedemption || '¡Canje exitoso {nombre}! 🎁 Canjeaste {premio}. Código: {codigo}')}`, '_blank')} className="px-3 py-2 text-green-500 hover:text-green-700 rounded-lg hover:bg-green-50 transition border border-green-100" title="Previsualizar WhatsApp">
-                                                <MessageCircle size={18} />
-                                            </button>
-                                        </div>
-                                        <VariableChips vars={['nombre', 'premio', 'codigo']} onSelect={v => {
-                                            const val = (config.messaging?.templates?.whatsappRedemption || '¡Canje exitoso {nombre}! 🎁 Canjeaste {premio}. Código: {codigo}') + ` {${v}}`;
-                                            setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappRedemption: val } } });
-                                        }} />
-                                    </div>
-
-                                    {/* Alimento WhatsApp */}
-                                    {config.enablePetModule && (
-                                    <div className="p-4 bg-green-50/30 rounded-xl border border-green-100">
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">🐾 Recordatorio de Alimento</label>
-                                        <div className="flex gap-2">
-                                            <div className="relative flex-1">
-                                                <textarea rows={2}
-                                                    value={config.messaging?.templates?.whatsappPetFood || '¡Hola {nombre}! 🐾 Recordatorio de alimento para {mascota}. Marca: {marca}.'}
-                                                    onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappPetFood: e.target.value } } })}
-                                                    className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-300 outline-none resize-none"
-                                                />
-                                            </div>
-                                            <button type="button" onClick={() => window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(config.messaging?.templates?.whatsappPetFood || '¡Hola {nombre}! 🐾 Recordatorio de alimento para {mascota}. Marca: {marca}.')}`, '_blank')} className="px-3 py-2 text-green-500 hover:text-green-700 rounded-lg hover:bg-green-50 transition border border-green-100" title="Previsualizar WhatsApp">
-                                                <MessageCircle size={18} />
-                                            </button>
-                                        </div>
-                                        <VariableChips vars={['nombre', 'mascota', 'marca']} onSelect={v => {
-                                            const val = (config.messaging?.templates?.whatsappPetFood || '¡Hola {nombre}! 🐾 Recordatorio de alimento para {mascota}. Marca: {marca}.') + ` {${v}}`;
-                                            setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, whatsappPetFood: val } } });
-                                        }} />
-                                    </div>
-                                    )}
-
-                                </div>
-                            )}
-
-                            {/* Email Preview Button */}
-                            {config.messaging?.emailEnabled && (
-                                <div className="flex justify-end pt-4">
-                                    <button
-                                        type="button"
-                                        onClick={handleTestEmail}
-                                        className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 font-medium transition flex items-center gap-2"
-                                    >
-                                        <Monitor size={16} /> Ver Previsualización de Email
-                                    </button>
-                                </div>
-                            )}
+                            </div>
                         </div>
                     )
                 }
@@ -3327,6 +3220,222 @@ export const ConfigPage = () => {
                 </div>
             </form>
 
+                        {/* Modal de Prueba de EnvÃ­o */}
+            {testMessageModal.isOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setTestMessageModal({ ...testMessageModal, isOpen: false })} />
+                    <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                        <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-purple-50">
+                            <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center">
+                                    <Rocket size={24} />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-black text-purple-900">Probar EnvÃ­o: {testMessageModal.templateKey}</h3>
+                                    <p className="text-sm text-purple-700/70">EnviÃ¡ un mensaje real a un usuario para verificar variables.</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setTestMessageModal({ ...testMessageModal, isOpen: false })} className="text-gray-400 hover:text-gray-600 p-2 rounded-xl hover:bg-white transition">
+                                âœ•
+                            </button>
+                        </div>
+                        <div className="p-6 overflow-y-auto space-y-6">
+                            
+                            {/* BÃºsqueda de Usuario */}
+                            <div className="space-y-3">
+                                <label className="block text-sm font-bold text-gray-700">1. Buscar Usuario de Prueba</label>
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                                    <input 
+                                        type="text" 
+                                        placeholder="Buscar por nombre, email o DNI..." 
+                                        className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none"
+                                        id="testUserSearchInput"
+                                        onChange={async (e) => {
+                                            const val = e.target.value;
+                                            const resultsDiv = document.getElementById('testUserResults');
+                                            if (!resultsDiv) return;
+                                            if (val.length < 3) {
+                                                resultsDiv.innerHTML = '';
+                                                return;
+                                            }
+                                            resultsDiv.innerHTML = '<div class="p-3 text-sm text-gray-500 text-center">Buscando...</div>';
+                                            
+                                            // Buscar en Firebase
+                                            const q = query(collection(db, 'users'), orderBy('name'), limit(5));
+                                            const snap = await getDocs(q);
+                                            let results: any[] = [];
+                                            snap.forEach(doc => {
+                                                const d = doc.data();
+                                                if (d.name?.toLowerCase().includes(val.toLowerCase()) || d.email?.toLowerCase().includes(val.toLowerCase()) || d.dni?.includes(val)) {
+                                                    results.push({ id: doc.id, ...d });
+                                                }
+                                            });
+                                            
+                                            if (results.length === 0) {
+                                                resultsDiv.innerHTML = '<div class="p-3 text-sm text-gray-500 text-center">No se encontraron usuarios.</div>';
+                                                return;
+                                            }
+                                            
+                                            (window as any)._testUsers = results; // Guardar temporalmente
+                                            
+                                            resultsDiv.innerHTML = results.map((u, idx) => `
+                                                <div class="p-3 hover:bg-purple-50 cursor-pointer flex justify-between items-center border-b border-gray-100 last:border-0 transition" onclick="window._selectTestUser(${idx})">
+                                                    <div>
+                                                        <div class="font-bold text-gray-800 text-sm">${u.name || 'Sin nombre'}</div>
+                                                        <div class="text-xs text-gray-500">${u.email || u.phone || 'Sin datos de contacto'}</div>
+                                                    </div>
+                                                    <div class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-bold">${u.points || 0} pts</div>
+                                                </div>
+                                            `).join('');
+                                        }}
+                                    />
+                                </div>
+                                <div id="testUserResults" className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm empty:hidden"></div>
+                                
+                                <div id="selectedTestUser" className="hidden bg-green-50 border border-green-200 rounded-xl p-4 flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <CheckCircle2 className="text-green-500" size={20} />
+                                        <div>
+                                            <div id="selUserName" className="font-bold text-green-900 text-sm">Usuario</div>
+                                            <div id="selUserData" className="text-xs text-green-700">Datos</div>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => {
+                                        document.getElementById('selectedTestUser')?.classList.add('hidden');
+                                        (document.getElementById('testUserSearchInput') as HTMLInputElement).value = '';
+                                        (window as any)._selectedUserForTest = null;
+                                    }} className="text-xs text-green-700 font-bold hover:text-green-900 underline">Cambiar</button>
+                                </div>
+                            </div>
+                            
+                            <div className="relative flex items-center py-2">
+                                <div className="flex-grow border-t border-gray-200"></div>
+                                <span className="flex-shrink-0 mx-4 text-gray-400 text-xs font-bold uppercase tracking-widest">O ingresar datos manuales</span>
+                                <div className="flex-grow border-t border-gray-200"></div>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-600 mb-1">Email Manual</label>
+                                    <input type="email" id="manualTestEmail" placeholder="test@test.com" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-500" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-600 mb-1">WhatsApp Manual</label>
+                                    <input type="text" id="manualTestPhone" placeholder="5491122334455" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-500" />
+                                </div>
+                            </div>
+
+                            {/* Canales */}
+                            <div className="space-y-3 pt-4 border-t border-gray-100">
+                                <label className="block text-sm font-bold text-gray-700">2. Seleccionar Canales a Probar</label>
+                                <div className="flex gap-4">
+                                    <label className="flex items-center gap-2 cursor-pointer bg-gray-50 hover:bg-purple-50 p-3 rounded-xl transition flex-1 border border-gray-200 hover:border-purple-200">
+                                        <input type="checkbox" id="testChEmail" defaultChecked={testMessageModal.channels.includes('email')} className="w-4 h-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500" />
+                                        <span className="text-sm font-bold text-gray-700">Email</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer bg-gray-50 hover:bg-purple-50 p-3 rounded-xl transition flex-1 border border-gray-200 hover:border-purple-200">
+                                        <input type="checkbox" id="testChWa" defaultChecked={testMessageModal.channels.includes('whatsapp')} className="w-4 h-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500" />
+                                        <span className="text-sm font-bold text-gray-700">WhatsApp</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer bg-gray-50 hover:bg-purple-50 p-3 rounded-xl transition flex-1 border border-gray-200 hover:border-purple-200">
+                                        <input type="checkbox" id="testChPush" defaultChecked={testMessageModal.channels.includes('push')} className="w-4 h-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500" />
+                                        <span className="text-sm font-bold text-gray-700">Push</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                        </div>
+                        <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
+                            <button onClick={() => setTestMessageModal({ ...testMessageModal, isOpen: false })} className="px-6 py-3 font-bold text-gray-500 hover:bg-gray-200 rounded-xl transition">
+                                Cancelar
+                            </button>
+                            <button onClick={async () => {
+                                const user = (window as any)._selectedUserForTest;
+                                const manualEmail = (document.getElementById('manualTestEmail') as HTMLInputElement)?.value;
+                                const manualPhone = (document.getElementById('manualTestPhone') as HTMLInputElement)?.value;
+                                
+                                const chEmail = (document.getElementById('testChEmail') as HTMLInputElement)?.checked;
+                                const chWa = (document.getElementById('testChWa') as HTMLInputElement)?.checked;
+                                const chPush = (document.getElementById('testChPush') as HTMLInputElement)?.checked;
+                                
+                                if (!user && !manualEmail && !manualPhone) {
+                                    toast.error('Selecciona un usuario o ingresÃ¡ datos manuales');
+                                    return;
+                                }
+                                if (!chEmail && !chWa && !chPush) {
+                                    toast.error('Selecciona al menos un canal para probar');
+                                    return;
+                                }
+
+                                const toastId = toast.loading('Enviando pruebas...');
+                                
+                                // Funciones de reemplazo
+                                const processText = (text: string) => {
+                                    return text
+                                        .replace(/{nombre}/g, user ? (user.name || '').split(' ')[0] : 'UsuarioPrueba')
+                                        .replace(/{nombre_completo}/g, user ? user.name || '' : 'Usuario Prueba Completo')
+                                        .replace(/{puntos}/g, user ? String(user.points || 0) : '150')
+                                        .replace(/{saldo}/g, user ? String(user.points || 0) : '150')
+                                        .replace(/{siteName}/g, config.siteName || 'El Club')
+                                        .replace(/{premio}/g, 'Premio de Prueba')
+                                        .replace(/{codigo}/g, 'TEST-123')
+                                        .replace(/{fecha}/g, '31/12/2025')
+                                        .replace(/{vencimiento}/g, '31/12/2025')
+                                        .replace(/{fecha_limite}/g, '31/12/2025')
+                                        .replace(/{amigo}/g, 'AmigoPrueba')
+                                        .replace(/{nombre_referido}/g, 'AmigoPrueba')
+                                        .replace(/{mascota}/g, user?.pets?.[0]?.name || 'Firulais')
+                                        .replace(/{marca}/g, 'MarcaPrueba')
+                                        .replace(/{titulo}/g, 'Titulo de PromociÃ³n')
+                                        .replace(/{descripcion}/g, 'DescripciÃ³n de campaÃ±a de prueba')
+                                        .replace(/{detalle}/g, 'Detalle de oferta')
+                                        .replace(/{horario}/g, '20:00');
+                                };
+
+                                const finalTitle = processText(testMessageModal.title || 'Mensaje de Prueba');
+                                const finalBody = processText(testMessageModal.body);
+                                const finalWaBody = processText(testMessageModal.waBody || testMessageModal.body);
+
+                                try {
+                                    const emailToSend = manualEmail || user?.email;
+                                    const phoneToSend = manualPhone || user?.phone;
+
+                                    if (chEmail) {
+                                        if (!emailToSend) toast.error('No hay email para enviar');
+                                        else {
+                                            const html = EmailService.generateBrandedTemplate(config, finalTitle, finalBody);
+                                            await EmailService.sendEmail(emailToSend, finalTitle, html);
+                                            toast.success('Email de prueba enviado', { id: toastId });
+                                        }
+                                    }
+                                    if (chPush) {
+                                        if (!user?.id) toast.error('Se requiere un usuario de la BD para probar Push');
+                                        else {
+                                            await NotificationService.sendToClient(user.id, { title: finalTitle, body: finalBody, type: 'campaign' });
+                                            toast.success('Push de prueba enviado', { id: toastId });
+                                        }
+                                    }
+                                    if (chWa) {
+                                        if (!phoneToSend) toast.error('No hay teléfono para WhatsApp');
+                                        else {
+                                            const url = `https://api.whatsapp.com/send?phone=${phoneToSend}&text=${encodeURIComponent(finalWaBody)}`;
+                                            window.open(url, '_blank');
+                                            toast.success('Abriendo WhatsApp...', { id: toastId });
+                                        }
+                                    }
+                                } catch (error) {
+                                    console.error(error);
+                                    toast.error('Hubo un error al enviar las pruebas', { id: toastId });
+                                }
+                            }} className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-black rounded-xl flex items-center gap-2 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition active:scale-95">
+                                <Rocket size={18} /> Â¡Enviar Prueba!
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            
             <EmailPreviewModal
                 isOpen={previewModal.isOpen}
                 onClose={() => setPreviewModal({ ...previewModal, isOpen: false })}

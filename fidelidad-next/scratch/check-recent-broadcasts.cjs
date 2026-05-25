@@ -5,7 +5,11 @@ if (!admin.apps.length) admin.initializeApp({ credential: admin.credential.cert(
 const db = admin.firestore();
 
 async function check() {
-    const snap = await db.collection("config").doc("global").get();
-    console.dir(snap.data().messaging, {depth: null});
+    const snap = await db.collection("audit_logs")
+        .where("type", "==", "campaign_broadcast")
+        .orderBy("timestamp", "desc")
+        .limit(5)
+        .get();
+    snap.forEach(d => console.log(d.id, d.data()));
 }
 check();

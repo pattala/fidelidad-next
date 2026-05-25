@@ -281,7 +281,8 @@ export const GlobalAlerts = () => {
                         }
                     }
                 });
-                setCampaignAlerts(camps);
+                console.log('[GlobalAlerts] Campaign Alerts:', camps);
+                  setCampaignAlerts(camps);
             });
             unsubs.push(unsubCampaigns);
 

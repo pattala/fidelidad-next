@@ -310,6 +310,9 @@ export default async function handler(req, res) {
 
             if (userDocs.length > 0 || emails.length > 0) {
                 try {
+                    // 0. ACTUALIZAR MARCA DE ENV�O PREVENTIVAMENTE PARA EVITAR RACE CONDITIONS (Doble Push)
+                    await doc.ref.update({ broadcastSentAt: todayStr });
+
                     // 1. ENVIAR PUSH (V.1.6.6: Ajustado a data-only para evitar que Chrome bypasee el Service Worker)
                     if (config.messaging?.pushEnabled !== false) {
                         const allTokens = [];

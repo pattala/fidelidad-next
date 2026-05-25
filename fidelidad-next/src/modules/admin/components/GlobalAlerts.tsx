@@ -260,7 +260,6 @@ export const GlobalAlerts = () => {
                 where('type', '==', 'campaign_broadcast'),
                 where('timestamp', '>=', minCampaignQueryTimestamp)
             );
-            );
             const unsubCampaigns = onSnapshot(qCampaigns, (snap) => {
                 const camps: any[] = [];
                 snap.forEach(d => {

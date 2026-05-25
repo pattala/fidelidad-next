@@ -493,8 +493,7 @@ export const GlobalAlerts = () => {
     const pendingC = campaignAlerts.filter(u => {
         if (processedAlerts[u.alertId]) return false;
         const camp = campaignsMap.get(u.campId);
-        if (!camp) return false; // Excluye campañas eliminadas (huérfanas)
-        if (!camp.active) return false; // Excluye campañas desactivadas
+          if (!camp) return false; // Excluye campa�as hu�rfanas pero NO las desactivadas
         
         // Excluir si la fecha de inicio es futura en la simulación
         const campStartDate = camp.startDate || camp.flashDate || null;
@@ -513,8 +512,7 @@ export const GlobalAlerts = () => {
     const procC = campaignAlerts.filter(u => {
         if (!processedAlerts[u.alertId]) return false;
         const camp = campaignsMap.get(u.campId);
-        if (!camp) return false; // Excluye campañas eliminadas (huérfanas)
-        if (!camp.active) return false; // Excluye campañas desactivadas
+          if (!camp) return false; // Excluye campa�as hu�rfanas pero NO las desactivadas
 
         // Excluir si la fecha de inicio es futura en la simulación
         const campStartDate = camp.startDate || camp.flashDate || null;

@@ -490,38 +490,14 @@ export const GlobalAlerts = () => {
     const pendingP = petAlerts.filter(u => !processedAlerts[u.alertId]);
     const pendingR = redemptions.filter(u => !processedAlerts[u.alertId]);
     const pendingA = pointsAssignments.filter(u => !processedAlerts[u.alertId]);
-    const pendingC = campaignAlerts.filter(u => {
-        if (processedAlerts[u.alertId]) return false;
-        const camp = campaignsMap.get(u.campId);
-          if (!camp) return false; // Excluye campa�as hu�rfanas pero NO las desactivadas
-        
-        // Excluir si la fecha de inicio es futura en la simulación
-        const campStartDate = camp.startDate || camp.flashDate || null;
-        if (campStartDate && campStartDate > todayStr) return false;
-        // Excluir si la fecha de fin ya pasó en la simulación
-        if (camp.endDate && camp.endDate < todayStr) return false;
-
-        return true;
-    });
+    const pendingC = campaignAlerts.filter(u => !processedAlerts[u.alertId]);
 
     const procB = birthdaysOfToday.filter(u => processedAlerts[u.alertId]);
     const procE = expiringUsers.filter(u => processedAlerts[u.alertId]);
     const procP = petAlerts.filter(u => processedAlerts[u.alertId]);
     const procR = redemptions.filter(u => processedAlerts[u.alertId]);
     const procA = pointsAssignments.filter(u => processedAlerts[u.alertId]);
-    const procC = campaignAlerts.filter(u => {
-        if (!processedAlerts[u.alertId]) return false;
-        const camp = campaignsMap.get(u.campId);
-          if (!camp) return false; // Excluye campa�as hu�rfanas pero NO las desactivadas
-
-        // Excluir si la fecha de inicio es futura en la simulación
-        const campStartDate = camp.startDate || camp.flashDate || null;
-        if (campStartDate && campStartDate > todayStr) return false;
-        // Excluir si la fecha de fin ya pasó en la simulación
-        if (camp.endDate && camp.endDate < todayStr) return false;
-
-        return true;
-    });
+    const procC = campaignAlerts.filter(u => !!processedAlerts[u.alertId]);
 
     const totalPending = pendingB.length + pendingE.length + pendingP.length + pendingR.length + pendingA.length + pendingC.length;
     const totalProcessed = procB.length + procE.length + procP.length + procR.length + procA.length + procC.length;

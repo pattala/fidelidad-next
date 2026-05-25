@@ -366,7 +366,7 @@ export default async function handler(req, res) {
                     }
 
                     // 2. ENVIAR EMAILS (V.1.6.6: Envío directo por SMTP para evitar fallos de fetch loopback)
-                    if (emails.length > 0 && config.messaging?.emailEnabled !== false) {
+                    if (emails.length > 0 && config.messaging?.emailEnabled !== false && process.env.SMTP_USER && process.env.SMTP_PASS) {
                         const emailPromises = emails.map(async ({ email, name }) => {
                             // Personalizar {nombre} en el cuerpo
                             const personalizedBody = body.replace(/{nombre}/g, name || 'Socio');

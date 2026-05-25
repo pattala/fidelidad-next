@@ -471,6 +471,19 @@ export const SystemLogsPage = () => {
                                                                     const groupedByUser: { [key: string]: { info: any, actions: any[] } } = {};
 
                                                                     log.details.forEach((d: any) => {
+                                                                          if (d.affectedUsers && Array.isArray(d.affectedUsers)) {
+                                                                              d.affectedUsers.forEach((u: any) => {
+                                                                                  const uid = u.id || 'unknown';
+                                                                                  if (!groupedByUser[uid]) {
+                                                                                      groupedByUser[uid] = {
+                                                                                          info: { name: u.name || 'Socio', email: u.email || '' },
+                                                                                          actions: []
+                                                                                      };
+                                                                                  }
+                                                                                  groupedByUser[uid].actions.push({...d, affectedUsers: undefined});
+                                                                              });
+                                                                              return;
+                                                                          }
                                                                         const uid = d.userId || 'system';
                                                                         if (!groupedByUser[uid]) {
                                                                             groupedByUser[uid] = {

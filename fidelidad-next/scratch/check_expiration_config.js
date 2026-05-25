@@ -1,0 +1,12 @@
+import admin from 'firebase-admin';
+import fs from 'fs';
+const raw = JSON.parse(fs.readFileSync('.dev_creds.json','utf8'));
+const sa = JSON.parse(raw.credentials);
+if (!admin.apps.length) admin.initializeApp({ credential: admin.credential.cert(sa) });
+const db = admin.firestore();
+const snap = await db.collection('config').doc('general').get();
+const cfg = snap.data();
+console.log('repeatExpirationWarnings:', cfg.messaging?.repeatExpirationWarnings);
+console.log('expirationReminderIntervalDays:', cfg.messaging?.expirationReminderIntervalDays);
+console.log('expirationWarningDays:', cfg.expirationWarningDays ?? cfg.messaging?.expirationWarningDays);
+process.exit(0);

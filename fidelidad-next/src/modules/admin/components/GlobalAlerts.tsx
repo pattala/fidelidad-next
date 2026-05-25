@@ -253,10 +253,13 @@ export const GlobalAlerts = () => {
             });
             unsubs.push(unsubPoints);
 
+            // Compensar desfasaje horario UTC del backend (hasta 24h)
+            const minCampaignQueryTimestamp = new Date(minQueryTimestamp.getTime() - 24 * 3600 * 1000);
             const qCampaigns = query(
-                collection(db, 'audit_logs'), 
+                collection(db, 'audit_logs'),
                 where('type', '==', 'campaign_broadcast'),
-                where('timestamp', '>=', minQueryTimestamp)
+                where('timestamp', '>=', minCampaignQueryTimestamp)
+            );
             );
             const unsubCampaigns = onSnapshot(qCampaigns, (snap) => {
                 const camps: any[] = [];

@@ -302,7 +302,7 @@ export default async function handler(req, res) {
                 if (uData.role === 'admin') return;
                 userDocs.push({ id: u.id, ref: u.ref, data: uData });
                 if (uData.fcmTokens?.length > 0) {
-                    const validTokens = uData.fcmTokens.filter((t) => t && typeof t === 'string' && t.length > 10);
+                    const validTokens = uData.fcmTokens.map(t => typeof t === 'object' && t !== null ? t.token : t).filter((t) => t && typeof t === 'string' && t.length > 10);
                     if (validTokens.length > 0) fcmTokens.push(...validTokens);
                 }
                 if (uData.email) emails.push({ email: uData.email, name: uData.name || uData.nombre || '' });
@@ -314,7 +314,7 @@ export default async function handler(req, res) {
                     if (config.messaging?.pushEnabled !== false) {
                         const allTokens = [];
                         userDocs.forEach(u => {
-                            const valid = u.data.fcmTokens?.filter((t) => t && typeof t === 'string' && t.length > 10) || [];
+                            const valid = u.data.fcmTokens?.map(t => typeof t === 'object' && t !== null ? t.token : t).filter((t) => t && typeof t === 'string' && t.length > 10) || [];
                             allTokens.push(...valid);
                         });
 
@@ -341,6 +341,7 @@ export default async function handler(req, res) {
                                             icon: iconUrl,
                                             badge: iconUrl
                                         },
+                                        notification: { title, body: pushBody },
                                         android: { 
                                             priority: "high",
                                             notification: {

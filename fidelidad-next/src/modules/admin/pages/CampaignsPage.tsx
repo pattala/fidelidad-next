@@ -524,17 +524,7 @@ export const CampaignsPage = () => {
                 toast.success('Descargando CSV para WhatsApp...', { duration: 3000 });
                 handleDownloadCSV(bonus);
 
-                // 2. Redirigir a la cola interactiva interna precargando mensaje y clientes
-                setTimeout(() => {
-                    toast.success('Redirigiendo a cola de difusión de WhatsApp...');
-                    navigate('/admin/whatsapp', {
-                        state: {
-                            message: msg,
-                            clientIds: clientsDocs.map(d => d.id),
-                            notificationType: 'campaign'
-                        }
-                    });
-                }, 1500);
+                // 2. Se elimin� la redirecci�n a la cola iterativa para facilitar el uso exclusivo de CSV masivo.
             }
 
             // --- AUDITORIA ---

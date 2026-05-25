@@ -664,14 +664,7 @@ export const ClientHomePage = () => {
     }, [user?.uid, !!userData, !!config, birthdayChecked]);
 
     useEffect(() => {
-        const interval = setInterval(() => {
-            setCurrentTimeStore(TimeService.now());
-            // Ping silencioso al motor para disparar campa�as (cada 10s es mucho, usamos un contador o lo dejamos, como la funcion no hace nada si no hay nada q enviar, es rapida)
-            if (config?.messaging?.enableClientTrigger !== false && !window.__enginePinging) {
-                window.__enginePinging = true;
-                fetch('/api/engine-campaigns?trigger=pwa', { method: 'POST', headers: { 'x-api-key': import.meta.env.VITE_API_KEY || '' } }).finally(() => { window.__enginePinging = false; }).catch(() => {});
-            }
-        }, 10000); // V.1.6.5: Actualizar cada 10 segundos para activación instantánea
+        const interval = setInterval(() => { setCurrentTimeStore(TimeService.now()); }, 10000); // V.1.6.5: Actualizar cada 10 segundos para activación instantánea
         return () => clearInterval(interval);
     }, []);
 

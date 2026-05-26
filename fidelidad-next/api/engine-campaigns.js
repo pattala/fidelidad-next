@@ -326,51 +326,52 @@ export default async function handler(req, res) {
                     // 0. ACTUALIZAR MARCA DE ENV�O PREVENTIVAMENTE PARA EVITAR RACE CONDITIONS (Doble Push)
                     await doc.ref.update({ broadcastSentAt: todayStr });
 
-                    // 1. ENVIAR PUSH (V.1.6.6: Ajustado a data-only para evitar que Chrome bypasee el Service Worker)
+                                        // 1. ENVIAR PUSH INDIVIDUALIZADO (Soporte para {nombre})
                     if (config.messaging?.pushEnabled !== false) {
-                        const allTokens = [];
+                        const messages = [];
                         userDocs.forEach(u => {
-                            const valid = (u.data.fcmTokens || []).map(t => typeof t === 'object' && t !== null ? t.token : t).filter((t) => t && typeof t === 'string' && t.length > 10) || [];
-                            allTokens.push(...valid);
+                            const validTokens = (u.data.fcmTokens || []).map(t => typeof t === 'object' && t !== null ? t.token : t).filter((t) => t && typeof t === 'string' && t.length > 10) || [];
+                            
+                            // Personalizar para cada socio
+                            const personalizedBody = body.replace(/{nombre}/g, u.data.name || u.data.nombre || 'Socio');
+                            
+                            validTokens.forEach(token => {
+                                messages.push({
+                                    token: token,
+                                    data: { 
+                                        id: db.collection("_ids").doc().id,
+                                        title, 
+                                        body: personalizedBody, 
+                                        url, 
+                                        click_action: url,
+                                        type: "campaign", 
+                                        icon: iconUrl,
+                                        badge: iconUrl
+                                    },
+                                    notification: { title, body: personalizedBody },
+                                    android: { 
+                                        priority: "high",
+                                        notification: {
+                                            sound: "default",
+                                            channelId: "fidelidad-notif-channel"
+                                        }
+                                    },
+                                    webpush: { 
+                                        headers: { Urgent: "high" },
+                                        fcmOptions: { link: `${PWA_URL}${url.startsWith('/') ? url : '/' + url}` } 
+                                    }
+                                });
+                            });
                         });
 
-                        if (allTokens.length > 0) {
-                            // Reemplazar {nombre} por "Socio" para el envío masivo (multicast)
-                            const pushBody = body.replace(/{nombre}/g, 'Socio');
-                            
+                        if (messages.length > 0) {
                             const chunks = [];
-                            for (let i = 0; i < allTokens.length; i += 500) chunks.push(allTokens.slice(i, i + 500));
+                            for (let i = 0; i < messages.length; i += 500) chunks.push(messages.slice(i, i + 500));
                             
                             for (const chunk of chunks) {
                                 try {
-                                    // IMPORTANTE: Se usa SOLO el campo 'data' (sin 'notification' top-level)
-                                    // para asegurar que el SW siempre procese la notificación en segundo plano.
-                                    await app.messaging().sendEachForMulticast({
-                                        tokens: chunk,
-                                        data: { 
-                                            id: db.collection("_ids").doc().id,
-                                            title, 
-                                            body: pushBody, 
-                                            url, 
-                                            click_action: url,
-                                            type: "campaign", 
-                                            icon: iconUrl,
-                                            badge: iconUrl
-                                        },
-                                        notification: { title, body: pushBody },
-                                        android: { 
-                                            priority: "high",
-                                            notification: {
-                                                sound: "default",
-                                                channelId: "fidelidad-notif-channel"
-                                            }
-                                        },
-                                        webpush: { 
-                                            headers: { Urgent: "high" },
-                                            fcmOptions: { link: `${PWA_URL}${url.startsWith('/') ? url : '/' + url}` } 
-                                        }
-                                    });
-                                    console.log(`[Engine-Campaigns] Push batch sent (data-only).`);
+                                    await app.messaging().sendEach(chunk);
+                                    console.log(`[Engine-Campaigns] Push batch sent with ${chunk.length} personalized messages.`);
                                 } catch (pError) {
                                     console.error("[Engine-Campaigns] Push chunk error:", pError.message);
                                 }

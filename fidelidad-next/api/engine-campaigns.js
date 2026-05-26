@@ -340,10 +340,28 @@ export default async function handler(req, res) {
 
             if (userDocs.length > 0 || emails.length > 0) {
                 try {
-                    // 0. ACTUALIZAR MARCA DE ENV�O PREVENTIVAMENTE PARA EVITAR RACE CONDITIONS (Doble Push)
-                    await doc.ref.update({ broadcastSentAt: todayStr });
+                    // 0. CANDADO ANTI-DUPLICADOS (Transacción Atómica)
+                    const shouldBroadcast = await db.runTransaction(async (transaction) => {
+                        const freshDoc = await transaction.get(doc.ref);
+                        if (!freshDoc.exists) return false;
+                        
+                        const freshData = freshDoc.data();
+                        if (freshData.broadcastSentAt === todayStr && !isManualSim) {
+                            return false; // Otro proceso paralelo ya lo mandó en este milisegundo
+                        }
+                        
+                        // Bloqueamos el envío para otros marcándolo ahora mismo
+                        transaction.update(doc.ref, { broadcastSentAt: todayStr });
+                        return true;
+                    });
 
-                                        // 1. ENVIAR PUSH INDIVIDUALIZADO (Soporte para {nombre})
+                    if (!shouldBroadcast) {
+                        console.log(`[Engine-Campaigns] Carrera detectada y evitada. Campaña ${camp.name} ya enviada hoy por otro proceso.`);
+                        results.skipped++;
+                        continue;
+                    }
+
+                    // 1. ENVIAR PUSH INDIVIDUALIZADO (Soporte para {nombre})
                     if (config.messaging?.pushEnabled !== false) {
                         const messages = [];
                         userDocs.forEach(u => {
@@ -473,8 +491,7 @@ export default async function handler(req, res) {
                         await inboxBatch.commit();
                     }
 
-                    // 3. ACTUALIZAR MARCA DE ENVÍO
-                    await doc.ref.update({ broadcastSentAt: todayStr });
+                    // 3. (MARCA DE ENVÍO YA GRABADA POR LA TRANSACCIÓN)
                     results.notified++;
                     results.details.push({ id: campId, name: camp.name, tokens: fcmTokens.length });
 

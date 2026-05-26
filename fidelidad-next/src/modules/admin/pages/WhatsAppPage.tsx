@@ -25,7 +25,7 @@ export const WhatsAppPage = () => {
 
     // Message
     const [message, setMessage] = useState('');
-    const [notificationType, setNotificationType] = useState<'expiration' | 'birthday' | 'custom'>('custom');
+    const [notificationType, setNotificationType] = useState<'expiration' | 'birthday' | 'custom' | 'pet_food'>('custom');
 
     useEffect(() => {
         const loadJava = async () => {

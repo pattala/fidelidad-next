@@ -3410,7 +3410,7 @@ export const ConfigPage = () => {
                                     if (chPush) {
                                         if (!user?.id) toast.error('Se requiere un usuario de la BD para probar Push');
                                         else {
-                                            await NotificationService.sendToClient(user.id, { title: finalTitle, body: finalBody, type: 'campaign' });
+                                            await NotificationService.sendToClient(user.id, { title: finalTitle, body: finalBody, type: 'campaign', icon: config.logoUrl || '/pwa-192x192.png' });
                                             toast.success('Push de prueba enviado', { id: toastId });
                                         }
                                     }

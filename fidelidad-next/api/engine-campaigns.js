@@ -270,36 +270,53 @@ export default async function handler(req, res) {
             // V.1.6.4: Construir los mensajes utilizando el formato estético premium de plantillas
             let template = "";
             let msg = "";
+            
+            // Valores dinámicos por defecto
+            const tituloCamp = camp.isFlash ? (camp.flashTitle || camp.title || camp.name) : (camp.title || camp.name);
+            const descCamp = camp.isFlash ? (camp.flashDescription || camp.description || '') : (camp.description || '');
+            const premio = camp.rewardText || (camp.rewardValue ? camp.rewardValue.toString() : '');
+            const puntos = camp.rewardValue ? camp.rewardValue.toString() : '';
+            const horario = camp.endTime || '23:59';
+            const hora_inicio = camp.startTime || '';
+            const vencimiento = camp.endDate ? new Date(camp.endDate + 'T00:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : 'agotar stock';
 
             if (camp.isFlash) {
                 template = config.messaging?.templates?.flashOffer || DEFAULT_TEMPLATES.flashOffer;
-                const horario = camp.endTime || '23:59';
                 msg = template
-                    .replace(/{titulo}/g, camp.flashTitle || camp.title || camp.name)
-                    .replace(/{detalle}/g, camp.flashDescription || camp.description || (camp.rewardText ? `¡${camp.rewardText}!` : 'Consultanos.'))
-                    .replace(/{horario}/g, horario);
+                    .replace(/{titulo}/g, tituloCamp)
+                    .replace(/{detalle}/g, descCamp || (premio ? `¡${premio}!` : 'Consultanos.'))
+                    .replace(/{descripcion}/g, descCamp)
+                    .replace(/{horario}/g, horario)
+                    .replace(/{hora_inicio}/g, hora_inicio)
+                    .replace(/{premio}/g, premio)
+                    .replace(/{puntos}/g, puntos);
             } else if (camp.rewardType === 'INFO' || camp.rewardType === 'TEXT') {
                 template = config.messaging?.templates?.offer || DEFAULT_TEMPLATES.offer;
-                const vencimiento = camp.endDate
-                    ? new Date(camp.endDate + 'T00:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
-                    : 'agotar stock';
                 msg = template
-                    .replace(/{titulo}/g, camp.title || camp.name)
-                    .replace(/{detalle}/g, camp.description || (camp.rewardText ? `¡${camp.rewardText}!` : 'Consultanos.'))
-                    .replace(/{vencimiento}/g, vencimiento);
+                    .replace(/{titulo}/g, tituloCamp)
+                    .replace(/{detalle}/g, descCamp || (premio ? `¡${premio}!` : 'Consultanos.'))
+                    .replace(/{descripcion}/g, descCamp)
+                    .replace(/{vencimiento}/g, vencimiento)
+                    .replace(/{premio}/g, premio)
+                    .replace(/{puntos}/g, puntos);
             } else {
                 template = config.messaging?.templates?.campaign || DEFAULT_TEMPLATES.campaign;
                 msg = template
-                    .replace(/{titulo}/g, camp.title || camp.name)
-                    .replace(/{descripcion}/g, camp.description || '¡Sumá más puntos!');
+                    .replace(/{titulo}/g, tituloCamp)
+                    .replace(/{descripcion}/g, descCamp || '¡Sumá más puntos!')
+                    .replace(/{detalle}/g, descCamp || '¡Sumá más puntos!')
+                    .replace(/{premio}/g, premio)
+                    .replace(/{puntos}/g, puntos)
+                    .replace(/{vencimiento}/g, vencimiento);
             }
 
-            // Reemplazar etiquetas dinámicas heredadas si existen
-            const startTimeVal = camp.startTime || '';
-            const descVal = camp.flashDescription || camp.description || '';
-            msg = msg.replace(/{hora_inicio}/g, startTimeVal).replace(/{descripcion}/g, descVal);
+            // Fallback general por si quedó alguna etiqueta
+            msg = msg.replace(/{hora_inicio}/g, hora_inicio).replace(/{horario}/g, horario).replace(/{descripcion}/g, descCamp).replace(/{titulo}/g, tituloCamp);
 
-            const title = camp.isFlash ? "⚡ ¡OFERTA FLASH!" : (camp.rewardType === 'INFO' ? "🔥 ¡Oferta Especial!" : "🚀 ¡Nueva Campaña!");
+            // El título nativo de la push notification (en negrita arriba de todo)
+            const title = camp.isFlash ? "⚡ ¡OFERTA FLASH!" : (camp.rewardType === 'INFO' || camp.rewardType === 'TEXT' ? "🎁 ¡Oferta Especial!" : "🚀 ¡Nueva Campaña!");
+            // Se puede sobrescribir si en la config admin pusieron algo. Pero lo dejamos así por impacto visual, y usamos el título real en el cuerpo.
+            
             const body = msg;
             const url = camp.link || "/";
 
@@ -333,7 +350,8 @@ export default async function handler(req, res) {
                             const validTokens = (u.data.fcmTokens || []).map(t => typeof t === 'object' && t !== null ? t.token : t).filter((t) => t && typeof t === 'string' && t.length > 10) || [];
                             
                             // Personalizar para cada socio
-                            const personalizedBody = body.replace(/{nombre}/g, u.data.name || u.data.nombre || 'Socio');
+                            const userName = u.data.name || u.data.nombre || 'Socio';
+                            const personalizedBody = body.replace(/{nombre}/g, userName.split(' ')[0]).replace(/{nombre_completo}/g, userName);
                             
                             validTokens.forEach(token => {
                                 messages.push({
@@ -383,7 +401,8 @@ export default async function handler(req, res) {
                     if (emails.length > 0 && config.messaging?.emailEnabled !== false && process.env.SMTP_USER && process.env.SMTP_PASS) {
                         const emailPromises = emails.map(async ({ email, name }) => {
                             // Personalizar {nombre} en el cuerpo
-                            const personalizedBody = body.replace(/{nombre}/g, name || 'Socio');
+                            const userName = name || 'Socio';
+                            const personalizedBody = body.replace(/{nombre}/g, userName.split(' ')[0]).replace(/{nombre_completo}/g, userName);
                             const htmlContent = buildHtmlLayout(
                                 `<div style="color:#333">
                                     <h2 style="color:#6366f1;margin-top:0">${title}</h2>
@@ -438,7 +457,8 @@ export default async function handler(req, res) {
                         userDocs.forEach(u => {
                             const inboxRef = u.ref.collection('inbox').doc();
                             // Personalizar {nombre} en el cuerpo
-                            const personalizedBody = body.replace(/{nombre}/g, u.data.name || u.data.nombre || 'Socio');
+                            const userName = u.data.name || u.data.nombre || 'Socio';
+                            const personalizedBody = body.replace(/{nombre}/g, userName.split(' ')[0]).replace(/{nombre_completo}/g, userName);
                             inboxBatch.set(inboxRef, {
                                 title, 
                                 body: personalizedBody, 

@@ -9,9 +9,12 @@ export const EmailService = {
         const { logoUrl, primaryColor, siteName } = config;
 
         // Fallback or validation
-        const safeLogo = logoUrl || 'https://via.placeholder.com/150?text=Logo';
         const safeColor = primaryColor || '#0ea5e9'; // Using the same blue as backend for consistency
         const base = config.contact?.pwaUrl || (typeof window !== 'undefined' ? window.location.origin : '');
+        let safeLogo = logoUrl || 'https://via.placeholder.com/150?text=Logo';
+        if (safeLogo.startsWith('/')) {
+            safeLogo = `${base.replace(/\\/$/, '')}${safeLogo}`;
+        }
 
         const contact = config.contact || {};
         const termsUrl = contact.termsAndConditions || '#';

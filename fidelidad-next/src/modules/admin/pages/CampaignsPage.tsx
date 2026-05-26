@@ -1719,11 +1719,28 @@ export const CampaignsPage = () => {
                                                             </div>
                                                             {formData.autoBroadcast && (
                                                                 <>
-                                                                    <p className="mt-4 text-[10px] text-blue-800 font-medium bg-white/50 p-3 rounded-xl border border-blue-200/50 italic">
-                                                                        {isFlashMode 
-                                                                            ? "✨ El sistema enviará automáticamente las notificaciones a todos los socios unos minutos antes de que la campaña comience (o al inicio si eliges 0)."
-                                                                            : "✨ El sistema enviará automáticamente las notificaciones a todos los socios al iniciar el día programado de la campaña."}
-                                                                    </p>
+                                                                    {isFlashMode ? (
+                                                                        <p className="mt-4 text-[10px] text-blue-800 font-medium bg-white/50 p-3 rounded-xl border border-blue-200/50 italic">
+                                                                            ⚡ El sistema enviará automáticamente las notificaciones a todos los socios unos minutos antes de que la campaña comience (o al inicio si eliges 0).
+                                                                        </p>
+                                                                    ) : (
+                                                                        <div className="mt-4 bg-white/40 p-4 rounded-2xl border border-blue-200/30 space-y-3">
+                                                                            <div className="flex justify-between items-center mb-2">
+                                                                                <label className="text-[10px] font-black text-blue-900 uppercase">Día Específico de Envío (Opcional)</label>
+                                                                            </div>
+                                                                            <input 
+                                                                                type="date" 
+                                                                                className="w-full p-3 rounded-xl bg-white shadow-sm border-none text-sm font-bold focus:ring-2 focus:ring-blue-200 outline-none transition-all text-blue-800"
+                                                                                value={formData.nextBroadcastDate || ''}
+                                                                                onChange={e => setFormData({ ...formData, nextBroadcastDate: e.target.value })}
+                                                                            />
+                                                                            <p className="text-[9px] text-blue-400 font-bold italic text-center leading-tight">
+                                                                                {formData.nextBroadcastDate
+                                                                                    ? "La notificación se enviará de forma automática únicamente en la fecha seleccionada."
+                                                                                    : "Si lo dejas vacío, el sistema intentará enviarla al inicio según los días programados."}
+                                                                            </p>
+                                                                        </div>
+                                                                    )}
                                                                     {isFlashMode && (
                                                                         <div className="mt-4 bg-white/40 p-4 rounded-2xl border border-blue-200/30 space-y-3">
                                                                             <div className="flex justify-between items-center">

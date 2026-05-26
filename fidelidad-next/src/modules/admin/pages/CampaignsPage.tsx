@@ -165,7 +165,8 @@ export const CampaignsPage = () => {
             flashDays: [], flashGraceMins: 15,
             isInternal: false,
             autoBroadcast: false,
-            broadcastLeadMins: 15
+            broadcastLeadMins: 15,
+            nextBroadcastDate: ''
         });
         setEditingId(null);
         setActiveTab('BASIC');
@@ -236,7 +237,8 @@ export const CampaignsPage = () => {
                 endTime: isFlashMode ? (formData.endTime || '') : '',
                 broadcastLeadMins: formData.autoBroadcast ? (formData.broadcastLeadMins || 15) : 0,
                 autoBroadcast: !!formData.autoBroadcast,
-                isInternal: !!formData.isInternal
+                isInternal: !!formData.isInternal,
+                nextBroadcastDate: isFlashMode ? '' : (formData.nextBroadcastDate || '')
             };
             if (editingId) {
                 await CampaignService.update(editingId, payload);

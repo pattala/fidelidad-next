@@ -198,6 +198,14 @@ export default async function handler(req, res) {
                 continue;
             }
 
+            // 1.5 ¿Tiene fecha específica de envío programada?
+            if (!camp.isFlash && camp.nextBroadcastDate) {
+                if (camp.nextBroadcastDate !== todayStr && !isManualSim) {
+                    results.skipped++;
+                    continue;
+                }
+            }
+
             // 2. ¿Dentro de la Ventana de Notificación?
             if (!isWithinNotificationWindow && !isManualSim && !camp.isFlash) {
                 results.skipped++;

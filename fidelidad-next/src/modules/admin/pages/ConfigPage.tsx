@@ -2240,7 +2240,7 @@ export const ConfigPage = () => {
                                                             <button type="button" onClick={() => openTestModal('flashOffer')} className="px-2 py-1.5 text-purple-600 hover:text-purple-800 rounded hover:bg-purple-50 transition border border-purple-200" title="Probar Envío a Usuario"><Rocket size={16} /></button>
                                                         </div>
                                                     </div>
-                                                    <VariableChips vars={['siteName', 'titulo', 'detalle', 'horario']} onSelect={v => insertVar('flashOffer', v)} />
+                                                    <VariableChips vars={['siteName', 'titulo', 'detalle', 'hora_inicio', 'horario']} onSelect={v => insertVar('flashOffer', v)} />
                                                 </div>
                                                 <div>
                                                     <label className="block text-[10px] font-bold text-green-600 uppercase tracking-widest mb-1">C. Cuerpo WhatsApp (opcional, si difiere)</label>

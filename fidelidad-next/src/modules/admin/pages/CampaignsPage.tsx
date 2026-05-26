@@ -392,9 +392,11 @@ export const CampaignsPage = () => {
                 
                 if (bonus.isFlash) {
                     const horario = bonus.endTime || '23:59';
+                    const hora_inicio = bonus.startTime || '00:00';
                     msg = msg.replace(/{titulo}/g, bonus.flashTitle || bonus.title || bonus.name)
                              .replace(/{detalle}/g, bonus.flashDescription || bonus.description || (bonus.rewardText ? `¡${bonus.rewardText}!` : 'Consultanos.'))
-                             .replace(/{horario}/g, horario);
+                             .replace(/{horario}/g, horario)
+                             .replace(/{hora_inicio}/g, hora_inicio);
                 } else if (bonus.rewardType === 'INFO' || (bonus.rewardType as any) === 'TEXT') {
                     const vencimiento = bonus.endDate ? new Date(bonus.endDate + 'T00:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : 'agotar stock';
                     msg = msg.replace(/{titulo}/g, bonus.title || bonus.name)
@@ -442,10 +444,12 @@ export const CampaignsPage = () => {
             if (bonus.isFlash) {
                 template = config?.messaging?.templates?.flashOffer || DEFAULT_TEMPLATES.flashOffer;
                 const horario = bonus.endTime || '23:59';
+                const hora_inicio = bonus.startTime || '00:00';
                 msg = template
                     .replace(/{titulo}/g, bonus.flashTitle || bonus.title || bonus.name)
                     .replace(/{detalle}/g, bonus.flashDescription || bonus.description || (bonus.rewardText ? `¡${bonus.rewardText}!` : 'Consultanos.'))
-                    .replace(/{horario}/g, horario);
+                    .replace(/{horario}/g, horario)
+                    .replace(/{hora_inicio}/g, hora_inicio);
             } else if (bonus.rewardType === 'INFO' || (bonus.rewardType as any) === 'TEXT') {
                 template = config?.messaging?.templates?.offer || DEFAULT_TEMPLATES.offer;
                 const vencimiento = bonus.endDate

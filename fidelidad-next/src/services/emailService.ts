@@ -13,7 +13,7 @@ export const EmailService = {
         const base = config.contact?.pwaUrl || (typeof window !== 'undefined' ? window.location.origin : '');
         let safeLogo = logoUrl || 'https://via.placeholder.com/150?text=Logo';
         if (safeLogo.startsWith('/')) {
-            safeLogo = `${base.replace(/\\/$/, '')}${safeLogo}`;
+            safeLogo = `${base.replace(/\/$/, '')}${safeLogo}`;
         }
 
         const contact = config.contact || {};

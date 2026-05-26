@@ -157,8 +157,9 @@ app.get('/api/firebase-diff', (req, res) => {
     proc.on('close', (code) => {
         if (code === 0) {
             const files = output.split('\n').map(f => f.trim()).filter(Boolean);
-            const fbFiles = files.filter(f => f.includes('firestore.rules') || f.includes('firestore.indexes.json'));
-            res.json({ hasChanges: fbFiles.length > 0, files: fbFiles });
+            const rulesChanged = files.some(f => f.includes('firestore.rules'));
+            const indexesChanged = files.some(f => f.includes('firestore.indexes.json'));
+            res.json({ rulesChanged, indexesChanged });
         } else {
             res.status(500).json({ error: 'Git diff failed' });
         }

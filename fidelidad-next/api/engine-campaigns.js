@@ -198,9 +198,14 @@ export default async function handler(req, res) {
                 continue;
             }
 
-            // 1.5 ¿Tiene fecha específica de envío programada?
-            if (!camp.isFlash && camp.nextBroadcastDate) {
-                if (camp.nextBroadcastDate !== todayStr && !isManualSim) {
+            // 1.5 Lógica para Tradicionales (Primer día y fechas adicionales)
+            if (!camp.isFlash) {
+                const hasBeenSentBefore = !!camp.broadcastSentAt;
+                const isScheduledForToday = camp.additionalBroadcastDates && camp.additionalBroadcastDates.includes(todayStr);
+
+                // Si ya fue enviada alguna vez en su historia y HOY no es una fecha programada adicional, se saltea.
+                // (Si NO fue enviada nunca, se permite pasar para que haga su envío inicial).
+                if (hasBeenSentBefore && !isScheduledForToday && !isManualSim) {
                     results.skipped++;
                     continue;
                 }

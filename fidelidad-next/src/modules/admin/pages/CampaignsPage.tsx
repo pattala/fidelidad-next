@@ -27,6 +27,7 @@ export const CampaignsPage = () => {
     const [isFlashMode, setIsFlashMode] = useState(false);
     const [isTypeSelected, setIsTypeSelected] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [tempDate, setTempDate] = useState('');
 
     const [formData, setFormData] = useState<Partial<BonusRule>>({
         name: '', title: '', showTitle: true, description: '', showDescription: true,
@@ -166,7 +167,7 @@ export const CampaignsPage = () => {
             isInternal: false,
             autoBroadcast: false,
             broadcastLeadMins: 15,
-            nextBroadcastDate: ''
+            additionalBroadcastDates: []
         });
         setEditingId(null);
         setActiveTab('BASIC');
@@ -238,7 +239,7 @@ export const CampaignsPage = () => {
                 broadcastLeadMins: formData.autoBroadcast ? (formData.broadcastLeadMins || 15) : 0,
                 autoBroadcast: !!formData.autoBroadcast,
                 isInternal: !!formData.isInternal,
-                nextBroadcastDate: isFlashMode ? '' : (formData.nextBroadcastDate || '')
+                additionalBroadcastDates: isFlashMode ? [] : (formData.additionalBroadcastDates || [])
             };
             if (editingId) {
                 await CampaignService.update(editingId, payload);
@@ -1726,18 +1727,48 @@ export const CampaignsPage = () => {
                                                                     ) : (
                                                                         <div className="mt-4 bg-white/40 p-4 rounded-2xl border border-blue-200/30 space-y-3">
                                                                             <div className="flex justify-between items-center mb-2">
-                                                                                <label className="text-[10px] font-black text-blue-900 uppercase">Día Específico de Envío (Opcional)</label>
+                                                                                <label className="text-[10px] font-black text-blue-900 uppercase">Fechas Adicionales de Envío</label>
                                                                             </div>
-                                                                            <input 
-                                                                                type="date" 
-                                                                                className="w-full p-3 rounded-xl bg-white shadow-sm border-none text-sm font-bold focus:ring-2 focus:ring-blue-200 outline-none transition-all text-blue-800"
-                                                                                value={formData.nextBroadcastDate || ''}
-                                                                                onChange={e => setFormData({ ...formData, nextBroadcastDate: e.target.value })}
-                                                                            />
+                                                                            <div className="flex gap-2">
+                                                                                <input 
+                                                                                    type="date" 
+                                                                                    className="flex-1 p-3 rounded-xl bg-white shadow-sm border-none text-sm font-bold focus:ring-2 focus:ring-blue-200 outline-none transition-all text-blue-800"
+                                                                                    value={tempDate}
+                                                                                    onChange={e => setTempDate(e.target.value)}
+                                                                                />
+                                                                                <button 
+                                                                                    type="button"
+                                                                                    onClick={() => {
+                                                                                        if (tempDate && !(formData.additionalBroadcastDates || []).includes(tempDate)) {
+                                                                                            setFormData({ ...formData, additionalBroadcastDates: [...(formData.additionalBroadcastDates || []), tempDate].sort() });
+                                                                                            setTempDate('');
+                                                                                        }
+                                                                                    }}
+                                                                                    className="px-4 bg-blue-600 text-white rounded-xl font-bold text-xs hover:bg-blue-700 transition-colors"
+                                                                                >
+                                                                                    Agregar
+                                                                                </button>
+                                                                            </div>
+                                                                            
+                                                                            {(formData.additionalBroadcastDates || []).length > 0 && (
+                                                                                <div className="flex flex-wrap gap-2 mt-2">
+                                                                                    {(formData.additionalBroadcastDates || []).map(date => (
+                                                                                        <span key={date} className="flex items-center gap-1 bg-white px-2 py-1 rounded-lg shadow-sm border border-blue-100 text-[10px] font-bold text-blue-800">
+                                                                                            {date}
+                                                                                            <button 
+                                                                                                type="button" 
+                                                                                                onClick={() => setFormData({ ...formData, additionalBroadcastDates: formData.additionalBroadcastDates?.filter(d => d !== date) })}
+                                                                                                className="text-red-500 hover:text-red-700 ml-1"
+                                                                                            >
+                                                                                                ×
+                                                                                            </button>
+                                                                                        </span>
+                                                                                    ))}
+                                                                                </div>
+                                                                            )}
+
                                                                             <p className="text-[9px] text-blue-400 font-bold italic text-center leading-tight">
-                                                                                {formData.nextBroadcastDate
-                                                                                    ? "La notificación se enviará de forma automática únicamente en la fecha seleccionada."
-                                                                                    : "Si lo dejas vacío, el sistema intentará enviarla al inicio según los días programados."}
+                                                                                La notificación se enviará de forma automática el primer día de la campaña, y también en las fechas adicionales que agregues aquí.
                                                                             </p>
                                                                         </div>
                                                                     )}

@@ -66,7 +66,7 @@ export interface BonusRule {
     autoBroadcast?: boolean;
     broadcastLeadMins?: number;
     broadcastSentAt?: string;
-    nextBroadcastDate?: string;
+    additionalBroadcastDates?: string[];
     
     // Legacy support para flash
     flashRewardType?: 'POINTS' | 'MULTIPLIER' | 'FIXED' | 'INFO' | 'TEXT';

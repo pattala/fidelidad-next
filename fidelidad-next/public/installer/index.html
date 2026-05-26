@@ -456,6 +456,14 @@
                 Actualiza todos los sitios Vercel de tus clientes pasando los cambios de <strong>desarrollo</strong> a <strong>main</strong>.
             </p>
             <!-- ALERTA DE FIREBASE -->
+            <!-- ALERTA DE FIREBASE OK -->
+            <div id="firebaseAlertOk" style="display: none; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px; padding: 15px; margin-bottom: 20px;">
+                <p style="font-weight: 800; font-size: 13px; color: #10b981; margin-bottom: 5px;">✅ Reglas de Firebase al día</p>
+                <p style="font-size: 12px; color: var(--text-muted);">
+                    No hay cambios pendientes en Reglas o Índices. Con hacer el Merge de código es suficiente.
+                </p>
+            </div>
+            
             <div id="firebaseAlert" style="display: none; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 12px; padding: 15px; margin-bottom: 20px;">
                 <p style="font-weight: 800; font-size: 13px; color: #ef4444; margin-bottom: 5px;">⚠️ ATENCIÓN: Se detectaron cambios en Firebase</p>
                 <p style="font-size: 12px; color: var(--text-muted);">
@@ -636,10 +644,13 @@
                 
                 const alertBox = document.getElementById('firebaseAlert');
                 if (alertBox) {
+                    const alertBoxOk = document.getElementById('firebaseAlertOk');
                     if (fbData.hasChanges) {
                         alertBox.style.display = 'block';
+                        if (alertBoxOk) alertBoxOk.style.display = 'none';
                     } else {
                         alertBox.style.display = 'none';
+                        if (alertBoxOk) alertBoxOk.style.display = 'block';
                     }
                 }
             } catch(err) {

@@ -147,6 +147,24 @@ app.post('/api/git-sync', (req, res) => {
     runNextCommand();
 });
 
+
+// Endpoint: Consultar cambios en Firebase
+app.get('/api/firebase-diff', (req, res) => {
+    const proc = spawn('git', ['diff', 'origin/main...desarrollo', '--name-only'], { shell: true });
+    let output = '';
+    
+    proc.stdout.on('data', (data) => output += data.toString());
+    proc.on('close', (code) => {
+        if (code === 0) {
+            const files = output.split('\n').map(f => f.trim()).filter(Boolean);
+            const fbFiles = files.filter(f => f.includes('firestore.rules') || f.includes('firestore.indexes.json'));
+            res.json({ hasChanges: fbFiles.length > 0, files: fbFiles });
+        } else {
+            res.status(500).json({ error: 'Git diff failed' });
+        }
+    });
+});
+
 // Endpoint: Obtener versiones comparativas
 app.get('/api/versions', async (req, res) => {
     console.log("🔍 Consultando versiones...");

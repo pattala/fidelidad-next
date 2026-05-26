@@ -394,17 +394,17 @@ export const CampaignsPage = () => {
                     const horario = bonus.endTime || '23:59';
                     const hora_inicio = bonus.startTime || '00:00';
                     msg = msg.replace(/{titulo}/g, bonus.flashTitle || bonus.title || bonus.name)
-                             .replace(/{detalle}/g, bonus.flashDescription || bonus.description || (bonus.rewardText ? `¡${bonus.rewardText}!` : 'Consultanos.'))
+                             .replace(/{detalle}/g, bonus.flashDescription || bonus.description || (bonus.rewardText ? `¡${bonus.rewardText}!` : ''))
                              .replace(/{horario}/g, horario)
                              .replace(/{hora_inicio}/g, hora_inicio);
                 } else if (bonus.rewardType === 'INFO' || (bonus.rewardType as any) === 'TEXT') {
                     const vencimiento = bonus.endDate ? new Date(bonus.endDate + 'T00:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : 'agotar stock';
                     msg = msg.replace(/{titulo}/g, bonus.title || bonus.name)
-                             .replace(/{detalle}/g, bonus.description || (bonus.rewardText ? `¡${bonus.rewardText}!` : 'Consultanos.'))
+                             .replace(/{detalle}/g, bonus.description || (bonus.rewardText ? `¡${bonus.rewardText}!` : ''))
                              .replace(/{vencimiento}/g, vencimiento);
                 } else {
                     msg = msg.replace(/{titulo}/g, bonus.title || bonus.name)
-                             .replace(/{descripcion}/g, bonus.description || '¡Sumá más puntos!');
+                             .replace(/{descripcion}/g, bonus.description || '');
                 }
 
                 const escapeCSV = (str: string) => `"${str.replace(/"/g, '""')}"`;
@@ -447,7 +447,7 @@ export const CampaignsPage = () => {
                 const hora_inicio = bonus.startTime || '00:00';
                 msg = template
                     .replace(/{titulo}/g, bonus.flashTitle || bonus.title || bonus.name)
-                    .replace(/{detalle}/g, bonus.flashDescription || bonus.description || (bonus.rewardText ? `¡${bonus.rewardText}!` : 'Consultanos.'))
+                    .replace(/{detalle}/g, bonus.flashDescription || bonus.description || (bonus.rewardText ? `¡${bonus.rewardText}!` : ''))
                     .replace(/{horario}/g, horario)
                     .replace(/{hora_inicio}/g, hora_inicio);
             } else if (bonus.rewardType === 'INFO' || (bonus.rewardType as any) === 'TEXT') {
@@ -457,13 +457,13 @@ export const CampaignsPage = () => {
                     : 'agotar stock';
                 msg = template
                     .replace(/{titulo}/g, bonus.title || bonus.name)
-                    .replace(/{detalle}/g, bonus.description || (bonus.rewardText ? `¡${bonus.rewardText}!` : 'Consultanos.'))
+                    .replace(/{detalle}/g, bonus.description || (bonus.rewardText ? `¡${bonus.rewardText}!` : ''))
                     .replace(/{vencimiento}/g, vencimiento);
             } else {
                 template = config?.messaging?.templates?.campaign || DEFAULT_TEMPLATES.campaign;
                 msg = template
                     .replace(/{titulo}/g, bonus.title || bonus.name)
-                    .replace(/{descripcion}/g, bonus.description || '¡Sumá más puntos!');
+                    .replace(/{descripcion}/g, bonus.description || '');
             }
 
             setBroadcastData({ bonus, msg, eventType, config });

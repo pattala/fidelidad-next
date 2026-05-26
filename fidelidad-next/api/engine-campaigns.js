@@ -284,7 +284,7 @@ export default async function handler(req, res) {
                 template = config.messaging?.templates?.flashOffer || DEFAULT_TEMPLATES.flashOffer;
                 msg = template
                     .replace(/{titulo}/g, tituloCamp)
-                    .replace(/{detalle}/g, descCamp || (premio ? `¡${premio}!` : 'Consultanos.'))
+                    .replace(/{detalle}/g, descCamp || (premio ? `¡${premio}!` : ''))
                     .replace(/{descripcion}/g, descCamp)
                     .replace(/{horario}/g, horario)
                     .replace(/{hora_inicio}/g, hora_inicio)
@@ -294,7 +294,7 @@ export default async function handler(req, res) {
                 template = config.messaging?.templates?.offer || DEFAULT_TEMPLATES.offer;
                 msg = template
                     .replace(/{titulo}/g, tituloCamp)
-                    .replace(/{detalle}/g, descCamp || (premio ? `¡${premio}!` : 'Consultanos.'))
+                    .replace(/{detalle}/g, descCamp || (premio ? `¡${premio}!` : ''))
                     .replace(/{descripcion}/g, descCamp)
                     .replace(/{vencimiento}/g, vencimiento)
                     .replace(/{premio}/g, premio)

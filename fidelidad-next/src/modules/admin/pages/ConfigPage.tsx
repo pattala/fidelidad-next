@@ -2237,6 +2237,7 @@ export const ConfigPage = () => {
                                                         <div className="flex flex-col gap-1">
                                                             <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, flashOffer: DEFAULT_TEMPLATES.flashOffer } } })} className="px-2 py-1.5 text-gray-400 hover:text-yellow-600 rounded hover:bg-yellow-50 transition text-sm" title="Restaurar">↺</button>
                                                             <button type="button" onClick={() => openPreview('flashOffer')} className="px-2 py-1.5 text-blue-500 hover:text-blue-700 rounded hover:bg-blue-50 transition border border-blue-100" title="Vista Previa Email"><Eye size={16} /></button>
+                                                            <button type="button" onClick={() => openTestModal('flashOffer')} className="px-2 py-1.5 text-purple-600 hover:text-purple-800 rounded hover:bg-purple-50 transition border border-purple-200" title="Probar Envío a Usuario"><Rocket size={16} /></button>
                                                         </div>
                                                     </div>
                                                     <VariableChips vars={['siteName', 'titulo', 'detalle', 'horario']} onSelect={v => insertVar('flashOffer', v)} />
@@ -2288,6 +2289,7 @@ export const ConfigPage = () => {
                                                         <div className="flex flex-col gap-1">
                                                             <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, offer: DEFAULT_TEMPLATES.offer } } })} className="px-2 py-1.5 text-gray-400 hover:text-orange-600 rounded hover:bg-orange-50 transition text-sm" title="Restaurar">↺</button>
                                                             <button type="button" onClick={() => openPreview('offer')} className="px-2 py-1.5 text-blue-500 hover:text-blue-700 rounded hover:bg-blue-50 transition border border-blue-100" title="Vista Previa Email"><Eye size={16} /></button>
+                                                            <button type="button" onClick={() => openTestModal('offer')} className="px-2 py-1.5 text-purple-600 hover:text-purple-800 rounded hover:bg-purple-50 transition border border-purple-200" title="Probar Envío a Usuario"><Rocket size={16} /></button>
                                                         </div>
                                                     </div>
                                                     <VariableChips vars={['siteName', 'titulo', 'detalle', 'vencimiento']} onSelect={v => insertVar('offer', v)} />
@@ -2339,6 +2341,7 @@ export const ConfigPage = () => {
                                                         <div className="flex flex-col gap-1">
                                                             <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, campaign: DEFAULT_TEMPLATES.campaign } } })} className="px-2 py-1.5 text-gray-400 hover:text-blue-600 rounded hover:bg-blue-50 transition text-sm" title="Restaurar">↺</button>
                                                             <button type="button" onClick={() => openPreview('campaign')} className="px-2 py-1.5 text-blue-500 hover:text-blue-700 rounded hover:bg-blue-50 transition border border-blue-100" title="Vista Previa Email"><Eye size={16} /></button>
+                                                            <button type="button" onClick={() => openTestModal('campaign')} className="px-2 py-1.5 text-purple-600 hover:text-purple-800 rounded hover:bg-purple-50 transition border border-purple-200" title="Probar Envío a Usuario"><Rocket size={16} /></button>
                                                         </div>
                                                     </div>
                                                     <VariableChips vars={['siteName', 'titulo', 'descripcion']} onSelect={v => insertVar('campaign', v)} />
@@ -2401,6 +2404,7 @@ export const ConfigPage = () => {
                                                         <div className="flex flex-col gap-1">
                                                             <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, pointsAdded: DEFAULT_TEMPLATES.pointsAdded } } })} className="px-2 py-1.5 text-gray-400 hover:text-blue-600 rounded hover:bg-blue-50 transition text-sm" title="Restaurar">↺</button>
                                                             <button type="button" onClick={() => openPreview('pointsAdded')} className="px-2 py-1.5 text-blue-500 hover:text-blue-700 rounded hover:bg-blue-50 transition border border-blue-100" title="Vista Previa Email"><Eye size={16} /></button>
+                                                            <button type="button" onClick={() => openTestModal('pointsAdded')} className="px-2 py-1.5 text-purple-600 hover:text-purple-800 rounded hover:bg-purple-50 transition border border-purple-200" title="Probar Envío a Usuario"><Rocket size={16} /></button>
                                                         </div>
                                                     </div>
                                                     <VariableChips vars={['siteName', 'nombre', 'nombre_completo', 'puntos', 'saldo']} onSelect={v => insertVar('pointsAdded', v)} />
@@ -2452,6 +2456,7 @@ export const ConfigPage = () => {
                                                         <div className="flex flex-col gap-1">
                                                             <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, redemption: DEFAULT_TEMPLATES.redemption } } })} className="px-2 py-1.5 text-gray-400 hover:text-blue-600 rounded hover:bg-blue-50 transition text-sm" title="Restaurar">↺</button>
                                                             <button type="button" onClick={() => openPreview('redemption')} className="px-2 py-1.5 text-blue-500 hover:text-blue-700 rounded hover:bg-blue-50 transition border border-blue-100" title="Vista Previa Email"><Eye size={16} /></button>
+                                                            <button type="button" onClick={() => openTestModal('redemption')} className="px-2 py-1.5 text-purple-600 hover:text-purple-800 rounded hover:bg-purple-50 transition border border-purple-200" title="Probar Envío a Usuario"><Rocket size={16} /></button>
                                                         </div>
                                                     </div>
                                                     <VariableChips vars={['siteName', 'nombre', 'nombre_completo', 'premio', 'codigo']} onSelect={v => insertVar('redemption', v)} />
@@ -2503,6 +2508,7 @@ export const ConfigPage = () => {
                                                         <div className="flex flex-col gap-1">
                                                             <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, birthday: DEFAULT_TEMPLATES.birthday } } })} className="px-2 py-1.5 text-gray-400 hover:text-pink-600 rounded hover:bg-pink-50 transition text-sm" title="Restaurar">↺</button>
                                                             <button type="button" onClick={() => openPreview('birthday')} className="px-2 py-1.5 text-blue-500 hover:text-blue-700 rounded hover:bg-blue-50 transition border border-blue-100" title="Vista Previa Email"><Eye size={16} /></button>
+                                                            <button type="button" onClick={() => openTestModal('birthday')} className="px-2 py-1.5 text-purple-600 hover:text-purple-800 rounded hover:bg-purple-50 transition border border-purple-200" title="Probar Envío a Usuario"><Rocket size={16} /></button>
                                                         </div>
                                                     </div>
                                                     <VariableChips vars={['siteName', 'nombre', 'nombre_completo', 'puntos']} onSelect={v => insertVar('birthday', v)} />
@@ -2518,6 +2524,7 @@ export const ConfigPage = () => {
                                                         <div className="flex flex-col gap-1">
                                                             <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, birthdaySimple: DEFAULT_TEMPLATES.birthdaySimple } } })} className="px-2 py-1.5 text-gray-400 hover:text-pink-600 rounded hover:bg-pink-50 transition text-sm" title="Restaurar">↺</button>
                                                             <button type="button" onClick={() => openPreview('birthdaySimple')} className="px-2 py-1.5 text-blue-500 hover:text-blue-700 rounded hover:bg-blue-50 transition border border-blue-100" title="Vista Previa Email"><Eye size={16} /></button>
+                                                            <button type="button" onClick={() => openTestModal('birthdaySimple')} className="px-2 py-1.5 text-purple-600 hover:text-purple-800 rounded hover:bg-purple-50 transition border border-purple-200" title="Probar Envío a Usuario"><Rocket size={16} /></button>
                                                         </div>
                                                     </div>
                                                     <VariableChips vars={['siteName', 'nombre', 'nombre_completo']} onSelect={v => insertVar('birthdaySimple', v)} />
@@ -2570,6 +2577,7 @@ export const ConfigPage = () => {
                                                         <div className="flex flex-col gap-1">
                                                             <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, welcome: DEFAULT_TEMPLATES.welcome } } })} className="px-2 py-1.5 text-gray-400 hover:text-indigo-600 rounded hover:bg-indigo-50 transition text-sm" title="Restaurar">↺</button>
                                                             <button type="button" onClick={() => openPreview('welcome')} className="px-2 py-1.5 text-blue-500 hover:text-blue-700 rounded hover:bg-blue-50 transition border border-blue-100" title="Vista Previa Email"><Eye size={16} /></button>
+                                                            <button type="button" onClick={() => openTestModal('welcome')} className="px-2 py-1.5 text-purple-600 hover:text-purple-800 rounded hover:bg-purple-50 transition border border-purple-200" title="Probar Envío a Usuario"><Rocket size={16} /></button>
                                                         </div>
                                                     </div>
                                                     <VariableChips vars={['siteName', 'nombre', 'nombre_completo', 'puntos', 'socio', 'dni']} onSelect={v => insertVar('welcome', v)} />
@@ -2638,6 +2646,7 @@ export const ConfigPage = () => {
                                                         <div className="flex flex-col gap-1">
                                                             <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, expirationWarning: DEFAULT_TEMPLATES.expirationWarning } } })} className="px-2 py-1.5 text-gray-400 hover:text-orange-600 rounded hover:bg-orange-50 transition text-sm" title="Restaurar">↺</button>
                                                             <button type="button" onClick={() => openPreview('expirationWarning')} className="px-2 py-1.5 text-blue-500 hover:text-blue-700 rounded hover:bg-blue-50 transition border border-blue-100" title="Vista Previa Email"><Eye size={16} /></button>
+                                                            <button type="button" onClick={() => openTestModal('expirationWarning')} className="px-2 py-1.5 text-purple-600 hover:text-purple-800 rounded hover:bg-purple-50 transition border border-purple-200" title="Probar Envío a Usuario"><Rocket size={16} /></button>
                                                         </div>
                                                     </div>
                                                     <VariableChips vars={['siteName', 'nombre', 'puntos', 'fecha']} onSelect={v => insertVar('expirationWarning', v)} />
@@ -2713,6 +2722,7 @@ export const ConfigPage = () => {
                                                         <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, petFoodAlert: DEFAULT_TEMPLATES.petFoodAlert } } })} className="px-2 py-1.5 text-gray-400 hover:text-orange-600 rounded hover:bg-orange-50 transition text-sm" title="Restaurar">↺</button>
                                                             <button type="button" onClick={() => openPreview('petFoodAlert')} className="px-2 py-1.5 text-blue-500 hover:text-blue-700 rounded hover:bg-blue-50 transition border border-blue-100" title="Vista Previa Email"><Eye size={16} /></button>
                                                             <button type="button" onClick={() => openTestModal('petFoodAlert')} className="px-2 py-1.5 text-purple-600 hover:text-purple-800 rounded hover:bg-purple-50 transition border border-purple-200" title="Probar Envío a Usuario"><Rocket size={16} /></button>
+                                                            <button type="button" onClick={() => openTestModal('petFoodAlert')} className="px-2 py-1.5 text-purple-600 hover:text-purple-800 rounded hover:bg-purple-50 transition border border-purple-200" title="Probar Envío a Usuario"><Rocket size={16} /></button>
                                                     </div>
                                                     <VariableChips vars={['siteName', 'nombre', 'mascota', 'marca']} onSelect={v => insertVar('petFoodAlert', v)} />
                                                 </div>
@@ -2785,6 +2795,7 @@ export const ConfigPage = () => {
                                                         <div className="flex flex-col gap-1">
                                                             <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, referralChallenge: DEFAULT_TEMPLATES.referralChallenge } } })} className="px-2 py-1.5 text-gray-400 hover:text-orange-600 rounded hover:bg-orange-50 transition text-sm" title="Restaurar">↺</button>
                                                             <button type="button" onClick={() => openPreview('referralChallenge', '¡NUEVO DESAFÍO ACTIVO! 🚀')} className="px-2 py-1.5 text-blue-500 hover:text-blue-700 rounded hover:bg-blue-50 transition border border-blue-100" title="Vista Previa Email"><Eye size={16} /></button>
+                                                            <button type="button" onClick={() => openTestModal('referralChallenge')} className="px-2 py-1.5 text-purple-600 hover:text-purple-800 rounded hover:bg-purple-50 transition border border-purple-200" title="Probar Envío a Usuario"><Rocket size={16} /></button>
                                                         </div>
                                                     </div>
                                                     <VariableChips vars={['siteName', 'nombre', 'nombre_completo', 'fecha_limite', 'puntos', 'meta']} onSelect={v => insertVar('referralChallenge', v)} />
@@ -2884,6 +2895,7 @@ export const ConfigPage = () => {
                                                         <div className="flex flex-col gap-1">
                                                             <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, referralReward: DEFAULT_TEMPLATES.referralReward } } })} className="px-2 py-1.5 text-gray-400 hover:text-purple-600 rounded hover:bg-purple-50 transition text-sm" title="Restaurar">↺</button>
                                                             <button type="button" onClick={() => openPreview('referralReward')} className="px-2 py-1.5 text-blue-500 hover:text-blue-700 rounded hover:bg-blue-50 transition border border-blue-100" title="Vista Previa Email"><Eye size={16} /></button>
+                                                            <button type="button" onClick={() => openTestModal('referralReward')} className="px-2 py-1.5 text-purple-600 hover:text-purple-800 rounded hover:bg-purple-50 transition border border-purple-200" title="Probar Envío a Usuario"><Rocket size={16} /></button>
                                                         </div>
                                                     </div>
                                                     <VariableChips vars={['siteName', 'nombre', 'amigo', 'puntos']} onSelect={v => insertVar('referralReward', v)} />
@@ -2935,6 +2947,7 @@ export const ConfigPage = () => {
                                                         <div className="flex flex-col gap-1">
                                                             <button type="button" onClick={() => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, referralPoints: DEFAULT_TEMPLATES.referralPoints } } })} className="px-2 py-1.5 text-gray-400 hover:text-purple-600 rounded hover:bg-purple-50 transition text-sm" title="Restaurar">↺</button>
                                                             <button type="button" onClick={() => openPreview('referralPoints')} className="px-2 py-1.5 text-blue-500 hover:text-blue-700 rounded hover:bg-blue-50 transition border border-blue-100" title="Vista Previa Email"><Eye size={16} /></button>
+                                                            <button type="button" onClick={() => openTestModal('referralPoints')} className="px-2 py-1.5 text-purple-600 hover:text-purple-800 rounded hover:bg-purple-50 transition border border-purple-200" title="Probar Envío a Usuario"><Rocket size={16} /></button>
                                                         </div>
                                                     </div>
                                                     <VariableChips vars={['siteName', 'nombre', 'nombre_referido', 'puntos']} onSelect={v => insertVar('referralPoints', v)} />

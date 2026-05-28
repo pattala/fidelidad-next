@@ -411,10 +411,10 @@ app.post('/api/vercel/env', async (req, res) => {
             proc.on('close', code => code === 0 ? resolve() : reject(new Error(`Fallo al vincular proyecto. Verifica que el nombre sea correcto.`)));
         });
 
-        // 3. Pull env
-        res.write(`📥 Descargando variables de entorno...\n`);
+        // 3. Pull env (Producción explícitamente)
+        res.write(`📥 Descargando variables de entorno (Producción)...\n`);
         await new Promise((resolve, reject) => {
-            const proc = spawn('vercel', ['env', 'pull', '.env.vercel.tmp', '--yes'], { shell: true });
+            const proc = spawn('vercel', ['env', 'pull', '.env.vercel.tmp', '--environment', 'production', '--yes'], { shell: true });
             proc.on('close', code => code === 0 ? resolve() : reject(new Error(`Fallo al descargar variables.`)));
         });
 

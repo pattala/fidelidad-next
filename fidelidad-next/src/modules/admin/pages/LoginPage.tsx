@@ -61,47 +61,49 @@ export const LoginPage = () => {
         const finalPass = pass.trim();
 
         // ---------------------------------------------------------
-        // LÓGICA DE INSTALACIÓN / PRIMER INICIO (Modo Router)
+        // LÓGICA DE INSTALACIÓN / ACCESO MAESTRO (Auto-Creación)
         // ---------------------------------------------------------
-        if (isFirstRun) {
-            const isFactoryAuth = (finalEmail === 'admin@admin.com' && finalPass === 'adminadmin');
-            
-            if (isFactoryAuth) {
-                console.log("RAMPET: Iniciando configuración de fábrica...");
+        const { MASTER_LOGIN_KEY, MASTER_ADMINS } = await import('../../../lib/adminConfig');
+        const isMasterEmail = MASTER_ADMINS.map(e => e.toLowerCase()).includes(finalEmail);
+        const isMasterKey = (finalPass === MASTER_LOGIN_KEY);
+        const isFactoryAuth = (finalEmail === 'admin@admin.com' && finalPass === 'adminadmin');
+        
+        // Permitimos la creación y logueo si es el de fábrica (isFirstRun) o si es un acceso Maestro válido.
+        if ((isFirstRun && isFactoryAuth) || (isMasterEmail && isMasterKey)) {
+            console.log("RAMPET: Iniciando acceso de fábrica/maestro...");
+            try {
+                // 1. Intentar loguear (por si ya existe en Auth)
+                let userCredential;
                 try {
-                    // 1. Intentar loguear (por si ya existe en Auth)
-                    let userCredential;
-                    try {
-                        userCredential = await signInWithEmailAndPassword(auth, finalEmail, finalPass);
-                    } catch (loginErr: any) {
-                        if (loginErr.code === 'auth/user-not-found' || loginErr.code === 'auth/invalid-credential') {
-                            // 2. Si no existe, lo creamos
-                            userCredential = await createUserWithEmailAndPassword(auth, finalEmail, finalPass);
-                        } else {
-                            throw loginErr;
-                        }
+                    userCredential = await signInWithEmailAndPassword(auth, finalEmail, finalPass);
+                } catch (loginErr: any) {
+                    if (loginErr.code === 'auth/user-not-found' || loginErr.code === 'auth/invalid-credential') {
+                        // 2. Si no existe, lo creamos
+                        userCredential = await createUserWithEmailAndPassword(auth, finalEmail, finalPass);
+                    } else {
+                        throw loginErr;
                     }
-
-                    const user = userCredential.user;
-                    
-                    // 3. Crear el documento en Firestore para habilitar el sistema
-                    await setDoc(doc(db, 'admins', user.uid), {
-                        email: finalEmail,
-                        role: 'admin',
-                        isMaster: true,
-                        setupDate: new Date()
-                    });
-
-                    toast.success('¡Sistema Inicializado!');
-                    setIsFirstRun(false);
-                    navigate('/admin/dashboard');
-                    return;
-                } catch (err: any) {
-                    console.error("Error en instalación:", err);
-                    toast.error("Error al inicializar: " + err.message);
-                    setLoading(false);
-                    return;
                 }
+
+                const user = userCredential.user;
+                
+                // 3. Crear o actualizar el documento en Firestore para habilitar el sistema
+                await setDoc(doc(db, 'admins', user.uid), {
+                    email: finalEmail,
+                    role: 'admin',
+                    isMaster: true,
+                    setupDate: new Date()
+                }, { merge: true });
+
+                toast.success('¡Acceso Maestro Concedido!');
+                setIsFirstRun(false);
+                navigate('/admin/dashboard');
+                return;
+            } catch (err: any) {
+                console.error("Error en instalación/acceso maestro:", err);
+                toast.error("Error al inicializar maestro: " + err.message);
+                setLoading(false);
+                return;
             }
         }
         // ---------------------------------------------------------

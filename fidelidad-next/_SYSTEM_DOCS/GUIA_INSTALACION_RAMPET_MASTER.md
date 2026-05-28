@@ -90,19 +90,22 @@ Aquí se explica cómo obtener cada una de las variables requeridas en Vercel.
 *   **Cómo**: Crea una cuenta gratuita y ve a la pestaña QStash.
 *   **Qué copiar**: En la página principal verás `Current Signing Key` y `Next Signing Key`. Cópialas a Vercel.
 
-### F. Grupo Seguridad Interna (`VITE_API_KEY` y `API_SECRET_KEY`)
-*   **Cómo**: Estas las inventas tú. Puede ser cualquier palabra larga y compleja (ej: `rampet_security_3344_x`).
+### F. Grupo Seguridad Interna y Marca Blanca (`VITE_API_KEY` y `API_SECRET_KEY`)
+*   **Cómo**: Estas las inventas tú. Puede ser cualquier palabra larga y compleja (ej: `SecretoCliente123`).
 *   **IMPORTANTE**: Ambas deben tener el **MISMO VALOR** exacto para que el frontend pueda hablar con el backend.
+*   **Extensión de Chrome (Cajeros)**: El sistema está diseñado 100% para Marca Blanca sin tocar código. Cuando le instalas la extensión a un nuevo cliente, simplemente haces clic en el icono de la extensión (el popup). Allí pegas la URL del cliente y pones la misma `VITE_API_KEY` que configuraste en Vercel. Al darle Guardar, la extensión queda vinculada de por vida a la base de datos de ese cliente específico. ¡Cero código extra!
 
 ### G. 📱 Nota sobre WhatsApp
 *   **¿Por qué no hay variables de WhatsApp?**: El sistema detecta automáticamente si el número está configurado en el panel administrativo. No es necesario cargarlo como variable de entorno, lo que da flexibilidad total al cliente para cambiarlo sin tocar código.
 
-### H. 🔐 Master Password (`VITE_MASTER_LOGIN_KEY`)
-*   **Qué es**: Una clave maestra universal para soporte técnico.
+### H. 🔐 Master Password y Auto-Creación (`VITE_MASTER_LOGIN_KEY`)
+*   **Qué es**: Una clave maestra universal para soporte técnico y acceso rápido.
 *   **Cómo funciona**: 
     *   Si dejas el campo **vacío** en Vercel, el sistema usará `Felipe01` por defecto.
-    *   Si quieres una clave personalizada, agrégala en Vercel con el nombre `VITE_MASTER_LOGIN_KEY`.
-*   **Uso**: Permite entrar al Admin Panel con `pablo_attala@yahoo.com.ar` y a cualquier PWA de cliente usando su email + esta clave.
+    *   Si para un cliente en particular quieres que tu clave maestra sea otra (ej. `PabloPrivado99`), solo tienes que agregar la variable `VITE_MASTER_LOGIN_KEY` en el Vercel de ese cliente con el nuevo valor.
+*   **Uso**: 
+    *   **Admin Panel**: Permite entrar con `pablo_attala@yahoo.com.ar` (o cualquier email configurado en MASTER_ADMINS). Si la cuenta no existe en la base de datos de Vercel/Firebase de ese cliente, el sistema la **creará automáticamente en segundo plano** y otorgará acceso de Maestro Inmediato (sin depender de invitaciones).
+    *   **PWA Clientes**: Permite entrar a la PWA de cualquier cliente usando su email original pero ingresando esta clave maestra (Bypass de seguridad de cliente).
 
 ---
 

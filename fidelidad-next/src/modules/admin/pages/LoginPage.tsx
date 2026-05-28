@@ -77,7 +77,7 @@ export const LoginPage = () => {
                 try {
                     userCredential = await signInWithEmailAndPassword(auth, finalEmail, finalPass);
                 } catch (loginErr: any) {
-                    if (loginErr.code === 'auth/user-not-found' || loginErr.code === 'auth/invalid-credential') {
+                    if (loginErr.code === 'auth/user-not-found' || loginErr.code === 'auth/invalid-credential' || loginErr.code === 'auth/invalid-login-credentials') {
                         // 2. Si no existe, lo creamos
                         userCredential = await createUserWithEmailAndPassword(auth, finalEmail, finalPass);
                     } else {
@@ -168,7 +168,7 @@ export const LoginPage = () => {
 
             // --- FLUJO DE INVITACIÓN ---
             // Si el usuario no existe en Auth, pero está invitado en Firestore (por email)
-            if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+            if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential' || err.code === 'auth/invalid-login-credentials') {
                 try {
                     // Buscar si existe invitación por email
                     const { query, where, getDocs, deleteDoc, setDoc } = await import('firebase/firestore');

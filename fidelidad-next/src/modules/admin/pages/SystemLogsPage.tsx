@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { db, auth } from '../../../lib/firebase';
 import { collection, query, orderBy, limit, onSnapshot, Timestamp } from 'firebase/firestore';
-import { Clock, CheckCircle, AlertTriangle, User, MessageCircle, ArrowRight, ChevronDown, ChevronUp, History, Search, Calendar, Filter, Loader2, Play, Settings, Cake } from 'lucide-react';
+import { Clock, CheckCircle, AlertTriangle, User, MessageCircle, ArrowRight, ChevronDown, ChevronUp, History, Search, Calendar, Filter, Loader2, Play, Settings, Cake, Eraser } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { TimeService } from '../../../services/timeService';
 import { useNavigate } from 'react-router-dom';
@@ -40,6 +40,7 @@ export const SystemLogsPage = () => {
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
+    const [isCleared, setIsCleared] = useState(false);
 
     // Engine & Configuration State
     const [isRunningExpirations, setIsRunningExpirations] = useState(false);
@@ -132,13 +133,13 @@ export const SystemLogsPage = () => {
     }, []);
 
     const fetchLogs = () => {
-        // Now it's just a placeholder or a force-refresh trigger if needed,
-        // but the listener handles it automatically.
+        setIsCleared(false);
         toast.success('Auditoría sincronizada en tiempo real');
     };
 
     // Filtrado local (JS) - "Itemización" en tiempo real
     const filteredLogs = useMemo(() => {
+        if (isCleared) return [];
         return logs.filter(log => {
             // 1. Filtro por Tipo
             if (typeFilter && log.type !== typeFilter) return false;
@@ -170,7 +171,7 @@ export const SystemLogsPage = () => {
 
             return true;
         });
-    }, [logs, typeFilter, searchQuery, startDate, endDate]);
+    }, [logs, typeFilter, searchQuery, startDate, endDate, isCleared]);
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -263,8 +264,18 @@ export const SystemLogsPage = () => {
                         </span>
                     </div>
                     <button
+                        onClick={() => {
+                            setIsCleared(true);
+                            toast.success('Pantalla limpiada. Usa "Refrescar" para volver a cargar los datos.');
+                        }}
+                        className="p-2 hover:bg-red-50 text-red-500 rounded-lg transition border border-red-100 bg-white"
+                        title="Limpiar pantalla localmente"
+                    >
+                        <Eraser size={20} />
+                    </button>
+                    <button
                         onClick={() => fetchLogs()}
-                        className="p-2 hover:bg-gray-100 rounded-lg transition text-gray-600 border border-gray-100"
+                        className="p-2 hover:bg-gray-100 rounded-lg transition text-gray-600 border border-gray-100 bg-white"
                         title="Refrescar logs"
                     >
                         <History size={20} />

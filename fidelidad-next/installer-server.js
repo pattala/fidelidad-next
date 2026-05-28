@@ -12,6 +12,8 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = 3005;
 
+let lastEnvData = null; // Almacena las últimas variables para exportar
+
 app.use(express.json());
 // Servir estáticos del instalador
 app.use('/installer', express.static(path.join(__dirname, 'public/installer')));
@@ -458,6 +460,8 @@ app.post('/api/vercel/env', async (req, res) => {
             
             const lines = envContent.split('\n');
             let count = 0;
+            let currentVariables = [];
+            
             lines.forEach(line => {
                 if (line.trim() && !line.startsWith('#')) {
                     const idx = line.indexOf('=');
@@ -467,10 +471,14 @@ app.post('/api/vercel/env', async (req, res) => {
                         // Limpiar comillas si tiene
                         if(value.startsWith('"') && value.endsWith('"')) value = value.substring(1, value.length - 1);
                         res.write(`🔑 ${key.padEnd(35, ' ')} = ${value}\n`);
+                        currentVariables.push({ key, value });
                         count++;
                     }
                 }
             });
+            
+            lastEnvData = { projectName, env: targetEnv, variables: currentVariables };
+            
             if(count === 0) res.write("No hay variables configuradas en este proyecto.\n");
             res.write(`\n========================================================\n`);
         } else {
@@ -488,6 +496,25 @@ app.post('/api/vercel/env', async (req, res) => {
         res.write(`\n✨ Auditoría terminada.\n`);
         res.end();
     }
+});
+
+// Endpoint: Exportar Variables a CSV
+app.get('/api/vercel/env-export', (req, res) => {
+    if (!lastEnvData) {
+        return res.status(404).send("No hay datos para exportar. Haz una consulta primero.");
+    }
+    
+    // Generar contenido CSV
+    let csv = "Variable,Valor\n";
+    lastEnvData.variables.forEach(v => {
+        // Escapar comillas dobles para CSV
+        const safeValue = v.value.replace(/"/g, '""');
+        csv += `"${v.key}","${safeValue}"\n`;
+    });
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="variables_${lastEnvData.projectName}_${lastEnvData.env}.csv"`);
+    res.send(csv);
 });
 
 // Ruta por defecto: Redirigir al frontend

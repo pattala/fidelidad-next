@@ -538,6 +538,7 @@
                     </select>
                 </div>
                 <button class="btn-primary full-width" style="background: #f59e0b; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3); margin-top: 0;" onclick="auditVercel()">🔍 Consultar Variables</button>
+                <button id="btnExportEnv" class="btn-primary full-width" style="background: #10b981; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); margin-top: 10px; display: none;" onclick="window.open('/api/vercel/env-export', '_blank')">📊 Descargar Excel (CSV)</button>
             </div>
         </div>
     </div>
@@ -813,7 +814,10 @@
 
         const consoleContainer = document.getElementById('consoleContainer');
         const consoleOutput = document.getElementById('consoleOutput');
+        const exportBtn = document.getElementById('btnExportEnv');
+        
         consoleContainer.style.display = 'block';
+        exportBtn.style.display = 'none'; // Ocultar hasta que termine
         consoleOutput.textContent = 'Iniciando auditoría de Vercel...\n';
 
         try {
@@ -824,11 +828,19 @@
             });
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
+            let fullOutput = '';
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
-                consoleOutput.textContent += decoder.decode(value);
+                const chunk = decoder.decode(value);
+                fullOutput += chunk;
+                consoleOutput.textContent += chunk;
                 consoleOutput.scrollTop = consoleOutput.scrollHeight;
+            }
+            
+            // Mostrar botón si fue exitoso
+            if (fullOutput.includes("✅ ¡Variables obtenidas con éxito!")) {
+                exportBtn.style.display = 'block';
             }
         } catch (e) {
             consoleOutput.textContent += `\n❌ Error: ${e.message}`;

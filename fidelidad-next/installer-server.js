@@ -384,14 +384,46 @@ app.post('/api/firebase/save-creds', (req, res) => {
     res.json({ status: 'ok' });
 });
 
+// Endpoint: Obtener lista de proyectos de Vercel
+app.get('/api/vercel/projects', async (req, res) => {
+    try {
+        const proc = spawn('vercel', ['project', 'ls', '--format', 'json'], { shell: true });
+        let output = '';
+        proc.stdout.on('data', data => output += data.toString());
+        proc.on('close', code => {
+            if (code === 0) {
+                // Vercel a veces imprime warnings de NODE_TLS antes del JSON, buscamos el primer '{'
+                const match = output.match(/\{[\s\S]*\}/);
+                if (match) {
+                    try {
+                        const parsed = JSON.parse(match[0]);
+                        const projects = parsed.projects.map(p => p.name);
+                        res.json({ projects });
+                    } catch (e) {
+                        res.status(500).json({ error: "No se pudo parsear el JSON de Vercel." });
+                    }
+                } else {
+                    res.status(500).json({ error: "Formato inesperado de Vercel CLI." });
+                }
+            } else {
+                res.status(500).json({ error: "Fallo al listar proyectos." });
+            }
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Endpoint: Consultar Variables Vercel
 app.post('/api/vercel/env', async (req, res) => {
-    const { projectName } = req.body;
+    const { projectName, environment } = req.body;
     if (!projectName) return res.status(400).send("Falta nombre del proyecto");
+
+    const targetEnv = environment || 'production';
 
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.setHeader('Transfer-Encoding', 'chunked');
-    res.write(`🔍 Consultando variables para: ${projectName}...\n`);
+    res.write(`🔍 Consultando variables para: ${projectName} (${targetEnv})...\n`);
 
     const vercelDir = path.join(__dirname, '.vercel');
     const backupDir = path.join(__dirname, '.vercel_backup_temp');
@@ -412,9 +444,9 @@ app.post('/api/vercel/env', async (req, res) => {
         });
 
         // 3. Pull env (Producción explícitamente)
-        res.write(`📥 Descargando variables de entorno (Producción)...\n`);
+        res.write(`📥 Descargando variables de entorno (${targetEnv})...\n`);
         await new Promise((resolve, reject) => {
-            const proc = spawn('vercel', ['env', 'pull', '.env.vercel.tmp', '--environment', 'production', '--yes'], { shell: true });
+            const proc = spawn('vercel', ['env', 'pull', '.env.vercel.tmp', '--environment', targetEnv, '--yes'], { shell: true });
             proc.on('close', code => code === 0 ? resolve() : reject(new Error(`Fallo al descargar variables.`)));
         });
 

@@ -519,12 +519,25 @@
                 Ingresa el nombre exacto del proyecto en Vercel (ej: <strong>franccesca</strong> o <strong>fidelidad-next</strong>) para descargar y auditar sus variables configuradas actualmente en la nube.
             </p>
             
-            <div class="form-grid" style="grid-template-columns: 1fr;">
+            <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
                 <div class="input-group">
-                    <label>Nombre del Proyecto Vercel</label>
-                    <input type="text" id="vercelProjectName" placeholder="ej: fidelidad-next">
+                    <label>Nombre del Proyecto</label>
+                    <div style="display: flex; gap: 8px;">
+                        <select id="vercelProjectName" style="flex: 1; padding: 14px; border-radius: 12px; background: rgba(0,0,0,0.4); color: white; border: 1px solid rgba(255,255,255,0.05); cursor: pointer;">
+                            <option value="">Cargando proyectos...</option>
+                        </select>
+                        <button class="btn-primary" style="margin: 0; padding: 14px; width: auto; background: rgba(255,255,255,0.1); box-shadow: none;" onclick="loadVercelProjects()" title="Refrescar Lista">🔄</button>
+                    </div>
                 </div>
-                <button class="btn-primary" style="background: #f59e0b; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3); margin-top: 0;" onclick="auditVercel()">🔍 Consultar Variables</button>
+                <div class="input-group">
+                    <label>Entorno a Auditar</label>
+                    <select id="vercelEnvironment" style="padding: 14px; border-radius: 12px; background: rgba(0,0,0,0.4); color: white; border: 1px solid rgba(255,255,255,0.05); cursor: pointer;">
+                        <option value="production" selected>🚀 Producción (Real)</option>
+                        <option value="development">💻 Desarrollo (Local)</option>
+                        <option value="preview">👀 Preview (Pruebas)</option>
+                    </select>
+                </div>
+                <button class="btn-primary full-width" style="background: #f59e0b; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3); margin-top: 0;" onclick="auditVercel()">🔍 Consultar Variables</button>
             </div>
         </div>
     </div>
@@ -792,8 +805,11 @@
     }
 
     async function auditVercel() {
-        const projectName = document.getElementById('vercelProjectName').value.trim();
-        if (!projectName) return alert('Por favor, ingresa el nombre del proyecto de Vercel.');
+        const select = document.getElementById('vercelProjectName');
+        const projectName = select.options[select.selectedIndex]?.value || '';
+        const environment = document.getElementById('vercelEnvironment').value;
+        
+        if (!projectName) return alert('Por favor, selecciona un proyecto de Vercel.');
 
         const consoleContainer = document.getElementById('consoleContainer');
         const consoleOutput = document.getElementById('consoleOutput');
@@ -804,7 +820,7 @@
             const response = await fetch('/api/vercel/env', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ projectName })
+                body: JSON.stringify({ projectName, environment })
             });
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
@@ -819,10 +835,33 @@
         }
     }
 
+    async function loadVercelProjects() {
+        const select = document.getElementById('vercelProjectName');
+        select.innerHTML = '<option value="">Cargando proyectos...</option>';
+        try {
+            const response = await fetch('/api/vercel/projects');
+            const data = await response.json();
+            if (data.projects) {
+                select.innerHTML = '';
+                data.projects.forEach(p => {
+                    const opt = document.createElement('option');
+                    opt.value = p;
+                    opt.textContent = p;
+                    select.appendChild(opt);
+                });
+            } else {
+                select.innerHTML = '<option value="">Error cargando proyectos</option>';
+            }
+        } catch (e) {
+            select.innerHTML = '<option value="">Error de conexión</option>';
+        }
+    }
+
     // Cargar versiones al inicio
     window.addEventListener('load', () => {
         refreshVersions();
         loadDevCreds();
+        loadVercelProjects();
     });
 </script>
 

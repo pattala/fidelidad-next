@@ -384,6 +384,80 @@ app.post('/api/firebase/save-creds', (req, res) => {
     res.json({ status: 'ok' });
 });
 
+// Endpoint: Consultar Variables Vercel
+app.post('/api/vercel/env', async (req, res) => {
+    const { projectName } = req.body;
+    if (!projectName) return res.status(400).send("Falta nombre del proyecto");
+
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Transfer-Encoding', 'chunked');
+    res.write(`🔍 Consultando variables para: ${projectName}...\n`);
+
+    const vercelDir = path.join(__dirname, '.vercel');
+    const backupDir = path.join(__dirname, '.vercel_backup_temp');
+    const envFile = path.join(__dirname, '.env.vercel.tmp');
+
+    try {
+        // 1. Backup de .vercel si existe para no molestar el entorno de desarrollo del usuario
+        if (fs.existsSync(vercelDir)) {
+            if (fs.existsSync(backupDir)) fs.rmSync(backupDir, { recursive: true, force: true });
+            fs.renameSync(vercelDir, backupDir);
+        }
+
+        // 2. Link
+        res.write(`🔗 Vinculando a Vercel...\n`);
+        await new Promise((resolve, reject) => {
+            const proc = spawn('vercel', ['link', '--project', projectName, '--yes'], { shell: true });
+            proc.on('close', code => code === 0 ? resolve() : reject(new Error(`Fallo al vincular proyecto. Verifica que el nombre sea correcto.`)));
+        });
+
+        // 3. Pull env
+        res.write(`📥 Descargando variables de entorno...\n`);
+        await new Promise((resolve, reject) => {
+            const proc = spawn('vercel', ['env', 'pull', '.env.vercel.tmp', '--yes'], { shell: true });
+            proc.on('close', code => code === 0 ? resolve() : reject(new Error(`Fallo al descargar variables.`)));
+        });
+
+        // 4. Leer archivo y parsear
+        if (fs.existsSync(envFile)) {
+            const envContent = fs.readFileSync(envFile, 'utf8');
+            res.write(`\n✅ ¡Variables obtenidas con éxito!\n`);
+            res.write(`========================================================\n\n`);
+            
+            const lines = envContent.split('\n');
+            let count = 0;
+            lines.forEach(line => {
+                if (line.trim() && !line.startsWith('#')) {
+                    const idx = line.indexOf('=');
+                    if(idx !== -1){
+                        const key = line.substring(0, idx);
+                        let value = line.substring(idx + 1);
+                        // Limpiar comillas si tiene
+                        if(value.startsWith('"') && value.endsWith('"')) value = value.substring(1, value.length - 1);
+                        res.write(`🔑 ${key.padEnd(35, ' ')} = ${value}\n`);
+                        count++;
+                    }
+                }
+            });
+            if(count === 0) res.write("No hay variables configuradas en este proyecto.\n");
+            res.write(`\n========================================================\n`);
+        } else {
+            res.write(`\n❌ Error: No se encontró el archivo de variables.`);
+        }
+
+    } catch (err) {
+        res.write(`\n❌ ERROR: ${err.message}\n`);
+    } finally {
+        // Limpieza y Restauración
+        if (fs.existsSync(envFile)) fs.unlinkSync(envFile);
+        if (fs.existsSync(vercelDir)) fs.rmSync(vercelDir, { recursive: true, force: true });
+        if (fs.existsSync(backupDir)) fs.renameSync(backupDir, vercelDir);
+        
+        res.write(`\n✨ Auditoría terminada.\n`);
+        res.end();
+    }
+});
+
 // Ruta por defecto: Redirigir al frontend
 app.get('/', (req, res) => {
     res.redirect('/installer');

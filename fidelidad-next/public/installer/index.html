@@ -331,6 +331,7 @@
     <div class="tabs">
         <button class="tab-btn active" onclick="switchTab('install-tab')">🛠️ Instalador de Clientes</button>
         <button class="tab-btn" onclick="switchTab('git-tab')">🔄 Actualizador Git (Prod)</button>
+        <button class="tab-btn" onclick="switchTab('vercel-tab')">🕵️ Auditoría Vercel</button>
     </div>
 
     <!-- TAB 1: INSTALADOR -->
@@ -506,6 +507,24 @@
                     <textarea id="prodProjectIds" rows="2" placeholder="proyecto-cliente-1, proyecto-cliente-2, ..."></textarea>
                 </div>
                 <button class="btn-primary" style="background: #ef4444; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3); margin: 0;" onclick="confirmFirebaseDeploy()">📤 Desplegar Reglas a Todos los Clientes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 3: AUDITORÍA VERCEL -->
+    <div id="vercel-tab" class="tab-content">
+        <div style="background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 20px; margin-bottom: 25px;">
+            <h3 style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #f59e0b; margin-bottom: 10px;">🕵️ Inspector de Variables de Entorno</h3>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px; line-height: 1.5;">
+                Ingresa el nombre exacto del proyecto en Vercel (ej: <strong>franccesca</strong> o <strong>fidelidad-next</strong>) para descargar y auditar sus variables configuradas actualmente en la nube.
+            </p>
+            
+            <div class="form-grid" style="grid-template-columns: 1fr;">
+                <div class="input-group">
+                    <label>Nombre del Proyecto Vercel</label>
+                    <input type="text" id="vercelProjectName" placeholder="ej: fidelidad-next">
+                </div>
+                <button class="btn-primary" style="background: #f59e0b; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3); margin-top: 0;" onclick="auditVercel()">🔍 Consultar Variables</button>
             </div>
         </div>
     </div>
@@ -770,6 +789,34 @@
                 consoleOutput.scrollTop = consoleOutput.scrollHeight;
             }
         } catch (e) { consoleOutput.textContent += `\n❌ Error: ${e.message}`; }
+    }
+
+    async function auditVercel() {
+        const projectName = document.getElementById('vercelProjectName').value.trim();
+        if (!projectName) return alert('Por favor, ingresa el nombre del proyecto de Vercel.');
+
+        const consoleContainer = document.getElementById('consoleContainer');
+        const consoleOutput = document.getElementById('consoleOutput');
+        consoleContainer.style.display = 'block';
+        consoleOutput.textContent = 'Iniciando auditoría de Vercel...\n';
+
+        try {
+            const response = await fetch('/api/vercel/env', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ projectName })
+            });
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                consoleOutput.textContent += decoder.decode(value);
+                consoleOutput.scrollTop = consoleOutput.scrollHeight;
+            }
+        } catch (e) {
+            consoleOutput.textContent += `\n❌ Error: ${e.message}`;
+        }
     }
 
     // Cargar versiones al inicio

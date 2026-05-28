@@ -1,4 +1,4 @@
-﻿import admin from "firebase-admin";
+import admin from "firebase-admin";
 import nodemailer from 'nodemailer';
 import { buildHtmlLayout } from "../utils/emailLayout.js";
 import { getEffectiveDate } from "../utils/timeUtils.js";
@@ -132,6 +132,15 @@ export default async function handler(req, res) {
         if ((triggerSource === 'qstash' || qstashHeader) && config.messaging?.enableQStashTrigger === false) isTriggerEnabled = false;
         if (triggerSource === 'extension' && config.messaging?.enableExtensionTrigger === false) isTriggerEnabled = false;
         if (triggerSource === 'dashboard' && config.messaging?.enableDashboardTrigger === false) isTriggerEnabled = false;
+
+        // V.1.6.5: Latido del motor (Watchdog) - Escribir siempre el último contacto
+        try {
+            await db.collection('config').doc('engineCheck').set({
+                lastRunTimestamp: admin.firestore.FieldValue.serverTimestamp(),
+                trigger: triggerSource,
+                simulated: !!simulatedDateStr
+            }, { merge: true });
+        } catch(e) { console.error("Error writing heartbeat:", e); }
 
         // V.1.4.60: LOG TEMPRANO de Check (Para ver por qué falla o se salta)
         const isManual = (triggerSource === 'sidebar_manual' || simulatedDateStr);

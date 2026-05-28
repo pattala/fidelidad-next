@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { db, auth } from '../../../lib/firebase';
-import { collection, query, orderBy, limit, onSnapshot, Timestamp, getDocs, deleteDoc } from 'firebase/firestore';
-import { Clock, CheckCircle, AlertTriangle, User, MessageCircle, ArrowRight, ChevronDown, ChevronUp, History, Search, Calendar, Filter, Loader2, Play, Settings, Cake, Eraser, Trash2 } from 'lucide-react';
+import { collection, query, orderBy, limit, onSnapshot, Timestamp, getDocs, deleteDoc, doc } from 'firebase/firestore';
+import { Clock, CheckCircle, AlertTriangle, User, MessageCircle, ArrowRight, ChevronDown, ChevronUp, History, Search, Calendar, Filter, Loader2, Play, Settings, Cake, Eraser, Trash2, Activity } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { TimeService } from '../../../services/timeService';
 import { useNavigate } from 'react-router-dom';
@@ -47,6 +47,17 @@ export const SystemLogsPage = () => {
     const [ignoreDeduplication, setIgnoreDeduplication] = useState(false);
     const [isSavingConfig, setIsSavingConfig] = useState(false);
     const [config, setConfig] = useState<any>(null);
+    const [lastHeartbeat, setLastHeartbeat] = useState<Date | null>(null);
+
+    useEffect(() => {
+        const hbRef = doc(db, 'config', 'engineCheck');
+        const unsub = onSnapshot(hbRef, snap => {
+            if (snap.exists() && snap.data().lastRunTimestamp) {
+                setLastHeartbeat(snap.data().lastRunTimestamp.toDate());
+            }
+        });
+        return () => unsub();
+    }, []);
 
     const handleRunEngine = async () => {
         if (!window.confirm("¿Deseas ejecutar ahora el Motor Unificado? Esto procesará Cumpleaños, Vencimientos, Campañas y Alertas de Mascotas en un solo paso.")) return;
@@ -316,7 +327,17 @@ export const SystemLogsPage = () => {
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-800">Auditoría del Sistema</h1>
-                    <p className="text-gray-500 text-sm">Historial de procesos automáticos y acciones del servidor</p>
+                    <div className="flex items-center gap-2 mt-1">
+                        <p className="text-gray-500 text-sm">Historial de procesos y acciones del servidor</p>
+                        {lastHeartbeat && (
+                            <div className="flex items-center gap-1.5 ml-4 px-2 py-0.5 bg-green-50 border border-green-100 rounded-md" title="Indica la última vez que QStash verificó el estado (Watchdog)">
+                                <Activity size={14} className="text-green-500 animate-pulse" />
+                                <span className="text-[11px] font-bold text-green-700">
+                                    Motor Activo (Último latido: {lastHeartbeat.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })})
+                                </span>
+                            </div>
+                        )}
+                    </div>
                 </div>
                 <div className="flex items-center gap-2">
                     <button

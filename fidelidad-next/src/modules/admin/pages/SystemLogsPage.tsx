@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { db, auth } from '../../../lib/firebase';
-import { collection, query, orderBy, limit, onSnapshot, Timestamp } from 'firebase/firestore';
-import { Clock, CheckCircle, AlertTriangle, User, MessageCircle, ArrowRight, ChevronDown, ChevronUp, History, Search, Calendar, Filter, Loader2, Play, Settings, Cake, Eraser } from 'lucide-react';
+import { collection, query, orderBy, limit, onSnapshot, Timestamp, getDocs, deleteDoc } from 'firebase/firestore';
+import { Clock, CheckCircle, AlertTriangle, User, MessageCircle, ArrowRight, ChevronDown, ChevronUp, History, Search, Calendar, Filter, Loader2, Play, Settings, Cake, Eraser, Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { TimeService } from '../../../services/timeService';
 import { useNavigate } from 'react-router-dom';
@@ -106,6 +106,55 @@ export const SystemLogsPage = () => {
         } catch (e) {
             toast.error('Error al guardar configuración');
             setIgnoreDeduplication(!newValue);
+        } finally {
+            setIsSavingConfig(false);
+        }
+    };
+
+    const handleCleanFutureSimulations = async () => {
+        if (!window.confirm("¿Deseas borrar los registros de simulaciones futuras? Esto desbloqueará el motor para esos días y limpiará la vista.")) return;
+        
+        setIsSavingConfig(true);
+        const toastId = toast.loading('Buscando simulaciones futuras...');
+        try {
+            const todayStr = TimeService.now().toLocaleDateString('en-CA');
+            
+            const q = query(collection(db, 'audit_logs'));
+            const snap = await getDocs(q);
+            
+            let count = 0;
+            const promises: any[] = [];
+            snap.forEach(d => {
+                const id = d.id;
+                // Borrar daily_alerts futuros
+                if (id.startsWith('daily_alerts_')) {
+                    const datePart = id.replace('daily_alerts_', '');
+                    if (datePart > todayStr) {
+                        promises.push(deleteDoc(d.ref));
+                        count++;
+                    }
+                } else {
+                    // Borrar logs del historial que sean de un simulador futuro
+                    const data = d.data();
+                    if (data.simulated && data.executor?.includes('SIMULADOR')) {
+                        const match = data.executor.match(/\((\d{2})\/(\d{2})\/(\d{4})\)/);
+                        if (match) {
+                            const simDate = `${match[3]}-${match[2]}-${match[1]}`;
+                            if (simDate > todayStr) {
+                                promises.push(deleteDoc(d.ref));
+                                count++;
+                            }
+                        }
+                    }
+                }
+            });
+            
+            await Promise.all(promises);
+            toast.success(`Se borraron ${count} registros futuros`, { id: toastId });
+            setIsCleared(false);
+        } catch(e) {
+            console.error(e);
+            toast.error('Error al limpiar simulaciones', { id: toastId });
         } finally {
             setIsSavingConfig(false);
         }
@@ -272,6 +321,14 @@ export const SystemLogsPage = () => {
                             {ignoreDeduplication ? 'Ignorada (Global)' : 'Activa (Seguro)'}
                         </span>
                     </div>
+                    <button
+                        onClick={handleCleanFutureSimulations}
+                        disabled={isSavingConfig}
+                        className={`p-2 hover:bg-orange-50 text-orange-500 rounded-lg transition border border-orange-100 bg-white ${isSavingConfig ? 'opacity-50' : ''}`}
+                        title="Borrar simulaciones del futuro (Desbloquear motor)"
+                    >
+                        <Trash2 size={20} />
+                    </button>
                     <button
                         onClick={() => {
                             setIsCleared(true);

@@ -138,9 +138,20 @@ export const SystemLogsPage = () => {
                         count++;
                     }
                 } else {
-                    // Borrar logs del historial que sean de un simulador futuro
                     const data = d.data();
-                    // Buscar fechas en el formato SIMULADOR (DD/MM/YYYY) o (YYYY-MM-DD)
+                    
+                    // 1. Borrar si el timestamp de la base de datos está en el futuro (usado por engine-campaigns)
+                    if (data.timestamp && data.timestamp.toDate) {
+                        const logDate = data.timestamp.toDate();
+                        const logDateStr = `${logDate.getFullYear()}-${String(logDate.getMonth() + 1).padStart(2, '0')}-${String(logDate.getDate()).padStart(2, '0')}`;
+                        if (logDateStr > todayStr) {
+                            promises.push(deleteDoc(d.ref));
+                            count++;
+                            return; // Return temprano para no procesar el mismo documento dos veces
+                        }
+                    }
+
+                    // 2. Borrar logs del historial que sean de un simulador futuro (usado por engine-daily)
                     if (data.simulated && data.executor?.includes('SIMULADOR')) {
                         const matchLatino = data.executor.match(/\((\d{2})\/(\d{2})\/(\d{4})\)/);
                         const matchIso = data.executor.match(/\((\d{4})-(\d{2})-(\d{2})\)/);

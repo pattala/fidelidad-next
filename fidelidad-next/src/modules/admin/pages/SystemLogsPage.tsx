@@ -112,6 +112,7 @@ export const SystemLogsPage = () => {
     };
 
     useEffect(() => {
+        let isInitialLoad = true;
         setLoading(true);
         const q = query(
             collection(db, 'audit_logs'),
@@ -122,6 +123,14 @@ export const SystemLogsPage = () => {
         const unsubscribe = onSnapshot(q, (snap) => {
             const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as AuditLog));
             setLogs(data);
+            
+            if (!isInitialLoad) {
+                const hasNew = snap.docChanges().some(change => change.type === 'added');
+                if (hasNew) {
+                    setIsCleared(false); // Auto-revelar la pantalla si entra un log nuevo
+                }
+            }
+            isInitialLoad = false;
             setLoading(false);
         }, (err) => {
             console.error("Error listening to logs:", err);

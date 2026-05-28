@@ -117,14 +117,18 @@ export const SystemLogsPage = () => {
         setIsSavingConfig(true);
         const toastId = toast.loading('Buscando simulaciones futuras...');
         try {
-            const todayStr = TimeService.now().toLocaleDateString('en-CA');
+            const n = TimeService.now();
+            const todayStr = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
             
-            const q = query(collection(db, 'audit_logs'));
+            // Limitamos a los últimos 5000 para no sobrecargar el navegador
+            const q = query(collection(db, 'audit_logs'), orderBy('timestamp', 'desc'), limit(5000));
             const snap = await getDocs(q);
             
             let count = 0;
+            let checked = 0;
             const promises: any[] = [];
             snap.forEach(d => {
+                checked++;
                 const id = d.id;
                 // Borrar daily_alerts futuros
                 if (id.startsWith('daily_alerts_')) {
@@ -136,22 +140,31 @@ export const SystemLogsPage = () => {
                 } else {
                     // Borrar logs del historial que sean de un simulador futuro
                     const data = d.data();
+                    // Buscar fechas en el formato SIMULADOR (DD/MM/YYYY) o (YYYY-MM-DD)
                     if (data.simulated && data.executor?.includes('SIMULADOR')) {
-                        const match = data.executor.match(/\((\d{2})\/(\d{2})\/(\d{4})\)/);
-                        if (match) {
-                            const simDate = `${match[3]}-${match[2]}-${match[1]}`;
-                            if (simDate > todayStr) {
-                                promises.push(deleteDoc(d.ref));
-                                count++;
-                            }
+                        const matchLatino = data.executor.match(/\((\d{2})\/(\d{2})\/(\d{4})\)/);
+                        const matchIso = data.executor.match(/\((\d{4})-(\d{2})-(\d{2})\)/);
+                        
+                        let simDate = '';
+                        if (matchLatino) {
+                            simDate = `${matchLatino[3]}-${matchLatino[2]}-${matchLatino[1]}`;
+                        } else if (matchIso) {
+                            simDate = `${matchIso[1]}-${matchIso[2]}-${matchIso[3]}`;
+                        }
+                        
+                        if (simDate && simDate > todayStr) {
+                            promises.push(deleteDoc(d.ref));
+                            count++;
                         }
                     }
                 }
             });
             
             await Promise.all(promises);
-            toast.success(`Se borraron ${count} registros futuros`, { id: toastId });
+            toast.success(`Se revisaron ${checked} registros y se borraron ${count} del futuro.`, { id: toastId, duration: 5000 });
             setIsCleared(false);
+            // Pequeña pausa para que Firebase procese y la vista se refresque
+            setTimeout(() => fetchLogs(), 1500);
         } catch(e) {
             console.error(e);
             toast.error('Error al limpiar simulaciones', { id: toastId });

@@ -13,8 +13,6 @@ import { ClientActivityPage } from "./modules/client/pages/ClientActivityPage";
 import { ClientInboxPage } from "./modules/client/pages/ClientInboxPage";
 import { ClientPromosPage } from "./modules/client/pages/ClientPromosPage";
 import { ClientReferralsPage } from "./modules/client/pages/ClientReferralsPage";
-import { PointsHistoryPage } from './modules/client/pages/PointsHistoryPage';
-import { PwaInstallPage } from './modules/client/pages/PwaInstallPage';
 import { MysteryBoxPage } from './modules/client/pages/MysteryBoxPage';
 import { ClientAuthGuard } from "./modules/client/components/ClientAuthGuard";
 import { ClientAuthProvider } from "./modules/client/contexts/ClientAuthContext";
@@ -60,10 +58,6 @@ export const router = createBrowserRouter([
             {
                 index: true,
                 element: <ClientHomePage />
-            },
-            {
-                path: "install",
-                element: <PwaInstallPage />
             },
             {
                 path: "play/:id",

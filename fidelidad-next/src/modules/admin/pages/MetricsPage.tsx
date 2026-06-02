@@ -557,6 +557,29 @@ export const MetricsPage = () => {
                                 </button>
                             ))}
                         </div>
+                        
+                        {timeRange === 'custom' && (
+                            <div className="mt-4 flex items-center gap-4 bg-white p-3 rounded-2xl shadow-sm border border-purple-100 animate-fade-in">
+                                <div className="flex items-center gap-2">
+                                    <label className="text-xs font-bold text-gray-500 uppercase">Desde:</label>
+                                    <input 
+                                        type="date" 
+                                        className="border-none bg-gray-50 px-3 py-1.5 rounded-lg text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-purple-200"
+                                        value={customDates.start}
+                                        onChange={(e) => setCustomDates(prev => ({ ...prev, start: e.target.value }))}
+                                    />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <label className="text-xs font-bold text-gray-500 uppercase">Hasta:</label>
+                                    <input 
+                                        type="date" 
+                                        className="border-none bg-gray-50 px-3 py-1.5 rounded-lg text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-purple-200"
+                                        value={customDates.end}
+                                        onChange={(e) => setCustomDates(prev => ({ ...prev, end: e.target.value }))}
+                                    />
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* BLOQUE 2: FLUJO DEL PERÍODO (P&L - Afectado por filtro) */}

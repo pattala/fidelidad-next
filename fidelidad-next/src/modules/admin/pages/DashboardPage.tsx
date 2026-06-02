@@ -217,10 +217,13 @@ export const DashboardPage = () => {
                     
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-4 relative z-10">
                         <div>
-                            <h3 className="text-gray-500 font-medium mb-1 flex items-center gap-2">
+                            <h3 className="text-gray-500 font-medium flex items-center gap-2">
                                 <AlertTriangle size={16} className={stats.monthPointsEmitted > config.masterCalculatorSettings.bolsaMensualPuntos ? "text-red-500" : "text-gray-400"} /> 
                                 Presupuesto Mensual de Puntos
                             </h3>
+                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-3 mt-1">
+                                Acumulado desde el 1 de {new Date().toLocaleString('es-AR', { month: 'long' })} (Se reinicia el 1º)
+                            </p>
                             <div className="flex items-baseline gap-2">
                                 <p className={`text-4xl font-black ${stats.monthPointsEmitted > config.masterCalculatorSettings.bolsaMensualPuntos ? 'text-red-600' : 'text-gray-900'}`}>
                                     {stats.monthPointsEmitted.toLocaleString('es-AR')}

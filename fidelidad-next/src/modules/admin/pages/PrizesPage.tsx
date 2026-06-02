@@ -321,7 +321,7 @@ export const PrizesPage = () => {
             {/* Modal Create/Edit */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-scale-up">
+                    <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-scale-up max-h-[90vh] flex flex-col">
                         <div className="px-6 py-4 bg-pink-50 border-b border-pink-100 flex justify-between items-center">
                             <h2 className="text-lg font-bold text-pink-900">
                                 {editingPrize ? 'Editar Premio' : 'Nuevo Premio'}
@@ -329,7 +329,7 @@ export const PrizesPage = () => {
                             <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 rounded-full p-1"><X size={20} /></button>
                         </div>
 
-                        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                        <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto">
 
                             {/* Nombre y Desc */}
                             <div className="space-y-4">

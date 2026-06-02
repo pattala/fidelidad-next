@@ -472,7 +472,7 @@ export const MetricsPage = () => {
                             <h2 className="text-2xl font-black text-gray-800 flex items-center gap-2"><Sparkles className="text-indigo-500" /> Balance Histórico</h2>
                             <span className="text-[10px] font-black text-indigo-500 bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-full uppercase tracking-widest">Intocable por Filtro</span>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="bg-white p-6 rounded-3xl shadow-sm border border-indigo-100 flex items-center justify-between" title="Total de puntos que los clientes tienen actualmente en sus cuentas (el pasivo real del sistema).">
                                 <div>
                                     <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Puntos Circulando</p>
@@ -488,14 +488,6 @@ export const MetricsPage = () => {
                                     <p className="text-[10px] text-gray-400 mt-1 italic font-bold">Circulando x ${config?.pointValue || 10}</p>
                                 </div>
                                 <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl"><DollarSign size={32} /></div>
-                            </div>
-                            <div className="bg-white p-6 rounded-3xl shadow-sm border border-orange-100 flex items-center justify-between">
-                                <div>
-                                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Pronóstico (CashFlow 30D)</p>
-                                    <p className="text-4xl font-black text-orange-600">{(advancedStats?.projectedExpirations || 0).toLocaleString()}</p>
-                                    <p className="text-[10px] text-red-500 mt-1 font-black uppercase">Puntos próximos a vencer</p>
-                                </div>
-                                <div className="p-4 bg-orange-50 text-orange-600 rounded-2xl"><Clock size={32} /></div>
                             </div>
                         </div>
                     </div>

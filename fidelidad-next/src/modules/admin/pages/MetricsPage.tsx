@@ -110,6 +110,7 @@ export const MetricsPage = () => {
         averageTicket: 0, frequency: 0, activeCustomers: 0, totalCustomers: 0, potentialRevenue: 0, creditCount: 0, referralCount: 0
     });
     const [heatmapData, setHeatmapData] = useState<number[][]>(Array(7).fill(0).map(() => Array(24).fill(0)));
+    const [mysteryStats, setMysteryStats] = useState({ total: 0, pending: 0, played: 0, rejected: 0, expired: 0, pointsAwarded: 0 });
     // dormantDays state removed - now uses config.dormantDays directly
 
     // --- FUNCIONES (HOISTED) ---
@@ -251,10 +252,24 @@ export const MetricsPage = () => {
                 } catch (err) { console.error("Error in fetchRangeData:", err); return []; }
             }
 
-            const [currentMovements, prevMovements] = await Promise.all([
+            const [currentMovements, prevMovements, mysterySnap] = await Promise.all([
                 fetchRangeData(startDate, endDate, isTotal),
-                isTotal ? Promise.resolve([]) : fetchRangeData(prevStartDate, prevEndDate)
+                isTotal ? Promise.resolve([]) : fetchRangeData(prevStartDate, prevEndDate),
+                isTotal ? getDocs(query(collection(db, 'mystery_box_chances'))) : getDocs(query(collection(db, 'mystery_box_chances'), where('createdAt', '>=', Timestamp.fromDate(startDate)), where('createdAt', '<=', Timestamp.fromDate(endDate))))
             ]);
+            
+            // Procesar Mystery Box
+            const mStats = { total: 0, pending: 0, played: 0, rejected: 0, expired: 0, pointsAwarded: 0 };
+            mysterySnap.forEach(doc => {
+                const data = doc.data();
+                mStats.total++;
+                if (data.status === 'pending') mStats.pending++;
+                else if (data.status === 'played') { mStats.played++; mStats.pointsAwarded += (data.pointsWon || 0); }
+                else if (data.status === 'rejected') mStats.rejected++;
+                else if (data.status === 'expired') mStats.expired++;
+            });
+            setMysteryStats(mStats);
+
             setMovementsData(currentMovements);
             const realPV = (appConfig?.pointValue || 10);
             const currentResults = processStats(currentMovements, appConfig);
@@ -646,6 +661,46 @@ export const MetricsPage = () => {
                             })}
                         </div>
                     </div>
+
+                    {/* BLOQUE ADOPCIÓN SORTEOS */}
+                    {mysteryStats.total > 0 && (
+                        <div className="mb-12">
+                            <div className="flex items-center gap-3 mb-6">
+                                <h2 className="text-2xl font-black text-gray-800 flex items-center gap-2">
+                                    <Sparkles className="text-orange-500" /> Tasa de Adopción - Sorteos
+                                </h2>
+                                <span className="text-[10px] font-black text-white bg-orange-500 px-3 py-1 rounded-full uppercase tracking-widest">Afectado por Filtro</span>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                                <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center text-center">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Chances Generadas</p>
+                                    <p className="text-3xl font-black text-gray-800">{mysteryStats.total}</p>
+                                </div>
+                                <div className="bg-white p-5 rounded-2xl shadow-sm border border-orange-100 flex flex-col items-center text-center">
+                                    <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest mb-2">Pendientes</p>
+                                    <p className="text-3xl font-black text-orange-600">{mysteryStats.pending}</p>
+                                    <p className="text-xs text-orange-400/80 font-bold mt-1">{Math.round((mysteryStats.pending / mysteryStats.total) * 100)}% del total</p>
+                                </div>
+                                <div className="bg-white p-5 rounded-2xl shadow-sm border border-emerald-100 flex flex-col items-center text-center relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 p-2"><Award className="text-emerald-100" size={40} /></div>
+                                    <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-2 z-10 relative">Jugadas (Adopción)</p>
+                                    <p className="text-3xl font-black text-emerald-600 z-10 relative">{mysteryStats.played}</p>
+                                    <p className="text-xs text-emerald-500 font-bold mt-1 z-10 relative">{Math.round((mysteryStats.played / mysteryStats.total) * 100)}% del total</p>
+                                </div>
+                                <div className="bg-white p-5 rounded-2xl shadow-sm border border-red-100 flex flex-col items-center text-center">
+                                    <p className="text-[10px] font-black text-red-400 uppercase tracking-widest mb-2">Rechazadas</p>
+                                    <p className="text-3xl font-black text-red-600">{mysteryStats.rejected}</p>
+                                    <p className="text-xs text-red-400/80 font-bold mt-1">{Math.round((mysteryStats.rejected / mysteryStats.total) * 100)}% del total</p>
+                                </div>
+                                <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 flex flex-col items-center text-center">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Expiradas</p>
+                                    <p className="text-3xl font-black text-gray-500">{mysteryStats.expired}</p>
+                                    <p className="text-xs text-gray-400 mt-1 font-bold">{Math.round((mysteryStats.expired / mysteryStats.total) * 100)}% del total</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
                         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">

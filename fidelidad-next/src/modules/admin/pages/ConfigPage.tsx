@@ -10,6 +10,7 @@ import { NotificationService } from '../../../services/notificationService';
 import { toast } from 'react-hot-toast';
 import { GlobalAlerts } from '../components/GlobalAlerts';
 import { MasterCalculatorModal } from '../components/MasterCalculatorModal';
+import { MysteryBoxConfig } from '../components/MysteryBoxConfig';
 // import { ChannelSelector } from '../components/ChannelSelector';
 import type { AppConfig, MessagingChannel } from '../../../types';
 import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
@@ -151,7 +152,7 @@ export const ConfigPage = () => {
     });
 
     const { isReadOnly, user } = useAdminAuth();
-    const [activeTab, setActiveTab] = useState<'rules' | 'branding' | 'messaging' | 'legales' | 'advanced'>('rules');
+    const [activeTab, setActiveTab] = useState<'rules' | 'branding' | 'messaging' | 'sorteos' | 'legales' | 'advanced'>('rules');
     const [resetOptions, setResetOptions] = useState({
         socios_total: false,
         socios_historial: false,
@@ -491,6 +492,14 @@ export const ConfigPage = () => {
                     >
                         <span className="text-green-500 text-lg">💬</span>
                         Mensajería
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab('sorteos')}
+                        className={`px-5 py-2.5 rounded-lg text-sm font-bold transition flex items-center gap-2 ${activeTab === 'sorteos' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                        <Gift size={18} />
+                        Sorteos
                     </button>
                     <button
                         type="button"
@@ -1277,6 +1286,12 @@ export const ConfigPage = () => {
                         </div>
                     </div>
                 )}
+
+                {
+                    activeTab === 'sorteos' && (
+                        <MysteryBoxConfig config={config} setConfig={setConfig} />
+                    )
+                }
 
                 {
                     activeTab === 'legales' && (

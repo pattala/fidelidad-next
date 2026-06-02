@@ -279,6 +279,22 @@ export interface AppConfig {
             isInternal?: boolean;
         };
     };
+    // Sistema de Sorteos por Compra (Caja Sorpresa)
+    mysteryBox?: {
+        enabled: boolean;
+        minAmount: number;
+        pointsExpirationDays: number;
+        chanceDeadlineHours: number;
+        resendDeadlineHours: number;
+        cashierMessage: string;
+        prizeScales: Array<{
+            id: string;
+            minPoints: number;
+            maxPoints: number;
+            probabilityPct: number;
+        }>;
+    };
+
     enableDateSimulator?: boolean;
     simulatedOffsetDays?: number;
     enableDuplicateControl?: boolean;

@@ -24,9 +24,10 @@ export const GlobalAlerts = () => {
     const [campaignsMap, setCampaignsMap] = useState<Map<string, any>>(new Map());
     const [timeTrigger, setTimeTrigger] = useState(0);
     const [hasLoadedCampaignIds, setHasLoadedCampaignIds] = useState(false);
+    const [mysteryBoxChances, setMysteryBoxChances] = useState<any[]>([]);
     
-    const [activeTab, setActiveTab] = useState<'pending' | 'processed'>(
-        () => (localStorage.getItem('globalAlerts_activeTab') as 'pending' | 'processed') || 'pending'
+    const [activeTab, setActiveTab] = useState<'pending' | 'processed' | 'sorteos'>(
+        () => (localStorage.getItem('globalAlerts_activeTab') as 'pending' | 'processed' | 'sorteos') || 'pending'
     );
     const [isExpanded, setIsExpanded] = useState(false);
     
@@ -302,6 +303,24 @@ export const GlobalAlerts = () => {
                 setHasLoadedCampaignIds(true);
             });
             unsubs.push(unsubCamps);
+
+            // Sorteos (Mystery Box)
+            const qMystery = query(
+                collection(db, 'mystery_box_chances'),
+                where('status', '==', 'pending')
+            );
+            const unsubMystery = onSnapshot(qMystery, (snap) => {
+                const chances: any[] = [];
+                const now = new Date();
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    if (data.resendExpiresAt && data.resendExpiresAt.toDate() > now) {
+                        chances.push({ id: doc.id, ...data });
+                    }
+                });
+                setMysteryBoxChances(chances.sort((a, b) => b.createdAt.toDate().getTime() - a.createdAt.toDate().getTime()));
+            });
+            unsubs.push(unsubMystery);
         };
 
         refreshAlerts();
@@ -528,6 +547,9 @@ export const GlobalAlerts = () => {
                         <button onClick={() => { setActiveTab('pending'); localStorage.setItem('globalAlerts_activeTab', 'pending'); }} className={`flex-1 py-2 rounded-xl text-[10px] font-black transition-all ${activeTab === 'pending' ? 'bg-white/10 text-white shadow-lg' : 'text-white/30'}`}>
                             PENDIENTES ({totalPending})
                         </button>
+                        <button onClick={() => { setActiveTab('sorteos'); localStorage.setItem('globalAlerts_activeTab', 'sorteos'); }} className={`flex-1 py-2 rounded-xl text-[10px] font-black transition-all ${activeTab === 'sorteos' ? 'bg-orange-500/20 text-orange-400 shadow-lg border border-orange-500/20' : 'text-white/30'}`}>
+                            SORTEOS ({mysteryBoxChances.length})
+                        </button>
                         <button onClick={() => { setActiveTab('processed'); localStorage.setItem('globalAlerts_activeTab', 'processed'); }} className={`flex-1 py-2 rounded-xl text-[10px] font-black transition-all ${activeTab === 'processed' ? 'bg-white/10 text-white shadow-lg' : 'text-white/30'}`}>
                             PROCESADOS
                         </button>
@@ -574,7 +596,7 @@ export const GlobalAlerts = () => {
                                 )}
                                 {totalPending === 0 && <div className="text-center py-10 opacity-30 text-xs font-bold">✨ ¡Todo al día!</div>}
                             </>
-                        ) : (
+                        ) : activeTab === 'processed' ? (
                             <>
                                 {procC.length > 0 && (
                                     <div>
@@ -614,7 +636,38 @@ export const GlobalAlerts = () => {
                                 )}
                                 {Object.keys(processedAlerts).length === 0 && <div className="text-center py-10 opacity-30 text-xs font-bold">Vacío</div>}
                             </>
-                        )}
+                        ) : activeTab === 'sorteos' ? (
+                            <>
+                                {mysteryBoxChances.length > 0 ? (
+                                    <div className="space-y-3">
+                                        {mysteryBoxChances.map(c => (
+                                            <div key={c.id} className="bg-white/[0.03] p-5 rounded-[30px] border border-orange-500/20 flex flex-col gap-4">
+                                                <div>
+                                                    <h5 className="font-bold text-white text-[15px]">{c.clientName || 'Cliente'}</h5>
+                                                    <p className="text-[9px] text-white/40 font-bold uppercase tracking-wider mt-1">
+                                                        🎁 Compra de ${c.amount}
+                                                    </p>
+                                                    <p className="text-[9px] text-orange-400/80 font-bold uppercase tracking-wider mt-1">
+                                                        Expira el {c.resendExpiresAt?.toDate().toLocaleString()}
+                                                    </p>
+                                                </div>
+                                                <button onClick={() => {
+                                                    const msg = `¡Hola! Tu código para la Caja Sorpresa es: ${config?.contact?.pwaUrl || window.location.origin}/play/${c.id}`;
+                                                    const phone = (c.clientPhone || '').replace(/\D/g, '');
+                                                    let p = phone;
+                                                    if (p && !p.startsWith('54') && p.length === 10) p = '549' + p;
+                                                    window.open(`https://api.whatsapp.com/send?phone=${p}&text=${encodeURIComponent(msg)}`, '_blank');
+                                                }} className="bg-orange-500/20 text-orange-400 py-3 rounded-2xl text-[10px] font-black transition-all hover:scale-[1.02]">
+                                                    🔄 RE-ENVIAR LINK POR WHATSAPP
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-10 opacity-30 text-xs font-bold">✨ No hay sorteos pendientes</div>
+                                )}
+                            </>
+                        ) : null}
                     </div>
                 </div>
             )}
@@ -635,6 +688,11 @@ export const GlobalAlerts = () => {
                             {pendingE.length > 0 && <span className="text-amber-400">V:{pendingE.length}</span>}
                             {pendingP.length > 0 && <span className="text-indigo-400">A:{pendingP.length}</span>}
                             {pendingR.length > 0 && <span className="text-emerald-400">R:{pendingR.length}</span>}
+                        </div>
+                    )}
+                    {mysteryBoxChances.length > 0 && (
+                        <div className="absolute top-0 -left-2 bg-orange-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-lg">
+                            🎁 {mysteryBoxChances.length}
                         </div>
                     )}
 

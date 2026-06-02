@@ -82,7 +82,20 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
     simulatedOffsetDays: 0,
     enableDuplicateControl: true,
     enablePetModule: import.meta.env.VITE_ENABLE_PET_MODULE === 'true',
-    discountRecoveryRatio: 0
+    discountRecoveryRatio: 0,
+    mysteryBox: {
+        enabled: false,
+        minAmount: 15000,
+        pointsExpirationDays: 15,
+        chanceDeadlineHours: 24,
+        resendDeadlineHours: 24,
+        cashierMessage: "Avisar al cliente de la Caja Sorpresa",
+        prizeScales: [
+            { id: 'sc1', minPoints: 1, maxPoints: 5, probabilityPct: 70 },
+            { id: 'sc2', minPoints: 6, maxPoints: 10, probabilityPct: 20 },
+            { id: 'sc3', minPoints: 15, maxPoints: 15, probabilityPct: 10 }
+        ]
+    }
 };
 
 export const ConfigService = {
@@ -112,6 +125,10 @@ export const ConfigService = {
                     referrals: {
                         ...DEFAULT_APP_CONFIG.referrals,
                         ...(data.referrals || {})
+                    },
+                    mysteryBox: {
+                        ...DEFAULT_APP_CONFIG.mysteryBox,
+                        ...(data.mysteryBox || {})
                     }
                 } as AppConfig;
             }
@@ -159,6 +176,10 @@ export const ConfigService = {
                     referrals: {
                         ...DEFAULT_APP_CONFIG.referrals,
                         ...(data.referrals || {})
+                    },
+                    mysteryBox: {
+                        ...DEFAULT_APP_CONFIG.mysteryBox,
+                        ...(data.mysteryBox || {})
                     }
                 } as AppConfig;
                 callback(fullConfig);

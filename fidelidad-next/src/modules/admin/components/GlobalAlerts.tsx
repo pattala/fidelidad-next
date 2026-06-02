@@ -4,6 +4,7 @@ import { db } from '../../../lib/firebase';
 import { TimeService } from '../../../services/timeService';
 import { ChevronDown, Sparkles, Bell, EyeOff, X } from 'lucide-react';
 import toast from 'react-hot-toast';
+import QRCode from 'react-qr-code';
 
 export const GlobalAlerts = () => {
     const effectiveDate = TimeService.now();
@@ -640,28 +641,36 @@ export const GlobalAlerts = () => {
                             <>
                                 {mysteryBoxChances.length > 0 ? (
                                     <div className="space-y-3">
-                                        {mysteryBoxChances.map(c => (
+                                        {mysteryBoxChances.map(c => {
+                                            const pwaUrl = config?.contact?.pwaUrl || window.location.origin;
+                                            const chanceUrl = `${pwaUrl}/play/${c.id}`;
+                                            return (
                                             <div key={c.id} className="bg-white/[0.03] p-5 rounded-[30px] border border-orange-500/20 flex flex-col gap-4">
-                                                <div>
-                                                    <h5 className="font-bold text-white text-[15px]">{c.clientName || 'Cliente'}</h5>
-                                                    <p className="text-[9px] text-white/40 font-bold uppercase tracking-wider mt-1">
-                                                        🎁 Compra de ${c.amount}
-                                                    </p>
-                                                    <p className="text-[9px] text-orange-400/80 font-bold uppercase tracking-wider mt-1">
-                                                        Expira el {c.resendExpiresAt?.toDate().toLocaleString()}
-                                                    </p>
+                                                <div className="flex items-center gap-4">
+                                                    <div className="bg-white p-2 rounded-xl">
+                                                        <QRCode value={chanceUrl} size={64} />
+                                                    </div>
+                                                    <div>
+                                                        <h5 className="font-bold text-white text-[15px]">{c.clientName || 'Cliente'}</h5>
+                                                        <p className="text-[9px] text-white/40 font-bold uppercase tracking-wider mt-1">
+                                                            🎁 Compra de ${c.amount}
+                                                        </p>
+                                                        <p className="text-[9px] text-orange-400/80 font-bold uppercase tracking-wider mt-1">
+                                                            Expira el {c.resendExpiresAt?.toDate().toLocaleString()}
+                                                        </p>
+                                                    </div>
                                                 </div>
                                                 <button onClick={() => {
-                                                    const msg = `¡Hola! Tu código para la Caja Sorpresa es: ${config?.contact?.pwaUrl || window.location.origin}/play/${c.id}`;
                                                     const phone = (c.clientPhone || '').replace(/\D/g, '');
                                                     let p = phone;
                                                     if (p && !p.startsWith('54') && p.length === 10) p = '549' + p;
-                                                    window.open(`https://api.whatsapp.com/send?phone=${p}&text=${encodeURIComponent(msg)}`, '_blank');
+                                                    window.open(`https://api.whatsapp.com/send?phone=${p}&text=${encodeURIComponent('¡Hola! Tu código para la Caja Sorpresa es: ' + chanceUrl)}`, '_blank');
                                                 }} className="bg-orange-500/20 text-orange-400 py-3 rounded-2xl text-[10px] font-black transition-all hover:scale-[1.02]">
                                                     🔄 RE-ENVIAR LINK POR WHATSAPP
                                                 </button>
                                             </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 ) : (
                                     <div className="text-center py-10 opacity-30 text-xs font-bold">✨ No hay sorteos pendientes</div>

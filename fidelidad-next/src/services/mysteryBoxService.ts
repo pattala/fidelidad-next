@@ -38,8 +38,8 @@ export const MysteryBoxService = {
         const id = 'MBX-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
         
         const now = new Date();
-        const expiresAt = new Date(now.getTime() + (config.mysteryBox.chanceDeadlineHours * 60 * 60 * 1000));
-        const resendExpiresAt = new Date(now.getTime() + (config.mysteryBox.resendDeadlineHours * 60 * 60 * 1000));
+        const expiresAt = new Date(now.getTime() + ((config.mysteryBox.chanceDeadlineMinutes || 60) * 60 * 1000));
+        const resendExpiresAt = new Date(now.getTime() + ((config.mysteryBox.resendDeadlineMinutes || 60) * 60 * 1000));
 
         const chance: MysteryBoxChance = {
             id,

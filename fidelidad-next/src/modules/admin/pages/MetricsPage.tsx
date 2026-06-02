@@ -649,12 +649,10 @@ export const MetricsPage = () => {
                                         </div>
                                         <div className="flex items-end justify-between">
                                             <div className="text-xl font-black text-gray-800">{stat.value}</div>
-                                            {prevVal > 0 && (
-                                                <div className={`text-[10px] font-black px-2 py-1 rounded-lg flex items-center gap-1 ${diff >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
-                                                    {diff >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                                                    {Math.abs(Math.round(diff))}%
-                                                </div>
-                                            )}
+                                            <div className={`text-[10px] font-black px-2 py-1 rounded-lg flex items-center gap-1 ${diff >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+                                                {diff >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                                                {Math.abs(Math.round(diff))}%
+                                            </div>
                                         </div>
                                     </div>
                                 );
@@ -663,7 +661,7 @@ export const MetricsPage = () => {
                     </div>
 
                     {/* BLOQUE ADOPCIÓN SORTEOS */}
-                    {mysteryStats.total > 0 && (
+                    {/* BLOQUE ADOPCIÓN SORTEOS */}
                         <div className="mb-12">
                             <div className="flex items-center gap-3 mb-6">
                                 <h2 className="text-2xl font-black text-gray-800 flex items-center gap-2">
@@ -680,27 +678,26 @@ export const MetricsPage = () => {
                                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-orange-100 flex flex-col items-center text-center">
                                     <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest mb-2">Pendientes</p>
                                     <p className="text-3xl font-black text-orange-600">{mysteryStats.pending}</p>
-                                    <p className="text-xs text-orange-400/80 font-bold mt-1">{Math.round((mysteryStats.pending / mysteryStats.total) * 100)}% del total</p>
+                                    <p className="text-xs text-orange-400/80 font-bold mt-1">{mysteryStats.total > 0 ? Math.round((mysteryStats.pending / mysteryStats.total) * 100) : 0}% del total</p>
                                 </div>
                                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-emerald-100 flex flex-col items-center text-center relative overflow-hidden">
                                     <div className="absolute top-0 right-0 p-2"><Award className="text-emerald-100" size={40} /></div>
                                     <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-2 z-10 relative">Jugadas (Adopción)</p>
                                     <p className="text-3xl font-black text-emerald-600 z-10 relative">{mysteryStats.played}</p>
-                                    <p className="text-xs text-emerald-500 font-bold mt-1 z-10 relative">{Math.round((mysteryStats.played / mysteryStats.total) * 100)}% del total</p>
+                                    <p className="text-xs text-emerald-500 font-bold mt-1 z-10 relative">{mysteryStats.total > 0 ? Math.round((mysteryStats.played / mysteryStats.total) * 100) : 0}% del total</p>
                                 </div>
                                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-red-100 flex flex-col items-center text-center">
                                     <p className="text-[10px] font-black text-red-400 uppercase tracking-widest mb-2">Rechazadas</p>
                                     <p className="text-3xl font-black text-red-600">{mysteryStats.rejected}</p>
-                                    <p className="text-xs text-red-400/80 font-bold mt-1">{Math.round((mysteryStats.rejected / mysteryStats.total) * 100)}% del total</p>
+                                    <p className="text-xs text-red-400/80 font-bold mt-1">{mysteryStats.total > 0 ? Math.round((mysteryStats.rejected / mysteryStats.total) * 100) : 0}% del total</p>
                                 </div>
                                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 flex flex-col items-center text-center">
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Expiradas</p>
                                     <p className="text-3xl font-black text-gray-500">{mysteryStats.expired}</p>
-                                    <p className="text-xs text-gray-400 mt-1 font-bold">{Math.round((mysteryStats.expired / mysteryStats.total) * 100)}% del total</p>
+                                    <p className="text-xs text-gray-400 mt-1 font-bold">{mysteryStats.total > 0 ? Math.round((mysteryStats.expired / mysteryStats.total) * 100) : 0}% del total</p>
                                 </div>
                             </div>
                         </div>
-                    )}
 
                     <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
                         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">

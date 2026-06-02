@@ -7,8 +7,9 @@ export const MysteryBoxConfig = ({ config, setConfig }: { config: AppConfig, set
         enabled: false,
         minAmount: 15000,
         pointsExpirationDays: 15,
-        chanceDeadlineHours: 24,
-        resendDeadlineHours: 24,
+        chanceDeadlineMinutes: 60,
+        resendDeadlineMinutes: 60,
+        enableCashierAlert: true,
         cashierMessage: "Avisar al cliente de la Caja Sorpresa",
         prizeScales: []
     };
@@ -92,37 +93,52 @@ export const MysteryBoxConfig = ({ config, setConfig }: { config: AppConfig, set
                         {/* DEADLINES */}
                         <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Deadline para Jugar (Horas)</label>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">Deadline para Jugar (Minutos)</label>
                                 <input
                                     type="number"
-                                    value={mb.chanceDeadlineHours}
-                                    onChange={e => updateMb({ chanceDeadlineHours: Number(e.target.value) })}
+                                    value={mb.chanceDeadlineMinutes || 60}
+                                    onChange={e => updateMb({ chanceDeadlineMinutes: Number(e.target.value) })}
                                     className="w-full border-gray-200 rounded-xl focus:ring-orange-500 focus:border-orange-500 p-3"
                                 />
                                 <p className="text-xs text-gray-500 mt-2">Tiempo máximo que tiene el cliente para escanear y abrir la caja.</p>
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Deadline de Reenvío del Cajero (Horas)</label>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">Deadline de Reenvío del Cajero (Minutos)</label>
                                 <input
                                     type="number"
-                                    value={mb.resendDeadlineHours}
-                                    onChange={e => updateMb({ resendDeadlineHours: Number(e.target.value) })}
+                                    value={mb.resendDeadlineMinutes || 60}
+                                    onChange={e => updateMb({ resendDeadlineMinutes: Number(e.target.value) })}
                                     className="w-full border-gray-200 rounded-xl focus:ring-orange-500 focus:border-orange-500 p-3"
                                 />
-                                <p className="text-xs text-gray-500 mt-2">Tiempo que el botón de "Reenviar QR" estará disponible en la burbuja.</p>
+                                <p className="text-xs text-gray-500 mt-2">Tiempo que el QR estará disponible en la solapa del panel de control.</p>
                             </div>
                         </div>
 
                         {/* MENSAJE CAJERO */}
-                        <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">Aviso de Refuerzo para el Cajero</label>
-                            <input
-                                type="text"
-                                value={mb.cashierMessage}
-                                onChange={e => updateMb({ cashierMessage: e.target.value })}
-                                className="w-full border-gray-200 rounded-xl focus:ring-orange-500 focus:border-orange-500 p-3"
-                            />
-                            <p className="text-xs text-gray-500 mt-2">Este texto aparece en la extensión / POS para recordar avisarle al cliente.</p>
+                        <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 space-y-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h3 className="text-sm font-bold text-gray-700">Aviso de Refuerzo para el Cajero</h3>
+                                    <p className="text-xs text-gray-500">Activa si querés que salte una notificación extra en la extensión.</p>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" className="sr-only peer" checked={mb.enableCashierAlert ?? true} onChange={(e) => updateMb({ enableCashierAlert: e.target.checked })} />
+                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                                </label>
+                            </div>
+                            
+                            {mb.enableCashierAlert && (
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-2">Mensaje del Aviso</label>
+                                    <input
+                                        type="text"
+                                        value={mb.cashierMessage}
+                                        onChange={e => updateMb({ cashierMessage: e.target.value })}
+                                        className="w-full border-gray-200 rounded-xl focus:ring-orange-500 focus:border-orange-500 p-3"
+                                    />
+                                    <p className="text-xs text-gray-400 mt-2">Este texto aparece en la alerta visual del punto de venta.</p>
+                                </div>
+                            )}
                         </div>
 
                         {/* ESCALAS DE PREMIOS */}

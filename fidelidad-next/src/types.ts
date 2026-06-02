@@ -284,15 +284,11 @@ export interface AppConfig {
         enabled: boolean;
         minAmount: number;
         pointsExpirationDays: number;
-        chanceDeadlineHours: number;
-        resendDeadlineHours: number;
+        chanceDeadlineMinutes: number;
+        resendDeadlineMinutes: number;
+        enableCashierAlert: boolean;
         cashierMessage: string;
-        prizeScales: Array<{
-            id: string;
-            minPoints: number;
-            maxPoints: number;
-            probabilityPct: number;
-        }>;
+        prizeScales: MysteryBoxPrizeScale[];
     };
 
     enableDateSimulator?: boolean;

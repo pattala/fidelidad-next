@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #8e24aa; /* Purple 600/700 */
+  --color-secondary: #d81b60; /* Pink/Rose 600 */
+  --color-accent: #ffb300; /* Amber/Gold for rewards */
+  --color-background: #f5f3f7;
+  --color-surface: #ffffff;
+}
+
+@layer base {
+  body {
+    @apply bg-background text-gray-900 font-sans antialiased overflow-x-hidden;
+    /* Evitar bounce en scroll en PWA */
+    overscroll-behavior-y: none;
+  }
+}

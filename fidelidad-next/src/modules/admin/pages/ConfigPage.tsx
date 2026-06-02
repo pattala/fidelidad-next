@@ -8,7 +8,8 @@ import { EmailPreviewModal } from '../components/EmailPreviewModal';
 import { EmailService } from '../../../services/emailService';
 import { NotificationService } from '../../../services/notificationService';
 import { toast } from 'react-hot-toast';
-import { PointValueCalculatorModal } from '../components/PointValueCalculatorModal';
+import { GlobalAlerts } from '../components/GlobalAlerts';
+import { MasterCalculatorModal } from '../components/MasterCalculatorModal';
 // import { ChannelSelector } from '../components/ChannelSelector';
 import type { AppConfig, MessagingChannel } from '../../../types';
 import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
@@ -507,7 +508,7 @@ export const ConfigPage = () => {
 
             <form onSubmit={handleSave} className="animate-fade-in">
 
-                <PointValueCalculatorModal
+                <MasterCalculatorModal
                     isOpen={showCalculator}
                     onClose={() => setShowCalculator(false)}
                     config={config}
@@ -568,57 +569,30 @@ export const ConfigPage = () => {
                                         <div className="mt-6 pt-6 border-t border-gray-100">
                                             <div className="flex items-center justify-between mb-4">
                                                 <div>
-                                                    <label className="block text-sm font-semibold text-gray-700">Valor Monetario del Punto (Pasivo)</label>
-                                                    <p className="text-xs text-gray-400 mt-1">Cómo se calcula tu deuda en puntos.</p>
+                                                    <label className="block text-sm font-semibold text-gray-700">Valor de Canje Fijo del Punto</label>
+                                                    <p className="text-xs text-gray-400 mt-1">Dinero que el cliente percibe que le regalás por punto.</p>
                                                 </div>
                                                 <button
                                                     type="button"
                                                     onClick={() => setShowCalculator(true)}
-                                                    className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-100 transition"
+                                                    className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold hover:bg-indigo-100 transition shadow-sm border border-indigo-100"
                                                 >
                                                     <Calculator size={14} />
-                                                    Configurar Cálculo
+                                                    Abrir Master Calculator
                                                 </button>
                                             </div>
 
                                             {/* Summary Card */}
-                                            <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                                                <div className="flex justify-between items-center mb-2">
-                                                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Método Actual</span>
-                                                    <span className={`text-xs font-bold px-2 py-1 rounded badge ${(config.pointCalculationMethod === 'manual' || (!config.pointCalculationMethod && !config.useAutomaticPointValue)) ? 'bg-green-100 text-green-700' :
-                                                        (config.pointCalculationMethod === 'average' || config.useAutomaticPointValue) ? 'bg-purple-100 text-purple-700' :
-                                                            'bg-orange-100 text-orange-700'
-                                                        }`}>
-                                                        {(config.pointCalculationMethod === 'manual' || (!config.pointCalculationMethod && !config.useAutomaticPointValue)) ? 'MANUAL' :
-                                                            (config.pointCalculationMethod === 'average' || config.useAutomaticPointValue) ? 'PROMEDIO PREMIOS' :
-                                                                'PRESUPUESTO'}
-                                                    </span>
-                                                </div>
-
+                                            <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 flex justify-between items-center">
                                                 <div className="flex items-end gap-2">
                                                     <span className="text-2xl font-black text-gray-800">
-                                                        $ {
-                                                            (config.pointCalculationMethod === 'budget' && config.pointValueBudget) ? 'Varía (Dinámico)' : // Dynamic logic is complex to show here without fetching stats
-                                                                (config.pointCalculationMethod === 'average' || config.useAutomaticPointValue) ? autoPointValue.toFixed(2) :
-                                                                    (config.pointValue || 10)
-                                                        }
+                                                        $ {(config.pointValue || 10).toFixed(2)}
                                                     </span>
                                                     <span className="text-sm font-bold text-gray-400 mb-1">/ punto</span>
                                                 </div>
-
-                                                {/* Extra info for Budget mode */}
-                                                {config.pointCalculationMethod === 'budget' && (
-                                                    <p className="text-xs text-orange-600 mt-2 font-medium">
-                                                        Controlado por presupuesto mensual de: <strong>${config.pointValueBudget?.toLocaleString()}</strong>
-                                                    </p>
-                                                )}
-
-                                                {/* Extra info for Auto/Average mode */}
-                                                {(config.pointCalculationMethod === 'average' || config.useAutomaticPointValue) && (
-                                                    <p className="text-xs text-purple-600 mt-2 font-medium">
-                                                        Calculado automáticamente según tus premios activos.
-                                                    </p>
-                                                )}
+                                                <span className="text-xs font-bold px-3 py-1.5 rounded-lg bg-green-100 text-green-700 shadow-inner">
+                                                    VALOR FIJO SEGURO
+                                                </span>
                                             </div>
                                         </div>
                                     </div>

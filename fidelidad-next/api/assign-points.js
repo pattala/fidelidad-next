@@ -1,4 +1,4 @@
-﻿
+
 // api/assign-points.js
 // Asigna puntos a un cliente de forma segura.
 // Soporta modo ADMIN (x-api-key) y modo USUARIO (Token Firebase).
@@ -189,7 +189,9 @@ export default async function handler(req, res) {
                     image: p.image || '',
                     description: p.description || '',
                     stock: p.stock ?? 99,
-                    isInternal: p.isInternal || false
+                    isInternal: p.isInternal || false,
+                    requiresMinimumPurchase: p.requiresMinimumPurchase || false,
+                    minimumPurchaseAmount: p.minimumPurchaseAmount || 0
                 });
             });
 
@@ -200,6 +202,7 @@ export default async function handler(req, res) {
                 pointsPerPeso,
 
                 enablePetModule: configData.enablePetModule === true,  // Flag para la extensión
+                mysteryBox: configData.mysteryBox || null,
                 activePromotions,
                 activePrizes,
                 todayStr // Para debugging
@@ -213,7 +216,7 @@ export default async function handler(req, res) {
 
     try {
         const db = getDb();
-        const { uid, reason, amountOverride, amount, concept, metadata, bonusIds, applyWhatsApp, skipNotifications, isPetFood, petIds, date } = req.body || {};
+        const { uid, reason, amountOverride, amount, concept, metadata, bonusIds, applyWhatsApp, skipNotifications, isPetFood, petIds, date, generateMysteryBox } = req.body || {};
 
         // 1. Autenticación (DUAL MODE)
         let isAdmin = false;
@@ -657,6 +660,32 @@ export default async function handler(req, res) {
                 info: `Mensaje guardado: +${points} pts`,
                 timestamp: now.toISOString()
             });
+
+            // 5.5 GENERACIÓN DE CAJA SORPRESA
+            if (generateMysteryBox && config.mysteryBox && config.mysteryBox.enabled && finalAmount >= config.mysteryBox.minAmount) {
+                const mbId = 'MBX-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+                const mbExpiresAt = new Date(now.getTime() + ((config.mysteryBox.chanceDeadlineMinutes || 60) * 60 * 1000));
+                const mbResendExpiresAt = new Date(now.getTime() + ((config.mysteryBox.resendDeadlineMinutes || 60) * 60 * 1000));
+                
+                tx.set(db.collection('mystery_box_chances').doc(mbId), {
+                    id: mbId,
+                    clientId: targetUid,
+                    clientName: result.guestData.name,
+                    clientDni: result.guestData.dni,
+                    clientPhone: result.guestData.phone,
+                    branchId: 'extension',
+                    cashierId: 'extension',
+                    amount: Number(finalAmount),
+                    status: 'pending',
+                    pointsWon: 0,
+                    expiresAt: admin.firestore.Timestamp.fromDate(mbExpiresAt),
+                    resendExpiresAt: admin.firestore.Timestamp.fromDate(mbResendExpiresAt),
+                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                    qrScanned: false
+                });
+                result.mysteryBoxGenerated = true;
+                result.mysteryBoxId = mbId;
+            }
         });
 
         // 5.5 ACTUALIZAR METADATA DE VENCIMIENTOS (Cache)

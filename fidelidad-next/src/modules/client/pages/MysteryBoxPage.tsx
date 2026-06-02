@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Gift, XCircle, CheckCircle2, Loader2, PartyPopper } from 'lucide-react';
-import { useAuth } from '../../../contexts/AuthContext';
+import { useClientAuth } from '../contexts/ClientAuthContext';
 import { MysteryBoxService, MysteryBoxChance } from '../../../services/mysteryBoxService';
 import { ConfigService } from '../../../services/configService';
 import { doc, getDoc, updateDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -11,7 +11,7 @@ import confetti from 'canvas-confetti';
 export const MysteryBoxPage = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const { user, login } = useAuth();
+    const { user } = useClientAuth();
     
     const [chance, setChance] = useState<MysteryBoxChance | null>(null);
     const [status, setStatus] = useState<'loading' | 'auth_required' | 'ready' | 'playing' | 'won' | 'rejected' | 'invalid'>('loading');

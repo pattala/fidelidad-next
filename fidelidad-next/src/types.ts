@@ -137,6 +137,14 @@ export interface AppConfig {
     useAutomaticPointValue?: boolean; // @deprecated: Migration to calculationMethod
     pointCalculationMethod?: 'manual' | 'average' | 'budget';
     pointValueBudget?: number; // Used for 'budget' method
+    masterCalculatorSettings?: {
+        baseCalculo: 'A' | 'B';
+        bolsaMensualPuntos: number;
+        facturacionEstimada?: number;
+        presupuestoEstimado?: number;
+        umbralMultiplicador?: number;
+        distribucionNiveles?: Array<{id: string, nombre: string, costo: number, pct: number}>;
+    };
 
     // Extended Branding
     sectionTitleColor?: string;
@@ -291,5 +299,7 @@ export interface Prize {
     imageUrl?: string;
     cashValue?: number; // Valor en pesos para reportes
     isInternal?: boolean;
+    requiresMinimumPurchase?: boolean;
+    minimumPurchaseAmount?: number;
     expirationDate?: string; // Fecha límite de canje (YYYY-MM-DD)
 }

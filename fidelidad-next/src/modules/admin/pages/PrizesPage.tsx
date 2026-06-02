@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Gift, Ticket, Edit, Package, X, Save, Image as ImageIcon, Shield, RefreshCw } from 'lucide-react';
+import { Plus, Trash2, Gift, Ticket, Edit, Package, X, Save, Image as ImageIcon, Shield, RefreshCw, ShoppingBag } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { PrizeService } from '../../../services/prizeService';
-import type { Prize } from '../../../types';
+import { ConfigService } from '../../../services/configService';
+import type { Prize, AppConfig } from '../../../types';
 import { TimeService } from '../../../services/timeService';
 
 import { useAdminAuth } from '../contexts/AdminAuthContext';
@@ -11,6 +12,7 @@ import { useAdminAuth } from '../contexts/AdminAuthContext';
 export const PrizesPage = () => {
     const { isReadOnly } = useAdminAuth();
     const [prizes, setPrizes] = useState<Prize[]>([]);
+    const [config, setConfig] = useState<AppConfig | null>(null);
     const [loading, setLoading] = useState(false);
     const [isUpdating, setIsUpdating] = useState(false);
 
@@ -37,6 +39,8 @@ export const PrizesPage = () => {
         imageUrl: '',
         cashValue: 0,
         isInternal: false,
+        requiresMinimumPurchase: false,
+        minimumPurchaseAmount: 0,
         expirationDate: ''
     };
     const [formData, setFormData] = useState(INITIAL_FORM);
@@ -59,6 +63,8 @@ export const PrizesPage = () => {
 
     useEffect(() => {
         fetchPrizes();
+        const unsubConfig = ConfigService.subscribe(setConfig);
+        return () => unsubConfig();
     }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -123,6 +129,8 @@ export const PrizesPage = () => {
             imageUrl: prize.imageUrl || '',
             cashValue: prize.cashValue || 0,
             isInternal: prize.isInternal || false,
+            requiresMinimumPurchase: prize.requiresMinimumPurchase || false,
+            minimumPurchaseAmount: prize.minimumPurchaseAmount || 0,
             expirationDate: prize.expirationDate || ''
         });
         setIsModalOpen(true);
@@ -163,6 +171,40 @@ export const PrizesPage = () => {
                 )}
             </div>
 
+            {/* WIDGET DE PRESUPUESTO */}
+            {(() => {
+                const bolsaMensual = config?.masterCalculatorSettings?.bolsaMensualPuntos || 0;
+                if (bolsaMensual <= 0) return null;
+                
+                const asignado = prizes.reduce((acc, p) => p.active ? acc + (p.pointsRequired * (p.stock || 0)) : acc, 0);
+                const porcentaje = Math.min((asignado / bolsaMensual) * 100, 100);
+                const estaPasado = asignado > bolsaMensual;
+
+                return (
+                    <div className={`p-5 rounded-2xl border ${estaPasado ? 'bg-red-50 border-red-200' : 'bg-white border-gray-100 shadow-sm'}`}>
+                        <div className="flex justify-between items-end mb-2">
+                            <div>
+                                <h3 className={`font-bold text-sm ${estaPasado ? 'text-red-800' : 'text-gray-500 uppercase tracking-wide text-xs'}`}>Presupuesto de Catálogo (Mensual)</h3>
+                                <p className={`text-2xl font-black mt-1 ${estaPasado ? 'text-red-600' : 'text-gray-800'}`}>
+                                    {asignado.toLocaleString('es-AR')} <span className="text-sm font-medium opacity-50">/ {bolsaMensual.toLocaleString('es-AR')} pts</span>
+                                </p>
+                            </div>
+                            {estaPasado && (
+                                <div className="bg-red-100 text-red-700 px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1">
+                                    ¡Límite excedido!
+                                </div>
+                            )}
+                        </div>
+                        <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden mt-3">
+                            <div 
+                                className={`h-full transition-all duration-1000 ${estaPasado ? 'bg-red-500' : 'bg-pink-500'}`} 
+                                style={{ width: `${porcentaje}%` }} 
+                            />
+                        </div>
+                    </div>
+                );
+            })()}
+
             {/* Tabla */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="overflow-x-auto">
@@ -190,12 +232,19 @@ export const PrizesPage = () => {
                                                     <Gift size={20} className="text-pink-200" />
                                                 )}
                                             </div>
-                                            <p className="font-bold text-gray-800">{prize.name}</p>
-                                            {prize.isInternal && (
-                                                <span className="bg-blue-100 text-blue-700 text-[10px] font-black px-2 py-0.5 rounded flex items-center gap-1 uppercase">
-                                                    <Shield size={10} /> Test
-                                                </span>
-                                            )}
+                                            <div className="flex flex-col">
+                                                <p className="font-bold text-gray-800">{prize.name}</p>
+                                                {prize.isInternal && (
+                                                    <span className="bg-blue-100 text-blue-700 text-[10px] font-black px-2 py-0.5 rounded flex items-center gap-1 uppercase mt-1 w-max">
+                                                        <Shield size={10} /> Test
+                                                    </span>
+                                                )}
+                                                {prize.requiresMinimumPurchase && (
+                                                    <span className="bg-orange-100 text-orange-700 text-[10px] font-black px-2 py-0.5 rounded flex items-center gap-1 uppercase mt-1 w-max">
+                                                        <ShoppingBag size={10} /> Compra Min: ${prize.minimumPurchaseAmount?.toLocaleString('es-AR')}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                     </td>
                                     <td className="p-4">
@@ -342,7 +391,15 @@ export const PrizesPage = () => {
                                         type="number"
                                         className="w-full pl-8 rounded-lg border-blue-200 border p-3 font-bold text-gray-700 outline-none focus:ring-2 focus:ring-blue-100 bg-blue-50/20"
                                         value={formData.cashValue || ''}
-                                        onChange={e => setFormData({ ...formData, cashValue: parseInt(e.target.value) || 0 })}
+                                        onChange={e => {
+                                            const newCashValue = parseInt(e.target.value) || 0;
+                                            let newMinPurchase = formData.minimumPurchaseAmount;
+                                            if (formData.requiresMinimumPurchase) {
+                                                const mult = config?.masterCalculatorSettings?.umbralMultiplicador || 7;
+                                                newMinPurchase = newCashValue * mult;
+                                            }
+                                            setFormData({ ...formData, cashValue: newCashValue, minimumPurchaseAmount: newMinPurchase });
+                                        }}
                                         placeholder="Ej: 5000"
                                     />
                                 </div>
@@ -379,18 +436,46 @@ export const PrizesPage = () => {
                                 <p className="text-[10px] text-gray-400 mt-1 ml-1">El premio dejará de ser visible después de esta fecha.</p>
                             </div>
 
-                            {/* Internal Toggle */}
-                            <div className="mt-4 flex items-center gap-3 p-4 bg-blue-50 rounded-2xl border border-blue-100 cursor-pointer" onClick={() => setFormData({ ...formData, isInternal: !formData.isInternal })}>
-                                <div className="flex-1">
-                                    <h4 className="text-sm font-bold text-blue-800 flex items-center gap-2">
-                                        <Shield size={16} /> Premio de Prueba
-                                    </h4>
-                                    <p className="text-[10px] text-blue-600 mt-0.5">
-                                        Sólo visible para usuarios con "Modo Test" activo.
-                                    </p>
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-xl border border-blue-100 cursor-pointer" onClick={() => setFormData({ ...formData, isInternal: !formData.isInternal })}>
+                                    <div className="flex-1">
+                                        <h4 className="text-sm font-bold text-blue-800">Premio Interno / Modo Test</h4>
+                                        <p className="text-[10px] text-blue-600">Visible solo para administradores y cajeros.</p>
+                                    </div>
+                                    <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${formData.isInternal ? 'bg-blue-600' : 'bg-gray-200'}`}>
+                                        <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${formData.isInternal ? 'translate-x-5' : 'translate-x-1'}`} />
+                                    </div>
                                 </div>
-                                <div className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.isInternal ? 'bg-blue-600' : 'bg-gray-200'}`}>
-                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.isInternal ? 'translate-x-6' : 'translate-x-1'}`} />
+                                
+                                <div className="flex flex-col gap-2 p-3 bg-orange-50 rounded-xl border border-orange-100">
+                                    <div className="flex items-center gap-3 cursor-pointer" onClick={() => {
+                                        const newToggled = !formData.requiresMinimumPurchase;
+                                        // Sugerencia basada en el UMBRAL MULTIPLICADOR (Solapa C de la Calculadora)
+                                        const mult = config?.masterCalculatorSettings?.umbralMultiplicador || 7;
+                                        const newVal = newToggled ? ((formData.cashValue || 0) * mult) : 0;
+                                        setFormData({ ...formData, requiresMinimumPurchase: newToggled, minimumPurchaseAmount: newVal });
+                                    }}>
+                                        <div className="flex-1">
+                                            <h4 className="text-sm font-bold text-orange-800">Requiere Compra Mínima</h4>
+                                            <p className="text-[10px] text-orange-600">Exige una compra mínima simultánea para poder canjearlo.</p>
+                                        </div>
+                                        <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${formData.requiresMinimumPurchase ? 'bg-orange-600' : 'bg-gray-200'}`}>
+                                            <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${formData.requiresMinimumPurchase ? 'translate-x-5' : 'translate-x-1'}`} />
+                                        </div>
+                                    </div>
+                                    {formData.requiresMinimumPurchase && (
+                                        <div className="mt-2 pl-2 border-l-2 border-orange-200 animate-fade-in">
+                                            <label className="text-xs font-bold text-orange-800 block mb-1">Monto Mínimo de Compra ($)</label>
+                                            <input
+                                                type="number"
+                                                required={formData.requiresMinimumPurchase}
+                                                value={formData.minimumPurchaseAmount || ''}
+                                                onChange={e => setFormData({ ...formData, minimumPurchaseAmount: Number(e.target.value) })}
+                                                className="w-full px-3 py-2 bg-white border border-orange-200 rounded-lg text-sm font-bold outline-none focus:border-orange-500"
+                                            />
+                                            <p className="text-[10px] text-orange-500 mt-1">En el catálogo se mostrará: "Para canje compra mínima de ${Number(formData.minimumPurchaseAmount).toLocaleString('es-AR')}"</p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 

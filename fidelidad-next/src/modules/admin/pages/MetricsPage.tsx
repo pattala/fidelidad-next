@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BarChart3, TrendingUp, Users, DollarSign, Award, Sparkles, Download, Clock, Calendar, RefreshCw, ShoppingBag, ArrowUpRight, ArrowDownRight, Eye, Settings, AlertTriangle } from 'lucide-react';
+import { BarChart3, TrendingUp, Users, DollarSign, Award, Sparkles, Download, Clock, Calendar, RefreshCw, ShoppingBag, ArrowUpRight, ArrowDownRight, Eye, Settings, AlertTriangle, Activity } from 'lucide-react';
 import { collection, query, where, getDocs, orderBy, limit, documentId, getCountFromServer, collectionGroup, Timestamp } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import {
@@ -457,23 +457,6 @@ export const MetricsPage = () => {
                     <button onClick={handleCSVExport} className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-100 font-bold hover:bg-emerald-100 transition shadow-sm">
                         <Download size={18} /> Exportar
                     </button>
-                    <div className="flex bg-white rounded-xl shadow-sm border border-gray-200 p-1">
-                        {[
-                            { id: 'today', label: 'Hoy' },
-                            { id: '30_days', label: '30 Días' },
-                            { id: '6_months', label: '6 Meses' },
-                            { id: 'total', label: 'Acumulado' },
-                            { id: 'custom', label: 'Personalizado' }
-                        ].map((range) => (
-                            <button
-                                key={range.id}
-                                onClick={() => setTimeRange(range.id as any)}
-                                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${timeRange === range.id ? 'bg-purple-100 text-purple-700' : 'text-gray-500 hover:bg-gray-50'}`}
-                            >
-                                {range.label}
-                            </button>
-                        ))}
-                    </div>
                 </div>
             </div>
 
@@ -483,95 +466,52 @@ export const MetricsPage = () => {
                 </div>
             ) : (
                 <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-blue-100 flex items-center justify-between" title="Suma total de puntos entregados a los clientes en el período seleccionado (incluye cargas manuales y automáticas).">
-                            <div>
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Puntos Emitidos</p>
-                                <p className="text-2xl font-black text-blue-600">{(totalStats?.emitted || 0).toLocaleString()}</p>
-                                <TrendIndicator current={totalStats?.emitted || 0} prev={prevTotalStats?.emitted || 0} />
-                            </div>
-                            <div className="p-3 bg-blue-50 text-blue-600 rounded-xl"><TrendingUp size={24} /></div>
+                    {/* BLOQUE 1: BALANCE HISTÓRICO (Stock - Intocable por filtro) */}
+                    <div className="mb-10">
+                        <div className="flex items-center gap-3 mb-6">
+                            <h2 className="text-2xl font-black text-gray-800 flex items-center gap-2"><Sparkles className="text-indigo-500" /> Balance Histórico</h2>
+                            <span className="text-[10px] font-black text-indigo-500 bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-full uppercase tracking-widest">Intocable por Filtro</span>
                         </div>
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-orange-100 flex items-center justify-between" title="Cantidad de puntos que los clientes han utilizado para canjear premios en este período.">
-                            <div>
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Puntos Canjeados</p>
-                                <p className="text-2xl font-black text-orange-600">{(totalStats?.redeemed || 0).toLocaleString()}</p>
-                                <TrendIndicator current={totalStats?.redeemed || 0} prev={prevTotalStats?.redeemed || 0} />
-                            </div>
-                            <div className="p-3 bg-orange-50 text-orange-600 rounded-xl"><Award size={24} /></div>
-                        </div>
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-emerald-100 flex items-center justify-between" title="Valor monetario estimado de los premios entregados. Se calcula multiplicando los puntos canjeados por el valor de canje configurado.">
-                            <div>
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Dinero en Premios</p>
-                                <p className="text-2xl font-black text-emerald-600">${Math.round(totalStats?.moneyRedeemed || 0).toLocaleString('es-AR')}</p>
-                                <TrendIndicator current={totalStats?.moneyRedeemed || 0} prev={prevTotalStats?.moneyRedeemed || 0} />
-                            </div>
-                            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl"><DollarSign size={24} /></div>
-                        </div>
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-red-100 flex items-center justify-between" title="Puntos que perdieron validez por no haber sido usados a tiempo durante este período.">
-                            <div>
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Puntos Vencidos</p>
-                                <p className="text-2xl font-black text-red-600">{(totalStats?.expired || 0).toLocaleString()}</p>
-                                <TrendIndicator current={totalStats?.expired || 0} prev={prevTotalStats?.expired || 0} isRed />
-                            </div>
-                            <div className="p-3 bg-red-50 text-red-600 rounded-xl"><TrendingUp size={24} className="rotate-180" /></div>
-                        </div>
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-indigo-100 flex items-center justify-between" title="Total de puntos que los clientes tienen actualmente en sus cuentas (el pasivo real del sistema).">
-                            <div>
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Puntos Circulando</p>
-                                <p className="text-2xl font-black text-indigo-600">{(advancedStats?.circulatingPoints || 0).toLocaleString()}</p>
-                                <p className="text-[10px] text-gray-400 mt-1 italic">Pasivo real descontando expirados</p>
-                            </div>
-                            <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl"><Sparkles size={24} /></div>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-                        {[
-                            { label: 'Transacciones', value: advancedStats.creditCount, prev: prevAdvancedStats.creditCount, icon: ShoppingBag, color: 'blue' },
-                            { label: 'Ticket Promedio', value: `$${Math.round(advancedStats?.averageTicket || 0).toLocaleString('es-AR')}`, prev: prevAdvancedStats?.averageTicket || 0, icon: DollarSign, color: 'emerald' },
-                            { label: 'Clientes Activos', value: advancedStats.activeCustomers, prev: prevAdvancedStats.activeCustomers, icon: Users, color: 'purple' },
-                            { label: 'Recaudación Est.', value: `$${Math.round((advancedStats?.averageTicket || 0) * (advancedStats?.creditCount || 0)).toLocaleString('es-AR')}`, prev: (prevAdvancedStats?.averageTicket || 0) * (prevAdvancedStats?.creditCount || 0), icon: TrendingUp, color: 'orange' }
-                        ].map((stat, i) => {
-                            const currentVal = typeof stat.value === 'number' ? stat.value : parseFloat(String(stat.value).replace('$', '').replace(/\./g, ''));
-                            const prevVal = stat.prev || 0;
-                            const diff = prevVal > 0 ? ((currentVal - prevVal) / prevVal) * 100 : 0;
-                            return (
-                                <div key={i} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm transition hover:shadow-md" title={
-                                    stat.label === 'Transacciones' ? 'Número total de ventas u operaciones registradas.' :
-                                    stat.label === 'Ticket Promedio' ? 'Monto promedio de dinero gastado por cada transacción.' :
-                                    stat.label === 'Clientes Activos' ? 'Cantidad de clientes distintos que realizaron al menos una operación en este período.' :
-                                    stat.label === 'Recaudación Est.' ? 'Suma total de dinero ingresado por ventas registradas.' : ''
-                                }>
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <div className={`p-2 bg-${stat.color}-50 text-${stat.color}-600 rounded-lg`}><stat.icon size={20} /></div>
-                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{stat.label}</span>
-                                    </div>
-                                    <div className="flex items-end justify-between">
-                                        <div className="text-2xl font-black text-gray-800">{stat.value}</div>
-                                        {prevVal > 0 && (
-                                            <div className={`text-[10px] font-black px-2 py-1 rounded-lg flex items-center gap-1 ${diff >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
-                                                {diff >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                                                {Math.abs(Math.round(diff))}%
-                                            </div>
-                                        )}
-                                    </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="bg-white p-6 rounded-3xl shadow-sm border border-indigo-100 flex items-center justify-between" title="Total de puntos que los clientes tienen actualmente en sus cuentas (el pasivo real del sistema).">
+                                <div>
+                                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Puntos Circulando</p>
+                                    <p className="text-4xl font-black text-indigo-600">{(advancedStats?.circulatingPoints || 0).toLocaleString()}</p>
+                                    <p className="text-[10px] text-gray-400 mt-1 italic font-bold">Pasivo real descontando expirados</p>
                                 </div>
-                            );
-                        })}
+                                <div className="p-4 bg-indigo-50 text-indigo-600 rounded-2xl"><Sparkles size={32} /></div>
+                            </div>
+                            <div className="bg-white p-6 rounded-3xl shadow-sm border border-blue-100 flex items-center justify-between" title="Equivalente en dinero si todos los clientes canjearan sus puntos hoy al valor actual.">
+                                <div>
+                                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Deuda Potencial ($)</p>
+                                    <p className="text-4xl font-black text-blue-600">${Math.round(advancedStats?.potentialRevenue || 0).toLocaleString('es-AR')}</p>
+                                    <p className="text-[10px] text-gray-400 mt-1 italic font-bold">Circulando x ${config?.pointValue || 10}</p>
+                                </div>
+                                <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl"><DollarSign size={32} /></div>
+                            </div>
+                            <div className="bg-white p-6 rounded-3xl shadow-sm border border-orange-100 flex items-center justify-between">
+                                <div>
+                                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Pronóstico (CashFlow 30D)</p>
+                                    <p className="text-4xl font-black text-orange-600">{(advancedStats?.projectedExpirations || 0).toLocaleString()}</p>
+                                    <p className="text-[10px] text-red-500 mt-1 font-black uppercase">Puntos próximos a vencer</p>
+                                </div>
+                                <div className="p-4 bg-orange-50 text-orange-600 rounded-2xl"><Clock size={32} /></div>
+                            </div>
+                        </div>
                     </div>
 
+                    {/* BLOQUE DETALLADO DEL PRONÓSTICO (Cash Flow) */}
                     {forecastData && (
-                        <div className="bg-white p-6 rounded-3xl shadow-sm border border-orange-100 mb-8 mt-4 relative overflow-hidden group">
+                        <div className="bg-white p-6 rounded-3xl shadow-sm border border-orange-100 mb-10 relative overflow-hidden group">
                             <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                                 <Clock size={80} className="text-orange-500" />
                             </div>
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
                                 <div className="flex-1">
                                     <h3 className="font-black text-xl text-gray-800 flex items-center gap-2 mb-1">
-                                        <Clock className="text-orange-500" size={24} /> Pronóstico de Vencimientos (Cash Flow)
+                                        <Clock className="text-orange-500" size={24} /> Desglose del Cash Flow
                                     </h3>
-                                    <p className="text-sm text-gray-500 font-medium">Impacto estimado en el pasivo de puntos por periodos fijos.</p>
+                                    <p className="text-sm text-gray-500 font-medium">Proyección detallada del impacto económico de los próximos vencimientos.</p>
                                 </div>
                                 <div className="flex flex-wrap gap-8 items-center">
                                     {(forecastData.intervals || []).filter((i: any) => i.key !== 'future').map((interval: any) => (
@@ -596,6 +536,101 @@ export const MetricsPage = () => {
                             </div>
                         </div>
                     )}
+
+                    {/* SEPARADOR Y FILTRO DE TIEMPO */}
+                    <div className="mb-10 flex flex-col items-center relative z-20">
+                        <div className="absolute left-0 right-0 top-1/2 border-t border-gray-200 -z-10"></div>
+                        <div className="bg-white p-1.5 rounded-2xl shadow-md border border-purple-100 inline-flex">
+                            {[
+                                { id: 'today', label: 'Hoy' },
+                                { id: '30_days', label: '30 Días' },
+                                { id: '6_months', label: '6 Meses' },
+                                { id: 'total', label: 'Acumulado' },
+                                { id: 'custom', label: 'Personalizado' }
+                            ].map((range) => (
+                                <button
+                                    key={range.id}
+                                    onClick={() => setTimeRange(range.id as any)}
+                                    className={`px-6 py-2.5 rounded-xl text-sm font-black transition-all ${timeRange === range.id ? 'bg-purple-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}
+                                >
+                                    {range.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* BLOQUE 2: FLUJO DEL PERÍODO (P&L - Afectado por filtro) */}
+                    <div className="mb-12">
+                        <div className="flex items-center gap-3 mb-6">
+                            <h2 className="text-2xl font-black text-gray-800 flex items-center gap-2"><Activity className="text-purple-500" /> Flujo del Período</h2>
+                            <span className="text-[10px] font-black text-white bg-purple-500 px-3 py-1 rounded-full uppercase tracking-widest">Afectado por Filtro</span>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                            <div className="bg-white p-5 rounded-2xl shadow-sm border border-blue-100 flex items-center justify-between">
+                                <div>
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Puntos Emitidos</p>
+                                    <p className="text-2xl font-black text-blue-600">{(totalStats?.emitted || 0).toLocaleString()}</p>
+                                    <TrendIndicator current={totalStats?.emitted || 0} prev={prevTotalStats?.emitted || 0} />
+                                </div>
+                                <div className="p-3 bg-blue-50 text-blue-600 rounded-xl"><TrendingUp size={24} /></div>
+                            </div>
+                            <div className="bg-white p-5 rounded-2xl shadow-sm border border-emerald-100 flex items-center justify-between">
+                                <div>
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Dinero en Premios</p>
+                                    <p className="text-2xl font-black text-emerald-600">${Math.round(totalStats?.moneyRedeemed || 0).toLocaleString('es-AR')}</p>
+                                    <TrendIndicator current={totalStats?.moneyRedeemed || 0} prev={prevTotalStats?.moneyRedeemed || 0} />
+                                </div>
+                                <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl"><DollarSign size={24} /></div>
+                            </div>
+                            <div className="bg-white p-5 rounded-2xl shadow-sm border border-orange-100 flex items-center justify-between">
+                                <div>
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Puntos Canjeados</p>
+                                    <p className="text-2xl font-black text-orange-600">{(totalStats?.redeemed || 0).toLocaleString()}</p>
+                                    <TrendIndicator current={totalStats?.redeemed || 0} prev={prevTotalStats?.redeemed || 0} />
+                                </div>
+                                <div className="p-3 bg-orange-50 text-orange-600 rounded-xl"><Award size={24} /></div>
+                            </div>
+                            <div className="bg-white p-5 rounded-2xl shadow-sm border border-red-100 flex items-center justify-between">
+                                <div>
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Puntos Vencidos</p>
+                                    <p className="text-2xl font-black text-red-600">{(totalStats?.expired || 0).toLocaleString()}</p>
+                                    <TrendIndicator current={totalStats?.expired || 0} prev={prevTotalStats?.expired || 0} isRed />
+                                </div>
+                                <div className="p-3 bg-red-50 text-red-600 rounded-xl"><TrendingUp size={24} className="rotate-180" /></div>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            {[
+                                { label: 'Transacciones', value: advancedStats.creditCount, prev: prevAdvancedStats.creditCount, icon: ShoppingBag, color: 'blue' },
+                                { label: 'Ticket Promedio', value: `$${Math.round(advancedStats?.averageTicket || 0).toLocaleString('es-AR')}`, prev: prevAdvancedStats?.averageTicket || 0, icon: DollarSign, color: 'emerald' },
+                                { label: 'Clientes Activos', value: advancedStats.activeCustomers, prev: prevAdvancedStats.activeCustomers, icon: Users, color: 'purple' },
+                                { label: 'Recaudación Est.', value: `$${Math.round((advancedStats?.averageTicket || 0) * (advancedStats?.creditCount || 0)).toLocaleString('es-AR')}`, prev: (prevAdvancedStats?.averageTicket || 0) * (prevAdvancedStats?.creditCount || 0), icon: TrendingUp, color: 'orange' }
+                            ].map((stat, i) => {
+                                const currentVal = typeof stat.value === 'number' ? stat.value : parseFloat(String(stat.value).replace('$', '').replace(/\./g, ''));
+                                const prevVal = stat.prev || 0;
+                                const diff = prevVal > 0 ? ((currentVal - prevVal) / prevVal) * 100 : 0;
+                                return (
+                                    <div key={i} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm transition hover:shadow-md">
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <div className={`p-2 bg-${stat.color}-50 text-${stat.color}-600 rounded-lg`}><stat.icon size={18} /></div>
+                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{stat.label}</span>
+                                        </div>
+                                        <div className="flex items-end justify-between">
+                                            <div className="text-xl font-black text-gray-800">{stat.value}</div>
+                                            {prevVal > 0 && (
+                                                <div className={`text-[10px] font-black px-2 py-1 rounded-lg flex items-center gap-1 ${diff >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+                                                    {diff >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                                                    {Math.abs(Math.round(diff))}%
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
 
                     <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
                         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
@@ -669,6 +704,23 @@ export const MetricsPage = () => {
                                     </LineChart>
                                 </ResponsiveContainer>
                             </div>
+                            {/* Totalizadores de Puntos */}
+                            <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between gap-4">
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Emitido</span>
+                                    <span className="text-lg font-black text-blue-600">{(totalStats?.emitted || 0).toLocaleString()}</span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Canjeado</span>
+                                    <span className="text-lg font-black text-orange-600">{(totalStats?.redeemed || 0).toLocaleString()}</span>
+                                </div>
+                                <div className="flex flex-col text-right">
+                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Balance Neto</span>
+                                    <span className={`text-lg font-black ${((totalStats?.emitted || 0) - (totalStats?.redeemed || 0)) >= 0 ? 'text-indigo-600' : 'text-red-500'}`}>
+                                        {(((totalStats?.emitted || 0) - (totalStats?.redeemed || 0)) > 0 ? '+' : '')}{((totalStats?.emitted || 0) - (totalStats?.redeemed || 0)).toLocaleString()}
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 min-w-0">
                             <h3 className="text-lg font-bold text-gray-700 mb-6 flex items-center gap-2"><DollarSign size={20} className="text-green-500" /> Dinero Devuelto (Estimado)</h3>
@@ -683,6 +735,11 @@ export const MetricsPage = () => {
                                         <Bar dataKey="money" name="Dinero ($)" fill="#22c55e" radius={[4, 4, 0, 0]} barSize={40} />
                                     </BarChart>
                                 </ResponsiveContainer>
+                            </div>
+                            {/* Totalizador de Dinero Devuelto */}
+                            <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
+                                <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Total del Período</span>
+                                <span className="text-xl font-black text-green-600">${Math.round(totalStats?.moneyRedeemed || 0).toLocaleString('es-AR')}</span>
                             </div>
                         </div>
                     </div>

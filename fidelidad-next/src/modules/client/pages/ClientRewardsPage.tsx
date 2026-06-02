@@ -154,6 +154,11 @@ export const ClientRewardsPage = () => {
                                                 <Clock size={12} /> Canjeá hasta: {TimeService.formatDisplayDate(prize.expirationDate)}
                                             </span>
                                         )}
+                                        {prize.requiresMinimumPurchase && (
+                                            <span className="bg-orange-50 text-orange-700 text-[10px] font-black px-3 py-1 rounded-full border border-orange-200 flex items-center gap-1.5 uppercase tracking-tighter">
+                                                <Search size={12} /> Compra Min. para Canje: ${prize.minimumPurchaseAmount?.toLocaleString('es-AR')}
+                                            </span>
+                                        )}
                                     </div>
 
                                     <div className="mt-auto">

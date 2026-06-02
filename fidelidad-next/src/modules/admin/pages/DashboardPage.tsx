@@ -13,6 +13,7 @@ export const DashboardPage = () => {
         usersCount: 0,
         totalPoints: 0,
         todayPointsEmitted: 0,
+        monthPointsEmitted: 0,
         redeemedPoints: 0,
         redeemedMoney: 0,
         totalMoneyGenerated: 0,
@@ -80,8 +81,10 @@ export const DashboardPage = () => {
         const startOfToday = new Date(TimeService.now());
         startOfToday.setHours(0, 0, 0, 0);
 
+        const startOfMonth = new Date(startOfToday.getFullYear(), startOfToday.getMonth(), 1);
+
         const unsubCredits = onSnapshot(query(collectionGroup(db, 'points_history'), where('type', '==', 'credit')), (snap) => {
-            let tmg = 0, dmg = 0, dpe = 0, rc = 0;
+            let tmg = 0, dmg = 0, dpe = 0, mpe = 0, rc = 0;
             snap.forEach(d => {
                 const data = d.data();
                 tmg += (data.moneySpent || 0);
@@ -91,8 +94,11 @@ export const DashboardPage = () => {
                     dmg += (data.moneySpent || 0);
                     dpe += (data.amount || 0);
                 }
+                if (date >= startOfMonth) {
+                    mpe += (data.amount || 0);
+                }
             });
-            setStats(prev => ({ ...prev, totalMoneyGenerated: tmg, todayMoneyGenerated: dmg, todayPointsEmitted: dpe, referralCount: rc }));
+            setStats(prev => ({ ...prev, totalMoneyGenerated: tmg, todayMoneyGenerated: dmg, todayPointsEmitted: dpe, monthPointsEmitted: mpe, referralCount: rc }));
         });
 
         const unsubPrizes = onSnapshot(query(collection(db, 'prizes'), where('active', '==', true)), (snap) => {
@@ -202,6 +208,55 @@ export const DashboardPage = () => {
                     )}
                 </div>
             </div>
+
+            {/* WIDGET DE PRESUPUESTO MENSUAL */}
+            {config?.masterCalculatorSettings?.bolsaMensualPuntos && config.masterCalculatorSettings.bolsaMensualPuntos > 0 && (
+                <div className="mb-6 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden">
+                    {/* Fondo decorativo */}
+                    <div className="absolute -right-10 -top-10 w-40 h-40 bg-pink-50 rounded-full opacity-50 blur-2xl pointer-events-none" />
+                    
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-4 relative z-10">
+                        <div>
+                            <h3 className="text-gray-500 font-medium mb-1 flex items-center gap-2">
+                                <AlertTriangle size={16} className={stats.monthPointsEmitted > config.masterCalculatorSettings.bolsaMensualPuntos ? "text-red-500" : "text-gray-400"} /> 
+                                Presupuesto Mensual de Puntos
+                            </h3>
+                            <div className="flex items-baseline gap-2">
+                                <p className={`text-4xl font-black ${stats.monthPointsEmitted > config.masterCalculatorSettings.bolsaMensualPuntos ? 'text-red-600' : 'text-gray-900'}`}>
+                                    {stats.monthPointsEmitted.toLocaleString('es-AR')}
+                                </p>
+                                <p className="text-gray-400 font-medium">/ {config.masterCalculatorSettings.bolsaMensualPuntos.toLocaleString('es-AR')} emitidos este mes</p>
+                            </div>
+                        </div>
+                        {stats.monthPointsEmitted > config.masterCalculatorSettings.bolsaMensualPuntos ? (
+                            <div className="flex flex-col items-end mt-4 md:mt-0">
+                                <div className="bg-red-50 text-red-700 px-4 py-2 rounded-xl text-sm font-bold animate-pulse">
+                                    ¡Límite superado!
+                                </div>
+                                <span className="text-red-500 font-black text-sm mt-1">
+                                    Balance: -{(stats.monthPointsEmitted - config.masterCalculatorSettings.bolsaMensualPuntos).toLocaleString('es-AR')} pts
+                                </span>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-end mt-4 md:mt-0">
+                                <div className="bg-emerald-50 text-emerald-700 px-4 py-2 rounded-xl text-sm font-bold">
+                                    Presupuesto Saludable
+                                </div>
+                                <span className="text-emerald-600 font-black text-sm mt-1">
+                                    Balance: +{(config.masterCalculatorSettings.bolsaMensualPuntos - stats.monthPointsEmitted).toLocaleString('es-AR')} pts disponibles
+                                </span>
+                            </div>
+                        )}
+                    </div>
+                    
+                    <div className="h-3 w-full bg-gray-100 rounded-full overflow-hidden relative z-10">
+                        <div 
+                            className={`h-full transition-all duration-1000 rounded-full ${stats.monthPointsEmitted > config.masterCalculatorSettings.bolsaMensualPuntos ? 'bg-red-500' : 'bg-pink-500'}`} 
+                            style={{ width: `${Math.min((stats.monthPointsEmitted / config.masterCalculatorSettings.bolsaMensualPuntos) * 100, 100)}%` }} 
+                        />
+                    </div>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">

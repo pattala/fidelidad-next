@@ -1056,13 +1056,18 @@ function showFidelidadPanel() {
                         // Si es 1 sola mascota, mostrar fecha en el label principal
                         if (clientPets.length === 1) {
                             const pet = clientPets[0];
-                            const lastDate = pet.lastFoodAlertDate;
-                            const cycle = Number(pet.foodCycleDays) || 30;
+                            const rawLastDate = pet.lastPurchaseDate;
+                            const cycle = Number(pet.frequencyDays) || 30;
                             let dateText = "";
-                            if (lastDate) {
-                                const date = new Date(lastDate + 'T12:00:00');
-                                date.setDate(date.getDate() + cycle);
-                                dateText = ` (vence ${date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })})`;
+                            if (rawLastDate) {
+                                let parsedDate = null;
+                                if (typeof rawLastDate === 'object' && rawLastDate._seconds) {
+                                    parsedDate = new Date(rawLastDate._seconds * 1000);
+                                } else {
+                                    parsedDate = new Date(rawLastDate + 'T12:00:00');
+                                }
+                                parsedDate.setDate(parsedDate.getDate() + cycle);
+                                dateText = ` (vence ${parsedDate.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })})`;
                             }
                             if (petLabel) petLabel.innerHTML = `<input type="checkbox" id="cf-pet-food-check"> \u{1F43E} Reposición ${pet.name || 'Alimento'}${dateText}`;
                             if (petListDiv) petListDiv.style.display = 'none';

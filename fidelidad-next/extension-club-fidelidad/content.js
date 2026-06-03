@@ -1,8 +1,8 @@
-// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V50 - RESCUE STABLE)
+// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V51 - RESCUE STABLE)
 if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin') || window.location.href.includes('pattala.com')) {
     console.log("🛡️ [Club Fidelidad] Extensión desactivada en el Dashboard.");
 } else {
-    console.log("🚀 [Club Fidelidad] V50: Iniciando extensión.");
+    console.log("🚀 [Club Fidelidad] V51: Iniciando extensión.");
 
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;
@@ -279,12 +279,17 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                     <button id="tab-pending" style="flex:1; padding:8px; border:none; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; ${activeTab === 'pending' ? 'background:rgba(255,255,255,0.15); color:white;' : 'background:none; color:rgba(255,255,255,0.4);'}">
                         PENDIENTES (${totalPending})
                     </button>
+                    <button id="tab-sorteos" style="flex:1; padding:8px; border:none; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; ${activeTab === 'sorteos' ? 'background:rgba(234,88,12,0.2); color:#fdba74; border: 1px solid rgba(234,88,12,0.3);' : 'background:none; color:rgba(255,255,255,0.4);'}">
+                        SORTEOS (${fullData.mysteryBoxes ? fullData.mysteryBoxes.length : 0})
+                    </button>
                     <button id="tab-processed" style="flex:1; padding:8px; border:none; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; ${activeTab === 'processed' ? 'background:rgba(255,255,255,0.15); color:white;' : 'background:none; color:rgba(255,255,255,0.4);'}">
                         PROCESADOS
                     </button>
                 </div>
                 <div style="padding:16px; overflow-y:auto; flex:1;" class="cf-scrollbar">
-                    ${activeTab === 'pending' ? renderList(pendingB, pendingE, pendingP, pendingR, pendingA, (fullData.campaigns?.list || []).filter(c => getStatus(c.alertId) === 'pending'), 'pending', curY, fullData) : renderList(procB, procE, procP, procR, procA, (fullData.campaigns?.list || []).filter(c => getStatus(c.alertId) !== 'pending'), 'processed', curY, fullData)}
+                    ${activeTab === 'sorteos' 
+                        ? renderMysteryBoxes(fullData.mysteryBoxes || []) 
+                        : activeTab === 'pending' ? renderList(pendingB, pendingE, pendingP, pendingR, pendingA, (fullData.campaigns?.list || []).filter(c => getStatus(c.alertId) === 'pending'), 'pending', curY, fullData) : renderList(procB, procE, procP, procR, procA, (fullData.campaigns?.list || []).filter(c => getStatus(c.alertId) !== 'pending'), 'processed', curY, fullData)}
                 </div>
             `;
             ui.querySelector('#cf-v35-drag').onmousedown = (e) => {
@@ -294,6 +299,7 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
             ui.querySelector('#cf-v35-close').onclick = () => { isExpanded = false; render(); };
             ui.querySelector('#tab-pending').onclick = () => { activeTab = 'pending'; render(); };
             ui.querySelector('#tab-processed').onclick = () => { activeTab = 'processed'; render(); };
+            ui.querySelector('#tab-sorteos').onclick = () => { activeTab = 'sorteos'; render(); };
             attachActions(ui, fullData, render);
         } else {
             ui.className = 'cf-v35-bubble';

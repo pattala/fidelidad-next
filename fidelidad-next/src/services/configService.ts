@@ -206,5 +206,6 @@ export const DEFAULT_TEMPLATES = {
     referralPoints: "🎉 ¡Buenas noticias! Ganaste {puntos} puntos porque {nombre_referido} se unió a {siteName}. ¡Gracias por recomendarnos! 🚀",
     expirationWarning: "¡Hola {nombre}! ⏰ Tenés {puntos} puntos para gastar antes del {fecha}. ¡Canjealos hoy por un premio antes de que se venzan! 🎁🏃",
     referralChallenge: "¡NUEVO DESAFÍO ACTIVO! 🎯 Traé amigos a {siteName} y ganá bonos extra de puntos por tiempo limitado. ¡Entrá ahora para participar! 🚀",
-    petFoodAlert: "¡Hola {nombre}! 🐾 A {mascota} le queda poco alimento {marca}. ¡Vení a buscar su bolsa y seguí sumando puntos! 🐶🛒"
+    petFoodAlert: "¡Hola {nombre}! 🐾 A {mascota} le queda poco alimento {marca}. ¡Vení a buscar su bolsa y seguí sumando puntos! 🐶🛒",
+    petLitterAlert: "¡Hola {nombre}! 🐾 Notamos que a {mascota} se le deben estar terminando sus piedras sanitarias. ¡Te esperamos para reponerlas! 💨"
 };

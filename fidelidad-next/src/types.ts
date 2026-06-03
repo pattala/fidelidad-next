@@ -189,6 +189,7 @@ export interface AppConfig {
             referralPoints?: { channels: MessagingChannel[] };
             expirationWarning?: { channels: MessagingChannel[] };
             petFoodAlert?: { channels: MessagingChannel[] };
+            petLitterAlert?: { channels: MessagingChannel[] };
         };
 
         templates?: {
@@ -206,6 +207,7 @@ export interface AppConfig {
             referralReward?: string;
             referralPoints?: string;
             petFoodAlert?: string;
+            petLitterAlert?: string;
             // Títulos para Email/Push (asunto del email / título del push)
             pointsAdded_title?: string;
             redemption_title?: string;
@@ -219,6 +221,7 @@ export interface AppConfig {
             referralReward_title?: string;
             referralPoints_title?: string;
             petFoodAlert_title?: string;
+            petLitterAlert_title?: string;
             // Cuerpo específico de WhatsApp (si difiere del cuerpo principal)
             pointsAdded_whatsapp?: string;
             redemption_whatsapp?: string;
@@ -232,6 +235,7 @@ export interface AppConfig {
             referralReward_whatsapp?: string;
             referralPoints_whatsapp?: string;
             petFoodAlert_whatsapp?: string;
+            petLitterAlert_whatsapp?: string;
         };
         enableExpirationWarnings?: boolean;
         repeatExpirationWarnings?: boolean;

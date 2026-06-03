@@ -499,7 +499,7 @@ export const GlobalAlerts = () => {
                     const balance = item.balanceAfter || item.balance || 'N/A';
                     msg = `¡Hola ${firstName}! 💰 Sumaste ${item.points} puntos. Tu saldo actual es ${balance}.`;
                 } else if (item.alertType === 'litter') {
-                    const tpl = '¡Hola {nombre}! 🐾 Notamos que a {mascota} se le deben estar terminando sus piedras sanitarias.';
+                    const tpl = config.messaging?.templates?.whatsappPetLitter || config.messaging?.templates?.petLitterAlert_whatsapp || config.messaging?.templates?.petLitterAlert || '¡Hola {nombre}! 🐾 Notamos que a {mascota} se le deben estar terminando sus piedras sanitarias. ¡Te esperamos para reponerlas! 💨';
                     msg = tpl.replace(/{nombre}/g, firstName).replace(/{mascota}/g, item.petName || '');
                     
                     if (item.id && item.pets) {

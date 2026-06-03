@@ -155,7 +155,28 @@ export default async function handler(req, res) {
                 triggerSource,
                 simulated: !!simulatedDateStr
             });
-            return res.status(200).json({ ok: true, skipped: true, reason });
+            const mysteryBoxesList = [];
+        try {
+            const mbSnapshot = await db.collection('mystery_box_chances').where('status', '==', 'pending').get();
+            mbSnapshot.docs.forEach(doc => {
+                const data = doc.data();
+                mysteryBoxesList.push({
+                    id: doc.id,
+                    alertId: 'mb_' + doc.id,
+                    userId: data.userId,
+                    userName: data.userName || 'Socio',
+                    socioNumber: data.socioNumber || '',
+                    phone: data.phone || '',
+                    amount: data.amount || 0,
+                    createdAt: data.createdAt,
+                    expiresAt: data.expiresAt,
+                    status: data.status || 'pending',
+                    type: 'mysteryBox'
+                });
+            });
+        } catch (e) { console.error("Error reconstructing mysteryBoxesList:", e); }
+
+        return res.status(200).json({ ok: true, skipped: true, reason });
         }
 
         // Restaurar variables de estado necesarias para el resto del motor
@@ -1032,6 +1053,7 @@ export default async function handler(req, res) {
             birthdays: birthdaysList,
             expirations: expirationsList,
             petAlerts: petAlertsList,
+            mysteryBoxes: mysteryBoxesList,
             redemptions: redemptionsList,
             pointsAssignments: pointsAssignmentsList,
             campaigns: campaignsList,

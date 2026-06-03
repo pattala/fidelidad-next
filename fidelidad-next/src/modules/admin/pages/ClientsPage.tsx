@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Users, Search, Plus, Filter, Mail, Phone, MapPin, Trash2, Edit, X, Download, Gift, ArrowRight, History, Calendar, Star, CheckCircle2, AlertCircle, Camera, User, Zap, MessageCircle, Eye, Clock, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -124,6 +124,7 @@ export const ClientsPage = () => {
     const [selectedPetsForFood, setSelectedPetsForFood] = useState<string[]>([]);
     const [isPetLitterPurchase, setIsPetLitterPurchase] = useState(false);
     const [selectedPetsForLitter, setSelectedPetsForLitter] = useState<string[]>([]);
+    const [generateMysteryBox, setGenerateMysteryBox] = useState(true);
 
     // Toggles Alta Cliente
     const [applyWelcomeBonus, setApplyWelcomeBonus] = useState(true);
@@ -639,7 +640,8 @@ export const ClientsPage = () => {
                     isPetFood: isPetFoodPurchase,
                     petIds: isPetFoodPurchase ? selectedPetsForFood : [],
                     isPetLitter: isPetLitterPurchase,
-                    petLitterIds: isPetLitterPurchase ? selectedPetsForLitter : []
+                    petLitterIds: isPetLitterPurchase ? selectedPetsForLitter : [],
+                    generateMysteryBox: generateMysteryBox
                 })
             });
             const data = await res.json();
@@ -1844,7 +1846,7 @@ export const ClientsPage = () => {
                                                 type="button"
                                                 onClick={() => setFormData({ 
                                                     ...formData, 
-                                                    pets: [...formData.pets, { id: Math.random().toString(36).substr(2, 9), name: '', type: 'perro', breed: '', age: '', foodBrand: '', receiveAlerts: true, createdAt: new Date() }] 
+                                                    pets: [...formData.pets, { id: Math.random().toString(36).substr(2, 9), name: '', type: 'perro', breed: '', age: '', foodBrand: '', receiveAlerts: true, frequencyDays: 30, litterFrequencyDays: 15, createdAt: new Date() }] 
                                                 })}
                                                 className="w-full py-3 border-2 border-dashed border-orange-200 rounded-2xl text-orange-600 font-bold text-sm hover:bg-orange-50 hover:border-orange-300 transition-all flex items-center justify-center gap-2"
                                             >
@@ -2146,43 +2148,115 @@ export const ClientsPage = () => {
                                         <span className="text-sm font-medium text-gray-700">Notificar por WhatsApp</span>
                                     </label>
 
-                                    {/* SECCION PETSHOP: Marcar compra de alimento */}
+                                    
+                                    {/* SECCION PETSHOP: Listado de mascotas estilo Extension */}
                                     {config?.enablePetModule && selectedClientForPoints.pets && selectedClientForPoints.pets.length > 0 && (
-                                        <div className="mt-4 pt-4 border-t border-gray-100">
-                                            <label className="flex items-center gap-3 cursor-pointer mb-2">
-                                                <input
-                                                    type="checkbox"
-                                                    className="w-5 h-5 rounded border-orange-300 text-orange-600 focus:ring-orange-500"
-                                                    checked={isPetFoodPurchase}
-                                                    onChange={e => {
-                                                        setIsPetFoodPurchase(e.target.checked);
-                                                        if (e.target.checked) setSelectedPetsForFood(selectedClientForPoints.pets!.map(p => p.id));
-                                                    }}
-                                                />
-                                                <span className="text-sm font-bold text-orange-700">Reposición de Alimento 🐾</span>
-                                            </label>
-                                            
-                                            {isPetFoodPurchase && selectedClientForPoints.pets.length > 1 && (
-                                                <div className="flex flex-wrap gap-2 pl-8 animate-fade-in">
-                                                    {selectedClientForPoints.pets.map(pet => (
-                                                        <label key={pet.id} className="flex items-center gap-1.5 cursor-pointer bg-white border border-orange-100 px-2 py-1 rounded-lg">
-                                                            <input
-                                                                type="checkbox"
-                                                                className="w-3.5 h-3.5 rounded text-orange-500 focus:ring-orange-400"
+                                        <div className="mt-4 pt-4 border-t border-gray-100 flex flex-col gap-1.5">
+                                            {selectedClientForPoints.pets.map(pet => {
+                                                // Calcular fecha de vencimiento Alimento
+                                                let foodDiffDays = 0;
+                                                let foodFormatted = '';
+                                                let hasFoodDate = false;
+                                                if (pet.lastPurchaseDate) {
+                                                    const raw = pet.lastPurchaseDate;
+                                                    let parsedDate = raw._seconds ? new Date(raw._seconds * 1000) : new Date(raw + 'T12:00:00');
+                                                    parsedDate.setDate(parsedDate.getDate() + (Number(pet.frequencyDays) || 30));
+                                                    
+                                                    const today = new Date();
+                                                    today.setHours(0,0,0,0);
+                                                    foodDiffDays = Math.floor((today.getTime() - parsedDate.getTime()) / (1000 * 60 * 60 * 24));
+                                                    foodFormatted = parsedDate.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' });
+                                                    hasFoodDate = true;
+                                                }
+
+                                                // Calcular fecha de vencimiento Piedras (solo gatos)
+                                                let litterDiffDays = 0;
+                                                let litterFormatted = '';
+                                                let hasLitterDate = false;
+                                                const isCat = (pet.type || '').toLowerCase().trim() === 'gato';
+                                                if (isCat && pet.lastLitterPurchaseDate) {
+                                                    const raw = pet.lastLitterPurchaseDate;
+                                                    let parsedDate = raw._seconds ? new Date(raw._seconds * 1000) : new Date(raw + 'T12:00:00');
+                                                    parsedDate.setDate(parsedDate.getDate() + (Number(pet.litterFrequencyDays) || 15));
+                                                    
+                                                    const today = new Date();
+                                                    today.setHours(0,0,0,0);
+                                                    litterDiffDays = Math.floor((today.getTime() - parsedDate.getTime()) / (1000 * 60 * 60 * 24));
+                                                    litterFormatted = parsedDate.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' });
+                                                    hasLitterDate = true;
+                                                }
+
+                                                return (
+                                                    <div key={pet.id} className="flex flex-col gap-1.5">
+                                                        {/* Fila Alimento */}
+                                                        <label className="flex items-center gap-2 bg-orange-50 border border-orange-200 px-3 py-2 rounded-xl cursor-pointer text-sm font-bold text-orange-800">
+                                                            <input 
+                                                                type="checkbox" 
+                                                                className="w-4 h-4 rounded text-orange-600 focus:ring-orange-500 bg-white"
                                                                 checked={selectedPetsForFood.includes(pet.id)}
                                                                 onChange={e => {
-                                                                    if (e.target.checked) setSelectedPetsForFood([...selectedPetsForFood, pet.id]);
-                                                                    else setSelectedPetsForFood(selectedPetsForFood.filter(id => id !== pet.id));
+                                                                    const newSelection = e.target.checked 
+                                                                        ? [...selectedPetsForFood, pet.id] 
+                                                                        : selectedPetsForFood.filter(id => id !== pet.id);
+                                                                    setSelectedPetsForFood(newSelection);
+                                                                    setIsPetFoodPurchase(newSelection.length > 0);
                                                                 }}
                                                             />
-                                                            <span className="text-[10px] font-bold text-gray-600 uppercase">{pet.name}</span>
+                                                            🐾 Alimento {pet.name || ''}
+                                                            {hasFoodDate && (
+                                                                foodDiffDays > 0 
+                                                                    ? <span className="text-red-600 font-black ml-1">(venció el {foodFormatted} - hace {foodDiffDays} días)</span>
+                                                                    : <span className="opacity-70 ml-1 font-medium">(vence {foodFormatted})</span>
+                                                            )}
                                                         </label>
-                                                    ))}
-                                                </div>
-                                            )}
+
+                                                        {/* Fila Piedras */}
+                                                        {isCat && (
+                                                            <label className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-2 rounded-xl cursor-pointer text-sm font-bold text-gray-700">
+                                                                <input 
+                                                                    type="checkbox" 
+                                                                    className="w-4 h-4 rounded text-gray-600 focus:ring-gray-500 bg-white"
+                                                                    checked={selectedPetsForLitter.includes(pet.id)}
+                                                                    onChange={e => {
+                                                                        const newSelection = e.target.checked 
+                                                                            ? [...selectedPetsForLitter, pet.id] 
+                                                                            : selectedPetsForLitter.filter(id => id !== pet.id);
+                                                                        setSelectedPetsForLitter(newSelection);
+                                                                        setIsPetLitterPurchase(newSelection.length > 0);
+                                                                    }}
+                                                                />
+                                                                💨 Piedras {pet.name || ''}
+                                                                {hasLitterDate && (
+                                                                    litterDiffDays > 0 
+                                                                        ? <span className="text-red-600 font-black ml-1">(venció el {litterFormatted} - hace {litterDiffDays} días)</span>
+                                                                        : <span className="opacity-70 ml-1 font-medium">(vence {litterFormatted})</span>
+                                                                )}
+                                                            </label>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     )}
-                                </div>
+
+                                    {/* SECCION CAJA SORPRESA */}
+                                    {config?.mysteryBox?.enabled && (
+                                        <div className="mt-4 p-3 bg-orange-50 border border-orange-300 rounded-xl border-dashed">
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input 
+                                                    type="checkbox" 
+                                                    className="w-5 h-5 rounded text-orange-600 focus:ring-orange-500"
+                                                    checked={generateMysteryBox}
+                                                    onChange={e => setGenerateMysteryBox(e.target.checked)}
+                                                />
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-bold text-orange-900">🎁 Generar Caja Sorpresa</span>
+                                                    <span className="text-xs text-orange-700">El cliente recibirá un sorteo por su compra</span>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    )}
+</div>
 
                                 <button type="submit" disabled={actionLoading} className="w-full py-4 bg-green-600 text-white rounded-2xl font-bold text-lg hover:bg-green-700 transition shadow-lg shadow-green-100 disabled:opacity-50">
                                     {actionLoading ? 'Procesando...' : 'Asignar Puntos'}

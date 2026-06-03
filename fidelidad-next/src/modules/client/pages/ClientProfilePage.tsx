@@ -58,7 +58,7 @@ export const ClientProfilePage = () => {
     useEffect(() => {
         if (searchParams.get('addPet') === 'true' && userData && config) {
             setEditingPet(null);
-            setPetFormData({ name: '', type: 'perro', breed: 'Mestizo / Sin Raza', age: '', brand: 'Royal Canin', variant: '', frequencyDays: 30, receiveAlerts: true });
+            setPetFormData({ name: '', type: 'perro', breed: 'Mestizo / Sin Raza', age: '', brand: 'Royal Canin', variant: '', frequencyDays: 30, litterFrequencyDays: 15, receiveAlerts: true });
             setPetPhotoBase64(null);
             setIsPetModalOpen(true);
             
@@ -244,6 +244,8 @@ export const ClientProfilePage = () => {
                 brand: petFormData.brand || '',
                 variant: petFormData.variant || '',
                 frequencyDays: Number(petFormData.frequencyDays) || 30,
+                litterFrequencyDays: petFormData.type === 'gato' ? (Number(petFormData.litterFrequencyDays) || 15) : undefined,
+                lastLitterPurchaseDate: petFormData.type === 'gato' ? (editingPet?.lastLitterPurchaseDate || null) : undefined,
                 receiveAlerts: !!petFormData.receiveAlerts,
                 photoUrl: petPhotoBase64 || editingPet?.photoUrl || '',
                 createdAt: editingPet?.createdAt || TimeService.now(),
@@ -265,7 +267,7 @@ export const ClientProfilePage = () => {
 
             setIsPetModalOpen(false);
             setEditingPet(null);
-            setPetFormData({ name: '', type: 'perro', breed: 'Mestizo / Sin Raza', age: '', brand: 'Royal Canin', variant: '', frequencyDays: 30, receiveAlerts: true });
+            setPetFormData({ name: '', type: 'perro', breed: 'Mestizo / Sin Raza', age: '', brand: 'Royal Canin', variant: '', frequencyDays: 30, litterFrequencyDays: 15, receiveAlerts: true });
             setPetPhotoBase64(null);
             setIsCustomBreed(false);
             setIsCustomBrand(false);

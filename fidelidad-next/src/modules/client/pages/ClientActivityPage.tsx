@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { db, auth } from '../../../lib/firebase';
-import { collection, query, orderBy, getDocs, doc, getDoc, deleteDoc } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { ArrowDownLeft, ArrowUpRight, Calendar, History, Clock } from 'lucide-react';
 import { ModernConfirmModal } from '../components/ModernConfirmModal';
 import { useOutletContext } from 'react-router-dom';
@@ -72,9 +72,10 @@ export const ClientActivityPage = () => {
                         ...docData,
                         // Handle Firestore Timestamp
                         date: docData.date?.toDate ? docData.date.toDate() : new Date(docData.date),
-                        expiresAt: docData.expiresAt?.toDate ? docData.expiresAt.toDate() : (docData.expiresAt ? new Date(docData.expiresAt) : null)
+                        expiresAt: docData.expiresAt?.toDate ? docData.expiresAt.toDate() : (docData.expiresAt ? new Date(docData.expiresAt) : null),
+                        hidden: docData.hidden || false
                     };
-                });
+                }).filter(h => !h.hidden);
 
                 data.sort((a, b) => {
                     const timeA = a.date instanceof Date ? a.date.getTime() : new Date(a.date).getTime();
@@ -104,7 +105,7 @@ export const ClientActivityPage = () => {
         try {
             const user = auth.currentUser;
             if (!user) return;
-            await deleteDoc(doc(db, 'users', user.uid, 'points_history', id));
+            await updateDoc(doc(db, 'users', user.uid, 'points_history', id), { hidden: true });
             setHistory(prev => prev.filter(h => h.id !== id));
             setItemToDelete(null);
         } catch (error) {

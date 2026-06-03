@@ -1,8 +1,8 @@
-// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V64 - RESCUE STABLE)
+// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V66 - RESCUE STABLE)
 if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin') || window.location.href.includes('pattala.com')) {
     console.log("🛡️ [Club Fidelidad] Extensión desactivada en el Dashboard.");
 } else {
-    console.log("🚀 [Club Fidelidad] V64: Iniciando extensión.");
+    console.log("🚀 [Club Fidelidad] V66: Iniciando extensión.");
 
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;
@@ -201,8 +201,11 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
             const tpl = templates.whatsappRedemption || templates.redemption || `¡Canje exitoso {nombre}! 🎁 Canjeaste {premio}. Código: {codigo}`;
             msg = tpl.replace(/{premio}/g, extra).replace(/{codigo}/g, socioNumber);
         } else if (type === 'mysteryBox') {
-            const tpl = templates.whatsappMysteryBox || `¡Hola {nombre}! 🎁 ¡Acabas de ganarte un Sorteo Sorpresa! Ingresá a la App de {tienda} para abrirla.`;
-            msg = tpl;
+            const pwaUrl = cfg?.contact?.pwaUrl || cfg?.apiUrl || 'https://fidelidad-next.vercel.app';
+            const chanceUrl = `${pwaUrl}/play/${extra}`;
+            const defaultTpl = `¡Hola {nombre}! 🎁 ¡Acabas de ganarte un Sorteo Sorpresa! Ingresá a este link para jugar y abrirla: {link}`;
+            const tpl = templates.whatsappMysteryBox || defaultTpl;
+            msg = tpl.includes('{link}') ? tpl.replace('{link}', chanceUrl) : tpl + '\n\nLink para jugar: ' + chanceUrl;
         } else if (type === 'pointsAssignments') {
             const tpl = templates.whatsappPointsAdded || templates.pointsAdded || `¡Hola {nombre}! 💰 Sumaste {puntos} puntos.`;
             msg = tpl.replace(/{puntos}/g, extra);
@@ -257,7 +260,7 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                             </div>
                         </div>
                         <div style="display:flex; gap:4px;">
-                            ${b.phone ? `<button class="cf-action-btn cf-action-whatsapp" data-id="${b.alertId}" data-type="${b.type}" data-phone="${b.phone}" data-name="${b.userName || 'Socio'}" style="background:#22c55e; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:bold; font-size:10px;">
+                            ${b.phone ? `<button class="cf-action-btn cf-action-whatsapp" data-id="${b.alertId}" data-type="${b.type}" data-phone="${b.phone}" data-name="${b.userName || 'Socio'}" data-extra="${b.id}" style="background:#22c55e; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:bold; font-size:10px;">
                                 WA
                             </button>` : ''}
                             <button class="cf-action-btn cf-action-dismiss" data-id="${b.alertId}" data-type="${b.type}" style="background:#e5e7eb; color:#374151; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:bold; font-size:10px;">

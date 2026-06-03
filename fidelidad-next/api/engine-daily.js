@@ -155,7 +155,11 @@ export default async function handler(req, res) {
                 triggerSource,
                 simulated: !!simulatedDateStr
             });
-            const mysteryBoxesList = [];
+            
+
+        
+
+        const mysteryBoxesList = [];
         try {
             const mbSnapshot = await db.collection('mystery_box_chances').where('status', '==', 'pending').get();
             mbSnapshot.docs.forEach(doc => {
@@ -176,7 +180,8 @@ export default async function handler(req, res) {
             });
         } catch (e) { console.error("Error reconstructing mysteryBoxesList:", e); }
 
-        return res.status(200).json({ ok: true, skipped: true, reason });
+        return res.status(200).json({
+            ok: true, skipped: true, reason });
         }
 
         // Restaurar variables de estado necesarias para el resto del motor

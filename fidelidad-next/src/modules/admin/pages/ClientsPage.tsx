@@ -1756,7 +1756,8 @@ export const ClientsPage = () => {
                                                                         <span className="text-[9px] font-black text-orange-800 uppercase">Fin de Alimento Estimado:</span>
                                                                         <span className="text-xs font-bold text-orange-600 underline">
                                                                             {(() => {
-                                                                                const last = pet.lastPurchaseDate instanceof Date ? pet.lastPurchaseDate : (pet.lastPurchaseDate.toDate ? pet.lastPurchaseDate.toDate() : new Date(pet.lastPurchaseDate));
+                                                                                if (!pet.lastPurchaseDate) return '-';
+                                                                        const last = pet.lastPurchaseDate instanceof Date ? pet.lastPurchaseDate : (pet.lastPurchaseDate.toDate ? pet.lastPurchaseDate.toDate() : new Date(pet.lastPurchaseDate));
                                                                                 const next = new Date(last);
                                                                                 next.setDate(next.getDate() + (pet.frequencyDays || 30));
                                                                                 return next.toLocaleDateString();
@@ -1797,7 +1798,8 @@ export const ClientsPage = () => {
                                                                                     <span className="text-[9px] font-black text-gray-600 uppercase">Fin de Piedras Estimado:</span>
                                                                                     <span className="text-xs font-bold text-gray-800 underline">
                                                                                         {(() => {
-                                                                                            const last = pet.lastLitterPurchaseDate instanceof Date ? pet.lastLitterPurchaseDate : (pet.lastLitterPurchaseDate.toDate ? pet.lastLitterPurchaseDate.toDate() : new Date(pet.lastLitterPurchaseDate));
+                                                                                            if (!pet.lastLitterPurchaseDate) return '-';
+                                                                                              const last = pet.lastLitterPurchaseDate instanceof Date ? pet.lastLitterPurchaseDate : (pet.lastLitterPurchaseDate.toDate ? pet.lastLitterPurchaseDate.toDate() : new Date(pet.lastLitterPurchaseDate));
                                                                                             const next = new Date(last);
                                                                                             next.setDate(next.getDate() + (pet.litterFrequencyDays || 15));
                                                                                             return next.toLocaleDateString();
@@ -2159,7 +2161,8 @@ export const ClientsPage = () => {
                                                 let hasFoodDate = false;
                                                 if (pet.lastPurchaseDate) {
                                                     const raw = pet.lastPurchaseDate;
-                                                    let parsedDate = raw._seconds ? new Date(raw._seconds * 1000) : new Date(raw + 'T12:00:00');
+                                                    let parsedDate = raw instanceof Date ? new Date(raw) : (raw._seconds ? new Date(raw._seconds * 1000) : new Date(raw + 'T12:00:00'));
+                                                    if (isNaN(parsedDate.getTime())) parsedDate = new Date();
                                                     parsedDate.setDate(parsedDate.getDate() + (Number(pet.frequencyDays) || 30));
                                                     
                                                     const today = new Date();
@@ -2176,7 +2179,8 @@ export const ClientsPage = () => {
                                                 const isCat = (pet.type || '').toLowerCase().trim() === 'gato';
                                                 if (isCat && pet.lastLitterPurchaseDate) {
                                                     const raw = pet.lastLitterPurchaseDate;
-                                                    let parsedDate = raw._seconds ? new Date(raw._seconds * 1000) : new Date(raw + 'T12:00:00');
+                                                    let parsedDate = raw instanceof Date ? new Date(raw) : (raw._seconds ? new Date(raw._seconds * 1000) : new Date(raw + 'T12:00:00'));
+                                                    if (isNaN(parsedDate.getTime())) parsedDate = new Date();
                                                     parsedDate.setDate(parsedDate.getDate() + (Number(pet.litterFrequencyDays) || 15));
                                                     
                                                     const today = new Date();

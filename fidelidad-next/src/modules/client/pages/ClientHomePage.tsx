@@ -139,9 +139,31 @@ export const ClientHomePage = () => {
 
     useEffect(() => {
         if (user?.uid && !isAdmin) {
-            import('../../../services/mysteryBoxService').then(({ MysteryBoxService }) => {
-                MysteryBoxService.getPendingByUid(user.uid).then(setPendingMysteryBoxes);
+            const q = query(
+                collection(db, 'mystery_box_chances'),
+                where('clientId', '==', user.uid),
+                where('status', '==', 'pending')
+            );
+            const unsubscribe = onSnapshot(q, (snap) => {
+                const now = new Date();
+                const chances: any[] = [];
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    // Solo incluir si tiene expiresAt valido
+                    if (data.expiresAt && typeof data.expiresAt.toDate === 'function') {
+                        if (data.expiresAt.toDate() > now) {
+                            chances.push({ id: doc.id, ...data });
+                        }
+                    }
+                });
+                chances.sort((a, b) => {
+                    const timeA = a.createdAt && typeof a.createdAt.toDate === 'function' ? a.createdAt.toDate().getTime() : 0;
+                    const timeB = b.createdAt && typeof b.createdAt.toDate === 'function' ? b.createdAt.toDate().getTime() : 0;
+                    return timeB - timeA;
+                });
+                setPendingMysteryBoxes(chances);
             });
+            return () => unsubscribe();
         }
     }, [user?.uid, isAdmin]);
 

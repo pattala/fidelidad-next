@@ -6,7 +6,7 @@ import { useClientAuth } from '../contexts/ClientAuthContext';
 
 export const MysteryBoxLookupPage = () => {
     const navigate = useNavigate();
-    const { user, loading: authLoading } = useClientAuth();
+    const { user, userData, loading: authLoading } = useClientAuth();
     
     const [dni, setDni] = useState('');
     const [loading, setLoading] = useState(false);
@@ -17,11 +17,11 @@ export const MysteryBoxLookupPage = () => {
     // AUTO-LOOKUP EXACTAMENTE COMO PIDIÓ EL USUARIO
     // "haga que la pwa mande el dato diciendole al servidor hola soy yo, hay algun codigo para mi ?"
     useEffect(() => {
-        if (!authLoading && user && user.dni) {
+        if (!authLoading && user && userData?.dni) {
             const autoFetch = async () => {
                 setLoading(true);
                 try {
-                    const results = await MysteryBoxService.getPendingByDni(user.dni);
+                    const results = await MysteryBoxService.getPendingByUid(user.uid);
                     setChances(results);
                     setSearched(true);
                     

@@ -159,26 +159,7 @@ export default async function handler(req, res) {
 
         
 
-        const mysteryBoxesList = [];
-        try {
-            const mbSnapshot = await db.collection('mystery_box_chances').where('status', '==', 'pending').get();
-            mbSnapshot.docs.forEach(doc => {
-                const data = doc.data();
-                mysteryBoxesList.push({
-                    id: doc.id,
-                    alertId: 'mb_' + doc.id,
-                    userId: data.userId,
-                    userName: data.userName || 'Socio',
-                    socioNumber: data.socioNumber || '',
-                    phone: data.phone || '',
-                    amount: data.amount || 0,
-                    createdAt: data.createdAt,
-                    expiresAt: data.expiresAt,
-                    status: data.status || 'pending',
-                    type: 'mysteryBox'
-                });
-            });
-        } catch (e) { console.error("Error reconstructing mysteryBoxesList:", e); }
+        
 
         return res.status(200).json({
             ok: true, skipped: true, reason });
@@ -1051,6 +1032,27 @@ export default async function handler(req, res) {
                 });
             }
         } catch (e) { console.error("Error reconstructing petAlertsList:", e); }
+
+        const mysteryBoxesList = [];
+        try {
+            const mbSnapshot = await db.collection('mystery_box_chances').where('status', '==', 'pending').get();
+            mbSnapshot.docs.forEach(doc => {
+                const data = doc.data();
+                mysteryBoxesList.push({
+                    id: doc.id,
+                    alertId: 'mb_' + doc.id,
+                    userId: data.userId,
+                    userName: data.userName || 'Socio',
+                    socioNumber: data.socioNumber || '',
+                    phone: data.phone || '',
+                    amount: data.amount || 0,
+                    createdAt: data.createdAt,
+                    expiresAt: data.expiresAt,
+                    status: data.status || 'pending',
+                    type: 'mysteryBox'
+                });
+            });
+        } catch (e) { console.error("Error reconstructing mysteryBoxesList:", e); }
 
         return res.status(200).json({ 
             ok: true, 

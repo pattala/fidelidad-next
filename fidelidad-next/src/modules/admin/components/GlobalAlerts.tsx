@@ -340,7 +340,8 @@ export const GlobalAlerts = () => {
                 const now = new Date();
                 snap.forEach(doc => {
                     const data = doc.data();
-                    if (data.resendExpiresAt && data.resendExpiresAt.toDate() > now) {
+                    const exp = data.resendExpiresAt || data.expiresAt;
+                    if (!exp || exp.toDate() > now) {
                         chances.push({ id: doc.id, ...data });
                     }
                 });
@@ -692,7 +693,7 @@ export const GlobalAlerts = () => {
                                                             🎁 Compra de ${c.amount}
                                                         </p>
                                                         <p className="text-[9px] text-orange-400/80 font-bold uppercase tracking-wider mt-1">
-                                                            Expira el {c.resendExpiresAt?.toDate().toLocaleString()}
+                                                            Expira el {(c.resendExpiresAt || c.expiresAt)?.toDate().toLocaleString()}
                                                         </p>
                                                     </div>
                                                 </div>

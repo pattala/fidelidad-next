@@ -1,8 +1,8 @@
-// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V53 - RESCUE STABLE)
+// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V54 - RESCUE STABLE)
 if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin') || window.location.href.includes('pattala.com')) {
     console.log("🛡️ [Club Fidelidad] Extensión desactivada en el Dashboard.");
 } else {
-    console.log("🚀 [Club Fidelidad] V53: Iniciando extensión.");
+    console.log("🚀 [Club Fidelidad] V54: Iniciando extensión.");
 
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;
@@ -86,7 +86,38 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                     }
 
                     chrome.storage.local.set({ dismissedAlerts: localList }, () => {
-                        const curY = new Date().getFullYear().toString();
+                        
+        const renderMysteryBoxes = (boxes) => {
+            if (!boxes || boxes.length === 0) return '<div style="padding:20px; text-align:center; opacity:0.5; font-size:12px;">No hay sorteos pendientes</div>';
+            return boxes.map(b => `
+                <div style="background:${'#fff7ed'}; border-left:4px solid ${'#fb923c'}; margin-bottom:8px; padding:12px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div style="flex:1;">
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span style="font-size:14px;">🎁</span>
+                                <span style="font-weight:900; font-size:12px; color:#1f2937;">${b.userName || 'Socio'}</span>
+                            </div>
+                            <div style="font-size:10px; color:#6b7280; margin-top:4px;">
+                                ${b.socioNumber ? 'Socio: ' + b.socioNumber + ' | ' : ''} Tel: ${b.phone || '-'}
+                            </div>
+                            <div style="font-size:10px; color:#9a3412; margin-top:2px; font-weight:bold;">
+                                Monto: ${b.amount || 0}
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:4px;">
+                            <button class="cf-action-btn cf-action-whatsapp" data-id="${b.alertId}" data-type="${b.type}" data-phone="${b.phone}" style="background:#22c55e; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:bold; font-size:10px;">
+                                WA
+                            </button>
+                            <button class="cf-action-btn cf-action-dismiss" data-id="${b.alertId}" data-type="${b.type}" style="background:#e5e7eb; color:#374151; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:bold; font-size:10px;">
+                                OK
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        };
+
+        const curY = new Date().getFullYear().toString();
                         const bList = data.birthdays || [];
                         const eList = data.expirations || [];
                         const pList = data.petAlerts || [];

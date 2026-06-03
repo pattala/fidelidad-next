@@ -1,8 +1,8 @@
-// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V62 - RESCUE STABLE)
+// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V63 - RESCUE STABLE)
 if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin') || window.location.href.includes('pattala.com')) {
     console.log("🛡️ [Club Fidelidad] Extensión desactivada en el Dashboard.");
 } else {
-    console.log("🚀 [Club Fidelidad] V62: Iniciando extensión.");
+    console.log("🚀 [Club Fidelidad] V63: Iniciando extensión.");
 
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;
@@ -269,8 +269,12 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
             `).join('');
         };
 
-        container.innerHTML = '';
-        const ui = document.createElement('div');
+        let ui = container.querySelector('div.cf-v35-glass') || container.querySelector('div.cf-v35-bubble');
+        if (!ui) {
+            ui = document.createElement('div');
+            container.innerHTML = '';
+            container.appendChild(ui);
+        }
         ui.style.pointerEvents = 'auto';
 
         const dismissed = fullData.dismissedAlerts || [];

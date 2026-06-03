@@ -1,0 +1,11 @@
+const fs = require('fs');
+let c = fs.readFileSync('extension-club-fidelidad/content.js', 'utf8');
+c = c.replace(/const totalPending = pendingB\.length \+ pendingE\.length \+ pendingP\.length \+ pendingR\.length \+ pendingA\.length \+ \(fullData\.campaigns\?\.list \|\| \[\]\)\.filter\(c => getStatus\(c\.alertId\) === 'pending'\)\.length;/, "const totalPending = pendingB.length + pendingE.length + pendingP.length + pendingR.length + pendingA.length + pendingMB.length + (fullData.campaigns?.list || []).filter(c => getStatus(c.alertId) === 'pending').length;");
+c = c.replace(/if \(pendingA\.length > 0\) parts\.push\(\`P:\$\{pendingA\.length\}\`\);/, "if (pendingA.length > 0) parts.push(`P:${pendingA.length}`);\n            if (pendingMB.length > 0) parts.push(`S:${pendingMB.length}`);");
+c = c.replace(/V59/g, 'V60');
+fs.writeFileSync('extension-club-fidelidad/content.js', c);
+const cp = 'src/modules/client/pages/ClientProfilePage.tsx';
+let d = fs.readFileSync(cp, 'utf8');
+d = d.replace(/V59/g, 'V60');
+fs.writeFileSync(cp, d);
+console.log("Patched totalPending and breakdown HTML");

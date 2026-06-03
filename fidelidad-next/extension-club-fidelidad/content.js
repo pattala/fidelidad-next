@@ -1,8 +1,8 @@
-// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V59 - RESCUE STABLE)
+// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V60 - RESCUE STABLE)
 if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin') || window.location.href.includes('pattala.com')) {
     console.log("🛡️ [Club Fidelidad] Extensión desactivada en el Dashboard.");
 } else {
-    console.log("🚀 [Club Fidelidad] V59: Iniciando extensión.");
+    console.log("🚀 [Club Fidelidad] V60: Iniciando extensión.");
 
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;
@@ -295,7 +295,7 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
         const procA = (fullData.pointsAssignments?.list || []).filter(a => getStatus(a.alertId) !== 'pending');
         const procC = (fullData.campaigns?.list || []).filter(c => getStatus(c.alertId) !== 'pending');
 
-        const totalPending = pendingB.length + pendingE.length + pendingP.length + pendingR.length + pendingA.length + (fullData.campaigns?.list || []).filter(c => getStatus(c.alertId) === 'pending').length;
+        const totalPending = pendingB.length + pendingE.length + pendingP.length + pendingR.length + pendingA.length + pendingMB.length + (fullData.campaigns?.list || []).filter(c => getStatus(c.alertId) === 'pending').length;
         const totalProcessed = [...procB, ...procE, ...procP, ...procR, ...procA, ...procC].length;
 
         if (isExpanded) {
@@ -347,6 +347,7 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
             if (pendingP.length > 0) parts.push(`A:${pendingP.length}`);
             if (pendingR.length > 0) parts.push(`R:${pendingR.length}`);
             if (pendingA.length > 0) parts.push(`P:${pendingA.length}`);
+            if (pendingMB.length > 0) parts.push(`S:${pendingMB.length}`);
             
             const breakdownHtml = parts.length > 0 
                 ? `<div style="position:absolute; bottom:-12px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.8); color:white; font-size:8px; font-weight:900; padding:2px 6px; border-radius:10px; white-space:nowrap; border:1px solid rgba(255,255,255,0.2); letter-spacing:0.5px;">${parts.join(' ')}</div>` 

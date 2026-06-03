@@ -54,8 +54,13 @@ export default async function handler(req, res) {
             transaction.set(docRef, { 
                 actions, 
                 lastUpdate: admin.firestore.FieldValue.serverTimestamp(),
-                type: 'daily_alerts_sync'
-            }, { merge: true });
+                type: 'daily_alerts_sync' }, { merge: true });
+
+            if (alertId && alertId.startsWith('mb_')) {
+                const mbId = alertId.substring(3);
+                const mbRef = db.collection('mystery_box_chances').doc(mbId);
+                transaction.set(mbRef, { status: 'resolved' }, { merge: true });
+            }
         });
 
         return res.status(200).json({ ok: true });

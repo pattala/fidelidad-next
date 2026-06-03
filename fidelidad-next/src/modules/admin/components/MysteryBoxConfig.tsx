@@ -65,7 +65,47 @@ export const MysteryBoxConfig = ({ config, setConfig }: { config: AppConfig, set
                 </div>
 
                 {mb.enabled && (
-                    <div className="space-y-8">
+                      <div className="space-y-8">
+                          {/* CODIGO QR GENERICO */}
+                          <div className="bg-orange-50/50 p-6 rounded-2xl border border-orange-100 flex items-center justify-between">
+                              <div>
+                                  <h3 className="text-lg font-bold text-orange-900 flex items-center gap-2">
+                                      <Gift size={20} className="text-orange-600" />
+                                      QR del Sorteo (Para Mostrador)
+                                  </h3>
+                                  <p className="text-sm text-orange-700/80 mt-1 max-w-md">
+                                      Imprimí este cartel y colócalo en el mostrador. Los clientes escanearán este código e ingresarán el código secreto que les des al realizar la compra.
+                                  </p>
+                              </div>
+                              <div className="flex flex-col items-center gap-3">
+                                  <div className="bg-white p-3 rounded-xl shadow-sm">
+                                      <QRCode value={`${config.contact?.pwaUrl || window.location.origin}/play`} size={100} />
+                                  </div>
+                                  <button
+                                      onClick={() => {
+                                          const printWindow = window.open('', '', 'width=600,height=800');
+                                          if (printWindow) {
+                                              printWindow.document.write(`
+                                                  <html>
+                                                      <head><title>QR Sorteo Mostrador</title></head>
+                                                      <body style="display:flex; justify-content:center; align-items:center; height:100vh; flex-direction:column; font-family:sans-serif; text-align:center;">
+                                                          <h1 style="font-size:36px; margin-bottom:10px; color:#ea580c;">¡JUGÁ Y GANÁ!</h1>
+                                                          <h2 style="font-size:24px; margin-bottom:40px; color:#4b5563;">Escaneá el código para abrir tu Caja Sorpresa</h2>
+                                                          <img src="https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent((config.contact?.pwaUrl || window.location.origin) + '/play')}" />
+                                                          <p style="margin-top:40px; font-size:18px; color:#6b7280; font-weight:bold;">¡Pedile tu código secreto al cajero con tu compra!</p>
+                                                          <script>setTimeout(() => { window.print(); window.close(); }, 500);</script>
+                                                      </body>
+                                                  </html>
+                                              `);
+                                              printWindow.document.close();
+                                          }
+                                      }}
+                                      className="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-sm font-bold rounded-lg transition-colors"
+                                  >
+                                      <Printer size={16} /> Imprimir Cartel
+                                  </button>
+                              </div>
+                          </div>
                         {/* REGLAS GENERALES */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>

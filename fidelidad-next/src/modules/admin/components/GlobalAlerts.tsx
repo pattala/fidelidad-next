@@ -647,31 +647,7 @@ export const GlobalAlerts = () => {
                                             return (
                                             <div key={c.id} className="bg-white/[0.03] p-5 rounded-[30px] border border-orange-500/20 flex flex-col gap-4">
                                                 <div className="flex items-center gap-4">
-                                                    <div className="bg-white p-2 rounded-xl">
-                                                        <QRCode value={chanceUrl} size={64} />
-                                                        <button 
-                                                            onClick={() => {
-                                                                const printWindow = window.open('', '', 'width=400,height=400');
-                                                                if (printWindow) {
-                                                                    printWindow.document.write(`
-                                                                        <html>
-                                                                            <head><title>QR Sorteo</title></head>
-                                                                            <body style="display:flex; justify-content:center; align-items:center; height:100vh; flex-direction:column; font-family:sans-serif;">
-                                                                                <h2 style="margin-bottom:20px;">Sorteo para ${c.clientName || 'Cliente'}</h2>
-                                                                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(chanceUrl)}" />
-                                                                                <p style="margin-top:20px; font-size:12px; color:#666;">Compra de ${c.amount}</p>
-                                                                                <script>setTimeout(() => { window.print(); window.close(); }, 500);</script>
-                                                                            </body>
-                                                                        </html>
-                                                                    `);
-                                                                    printWindow.document.close();
-                                                                }
-                                                            }}
-                                                            className="text-[9px] bg-black/10 text-black px-2 py-1 rounded w-full font-bold mt-2 hover:bg-black/20"
-                                                        >
-                                                            IMPRIMIR
-                                                        </button>
-                                                    </div>
+                                                    
                                                     <div>
                                                         <h5 className="font-bold text-white text-[15px]">{c.clientName || 'Cliente'}</h5>
                                                         <p className="text-[9px] text-white/40 font-bold uppercase tracking-wider mt-1">

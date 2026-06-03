@@ -1,8 +1,8 @@
-// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V58 - RESCUE STABLE)
+// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V59 - RESCUE STABLE)
 if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin') || window.location.href.includes('pattala.com')) {
     console.log("🛡️ [Club Fidelidad] Extensión desactivada en el Dashboard.");
 } else {
-    console.log("🚀 [Club Fidelidad] V58: Iniciando extensión.");
+    console.log("🚀 [Club Fidelidad] V59: Iniciando extensión.");
 
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;
@@ -544,7 +544,11 @@ async function refreshAlertCounts() {
                     const filteredRedemptions = rList.filter(r => getStatus(r.alertId) === 'pending');
                     const filteredAssignments = aList.filter(a => getStatus(a.alertId) === 'pending');
 
-                    const total = filteredBirthdays.length + filteredExpirations.length + filteredPetAlerts.length + filteredRedemptions.length + filteredAssignments.length;
+                    
+                    const filteredMysteryBoxes = (data.mysteryBoxes || []).filter(mb => getStatus(mb.alertId) === 'pending');
+                    const filteredCampaigns = (data.campaigns?.list || []).filter(c => getStatus(c.alertId) === 'pending');
+                    const total = filteredBirthdays.length + filteredExpirations.length + filteredPetAlerts.length + filteredRedemptions.length + filteredAssignments.length + filteredMysteryBoxes.length + filteredCampaigns.length;
+
                     const processedData = {
                         ...data,
                         dismissedAlerts: localList,

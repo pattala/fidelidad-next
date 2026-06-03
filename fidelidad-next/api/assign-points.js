@@ -668,8 +668,9 @@ export default async function handler(req, res) {
             // 5.5 GENERACIÓN DE CAJA SORPRESA
             if (generateMysteryBox && config.mysteryBox && config.mysteryBox.enabled && finalAmount >= config.mysteryBox.minAmount) {
                 const mbId = 'MBX-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
-                const mbExpiresAt = new Date(now.getTime() + ((config.mysteryBox.chanceDeadlineMinutes || 60) * 60 * 1000));
-                const mbResendExpiresAt = new Date(now.getTime() + ((config.mysteryBox.resendDeadlineMinutes || 60) * 60 * 1000));
+                const realNowTime = Date.now();
+                const mbExpiresAt = new Date(realNowTime + ((config.mysteryBox.chanceDeadlineMinutes || 60) * 60 * 1000));
+                const mbResendExpiresAt = new Date(realNowTime + ((config.mysteryBox.resendDeadlineMinutes || 60) * 60 * 1000));
                 
                 tx.set(db.collection('mystery_box_chances').doc(mbId), {
                     id: mbId,

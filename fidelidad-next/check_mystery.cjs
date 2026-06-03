@@ -1,13 +1,37 @@
-const admin = require("firebase-admin");
-const serviceAccount = require("./service-account.json");
-admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
-const db = admin.firestore();
+const admin = require('firebase-admin');
+const fs = require('fs');
 
-async function check() {
-    const snap = await db.collection("mystery_box_chances").get();
-    console.log("Total chances:", snap.size);
-    snap.forEach(doc => {
-        console.log(doc.id, doc.data().clientId, doc.data().clientDni, doc.data().status, doc.data().expiresAt ? doc.data().expiresAt.toDate() : "No expires");
-    });
+async function main() {
+    try {
+        const raw = fs.readFileSync('./api/firebase-service-account.json', 'utf8');
+        const sa = JSON.parse(raw);
+        admin.initializeApp({ credential: admin.credential.cert(sa) });
+    } catch (err) {
+        console.error("Could not load credentials:", err.message);
+        return;
+    }
+    const db = admin.firestore();
+
+    const chances = await db.collection('mystery_box_chances').orderBy('createdAt', 'desc').limit(5).get();
+    
+    console.log(`Found ${chances.size} recent mystery boxes.`);
+    
+    for (const doc of chances.docs) {
+        const data = doc.data();
+        console.log(`\nBox ID: ${doc.id}`);
+        console.log(`- clientId: ${data.clientId}`);
+        console.log(`- status: ${data.status}`);
+        console.log(`- createdAt: ${data.createdAt ? data.createdAt.toDate() : 'null'}`);
+        
+        // Fetch the user
+        const userSnap = await db.collection('users').doc(data.clientId).get();
+        if (userSnap.exists) {
+            const userData = userSnap.data();
+            console.log(`- User Data: name=${userData.name || userData.nombre}, dni=${userData.dni}, email=${userData.email || 'N/A'}`);
+        } else {
+            console.log(`- User: NOT FOUND IN FIRESTORE`);
+        }
+    }
 }
-check();
+
+main().catch(console.error);

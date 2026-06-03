@@ -525,7 +525,7 @@ export const GlobalAlerts = () => {
     const totalPending = pendingB.length + pendingE.length + pendingP.length + pendingR.length + pendingA.length + pendingC.length;
     const totalProcessed = procB.length + procE.length + procP.length + procR.length + procA.length + procC.length;
 
-    if (totalPending === 0 && totalProcessed === 0) return null;
+    if (totalPending === 0 && totalProcessed === 0 && mysteryBoxChances.length === 0) return null;
 
     return (
         <div className="fixed z-[9999] flex flex-col items-end pointer-events-none transition-transform"

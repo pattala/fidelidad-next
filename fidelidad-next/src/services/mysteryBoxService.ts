@@ -105,6 +105,31 @@ export const MysteryBoxService = {
         return chances.sort((a, b) => b.createdAt.toDate().getTime() - a.createdAt.toDate().getTime());
     },
 
+    // 2.5 Fetch pending chances by client UID
+    async getPendingByUid(uid: string): Promise<MysteryBoxChance[]> {
+        if (!uid) return [];
+        const now = new Date();
+
+        const q = query(
+            collection(db, 'mystery_box_chances'),
+            where('clientId', '==', uid),
+            where('status', '==', 'pending')
+        );
+
+        const snap = await getDocs(q);
+        const chances: MysteryBoxChance[] = [];
+        
+        snap.forEach(doc => {
+            const data = doc.data() as MysteryBoxChance;
+            data.id = doc.id;
+            if (data.expiresAt && data.expiresAt.toDate() > now) {
+                chances.push(data);
+            }
+        });
+
+        return chances.sort((a, b) => b.createdAt.toDate().getTime() - a.createdAt.toDate().getTime());
+    },
+
     // 3. Mark QR as scanned (Security Measure)
     async markAsScanned(id: string): Promise<boolean> {
         const chance = await this.getChance(id);

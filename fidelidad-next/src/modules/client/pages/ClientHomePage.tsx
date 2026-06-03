@@ -138,12 +138,12 @@ export const ClientHomePage = () => {
     const [pendingMysteryBoxes, setPendingMysteryBoxes] = useState<any[]>([]);
 
     useEffect(() => {
-        if (userData?.dni && !isAdmin) {
+        if (user?.uid && !isAdmin) {
             import('../../../services/mysteryBoxService').then(({ MysteryBoxService }) => {
-                MysteryBoxService.getPendingByDni(userData.dni).then(setPendingMysteryBoxes);
+                MysteryBoxService.getPendingByUid(user.uid).then(setPendingMysteryBoxes);
             });
         }
-    }, [userData?.dni, isAdmin]);
+    }, [user?.uid, isAdmin]);
 
     // Helper for dynamic pet age
     const getPetAge = (pet: any) => {

@@ -675,7 +675,7 @@ export default async function handler(req, res) {
                     id: mbId,
                     clientId: targetUid,
                     clientName: result.guestData.name,
-                    clientDni: result.guestData.dni,
+                    clientDni: (result.guestData.dni || '').replace(/\D/g, ''),
                     clientPhone: result.guestData.phone,
                     branchId: 'extension',
                     cashierId: 'extension',
@@ -783,6 +783,10 @@ export default async function handler(req, res) {
                     .replace(/{puntos}/g, points.toString())
                     .replace(/{saldo}/g, (result.newBalance || 0).toString())
                     .replace(/{siteName}/g, config.siteName || 'Club Fidelidad');
+
+                if (result.mysteryBoxGenerated) {
+                    waMsg += "\n\n🎁 ¡Has ganado una Caja Sorpresa! Ingresá a la app para jugar.";
+                }
 
                 const phone = (result.guestData.phone || '').replace(/\D/g, '');
 

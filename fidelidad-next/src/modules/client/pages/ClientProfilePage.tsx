@@ -13,6 +13,7 @@ import { useFcmToken } from '../../../hooks/useFcmToken';
 import { useClientAuth } from '../contexts/ClientAuthContext';
 import { ARGENTINA_LOCATIONS } from '../../../data/locations';
 import { TimeService } from '../../../services/timeService';
+import { APP_VERSION } from '../../../lib/adminConfig';
 
 // Assuming AppConfig is defined elsewhere or is a type alias for the config object
 // For the purpose of this edit, we'll assume it's a valid type.
@@ -753,6 +754,16 @@ export const ClientProfilePage = () => {
                         <span className="font-bold text-gray-700 text-sm group-hover:text-red-600 transition">Cerrar Sesión</span>
                     </div>
                 </button>
+                
+                {/* App Version Info */}
+                <div className="mt-8 text-center flex flex-col items-center justify-center">
+                    <p className="text-[10px] font-bold text-gray-400 tracking-widest uppercase">
+                        Sistema Club Fidelidad
+                    </p>
+                    <p className="text-[9px] font-medium text-gray-300 tracking-wider mt-0.5">
+                        Versión {APP_VERSION}
+                    </p>
+                </div>
             </div>
 
             <div className="h-4"></div>

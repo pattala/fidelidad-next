@@ -76,6 +76,36 @@ export const MysteryBoxService = {
     },
 
     // 3. Mark QR as scanned (Security Measure)
+    // 2.5 Buscar sorteos pendientes por DNI (Para el QR Generico)
+    async getPendingByDni(dni: string): Promise<MysteryBoxChance[]> {
+        const now = new Date();
+        // Limpiamos el DNI
+        const cleanDni = dni.trim().replace(/[^0-9]/g, '');
+        if (!cleanDni) return [];
+
+        const q = query(
+            collection(db, 'mysteryBoxChances'),
+            where('clientDni', '==', cleanDni),
+            where('status', '==', 'pending')
+        );
+
+        const snap = await getDocs(q);
+        const chances: MysteryBoxChance[] = [];
+        
+        snap.forEach(doc => {
+            const data = doc.data() as MysteryBoxChance;
+            data.id = doc.id;
+            // Verificar expiracion
+            if (data.expiresAt && data.expiresAt.toDate() > now) {
+                chances.push(data);
+            }
+        });
+
+        // Ordenamos para devolver el mas reciente primero
+        return chances.sort((a, b) => b.createdAt.toDate().getTime() - a.createdAt.toDate().getTime());
+    },
+
+    // 3. Mark QR as scanned (Security Measure)
     async markAsScanned(id: string): Promise<boolean> {
         const chance = await this.getChance(id);
         if (!chance || chance.status !== 'pending' || chance.qrScanned) {

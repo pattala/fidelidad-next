@@ -14,6 +14,7 @@ import { ClientInboxPage } from "./modules/client/pages/ClientInboxPage";
 import { ClientPromosPage } from "./modules/client/pages/ClientPromosPage";
 import { ClientReferralsPage } from "./modules/client/pages/ClientReferralsPage";
 import { MysteryBoxPage } from './modules/client/pages/MysteryBoxPage';
+import { MysteryBoxLookupPage } from './modules/client/pages/MysteryBoxLookupPage';
 import { ClientAuthGuard } from "./modules/client/components/ClientAuthGuard";
 import { ClientAuthProvider } from "./modules/client/contexts/ClientAuthContext";
 

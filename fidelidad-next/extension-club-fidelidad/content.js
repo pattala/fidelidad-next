@@ -1,8 +1,8 @@
-// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V55 - RESCUE STABLE)
+// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V56 - RESCUE STABLE)
 if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin') || window.location.href.includes('pattala.com')) {
     console.log("🛡️ [Club Fidelidad] Extensión desactivada en el Dashboard.");
 } else {
-    console.log("🚀 [Club Fidelidad] V55: Iniciando extensión.");
+    console.log("🚀 [Club Fidelidad] V56: Iniciando extensión.");
 
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;
@@ -200,6 +200,9 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
         } else if (type === 'redemptions') {
             const tpl = templates.whatsappRedemption || templates.redemption || `¡Canje exitoso {nombre}! 🎁 Canjeaste {premio}. Código: {codigo}`;
             msg = tpl.replace(/{premio}/g, extra).replace(/{codigo}/g, socioNumber);
+        } else if (type === 'mysteryBox') {
+            const tpl = templates.whatsappMysteryBox || `¡Hola {nombre}! 🎁 ¡Acabas de ganarte un Sorteo Sorpresa! Ingresá a la App de {tienda} para abrirla.`;
+            msg = tpl;
         } else if (type === 'pointsAssignments') {
             const tpl = templates.whatsappPointsAdded || templates.pointsAdded || `¡Hola {nombre}! 💰 Sumaste {puntos} puntos.`;
             msg = tpl.replace(/{puntos}/g, extra);
@@ -254,7 +257,7 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                             </div>
                         </div>
                         <div style="display:flex; gap:4px;">
-                            <button class="cf-action-btn cf-action-whatsapp" data-id="${b.alertId}" data-type="${b.type}" data-phone="${b.phone}" style="background:#22c55e; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:bold; font-size:10px;">
+                            <button class="cf-action-btn cf-action-whatsapp" data-id="${b.alertId}" data-type="${b.type}" data-phone="${b.phone}" data-name="${b.userName || 'Socio'}" style="background:#22c55e; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:bold; font-size:10px;">
                                 WA
                             </button>
                             <button class="cf-action-btn cf-action-dismiss" data-id="${b.alertId}" data-type="${b.type}" style="background:#e5e7eb; color:#374151; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:bold; font-size:10px;">
@@ -278,6 +281,7 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
 
         const curY = new Date().getFullYear().toString();
 
+        const pendingMB = (fullData.mysteryBoxes || []).filter(mb => getStatus(mb.alertId) === 'pending');
         const pendingB = birthdays.filter(b => getStatus(`birthday-${getIdentifier(b)}-${curY}`) === 'pending');
         const pendingE = expirations.filter(e => getStatus(`expiration-${getIdentifier(e)}-${e.nextExpirationDate || 'today'}`) === 'pending');
         const pendingP = petAlerts.filter(p => getStatus(`pet-${getIdentifier(p)}-${p.petName}-${p.lastFoodAlertDate || 'today'}`) === 'pending');
@@ -312,7 +316,7 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                         PENDIENTES (${totalPending})
                     </button>
                     <button id="tab-sorteos" style="flex:1; padding:8px; border:none; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; ${activeTab === 'sorteos' ? 'background:rgba(234,88,12,0.2); color:#fdba74; border: 1px solid rgba(234,88,12,0.3);' : 'background:none; color:rgba(255,255,255,0.4);'}">
-                        SORTEOS (${fullData.mysteryBoxes ? fullData.mysteryBoxes.length : 0})
+                        SORTEOS (${pendingMB.length})
                     </button>
                     <button id="tab-processed" style="flex:1; padding:8px; border:none; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; ${activeTab === 'processed' ? 'background:rgba(255,255,255,0.15); color:white;' : 'background:none; color:rgba(255,255,255,0.4);'}">
                         PROCESADOS
@@ -320,7 +324,7 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                 </div>
                 <div style="padding:16px; overflow-y:auto; flex:1;" class="cf-scrollbar">
                     ${activeTab === 'sorteos' 
-                        ? renderMysteryBoxes(fullData.mysteryBoxes || []) 
+                        ? renderMysteryBoxes(pendingMB) 
                         : activeTab === 'pending' ? renderList(pendingB, pendingE, pendingP, pendingR, pendingA, (fullData.campaigns?.list || []).filter(c => getStatus(c.alertId) === 'pending'), 'pending', curY, fullData) : renderList(procB, procE, procP, procR, procA, (fullData.campaigns?.list || []).filter(c => getStatus(c.alertId) !== 'pending'), 'processed', curY, fullData)}
                 </div>
             `;
@@ -473,6 +477,12 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                 });
             } catch (e) { console.warn("Sync error:", e); }
         };
+        ui.querySelectorAll('.cf-action-dismiss').forEach(btn => btn.onclick = () => updateStorage(btn.dataset.id, 'dismissed'));
+        ui.querySelectorAll('.cf-action-whatsapp').forEach(btn => btn.onclick = () => {
+            const url = generateWhatsAppToken(btn.dataset.type, btn.dataset.phone, btn.dataset.name, btn.dataset.extra, config, btn.dataset.socio, btn.dataset.date);
+            if (url) window.open(url, '_blank');
+            updateStorage(btn.dataset.id, 'sent');
+        });
         ui.querySelectorAll('.cf-v35-card-close').forEach(btn => btn.onclick = () => updateStorage(btn.dataset.id, 'dismissed'));
         ui.querySelectorAll('.cf-v35-card-delete').forEach(btn => btn.onclick = () => updateStorage(btn.dataset.id, null));
         ui.querySelectorAll('.cf-v35-btn-wa').forEach(btn => btn.onclick = () => {

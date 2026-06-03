@@ -122,6 +122,8 @@ export const ClientsPage = () => {
     const [selectedPromos, setSelectedPromos] = useState<string[]>([]);
     const [isPetFoodPurchase, setIsPetFoodPurchase] = useState(false);
     const [selectedPetsForFood, setSelectedPetsForFood] = useState<string[]>([]);
+    const [isPetLitterPurchase, setIsPetLitterPurchase] = useState(false);
+    const [selectedPetsForLitter, setSelectedPetsForLitter] = useState<string[]>([]);
 
     // Toggles Alta Cliente
     const [applyWelcomeBonus, setApplyWelcomeBonus] = useState(true);
@@ -635,7 +637,9 @@ export const ClientsPage = () => {
                     bonusIds: applyPromotions ? selectedPromos : [],
                     applyWhatsApp: notifyWhatsapp,
                     isPetFood: isPetFoodPurchase,
-                    petIds: isPetFoodPurchase ? selectedPetsForFood : []
+                    petIds: isPetFoodPurchase ? selectedPetsForFood : [],
+                    isPetLitter: isPetLitterPurchase,
+                    petLitterIds: isPetLitterPurchase ? selectedPetsForLitter : []
                 })
             });
             const data = await res.json();
@@ -1292,6 +1296,46 @@ export const ClientsPage = () => {
                                         <p className="text-blue-100 text-xs mt-1">
                                             Paso {formStep} de 2: {formStep === 1 ? 'Datos Personales' : 'Dirección y Domicilio'}
                                         </p>
+                                    )}
+                                    
+                                    {/* Piedras Sanitarias (Solo si tiene gatos) */}
+                                    {selectedClientForPoints?.pets && selectedClientForPoints.pets.some((p: any) => (p.type || '').toLowerCase().trim() === 'gato') && (
+                                        <div className="bg-orange-50/50 p-2.5 rounded-xl border border-orange-100 flex flex-col gap-2 mt-2">
+                                            <label className="flex items-center gap-3 cursor-pointer group">
+                                                <input 
+                                                    type="checkbox"
+                                                    className="w-5 h-5 rounded border-orange-300 text-orange-600 focus:ring-orange-500"
+                                                    checked={isPetLitterPurchase}
+                                                    onChange={e => {
+                                                        setIsPetLitterPurchase(e.target.checked);
+                                                        if (e.target.checked) {
+                                                            const catIds = selectedClientForPoints.pets!.filter((p: any) => (p.type || '').toLowerCase().trim() === 'gato').map((p: any) => p.id);
+                                                            setSelectedPetsForLitter(catIds);
+                                                        }
+                                                    }}
+                                                />
+                                                <span className="text-sm font-bold text-orange-700">Reposición Piedras 💨</span>
+                                            </label>
+                                            
+                                            {isPetLitterPurchase && selectedClientForPoints.pets.filter((p: any) => (p.type || '').toLowerCase().trim() === 'gato').length > 1 && (
+                                                <div className="flex flex-wrap gap-2 pl-8 animate-fade-in">
+                                                    {selectedClientForPoints.pets.filter((p: any) => (p.type || '').toLowerCase().trim() === 'gato').map((pet: any) => (
+                                                        <label key={pet.id} className="flex items-center gap-1.5 cursor-pointer bg-white border border-orange-100 px-2 py-1 rounded-lg">
+                                                            <input
+                                                                type="checkbox"
+                                                                className="w-3.5 h-3.5 rounded text-orange-500 focus:ring-orange-400"
+                                                                checked={selectedPetsForLitter.includes(pet.id)}
+                                                                onChange={e => {
+                                                                    if (e.target.checked) setSelectedPetsForLitter([...selectedPetsForLitter, pet.id]);
+                                                                    else setSelectedPetsForLitter(selectedPetsForLitter.filter((id: string) => id !== pet.id));
+                                                                }}
+                                                            />
+                                                            <span className="text-[10px] font-bold text-gray-600 uppercase">{pet.name}</span>
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
                                     )}
                                 </div>
                                 <button onClick={closeModal} className="p-2 hover:bg-white/10 rounded-full transition"><X size={20} /></button>

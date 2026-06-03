@@ -1,0 +1,72 @@
+const fs = require('fs');
+const path = require('path');
+
+const file = path.join(__dirname, '../src/modules/admin/pages/ClientsPage.tsx');
+let content = fs.readFileSync(file, 'utf8');
+
+// Patch state variables
+const stateRegex = /const \[isPetFoodPurchase, setIsPetFoodPurchase\] = useState\(false\);\s*const \[selectedPetsForFood, setSelectedPetsForFood\] = useState<string\[\]>\(\[\]\);/;
+const stateReplacement = `const [isPetFoodPurchase, setIsPetFoodPurchase] = useState(false);
+    const [selectedPetsForFood, setSelectedPetsForFood] = useState<string[]>([]);
+    const [isPetLitterPurchase, setIsPetLitterPurchase] = useState(false);
+    const [selectedPetsForLitter, setSelectedPetsForLitter] = useState<string[]>([]);`;
+content = content.replace(stateRegex, stateReplacement);
+
+// Patch API payload
+const apiRegex = /isPetFood: isPetFoodPurchase,\s*petIds: isPetFoodPurchase \? selectedPetsForFood : \[\]/;
+const apiReplacement = `isPetFood: isPetFoodPurchase,
+                    petIds: isPetFoodPurchase ? selectedPetsForFood : [],
+                    isPetLitter: isPetLitterPurchase,
+                    petLitterIds: isPetLitterPurchase ? selectedPetsForLitter : []`;
+content = content.replace(apiRegex, apiReplacement);
+
+// Patch UI to add "Reposición Piedras"
+const uiRegex = /\{isPetFoodPurchase && selectedClientForPoints\.pets\.length > 1 && \([\s\S]*?\}\)\s*<\/div>\s*\)\}\s*<\/div>\s*\)\}/;
+const uiOriginalMatch = content.match(uiRegex);
+if (uiOriginalMatch) {
+    const uiReplacement = uiOriginalMatch[0] + `
+                                        
+                                        {/* Piedras Sanitarias (Solo si tiene gatos) */}
+                                        {selectedClientForPoints.pets && selectedClientForPoints.pets.some((p: any) => (p.type || '').toLowerCase().trim() === 'gato') && (
+                                            <div className="bg-orange-50/50 p-2.5 rounded-xl border border-orange-100 flex flex-col gap-2">
+                                                <label className="flex items-center gap-3 cursor-pointer group">
+                                                    <input 
+                                                        type="checkbox"
+                                                        className="w-5 h-5 rounded border-orange-300 text-orange-600 focus:ring-orange-500"
+                                                        checked={isPetLitterPurchase}
+                                                        onChange={e => {
+                                                            setIsPetLitterPurchase(e.target.checked);
+                                                            if (e.target.checked) {
+                                                                const catIds = selectedClientForPoints.pets!.filter((p: any) => (p.type || '').toLowerCase().trim() === 'gato').map((p: any) => p.id);
+                                                                setSelectedPetsForLitter(catIds);
+                                                            }
+                                                        }}
+                                                    />
+                                                    <span className="text-sm font-bold text-orange-700">Reposición Piedras 💨</span>
+                                                </label>
+                                                
+                                                {isPetLitterPurchase && selectedClientForPoints.pets.filter((p: any) => (p.type || '').toLowerCase().trim() === 'gato').length > 1 && (
+                                                    <div className="flex flex-wrap gap-2 pl-8 animate-fade-in">
+                                                        {selectedClientForPoints.pets.filter((p: any) => (p.type || '').toLowerCase().trim() === 'gato').map((pet: any) => (
+                                                            <label key={pet.id} className="flex items-center gap-1.5 cursor-pointer bg-white border border-orange-100 px-2 py-1 rounded-lg">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    className="w-3.5 h-3.5 rounded text-orange-500 focus:ring-orange-400"
+                                                                    checked={selectedPetsForLitter.includes(pet.id)}
+                                                                    onChange={e => {
+                                                                        if (e.target.checked) setSelectedPetsForLitter([...selectedPetsForLitter, pet.id]);
+                                                                        else setSelectedPetsForLitter(selectedPetsForLitter.filter(id => id !== pet.id));
+                                                                    }}
+                                                                />
+                                                                <span className="text-[10px] font-bold text-gray-600 uppercase">{pet.name}</span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}`;
+    content = content.replace(uiRegex, uiReplacement);
+}
+
+fs.writeFileSync(file, content, 'utf8');
+console.log("Successfully patched ClientsPage.tsx for modal!");

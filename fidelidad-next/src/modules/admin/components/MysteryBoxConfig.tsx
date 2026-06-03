@@ -1,5 +1,6 @@
 import React from 'react';
-import { Gift, AlertTriangle, Plus, Trash2 } from 'lucide-react';
+import { Gift, AlertTriangle, Plus, Trash2, Printer } from 'lucide-react';
+import QRCode from 'react-qr-code';
 import type { AppConfig } from '../../../types';
 
 export const MysteryBoxConfig = ({ config, setConfig }: { config: AppConfig, setConfig: (config: AppConfig) => void }) => {

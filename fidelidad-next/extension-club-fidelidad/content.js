@@ -1,8 +1,8 @@
-﻿// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V47 - RESCUE STABLE)
+﻿// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V48 - RESCUE STABLE)
 if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin') || window.location.href.includes('pattala.com')) {
     console.log("🛡️ [Club Fidelidad] Extensión desactivada en el Dashboard.");
 } else {
-    console.log("🚀 [Club Fidelidad] V47: Iniciando extensión.");
+    console.log("🚀 [Club Fidelidad] V48: Iniciando extensión.");
 
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;
@@ -748,6 +748,16 @@ function showFidelidadPanel() {
                         </div>
                     </div>
 
+                    <div id="cf-mystery-box-container" style="display:none; margin-top: 15px; margin-bottom: 15px; padding: 10px; background: #fff7ed; border: 1px dashed #fb923c; border-radius: 12px;">
+                        <label style="display:flex; align-items:center; cursor:pointer; gap:8px;">
+                            <input type="checkbox" id="cf-generate-mystery-box" checked style="width:16px; height:16px; accent-color:#ea580c;" />
+                            <div style="flex:1;">
+                                <div style="font-size:12px; font-weight:bold; color:#9a3412;">🎁 Generar Caja Sorpresa</div>
+                                <div style="font-size:10px; color:#ea580c;">El cliente recibirá un sorteo por su compra</div>
+                            </div>
+                        </label>
+                    </div>
+
                     <button id="fidelidad-submit" class="fidelidad-button">Asignar Puntos</button>
                 </div>
             </div>
@@ -829,6 +839,16 @@ function showFidelidadPanel() {
         const val = parseFloat(inputMonto.value);
         const previewContainer = document.getElementById('cf-preview-container');
         if (!previewContainer) return;
+
+        // Auto-show mystery box si esta encendido y val >= minAmount
+        const mbxContainer = document.getElementById('cf-mystery-box-container');
+        if (mbxContainer && window._cfFullData && window._cfFullData.mysteryBoxConfig && window._cfFullData.mysteryBoxConfig.enabled) {
+            if (val >= (window._cfFullData.mysteryBoxConfig.minAmount || 0)) {
+                mbxContainer.style.display = 'block';
+            } else {
+                mbxContainer.style.display = 'none';
+            }
+        }
 
         if (isNaN(val) || val <= 0 || !selectedClient) {
             previewContainer.style.display = 'none';
@@ -1281,7 +1301,8 @@ function showFidelidadPanel() {
                     bonusIds: applyPromos ? bonusIds : [],
                     applyWhatsApp: applyWhatsApp,
                     isPetFood: isPetFood,
-                    petIds: finalPetIds
+                    petIds: finalPetIds,
+                    generateMysteryBox: document.getElementById('cf-generate-mystery-box')?.checked || false
                 }
             });
             if (data && data.ok) {
@@ -1316,6 +1337,13 @@ function showFidelidadPanel() {
                 <div style="font-size: 40px;">\u2705</div>
                 <div style="font-weight: bold; font-size: 18px; margin: 5px 0;">¡Puntos Asignados!</div>
                 <div style="font-size: 14px; color: #666; margin-bottom: 15px;">Se sumaron ${data.pointsAdded} puntos a ${selectedClient.name}.</div>
+                ${data.mysteryBoxId ? `
+                    <div style="margin-top: 20px; padding: 15px; background: #fff7ed; border: 2px dashed #fb923c; border-radius: 16px;">
+                        <div style="font-weight: 900; color: #ea580c; font-size: 14px; margin-bottom: 10px; text-transform: uppercase;">🎁 ¡Caja Sorpresa!</div>
+                        <p style="font-size: 11px; color: #9a3412; margin-bottom: 10px; line-height: 1.4;">Avísele al cliente que puede escanear el QR para jugar.</p>
+                        <div style="font-size: 18px; color: #fb923c; font-weight: bold; font-family: monospace; background: white; padding: 10px; border-radius: 8px; display: inline-block;">${data.mysteryBoxId}</div>
+                    </div>
+                ` : ''}
                 ${data.whatsappLink ? `<a href="${data.whatsappLink}" target="_blank" class="fidelidad-wa-link" id="cf-wa-link-success">RE-ENVIAR WHATSAPP</a>` : ''}
                 <button class="fidelidad-button" style="background:#f3f4f6; color:#374151; margin-top:15px; border: 1px solid #d1d5db;" id="cf-final-close">CERRAR</button>
             </div>

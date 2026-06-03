@@ -760,7 +760,8 @@ export default async function handler(req, res) {
                         detailDateStr = `${y}-${m}-${d}`;
                     }
 
-                    if (detailDateStr === todayStr && activeUserIds.has(dtl.userId)) {
+                    const isOrphan = dtl.userId ? !activeUserIds.has(dtl.userId) : false;
+                    if (detailDateStr === todayStr && !isOrphan) {
                         const alertId = `redemption-${dtl.socioNumber || dtl.phone || dtl.userId || doc.id}-${dtl.redemptionCode || 'N/A'}`;
                         redemptionsList.push({
                             ...dtl,
@@ -794,7 +795,8 @@ export default async function handler(req, res) {
                         detailDateStr = `${y}-${m}-${d}`;
                     }
 
-                    if (detailDateStr === todayStr && activeUserIds.has(dtl.userId)) {
+                    const isOrphan = dtl.userId ? !activeUserIds.has(dtl.userId) : false;
+                    if (detailDateStr === todayStr && !isOrphan) {
                         const alertId = `points-${dtl.socioNumber || dtl.phone || dtl.userId || doc.id}-${doc.id}`;
                         pointsAssignmentsList.push({
                             ...dtl,

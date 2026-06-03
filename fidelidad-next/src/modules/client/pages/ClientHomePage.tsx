@@ -135,6 +135,15 @@ export const ClientHomePage = () => {
     const [activeBannerPhase, setActiveBannerPhase] = useState<'none' | 'large'>('none');
     const [zoomedPhoto, setZoomedPhoto] = useState<string | null>(null);
     const { token, retrieveToken } = useFcmToken();
+    const [pendingMysteryBoxes, setPendingMysteryBoxes] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (userData?.dni && !isAdmin) {
+            import('../../../services/mysteryBoxService').then(({ MysteryBoxService }) => {
+                MysteryBoxService.getPendingByDni(userData.dni).then(setPendingMysteryBoxes);
+            });
+        }
+    }, [userData?.dni, isAdmin]);
 
     // Helper for dynamic pet age
     const getPetAge = (pet: any) => {
@@ -1122,6 +1131,25 @@ export const ClientHomePage = () => {
                 }
                 return null;
             })()}
+            {/* MYSTERY BOX BANNER */}
+            {pendingMysteryBoxes.length > 0 && (
+                <div 
+                    onClick={() => navigate(`/play/${pendingMysteryBoxes[0].id}`)}
+                    className="relative z-10 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-400 p-5 rounded-[2rem] shadow-[0_10px_30px_rgba(249,115,22,0.3)] border border-orange-400/50 cursor-pointer overflow-hidden group hover:scale-[1.02] transition-all mb-4 mt-2"
+                >
+                    <div className="absolute top-0 right-0 p-3 opacity-20 group-hover:scale-110 group-hover:opacity-30 transition-all">
+                        <Sparkles size={100} />
+                    </div>
+                    <div className="relative z-10 pr-6">
+                        <div className="flex items-center gap-2 mb-2">
+                            <Sparkles size={18} className="text-white" />
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white">¡Premio Disponible!</span>
+                        </div>
+                        <h3 className="text-xl font-black tracking-tight text-white mb-1">Caja Sorpresa 🎁</h3>
+                        <p className="text-xs font-medium text-white/90">¡Tenés una caja lista para abrir! Toca acá para jugar y descubrir tus puntos.</p>
+                    </div>
+                </div>
+            )}
 
             {/* POINTS AND BALANCE CARD */}
             <div className="relative z-10 px-0">

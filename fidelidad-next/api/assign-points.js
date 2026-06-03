@@ -485,8 +485,12 @@ export default async function handler(req, res) {
                 });
 
                 if (!skipNotifications) {
+                    let inboxMsg = `¡Has sumado ${points} puntos! (${finalConcept})`;
+                    if (generateMysteryBox && configData.mysteryBox && configData.mysteryBox.enabled && finalAmount >= configData.mysteryBox.minAmount) {
+                        inboxMsg += "\n\n🎁 ¡Has ganado una Caja Sorpresa! Ingresá a la app para jugar.";
+                    }
                     tx.set(clientRef.collection('inbox').doc(), {
-                        title: '¡Puntos Sumados! 💰', body: `¡Has sumado ${points} puntos! (${finalConcept})`,
+                        title: '¡Puntos Sumados! 💰', body: inboxMsg,
                         url: '/', type: 'pointsAdded', read: false, date: admin.firestore.FieldValue.serverTimestamp()
                     });
                 }

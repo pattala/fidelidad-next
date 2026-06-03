@@ -1,8 +1,8 @@
-// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V49 - RESCUE STABLE)
+// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V50 - RESCUE STABLE)
 if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin') || window.location.href.includes('pattala.com')) {
     console.log("🛡️ [Club Fidelidad] Extensión desactivada en el Dashboard.");
 } else {
-    console.log("🚀 [Club Fidelidad] V49: Iniciando extensión.");
+    console.log("🚀 [Club Fidelidad] V50: Iniciando extensión.");
 
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;
@@ -74,7 +74,8 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                     } else {
                         // MEZCLAR estados del servidor con locales
                         Object.keys(serverProcessed).forEach(id => {
-                            const status = serverProcessed[id];
+                            const rawStatus = serverProcessed[id];
+                            const status = (typeof rawStatus === 'object' && rawStatus !== null) ? rawStatus.status : rawStatus;
                             const exists = localList.find(d => d.id === id);
                             if (!exists) {
                                 localList.push({ id, status, timestamp: Date.now() });
@@ -470,7 +471,8 @@ async function refreshAlertCounts() {
 
                 // MEZCLAR con prioridad al servidor
                 Object.keys(serverProcessed).forEach(id => {
-                    const status = serverProcessed[id];
+                    const rawStatus = serverProcessed[id];
+                    const status = (typeof rawStatus === 'object' && rawStatus !== null) ? rawStatus.status : rawStatus;
                     const exists = localList.find(d => d.id === id);
                     if (!exists) localList.push({ id, status, timestamp: Date.now() });
                     else if (exists.status !== status) exists.status = status;

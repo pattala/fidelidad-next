@@ -826,6 +826,10 @@ export default async function handler(req, res) {
                     .replace(/{vencimiento}/g, result.guestData.expirationDateStr || '')
                     .replace(/{siteName}/g, config.siteName || 'Club Fidelidad');
 
+                if (result.mysteryBoxGenerated) {
+                    unifiedMsg += "\n\n🎁 ¡Has ganado una Caja Sorpresa! Ingresá a la app para jugar.";
+                }
+
                 const eventConfig = messagingCfg.eventConfigs?.[event];
                 const channels = eventConfig?.channels || ['push', 'email'];
 

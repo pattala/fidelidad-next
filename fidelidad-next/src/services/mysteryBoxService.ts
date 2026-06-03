@@ -84,7 +84,7 @@ export const MysteryBoxService = {
         if (!cleanDni) return [];
 
         const q = query(
-            collection(db, 'mysteryBoxChances'),
+            collection(db, 'mystery_box_chances'),
             where('clientDni', '==', cleanDni),
             where('status', '==', 'pending')
         );

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { auth, db } from '../../../lib/firebase';
-import { collection, query, orderBy, onSnapshot, doc, limit, getDocs, updateDoc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, limit, getDocs, updateDoc, where } from 'firebase/firestore';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import {
     User as UserIcon,

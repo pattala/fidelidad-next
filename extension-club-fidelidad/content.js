@@ -1,6 +1,6 @@
 
-// Club Fidelidad - Content Script (VERSIÓN 29 - MODAL INFILTRATION)
-console.log("🚀 [Club Fidelidad] v29: Iniciando versión con infiltración en modal");
+// Club Fidelidad - Content Script (VERSIÓN 68 - MODAL INFILTRATION)
+console.log("🚀 [Club Fidelidad] v68: Iniciando versión con infiltración en modal");
 
 let config = { apiUrl: '', apiKey: '' };
 let apiRatios = { base: 100, perPeso: 1 };

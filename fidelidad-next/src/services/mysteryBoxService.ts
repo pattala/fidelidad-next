@@ -155,47 +155,29 @@ export const MysteryBoxService = {
         return true;
     },
 
-    // 5. Play the game and get result
+    // 5. Play the game securely via the backend API
     async playChance(id: string): Promise<number | null> {
-        const chance = await this.getChance(id);
-        if (!chance || chance.status !== 'pending') return null;
+        try {
+            const response = await fetch('/api/play-mystery-box', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ id })
+            });
 
-        const config = await ConfigService.get();
-        if (!config.mysteryBox?.enabled || !config.mysteryBox.prizeScales.length) {
+            const data = await response.json();
+            
+            if (!response.ok || !data.ok) {
+                console.error("Error from play-mystery-box API:", data.error);
+                return null;
+            }
+
+            return data.pointsWon;
+        } catch (e) {
+            console.error("Error calling play-mystery-box API:", e);
             return null;
         }
-
-        // Calculate prize based on probabilities
-        const random = Math.random() * 100;
-        let cumulative = 0;
-        let selectedScale = config.mysteryBox.prizeScales[config.mysteryBox.prizeScales.length - 1]; // Default to last if floating point issues
-
-        for (const scale of config.mysteryBox.prizeScales) {
-            cumulative += scale.probabilityPct;
-            if (random <= cumulative) {
-                selectedScale = scale;
-                break;
-            }
-        }
-
-        // Random points within the scale's range
-        const pointsWon = Math.floor(Math.random() * (selectedScale.maxPoints - selectedScale.minPoints + 1)) + selectedScale.minPoints;
-
-        // Update the chance
-        const ref = doc(db, 'mystery_box_chances', id);
-        await updateDoc(ref, {
-            status: 'played',
-            pointsWon,
-            playedAt: Timestamp.now()
-        });
-
-        // The caller (PWA endpoint/service) should then credit the points to the user 
-        // with the specific expiration date! We do that separately to keep this service focused.
-        // Wait, the mysteryBoxService was implemented to do this logic in MysteryBoxPage? Let's verify...
-        // Ah, the points assignment is actually done in the PWA page.
-        // But the points_history addition should be done here if we refactor it, or in the page.
-        // I will keep it in the page since it requires the user UID.
-        return pointsWon;
     },
 
     // 6. Get pending chances for a cashier (for the resend bubble)

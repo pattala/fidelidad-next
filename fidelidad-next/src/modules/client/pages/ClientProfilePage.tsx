@@ -376,7 +376,7 @@ export const ClientProfilePage = () => {
         </div>
     );
 
-    const qrValue = userData.socioNumber || userData.dni || userAuth?.uid || 'no-id';
+    const qrValue = String(userData.socioNumber || userData.dni || userAuth?.uid || 'no-id');
 
     return (
         <div className="bg-white pb-24 relative">

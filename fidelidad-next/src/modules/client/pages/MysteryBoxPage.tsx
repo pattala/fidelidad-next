@@ -46,13 +46,7 @@ export const MysteryBoxPage = () => {
 
                 setChance(data);
 
-                if (!user) {
-                    setStatus('auth_required');
-                    return;
-                }
-
-                // Verificar si es el mismo usuario (por DNI/phone o simplemente dejarlo reclamar si es un login genérico)
-                // Por ahora confiamos en que el login es suficiente
+                // Eliminamos la fricción: cualquier usuario puede jugar y ver su premio sin estar logueado
                 setStatus('ready');
 
             } catch (err: any) {
@@ -82,7 +76,7 @@ export const MysteryBoxPage = () => {
     };
 
     const handlePlay = async () => {
-        if (!id || !user) return;
+        if (!id) return;
         setStatus('playing');
         
         // Animación de agitar la caja
@@ -104,47 +98,8 @@ export const MysteryBoxPage = () => {
 
             setPointsWon(won);
             
-            // Assign points to user with short expiration
-            const config = await ConfigService.get();
-            const expDays = config.mysteryBox?.pointsExpirationDays || 15;
-            
-            // Mismo mecanismo que assignment normal pero con source "sorteo"
-            const userRef = doc(db, 'users', user.uid);
-            const userSnap = await getDoc(userRef);
-            
-            if (userSnap.exists()) {
-                const userData = userSnap.data();
-                const now = new Date();
-                const expDate = new Date(now.getTime() + (expDays * 24 * 60 * 60 * 1000));
-                
-                const expDetails = userData.expirationDetails || [];
-                expDetails.push({
-                    date: expDate.toISOString(),
-                    points: won
-                });
-                
-                // Actualizar expirationDate si es menor a la que tenía
-                let newExpDateStr = userData.nextExpirationDate;
-                const newExpDateStrFormatted = expDate.toISOString().split('T')[0];
-                if (!newExpDateStr || newExpDateStrFormatted < newExpDateStr) {
-                    newExpDateStr = newExpDateStrFormatted;
-                }
-
-                await updateDoc(userRef, {
-                    points: (userData.points || 0) + won,
-                    expirationDetails: expDetails,
-                    nextExpirationDate: newExpDateStr
-                });
-
-                await addDoc(collection(db, 'users', user.uid, 'points_history'), {
-                    type: 'credit',
-                    amount: won,
-                    date: serverTimestamp(),
-                    concept: 'Premio Caja Sorpresa',
-                    moneySpent: 0,
-                    source: 'caja_sorpresa'
-                });
-            }
+            // La asignación de puntos ahora se hace 100% de forma segura en el Backend (API play-mystery-box)
+            // Por lo tanto, no es necesario hacer las escrituras en la base de datos desde aquí.
 
             setStatus('won');
 
@@ -191,22 +146,7 @@ export const MysteryBoxPage = () => {
         );
     }
 
-    if (status === 'auth_required') {
-        return (
-            <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-black flex items-center justify-center p-4">
-                <div className="bg-white/10 backdrop-blur-xl p-8 rounded-[30px] border border-white/10 text-center max-w-sm w-full">
-                    <div className="bg-gradient-to-tr from-orange-400 to-pink-500 w-24 h-24 rounded-[2rem] flex items-center justify-center mx-auto mb-6 rotate-12 shadow-[0_0_40px_rgba(249,115,22,0.4)]">
-                        <Gift className="w-12 h-12 text-white" />
-                    </div>
-                    <h2 className="text-2xl font-black text-white mb-2">¡Tenés una Sorpresa!</h2>
-                    <p className="text-white/80 mb-8">Para abrir la Caja Sorpresa y guardar tus puntos, necesitás iniciar sesión.</p>
-                    <button onClick={handleLoginAndClaim} className="w-full bg-gradient-to-r from-orange-500 to-pink-500 text-white py-4 rounded-xl font-black text-lg shadow-lg hover:scale-[1.02] active:scale-[0.98] transition">
-                        Ingresar y Abrir
-                    </button>
-                </div>
-            </div>
-        );
-    }
+    // El estado auth_required ya no se usa.
 
     if (status === 'rejected') {
         return (
@@ -231,11 +171,23 @@ export const MysteryBoxPage = () => {
                             <PartyPopper className="w-16 h-16 text-white" />
                         </div>
                     </div>
-                    <h2 className="text-4xl font-black text-white mb-2 drop-shadow-md">¡+{pointsWon} PTS!</h2>
-                    <p className="text-green-300 font-bold mb-8">Felicidades, ganaste estos puntos por tu compra.</p>
-                    <button onClick={() => navigate('/')} className="w-full bg-white text-green-900 py-4 rounded-xl font-black text-lg shadow-xl hover:scale-[1.02] active:scale-[0.98] transition">
-                        Ver Mis Puntos
-                    </button>
+                    {user ? (
+                        <>
+                            <h2 className="text-4xl font-black text-white mb-2 drop-shadow-md">¡+{pointsWon} PTS!</h2>
+                            <p className="text-green-300 font-bold mb-8">Felicidades, ganaste estos puntos por tu compra.</p>
+                            <button onClick={() => navigate('/')} className="w-full bg-white text-green-900 py-4 rounded-xl font-black text-lg shadow-xl hover:scale-[1.02] active:scale-[0.98] transition">
+                                Ver Mis Puntos
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <h2 className="text-3xl font-black text-white mb-3 drop-shadow-md">¡Tus {pointsWon} puntos ya están listos! 🎁</h2>
+                            <p className="text-green-300 font-medium mb-8 leading-snug">Iniciá sesión ahora para asegurar tu saldo antes de que venza y descubrí qué premios gratis ya podés canjear.</p>
+                            <button onClick={() => navigate('/login?redirect=/')} className="w-full bg-white text-green-900 py-4 px-2 rounded-xl font-black text-[17px] shadow-xl hover:scale-[1.02] active:scale-[0.98] transition">
+                                Asegurar mis puntos y ver premios
+                            </button>
+                        </>
+                    )}
                 </div>
             </div>
         );

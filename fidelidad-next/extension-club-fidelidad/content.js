@@ -1,12 +1,13 @@
-// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V67 - RESCUE STABLE)
+// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V68 - RESCUE STABLE)
 if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin') || window.location.href.includes('pattala.com')) {
     console.log("🛡️ [Club Fidelidad] Extensión desactivada en el Dashboard.");
 } else {
-    console.log("🚀 [Club Fidelidad] V67: Iniciando extensión.");
+    console.log("🚀 [Club Fidelidad] V68: Iniciando extensión.");
 
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;
 let detectedDiscounts = 0;
+let processedAmount = null;
 let apiRatios = { base: 100, perPeso: 1, discountK: 0 };
 let currentPromos = [];
 let enablePetModule = false;
@@ -695,6 +696,7 @@ function detectAmount() {
     detectedDiscounts = discountSum;
 
     if (!isNaN(val) && val > 0) {
+        if (val === processedAmount) return; // Ya procesado
         const panelExists = document.getElementById('fidelidad-panel');
         if (val !== detectedAmount || !panelExists) {
             console.log(`💰 [Club Fidelidad] Monto detectado: ${val}`);
@@ -702,6 +704,7 @@ function detectAmount() {
             showFidelidadPanel();
         }
     } else {
+        processedAmount = null;
         // Reset detected amount if no input is found so it can trigger again when it appears
         if (detectedAmount > 0) detectedAmount = 0;
     }
@@ -756,6 +759,13 @@ function showFidelidadPanel() {
         if (inputMonto && (!inputMonto.value || inputMonto.dataset.autoFilled === 'true')) {
             inputMonto.value = baseActual;
             inputMonto.dataset.autoFilled = 'true';
+        }
+        
+        // Si el panel estaba minimizado y el monto cambió, lo restauramos
+        const body = document.querySelector('.fidelidad-body');
+        if (body && body.style.display === 'none') {
+            body.style.display = 'block';
+            document.getElementById('fidelidad-close').innerText = '×';
         }
         return;
     }
@@ -1041,10 +1051,18 @@ function showFidelidadPanel() {
     window.addEventListener('keypress', killEvent, true);
 
     document.getElementById('fidelidad-close').onclick = () => {
-        window.removeEventListener('keydown', killEvent, true);
-        window.removeEventListener('keyup', killEvent, true);
-        window.removeEventListener('keypress', killEvent, true);
-        panel.remove();
+        // En lugar de remover (y pelear con el observer), MINIMIZAMOS el panel
+        const body = panel.querySelector('.fidelidad-body');
+        if (body.style.display === 'none') {
+            body.style.display = 'block';
+            document.getElementById('fidelidad-close').innerText = '×';
+        } else {
+            body.style.display = 'none';
+            document.getElementById('fidelidad-close').innerText = '+';
+            if (document.activeElement === searchInput) {
+                searchInput.blur();
+            }
+        }
     };
 
     // FOCO PERSISTENTE SOLO EN EL SEARCH INICIAL
@@ -1457,6 +1475,7 @@ function showFidelidadPanel() {
             window.removeEventListener('keydown', killEvent, true);
             window.removeEventListener('keyup', killEvent, true);
             window.removeEventListener('keypress', killEvent, true);
+            processedAmount = detectedAmount; // Prevenir que reabra solo
             panel.remove();
         };
     }
@@ -1554,6 +1573,7 @@ function showFidelidadPanel() {
             window.removeEventListener('keydown', killEvent, true);
             window.removeEventListener('keyup', killEvent, true);
             window.removeEventListener('keypress', killEvent, true);
+            processedAmount = detectedAmount; // Prevenir que reabra solo
             panel.remove();
         };
     }

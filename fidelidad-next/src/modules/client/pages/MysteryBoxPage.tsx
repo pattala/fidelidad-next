@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Gift, XCircle, CheckCircle2, Loader2, PartyPopper } from 'lucide-react';
 import { useClientAuth } from '../contexts/ClientAuthContext';
-import { MysteryBoxService, MysteryBoxChance } from '../../../services/mysteryBoxService';
+import { MysteryBoxService, type MysteryBoxChance } from '../../../services/mysteryBoxService';
 import { ConfigService } from '../../../services/configService';
 import { doc, getDoc, updateDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';

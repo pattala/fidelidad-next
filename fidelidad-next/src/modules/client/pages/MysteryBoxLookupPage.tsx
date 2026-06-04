@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Gift, Search, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
-import { MysteryBoxService, MysteryBoxChance } from '../../../services/mysteryBoxService';
+import { MysteryBoxService, type MysteryBoxChance } from '../../../services/mysteryBoxService';
 import { useClientAuth } from '../contexts/ClientAuthContext';
 
 export const MysteryBoxLookupPage = () => {

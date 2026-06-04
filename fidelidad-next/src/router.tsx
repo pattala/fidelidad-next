@@ -48,7 +48,6 @@ export const router = createBrowserRouter([
         element: <ClientRegisterPage />
     },
     {
-        {
         element: (
             <ClientAuthProvider>
                 <ClientLayout />

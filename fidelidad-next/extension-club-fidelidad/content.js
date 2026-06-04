@@ -340,7 +340,7 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                 isDragging = true; dragStart.x = e.clientX - pos.x; dragStart.y = e.clientY - pos.y;
                 document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', mouseUp);
             };
-            ui.querySelector('#cf-v35-close').onclick = () => { isExpanded = false; render(); };
+            ui.querySelector('#cf-v35-close').onclick = (e) => { e.stopPropagation(); isExpanded = false; render(); };
             ui.querySelector('#tab-pending').onclick = () => { activeTab = 'pending'; render(); };
             ui.querySelector('#tab-processed').onclick = () => { activeTab = 'processed'; render(); };
             ui.querySelector('#tab-sorteos').onclick = () => { activeTab = 'sorteos'; render(); };
@@ -368,7 +368,10 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                 isDragging = true; dragStart.x = e.clientX - pos.x; dragStart.y = e.clientY - pos.y;
                 document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', mouseUp);
             };
-            ui.onclick = (e) => { if (Math.abs(e.clientX - (pos.x + dragStart.x)) < 5) { isExpanded = true; render(); } };
+            ui.onclick = (e) => { 
+                if (isExpanded) return;
+                if (Math.abs(e.clientX - (pos.x + dragStart.x)) < 5) { isExpanded = true; render(); } 
+            };
         }
         };
 

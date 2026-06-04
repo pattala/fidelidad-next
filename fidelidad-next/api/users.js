@@ -1,10 +1,17 @@
-﻿// /api/users.js
+// /api/users.js
 // Consolidated users API: Create, Delete, and Assign Socio Number.
 // Actions: 'create' (default), 'delete', 'assign-socio'
 
 import admin from "firebase-admin";
 import { getValidityDays } from "../utils/_expiration-utils.js";
 import { getEffectiveDate } from "../utils/timeUtils.js";
+import nodemailer from 'nodemailer';
+
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+    tls: { rejectUnauthorized: false }
+});
 
 // ---------- Firebase Admin Init ----------
 function initFirebaseAdmin() {
@@ -401,6 +408,76 @@ async function handleAssignSocio(req, res, db) {
 }
 
 
+// --- SUB-HANDLER: INVITE ADMIN ---
+async function handleInviteAdmin(req, res, db) {
+    const { email, role, invitedBy } = req.body;
+    if (!email || !role) return res.status(400).json({ ok: false, error: "Missing email or role" });
+
+    try {
+        const configSnap = await db.collection('config').doc('general').get();
+        const config = configSnap.exists ? configSnap.data() : { siteName: 'Club de Fidelidad', primaryColor: '#2563eb' };
+
+        let user;
+        try {
+            user = await admin.auth().getUserByEmail(email);
+        } catch (e) {
+            if (e.code === 'auth/user-not-found') {
+                user = await admin.auth().createUser({ email, emailVerified: true });
+            } else throw e;
+        }
+
+        const baseUrl = req.headers.origin || process.env.PWA_URL || `https://${req.headers.host}`;
+        const actionCodeSettings = { url: baseUrl + '/admin/login' };
+        const actionLink = await admin.auth().generatePasswordResetLink(email, actionCodeSettings);
+
+        await db.collection('admins').doc(user.uid).set({
+            email, role, invitedBy: invitedBy || 'system', status: 'active',
+            createdAt: new Date(), uid: user.uid
+        }, { merge: true });
+
+        const html = `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 12px; overflow: hidden;">
+        <div style="background-color: ${config.primaryColor || '#2563eb'}; padding: 30px; text-align: center; color: white;">
+          ${config.logoUrl ? `<img src="${config.logoUrl}" style="height: 60px; margin-bottom: 10px;" />` : ''}
+          <h1 style="margin: 0; font-size: 24px;">¡Bienvenido al Equipo!</h1>
+        </div>
+        <div style="padding: 30px; line-height: 1.6; color: #333;">
+          <p>Hola,</p>
+          <p>Has sido invitado por <b>${invitedBy || 'un administrador'}</b> para administrar el panel de <b>${config.siteName}</b> con el rol de <b>${role.toUpperCase()}</b>.</p>
+          <p>Para comenzar a trabajar, por favor haz clic en el siguiente botón para crear tu contraseña de acceso:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${actionLink}" style="background-color: ${config.primaryColor || '#2563eb'}; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Activar mi Cuenta</a>
+          </div>
+          <p style="font-size: 12px; color: #666;">Si el botón no funciona, copia y pega este link en tu navegador:<br/>${actionLink}</p>
+          <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
+          <p style="font-size: 12px; color: #999; text-align: center;">Este es un mensaje automático de ${config.siteName}.</p>
+        </div>
+      </div>
+    `;
+
+        await transporter.sendMail({
+            from: `"${config.siteName}" <${process.env.SMTP_USER}>`,
+            to: email,
+            subject: `Invitación de Administración - ${config.siteName}`,
+            html: html
+        });
+
+        await db.collection('audit_logs').add({
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            type: 'admin_mgmt',
+            status: 'success',
+            summary: `Nueva invitación: ${email} (${role})`,
+            details: [{ action: 'admin_invited', status: 'success', info: `Invitado por: ${invitedBy}, Rol: ${role}` }],
+            executor: invitedBy || 'admin'
+        });
+
+        return res.status(200).json({ ok: true, message: 'Invitación enviada' });
+    } catch (error) {
+        console.error('Error in invite-admin:', error);
+        return res.status(500).json({ ok: false, error: error.message });
+    }
+}
+
 export default async function handler(req, res) {
     applyCors(req, res);
     if (req.method === "OPTIONS") return res.status(204).end();
@@ -421,6 +498,7 @@ export default async function handler(req, res) {
         case 'create': return handleCreate(req, res, db);
         case 'delete': return handleDelete(req, res, db);
         case 'assign-socio': return handleAssignSocio(req, res, db);
+        case 'invite-admin': return handleInviteAdmin(req, res, db);
         default: return res.status(400).json({ ok: false, error: "Invalid action" });
     }
 }

@@ -182,7 +182,7 @@ const TeamManagement = () => {
 
         try {
             const token = await auth.currentUser?.getIdToken();
-            const response = await fetch('/api/invite-admin', {
+            const response = await fetch('/api/users?action=invite-admin', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -677,10 +677,16 @@ export const GlobalAlerts = () => {
                                 {Object.keys(processedAlerts).length === 0 && <div className="text-center py-10 opacity-30 text-xs font-bold">Vacío</div>}
                             </>
                         ) : activeTab === 'sorteos' ? (
+                            (() => {
+                                const activeMysteryBoxChances = mysteryBoxChances.filter(c => {
+                                    const exp = c.resendExpiresAt || c.expiresAt;
+                                    return !exp || exp.toDate() > TimeService.now();
+                                });
+                                return (
                             <>
-                                {mysteryBoxChances.length > 0 ? (
+                                {activeMysteryBoxChances.length > 0 ? (
                                     <div className="space-y-3">
-                                        {mysteryBoxChances.map(c => {
+                                        {activeMysteryBoxChances.map(c => {
                                             const pwaUrl = config?.contact?.pwaUrl || window.location.origin;
                                             const chanceUrl = `${pwaUrl}/play/${c.id}`;
                                             return (
@@ -690,10 +696,10 @@ export const GlobalAlerts = () => {
                                                     <div>
                                                         <h5 className="font-bold text-white text-[15px]">{c.clientName || 'Cliente'}</h5>
                                                         <p className="text-[9px] text-white/40 font-bold uppercase tracking-wider mt-1">
-                                                            🎁 Compra de ${c.amount}
+                                                            🎁 Compra de ${c.amount} • {c.createdAt?.toDate().toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}
                                                         </p>
                                                         <p className="text-[9px] text-orange-400/80 font-bold uppercase tracking-wider mt-1">
-                                                            Expira el {(c.resendExpiresAt || c.expiresAt)?.toDate().toLocaleString()}
+                                                            Expira el {(c.resendExpiresAt || c.expiresAt)?.toDate().toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -713,6 +719,8 @@ export const GlobalAlerts = () => {
                                     <div className="text-center py-10 opacity-30 text-xs font-bold">✨ No hay sorteos pendientes</div>
                                 )}
                             </>
+                                );
+                            })()
                         ) : null}
                     </div>
                 </div>
@@ -738,7 +746,13 @@ export const GlobalAlerts = () => {
                     )}
                     {mysteryBoxChances.length > 0 && (
                         <div className="absolute top-0 -left-2 bg-orange-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-lg">
-                            🎁 {mysteryBoxChances.length}
+                            🎁 {(() => {
+                                const activeMysteryBoxChances = mysteryBoxChances.filter(c => {
+                                    const exp = c.resendExpiresAt || c.expiresAt;
+                                    return !exp || exp.toDate() > TimeService.now();
+                                });
+                                return activeMysteryBoxChances.length;
+                            })()}
                         </div>
                     )}
 
@@ -753,6 +767,14 @@ const AlertCard = ({ item, type, onAction, onDelete, status, isCampaignActive }:
     const isPending = status === 'pending';
     const isSent = status === 'sent';
     const isDismissed = status === 'dismissed';
+
+    let timeStr = "";
+    if (item.timestamp) {
+        const d = item.timestamp.toDate ? item.timestamp.toDate() : new Date(item.timestamp);
+        timeStr = d.toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' });
+    } else {
+        timeStr = new Date().toLocaleDateString('es-AR');
+    }
 
     return (
         <div className={`bg-white/[0.03] p-5 rounded-[30px] border border-white/10 flex flex-col gap-4 relative group transition-all ${!isPending ? 'opacity-60 grayscale-[0.5]' : ''}`}>
@@ -781,10 +803,13 @@ const AlertCard = ({ item, type, onAction, onDelete, status, isCampaignActive }:
                         {isSent && <span className="text-[#25D366] text-xs font-black drop-shadow-[0_0_2px_rgba(37,211,102,0.5)]">✓✓</span>}
                         {isDismissed && <span className="text-red-500 text-xs font-black">✓</span>}
                     </h5>
-                    <p className="text-[9px] text-white/40 font-bold uppercase tracking-wider mt-1">
-                        {type === 'campaign' ? `📢 ${item.name}` : type === 'pet' ? `🐾 ${item.petName}` : type === 'expiration' ? `⏳ ${item.points} pts` : type === 'redemption' ? `🎁 ${item.prizeName}` : type === 'points' ? `💰 +${item.points} pts` : '🎂 Cumpleaños'}
-                        {item.isOrphan && <span className="ml-2 text-red-400 bg-red-400/10 px-1.5 py-0.5 rounded border border-red-400/20 text-[7px]">USUARIO ELIMINADO</span>}
-                    </p>
+                    <div className="text-[9px] text-white/40 font-bold uppercase tracking-wider mt-1 flex flex-col gap-1">
+                        <span>
+                            {type === 'campaign' ? `📢 ${item.name}` : type === 'pet' ? `🐾 ${item.petName}` : type === 'expiration' ? `⏳ ${item.points} pts` : type === 'redemption' ? `🎁 ${item.prizeName}` : type === 'points' ? `💰 +${item.points} pts` : '🎂 Cumpleaños'}
+                            {item.isOrphan && <span className="ml-2 text-red-400 bg-red-400/10 px-1.5 py-0.5 rounded border border-red-400/20 text-[7px]">USUARIO ELIMINADO</span>}
+                        </span>
+                        <span className="text-[8.5px] text-white/20 lowercase tracking-normal font-medium">{timeStr}</span>
+                    </div>
                 </div>
             </div>
 

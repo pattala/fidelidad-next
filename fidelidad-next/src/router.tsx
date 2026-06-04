@@ -65,6 +65,14 @@ export const router = createBrowserRouter([
                 element: <MysteryBoxPage />
             },
             {
+                path: "sorteo",
+                element: <MysteryBoxLookupPage />
+            },
+            {
+                path: "play",
+                element: <MysteryBoxLookupPage />
+            },
+            {
                 path: "promos",
                 element: <ClientPromosPage />
             },

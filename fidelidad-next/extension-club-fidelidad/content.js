@@ -1,8 +1,8 @@
-// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V66 - RESCUE STABLE)
+// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V67 - RESCUE STABLE)
 if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin') || window.location.href.includes('pattala.com')) {
     console.log("🛡️ [Club Fidelidad] Extensión desactivada en el Dashboard.");
 } else {
-    console.log("🚀 [Club Fidelidad] V66: Iniciando extensión.");
+    console.log("🚀 [Club Fidelidad] V67: Iniciando extensión.");
 
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;
@@ -485,10 +485,37 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
             } catch (e) { console.warn("Sync error:", e); }
         };
         ui.querySelectorAll('.cf-action-dismiss').forEach(btn => btn.onclick = () => updateStorage(btn.dataset.id, 'dismissed'));
-        ui.querySelectorAll('.cf-action-whatsapp').forEach(btn => btn.onclick = () => {
-            const url = generateWhatsAppToken(btn.dataset.type, btn.dataset.phone, btn.dataset.name, btn.dataset.extra, config, btn.dataset.socio, btn.dataset.date);
-            if (url) window.open(url, '_blank');
-            updateStorage(btn.dataset.id, 'sent');
+        ui.querySelectorAll('.cf-action-whatsapp').forEach(btn => btn.onclick = async () => {
+            const originalText = btn.innerText;
+            btn.innerText = '...';
+            btn.style.opacity = '0.5';
+            btn.style.pointerEvents = 'none';
+            
+            try {
+                let extraId = btn.dataset.extra;
+                if (btn.dataset.type === 'mysteryBox') {
+                    const res = await apiBridge({
+                        url: `${config.apiUrl}/api/regenerate-mystery-box`,
+                        method: 'POST',
+                        headers: { 'x-api-key': config.apiKey },
+                        body: { alertId: btn.dataset.id }
+                    });
+                    
+                    if (res && res.newId) {
+                        extraId = res.newId;
+                    }
+                }
+                
+                const url = generateWhatsAppToken(btn.dataset.type, btn.dataset.phone, btn.dataset.name, extraId, config, btn.dataset.socio, btn.dataset.date);
+                if (url) window.open(url, '_blank');
+                updateStorage(btn.dataset.id, 'sent');
+            } catch (err) {
+                console.error("Error regenerating code:", err);
+                alert("Error: " + err.message);
+                btn.innerText = originalText;
+                btn.style.opacity = '1';
+                btn.style.pointerEvents = 'auto';
+            }
         });
         ui.querySelectorAll('.cf-v35-card-close').forEach(btn => btn.onclick = () => updateStorage(btn.dataset.id, 'dismissed'));
         ui.querySelectorAll('.cf-v35-card-delete').forEach(btn => btn.onclick = () => updateStorage(btn.dataset.id, null));

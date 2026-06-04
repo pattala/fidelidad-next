@@ -48,18 +48,13 @@ export const router = createBrowserRouter([
         element: <ClientRegisterPage />
     },
     {
+        {
         element: (
             <ClientAuthProvider>
-                <ClientAuthGuard>
-                    <ClientLayout />
-                </ClientAuthGuard>
+                <ClientLayout />
             </ClientAuthProvider>
         ),
         children: [
-            {
-                index: true,
-                element: <ClientHomePage />
-            },
             {
                 path: "play/:id",
                 element: <MysteryBoxPage />
@@ -71,6 +66,21 @@ export const router = createBrowserRouter([
             {
                 path: "play",
                 element: <MysteryBoxLookupPage />
+            }
+        ]
+    },
+    {
+        element: (
+            <ClientAuthProvider>
+                <ClientAuthGuard>
+                    <ClientLayout />
+                </ClientAuthGuard>
+            </ClientAuthProvider>
+        ),
+        children: [
+            {
+                index: true,
+                element: <ClientHomePage />
             },
             {
                 path: "promos",

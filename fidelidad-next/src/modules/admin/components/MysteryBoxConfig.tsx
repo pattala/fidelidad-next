@@ -80,7 +80,7 @@ export const MysteryBoxConfig = ({ config, setConfig }: { config: AppConfig, set
                               </div>
                               <div className="flex flex-col items-center gap-3">
                                   <div className="bg-white p-3 rounded-xl shadow-sm">
-                                      <QRCode value={`${config.contact?.pwaUrl || window.location.origin}/play`} size={100} />
+                                      <QRCode value={`${config.contact?.pwaUrl || window.location.origin}/sorteo`} size={100} />
                                   </div>
                                   <button
                                       onClick={() => {
@@ -92,7 +92,7 @@ export const MysteryBoxConfig = ({ config, setConfig }: { config: AppConfig, set
                                                       <body style="display:flex; justify-content:center; align-items:center; height:100vh; flex-direction:column; font-family:sans-serif; text-align:center;">
                                                           <h1 style="font-size:36px; margin-bottom:10px; color:#ea580c;">¡JUGÁ Y GANÁ!</h1>
                                                           <h2 style="font-size:24px; margin-bottom:40px; color:#4b5563;">Escaneá el código para abrir tu Caja Sorpresa</h2>
-                                                          <img src="https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent((config.contact?.pwaUrl || window.location.origin) + '/play')}" />
+                                                          <img src="https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent((config.contact?.pwaUrl || window.location.origin) + '/sorteo')}" />
                                                           <p style="margin-top:40px; font-size:18px; color:#6b7280; font-weight:bold;">¡Pedile tu código secreto al cajero con tu compra!</p>
                                                           <script>setTimeout(() => { window.print(); window.close(); }, 500);</script>
                                                       </body>

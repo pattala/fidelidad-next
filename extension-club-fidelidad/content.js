@@ -5,6 +5,7 @@ console.log("🚀 [Club Fidelidad] v29: Iniciando versión con infiltración en 
 let config = { apiUrl: '', apiKey: '' };
 let apiRatios = { base: 100, perPeso: 1 };
 let detectedAmount = 0;
+let processedAmount = null;
 let selectedClient = null;
 let currentPromos = []; // Store calculable promos globally for this context
 
@@ -48,12 +49,16 @@ function detectAmount() {
     }
 
     if (!isNaN(val) && val > 0) {
+        if (val === processedAmount) return; // Ya se le asignaron puntos a este monto exacto
+
         const panelExists = document.getElementById('fidelidad-panel');
         if (val !== detectedAmount || !panelExists) {
             console.log(`💰 [Club Fidelidad] Monto detectado: ${val}`);
             detectedAmount = val;
             showFidelidadPanel();
         }
+    } else {
+        processedAmount = null; // Reiniciar si el carrito se vacía
     }
 }
 
@@ -67,6 +72,13 @@ function showFidelidadPanel() {
         if (amountEl) amountEl.innerText = `$ ${detectedAmount.toLocaleString('es-AR')}`;
         const inputMonto = document.getElementById('cf-input-amount');
         if (inputMonto && !inputMonto.value) inputMonto.value = detectedAmount;
+
+        // Si el panel estaba minimizado y el monto cambió, lo restauramos
+        const body = document.querySelector('.fidelidad-body');
+        if (body && body.style.display === 'none') {
+            body.style.display = 'block';
+            document.getElementById('fidelidad-close').innerText = '×';
+        }
         return;
     }
 
@@ -254,10 +266,18 @@ function showFidelidadPanel() {
     window.addEventListener('keypress', killEvent, true);
 
     document.getElementById('fidelidad-close').onclick = () => {
-        window.removeEventListener('keydown', killEvent, true);
-        window.removeEventListener('keyup', killEvent, true);
-        window.removeEventListener('keypress', killEvent, true);
-        panel.remove();
+        // En lugar de remover, MINIMIZAMOS el panel
+        const body = panel.querySelector('.fidelidad-body');
+        if (body.style.display === 'none') {
+            body.style.display = 'block';
+            document.getElementById('fidelidad-close').innerText = '×';
+        } else {
+            body.style.display = 'none';
+            document.getElementById('fidelidad-close').innerText = '+';
+            if (document.activeElement === searchInput) {
+                searchInput.blur();
+            }
+        }
     };
 
     // FOCO PERSISTENTE SOLO EN EL SEARCH INICIAL
@@ -533,6 +553,7 @@ function showFidelidadPanel() {
             window.removeEventListener('keydown', killEvent, true);
             window.removeEventListener('keyup', killEvent, true);
             window.removeEventListener('keypress', killEvent, true);
+            processedAmount = detectedAmount; // Registrar que el cobro ya fue procesado
             panel.remove();
         };
     }

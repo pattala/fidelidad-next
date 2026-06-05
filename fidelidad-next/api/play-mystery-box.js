@@ -19,6 +19,29 @@ function initFirebaseAdmin() {
 
 export default async function handler(req, res) {
     if (req.method === 'OPTIONS') return res.status(200).end();
+
+    // GET = diagnostic mode: show what Firebase has for mysteryBox config
+    if (req.method === 'GET') {
+        try {
+            const adminApp = initFirebaseAdmin();
+            const db = adminApp.firestore();
+            const configSnap = await db.collection('config').doc('general').get();
+            const configData = configSnap.exists ? configSnap.data() : null;
+            const mb = configData?.mysteryBox || null;
+            return res.status(200).json({
+                ok: true,
+                configExists: configSnap.exists,
+                mysteryBoxExists: !!mb,
+                mysteryBoxEnabled: mb?.enabled ?? 'FIELD_MISSING',
+                prizeScalesCount: mb?.prizeScales?.length ?? 0,
+                prizeScales: mb?.prizeScales || [],
+                allMysteryBoxKeys: mb ? Object.keys(mb) : []
+            });
+        } catch (e) {
+            return res.status(500).json({ ok: false, error: e.message });
+        }
+    }
+
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
     try {

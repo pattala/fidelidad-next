@@ -181,10 +181,10 @@ export const MysteryBoxPage = () => {
                         </>
                     ) : (
                         <>
-                            <h2 className="text-3xl font-black text-white mb-3 drop-shadow-md">¡Tus {pointsWon} puntos ya están listos! 🎁</h2>
-                            <p className="text-green-300 font-medium mb-8 leading-snug">Iniciá sesión ahora para asegurar tu saldo antes de que venza y descubrí qué premios gratis ya podés canjear.</p>
+                            <h2 className="text-3xl font-black text-white mb-3 drop-shadow-md">¡Tus {pointsWon} puntos ya están guardados! 🎁</h2>
+                            <p className="text-green-300 font-medium mb-8 leading-snug">Descubrí si este saldo ya te alcanza para llevarte tu primer premio gratis... Iniciá sesión para ver tu catálogo.</p>
                             <button onClick={() => navigate('/login?redirect=/')} className="w-full bg-white text-green-900 py-4 px-2 rounded-xl font-black text-[17px] shadow-xl hover:scale-[1.02] active:scale-[0.98] transition">
-                                Asegurar mis puntos y ver premios
+                                Ver mi catálogo de premios
                             </button>
                         </>
                     )}

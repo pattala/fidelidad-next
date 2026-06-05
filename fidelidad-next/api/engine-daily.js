@@ -1048,8 +1048,8 @@ export default async function handler(req, res) {
                     socioNumber: data.socioNumber || data.clientDni || '',
                     phone: data.phone || data.clientPhone || '',
                     amount: data.amount || 0,
-                    createdAt: data.createdAt,
-                    expiresAt: data.expiresAt,
+                    createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data.createdAt,
+                    expiresAt: data.expiresAt?.toDate ? data.expiresAt.toDate().toISOString() : data.expiresAt,
                     status: data.status || 'pending',
                     type: 'mysteryBox'
                 });

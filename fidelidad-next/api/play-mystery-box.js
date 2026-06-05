@@ -50,7 +50,7 @@ export default async function handler(req, res) {
             }
 
             // Get prize scales from config
-            const configSnap = await t.get(db.collection('config').doc('global'));
+            const configSnap = await t.get(db.collection('config').doc('general'));
             const config = configSnap.data() || {};
             const mysteryBoxConfig = config.mysteryBox || {};
             

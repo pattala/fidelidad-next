@@ -39,7 +39,7 @@ export default async function handler(req, res) {
 
         const mbId = alertId.startsWith('mb_') ? alertId.substring(3) : alertId;
 
-        const configSnap = await db.collection('config').doc('global').get();
+        const configSnap = await db.collection('config').doc('general').get();
         const config = configSnap.data() || {};
         const mbConfig = config.mysteryBox || {};
         const chanceDeadlineMinutes = mbConfig.chanceDeadlineMinutes || 60;

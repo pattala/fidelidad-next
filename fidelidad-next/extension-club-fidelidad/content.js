@@ -265,8 +265,11 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                             <div style="font-size:10px; color:#9a3412; margin-top:2px; font-weight:bold;">
                                 Monto: ${b.amount || 0}
                             </div>
-                            <div style="font-size:8.5px; opacity:0.6; margin-top:2px;">
-                                ${b.createdAt || b.timestamp ? new Date(b.createdAt || b.timestamp).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' }) : new Date().toLocaleDateString('es-AR')}
+                            <div style="font-size:9px; opacity:0.8; margin-top:4px; font-weight:700;">
+                                🕒 ${(() => {
+                                    const d = new Date(b.createdAt || b.timestamp || Date.now());
+                                    return d.toLocaleDateString('es-AR') + ' - ' + d.toLocaleTimeString('es-AR', {hour: '2-digit', minute:'2-digit'}) + ' hs';
+                                })()}
                             </div>
                         </div>
                         <div style="display:flex; gap:4px;">
@@ -455,8 +458,11 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                     </div>
                     <div style="font-size:10px; opacity:0.6; margin-top:2px;">
                         ${type === 'campaign' ? `📢 ${item.name}` : type === 'pet' ? `🐾 ${item.petName}` : type === 'expiration' ? `⏳ ${item.points} pts` : type === 'redemption' ? `🎁 ${item.prizeName}` : type === 'pointsAssignment' ? `💰 +${item.points} pts` : '🎂 Cumpleaños'}
-                        <div style="font-size:8.5px; opacity:0.6; margin-top:2px; font-weight:500;">
-                            ${item.timestamp || item.createdAt ? new Date(item.timestamp || item.createdAt).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' }) : new Date().toLocaleDateString('es-AR')}
+                        <div style="font-size:9px; opacity:0.8; margin-top:4px; font-weight:700;">
+                            🕒 ${(() => {
+                                const d = new Date(item.timestamp || item.createdAt || Date.now());
+                                return d.toLocaleDateString('es-AR') + ' - ' + d.toLocaleTimeString('es-AR', {hour: '2-digit', minute:'2-digit'}) + ' hs';
+                            })()}
                         </div>
                     </div>
                 </div>

@@ -695,9 +695,12 @@ export const GlobalAlerts = () => {
                                                     
                                                     <div>
                                                         <h5 className="font-bold text-white text-[15px]">{c.clientName || 'Cliente'}</h5>
-                                                        <p className="text-[9px] text-white/40 font-bold uppercase tracking-wider mt-1">
-                                                            🎁 Compra de ${c.amount} • {c.createdAt?.toDate().toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}
-                                                        </p>
+                                                        <div className="text-[9px] text-white/40 font-bold uppercase tracking-wider mt-1 flex flex-col gap-1.5">
+                                                            <span>🎁 Compra de ${c.amount}</span>
+                                                            <span className="text-[10px] text-white/70 tracking-normal font-bold bg-black/20 px-1.5 py-0.5 rounded inline-block w-fit mt-0.5">
+                                                                🕒 {c.createdAt?.toDate().toLocaleDateString('es-AR')} - {c.createdAt?.toDate().toLocaleTimeString('es-AR', {hour: '2-digit', minute:'2-digit'})} hs
+                                                            </span>
+                                                        </div>
                                                         <p className="text-[9px] text-orange-400/80 font-bold uppercase tracking-wider mt-1">
                                                             Expira el {(c.resendExpiresAt || c.expiresAt)?.toDate().toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}
                                                         </p>
@@ -771,9 +774,10 @@ const AlertCard = ({ item, type, onAction, onDelete, status, isCampaignActive }:
     let timeStr = "";
     if (item.timestamp) {
         const d = item.timestamp.toDate ? item.timestamp.toDate() : new Date(item.timestamp);
-        timeStr = d.toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' });
+        timeStr = d.toLocaleDateString('es-AR') + ' - ' + d.toLocaleTimeString('es-AR', {hour: '2-digit', minute:'2-digit'}) + ' hs';
     } else {
-        timeStr = new Date().toLocaleDateString('es-AR');
+        const d = new Date();
+        timeStr = d.toLocaleDateString('es-AR') + ' - ' + d.toLocaleTimeString('es-AR', {hour: '2-digit', minute:'2-digit'}) + ' hs';
     }
 
     return (
@@ -803,12 +807,12 @@ const AlertCard = ({ item, type, onAction, onDelete, status, isCampaignActive }:
                         {isSent && <span className="text-[#25D366] text-xs font-black drop-shadow-[0_0_2px_rgba(37,211,102,0.5)]">✓✓</span>}
                         {isDismissed && <span className="text-red-500 text-xs font-black">✓</span>}
                     </h5>
-                    <div className="text-[9px] text-white/40 font-bold uppercase tracking-wider mt-1 flex flex-col gap-1">
+                    <div className="text-[9px] text-white/40 font-bold uppercase tracking-wider mt-1 flex flex-col gap-1.5">
                         <span>
                             {type === 'campaign' ? `📢 ${item.name}` : type === 'pet' ? `🐾 ${item.petName}` : type === 'expiration' ? `⏳ ${item.points} pts` : type === 'redemption' ? `🎁 ${item.prizeName}` : type === 'points' ? `💰 +${item.points} pts` : '🎂 Cumpleaños'}
                             {item.isOrphan && <span className="ml-2 text-red-400 bg-red-400/10 px-1.5 py-0.5 rounded border border-red-400/20 text-[7px]">USUARIO ELIMINADO</span>}
                         </span>
-                        <span className="text-[8.5px] text-white/20 lowercase tracking-normal font-medium">{timeStr}</span>
+                        <span className="text-[10px] text-white/70 tracking-normal font-bold bg-black/20 px-1.5 py-0.5 rounded inline-block w-fit mt-0.5">🕒 {timeStr}</span>
                     </div>
                 </div>
             </div>

@@ -111,10 +111,10 @@ export const MysteryBoxPage = () => {
                 colors: ['#FF5722', '#FFC107', '#4CAF50']
             });
 
-        } catch (e) {
+        } catch (e: any) {
             console.error(e);
             setStatus('invalid');
-            setErrorMsg('Hubo un error al abrir la caja.');
+            setErrorMsg(e?.message || 'Hubo un error al abrir la caja.');
         }
     };
 

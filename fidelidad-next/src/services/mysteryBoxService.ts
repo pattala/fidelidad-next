@@ -157,27 +157,22 @@ export const MysteryBoxService = {
 
     // 5. Play the game securely via the backend API
     async playChance(id: string): Promise<number | null> {
-        try {
-            const response = await fetch('/api/play-mystery-box', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ id })
-            });
+        const response = await fetch('/api/play-mystery-box', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ id })
+        });
 
-            const data = await response.json();
-            
-            if (!response.ok || !data.ok) {
-                console.error("Error from play-mystery-box API:", data.error);
-                return null;
-            }
-
-            return data.pointsWon;
-        } catch (e) {
-            console.error("Error calling play-mystery-box API:", e);
-            return null;
+        const data = await response.json();
+        
+        if (!response.ok || !data.ok) {
+            console.error("Error from play-mystery-box API:", data.error);
+            throw new Error(data.error || 'Error desconocido del servidor');
         }
+
+        return data.pointsWon;
     },
 
     // 6. Get pending chances for a cashier (for the resend bubble)

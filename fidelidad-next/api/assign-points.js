@@ -203,6 +203,7 @@ export default async function handler(req, res) {
 
                 enablePetModule: configData.enablePetModule === true,  // Flag para la extensión
                 allowEmployeePrizeOverride: configData.allowEmployeePrizeOverride === true, // Para el catálogo
+                strictMinimumPurchaseBlock: configData.strictMinimumPurchaseBlock === true, // Bloqueo estricto
                 mysteryBox: configData.mysteryBox || null,
                 activePromotions,
                 activePrizes,
@@ -701,6 +702,7 @@ export default async function handler(req, res) {
                 });
                 result.mysteryBoxGenerated = true;
                 result.mysteryBoxId = mbId;
+                result.showMysteryBoxAlert = configData.mysteryBox?.enableCashierAlert !== false;
             }
         });
 

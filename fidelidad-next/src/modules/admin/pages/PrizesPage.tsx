@@ -162,28 +162,50 @@ export const PrizesPage = () => {
                 )}
 
                 {!isReadOnly && (
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-xl border border-gray-200 shadow-sm cursor-pointer hover:bg-gray-50" onClick={async () => {
-                            try {
-                                const newVal = !config?.allowEmployeePrizeOverride;
-                                await ConfigService.update({ allowEmployeePrizeOverride: newVal });
-                                toast.success(newVal ? "Permiso empleado activado" : "Permiso revocado");
-                            } catch (e) {
-                                toast.error("Error al guardar");
-                            }
-                        }}>
-                            <div>
-                                <h4 className="text-sm font-bold text-gray-800">A Criterio del Empleado</h4>
-                                <p className="text-[10px] text-gray-500">Permite omitir la compra mínima</p>
+                    <div className="flex flex-col md:flex-row items-center gap-4">
+                        <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-gray-200 shadow-sm">
+                            <div className="flex items-center gap-2 pr-3 border-r border-gray-100 cursor-pointer hover:bg-gray-50 p-1 rounded" onClick={async () => {
+                                try {
+                                    const newVal = !config?.strictMinimumPurchaseBlock;
+                                    await ConfigService.update({ 
+                                        strictMinimumPurchaseBlock: newVal,
+                                        ...(newVal ? { allowEmployeePrizeOverride: false } : {}) 
+                                    });
+                                    toast.success(newVal ? "Bloqueo General Activado" : "Bloqueo General Desactivado");
+                                } catch (e) { toast.error("Error al guardar"); }
+                            }}>
+                                <div>
+                                    <h4 className="text-[11px] font-bold text-red-600">Bloqueo Estricto</h4>
+                                    <p className="text-[9px] text-gray-500">Prohíbe saltear mínimo</p>
+                                </div>
+                                <div className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${config?.strictMinimumPurchaseBlock ? 'bg-red-600' : 'bg-gray-200'}`}>
+                                    <span className={`inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform ${config?.strictMinimumPurchaseBlock ? 'translate-x-3.5' : 'translate-x-1'}`} />
+                                </div>
                             </div>
-                            <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${config?.allowEmployeePrizeOverride ? 'bg-orange-600' : 'bg-gray-200'}`}>
-                                <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${config?.allowEmployeePrizeOverride ? 'translate-x-5' : 'translate-x-1'}`} />
+                            
+                            <div className="flex items-center gap-2 pl-1 cursor-pointer hover:bg-gray-50 p-1 rounded" onClick={async () => {
+                                try {
+                                    const newVal = !config?.allowEmployeePrizeOverride;
+                                    await ConfigService.update({ 
+                                        allowEmployeePrizeOverride: newVal,
+                                        ...(newVal ? { strictMinimumPurchaseBlock: false } : {}) 
+                                    });
+                                    toast.success(newVal ? "A Criterio del Empleado Activado" : "A Criterio del Empleado Desactivado");
+                                } catch (e) { toast.error("Error al guardar"); }
+                            }}>
+                                <div>
+                                    <h4 className="text-[11px] font-bold text-orange-600">A Criterio de Empleado</h4>
+                                    <p className="text-[9px] text-gray-500">Permite saltear mínimo</p>
+                                </div>
+                                <div className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${config?.allowEmployeePrizeOverride ? 'bg-orange-500' : 'bg-gray-200'}`}>
+                                    <span className={`inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform ${config?.allowEmployeePrizeOverride ? 'translate-x-3.5' : 'translate-x-1'}`} />
+                                </div>
                             </div>
                         </div>
 
                         <button
                             onClick={openCreateModal}
-                            className="bg-pink-500 hover:bg-pink-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-pink-200 transition flex items-center gap-2 active:scale-95"
+                            className="bg-pink-500 hover:bg-pink-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-pink-200 transition flex items-center gap-2 active:scale-95 whitespace-nowrap"
                         >
                             <Plus size={20} /> Nuevo Premio
                         </button>

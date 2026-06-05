@@ -1010,11 +1010,11 @@ export const ConfigPage = () => {
                                                         <label className="text-[10px] font-black text-purple-600 uppercase tracking-widest block mb-2">Paso 2: Configurar API Key</label>
                                                         <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-purple-50 group">
                                                             <code className="text-[11px] text-gray-600 flex-1 truncate font-mono">
-                                                                {import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSy..."}
+                                                                {import.meta.env.VITE_API_KEY || "Llave Secreta no encontrada"}
                                                             </code>
                                                             <button 
                                                                 onClick={() => {
-                                                                    const apiKey = import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyCiWY4sS9VaJUcfD0o5c_ZRFT0NxFdfOX8";
+                                                                    const apiKey = import.meta.env.VITE_API_KEY || "";
                                                                     navigator.clipboard.writeText(apiKey);
                                                                     toast.success("API Key copiada", { icon: '🔑' });
                                                                 }}

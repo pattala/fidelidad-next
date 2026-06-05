@@ -1,8 +1,8 @@
-// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V73 - RESCUE STABLE)
+// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V75 - RESCUE STABLE)
 if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin') || window.location.href.includes('pattala.com')) {
     console.log("🛑 [Club Fidelidad] Extensión desactivada en el Dashboard.");
 } else {
-    console.log("🚀 [Club Fidelidad] V73: Iniciando extensión.");
+    console.log("🚀 [Club Fidelidad] V75: Iniciando extensión.");
 
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;
@@ -12,6 +12,7 @@ let apiRatios = { base: 100, perPeso: 1, discountK: 0 };
 let currentPromos = [];
 let enablePetModule = false;
 let globalAllowEmployeeOverride = false;
+let globalStrictMinimumPurchaseBlock = false;
 
 const getIdentifier = (item) => item?.socioNumber || item?.phone || item?.telefono || item?.dni || item?.userId || 'unknown';
 
@@ -1130,6 +1131,7 @@ function showFidelidadPanel() {
                 apiRatios.discountK = data.discountRecoveryRatio || 0;
                 enablePetModule = data.enablePetModule === true;
                 globalAllowEmployeeOverride = data.allowEmployeePrizeOverride === true;
+                globalStrictMinimumPurchaseBlock = data.strictMinimumPurchaseBlock === true;
 
                 if (data.clients && data.clients.length > 0) {
                     renderResults(data.clients, data.activePromotions || [], data.activePrizes || []);
@@ -1478,10 +1480,10 @@ function showFidelidadPanel() {
         const body = document.querySelector('.fidelidad-body');
         body.innerHTML = `
             <div class="fidelidad-success" style="text-align: center; color: #16a34a; padding: 10px;">
-                <div style="font-size: 40px;">\u2705</div>
+                <div style="font-size: 40px;">✅</div>
                 <div style="font-weight: bold; font-size: 18px; margin: 5px 0;">¡Puntos Asignados!</div>
                 <div style="font-size: 14px; color: #666; margin-bottom: 15px;">Se sumaron ${data.pointsAdded} puntos a ${selectedClient.name}.</div>
-                ${data.mysteryBoxId ? `
+                ${(data.mysteryBoxId && data.showMysteryBoxAlert) ? `
                     <div style="margin-top: 20px; padding: 15px; background: #fff7ed; border: 2px dashed #fb923c; border-radius: 16px;">
                         <div style="font-weight: 900; color: #ea580c; font-size: 14px; margin-bottom: 10px; text-transform: uppercase;">🎁 ¡Caja Sorpresa!</div>
                         <p style="font-size: 11px; color: #9a3412; margin-bottom: 10px; line-height: 1.4;">Avísele al cliente que puede escanear el QR para jugar.</p>
@@ -1535,7 +1537,7 @@ function showFidelidadPanel() {
             `;
 
             let overrideHtml = '';
-            if (p.requiresMinimumPurchase && globalAllowEmployeeOverride) {
+            if (p.requiresMinimumPurchase && globalAllowEmployeeOverride && !globalStrictMinimumPurchaseBlock) {
                 overrideHtml = `
                     <label style="display: flex; align-items: center; gap: 4px; font-size: 9px; color: #6b7280; margin-top: 2px; cursor: pointer;">
                         <input type="checkbox" class="cf-override-check" style="width: 10px; height: 10px;">
@@ -1578,8 +1580,14 @@ function showFidelidadPanel() {
                 let meetsMinPurchase = true;
 
                 if (p.requiresMinimumPurchase) {
-                    if (currentAmt < p.minimumPurchaseAmount && !isOverridden) {
-                        meetsMinPurchase = false;
+                    if (globalStrictMinimumPurchaseBlock || globalAllowEmployeeOverride) {
+                        if (currentAmt < p.minimumPurchaseAmount) {
+                            if (globalStrictMinimumPurchaseBlock) {
+                                meetsMinPurchase = false; // Bloqueo total
+                            } else if (globalAllowEmployeeOverride && !isOverridden) {
+                                meetsMinPurchase = false; // Espera que el empleado tilde
+                            }
+                        }
                     }
                 }
 

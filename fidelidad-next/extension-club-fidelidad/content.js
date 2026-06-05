@@ -1,8 +1,8 @@
-// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V69 - RESCUE STABLE)
+// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V70 - RESCUE STABLE)
 if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin') || window.location.href.includes('pattala.com')) {
-    console.log("🛡️ [Club Fidelidad] Extensión desactivada en el Dashboard.");
+    console.log("🛑 [Club Fidelidad] Extensión desactivada en el Dashboard.");
 } else {
-    console.log("🚀 [Club Fidelidad] V69: Iniciando extensión.");
+    console.log("🚀 [Club Fidelidad] V70: Iniciando extensión.");
 
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;
@@ -1538,6 +1538,7 @@ function showFidelidadPanel() {
                 </div>
                 <div style="flex: 1;">
                     <div style="font-size: 11px; font-weight: 800; color: #1f2937; line-height: 1.2; height: 26px; overflow: hidden;">${p.name}</div>
+                    ${p.requiresMinimumPurchase ? `<div style="background: #ffedd5; color: #c2410c; font-size: 8px; font-weight: 900; padding: 2px 4px; border-radius: 4px; margin-top: 2px; display: inline-block; text-transform: uppercase;">🛍️ COMPRA MIN: $${p.minimumPurchaseAmount?.toLocaleString('es-AR') || 0}</div>` : ''}
                     <div style="font-size: 12px; font-weight: 900; color: #16a34a; margin-top: 4px;">${p.pointsRequired} pts</div>
                 </div>
                 <button class="cf-redeem-btn" data-id="${p.id}" ${isDisabled ? 'disabled' : ''} style="

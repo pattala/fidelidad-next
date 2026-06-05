@@ -162,12 +162,32 @@ export const PrizesPage = () => {
                 )}
 
                 {!isReadOnly && (
-                    <button
-                        onClick={openCreateModal}
-                        className="bg-pink-500 hover:bg-pink-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-pink-200 transition flex items-center gap-2 active:scale-95"
-                    >
-                        <Plus size={20} /> Nuevo Premio
-                    </button>
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-xl border border-gray-200 shadow-sm cursor-pointer hover:bg-gray-50" onClick={async () => {
+                            try {
+                                const newVal = !config?.allowEmployeePrizeOverride;
+                                await ConfigService.update({ allowEmployeePrizeOverride: newVal });
+                                toast.success(newVal ? "Permiso empleado activado" : "Permiso revocado");
+                            } catch (e) {
+                                toast.error("Error al guardar");
+                            }
+                        }}>
+                            <div>
+                                <h4 className="text-sm font-bold text-gray-800">A Criterio del Empleado</h4>
+                                <p className="text-[10px] text-gray-500">Permite omitir la compra mínima</p>
+                            </div>
+                            <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${config?.allowEmployeePrizeOverride ? 'bg-orange-600' : 'bg-gray-200'}`}>
+                                <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${config?.allowEmployeePrizeOverride ? 'translate-x-5' : 'translate-x-1'}`} />
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={openCreateModal}
+                            className="bg-pink-500 hover:bg-pink-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-pink-200 transition flex items-center gap-2 active:scale-95"
+                        >
+                            <Plus size={20} /> Nuevo Premio
+                        </button>
+                    </div>
                 )}
             </div>
 

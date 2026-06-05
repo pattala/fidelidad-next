@@ -202,6 +202,7 @@ export default async function handler(req, res) {
                 pointsPerPeso,
 
                 enablePetModule: configData.enablePetModule === true,  // Flag para la extensión
+                allowEmployeePrizeOverride: configData.allowEmployeePrizeOverride === true, // Para el catálogo
                 mysteryBox: configData.mysteryBox || null,
                 activePromotions,
                 activePrizes,

@@ -1,8 +1,8 @@
-// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V71 - RESCUE STABLE)
+// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V73 - RESCUE STABLE)
 if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin') || window.location.href.includes('pattala.com')) {
     console.log("🛑 [Club Fidelidad] Extensión desactivada en el Dashboard.");
 } else {
-    console.log("🚀 [Club Fidelidad] V71: Iniciando extensión.");
+    console.log("🚀 [Club Fidelidad] V73: Iniciando extensión.");
 
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;
@@ -11,6 +11,7 @@ let processedAmount = null;
 let apiRatios = { base: 100, perPeso: 1, discountK: 0 };
 let currentPromos = [];
 let enablePetModule = false;
+let globalAllowEmployeeOverride = false;
 
 const getIdentifier = (item) => item?.socioNumber || item?.phone || item?.telefono || item?.dni || item?.userId || 'unknown';
 
@@ -1127,7 +1128,8 @@ function showFidelidadPanel() {
                 apiRatios.base = data.pointsMoneyBase || 100;
                 apiRatios.perPeso = data.pointsPerPeso || 1;
                 apiRatios.discountK = data.discountRecoveryRatio || 0;
-                enablePetModule = data.enablePetModule === true; // Flag dinámico de la instancia
+                enablePetModule = data.enablePetModule === true;
+                globalAllowEmployeeOverride = data.allowEmployeePrizeOverride === true;
 
                 if (data.clients && data.clients.length > 0) {
                     renderResults(data.clients, data.activePromotions || [], data.activePrizes || []);
@@ -1533,7 +1535,7 @@ function showFidelidadPanel() {
             `;
 
             let overrideHtml = '';
-            if (p.requiresMinimumPurchase && p.allowEmployeeOverride) {
+            if (p.requiresMinimumPurchase && globalAllowEmployeeOverride) {
                 overrideHtml = `
                     <label style="display: flex; align-items: center; gap: 4px; font-size: 9px; color: #6b7280; margin-top: 2px; cursor: pointer;">
                         <input type="checkbox" class="cf-override-check" style="width: 10px; height: 10px;">

@@ -165,12 +165,16 @@ export const PrizesPage = () => {
                     <div className="flex flex-col md:flex-row items-center gap-4">
                         <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-gray-200 shadow-sm">
                             <div className="flex items-center gap-2 pr-3 border-r border-gray-100 cursor-pointer hover:bg-gray-50 p-1 rounded" onClick={async () => {
+                                if (!config) return;
                                 try {
-                                    const newVal = !config?.strictMinimumPurchaseBlock;
-                                    await ConfigService.update({ 
+                                    const newVal = !config.strictMinimumPurchaseBlock;
+                                    const updatedConfig = { 
+                                        ...config, 
                                         strictMinimumPurchaseBlock: newVal,
                                         ...(newVal ? { allowEmployeePrizeOverride: false } : {}) 
-                                    });
+                                    };
+                                    await ConfigService.save(updatedConfig);
+                                    setConfig(updatedConfig);
                                     toast.success(newVal ? "Bloqueo General Activado" : "Bloqueo General Desactivado");
                                 } catch (e) { toast.error("Error al guardar"); }
                             }}>
@@ -184,12 +188,16 @@ export const PrizesPage = () => {
                             </div>
                             
                             <div className="flex items-center gap-2 pl-1 cursor-pointer hover:bg-gray-50 p-1 rounded" onClick={async () => {
+                                if (!config) return;
                                 try {
-                                    const newVal = !config?.allowEmployeePrizeOverride;
-                                    await ConfigService.update({ 
+                                    const newVal = !config.allowEmployeePrizeOverride;
+                                    const updatedConfig = { 
+                                        ...config, 
                                         allowEmployeePrizeOverride: newVal,
                                         ...(newVal ? { strictMinimumPurchaseBlock: false } : {}) 
-                                    });
+                                    };
+                                    await ConfigService.save(updatedConfig);
+                                    setConfig(updatedConfig);
                                     toast.success(newVal ? "A Criterio del Empleado Activado" : "A Criterio del Empleado Desactivado");
                                 } catch (e) { toast.error("Error al guardar"); }
                             }}>

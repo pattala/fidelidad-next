@@ -181,7 +181,10 @@ export default async function handler(req, res) {
                     date: now,
                     concept: 'Premio Caja Sorpresa',
                     moneySpent: 0,
-                    source: 'caja_sorpresa'
+                    source: 'caja_sorpresa',
+                    expiresAt: adminApp.firestore.Timestamp.fromDate(expDate),
+                    remainingPoints: pointsWon,
+                    balanceAfter: (userData.points || 0) + pointsWon
                 });
             }
 

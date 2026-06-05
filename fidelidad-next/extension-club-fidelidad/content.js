@@ -1,8 +1,8 @@
-// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V70 - RESCUE STABLE)
+// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V71 - RESCUE STABLE)
 if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin') || window.location.href.includes('pattala.com')) {
     console.log("🛑 [Club Fidelidad] Extensión desactivada en el Dashboard.");
 } else {
-    console.log("🚀 [Club Fidelidad] V70: Iniciando extensión.");
+    console.log("🚀 [Club Fidelidad] V71: Iniciando extensión.");
 
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;
@@ -1520,17 +1520,27 @@ function showFidelidadPanel() {
             return;
         }
 
-        prizes.forEach(p => {
-            const canAfford = userPoints >= p.pointsRequired;
-            const hasStock = (p.stock || 0) > 0;
-            const isDisabled = !canAfford || !hasStock;
+        const inputMonto = document.getElementById('cf-input-amount');
+        const getAmount = () => Number(inputMonto?.value) || 0;
 
+        prizes.forEach(p => {
             const card = document.createElement('div');
+            card.className = 'cf-prize-card';
+            card.dataset.id = p.id;
             card.style.cssText = `
                 background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 8px;
                 display: flex; flex-direction: column; gap: 6px; transition: all 0.2s;
-                ${isDisabled ? 'opacity: 0.6; filter: grayscale(0.5);' : 'cursor: default;'}
             `;
+
+            let overrideHtml = '';
+            if (p.requiresMinimumPurchase && p.allowEmployeeOverride) {
+                overrideHtml = `
+                    <label style="display: flex; align-items: center; gap: 4px; font-size: 9px; color: #6b7280; margin-top: 2px; cursor: pointer;">
+                        <input type="checkbox" class="cf-override-check" style="width: 10px; height: 10px;">
+                        Ignorar compra mínima
+                    </label>
+                `;
+            }
 
             card.innerHTML = `
                 <div style="height: 60px; background: #f9fafb; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
@@ -1539,22 +1549,63 @@ function showFidelidadPanel() {
                 <div style="flex: 1;">
                     <div style="font-size: 11px; font-weight: 800; color: #1f2937; line-height: 1.2; height: 26px; overflow: hidden;">${p.name}</div>
                     ${p.requiresMinimumPurchase ? `<div style="background: #ffedd5; color: #c2410c; font-size: 8px; font-weight: 900; padding: 2px 4px; border-radius: 4px; margin-top: 2px; display: inline-block; text-transform: uppercase;">🛍️ COMPRA MIN: $${p.minimumPurchaseAmount?.toLocaleString('es-AR') || 0}</div>` : ''}
+                    ${overrideHtml}
                     <div style="font-size: 12px; font-weight: 900; color: #16a34a; margin-top: 4px;">${p.pointsRequired} pts</div>
                 </div>
-                <button class="cf-redeem-btn" data-id="${p.id}" ${isDisabled ? 'disabled' : ''} style="
+                <button class="cf-redeem-btn" data-id="${p.id}" style="
                     width: 100%; padding: 6px; border-radius: 6px; border: none;
-                    background: ${isDisabled ? '#d1d5db' : '#16a34a'};
-                    color: white; font-size: 10px; font-weight: 800; cursor: ${isDisabled ? 'not-allowed' : 'pointer'};
-                ">
-                    ${!hasStock ? 'SIN STOCK' : (canAfford ? 'CANJEAR' : 'FALTAN PTS')}
-                </button>
+                    color: white; font-size: 10px; font-weight: 800;
+                "></button>
             `;
-
-            if (!isDisabled) {
-                card.querySelector('.cf-redeem-btn').onclick = () => redeemPrize(p);
-            }
             prizesList.appendChild(card);
         });
+
+        function updateStates() {
+            const currentAmt = getAmount();
+            
+            prizes.forEach(p => {
+                const card = prizesList.querySelector(`.cf-prize-card[data-id="${p.id}"]`);
+                if (!card) return;
+
+                const btn = card.querySelector('.cf-redeem-btn');
+                const overrideCheck = card.querySelector('.cf-override-check');
+                const isOverridden = overrideCheck ? overrideCheck.checked : false;
+
+                const canAfford = userPoints >= p.pointsRequired;
+                const hasStock = (p.stock || 0) > 0;
+                let meetsMinPurchase = true;
+
+                if (p.requiresMinimumPurchase) {
+                    if (currentAmt < p.minimumPurchaseAmount && !isOverridden) {
+                        meetsMinPurchase = false;
+                    }
+                }
+
+                const isDisabled = !canAfford || !hasStock || !meetsMinPurchase;
+
+                card.style.opacity = isDisabled ? '0.6' : '1';
+                card.style.filter = isDisabled ? 'grayscale(0.5)' : 'none';
+                card.style.cursor = isDisabled ? 'default' : 'pointer';
+                
+                btn.disabled = isDisabled;
+                btn.style.background = isDisabled ? '#d1d5db' : '#16a34a';
+                btn.style.cursor = isDisabled ? 'not-allowed' : 'pointer';
+
+                if (!hasStock) btn.innerText = 'SIN STOCK';
+                else if (!canAfford) btn.innerText = 'FALTAN PTS';
+                else if (!meetsMinPurchase) btn.innerText = 'COMPRA INSUF.';
+                else btn.innerText = 'CANJEAR';
+
+                btn.onclick = isDisabled ? null : () => redeemPrize(p);
+            });
+        }
+
+        if (inputMonto) inputMonto.addEventListener('input', updateStates);
+        prizesList.addEventListener('change', (e) => {
+            if (e.target.classList.contains('cf-override-check')) updateStates();
+        });
+
+        updateStates();
     }
 
     async function redeemPrize(prize) {

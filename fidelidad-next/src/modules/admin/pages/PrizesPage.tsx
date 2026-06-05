@@ -464,16 +464,29 @@ export const PrizesPage = () => {
                                         </div>
                                     </div>
                                     {formData.requiresMinimumPurchase && (
-                                        <div className="mt-2 pl-2 border-l-2 border-orange-200 animate-fade-in">
-                                            <label className="text-xs font-bold text-orange-800 block mb-1">Monto Mínimo de Compra ($)</label>
-                                            <input
-                                                type="number"
-                                                required={formData.requiresMinimumPurchase}
-                                                value={formData.minimumPurchaseAmount || ''}
-                                                onChange={e => setFormData({ ...formData, minimumPurchaseAmount: Number(e.target.value) })}
-                                                className="w-full px-3 py-2 bg-white border border-orange-200 rounded-lg text-sm font-bold outline-none focus:border-orange-500"
-                                            />
-                                            <p className="text-[10px] text-orange-500 mt-1">En el catálogo se mostrará: "Para canje compra mínima de ${Number(formData.minimumPurchaseAmount).toLocaleString('es-AR')}"</p>
+                                        <div className="mt-2 pl-2 border-l-2 border-orange-200 animate-fade-in flex flex-col gap-3">
+                                            <div>
+                                                <label className="text-xs font-bold text-orange-800 block mb-1">Monto Mínimo de Compra ($)</label>
+                                                <input
+                                                    type="number"
+                                                    required={formData.requiresMinimumPurchase}
+                                                    value={formData.minimumPurchaseAmount || ''}
+                                                    onChange={e => setFormData({ ...formData, minimumPurchaseAmount: Number(e.target.value) })}
+                                                    className="w-full px-3 py-2 bg-white border border-orange-200 rounded-lg text-sm font-bold outline-none focus:border-orange-500"
+                                                />
+                                                <p className="text-[10px] text-orange-500 mt-1">En el catálogo se mostrará: "Para canje compra mínima de ${Number(formData.minimumPurchaseAmount).toLocaleString('es-AR')}"</p>
+                                            </div>
+                                            <div className="flex items-center gap-3 cursor-pointer p-2 bg-white/50 rounded-lg" onClick={() => {
+                                                setFormData({ ...formData, allowEmployeeOverride: !formData.allowEmployeeOverride });
+                                            }}>
+                                                <div className="flex-1">
+                                                    <h4 className="text-xs font-bold text-gray-700">A Criterio del Empleado</h4>
+                                                    <p className="text-[10px] text-gray-500">Permite al operador destildar la exigencia y entregar el premio igual.</p>
+                                                </div>
+                                                <div className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${formData.allowEmployeeOverride ? 'bg-orange-500' : 'bg-gray-300'}`}>
+                                                    <span className={`inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform ${formData.allowEmployeeOverride ? 'translate-x-3.5' : 'translate-x-1'}`} />
+                                                </div>
+                                            </div>
                                         </div>
                                     )}
                                 </div>

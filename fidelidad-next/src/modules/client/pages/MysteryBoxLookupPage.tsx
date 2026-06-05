@@ -75,17 +75,17 @@ export const MysteryBoxLookupPage = () => {
     // Mostrar loader mientras resuelve sesión o hace auto-fetch
     if (authLoading || (loading && !searched && user)) {
         return (
-            <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+            <div className="h-[calc(100dvh-140px)] overflow-hidden bg-gray-900 flex flex-col items-center justify-center p-4">
                 <Loader2 className="w-10 h-10 animate-spin text-orange-500 mb-4" />
-                <p className="text-gray-500 font-medium animate-pulse">Buscando tus sorpresas...</p>
+                <p className="text-gray-400 font-medium animate-pulse">Buscando tus sorpresas...</p>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-            <div className="max-w-md w-full bg-white rounded-3xl shadow-xl overflow-hidden border border-orange-100">
-                <div className="bg-gradient-to-br from-orange-500 to-rose-500 p-8 text-center relative overflow-hidden">
+        <div className="h-[calc(100dvh-140px)] overflow-hidden bg-gray-900 flex flex-col items-center justify-center p-4">
+            <div className="max-w-md w-full bg-white rounded-3xl shadow-xl overflow-hidden border border-orange-100 flex flex-col max-h-full">
+                <div className="bg-gradient-to-br from-orange-500 to-rose-500 p-6 text-center relative shrink-0">
                     <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[radial-gradient(circle_at_center,_white_0%,_transparent_100%)]"></div>
                     <Gift className="w-16 h-16 text-white mx-auto mb-4 animate-bounce" />
                     <h1 className="text-3xl font-black text-white tracking-tight relative z-10">
@@ -96,7 +96,7 @@ export const MysteryBoxLookupPage = () => {
                     </p>
                 </div>
 
-                <div className="p-8">
+                <div className="p-6 overflow-y-auto flex-1 cf-scrollbar">
                     {!searched || chances.length === 0 ? (
                         <form onSubmit={handleSearch} className="space-y-6">
                             

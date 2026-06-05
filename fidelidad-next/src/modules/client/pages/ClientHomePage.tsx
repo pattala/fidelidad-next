@@ -167,6 +167,21 @@ export const ClientHomePage = () => {
         }
     }, [user?.uid, isAdmin]);
 
+    // Ocultar cajas caducadas en tiempo real sin recargar la pǭgina
+    useEffect(() => {
+        if (pendingMysteryBoxes.length === 0) return;
+        const interval = setInterval(() => {
+            const now = new Date();
+            setPendingMysteryBoxes(prev => prev.filter(mb => {
+                if (mb.expiresAt && typeof mb.expiresAt.toDate === 'function') {
+                    return mb.expiresAt.toDate() > now;
+                }
+                return true;
+            }));
+        }, 10000); // Revisar cada 10 segundos
+        return () => clearInterval(interval);
+    }, [pendingMysteryBoxes.length]);
+
     // Helper for dynamic pet age
     const getPetAge = (pet: any) => {
         if (!pet.birthDate) return pet.age ? `${pet.age} años` : '';

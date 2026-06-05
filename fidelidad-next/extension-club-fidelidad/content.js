@@ -112,8 +112,14 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                         const filteredRedemptions = rList.filter(r => getStatus(r.alertId) === 'pending');
                         const filteredAssignments = aList.filter(a => getStatus(a.alertId) === 'pending');
                         const filteredCampaigns = (data.campaigns || []).filter(c => getStatus(c.alertId) === 'pending');
+                        const filteredMysteryBoxes = (data.mysteryBoxes || []).filter(mb => {
+                            if (getStatus(mb.alertId) !== 'pending') return false;
+                            const exp = mb.resendExpiresAt || mb.expiresAt;
+                            if (exp && new Date(exp) < new Date()) return false;
+                            return true;
+                        });
 
-                        const total = filteredBirthdays.length + filteredExpirations.length + filteredPetAlerts.length + filteredRedemptions.length + filteredAssignments.length + filteredCampaigns.length;
+                        const total = filteredBirthdays.length + filteredExpirations.length + filteredPetAlerts.length + filteredRedemptions.length + filteredAssignments.length + filteredCampaigns.length + filteredMysteryBoxes.length;
                         const processedData = {
                             ...data,
                             dismissedAlerts: localList,
@@ -259,6 +265,9 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                             <div style="font-size:10px; color:#9a3412; margin-top:2px; font-weight:bold;">
                                 Monto: ${b.amount || 0}
                             </div>
+                            <div style="font-size:8.5px; opacity:0.6; margin-top:2px;">
+                                ${b.createdAt || b.timestamp ? new Date(b.createdAt || b.timestamp).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' }) : new Date().toLocaleDateString('es-AR')}
+                            </div>
                         </div>
                         <div style="display:flex; gap:4px;">
                             ${b.phone ? `<button class="cf-action-btn cf-action-whatsapp" data-id="${b.alertId}" data-type="${b.type}" data-phone="${b.phone}" data-name="${b.userName || 'Socio'}" data-extra="${b.id}" style="background:#22c55e; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:bold; font-size:10px;">
@@ -289,7 +298,12 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
 
         const curY = new Date().getFullYear().toString();
 
-        const pendingMB = (fullData.mysteryBoxes || []).filter(mb => getStatus(mb.alertId) === 'pending');
+        const pendingMB = (fullData.mysteryBoxes || []).filter(mb => {
+            if (getStatus(mb.alertId) !== 'pending') return false;
+            const exp = mb.resendExpiresAt || mb.expiresAt;
+            if (exp && new Date(exp) < new Date()) return false;
+            return true;
+        });
         const pendingB = birthdays.filter(b => getStatus(`birthday-${getIdentifier(b)}-${curY}`) === 'pending');
         const pendingE = expirations.filter(e => getStatus(`expiration-${getIdentifier(e)}-${e.nextExpirationDate || 'today'}`) === 'pending');
         const pendingP = petAlerts.filter(p => getStatus(`pet-${getIdentifier(p)}-${p.petName}-${p.lastFoodAlertDate || 'today'}`) === 'pending');
@@ -441,6 +455,9 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                     </div>
                     <div style="font-size:10px; opacity:0.6; margin-top:2px;">
                         ${type === 'campaign' ? `📢 ${item.name}` : type === 'pet' ? `🐾 ${item.petName}` : type === 'expiration' ? `⏳ ${item.points} pts` : type === 'redemption' ? `🎁 ${item.prizeName}` : type === 'pointsAssignment' ? `💰 +${item.points} pts` : '🎂 Cumpleaños'}
+                        <div style="font-size:8.5px; opacity:0.6; margin-top:2px; font-weight:500;">
+                            ${item.timestamp || item.createdAt ? new Date(item.timestamp || item.createdAt).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' }) : new Date().toLocaleDateString('es-AR')}
+                        </div>
                     </div>
                 </div>
                 ${mode === 'pending' ? `<button class="cf-v35-card-close" data-id="${id}">×</button>` : `<button class="cf-v35-card-delete" data-id="${id}" style="background:none; border:none; color:white; opacity:0.4; cursor:pointer;" title="Restaurar a Pendientes">🔄</button>`}
@@ -584,7 +601,12 @@ async function refreshAlertCounts() {
                     const filteredAssignments = aList.filter(a => getStatus(a.alertId) === 'pending');
 
                     
-                    const filteredMysteryBoxes = (data.mysteryBoxes || []).filter(mb => getStatus(mb.alertId) === 'pending');
+                    const filteredMysteryBoxes = (data.mysteryBoxes || []).filter(mb => {
+                        if (getStatus(mb.alertId) !== 'pending') return false;
+                        const exp = mb.resendExpiresAt || mb.expiresAt;
+                        if (exp && new Date(exp) < new Date()) return false;
+                        return true;
+                    });
                     const filteredCampaigns = (data.campaigns?.list || []).filter(c => getStatus(c.alertId) === 'pending');
                     const total = filteredBirthdays.length + filteredExpirations.length + filteredPetAlerts.length + filteredRedemptions.length + filteredAssignments.length + filteredMysteryBoxes.length + filteredCampaigns.length;
 

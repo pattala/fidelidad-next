@@ -260,13 +260,16 @@ export const MetricsPage = () => {
             
             // Procesar Mystery Box
             const mStats = { total: 0, pending: 0, played: 0, rejected: 0, expired: 0, pointsAwarded: 0 };
+            const nowTime = new Date().getTime();
             mysterySnap.forEach(doc => {
                 const data = doc.data();
                 mStats.total++;
-                if (data.status === 'pending') mStats.pending++;
+                const isActuallyExpired = data.status === 'pending' && data.expiresAt && data.expiresAt.toDate().getTime() < nowTime;
+                
+                if (data.status === 'expired' || isActuallyExpired) mStats.expired++;
+                else if (data.status === 'pending') mStats.pending++;
                 else if (data.status === 'played') { mStats.played++; mStats.pointsAwarded += (data.pointsWon || 0); }
                 else if (data.status === 'rejected') mStats.rejected++;
-                else if (data.status === 'expired') mStats.expired++;
             });
             setMysteryStats(mStats);
 

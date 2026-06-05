@@ -160,7 +160,7 @@ export const MysteryBoxPage = () => {
 
     if (status === 'loading') {
         return (
-            <div className="min-h-[100dvh] pt-24 pb-28 bg-gray-900 flex items-center justify-center p-4">
+            <div className="h-[calc(100dvh-140px)] overflow-hidden bg-gray-900 flex flex-col items-center justify-center p-4">
                 <div className="text-center">
                     <Loader2 className="w-12 h-12 text-white animate-spin mx-auto mb-4" />
                     <p className="text-white font-bold animate-pulse">Preparando tu sorpresa...</p>
@@ -171,7 +171,7 @@ export const MysteryBoxPage = () => {
 
     if (status === 'invalid') {
         return (
-            <div className="min-h-[100dvh] pt-24 pb-28 bg-gray-900 flex items-center justify-center p-4">
+            <div className="h-[calc(100dvh-140px)] overflow-hidden bg-gray-900 flex flex-col items-center justify-center p-4">
                 <div className="bg-white/10 backdrop-blur-xl p-8 rounded-[30px] border border-white/10 text-center max-w-sm w-full">
                     <div className="bg-red-500/20 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
                         <XCircle className="w-10 h-10 text-red-500" />
@@ -190,7 +190,7 @@ export const MysteryBoxPage = () => {
 
     if (status === 'rejected') {
         return (
-            <div className="min-h-[100dvh] pt-24 pb-28 bg-gray-900 flex items-center justify-center p-4">
+            <div className="h-[calc(100dvh-140px)] overflow-hidden bg-gray-900 flex flex-col items-center justify-center p-4">
                 <div className="text-center">
                     <p className="text-white/60 mb-6">Has rechazado la Caja Sorpresa.</p>
                     <button onClick={() => navigate('/')} className="px-8 py-3 bg-white/10 rounded-xl text-white font-bold">
@@ -203,7 +203,7 @@ export const MysteryBoxPage = () => {
 
     if (status === 'won') {
         return (
-            <div className="min-h-[100dvh] pt-24 pb-28 bg-gradient-to-br from-green-900 via-emerald-900 to-black flex items-center justify-center p-4">
+            <div className="h-[calc(100dvh-140px)] overflow-hidden bg-gradient-to-br from-green-900 via-emerald-900 to-black flex flex-col items-center justify-center p-4">
                 <div className="bg-white/10 backdrop-blur-xl p-8 rounded-[30px] border border-white/20 text-center max-w-sm w-full animate-in zoom-in duration-500">
                     <div className="relative w-28 h-28 mx-auto mb-6">
                         <div className="absolute inset-0 bg-yellow-400/20 rounded-full blur-2xl animate-pulse"></div>
@@ -235,7 +235,7 @@ export const MysteryBoxPage = () => {
 
     // status === 'ready' || 'playing'
     return (
-        <div className="min-h-[100dvh] pt-24 pb-28 bg-gradient-to-br from-indigo-900 via-purple-900 to-black flex items-center justify-center p-4 overflow-hidden relative">
+        <div className="h-[calc(100dvh-140px)] overflow-hidden bg-gradient-to-br from-indigo-900 via-purple-900 to-black flex flex-col items-center justify-center p-4 relative">
             {/* Background elements */}
             <div className="absolute top-20 left-10 w-64 h-64 bg-pink-500/20 rounded-full blur-3xl"></div>
             <div className="absolute bottom-20 right-10 w-80 h-80 bg-orange-500/20 rounded-full blur-3xl"></div>

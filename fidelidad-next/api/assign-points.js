@@ -900,7 +900,9 @@ export default async function handler(req, res) {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', ...internalAuth },
                             body: JSON.stringify({
-                                clienteId: targetUid, title: '¡Puntos Sumados! 💰', body: unifiedMsg,
+                                clienteId: targetUid, 
+                                title: result.mysteryBoxGenerated ? '¡Puntos y Caja Sorpresa! 🎁✨' : '¡Puntos Sumados! 🌟', 
+                                body: unifiedMsg,
                                 icon: config.logoUrl || '/pwa-192x192.png',
                                 click_action: '/',
                                 points, executor,

@@ -20,23 +20,54 @@ function initFirebaseAdmin() {
 export default async function handler(req, res) {
     if (req.method === 'OPTIONS') return res.status(200).end();
 
-    // GET = diagnostic mode: show what Firebase has for mysteryBox config
+    // GET = diagnostic/admin mode
     if (req.method === 'GET') {
         try {
             const adminApp = initFirebaseAdmin();
             const db = adminApp.firestore();
-            const configSnap = await db.collection('config').doc('general').get();
-            const configData = configSnap.exists ? configSnap.data() : null;
-            const mb = configData?.mysteryBox || null;
-            return res.status(200).json({
-                ok: true,
-                configExists: configSnap.exists,
-                mysteryBoxExists: !!mb,
-                mysteryBoxEnabled: mb?.enabled ?? 'FIELD_MISSING',
-                prizeScalesCount: mb?.prizeScales?.length ?? 0,
-                prizeScales: mb?.prizeScales || [],
-                allMysteryBoxKeys: mb ? Object.keys(mb) : []
-            });
+            const action = req.query.action || 'config';
+
+            // ?action=config → show mysteryBox config
+            if (action === 'config') {
+                const configSnap = await db.collection('config').doc('general').get();
+                const configData = configSnap.exists ? configSnap.data() : null;
+                const mb = configData?.mysteryBox || null;
+                return res.status(200).json({
+                    ok: true,
+                    configExists: configSnap.exists,
+                    mysteryBoxExists: !!mb,
+                    mysteryBoxEnabled: mb?.enabled ?? 'FIELD_MISSING',
+                    prizeScalesCount: mb?.prizeScales?.length ?? 0,
+                    prizeScales: mb?.prizeScales || [],
+                    allMysteryBoxKeys: mb ? Object.keys(mb) : []
+                });
+            }
+
+            // ?action=list → show all mystery_box_chances
+            if (action === 'list') {
+                const snap = await db.collection('mystery_box_chances').get();
+                const chances = snap.docs.map(d => ({
+                    id: d.id,
+                    status: d.data().status,
+                    clientName: d.data().clientName || d.data().userName,
+                    amount: d.data().amount,
+                    createdAt: d.data().createdAt?.toDate?.() || d.data().createdAt,
+                    expiresAt: d.data().expiresAt?.toDate?.() || d.data().expiresAt,
+                    clientId: d.data().clientId || d.data().userId
+                }));
+                return res.status(200).json({ ok: true, total: chances.length, chances });
+            }
+
+            // ?action=cleanup → delete ALL mystery_box_chances
+            if (action === 'cleanup') {
+                const snap = await db.collection('mystery_box_chances').get();
+                const batch = db.batch();
+                snap.docs.forEach(d => batch.delete(d.ref));
+                await batch.commit();
+                return res.status(200).json({ ok: true, deleted: snap.size, message: `Se eliminaron ${snap.size} registros de mystery_box_chances` });
+            }
+
+            return res.status(400).json({ ok: false, error: 'Acción no válida. Usá ?action=config, ?action=list o ?action=cleanup' });
         } catch (e) {
             return res.status(500).json({ ok: false, error: e.message });
         }

@@ -133,6 +133,15 @@ export default async function handler(req, res) {
 
             const pointsWon = Math.floor(Math.random() * (selectedScale.maxPoints - selectedScale.minPoints + 1)) + selectedScale.minPoints;
 
+            // === ALL READS FIRST ===
+            let userDoc = null;
+            let userRef = null;
+            if (data.clientId) {
+                userRef = db.collection('users').doc(data.clientId);
+                userDoc = await t.get(userRef);
+            }
+
+            // === NOW ALL WRITES ===
             // 1. Update Mystery Box Chance
             t.update(mbRef, {
                 status: 'played',
@@ -141,44 +150,39 @@ export default async function handler(req, res) {
             });
 
             // 2. Update User Points
-            if (data.clientId) {
-                const userRef = db.collection('users').doc(data.clientId);
-                const userDoc = await t.get(userRef);
+            if (userRef && userDoc && userDoc.exists) {
+                const userData = userDoc.data();
+                const expDays = mysteryBoxConfig.pointsExpirationDays || 15;
+                const expDate = new Date(now.toDate().getTime() + (expDays * 24 * 60 * 60 * 1000));
                 
-                if (userDoc.exists) {
-                    const userData = userDoc.data();
-                    const expDays = mysteryBoxConfig.pointsExpirationDays || 15;
-                    const expDate = new Date(now.toDate().getTime() + (expDays * 24 * 60 * 60 * 1000));
-                    
-                    const expDetails = userData.expirationDetails || [];
-                    expDetails.push({
-                        date: expDate.toISOString(),
-                        points: pointsWon
-                    });
-                    
-                    let newExpDateStr = userData.nextExpirationDate;
-                    const newExpDateStrFormatted = expDate.toISOString().split('T')[0];
-                    if (!newExpDateStr || newExpDateStrFormatted < newExpDateStr) {
-                        newExpDateStr = newExpDateStrFormatted;
-                    }
-
-                    t.update(userRef, {
-                        points: (userData.points || 0) + pointsWon,
-                        expirationDetails: expDetails,
-                        nextExpirationDate: newExpDateStr
-                    });
-
-                    // 3. Add to Points History
-                    const historyRef = db.collection('users').doc(data.clientId).collection('points_history').doc();
-                    t.set(historyRef, {
-                        type: 'credit',
-                        amount: pointsWon,
-                        date: now,
-                        concept: 'Premio Caja Sorpresa',
-                        moneySpent: 0,
-                        source: 'caja_sorpresa'
-                    });
+                const expDetails = userData.expirationDetails || [];
+                expDetails.push({
+                    date: expDate.toISOString(),
+                    points: pointsWon
+                });
+                
+                let newExpDateStr = userData.nextExpirationDate;
+                const newExpDateStrFormatted = expDate.toISOString().split('T')[0];
+                if (!newExpDateStr || newExpDateStrFormatted < newExpDateStr) {
+                    newExpDateStr = newExpDateStrFormatted;
                 }
+
+                t.update(userRef, {
+                    points: (userData.points || 0) + pointsWon,
+                    expirationDetails: expDetails,
+                    nextExpirationDate: newExpDateStr
+                });
+
+                // 3. Add to Points History
+                const historyRef = db.collection('users').doc(data.clientId).collection('points_history').doc();
+                t.set(historyRef, {
+                    type: 'credit',
+                    amount: pointsWon,
+                    date: now,
+                    concept: 'Premio Caja Sorpresa',
+                    moneySpent: 0,
+                    source: 'caja_sorpresa'
+                });
             }
 
             return { pointsWon };

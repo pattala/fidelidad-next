@@ -51,11 +51,17 @@ export default async function handler(req, res) {
 
             // Get prize scales from config
             const configSnap = await t.get(db.collection('config').doc('general'));
-            const config = configSnap.data() || {};
-            const mysteryBoxConfig = config.mysteryBox || {};
+            const configData = configSnap.exists ? configSnap.data() : {};
+            console.log('[play-mystery-box] config/general exists:', configSnap.exists);
+            console.log('[play-mystery-box] mysteryBox raw:', JSON.stringify(configData?.mysteryBox || 'MISSING'));
             
-            if (!mysteryBoxConfig.enabled || !mysteryBoxConfig.prizeScales || !mysteryBoxConfig.prizeScales.length) {
-                throw new Error("El sistema de Cajas Sorpresa está temporalmente inhabilitado.");
+            const mysteryBoxConfig = configData?.mysteryBox || {};
+            
+            if (!mysteryBoxConfig.enabled) {
+                throw new Error("El sistema de Cajas Sorpresa no está habilitado en la configuración. Verificá en Ajustes > Motor de Sorteos que esté ACTIVADO.");
+            }
+            if (!mysteryBoxConfig.prizeScales || !mysteryBoxConfig.prizeScales.length) {
+                throw new Error("No hay escalas de premios configuradas. Verificá en Ajustes > Motor de Sorteos > Escalas de Premios que haya al menos un rango.");
             }
 
             // Calculate prize based on probabilities

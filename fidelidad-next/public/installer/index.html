@@ -509,6 +509,41 @@
                 <button class="btn-primary" style="background: #ef4444; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3); margin: 0;" onclick="confirmFirebaseDeploy()">📤 Desplegar Reglas a Todos los Clientes</button>
             </div>
         </div>
+
+        <!-- MOTOR C: LIMPIEZA DE BASE DE DATOS -->
+        <div style="margin-top: 30px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 30px;">
+            <h4 style="font-size: 15px; margin-bottom: 10px; color: #ef4444;">🧹 Motor C: Limpieza de Base de Datos (Wipe)</h4>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px; line-height: 1.5;">
+                Elimina permanentemente datos de una base de datos específica. Usa las credenciales del "Proyecto Desarrollo" de arriba para identificar qué base limpiar.
+            </p>
+            
+            <div class="form-grid" style="grid-template-columns: 1fr; gap: 15px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); padding: 15px; border-radius: 12px;">
+                    <div class="switch-group" style="background: rgba(0,0,0,0.4);">
+                        <label>Limpiar Usuarios e Historiales</label>
+                        <label class="switch">
+                            <input type="checkbox" id="wipeUsers" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="switch-group" style="background: rgba(0,0,0,0.4);">
+                        <label>Limpiar Sorteos (Mystery Boxes)</label>
+                        <label class="switch">
+                            <input type="checkbox" id="wipeMysteryBoxes" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="switch-group" style="background: rgba(0,0,0,0.4);">
+                        <label>Limpiar Auditoría y Avisos</label>
+                        <label class="switch">
+                            <input type="checkbox" id="wipeAudit" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <button class="btn-primary" style="background: #ef4444; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4); margin: 0; align-self: center;" onclick="confirmWipe()">⚠️ Ejecutar Limpieza Profunda</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- TAB 3: AUDITORÍA VERCEL -->
@@ -769,6 +804,49 @@
                 const { done, value } = await reader.read();
                 if (done) break;
                 consoleOutput.textContent += decoder.decode(value);
+            }
+        } catch (e) { consoleOutput.textContent += `\n❌ Error: ${e.message}`; }
+    }
+
+    async function confirmWipe() {
+        const projectId = document.getElementById('devProjectId').value;
+        const credentials = document.getElementById('devCredentials').value;
+        if (!projectId || !credentials) return alert('Ingresa el ID del proyecto y las credenciales (Sección Motor B).');
+        
+        const wipeUsers = document.getElementById('wipeUsers').checked;
+        const wipeMysteryBoxes = document.getElementById('wipeMysteryBoxes').checked;
+        const wipeAudit = document.getElementById('wipeAudit').checked;
+
+        if (!wipeUsers && !wipeMysteryBoxes && !wipeAudit) return alert('Selecciona al menos un tipo de dato a borrar.');
+
+        const confirmText = prompt(`⚠️ ¡ADVERTENCIA PELIGROSA! ⚠️\n\nEstás a punto de borrar datos permanentemente del proyecto:\n👉 ${projectId}\n\nPara continuar, escribe exactamente la palabra "BORRAR" (en mayúsculas):`);
+        
+        if (confirmText === 'BORRAR') {
+            runFirebaseWipe(projectId, credentials, { wipeUsers, wipeMysteryBoxes, wipeAudit });
+        } else {
+            alert('Operación cancelada de forma segura.');
+        }
+    }
+
+    async function runFirebaseWipe(projectId, credentials, options) {
+        const consoleContainer = document.getElementById('consoleContainer');
+        const consoleOutput = document.getElementById('consoleOutput');
+        consoleContainer.style.display = 'block';
+        consoleOutput.textContent = `🚀 Iniciando protocolo de limpieza en ${projectId}...\n`;
+
+        try {
+            const response = await fetch('/api/firebase/wipe-data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ projectId, credentials, options, confirmText: 'BORRAR' })
+            });
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                consoleOutput.textContent += decoder.decode(value);
+                consoleOutput.scrollTop = consoleOutput.scrollHeight;
             }
         } catch (e) { consoleOutput.textContent += `\n❌ Error: ${e.message}`; }
     }

@@ -367,6 +367,115 @@ app.post('/api/firebase/check-version', async (req, res) => {
     }
 });
 
+// Endpoint: Limpiar Base de Datos (Wipe)
+app.post('/api/firebase/wipe-data', async (req, res) => {
+    const { projectId, credentials, options, confirmText } = req.body;
+    if (!projectId || !credentials) return res.status(400).send("Faltan datos de conexión.");
+    if (confirmText !== 'BORRAR') return res.status(400).send("Falta confirmación de seguridad.");
+
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Transfer-Encoding', 'chunked');
+    res.write(`🗑️ Iniciando limpieza de datos en el proyecto: ${projectId}...\n`);
+
+    try {
+        const appName = `wipe-${Date.now()}`;
+        const firebaseApp = admin.initializeApp({
+            credential: admin.credential.cert(JSON.parse(credentials)),
+            projectId: projectId
+        }, appName);
+
+        const db = firebaseApp.firestore();
+
+        // Helper para borrar en lotes
+        const deleteByQueryPaged = async (makeQuery, label) => {
+            let count = 0;
+            while (true) {
+                const snap = await makeQuery().get();
+                if (snap.empty) break;
+                const batch = db.batch();
+                snap.docs.forEach(d => {
+                    batch.delete(d.ref);
+                    count++;
+                });
+                await batch.commit();
+            }
+            if (count > 0) res.write(`✅ [${label}] ${count} documentos eliminados.\n`);
+            return count;
+        };
+
+        const deleteUserSubcollections = async (docId) => {
+            const subs = ["geo_raw", "points_history", "inbox", "notifications", "interacciones", "visit_history", "transactions", "tokens", "expiration_cache"];
+            for (const sub of subs) {
+                await deleteByQueryPaged(() => db.collection(`users/${docId}/${sub}`).limit(500), `Subcolección ${sub}`);
+            }
+        };
+
+        // 1. Usuarios y sus historiales
+        if (options.wipeUsers) {
+            res.write(`\n⏳ Buscando usuarios para eliminar...\n`);
+            const usersRefs = await db.collection("users").listDocuments();
+            let deletedCount = 0;
+            const uidsToPurgeAuth = [];
+
+            for (const docRef of usersRefs) {
+                const snap = await docRef.get();
+                const data = snap.data();
+
+                // Proteger administradores
+                if (snap.exists && ["admin", "editor", "viewer"].includes(data?.role)) {
+                    continue;
+                }
+
+                const authUID = data?.authUID || data?.uid || (snap.exists ? snap.id : null);
+                if (authUID) uidsToPurgeAuth.push(authUID);
+
+                await deleteUserSubcollections(docRef.id);
+                await docRef.delete();
+                deletedCount++;
+            }
+            res.write(`✅ Usuarios eliminados de Firestore: ${deletedCount}\n`);
+
+            if (uidsToPurgeAuth.length > 0) {
+                res.write(`⏳ Eliminando usuarios de Firebase Authentication...\n`);
+                let authPurged = 0;
+                for (let i = 0; i < uidsToPurgeAuth.length; i += 1000) {
+                    const chunk = uidsToPurgeAuth.slice(i, i + 1000);
+                    try {
+                        await firebaseApp.auth().deleteUsers(chunk);
+                        authPurged += chunk.length;
+                    } catch (e) {
+                        res.write(`⚠️ Advertencia al purgar Auth: ${e.message}\n`);
+                    }
+                }
+                res.write(`✅ Usuarios purgados de Authentication: ${authPurged}\n`);
+            }
+            
+            // También borrar transacciones y redenciones root
+            await deleteByQueryPaged(() => db.collection('transactions').limit(500), 'transactions globales');
+            await deleteByQueryPaged(() => db.collection('redemptions').limit(500), 'redemptions globales');
+        }
+
+        // 2. Sorteos (Cajas Sorpresa)
+        if (options.wipeMysteryBoxes) {
+            res.write(`\n⏳ Eliminando sorteos y cajas sorpresa...\n`);
+            await deleteByQueryPaged(() => db.collection('mystery_box_chances').limit(500), 'mystery_box_chances');
+        }
+
+        // 3. Auditoría y Avisos
+        if (options.wipeAudit) {
+            res.write(`\n⏳ Eliminando registros de auditoría y avisos del sistema...\n`);
+            await deleteByQueryPaged(() => db.collection('audit_logs').limit(500), 'audit_logs');
+        }
+
+        res.write(`\n✨ ¡Limpieza completada con éxito!\n`);
+        await firebaseApp.delete();
+
+    } catch (error) {
+        res.write(`\n❌ ERROR CRÍTICO: ${error.message}\n`);
+    }
+    res.end();
+});
+
 // Endpoint: Cargar Credenciales Guardadas
 app.get('/api/firebase/load-creds', (req, res) => {
     const credsPath = path.join(__dirname, '.dev_creds.json');

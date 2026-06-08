@@ -153,6 +153,7 @@ export interface AppConfig {
     pointsForAddress?: number;
     enableAddressBonus?: boolean;
     petFoodAlertLeadDays?: number;
+    petLitterAlertLeadDays?: number;
     welcomePoints?: number;
     enableWelcomeBonus?: boolean;
     enableWelcomeMessage?: boolean;

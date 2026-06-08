@@ -51,7 +51,9 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
             offer: { channels: ['push'] },
             birthday: { channels: ['push', 'whatsapp', 'email'] },
             referralReward: { channels: ['email', 'push', 'email'] },
-            expirationWarning: { channels: ['push', 'email'] }
+            expirationWarning: { channels: ['push', 'email'] },
+            petFoodAlert: { channels: ['push', 'email'] },
+            petLitterAlert: { channels: ['push', 'email'] }
         },
         enableExpirationWarnings: false,
         expirationWarningDays: 7,
@@ -82,6 +84,8 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
     simulatedOffsetDays: 0,
     enableDuplicateControl: true,
     enablePetModule: import.meta.env.VITE_ENABLE_PET_MODULE === 'true',
+    petFoodAlertLeadDays: 3,
+    petLitterAlertLeadDays: 3,
     discountRecoveryRatio: 0,
     mysteryBox: {
         enabled: false,

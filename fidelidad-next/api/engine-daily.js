@@ -1117,6 +1117,34 @@ export default async function handler(req, res) {
                                 foodBrand: pet.foodBrand || pet.brand || ''
                             });
                         }
+
+                        // --- Piedras Sanitarias (Solo Gatos) para la extensión ---
+                        if ((pet.type || '').toLowerCase().trim() === 'gato') {
+                            const lastLitterPurchase = pet.lastLitterPurchaseDate?.toDate ? pet.lastLitterPurchaseDate.toDate() : (pet.lastLitterPurchaseDate ? new Date(pet.lastLitterPurchaseDate + 'T12:00:00') : null);
+                            if (lastLitterPurchase) {
+                                const litterCycleDays = Number(pet.litterFrequencyDays || 15);
+                                const litterWarningDays = Number(config?.petLitterAlertLeadDays ?? config?.messaging?.petFoodWarningDays ?? config?.petFoodAlertLeadDays ?? 3);
+                                const litterExhaustionDate = new Date(lastLitterPurchase);
+                                litterExhaustionDate.setDate(lastLitterPurchase.getDate() + litterCycleDays);
+                                const litterAlertDate = new Date(litterExhaustionDate);
+                                litterAlertDate.setDate(litterExhaustionDate.getDate() - litterWarningDays);
+                                if (referenceDate >= litterAlertDate) {
+                                    petAlertsList.push({
+                                        userId: doc.id,
+                                        userName: userData.nombre || userData.name || 'Socio',
+                                        name: userData.nombre || userData.name || 'Socio',
+                                        socioNumber: userData.socioNumber || userData.numeroSocio || '',
+                                        dni: userData.dni || '',
+                                        action: "pet_litter_alert",
+                                        status: "info",
+                                        info: `Aviso de piedras sanitarias para ${pet.name}`,
+                                        phone: userData.phone || userData.telefono || '',
+                                        petName: pet.name,
+                                        foodBrand: ''
+                                    });
+                                }
+                            }
+                        }
                     });
                 });
             }

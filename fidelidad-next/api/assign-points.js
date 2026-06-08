@@ -478,12 +478,12 @@ export default async function handler(req, res) {
                 
                 if (isPetLitter && petLitterIds && petLitterIds.length > 0 && Array.isArray(cData.pets)) {
                     const todayStr = recordDate.toISOString().split('T')[0];
-                    clientUpdate.pets = (clientUpdate.pets || cData.pets).map(p => {
-                        if (petLitterIds.includes(p.id)) {
-                            return { ...p, lastLitterPurchaseDate: todayStr, lastLitterWhatsAppDate: null };
-                        }
-                        return p;
-                    });
+                      clientUpdate.pets = (clientUpdate.pets || cData.pets).map(p => {
+                          if (petLitterIds.includes(p.id)) {
+                              return { ...p, lastLitterPurchaseDate: todayStr, lastLitterWhatsAppDate: null, lastLitterAlertDate: null };
+                          }
+                          return p;
+                      });
                 }
 
                 tx.update(clientRef, clientUpdate);
@@ -782,6 +782,7 @@ export default async function handler(req, res) {
                                     ...pet, 
                                     lastLitterPurchaseDate: purchaseTimestamp,
                                     lastLitterWhatsAppDate: null, 
+                                    lastLitterAlertDate: null,
                                     nextLitterAlertDate: nextDateStr
                                 };
                             }

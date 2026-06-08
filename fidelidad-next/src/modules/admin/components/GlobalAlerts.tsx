@@ -156,7 +156,7 @@ export const GlobalAlerts = () => {
                                     const lastLitterPurchase = p.lastLitterPurchaseDate?.toDate ? p.lastLitterPurchaseDate.toDate() : (p.lastLitterPurchaseDate ? new Date(p.lastLitterPurchaseDate + 'T12:00:00') : null);
                                     if (lastLitterPurchase) {
                                         const litterCycleDays = Number(p.litterFrequencyDays || 15);
-                                        const warningDays = Number(config?.messaging?.petFoodWarningDays || config?.petFoodAlertLeadDays || 3);
+                                        const warningDays = Number(config?.petLitterAlertLeadDays ?? config?.messaging?.petFoodWarningDays ?? config?.petFoodAlertLeadDays ?? 3);
                                         
                                         const litterExhaustionDate = new Date(lastLitterPurchase);
                                         litterExhaustionDate.setDate(lastLitterPurchase.getDate() + litterCycleDays);
@@ -164,6 +164,7 @@ export const GlobalAlerts = () => {
                                         const litterAlertDate = new Date(litterExhaustionDate);
                                         litterAlertDate.setDate(litterExhaustionDate.getDate() - warningDays);
                                         
+                                        const todayDate = new Date(todayStr + 'T12:00:00');
                                         const isLitterAlertWindow = (todayDate >= litterAlertDate && todayDate <= litterExhaustionDate);
                                         
                                         const lastLitterWa = p.lastLitterWhatsAppDate ? new Date(p.lastLitterWhatsAppDate + 'T12:00:00') : null;

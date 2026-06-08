@@ -685,6 +685,93 @@ export default async function handler(req, res) {
                                 petName: pet.name, foodBrand: pet.foodBrand || pet.brand || ''
                             });
                         }
+
+                        // --- ALERTA DE PIEDRAS SANITARIAS (SOLO GATOS) ---
+                        if ((pet.type || '').toLowerCase().trim() === 'gato') {
+                            const lastLitterPurchase = pet.lastLitterPurchaseDate?.toDate ? pet.lastLitterPurchaseDate.toDate() : (pet.lastLitterPurchaseDate ? new Date(pet.lastLitterPurchaseDate + 'T12:00:00') : null);
+                            if (lastLitterPurchase) {
+                                const litterCycleDays = Number(pet.litterFrequencyDays || 15);
+                                const warningDays = Number(config?.petLitterAlertLeadDays ?? config?.messaging?.petFoodWarningDays ?? config?.petFoodAlertLeadDays ?? 3);
+                                
+                                const litterExhaustionDate = new Date(lastLitterPurchase);
+                                litterExhaustionDate.setDate(lastLitterPurchase.getDate() + litterCycleDays);
+                                
+                                const litterAlertDate = new Date(litterExhaustionDate);
+                                litterAlertDate.setDate(litterExhaustionDate.getDate() - warningDays);
+
+                                const isLitterAlertWindow = (referenceDate >= litterAlertDate);
+                                
+                                const lastLitterAlertSent = pet.lastLitterAlertDate ? new Date(pet.lastLitterAlertDate + 'T12:00:00') : null;
+                                const alreadyLitterAlerted = lastLitterAlertSent && lastLitterAlertSent >= lastLitterPurchase;
+
+                                if (isLitterAlertWindow) {
+                                    const shouldSendLitterAlert = (!alreadyLitterAlerted) && (!alreadyExecuted || skipDuplicityCheck);
+                                    if (shouldSendLitterAlert) {
+                                        const userName = (userData.nombre || userData.name || '').split(' ')[0];
+                                        const template = config.messaging?.templates?.whatsappPetLitter || config.messaging?.templates?.petLitterAlert_whatsapp || config.messaging?.templates?.petLitterAlert || "¡Hola {nombre}! 🐾 Notamos que a {mascota} se le deben estar terminando sus piedras sanitarias. ¡Te esperamos para reponerlas! 💨";
+                                        
+                                        const msg = template
+                                            .replace(/{nombre}/g, userName)
+                                            .replace(/{mascota}/g, pet.name);
+
+                                        const cleanTokens = (userData.fcmTokens || []).filter(t => t && typeof t === 'string' && t.length > 10);
+
+                                        if (cleanTokens.length > 0 && config.messaging?.pushEnabled !== false) {
+                                            const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
+                                            const iconUrl = config.logoUrl ? getAbsoluteUrl(config.logoUrl, PWA_URL) : "";
+                                            const title = "🐾 Aviso de Piedras Sanitarias";
+                                            
+                                            try {
+                                                const response = await app.messaging().sendEachForMulticast({
+                                                    tokens: cleanTokens,
+                                                    notification: { title, body: msg },
+                                                    data: { title, body: msg, url: `${PWA_URL}/perfil`, icon: iconUrl },
+                                                    android: { priority: "high", notification: { sound: "default", channelId: "fidelidad-notif-channel" } },
+                                                    webpush: { headers: { Urgent: "high" }, fcmOptions: { link: `${PWA_URL}/perfil` } }
+                                                });
+                                                results.details.push({ action: "push_sent", userId: userDoc.id, success: response.successCount });
+                                            } catch (pushErr) {
+                                                results.errors.push(`Pet Litter ${userDoc.id} Push Error: ${pushErr.message}`);
+                                            }
+                                        }
+
+                                        if (config.messaging?.inboxEnabled !== false) {
+                                            await userDoc.ref.collection('inbox').add({
+                                                title: "🐾 Aviso de Piedras Sanitarias", body: msg, url: "/perfil", type: "pet_litter_alert",
+                                                read: false, date: admin.firestore.Timestamp.fromDate(referenceDate)
+                                            });
+                                        }
+
+                                        if (userData.email && process.env.SMTP_USER && config.messaging?.emailEnabled !== false) {
+                                            const title = "🐾 Aviso de Piedras Sanitarias";
+                                            const innerHtml = `<div style="color: #333;"><h2 style="color: #f97316; margin-top: 0;">${title}</h2><p style="font-size: 16px; line-height: 1.6;">${msg}</p></div>`;
+                                            try {
+                                                await transporter.sendMail({
+                                                    from: `"${config.siteName || 'Club Fidelidad'}" <${process.env.SMTP_USER}>`,
+                                                    to: userData.email, subject: title, html: buildHtmlLayout(innerHtml, config)
+                                                });
+                                                results.details.push({ action: "email_sent", userId: userDoc.id });
+                                            } catch (mailErr) {
+                                                results.errors.push(`Pet Litter ${userDoc.id} Mail Error: ${mailErr.message}`);
+                                            }
+                                        }
+
+                                        nextPets[i].lastLitterAlertDate = todayStr;
+                                        updatedPets = true;
+                                        results.petAlerts++;
+                                    }
+
+                                    results.details.push({
+                                        userId: userDoc.id, userName: userData.nombre || userData.name || 'Socio',
+                                        socioNumber: userData.socioNumber || userData.numeroSocio || '',
+                                        dni: userData.dni || '', action: "pet_litter_alert", status: "success",
+                                        info: alreadyLitterAlerted ? `Ya alertado piedras (Auto)` : `Alerta piedras procesada`,
+                                        phone: userData.phone || userData.telefono || '',
+                                        petName: pet.name, foodBrand: ''
+                                    });
+                                }
+                            }
+                        }
                     }
                     if (updatedPets) await userDoc.ref.update({ pets: nextPets });
                 } catch (e) { results.errors.push(`Pet ${userDoc.id}: ${e.message}`); }

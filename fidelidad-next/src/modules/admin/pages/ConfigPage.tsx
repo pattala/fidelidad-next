@@ -2798,7 +2798,13 @@ export const ConfigPage = () => {
                                                     <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Canales de Envío</label>
                                                     <ChannelSelector channels={config.messaging?.eventConfigs?.petLitterAlert?.channels || []} onChange={(ch) => setConfig({ ...config, messaging: { ...config.messaging!, eventConfigs: { ...config.messaging?.eventConfigs, petLitterAlert: { channels: ch } } } })} />
                                                 </div>
-                                                {/* Comparte el mismo lead time que alimento por el momento, o no configuramos anticipación si se sincroniza con panel */}
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-orange-700 uppercase tracking-widest mb-1">Anticipación de Aviso</label>
+                                                    <div className="flex items-center gap-2">
+                                                        <input type="number" value={config.petLitterAlertLeadDays ?? config.petFoodAlertLeadDays ?? 0} onChange={e => setConfig({ ...config, petLitterAlertLeadDays: parseInt(e.target.value) || 0 })} className="w-16 p-2 bg-white rounded-lg border border-orange-100 text-sm font-bold outline-none" min="0" max="15" />
+                                                        <span className="text-xs text-gray-500">días antes de agotarse</span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                         )}

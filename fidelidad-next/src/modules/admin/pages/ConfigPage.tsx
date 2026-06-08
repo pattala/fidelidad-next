@@ -2770,7 +2770,7 @@ export const ConfigPage = () => {
                                                 <div>
                                                     <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">B. Cuerpo Principal</label>
                                                     <div className="flex gap-2">
-                                                        <textarea rows={2} value={config.messaging?.templates?.petLitterAlert || ''}
+                                                        <textarea rows={2} value={config.messaging?.templates?.petLitterAlert ?? DEFAULT_TEMPLATES.petLitterAlert}
                                                             onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, templates: { ...config.messaging?.templates, petLitterAlert: e.target.value } } })}
                                                             placeholder={DEFAULT_TEMPLATES.petLitterAlert}
                                                             className="w-full px-3 py-2 rounded-lg border border-orange-200 focus:ring-2 focus:ring-orange-100 outline-none resize-none text-sm"

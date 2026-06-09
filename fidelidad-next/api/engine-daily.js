@@ -178,6 +178,7 @@ export default async function handler(req, res) {
 
         const todayMD = `${String(referenceDate.getMonth() + 1).padStart(2, '0')}-${String(referenceDate.getDate()).padStart(2, '0')}`;
         const currentYear = referenceDate.getFullYear().toString();
+        const recordTimestamp = simulatedDateStr ? admin.firestore.Timestamp.fromDate(referenceDate) : admin.firestore.FieldValue.serverTimestamp();
         
         const results = {
             birthdays: 0,
@@ -245,7 +246,7 @@ export default async function handler(req, res) {
 
                         await historyRef.add({
                             amount: birthdayPoints, concept: '🎂 ¡Feliz Cumpleaños! Regalo del Club',
-                            date: admin.firestore.Timestamp.fromDate(referenceDate), type: 'credit',
+                            date: recordTimestamp, type: 'credit',
                             expiresAt: admin.firestore.Timestamp.fromDate(expirationDate),
                             remainingPoints: birthdayPoints, balanceAfter: (Number(userData.points) || 0) + birthdayPoints
                         });
@@ -302,7 +303,7 @@ export default async function handler(req, res) {
                         if (config.messaging?.inboxEnabled !== false) {
                             await userDoc.ref.collection('inbox').add({
                                 title, body: msg, url: "/perfil", type: "birthday", read: false,
-                                date: admin.firestore.Timestamp.fromDate(referenceDate)
+                                date: recordTimestamp
                             });
                         }
                         
@@ -333,7 +334,7 @@ export default async function handler(req, res) {
             try {
                 const userData = doc.data();
                 const history = doc.ref.collection('points_history');
-                const expiredItems = await history.where('expiresAt', '<', admin.firestore.Timestamp.fromDate(referenceDate)).get();
+                const expiredItems = await history.where('expiresAt', '<', recordTimestamp).get();
                 
                 let total = 0;
                 const batch = db.batch();
@@ -351,7 +352,7 @@ export default async function handler(req, res) {
                     batch.update(doc.ref, { points: admin.firestore.FieldValue.increment(-total), nextExpirationDate: null });
                     batch.set(history.doc(), { 
                         amount: -total, concept: 'Vencimiento automático de puntos acumulados (Auto)', 
-                        date: admin.firestore.Timestamp.fromDate(referenceDate), type: 'debit' 
+                        date: recordTimestamp, type: 'debit' 
                     });
                     await batch.commit();
                     results.expirations++;
@@ -493,7 +494,7 @@ export default async function handler(req, res) {
                     if (config.messaging?.inboxEnabled !== false) {
                         await doc.ref.collection('inbox').add({
                             title, body: msg, url: "/perfil", type: "expiration_warning", read: false,
-                            date: admin.firestore.Timestamp.fromDate(referenceDate)
+                            date: recordTimestamp
                         });
                     }
 
@@ -577,7 +578,8 @@ export default async function handler(req, res) {
                         if (!lastPurchase) continue;
 
                         const cycleDays = Number(pet.foodCycleDays || pet.frequencyDays || 30);
-                        const warningDays = Number(config?.messaging?.petFoodWarningDays || config?.petFoodAlertLeadDays || 3);
+                        const warningDaysRaw = Number(config?.messaging?.petFoodWarningDays ?? config?.petFoodAlertLeadDays ?? 3);
+                        const warningDays = Math.abs(warningDaysRaw);
                         
                         // Fecha en la que se le acaba el alimento
                         const exhaustionDate = new Date(lastPurchase);
@@ -587,7 +589,10 @@ export default async function handler(req, res) {
                         const alertDate = new Date(exhaustionDate);
                         alertDate.setDate(exhaustionDate.getDate() - warningDays);
 
-                        const isAlertWindow = (referenceDate >= alertDate);
+                        // LÓGICA INTELIGENTE: Avisar si ya pasó la fecha de alerta, pero NO avisar si ya se pasó del (vencimiento + 1 día).
+                        const upperBoundDate = new Date(exhaustionDate);
+                        upperBoundDate.setDate(exhaustionDate.getDate() + 1);
+                        const isAlertWindow = (referenceDate >= alertDate && referenceDate <= upperBoundDate);
                         
                         // Evitar duplicados: Si la última alerta enviada es >= a la fecha de esta compra, ya avisamos.
                         // Usamos mediodía (T12) para evitar errores de zona horaria al comparar fechas.
@@ -647,7 +652,7 @@ export default async function handler(req, res) {
                                 if (config.messaging?.inboxEnabled !== false) {
                                     await userDoc.ref.collection('inbox').add({
                                         title: "🐾 Aviso de Alimento", body: msg, url: "/perfil", type: "pet_alert",
-                                        read: false, date: admin.firestore.Timestamp.fromDate(referenceDate)
+                                        read: false, date: recordTimestamp
                                     });
                                 }
 
@@ -691,7 +696,8 @@ export default async function handler(req, res) {
                             const lastLitterPurchase = pet.lastLitterPurchaseDate?.toDate ? pet.lastLitterPurchaseDate.toDate() : (pet.lastLitterPurchaseDate ? new Date(pet.lastLitterPurchaseDate + 'T12:00:00') : null);
                             if (lastLitterPurchase) {
                                 const litterCycleDays = Number(pet.litterFrequencyDays || 15);
-                                const warningDays = Number(config?.petLitterAlertLeadDays ?? config?.messaging?.petFoodWarningDays ?? config?.petFoodAlertLeadDays ?? 3);
+                                const warningDaysRaw = Number(config?.petLitterAlertLeadDays ?? config?.messaging?.petFoodWarningDays ?? config?.petFoodAlertLeadDays ?? 3);
+                                const warningDays = Math.abs(warningDaysRaw);
                                 
                                 const litterExhaustionDate = new Date(lastLitterPurchase);
                                 litterExhaustionDate.setDate(lastLitterPurchase.getDate() + litterCycleDays);
@@ -699,7 +705,10 @@ export default async function handler(req, res) {
                                 const litterAlertDate = new Date(litterExhaustionDate);
                                 litterAlertDate.setDate(litterExhaustionDate.getDate() - warningDays);
 
-                                const isLitterAlertWindow = (referenceDate >= litterAlertDate);
+                                // LÓGICA INTELIGENTE: Avisar si estamos en ventana, pero abortar si ya pasó el (vencimiento + 1 día).
+                                const litterUpperBoundDate = new Date(litterExhaustionDate);
+                                litterUpperBoundDate.setDate(litterExhaustionDate.getDate() + 1);
+                                const isLitterAlertWindow = (referenceDate >= litterAlertDate && referenceDate <= litterUpperBoundDate);
                                 
                                 const lastLitterAlertSent = pet.lastLitterAlertDate ? new Date(pet.lastLitterAlertDate + 'T12:00:00') : null;
                                 const alreadyLitterAlerted = lastLitterAlertSent && lastLitterAlertSent >= lastLitterPurchase;
@@ -738,7 +747,7 @@ export default async function handler(req, res) {
                                         if (config.messaging?.inboxEnabled !== false) {
                                             await userDoc.ref.collection('inbox').add({
                                                 title: "🐾 Aviso de Piedras Sanitarias", body: msg, url: "/perfil", type: "pet_litter_alert",
-                                                read: false, date: admin.firestore.Timestamp.fromDate(referenceDate)
+                                                read: false, date: recordTimestamp
                                             });
                                         }
 

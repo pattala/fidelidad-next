@@ -101,11 +101,15 @@ export interface User {
 
 export type MessagingChannel = 'whatsapp' | 'email' | 'push';
 
+export type MysteryBoxPrizeScale = any;
+
 export interface AppConfig {
     extensionRefreshInterval?: number;
     // Branding
     siteName: string;
     primaryColor: string;
+    strictMinimumPurchaseBlock?: boolean;
+    allowEmployeePrizeOverride?: boolean;
     secondaryColor: string;
     backgroundColor?: string;
     logoUrl: string;
@@ -136,9 +140,12 @@ export interface AppConfig {
     pointValue?: number; // Used for 'manual' method
     useAutomaticPointValue?: boolean; // @deprecated: Migration to calculationMethod
     pointCalculationMethod?: 'manual' | 'average' | 'budget';
+    budgetMode?: 'pct' | 'fixed';
+    budgetPercentage?: number;
+    budgetFixedAmount?: number;
     pointValueBudget?: number; // Used for 'budget' method
     masterCalculatorSettings?: {
-        baseCalculo: 'A' | 'B';
+        baseCalculo: 'A' | 'B' | 'dashboard_unified';
         bolsaMensualPuntos: number;
         facturacionEstimada?: number;
         presupuestoEstimado?: number;

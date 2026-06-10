@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Gift, Ticket, Edit, Package, X, Save, Image as ImageIcon, Shield, RefreshCw, ShoppingBag } from 'lucide-react';
+import { Plus, Trash2, Gift, Ticket, Edit, Package, X, Save, Image as ImageIcon, Shield, RefreshCw, ShoppingBag, Activity, Sliders } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { PrizeService } from '../../../services/prizeService';
 import { ConfigService } from '../../../services/configService';
@@ -41,7 +41,8 @@ export const PrizesPage = () => {
         isInternal: false,
         requiresMinimumPurchase: false,
         minimumPurchaseAmount: 0,
-        expirationDate: ''
+        expirationDate: '',
+        allowEmployeeOverride: false
     };
     const [formData, setFormData] = useState(INITIAL_FORM);
 
@@ -131,7 +132,8 @@ export const PrizesPage = () => {
             isInternal: prize.isInternal || false,
             requiresMinimumPurchase: prize.requiresMinimumPurchase || false,
             minimumPurchaseAmount: prize.minimumPurchaseAmount || 0,
-            expirationDate: prize.expirationDate || ''
+            expirationDate: prize.expirationDate || '',
+            allowEmployeeOverride: (prize as any).allowEmployeeOverride || false
         });
         setIsModalOpen(true);
     };
@@ -221,7 +223,7 @@ export const PrizesPage = () => {
                 )}
             </div>
 
-            {/* WIDGET DE PRESUPUESTO */}
+            {/* WIDGET DE PRESUPUESTO Y ECUALIZACIÓN */}
             {(() => {
                 const bolsaMensual = config?.masterCalculatorSettings?.bolsaMensualPuntos || 0;
                 if (bolsaMensual <= 0) return null;
@@ -229,28 +231,88 @@ export const PrizesPage = () => {
                 const asignado = prizes.reduce((acc, p) => p.active ? acc + (p.pointsRequired * (p.stock || 0)) : acc, 0);
                 const porcentaje = Math.min((asignado / bolsaMensual) * 100, 100);
                 const estaPasado = asignado > bolsaMensual;
+                const niveles = config?.masterCalculatorSettings?.distribucionNiveles || [];
 
                 return (
-                    <div className={`p-5 rounded-2xl border ${estaPasado ? 'bg-red-50 border-red-200' : 'bg-white border-gray-100 shadow-sm'}`}>
-                        <div className="flex justify-between items-end mb-2">
-                            <div>
-                                <h3 className={`font-bold text-sm ${estaPasado ? 'text-red-800' : 'text-gray-500 uppercase tracking-wide text-xs'}`}>Presupuesto de Catálogo (Mensual)</h3>
-                                <p className={`text-2xl font-black mt-1 ${estaPasado ? 'text-red-600' : 'text-gray-800'}`}>
-                                    {asignado.toLocaleString('es-AR')} <span className="text-sm font-medium opacity-50">/ {bolsaMensual.toLocaleString('es-AR')} pts</span>
-                                </p>
-                            </div>
-                            {estaPasado && (
-                                <div className="bg-red-100 text-red-700 px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1">
-                                    ¡Límite excedido!
+                    <div className="space-y-4">
+                        {/* Global Budget */}
+                        <div className={`p-5 rounded-2xl border ${estaPasado ? 'bg-red-50 border-red-200' : 'bg-white border-gray-100 shadow-sm'}`}>
+                            <div className="flex justify-between items-end mb-2">
+                                <div>
+                                    <h3 className={`font-bold text-sm flex items-center gap-2 ${estaPasado ? 'text-red-800' : 'text-gray-500 uppercase tracking-wide text-xs'}`}>
+                                        <Activity size={16} className={estaPasado ? "text-red-500" : "text-pink-500"}/> 
+                                        Presupuesto de Catálogo (Mensual)
+                                    </h3>
+                                    <p className={`text-2xl font-black mt-1 ${estaPasado ? 'text-red-600' : 'text-gray-800'}`}>
+                                        {asignado.toLocaleString('es-AR')} <span className="text-sm font-medium opacity-50">/ {bolsaMensual.toLocaleString('es-AR')} pts</span>
+                                    </p>
                                 </div>
-                            )}
+                                {estaPasado && (
+                                    <div className="bg-red-100 text-red-700 px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm">
+                                        ¡Límite excedido!
+                                    </div>
+                                )}
+                            </div>
+                            <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden mt-3">
+                                <div 
+                                    className={`h-full transition-all duration-1000 ${estaPasado ? 'bg-red-500' : 'bg-pink-500'}`} 
+                                    style={{ width: `${porcentaje}%` }} 
+                                />
+                            </div>
                         </div>
-                        <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden mt-3">
-                            <div 
-                                className={`h-full transition-all duration-1000 ${estaPasado ? 'bg-red-500' : 'bg-pink-500'}`} 
-                                style={{ width: `${porcentaje}%` }} 
-                            />
-                        </div>
+
+                        {/* Receta de Ecualización */}
+                        {niveles.length > 0 && (
+                            <div className="bg-slate-900 rounded-2xl p-5 shadow-lg border border-slate-800">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <Sliders className="text-emerald-400" size={18} />
+                                    <h3 className="text-sm font-bold text-white uppercase tracking-widest">Receta de Ecualización (Objetivos)</h3>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                    {niveles.map(nivel => {
+                                        const targetPoints = bolsaMensual * (nivel.pct / 100);
+                                        // A heuristic to group matching prizes by point cost
+                                        const assignedToLevel = prizes
+                                            .filter(p => p.active && Math.abs(p.pointsRequired - nivel.costo) <= (nivel.costo * 0.1)) // 10% margin
+                                            .reduce((acc, p) => acc + (p.pointsRequired * (p.stock || 0)), 0);
+                                        
+                                        const pctLevel = targetPoints > 0 ? Math.min((assignedToLevel / targetPoints) * 100, 100) : 0;
+                                        const isDone = assignedToLevel >= targetPoints && targetPoints > 0;
+
+                                        return (
+                                            <div key={nivel.id} className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <p className="text-sm font-bold text-slate-200 line-clamp-1">{nivel.nombre}</p>
+                                                    <span className="text-[10px] font-black bg-slate-700 text-slate-300 px-2 py-0.5 rounded">
+                                                        {nivel.pct}%
+                                                    </span>
+                                                </div>
+                                                <p className="text-[10px] text-slate-400 mb-3 flex items-center gap-1">
+                                                    <Ticket size={12} className="text-emerald-500"/>
+                                                    Costo ref: {nivel.costo} pts
+                                                </p>
+                                                
+                                                <div className="h-1.5 w-full bg-slate-900 rounded-full overflow-hidden mb-2">
+                                                    <div 
+                                                        className={`h-full transition-all duration-1000 ${isDone ? 'bg-emerald-500' : 'bg-blue-500'}`} 
+                                                        style={{ width: `${pctLevel}%` }} 
+                                                    />
+                                                </div>
+                                                
+                                                <div className="flex justify-between text-[10px] font-bold">
+                                                    <span className={isDone ? 'text-emerald-400' : 'text-slate-400'}>
+                                                        {assignedToLevel.toLocaleString()} pts
+                                                    </span>
+                                                    <span className="text-slate-500">
+                                                        Meta: {Math.floor(targetPoints).toLocaleString()} pts
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 );
             })()}

@@ -216,10 +216,48 @@ app.get('/api/versions', async (req, res) => {
             const versionMain = await getRemoteVersion('origin/main');
             const versionDesarrollo = await getRemoteVersion('origin/desarrollo');
             
+            // Extensión
+            let extVersionLocal = 'N/A';
+            try {
+                const extManifestLocal = JSON.parse(fs.readFileSync(path.join(__dirname, 'extension-club-fidelidad', 'manifest.json'), 'utf8'));
+                extVersionLocal = extManifestLocal.version || 'N/A';
+            } catch(e) {}
+
+            const getRemoteExtVersion = (branch) => {
+                return new Promise(async (resolve) => {
+                    const pathsToTry = [`fidelidad-next/extension-club-fidelidad/manifest.json`, `extension-club-fidelidad/manifest.json`];
+                    let finalVersion = 'N/A';
+                    for (const p of pathsToTry) {
+                        const success = await new Promise((res) => {
+                            const proc = spawn('git', ['show', `${branch}:${p}`], { shell: true });
+                            let output = '';
+                            proc.stdout.on('data', (data) => output += data.toString());
+                            proc.on('close', (code) => {
+                                if (code === 0) {
+                                    try {
+                                        const pkg = JSON.parse(output);
+                                        finalVersion = pkg.version;
+                                        res(true);
+                                    } catch (e) { res(false); }
+                                } else { res(false); }
+                            });
+                        });
+                        if (success) break;
+                    }
+                    resolve(finalVersion);
+                });
+            };
+
+            const extVersionMain = await getRemoteExtVersion('origin/main');
+            const extVersionDesarrollo = await getRemoteExtVersion('origin/desarrollo');
+
             res.json({
                 local: versionLocal,
                 main: versionMain,
-                desarrollo: versionDesarrollo
+                desarrollo: versionDesarrollo,
+                extLocal: extVersionLocal,
+                extMain: extVersionMain,
+                extDesarrollo: extVersionDesarrollo
             });
         });
 

@@ -448,6 +448,22 @@
                     <p id="v-main" style="font-size: 18px; font-weight: 800; color: var(--primary);">...</p>
                 </div>
             </div>
+
+            <h4 style="font-size: 14px; margin-top: 20px; margin-bottom: 10px; color: var(--text-muted);">Extensión (POS)</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; text-align: center;">
+                <div style="background: rgba(255,255,255,0.02); padding: 15px; border-radius: 12px;">
+                    <p style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">PC Local</p>
+                    <p id="v-ext-local" style="font-size: 18px; font-weight: 800; color: var(--text-main);">...</p>
+                </div>
+                <div style="background: rgba(16, 185, 129, 0.05); padding: 15px; border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.1);">
+                    <p style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">Nube Desarrollo</p>
+                    <p id="v-ext-dev" style="font-size: 18px; font-weight: 800; color: var(--accent);">...</p>
+                </div>
+                <div style="background: rgba(99, 102, 241, 0.05); padding: 15px; border-radius: 12px; border: 1px solid rgba(99, 102, 241, 0.1);">
+                    <p style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">Nube Producción</p>
+                    <p id="v-ext-main" style="font-size: 18px; font-weight: 800; color: var(--primary);">...</p>
+                </div>
+            </div>
         </div>
 
         <!-- MOTOR A: CODIGO -->
@@ -690,6 +706,9 @@
             document.getElementById('v-local').textContent = '...';
             document.getElementById('v-dev').textContent = '...';
             document.getElementById('v-main').textContent = '...';
+            document.getElementById('v-ext-local').textContent = '...';
+            document.getElementById('v-ext-dev').textContent = '...';
+            document.getElementById('v-ext-main').textContent = '...';
 
             const response = await fetch('/api/versions');
             const data = await response.json();
@@ -697,6 +716,10 @@
             document.getElementById('v-local').textContent = data.local;
             document.getElementById('v-dev').textContent = data.desarrollo;
             document.getElementById('v-main').textContent = data.main;
+
+            document.getElementById('v-ext-local').textContent = data.extLocal || 'N/A';
+            document.getElementById('v-ext-dev').textContent = data.extDesarrollo || 'N/A';
+            document.getElementById('v-ext-main').textContent = data.extMain || 'N/A';
 
             // Verificar cambios en Firebase
             try {

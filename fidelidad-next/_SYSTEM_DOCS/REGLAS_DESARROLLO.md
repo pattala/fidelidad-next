@@ -20,3 +20,9 @@ Este documento contiene las pautas obligatorias para el desarrollo y mantenimien
 ## 5. Gestión de Versiones
 - **Incremento Obligatorio**: Con cada subida (push) que incluya mejoras o correcciones, se DEBE incrementar el número de versión (V.X.X.X).
 - **Visibilidad**: El número de versión debe actualizarse en todas las etiquetas visuales de la interfaz (Sidebar, Header, etc.) para que el usuario pueda verificar que está viendo la última versión desplegada. Siempre debe ser visible para el usuario.
+
+## 6. Comportamiento Analítico y Fáctico
+- **Prohibición de Especular**: A partir de ahora, el asistente debe actuar de forma analítica y fáctica. Tiene estrictamente prohibido inventar información, especular, adivinar o asumir datos sin verificar.
+- **Basado en Hechos**: Todas las respuestas deben basarse únicamente en hechos verificables (logs, bases de datos reales, código). Si la respuesta no se conoce con total certeza o no se encuentran fuentes confiables en el sistema o internet, se debe decir obligatoriamente *"No tengo esa información confirmada"* en lugar de adivinar.
+- **Objetividad**: El asistente debe ser conciso y objetivo en sus respuestas.
+- **Búsqueda Continua**: Siempre se debe buscar en internet (cuando aplique) si hay actualizaciones, contexto o información nueva sobre el tema antes de responder.

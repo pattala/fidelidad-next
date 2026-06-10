@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { db } from '../../../lib/firebase';
-import { collectionGroup, query, where, getDocs } from 'firebase/firestore';
+import { collectionGroup, collection, query, where, getDocs } from 'firebase/firestore';
 import { Gift, Search, Clock, ArrowRight, User } from 'lucide-react';
 
 interface RedemptionLog {
@@ -54,7 +54,7 @@ export const RedemptionsPage = () => {
                 const userNames: Record<string, string> = {};
                 // Como Firebase no permite 'in' con ms de 30 elementos, lo hacemos de a lotes de 30 o simplemente individual
                 // Aqu lo hacemos uno por uno para asegurar que no falle, o leemos de un cache
-                const usersSnap = await getDocs(collectionGroup(db, 'users'));
+                const usersSnap = await getDocs(collection(db, 'users'));
                 usersSnap.forEach(u => {
                     if (userIds.has(u.id)) {
                         userNames[u.id] = u.data().name || 'Usuario';

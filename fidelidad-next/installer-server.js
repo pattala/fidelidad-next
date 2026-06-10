@@ -251,13 +251,48 @@ app.get('/api/versions', async (req, res) => {
             const extVersionMain = await getRemoteExtVersion('origin/main');
             const extVersionDesarrollo = await getRemoteExtVersion('origin/desarrollo');
 
+            // Buscar versión del ZIP
+            let zipVersionLocal = 'N/A';
+            try {
+                const files = fs.readdirSync(path.join(__dirname, 'public/download'));
+                const zipFile = files.find(f => f.startsWith('Integrador_Beneficios') && f.endsWith('.zip'));
+                if (zipFile) {
+                    const match = zipFile.match(/_V([\d.]+)\.zip$/);
+                    if (match) zipVersionLocal = match[1];
+                    else if (zipFile === 'Integrador_Beneficios.zip') zipVersionLocal = 'Sin número';
+                }
+            } catch(e) {}
+
+            const getRemoteZipVersion = (branch) => {
+                return new Promise((resolve) => {
+                    const proc = spawn('git', ['ls-tree', '-r', branch, '--name-only'], { shell: true });
+                    let output = '';
+                    proc.stdout.on('data', (data) => output += data.toString());
+                    proc.on('close', (code) => {
+                        if (code === 0) {
+                            const lines = output.split('\n');
+                            const zipFile = lines.find(f => f.includes('public/download/Integrador_Beneficios') && f.endsWith('.zip'));
+                            if (zipFile) {
+                                const match = zipFile.match(/_V([\d.]+)\.zip$/);
+                                if (match) return resolve(match[1]);
+                                return resolve('Sin número');
+                            }
+                        }
+                        resolve('N/A');
+                    });
+                });
+            };
+
+            const zipVersionMain = await getRemoteZipVersion('origin/main');
+            const zipVersionDesarrollo = await getRemoteZipVersion('origin/desarrollo');
+
             res.json({
                 local: versionLocal,
                 main: versionMain,
                 desarrollo: versionDesarrollo,
-                extLocal: extVersionLocal,
-                extMain: extVersionMain,
-                extDesarrollo: extVersionDesarrollo
+                extLocal: `Cod: ${extVersionLocal} | Zip: ${zipVersionLocal}`,
+                extMain: `Cod: ${extVersionMain} | Zip: ${zipVersionMain}`,
+                extDesarrollo: `Cod: ${extVersionDesarrollo} | Zip: ${zipVersionDesarrollo}`
             });
         });
 

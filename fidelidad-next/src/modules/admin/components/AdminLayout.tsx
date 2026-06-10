@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Home, Users, User, Gift, Settings, LogOut, MessageCircle, BarChart3, ChevronDown, ChevronRight, Clock, Menu, X, Sparkles, RefreshCw } from 'lucide-react';
+import { Home, Users, User, Gift, Settings, LogOut, MessageCircle, BarChart3, ChevronDown, ChevronRight, Clock, Menu, X, Sparkles, RefreshCw, History } from 'lucide-react';
 import { auth, db } from '../../../lib/firebase';
 import { signOut } from 'firebase/auth';
 import { onSnapshot, doc, updateDoc } from 'firebase/firestore';
@@ -275,6 +275,9 @@ export const AdminLayout = () => {
                     </NavLink>
                     <NavLink to="/admin/prizes" className={navItemClass}>
                         <Gift size={20} /> Catálogo
+                    </NavLink>
+                    <NavLink to="/admin/redemptions" className={navItemClass}>
+                        <History size={20} /> Historial de Canjes
                     </NavLink>
                     <NavLink to="/admin/campaigns" className={navItemClass}>
                         <MessageCircle size={20} /> Campañas

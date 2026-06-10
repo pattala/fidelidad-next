@@ -29,6 +29,7 @@ const WhatsAppPage = lazy(() => import("./modules/admin/pages/WhatsAppPage").the
 const PushPage = lazy(() => import("./modules/admin/pages/PushPage").then(m => ({ default: m.PushPage })));
 const AdminProfilePage = lazy(() => import("./modules/admin/pages/AdminProfilePage").then(m => ({ default: m.AdminProfilePage })));
 const SystemLogsPage = lazy(() => import("./modules/admin/pages/SystemLogsPage").then(m => ({ default: m.SystemLogsPage })));
+const RedemptionsPage = lazy(() => import("./modules/admin/pages/RedemptionsPage").then(m => ({ default: m.RedemptionsPage })));
 
 // Componente para manejar la carga de los módulos lazy
 const PageLoader = () => (
@@ -139,6 +140,10 @@ export const router = createBrowserRouter([
             {
                 path: "prizes",
                 element: <Suspense fallback={<PageLoader />}><PrizesPage /></Suspense>
+            },
+            {
+                path: "redemptions",
+                element: <Suspense fallback={<PageLoader />}><RedemptionsPage /></Suspense>
             },
             {
                 path: "metrics",

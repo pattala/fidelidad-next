@@ -35,7 +35,7 @@ export default async function handler(req, res) {
 
     try {
         const db = getDb();
-        const { uid, prizeId, simulatedDate } = req.body || {};
+        const { uid, prizeId, simulatedDate, purchaseAmount } = req.body || {};
 
         // 1. Autenticación (Dual Mode)
         let isAdmin = false;
@@ -222,6 +222,7 @@ export default async function handler(req, res) {
                 type: 'debit',
                 prizeId: prizeId,
                 redeemedValue: pData.cashValue || 0,
+                purchaseAmount: purchaseAmount ? Number(purchaseAmount) : 0,
                 createdAt: admin.firestore.FieldValue.serverTimestamp()
             });
 
@@ -232,7 +233,7 @@ export default async function handler(req, res) {
                 clientName: cData.name || cData.nombre || 'Sin nombre',
                 socioNumber: cData.socioNumber || cData.numeroSocio || 'N/A',
                 points: -pointsNeeded,
-                amount: 0,
+                amount: purchaseAmount ? Number(purchaseAmount) : 0,
                 redeemedValue: pData.cashValue || 0,
                 type: 'debit',
                 reason: 'redemption',

@@ -1633,7 +1633,8 @@ function showFidelidadPanel() {
                 headers: { 'x-api-key': config.apiKey },
                 body: {
                     uid: selectedClient.id,
-                    prizeId: prize.id
+                    prizeId: prize.id,
+                    purchaseAmount: document.getElementById('cf-input-amount')?.value ? Number(document.getElementById('cf-input-amount').value) : 0
                 }
             });
             if (data && data.ok) {

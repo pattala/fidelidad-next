@@ -36,6 +36,7 @@ export const DashboardPage = () => {
     const [activityLimit, setActivityLimit] = useState(10);
     const [config, setConfig] = useState<any>(null);
     const [expiringUsers, setExpiringUsers] = useState<any[]>([]);
+    const [creditsDocs, setCreditsDocs] = useState<any[]>([]);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -84,22 +85,7 @@ export const DashboardPage = () => {
         const startOfMonth = new Date(startOfToday.getFullYear(), startOfToday.getMonth(), 1);
 
         const unsubCredits = onSnapshot(query(collectionGroup(db, 'points_history'), where('type', '==', 'credit')), (snap) => {
-            let tmg = 0, dmg = 0, dpe = 0, mpe = 0, rc = 0;
-            const resetDate = config?.monthPointsResetDate?.toDate ? config.monthPointsResetDate.toDate() : new Date(0);
-            snap.forEach(d => {
-                const data = d.data();
-                tmg += (data.moneySpent || 0);
-                if (data.reason === 'referral_bonus') rc++;
-                const date = data.date?.toDate ? data.date.toDate() : TimeService.now();
-                if (date >= startOfToday) {
-                    dmg += (data.moneySpent || 0);
-                    dpe += (data.amount || 0);
-                }
-                if (date >= startOfMonth && date >= resetDate) {
-                    mpe += (data.amount || 0);
-                }
-            });
-            setStats(prev => ({ ...prev, totalMoneyGenerated: tmg, todayMoneyGenerated: dmg, todayPointsEmitted: dpe, monthPointsEmitted: mpe, referralCount: rc }));
+            setCreditsDocs(snap.docs.map(d => d.data()));
         });
 
         const unsubPrizes = onSnapshot(query(collection(db, 'prizes'), where('active', '==', true)), (snap) => {
@@ -138,6 +124,31 @@ export const DashboardPage = () => {
             unsubConfig(); unsubUsers(); unsubDebits(); unsubCredits(); unsubPrizes(); unsubActivity();
         };
     }, [activityLimit]);
+
+    const resetDateMs = config?.monthPointsResetDate?.toMillis ? config.monthPointsResetDate.toMillis() : 0;
+
+    useEffect(() => {
+        let tmg = 0, dmg = 0, dpe = 0, mpe = 0, rc = 0;
+        const resetDate = new Date(resetDateMs);
+        
+        const startOfToday = new Date(TimeService.now());
+        startOfToday.setHours(0, 0, 0, 0);
+        const startOfMonth = new Date(startOfToday.getFullYear(), startOfToday.getMonth(), 1);
+
+        creditsDocs.forEach(data => {
+            tmg += (data.moneySpent || 0);
+            if (data.reason === 'referral_bonus') rc++;
+            const date = data.date?.toDate ? data.date.toDate() : TimeService.now();
+            if (date >= startOfToday) {
+                dmg += (data.moneySpent || 0);
+                dpe += (data.amount || 0);
+            }
+            if (date >= startOfMonth && date >= resetDate) {
+                mpe += (data.amount || 0);
+            }
+        });
+        setStats(prev => ({ ...prev, totalMoneyGenerated: tmg, todayMoneyGenerated: dmg, todayPointsEmitted: dpe, monthPointsEmitted: mpe, referralCount: rc }));
+    }, [creditsDocs, resetDateMs]);
 
     useEffect(() => {
         if (!config || stats.usersCount === 0) return;

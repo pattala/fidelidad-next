@@ -336,7 +336,12 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                             <div style="font-size:10px; opacity:0.6;">Gestión de Alertas</div>
                         </div>
                     </div>
-                    <button id="cf-v35-close" style="background:none; border:none; color:white; font-size:24px; cursor:pointer;">×</button>
+                    <div style="display:flex; gap:12px; align-items:center;">
+                        <button id="cf-v35-open-panel" style="background:#10b981; border:none; color:white; font-size:10px; font-weight:bold; padding:6px 12px; border-radius:6px; cursor:pointer; text-transform:uppercase; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3); transition:all 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                            🎁 Canjear / Cargar
+                        </button>
+                        <button id="cf-v35-close" style="background:none; border:none; color:white; font-size:24px; cursor:pointer;">×</button>
+                    </div>
                 </div>
                 <div style="display:flex; background:rgba(0,0,0,0.2); padding:4px;">
                     <button id="tab-pending" style="flex:1; padding:8px; border:none; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; ${activeTab === 'pending' ? 'background:rgba(255,255,255,0.15); color:white;' : 'background:none; color:rgba(255,255,255,0.4);'}">
@@ -360,6 +365,12 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                 document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', mouseUp);
             };
             ui.querySelector('#cf-v35-close').onclick = (e) => { e.stopPropagation(); isExpanded = false; render(); };
+            ui.querySelector('#cf-v35-open-panel').onclick = (e) => { 
+                e.stopPropagation(); 
+                isExpanded = false; 
+                render(); 
+                showFidelidadPanel(); 
+            };
             ui.querySelector('#tab-pending').onclick = () => { activeTab = 'pending'; render(); };
             ui.querySelector('#tab-processed').onclick = () => { activeTab = 'processed'; render(); };
             ui.querySelector('#tab-sorteos').onclick = () => { activeTab = 'sorteos'; render(); };

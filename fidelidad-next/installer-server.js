@@ -534,6 +534,40 @@ app.post('/api/firebase/wipe-data', async (req, res) => {
             await deleteByQueryPaged(() => db.collection('mystery_box_chances').limit(500), 'mystery_box_chances');
         }
 
+        // 2.5. Puntos de Usuarios
+        if (options.wipePoints) {
+            res.write(`\n⏳ Restableciendo puntos de usuarios a 0...\n`);
+            const usersRefs = await db.collection("users").listDocuments();
+            let resetCount = 0;
+            
+            const batchUpdate = async () => {
+                let count = 0;
+                let batch = db.batch();
+                for (let i = 0; i < usersRefs.length; i++) {
+                    batch.update(usersRefs[i], { points: 0, puntos: 0, accumulated_balance: 0 });
+                    count++;
+                    if (count === 400 || i === usersRefs.length - 1) {
+                        await batch.commit();
+                        resetCount += count;
+                        count = 0;
+                        batch = db.batch();
+                    }
+                }
+            };
+            
+            if (usersRefs.length > 0) {
+                await batchUpdate();
+            }
+            
+            // También borrar historiales de puntos
+            for (const docRef of usersRefs) {
+                await deleteByQueryPaged(() => db.collection(`users/${docRef.id}/points_history`).limit(500), 'points_history');
+                await deleteByQueryPaged(() => db.collection(`users/${docRef.id}/expiration_cache`).limit(500), 'expiration_cache');
+            }
+
+            res.write(`✅ Puntos restablecidos para ${resetCount} usuarios.\n`);
+        }
+
         // 3. Auditoría y Avisos
         if (options.wipeAudit) {
             res.write(`\n⏳ Eliminando registros de auditoría y avisos del sistema...\n`);

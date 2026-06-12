@@ -556,13 +556,6 @@
                             <span class="slider"></span>
                         </label>
                     </div>
-                    <div class="switch-group" style="background: rgba(0,0,0,0.4);">
-                        <label>Limpiar Puntos (Reset)</label>
-                        <label class="switch">
-                            <input type="checkbox" id="wipePoints">
-                            <span class="slider"></span>
-                        </label>
-                    </div>
                     <button class="btn-primary" style="background: #ef4444; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4); margin: 0; align-self: center;" onclick="confirmWipe()">⚠️ Ejecutar Limpieza Profunda</button>
                 </div>
             </div>
@@ -846,14 +839,13 @@
         const wipeUsers = document.getElementById('wipeUsers').checked;
         const wipeMysteryBoxes = document.getElementById('wipeMysteryBoxes').checked;
         const wipeAudit = document.getElementById('wipeAudit').checked;
-        const wipePoints = document.getElementById('wipePoints').checked;
 
-        if (!wipeUsers && !wipeMysteryBoxes && !wipeAudit && !wipePoints) return alert('Selecciona al menos un tipo de dato a borrar.');
+        if (!wipeUsers && !wipeMysteryBoxes && !wipeAudit) return alert('Selecciona al menos un tipo de dato a borrar.');
 
         const confirmText = prompt(`⚠️ ¡ADVERTENCIA PELIGROSA! ⚠️\n\nEstás a punto de borrar datos permanentemente del proyecto:\n👉 ${projectId}\n\nPara continuar, escribe exactamente la palabra "BORRAR" (en mayúsculas):`);
         
         if (confirmText === 'BORRAR') {
-            runFirebaseWipe(projectId, credentials, { wipeUsers, wipeMysteryBoxes, wipeAudit, wipePoints });
+            runFirebaseWipe(projectId, credentials, { wipeUsers, wipeMysteryBoxes, wipeAudit });
         } else {
             alert('Operación cancelada de forma segura.');
         }

@@ -236,8 +236,11 @@ export const DashboardPage = () => {
                                 </h3>
                                 <button 
                                     onClick={async () => {
-                                        if(window.confirm('¿Estás seguro de reiniciar el contador de puntos emitidos este mes a 0?')) {
+                                        const confirmText = window.prompt('⚠️ REINICIO DE PRESUPUESTO ⚠️\n\nEstás a punto de reiniciar el contador de puntos emitidos este mes a 0.\n\nPara continuar, escribe la palabra "REINICIAR" (en mayúsculas):');
+                                        if (confirmText === 'REINICIAR') {
                                             await updateDoc(doc(db, 'config', 'general'), { monthPointsResetDate: new Date() });
+                                        } else if (confirmText !== null) {
+                                            window.alert('Operación cancelada. La palabra de seguridad no coincide.');
                                         }
                                     }} 
                                     className="text-[10px] bg-slate-100 px-2 py-1 rounded-lg text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors"

@@ -5,7 +5,7 @@
 
 import admin from "firebase-admin";
 import { updateNextExpirationDate, getValidityDays } from "../utils/_expiration-utils.js";
-import { getEffectiveDate } from "../utils/timeUtils.js";
+import { getEffectiveDate, getTrueEffectiveDate } from "../utils/timeUtils.js";
 
 // ---------- Firebase Admin ----------
 function initFirebaseAdmin() {
@@ -271,6 +271,7 @@ export default async function handler(req, res) {
         // --- RELOJ SIMULADO ---
         // Se define aquí arriba para usar en todos los modos (Admin, Usuario, Reglas)
         const now = await getEffectiveDate(db, req.body?.simulatedDate);
+        const trueNow = await getTrueEffectiveDate(db, req.body?.simulatedDate);
         const todayStr = now.toISOString().split('T')[0];
 
         if (isAdmin && finalAmount) {
@@ -400,10 +401,10 @@ export default async function handler(req, res) {
 
         // (now y todayStr ya definidos arriba)
 
-        let recordDate = now;
+        let recordDate = trueNow;
         if (req.body?.date) {
-            if (req.body.date === todayStr) recordDate = now;
-            else recordDate = new Date(req.body.date + 'T12:00:00');
+            if (req.body.date === todayStr) recordDate = trueNow;
+            else recordDate = new Date(req.body.date + 'T12:00:00Z');
         }
 
         // 5. Determinar Días de Validez (Escalas)
@@ -569,7 +570,7 @@ export default async function handler(req, res) {
                 const newRPoints = (Number(rData.points) || 0) + totalAwarded;
 
                 const rValidityDays = getValidityDays(totalAwarded, expirationRules);
-                const rExpirationDate = new Date(now);
+                const rExpirationDate = new Date(trueNow);
                 rExpirationDate.setDate(rExpirationDate.getDate() + rValidityDays);
                 rExpirationDate.setHours(12, 0, 0, 0); // Normalize to midday to prevent timezone drift
                 const rY = rExpirationDate.getFullYear();
@@ -588,7 +589,7 @@ export default async function handler(req, res) {
                     'referralStats.count': admin.firestore.FieldValue.increment(1),
                     'referralStats.pointsEarned': admin.firestore.FieldValue.increment(totalAwarded),
                     historialPuntos: [...(rData.historialPuntos || []), {
-                        fechaObtencion: admin.firestore.Timestamp.fromDate(now),
+                        fechaObtencion: admin.firestore.Timestamp.fromDate(trueNow),
                         puntosObtenidos: totalAwarded,
                         puntosDisponibles: totalAwarded,
                         diasCaducidad: rValidityDays,
@@ -602,7 +603,7 @@ export default async function handler(req, res) {
                     type: 'credit',
                     reason: 'referral_bonus',
                     concept: conceptFinal,
-                    date: admin.firestore.Timestamp.fromDate(now),
+                    date: admin.firestore.Timestamp.fromDate(trueNow),
                     createdAt: admin.firestore.FieldValue.serverTimestamp(),
                     expiresAt: admin.firestore.Timestamp.fromDate(rExpirationDate),
                     remainingPoints: totalAwarded,
@@ -664,7 +665,7 @@ export default async function handler(req, res) {
                 action: 'points_credited',
                 status: 'success',
                 info: `+${points} pts (${(concept || 'Carga manual')})`,
-                timestamp: now.toISOString()
+                timestamp: trueNow.toISOString()
             });
 
             // AUDITORIA: Registro de Inbox
@@ -674,7 +675,7 @@ export default async function handler(req, res) {
                 action: 'inbox_message_saved',
                 status: 'success',
                 info: `Mensaje guardado: +${points} pts`,
-                timestamp: now.toISOString()
+                timestamp: trueNow.toISOString()
             });
 
             // 5.5 GENERACIÓN DE CAJA SORPRESA
@@ -730,7 +731,7 @@ export default async function handler(req, res) {
                             const freq = Number(pet.frequencyDays || 30);
                             const lead = Number(config.petFoodAlertLeadDays || 0);
                             
-                            const baseDate = date ? new Date(date + 'T12:00:00') : now;
+                            const baseDate = date ? new Date(date + 'T12:00:00Z') : trueNow;
                             const exhaustionDate = new Date(baseDate);
                             exhaustionDate.setDate(baseDate.getDate() + freq);
                             
@@ -767,10 +768,10 @@ export default async function handler(req, res) {
                 if (userSnap.exists) {
                     const userData = userSnap.data();
                     const purchaseTimestamp = date 
-                        ? admin.firestore.Timestamp.fromDate(new Date(date + 'T12:00:00')) 
+                        ? admin.firestore.Timestamp.fromDate(new Date(date + 'T12:00:00Z')) 
                         : admin.firestore.FieldValue.serverTimestamp();
                     
-                    const nextDate = new Date();
+                    const nextDate = new Date(trueNow);
                     const cycle = 15;
                     nextDate.setDate(nextDate.getDate() + cycle);
                     const nextDateStr = nextDate.toISOString().split('T')[0];

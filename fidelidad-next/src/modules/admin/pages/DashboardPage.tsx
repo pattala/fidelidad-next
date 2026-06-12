@@ -125,30 +125,47 @@ export const DashboardPage = () => {
         };
     }, [activityLimit]);
 
-    const resetDateMs = config?.monthPointsResetDate?.toMillis ? config.monthPointsResetDate.toMillis() : 0;
+    // Función auxiliar robusta para parsear fechas de Firestore/JS
+    const parseDateSafe = (val: any, fallback: Date): Date => {
+        if (!val) return fallback;
+        if (typeof val.toDate === 'function') return val.toDate();
+        if (typeof val.toMillis === 'function') return new Date(val.toMillis());
+        if (val instanceof Date) return val;
+        if (typeof val === 'string' || typeof val === 'number') {
+            const parsed = new Date(val);
+            if (!isNaN(parsed.getTime())) return parsed;
+        }
+        return fallback;
+    };
 
     useEffect(() => {
         let tmg = 0, dmg = 0, dpe = 0, mpe = 0, rc = 0;
-        const resetDate = new Date(resetDateMs);
+        
+        // Obtener la fecha de reinicio de forma robusta
+        const resetDate = parseDateSafe(config?.monthPointsResetDate, new Date(0));
         
         const startOfToday = new Date(TimeService.now());
         startOfToday.setHours(0, 0, 0, 0);
         const startOfMonth = new Date(startOfToday.getFullYear(), startOfToday.getMonth(), 1);
 
         creditsDocs.forEach(data => {
-            tmg += (data.moneySpent || 0);
+            tmg += (Number(data.moneySpent) || 0);
             if (data.reason === 'referral_bonus') rc++;
-            const date = data.date?.toDate ? data.date.toDate() : TimeService.now();
+            
+            const date = parseDateSafe(data.date, TimeService.now());
+            const amount = Number(data.amount) || 0;
+            const money = Number(data.moneySpent) || 0;
+
             if (date >= startOfToday) {
-                dmg += (data.moneySpent || 0);
-                dpe += (data.amount || 0);
+                dmg += money;
+                dpe += amount;
             }
             if (date >= startOfMonth && date >= resetDate) {
-                mpe += (data.amount || 0);
+                mpe += amount;
             }
         });
         setStats(prev => ({ ...prev, totalMoneyGenerated: tmg, todayMoneyGenerated: dmg, todayPointsEmitted: dpe, monthPointsEmitted: mpe, referralCount: rc }));
-    }, [creditsDocs, resetDateMs]);
+    }, [creditsDocs, config?.monthPointsResetDate]);
 
     useEffect(() => {
         if (!config || stats.usersCount === 0) return;

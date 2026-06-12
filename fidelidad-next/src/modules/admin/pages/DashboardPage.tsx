@@ -85,6 +85,7 @@ export const DashboardPage = () => {
 
         const unsubCredits = onSnapshot(query(collectionGroup(db, 'points_history'), where('type', '==', 'credit')), (snap) => {
             let tmg = 0, dmg = 0, dpe = 0, mpe = 0, rc = 0;
+            const resetDate = config?.monthPointsResetDate?.toDate ? config.monthPointsResetDate.toDate() : new Date(0);
             snap.forEach(d => {
                 const data = d.data();
                 tmg += (data.moneySpent || 0);
@@ -94,7 +95,7 @@ export const DashboardPage = () => {
                     dmg += (data.moneySpent || 0);
                     dpe += (data.amount || 0);
                 }
-                if (date >= startOfMonth) {
+                if (date >= startOfMonth && date >= resetDate) {
                     mpe += (data.amount || 0);
                 }
             });
@@ -216,11 +217,23 @@ export const DashboardPage = () => {
                     <div className="absolute -right-10 -top-10 w-40 h-40 bg-pink-50 rounded-full opacity-50 blur-2xl pointer-events-none" />
                     
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-4 relative z-10">
-                        <div>
-                            <h3 className="text-gray-500 font-medium flex items-center gap-2">
-                                <AlertTriangle size={16} className={stats.monthPointsEmitted > config.masterCalculatorSettings.bolsaMensualPuntos ? "text-red-500" : "text-gray-400"} /> 
-                                Presupuesto Mensual de Puntos
-                            </h3>
+                        <div className="w-full md:w-auto">
+                            <div className="flex items-center justify-between gap-4">
+                                <h3 className="text-gray-500 font-medium flex items-center gap-2">
+                                    <AlertTriangle size={16} className={stats.monthPointsEmitted > config.masterCalculatorSettings.bolsaMensualPuntos ? "text-red-500" : "text-gray-400"} /> 
+                                    Presupuesto Mensual de Puntos
+                                </h3>
+                                <button 
+                                    onClick={async () => {
+                                        if(window.confirm('¿Estás seguro de reiniciar el contador de puntos emitidos este mes a 0?')) {
+                                            await updateDoc(doc(db, 'config', 'general'), { monthPointsResetDate: new Date() });
+                                        }
+                                    }} 
+                                    className="text-[10px] bg-slate-100 px-2 py-1 rounded-lg text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors"
+                                >
+                                    Reiniciar a 0
+                                </button>
+                            </div>
                             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-3 mt-1">
                                 Acumulado desde el 1 de {new Date().toLocaleString('es-AR', { month: 'long' })} (Se reinicia el 1º)
                             </p>

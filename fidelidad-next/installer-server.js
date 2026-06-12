@@ -544,7 +544,7 @@ app.post('/api/firebase/wipe-data', async (req, res) => {
                 let count = 0;
                 let batch = db.batch();
                 for (let i = 0; i < usersRefs.length; i++) {
-                    batch.update(usersRefs[i], { points: 0, puntos: 0, accumulated_balance: 0 });
+                    batch.set(usersRefs[i], { points: 0, puntos: 0, accumulated_balance: 0 }, { merge: true });
                     count++;
                     if (count === 400 || i === usersRefs.length - 1) {
                         await batch.commit();

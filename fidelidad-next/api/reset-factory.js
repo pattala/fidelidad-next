@@ -144,24 +144,47 @@ export default async function handler(req, res) {
 
                 results.socios_borrados = deletedCount;
                 results.auth_purgados = uidsToPurgeAuth.length;
-            } else if (options.socios_historial) {
-                // Borrar solo historiales manteniendo usuarios
-                const usersSnap = await db.collection("users").get();
-                for (const d of usersSnap.docs) {
-                    await deleteUserSubcollections(db, d.id, ["points_history", "transactions", "interacciones", "geo_raw", "visit_history", "expiration_cache"]);
-                    await d.ref.update({
-                        points: 0,
-                        puntos: 0,
-                        balance: 0,
-                        accumulated_balance: 0,
-                        lastExpirationNotice: null,
-                        lastExpirationNoticeTargetDate: null,
-                        lastExpirationNoticeAmount: null,
-                        nextExpirationDate: null,
-                        nextExpirationAmount: 0
-                    });
+            } else {
+                if (options.puntos_total || options.socios_historial) {
+                    const usersSnap = await db.collection("users").get();
+                    for (const d of usersSnap.docs) {
+                        const subsToDelete = [];
+                        let resetPoints = false;
+
+                        if (options.puntos_total) {
+                            subsToDelete.push("points_history");
+                            resetPoints = true;
+                        }
+                        if (options.socios_historial) {
+                            subsToDelete.push("points_history", "transactions", "interacciones", "geo_raw", "visit_history", "expiration_cache");
+                            resetPoints = false; // "historial" no deberia borrar puntos en la nueva logica si tenemos un reset dedicado. Pero vamos a mantener que si se marca "historial" tambien lo borra por legacy
+                        }
+                        
+                        if (options.socios_historial) {
+                             resetPoints = true;
+                        }
+
+                        // Eliminar duplicados
+                        const uniqueSubs = [...new Set(subsToDelete)];
+                        await deleteUserSubcollections(db, d.id, uniqueSubs);
+
+                        if (resetPoints) {
+                            await d.ref.update({
+                                points: 0,
+                                puntos: 0,
+                                balance: 0,
+                                accumulated_balance: 0,
+                                lastExpirationNotice: null,
+                                lastExpirationNoticeTargetDate: null,
+                                lastExpirationNoticeAmount: null,
+                                nextExpirationDate: null,
+                                nextExpirationAmount: 0
+                            });
+                        }
+                    }
+                    if (options.puntos_total) results.puntos_reseteados = usersSnap.size;
+                    if (options.socios_historial) results.historiales_vaciados = usersSnap.size;
                 }
-                results.historiales_vaciados = usersSnap.size;
             }
 
             if (options.socios_mensajes) {

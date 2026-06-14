@@ -1178,7 +1178,9 @@ export const ClientProfilePage = () => {
 
                                     <div className="grid grid-cols-2 gap-3">
                                         <div>
-                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block ml-1">Dura (días)</label>
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block ml-1">
+                                                {petFormData.type === 'gato' ? 'Alimento (días)' : 'Dura (días)'}
+                                            </label>
                                             <input
                                                 type="number"
                                                 value={petFormData.frequencyDays}
@@ -1187,7 +1189,19 @@ export const ClientProfilePage = () => {
                                                 placeholder="Ej: 30"
                                             />
                                         </div>
-                                        <div className="flex items-end pb-3">
+                                        {petFormData.type === 'gato' && (
+                                            <div>
+                                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block ml-1">Piedras (días)</label>
+                                                <input
+                                                    type="number"
+                                                    value={petFormData.litterFrequencyDays}
+                                                    onChange={(e) => setPetFormData({ ...petFormData, litterFrequencyDays: Number(e.target.value) })}
+                                                    className="w-full px-4 py-3 bg-white border-gray-100 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-sm font-medium"
+                                                    placeholder="Ej: 15"
+                                                />
+                                            </div>
+                                        )}
+                                        <div className={`flex items-end pb-3 ${petFormData.type === 'gato' ? 'col-span-2' : ''}`}>
                                             <label className="flex items-center gap-2 cursor-pointer select-none">
                                                 <input
                                                     type="checkbox"
@@ -1195,7 +1209,7 @@ export const ClientProfilePage = () => {
                                                     onChange={(e) => setPetFormData({ ...petFormData, receiveAlerts: e.target.checked })}
                                                     className="w-5 h-5 rounded border-gray-300 text-orange-600 focus:ring-orange-500 transition-all"
                                                 />
-                                                <span className="text-[11px] font-bold text-gray-600 uppercase">Alertas</span>
+                                                <span className="text-[11px] font-bold text-gray-600 uppercase">Activar Alertas</span>
                                             </label>
                                         </div>
                                     </div>

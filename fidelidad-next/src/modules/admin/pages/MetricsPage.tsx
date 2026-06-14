@@ -511,41 +511,49 @@ export const MetricsPage = () => {
                     </div>
 
                     {/* BLOQUE DETALLADO DEL PRONÓSTICO (Cash Flow) */}
-                    {forecastData && (
-                        <div className="bg-white p-6 rounded-3xl shadow-sm border border-orange-100 mb-10 relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                                <Clock size={80} className="text-orange-500" />
+                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-orange-100 mb-10 relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                            <Clock size={80} className="text-orange-500" />
+                        </div>
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+                            <div className="flex-1">
+                                <h3 className="font-black text-xl text-gray-800 flex items-center gap-2 mb-1">
+                                    <Clock className="text-orange-500" size={24} /> Desglose del Cash Flow
+                                </h3>
+                                <p className="text-sm text-gray-500 font-medium">Proyección detallada del impacto económico de los próximos vencimientos.</p>
                             </div>
-                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
-                                <div className="flex-1">
-                                    <h3 className="font-black text-xl text-gray-800 flex items-center gap-2 mb-1">
-                                        <Clock className="text-orange-500" size={24} /> Desglose del Cash Flow
-                                    </h3>
-                                    <p className="text-sm text-gray-500 font-medium">Proyección detallada del impacto económico de los próximos vencimientos.</p>
-                                </div>
-                                <div className="flex flex-wrap gap-8 items-center">
-                                    {(forecastData.intervals || []).filter((i: any) => i.key !== 'future').map((interval: any) => (
-                                        <div key={interval.key} className="flex flex-col">
-                                            <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest mb-1">{interval.label}</p>
-                                            <p className="text-2xl font-black text-gray-800">
-                                                {(interval.points || 0).toLocaleString()} 
-                                                <span className="text-xs text-gray-400 ml-1 font-bold">pts</span>
-                                            </p>
-                                            <p className={`text-sm font-bold ${interval.key === 'short' ? 'text-red-500' : 'text-orange-500'}`}>
-                                                ≈ ${Math.round(interval.money || 0).toLocaleString()}
-                                            </p>
-                                        </div>
-                                    ))}
-                                </div>
-                                <div className="flex flex-col items-end gap-1">
-                                    <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Valor de Canje Aplicado</p>
-                                    <p className="text-xs font-bold text-gray-400 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100">
-                                        1 punto = ${forecastData?.pointValue ? forecastData.pointValue.toFixed(2) : (config?.pointValue || 10).toFixed(2)}
+                            {forecastData ? (
+                                <>
+                                    <div className="flex flex-wrap gap-8 items-center">
+                                        {(forecastData.intervals || []).filter((i: any) => i.key !== 'future').map((interval: any) => (
+                                            <div key={interval.key} className="flex flex-col">
+                                                <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest mb-1">{interval.label}</p>
+                                                <p className="text-2xl font-black text-gray-800">
+                                                    {(interval.points || 0).toLocaleString()} 
+                                                    <span className="text-xs text-gray-400 ml-1 font-bold">pts</span>
+                                                </p>
+                                                <p className={`text-sm font-bold ${interval.key === 'short' ? 'text-red-500' : 'text-orange-500'}`}>
+                                                    ≈ ${Math.round(interval.money || 0).toLocaleString()}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="flex flex-col items-end gap-1">
+                                        <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Valor de Canje Aplicado</p>
+                                        <p className="text-xs font-bold text-gray-400 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100">
+                                            1 punto = ${forecastData?.pointValue ? forecastData.pointValue.toFixed(2) : (config?.pointValue || 10).toFixed(2)}
+                                        </p>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="flex-1 flex justify-end">
+                                    <p className="text-sm font-bold text-orange-500/80 bg-orange-50 px-4 py-2 rounded-xl border border-orange-100 text-right">
+                                        El desglose se activará cuando existan puntos próximos a vencer.
                                     </p>
                                 </div>
-                            </div>
+                            )}
                         </div>
-                    )}
+                    </div>
 
                     {/* SEPARADOR Y FILTRO DE TIEMPO */}
                     <div className="mb-10 flex flex-col items-center relative z-20">

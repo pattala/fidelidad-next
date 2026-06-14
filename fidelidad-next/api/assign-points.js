@@ -727,18 +727,21 @@ export default async function handler(req, res) {
                     const updatedPets = (userData.pets || []).map(pet => {
                         if (petIds.includes(pet.id)) {
                             // Calcular próxima fecha de aviso (nextFoodAlertDate)
-                            let nextDate = null;
-                            const freq = Number(pet.frequencyDays || 30);
-                            const lead = Number(config.petFoodAlertLeadDays || 0);
+                            let nextDateStr = null;
+                            const freq = pet.frequencyDays === 0 ? 0 : Number(pet.frequencyDays || 30);
                             
-                            const baseDate = date ? new Date(date + 'T12:00:00Z') : trueNow;
-                            const exhaustionDate = new Date(baseDate);
-                            exhaustionDate.setDate(baseDate.getDate() + freq);
-                            
-                            const alertDate = new Date(exhaustionDate);
-                            alertDate.setDate(exhaustionDate.getDate() - lead);
-                            
-                            const nextDateStr = alertDate.toISOString().split('T')[0];
+                            if (freq > 0) {
+                                const lead = Number(config.petFoodAlertLeadDays || 0);
+                                
+                                const baseDate = date ? new Date(date + 'T12:00:00Z') : trueNow;
+                                const exhaustionDate = new Date(baseDate);
+                                exhaustionDate.setDate(baseDate.getDate() + freq);
+                                
+                                const alertDate = new Date(exhaustionDate);
+                                alertDate.setDate(exhaustionDate.getDate() - lead);
+                                
+                                nextDateStr = alertDate.toISOString().split('T')[0];
+                            }
 
                             return { 
                                 ...pet, 
@@ -771,14 +774,19 @@ export default async function handler(req, res) {
                         ? admin.firestore.Timestamp.fromDate(new Date(date + 'T12:00:00Z')) 
                         : admin.firestore.FieldValue.serverTimestamp();
                     
-                    const nextDate = new Date(trueNow);
-                    const cycle = 15;
-                    nextDate.setDate(nextDate.getDate() + cycle);
-                    const nextDateStr = nextDate.toISOString().split('T')[0];
                     
                     if (Array.isArray(userData.pets)) {
                         const updatedPets = userData.pets.map(pet => {
                             if (petLitterIds.includes(pet.id)) {
+                                let nextDateStr = null;
+                                const cycle = pet.litterFrequencyDays === 0 ? 0 : Number(pet.litterFrequencyDays || 15);
+                                
+                                if (cycle > 0) {
+                                    const nextDate = new Date(trueNow);
+                                    nextDate.setDate(nextDate.getDate() + cycle);
+                                    nextDateStr = nextDate.toISOString().split('T')[0];
+                                }
+
                                 return { 
                                     ...pet, 
                                     lastLitterPurchaseDate: purchaseTimestamp,

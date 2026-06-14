@@ -566,7 +566,8 @@ export const ClientProfilePage = () => {
                                                 <div className="mt-1 flex flex-wrap items-center gap-2">
                                                     <span className="px-2 py-0.5 bg-white border border-gray-200 rounded text-[9px] font-bold text-gray-600">
                                                         {pet.brand || pet.foodBrand}
-                                                               {pet.lastPurchaseDate && pet.frequencyDays && (
+                                                    </span>
+                                                    {pet.lastPurchaseDate && pet.frequencyDays && (
                                                         <span className="text-[9px] font-black text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full flex items-center gap-1">
                                                             ⏳ Alimento: {(() => {
                                                                 const last = pet.lastPurchaseDate.toDate ? pet.lastPurchaseDate.toDate() : new Date(pet.lastPurchaseDate);
@@ -586,7 +587,7 @@ export const ClientProfilePage = () => {
                                                             })()}
                                                         </span>
                                                     )}
-                                                </div>                                               </div>
+                                                </div>
                                             </div>
                                             <div className="flex flex-col gap-2">
                                                 <button

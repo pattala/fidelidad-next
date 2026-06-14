@@ -58,7 +58,7 @@ export const ClientProfilePage = () => {
     useEffect(() => {
         if (searchParams.get('addPet') === 'true' && userData && config) {
             setEditingPet(null);
-            setPetFormData({ name: '', type: 'perro', breed: 'Mestizo / Sin Raza', age: '', brand: 'Royal Canin', variant: '', frequencyDays: 30, litterFrequencyDays: 15, receiveAlerts: true });
+            setPetFormData({ name: '', type: 'perro', breed: 'Mestizo / Sin Raza', age: '', brand: 'Royal Canin', variant: '', frequencyDays: 30, litterFrequencyDays: 15, receiveAlerts: true, enableFoodAlerts: true, enableLitterAlerts: true });
             setPetPhotoBase64(null);
             setIsPetModalOpen(true);
             
@@ -90,7 +90,7 @@ export const ClientProfilePage = () => {
     const [isPetModalOpen, setIsPetModalOpen] = useState(false);
     const [editingPet, setEditingPet] = useState<Pet | null>(null);
     const [petFormData, setPetFormData] = useState<Partial<Pet>>({
-        name: '', type: 'perro', breed: 'Mestizo / Sin Raza', age: '', brand: 'Royal Canin', variant: '', frequencyDays: 30, receiveAlerts: true
+        name: '', type: 'perro', breed: 'Mestizo / Sin Raza', age: '', brand: 'Royal Canin', variant: '', frequencyDays: 30, receiveAlerts: true, enableFoodAlerts: true, enableLitterAlerts: true
     });
     const [petPhotoBase64, setPetPhotoBase64] = useState<string | null>(null);
     const [userPhotoBase64, setUserPhotoBase64] = useState<string | null>(null);
@@ -243,7 +243,8 @@ export const ClientProfilePage = () => {
                 birthDate: calculatedBirthDate || null,
                 brand: petFormData.brand || '',
                 variant: petFormData.variant || '',
-                frequencyDays: petFormData.frequencyDays === 0 ? 0 : (Number(petFormData.frequencyDays) || 30),
+                frequencyDays: Math.max(1, Number(petFormData.frequencyDays) || 30),
+                enableFoodAlerts: petFormData.enableFoodAlerts ?? true,
                 receiveAlerts: !!petFormData.receiveAlerts,
                 photoUrl: petPhotoBase64 || editingPet?.photoUrl || '',
                 createdAt: editingPet?.createdAt || TimeService.now(),
@@ -251,7 +252,8 @@ export const ClientProfilePage = () => {
             };
 
             if (petFormData.type === 'gato') {
-                petPayload.litterFrequencyDays = petFormData.litterFrequencyDays === 0 ? 0 : (Number(petFormData.litterFrequencyDays) || 15);
+                petPayload.litterFrequencyDays = Math.max(1, Number(petFormData.litterFrequencyDays) || 15);
+                petPayload.enableLitterAlerts = petFormData.enableLitterAlerts ?? true;
                 petPayload.lastLitterPurchaseDate = editingPet?.lastLitterPurchaseDate || null;
             }
 
@@ -273,7 +275,7 @@ export const ClientProfilePage = () => {
             }
 
             setEditingPet(null);
-            setPetFormData({ name: '', type: 'perro', breed: 'Mestizo / Sin Raza', age: '', brand: 'Royal Canin', variant: '', frequencyDays: 30, receiveAlerts: true });
+            setPetFormData({ name: '', type: 'perro', breed: 'Mestizo / Sin Raza', age: '', brand: 'Royal Canin', variant: '', frequencyDays: 30, receiveAlerts: true, enableFoodAlerts: true, enableLitterAlerts: true });
             setPetPhotoBase64(null);
             setIsCustomBreed(false);
             setIsCustomBrand(false);
@@ -529,7 +531,7 @@ export const ClientProfilePage = () => {
                             </div>
                             <button
                                 onClick={() => {
-                                    setPetFormData({ name: '', type: 'perro', breed: 'Mestizo / Sin Raza', age: '', brand: 'Royal Canin', variant: '', frequencyDays: 30, receiveAlerts: true });
+                                    setPetFormData({ name: '', type: 'perro', breed: 'Mestizo / Sin Raza', age: '', brand: 'Royal Canin', variant: '', frequencyDays: 30, receiveAlerts: true, enableFoodAlerts: true, enableLitterAlerts: true });
                                     setPetPhotoBase64(null);
                                     setIsCustomBreed(false);
                                     setIsCustomBrand(false);
@@ -567,7 +569,7 @@ export const ClientProfilePage = () => {
                                                     <span className="px-2 py-0.5 bg-white border border-gray-200 rounded text-[9px] font-bold text-gray-600">
                                                         {pet.brand || pet.foodBrand}
                                                     </span>
-                                                    {pet.lastPurchaseDate && pet.frequencyDays > 0 && (
+                                                    {pet.lastPurchaseDate && pet.enableFoodAlerts !== false && (
                                                         <span className="text-[9px] font-black text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full flex items-center gap-1">
                                                             ⏳ Alimento: {(() => {
                                                                 const last = pet.lastPurchaseDate.toDate ? pet.lastPurchaseDate.toDate() : new Date(pet.lastPurchaseDate);
@@ -577,7 +579,7 @@ export const ClientProfilePage = () => {
                                                             })()}
                                                         </span>
                                                     )}
-                                                    {(pet.type || '').toLowerCase().trim() === 'gato' && pet.lastLitterPurchaseDate && pet.litterFrequencyDays > 0 && (
+                                                    {(pet.type || '').toLowerCase().trim() === 'gato' && pet.lastLitterPurchaseDate && pet.enableLitterAlerts !== false && (
                                                         <span className="text-[9px] font-black text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full flex items-center gap-1">
                                                             🧹 Piedras: {(() => {
                                                                 const last = pet.lastLitterPurchaseDate.toDate ? pet.lastLitterPurchaseDate.toDate() : new Date(pet.lastLitterPurchaseDate);
@@ -1197,8 +1199,19 @@ export const ClientProfilePage = () => {
                                                 onChange={(e) => setPetFormData({ ...petFormData, frequencyDays: Number(e.target.value) })}
                                                 className="w-full px-4 py-3 bg-white border-gray-100 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-sm font-medium"
                                                 placeholder="Ej: 30"
+                                                min="1"
                                             />
-                                            <p className="text-[10px] text-gray-400 mt-1 ml-1 leading-tight">Poné 0 si no querés recordatorios para este producto.</p>
+                                            <div className="flex items-center gap-2 mt-2 ml-1">
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={petFormData.enableFoodAlerts ?? true}
+                                                    onChange={(e) => setPetFormData({ ...petFormData, enableFoodAlerts: e.target.checked })}
+                                                    className="w-3.5 h-3.5 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+                                                />
+                                                <label className="text-[10px] text-gray-500 font-medium cursor-pointer" onClick={() => setPetFormData({ ...petFormData, enableFoodAlerts: !(petFormData.enableFoodAlerts ?? true) })}>
+                                                    Recibir alertas de alimento
+                                                </label>
+                                            </div>
                                         </div>
                                         {(petFormData.type || '').toLowerCase().trim() === 'gato' && (
                                             <div>
@@ -1209,8 +1222,19 @@ export const ClientProfilePage = () => {
                                                     onChange={(e) => setPetFormData({ ...petFormData, litterFrequencyDays: Number(e.target.value) })}
                                                     className="w-full px-4 py-3 bg-white border-gray-100 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-sm font-medium"
                                                     placeholder="Ej: 15"
+                                                    min="1"
                                                 />
-                                                <p className="text-[10px] text-gray-400 mt-1 ml-1 leading-tight">Poné 0 si no querés recordatorios para las piedras.</p>
+                                                <div className="flex items-center gap-2 mt-2 ml-1">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={petFormData.enableLitterAlerts ?? true}
+                                                        onChange={(e) => setPetFormData({ ...petFormData, enableLitterAlerts: e.target.checked })}
+                                                        className="w-3.5 h-3.5 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+                                                    />
+                                                    <label className="text-[10px] text-gray-500 font-medium cursor-pointer" onClick={() => setPetFormData({ ...petFormData, enableLitterAlerts: !(petFormData.enableLitterAlerts ?? true) })}>
+                                                        Recibir alertas de piedras
+                                                    </label>
+                                                </div>
                                             </div>
                                         )}
                                         <div className={`flex items-end pb-3 ${(petFormData.type || '').toLowerCase().trim() === 'gato' ? 'col-span-2' : ''}`}>

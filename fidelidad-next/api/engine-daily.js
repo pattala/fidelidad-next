@@ -577,7 +577,7 @@ export default async function handler(req, res) {
                         const lastPurchase = pet.lastPurchaseDate?.toDate ? pet.lastPurchaseDate.toDate() : (pet.lastPurchaseDate ? new Date(pet.lastPurchaseDate + 'T12:00:00') : null);
                         if (!lastPurchase) continue;
 
-                        const cycleDays = pet.frequencyDays === 0 ? 0 : Number(pet.foodCycleDays || pet.frequencyDays || 30);
+                        const cycleDays = Number(pet.foodCycleDays || pet.frequencyDays || 30);
                         const warningDaysRaw = Number(config?.messaging?.petFoodWarningDays ?? config?.petFoodAlertLeadDays ?? 3);
                         const warningDays = Math.abs(warningDaysRaw);
                         
@@ -592,7 +592,7 @@ export default async function handler(req, res) {
                         // LÓGICA INTELIGENTE: Avisar si ya pasó la fecha de alerta, pero NO avisar si ya se pasó del (vencimiento + 1 día).
                         const upperBoundDate = new Date(exhaustionDate);
                         upperBoundDate.setDate(exhaustionDate.getDate() + 1);
-                        const isAlertWindow = cycleDays > 0 && (referenceDate >= alertDate && referenceDate <= upperBoundDate);
+                        const isAlertWindow = pet.enableFoodAlerts !== false && (referenceDate >= alertDate && referenceDate <= upperBoundDate);
                         
                         // Evitar duplicados: Si la última alerta enviada es >= a la fecha de esta compra, ya avisamos.
                         // Usamos mediodía (T12) para evitar errores de zona horaria al comparar fechas.
@@ -695,7 +695,7 @@ export default async function handler(req, res) {
                         if ((pet.type || '').toLowerCase().trim() === 'gato') {
                             const lastLitterPurchase = pet.lastLitterPurchaseDate?.toDate ? pet.lastLitterPurchaseDate.toDate() : (pet.lastLitterPurchaseDate ? new Date(pet.lastLitterPurchaseDate + 'T12:00:00') : null);
                             if (lastLitterPurchase) {
-                                const litterCycleDays = pet.litterFrequencyDays === 0 ? 0 : Number(pet.litterFrequencyDays || 15);
+                                const litterCycleDays = Number(pet.litterFrequencyDays || 15);
                                 const warningDaysRaw = Number(config?.petLitterAlertLeadDays ?? config?.messaging?.petFoodWarningDays ?? config?.petFoodAlertLeadDays ?? 3);
                                 const warningDays = Math.abs(warningDaysRaw);
                                 
@@ -708,7 +708,7 @@ export default async function handler(req, res) {
                                 // LÓGICA INTELIGENTE: Avisar si estamos en ventana, pero abortar si ya pasó el (vencimiento + 1 día).
                                 const litterUpperBoundDate = new Date(litterExhaustionDate);
                                 litterUpperBoundDate.setDate(litterExhaustionDate.getDate() + 1);
-                                const isLitterAlertWindow = litterCycleDays > 0 && (referenceDate >= litterAlertDate && referenceDate <= litterUpperBoundDate);
+                                const isLitterAlertWindow = pet.enableLitterAlerts !== false && (referenceDate >= litterAlertDate && referenceDate <= litterUpperBoundDate);
                                 
                                 const lastLitterAlertSent = pet.lastLitterAlertDate ? new Date(pet.lastLitterAlertDate + 'T12:00:00') : null;
                                 const alreadyLitterAlerted = lastLitterAlertSent && lastLitterAlertSent >= lastLitterPurchase;
@@ -1101,7 +1101,7 @@ export default async function handler(req, res) {
                         const lastPurchase = pet.lastPurchaseDate?.toDate ? pet.lastPurchaseDate.toDate() : (pet.lastPurchaseDate ? new Date(pet.lastPurchaseDate + 'T12:00:00') : null);
                         if (!lastPurchase) return;
 
-                        const cycleDays = pet.frequencyDays === 0 ? 0 : Number(pet.foodCycleDays || pet.frequencyDays || 30);
+                        const cycleDays = Number(pet.foodCycleDays || pet.frequencyDays || 30);
                         const warningDays = Number(config?.messaging?.petFoodWarningDays || config?.petFoodAlertLeadDays || 3);
                         
                         const exhaustionDate = new Date(lastPurchase);
@@ -1110,7 +1110,7 @@ export default async function handler(req, res) {
                         const alertDate = new Date(exhaustionDate);
                         alertDate.setDate(exhaustionDate.getDate() - warningDays);
 
-                        const isAlertWindow = cycleDays > 0 && (referenceDate >= alertDate && referenceDate <= exhaustionDate);
+                        const isAlertWindow = pet.enableFoodAlerts !== false && (referenceDate >= alertDate && referenceDate <= exhaustionDate);
                         if (isAlertWindow) {
                             petAlertsList.push({
                                 userId: doc.id,
@@ -1131,13 +1131,13 @@ export default async function handler(req, res) {
                         if ((pet.type || '').toLowerCase().trim() === 'gato') {
                             const lastLitterPurchase = pet.lastLitterPurchaseDate?.toDate ? pet.lastLitterPurchaseDate.toDate() : (pet.lastLitterPurchaseDate ? new Date(pet.lastLitterPurchaseDate + 'T12:00:00') : null);
                             if (lastLitterPurchase) {
-                                const litterCycleDays = pet.litterFrequencyDays === 0 ? 0 : Number(pet.litterFrequencyDays || 15);
+                                const litterCycleDays = Number(pet.litterFrequencyDays || 15);
                                 const litterWarningDays = Number(config?.petLitterAlertLeadDays ?? config?.messaging?.petFoodWarningDays ?? config?.petFoodAlertLeadDays ?? 3);
                                 const litterExhaustionDate = new Date(lastLitterPurchase);
                                 litterExhaustionDate.setDate(lastLitterPurchase.getDate() + litterCycleDays);
                                 const litterAlertDate = new Date(litterExhaustionDate);
                                 litterAlertDate.setDate(litterExhaustionDate.getDate() - litterWarningDays);
-                                if (litterCycleDays > 0 && referenceDate >= litterAlertDate) {
+                                if (pet.enableLitterAlerts !== false && referenceDate >= litterAlertDate) {
                                     petAlertsList.push({
                                         userId: doc.id,
                                         userName: userData.nombre || userData.name || 'Socio',

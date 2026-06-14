@@ -10,6 +10,8 @@ export interface Pet {
     frequencyDays: number;
     lastPurchaseDate?: any;
     receiveAlerts: boolean;
+    enableFoodAlerts?: boolean;
+    enableLitterAlerts?: boolean;
     createdAt: any;
     foodBrand?: string;
     birthDate?: any;

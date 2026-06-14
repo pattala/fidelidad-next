@@ -1737,13 +1737,25 @@ export const ClientsPage = () => {
                                                                     value={pet.frequencyDays || 30}
                                                                     onChange={e => {
                                                                         const newPets = [...formData.pets];
-                                                                        newPets[idx].frequencyDays = Math.max(0, parseInt(e.target.value) || 0);
+                                                                    newPets[idx].frequencyDays = Math.max(1, parseInt(e.target.value) || 30);
+                                                                    setFormData({ ...formData, pets: newPets });
+                                                                }}
+                                                                className="w-full p-2 bg-white rounded-lg border border-orange-100 text-sm font-bold outline-none focus:ring-2 focus:ring-orange-200"
+                                                                min="1"
+                                                            />
+                                                            <div className="flex items-center gap-2 mt-2">
+                                                                <input 
+                                                                    type="checkbox" 
+                                                                    checked={pet.enableFoodAlerts ?? true}
+                                                                    onChange={(e) => {
+                                                                        const newPets = [...formData.pets];
+                                                                        newPets[idx].enableFoodAlerts = e.target.checked;
                                                                         setFormData({ ...formData, pets: newPets });
                                                                     }}
-                                                                    className="w-full p-2 bg-white rounded-lg border border-orange-100 text-sm font-bold outline-none focus:ring-2 focus:ring-orange-200"
-                                                                    min="0"
+                                                                    className="w-3.5 h-3.5 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
                                                                 />
-                                                                <p className="text-[9px] text-gray-400 mt-1 leading-tight">Poné 0 si no querés alertas.</p>
+                                                                <label className="text-[10px] text-gray-500 font-medium">Recibir alertas de alimento</label>
+                                                            </div>
                                                             </div>
 
                                                             {/* Información de Ciclo Real */}
@@ -1783,13 +1795,25 @@ export const ClientsPage = () => {
                                                                                     value={pet.litterFrequencyDays || 15}
                                                                                     onChange={e => {
                                                                                         const newPets = [...formData.pets];
-                                                                                        newPets[idx].litterFrequencyDays = Math.max(0, parseInt(e.target.value) || 0);
+                                                                                    newPets[idx].litterFrequencyDays = Math.max(1, parseInt(e.target.value) || 15);
+                                                                                    setFormData({ ...formData, pets: newPets });
+                                                                                }}
+                                                                                className="w-full p-2 bg-white rounded-lg border border-gray-300 text-sm font-bold outline-none focus:ring-2 focus:ring-gray-400"
+                                                                                min="1"
+                                                                            />
+                                                                            <div className="flex items-center gap-2 mt-2">
+                                                                                <input 
+                                                                                    type="checkbox" 
+                                                                                    checked={pet.enableLitterAlerts ?? true}
+                                                                                    onChange={(e) => {
+                                                                                        const newPets = [...formData.pets];
+                                                                                        newPets[idx].enableLitterAlerts = e.target.checked;
                                                                                         setFormData({ ...formData, pets: newPets });
                                                                                     }}
-                                                                                    className="w-full p-2 bg-white rounded-lg border border-gray-300 text-sm font-bold outline-none focus:ring-2 focus:ring-gray-400"
-                                                                                    min="0"
+                                                                                    className="w-3.5 h-3.5 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
                                                                                 />
-                                                                                <p className="text-[9px] text-gray-400 mt-1 leading-tight">Poné 0 si no querés alertas.</p>
+                                                                                <label className="text-[10px] text-gray-500 font-medium">Recibir alertas de piedras</label>
+                                                                            </div>
                                                                             </div>
                                                                             <div className="flex justify-between items-center mt-1">
                                                                                 <span className="text-[9px] font-black text-gray-600 uppercase">Última Compra:</span>
@@ -1850,7 +1874,7 @@ export const ClientsPage = () => {
                                                 type="button"
                                                 onClick={() => setFormData({ 
                                                     ...formData, 
-                                                    pets: [...formData.pets, { id: Math.random().toString(36).substr(2, 9), name: '', type: 'perro', breed: '', age: '', foodBrand: '', receiveAlerts: true, frequencyDays: 30, litterFrequencyDays: 15, createdAt: new Date() }] 
+                                                    pets: [...formData.pets, { id: Math.random().toString(36).substr(2, 9), name: '', type: 'perro', breed: '', age: '', foodBrand: '', receiveAlerts: true, enableFoodAlerts: true, enableLitterAlerts: true, frequencyDays: 30, litterFrequencyDays: 15, createdAt: new Date() }] 
                                                 })}
                                                 className="w-full py-3 border-2 border-dashed border-orange-200 rounded-2xl text-orange-600 font-bold text-sm hover:bg-orange-50 hover:border-orange-300 transition-all flex items-center justify-center gap-2"
                                             >
@@ -2165,13 +2189,13 @@ export const ClientsPage = () => {
                                                     const raw = pet.lastPurchaseDate;
                                                     let parsedDate = raw instanceof Date ? new Date(raw) : (raw._seconds ? new Date(raw._seconds * 1000) : new Date(raw + 'T12:00:00'));
                                                     if (isNaN(parsedDate.getTime())) parsedDate = new Date();
-                                                    parsedDate.setDate(parsedDate.getDate() + (pet.frequencyDays === 0 ? 0 : (Number(pet.frequencyDays) || 30)));
+                                                    parsedDate.setDate(parsedDate.getDate() + (Number(pet.frequencyDays) || 30));
                                                     
                                                     const today = new Date();
                                                     today.setHours(0,0,0,0);
                                                     foodDiffDays = Math.floor((today.getTime() - parsedDate.getTime()) / (1000 * 60 * 60 * 24));
                                                     foodFormatted = parsedDate.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' });
-                                                    hasFoodDate = true;
+                                                    hasFoodDate = pet.enableFoodAlerts !== false;
                                                 }
 
                                                 // Calcular fecha de vencimiento Piedras (solo gatos)
@@ -2183,13 +2207,13 @@ export const ClientsPage = () => {
                                                     const raw = pet.lastLitterPurchaseDate;
                                                     let parsedDate = raw instanceof Date ? new Date(raw) : (raw._seconds ? new Date(raw._seconds * 1000) : new Date(raw + 'T12:00:00'));
                                                     if (isNaN(parsedDate.getTime())) parsedDate = new Date();
-                                                    parsedDate.setDate(parsedDate.getDate() + (pet.litterFrequencyDays === 0 ? 0 : (Number(pet.litterFrequencyDays) || 15)));
+                                                    parsedDate.setDate(parsedDate.getDate() + (Number(pet.litterFrequencyDays) || 15));
                                                     
                                                     const today = new Date();
                                                     today.setHours(0,0,0,0);
                                                     litterDiffDays = Math.floor((today.getTime() - parsedDate.getTime()) / (1000 * 60 * 60 * 24));
                                                     litterFormatted = parsedDate.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' });
-                                                    hasLitterDate = true;
+                                                    hasLitterDate = pet.enableLitterAlerts !== false;
                                                 }
 
                                                 return (

@@ -728,9 +728,9 @@ export default async function handler(req, res) {
                         if (petIds.includes(pet.id)) {
                             // Calcular próxima fecha de aviso (nextFoodAlertDate)
                             let nextDateStr = null;
-                            const freq = pet.frequencyDays === 0 ? 0 : Number(pet.frequencyDays || 30);
+                            const freq = Number(pet.frequencyDays || 30);
                             
-                            if (freq > 0) {
+                            if (pet.enableFoodAlerts !== false) {
                                 const lead = Number(config.petFoodAlertLeadDays || 0);
                                 
                                 const baseDate = date ? new Date(date + 'T12:00:00Z') : trueNow;
@@ -779,9 +779,9 @@ export default async function handler(req, res) {
                         const updatedPets = userData.pets.map(pet => {
                             if (petLitterIds.includes(pet.id)) {
                                 let nextDateStr = null;
-                                const cycle = pet.litterFrequencyDays === 0 ? 0 : Number(pet.litterFrequencyDays || 15);
+                                const cycle = Number(pet.litterFrequencyDays || 15);
                                 
-                                if (cycle > 0) {
+                                if (pet.enableLitterAlerts !== false) {
                                     const nextDate = new Date(trueNow);
                                     nextDate.setDate(nextDate.getDate() + cycle);
                                     nextDateStr = nextDate.toISOString().split('T')[0];

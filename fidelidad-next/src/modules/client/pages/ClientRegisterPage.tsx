@@ -259,7 +259,7 @@ export const ClientRegisterPage = () => {
                                             onChange={e => setBirthDate(e.target.value)}
                                             placeholder="Fecha de nacimiento"
                                         />
-                                        {!birthDate && <span className="absolute left-11 top-3.5 text-gray-400 text-sm font-medium pointer-events-none">Fecha de nacimiento (opcional)</span>}
+                                        {!birthDate && <span className="absolute left-11 top-3.5 text-gray-400 text-sm font-medium pointer-events-none">Fecha de nacimiento</span>}
                                     </div>
                                     <div className="relative">
                                         <Lock className="absolute left-4 top-3.5 text-gray-400" size={18} />

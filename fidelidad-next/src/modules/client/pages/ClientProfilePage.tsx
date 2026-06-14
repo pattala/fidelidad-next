@@ -531,7 +531,7 @@ export const ClientProfilePage = () => {
                             </div>
                             <button
                                 onClick={() => {
-                                    setPetFormData({ name: '', type: 'perro', breed: 'Mestizo / Sin Raza', age: '', brand: 'Royal Canin', variant: '', frequencyDays: 30, receiveAlerts: true, enableFoodAlerts: true, enableLitterAlerts: true });
+                                    setPetFormData({ name: '', type: 'perro', breed: 'Mestizo / Sin Raza', age: '', brand: 'Royal Canin', variant: '', frequencyDays: 30, litterFrequencyDays: 15, receiveAlerts: true, enableFoodAlerts: true, enableLitterAlerts: true });
                                     setPetPhotoBase64(null);
                                     setIsCustomBreed(false);
                                     setIsCustomBrand(false);
@@ -1273,18 +1273,28 @@ export const ClientProfilePage = () => {
                                     </button>
                                 </div>
                             ) : (
-                                <button
-                                    type="submit"
-                                    disabled={loadingPet}
-                                    className="w-full py-4 bg-orange-600 text-white rounded-2xl font-bold shadow-lg shadow-orange-600/20 hover:bg-orange-700 active:scale-[0.98] transition-all disabled:opacity-50 mt-4 flex items-center justify-center gap-2"
-                                >
-                                    {loadingPet ? (
-                                        <>
-                                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                            Guardando...
-                                        </>
-                                    ) : 'Actualizar Mascota'}
-                                </button>
+                                <div className="grid grid-cols-2 gap-3 mt-4">
+                                    <button
+                                        type="button"
+                                        disabled={loadingPet}
+                                        onClick={() => setIsPetModalOpen(false)}
+                                        className="w-full py-4 bg-gray-100 text-gray-600 border border-gray-200 rounded-2xl font-bold hover:bg-gray-200 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={loadingPet}
+                                        className="w-full py-4 bg-orange-600 text-white rounded-2xl font-bold shadow-lg shadow-orange-600/20 hover:bg-orange-700 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                                    >
+                                        {loadingPet ? (
+                                            <>
+                                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                Guardando...
+                                            </>
+                                        ) : 'Actualizar Mascota'}
+                                    </button>
+                                </div>
                             )}
 
                             {editingPet && (

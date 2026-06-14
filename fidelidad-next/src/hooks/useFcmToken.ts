@@ -84,10 +84,12 @@ export const useFcmToken = () => {
                     }).catch(err => console.warn('[FCM] Firestore save error:', err));
 
                     console.log('[FCM] Token saved directly.');
+                    return currentToken;
                 } else {
                     console.log('[FCM] No token returned.');
                     const { updateDoc } = await import('firebase/firestore');
                     await updateDoc(doc(db, 'users', user.uid), { fcmState: 'token_null' }).catch(() => { });
+                    return null;
                 }
             } else if (Notification.permission === 'denied') {
                 console.log('[FCM] Permission denied.');
@@ -97,6 +99,7 @@ export const useFcmToken = () => {
                     'permissions.notifications.status': 'denied',
                     lastFcmUpdate: serverTimestamp()
                 }).catch(() => { });
+                return null;
             }
         } catch (e: any) {
             console.error(`[FCM] Error (Attempt ${retryCount}):`, e);
@@ -110,11 +113,15 @@ export const useFcmToken = () => {
             // Reintentar errores temporales o de falta de credenciales (para dar tiempo a que cargue)
             if (retryCount < 2) {
                 console.log('[FCM] Retrying in 3s...');
-                setTimeout(() => {
-                    isRetrieving.current = false;
-                    retrieveToken(retryCount + 1);
-                }, 3000);
+                return new Promise((resolve) => {
+                    setTimeout(async () => {
+                        isRetrieving.current = false;
+                        const token = await retrieveToken(retryCount + 1);
+                        resolve(token);
+                    }, 3000);
+                });
             }
+            return null;
         } finally {
             isRetrieving.current = false;
         }

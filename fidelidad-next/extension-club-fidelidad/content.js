@@ -133,10 +133,8 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                             campaigns: { list: data.campaigns || [] }
                         };
 
-                        if (total > 0 || localList.length > 0) {
-                            window._cfFullData = processedData;
+                        window._cfFullData = processedData;
                         showGlobalAlert(processedData, config);
-                        }
                     });
                 });
             }).catch(e => console.error("❌ [Club Fidelidad] Error:", e.message));
@@ -639,12 +637,7 @@ async function refreshAlertCounts() {
                         pointsAssignments: { list: aList }
                     };
 
-                    if (total > 0 || localList.length > 0) {
-                        showGlobalAlert(processedData, config);
-                    } else {
-                        const w = document.getElementById('cf-v35-bubble');
-                        if (w) w.remove();
-                    }
+                    showGlobalAlert(processedData, config);
                 });
             });
         }
@@ -811,6 +804,19 @@ function showFidelidadPanel() {
             body.style.display = 'block';
             document.getElementById('fidelidad-close').innerText = '×';
         }
+
+        // --- FIX: Si el panel quedó atrapado en un modal oculto, lo movemos al body o al modal activo ---
+        const panel = document.getElementById('fidelidad-panel');
+        if (panel && panel.offsetParent === null) {
+            let injector = document.body;
+            const modalSelectors = ['.modal-content', '.modal-body', '.bootbox', '.ui-dialog-content', '.sky-modal', '[role="dialog"]'];
+            for (let sel of modalSelectors) {
+                const visibleModal = Array.from(document.querySelectorAll(sel)).find(el => el.offsetParent !== null);
+                if (visibleModal) { injector = visibleModal; break; }
+            }
+            injector.appendChild(panel);
+        }
+
         return;
     }
 
@@ -922,9 +928,10 @@ function showFidelidadPanel() {
     const modalSelectors = ['.modal-content', '.modal-body', '.bootbox', '.ui-dialog-content', '.sky-modal', '[role="dialog"]'];
     let injector = document.body;
     for (let sel of modalSelectors) {
-        const found = document.querySelector(sel);
-        if (found) {
-            injector = found;
+        const founds = document.querySelectorAll(sel);
+        const visibleModal = Array.from(founds).find(el => el.offsetParent !== null);
+        if (visibleModal) {
+            injector = visibleModal;
             break;
         }
     }

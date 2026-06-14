@@ -1741,8 +1741,9 @@ export const ClientsPage = () => {
                                                                         setFormData({ ...formData, pets: newPets });
                                                                     }}
                                                                     className="w-full p-2 bg-white rounded-lg border border-orange-100 text-sm font-bold outline-none focus:ring-2 focus:ring-orange-200"
-                                                                    min="1"
+                                                                    min="0"
                                                                 />
+                                                                <p className="text-[9px] text-gray-400 mt-1 leading-tight">Poné 0 si no querés alertas.</p>
                                                             </div>
 
                                                             {/* Información de Ciclo Real */}
@@ -1786,8 +1787,9 @@ export const ClientsPage = () => {
                                                                                         setFormData({ ...formData, pets: newPets });
                                                                                     }}
                                                                                     className="w-full p-2 bg-white rounded-lg border border-gray-300 text-sm font-bold outline-none focus:ring-2 focus:ring-gray-400"
-                                                                                    min="1"
+                                                                                    min="0"
                                                                                 />
+                                                                                <p className="text-[9px] text-gray-400 mt-1 leading-tight">Poné 0 si no querés alertas.</p>
                                                                             </div>
                                                                             <div className="flex justify-between items-center mt-1">
                                                                                 <span className="text-[9px] font-black text-gray-600 uppercase">Última Compra:</span>

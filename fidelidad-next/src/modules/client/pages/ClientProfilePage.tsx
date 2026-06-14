@@ -1198,6 +1198,7 @@ export const ClientProfilePage = () => {
                                                 className="w-full px-4 py-3 bg-white border-gray-100 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-sm font-medium"
                                                 placeholder="Ej: 30"
                                             />
+                                            <p className="text-[10px] text-gray-400 mt-1 ml-1 leading-tight">Poné 0 si no querés recordatorios para este producto.</p>
                                         </div>
                                         {(petFormData.type || '').toLowerCase().trim() === 'gato' && (
                                             <div>
@@ -1209,6 +1210,7 @@ export const ClientProfilePage = () => {
                                                     className="w-full px-4 py-3 bg-white border-gray-100 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-sm font-medium"
                                                     placeholder="Ej: 15"
                                                 />
+                                                <p className="text-[10px] text-gray-400 mt-1 ml-1 leading-tight">Poné 0 si no querés recordatorios para las piedras.</p>
                                             </div>
                                         )}
                                         <div className={`flex items-end pb-3 ${(petFormData.type || '').toLowerCase().trim() === 'gato' ? 'col-span-2' : ''}`}>

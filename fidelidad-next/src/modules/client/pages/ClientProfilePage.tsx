@@ -566,10 +566,9 @@ export const ClientProfilePage = () => {
                                                 <div className="mt-1 flex flex-wrap items-center gap-2">
                                                     <span className="px-2 py-0.5 bg-white border border-gray-200 rounded text-[9px] font-bold text-gray-600">
                                                         {pet.brand || pet.foodBrand}
-                                                    </span>
-                                                    {pet.lastPurchaseDate && pet.frequencyDays && (
+                                                               {pet.lastPurchaseDate && pet.frequencyDays && (
                                                         <span className="text-[9px] font-black text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full flex items-center gap-1">
-                                                            📅 Fin de alimento: {(() => {
+                                                            ⏳ Alimento: {(() => {
                                                                 const last = pet.lastPurchaseDate.toDate ? pet.lastPurchaseDate.toDate() : new Date(pet.lastPurchaseDate);
                                                                 const next = new Date(last);
                                                                 next.setDate(last.getDate() + Number(pet.frequencyDays));
@@ -577,7 +576,17 @@ export const ClientProfilePage = () => {
                                                             })()}
                                                         </span>
                                                     )}
-                                                </div>
+                                                    {(pet.type || '').toLowerCase().trim() === 'gato' && pet.lastLitterPurchaseDate && pet.litterFrequencyDays && (
+                                                        <span className="text-[9px] font-black text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                                            🧹 Piedras: {(() => {
+                                                                const last = pet.lastLitterPurchaseDate.toDate ? pet.lastLitterPurchaseDate.toDate() : new Date(pet.lastLitterPurchaseDate);
+                                                                const next = new Date(last);
+                                                                next.setDate(last.getDate() + Number(pet.litterFrequencyDays));
+                                                                return next.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' });
+                                                            })()}
+                                                        </span>
+                                                    )}
+                                                </div>                                               </div>
                                             </div>
                                             <div className="flex flex-col gap-2">
                                                 <button
@@ -1004,7 +1013,7 @@ export const ClientProfilePage = () => {
             {isPetModalOpen && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
                     <div className="bg-white w-full max-w-md rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
-                        <div className="p-6 border-b border-gray-50 flex items-center justify-between">
+                        <div className="p-6 border-b border-gray-50 flex justify-between items-center bg-orange-50/50">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-orange-100 rounded-lg text-orange-600">
                                     <span className="text-xl">🐾</span>
@@ -1013,8 +1022,8 @@ export const ClientProfilePage = () => {
                                     {editingPet ? 'Editar Mascota' : 'Nueva Mascota'}
                                 </h3>
                             </div>
-                            <button onClick={() => setIsPetModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400">
-                                <X size={20} />
+                            <button type="button" onClick={() => setIsPetModalOpen(false)} className="text-xs font-bold text-gray-500 bg-white border border-gray-200 px-3 py-1.5 rounded-lg shadow-sm hover:bg-gray-50 flex items-center gap-1">
+                                <X size={14} /> Cancelar
                             </button>
                         </div>
 
@@ -1179,7 +1188,7 @@ export const ClientProfilePage = () => {
                                     <div className="grid grid-cols-2 gap-3">
                                         <div>
                                             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block ml-1">
-                                                {petFormData.type === 'gato' ? 'Alimento (días)' : 'Dura (días)'}
+                                                {(petFormData.type || '').toLowerCase().trim() === 'gato' ? 'Alimento (días)' : 'Dura (días)'}
                                             </label>
                                             <input
                                                 type="number"
@@ -1189,7 +1198,7 @@ export const ClientProfilePage = () => {
                                                 placeholder="Ej: 30"
                                             />
                                         </div>
-                                        {petFormData.type === 'gato' && (
+                                        {(petFormData.type || '').toLowerCase().trim() === 'gato' && (
                                             <div>
                                                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block ml-1">Piedras (días)</label>
                                                 <input
@@ -1201,7 +1210,7 @@ export const ClientProfilePage = () => {
                                                 />
                                             </div>
                                         )}
-                                        <div className={`flex items-end pb-3 ${petFormData.type === 'gato' ? 'col-span-2' : ''}`}>
+                                        <div className={`flex items-end pb-3 ${(petFormData.type || '').toLowerCase().trim() === 'gato' ? 'col-span-2' : ''}`}>
                                             <label className="flex items-center gap-2 cursor-pointer select-none">
                                                 <input
                                                     type="checkbox"

@@ -126,7 +126,7 @@ export const GlobalAlerts = () => {
                         }
                     }
                     
-                    if (data.pets) {
+                    if (config?.enablePetModule && data.pets) {
                         data.pets.forEach((p: any) => {
                             const pId = `pet-${userIdentifier}-${p.name}-${p.nextFoodAlertDate || 'today'}`;
                             const lastPurchase = p.lastPurchaseDate?.toDate ? p.lastPurchaseDate.toDate() : (p.lastPurchaseDate ? new Date(p.lastPurchaseDate + 'T12:00:00') : null);

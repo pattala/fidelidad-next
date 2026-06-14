@@ -221,6 +221,9 @@ export default async function handler(req, res) {
             if (options.campaigns_total) {
                 results.campanas_borradas = await deleteByQueryPaged(db, () => db.collection('campanas').limit(500));
             }
+            if (options.sorteos_total) {
+                results.sorteos_borrados = await deleteByQueryPaged(db, () => db.collection('mystery_box_chances').limit(500));
+            }
             if (options.gamification_total) {
                 await db.collection('config').doc('general').update({
                     pointsPerPeso: 1,

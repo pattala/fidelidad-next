@@ -162,6 +162,7 @@ export const ConfigPage = () => {
         gamification_total: "Restaura los valores de puntos por peso, base de dinero y bono de bienvenida.",
         prizes_total: "Borra todo el catálogo de premios.",
         campaigns_total: "Borra todas las campañas automáticas configuradas.",
+        sorteos_total: "Borra todo el historial y configuración activa de las Cajas Misteriosas (Sorteos).",
         team_total: "⚠️ PELIGRO: Borra a todos los administradores y restaura la cuenta admin@admin.com por defecto.",
         contact_total: "Borra todas las redes sociales y links de contacto configurados.",
         legales_total: "Restaura los términos y condiciones al texto original.",
@@ -180,6 +181,7 @@ export const ConfigPage = () => {
         marca_total: false,
         prizes_total: false,
         campaigns_total: false,
+        sorteos_total: false,
         gamification_total: false,
         team_total: false,
         contact_total: false,
@@ -3261,7 +3263,7 @@ export const ConfigPage = () => {
                                     <div className="bg-white p-6 rounded-2xl border border-red-50 space-y-4">
                                         <h4 className="font-bold text-gray-800 border-b pb-2 mb-4 flex items-center gap-2"><Settings size={18} className="text-gray-600" /> Estructura</h4>
                                         <div className="space-y-3">
-                                            {(['marca_total', 'gamification_total', 'prizes_total', 'campaigns_total', 'team_total', 'contact_total', 'legales_total', 'audit_total'] as const).map(opt => (
+                                            {(['marca_total', 'gamification_total', 'prizes_total', 'campaigns_total', 'sorteos_total', 'team_total', 'contact_total', 'legales_total', 'audit_total'] as const).map(opt => (
                                                 <label key={opt} title={resetDescriptions[opt]} className="flex items-center gap-3 cursor-pointer group">
                                                     <input type="checkbox" checked={(resetOptions as any)[opt]} onChange={e => setResetOptions({ ...resetOptions, [opt]: e.target.checked })} className="w-5 h-5 rounded border-gray-300 text-blue-600" />
                                                     <span className="text-sm font-bold text-gray-700 group-hover:text-blue-600 uppercase">{opt.replace('_', ' ')}</span>

@@ -240,7 +240,7 @@ export const ClientRegisterPage = () => {
                                     </div>
                                     <div className="relative">
                                         <Phone className="absolute left-4 top-3.5 text-gray-400" size={18} />
-                                        <input type="tel" required placeholder="Celular" className="w-full bg-gray-50 pl-11 pr-4 py-3.5 rounded-2xl text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none transition-all" value={phone} onChange={e => setPhone(e.target.value)} />
+                                        <input type="tel" required placeholder="Celular (Ej: 11 5555 5555)" className="w-full bg-gray-50 pl-11 pr-4 py-3.5 rounded-2xl text-sm font-medium placeholder-gray-500 border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none transition-all" value={phone} onChange={e => setPhone(e.target.value)} />
                                     </div>
                                     <div className="relative">
                                         <Building className="absolute left-4 top-3.5 text-gray-400" size={18} />

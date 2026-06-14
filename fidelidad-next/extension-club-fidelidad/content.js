@@ -367,6 +367,9 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                 e.stopPropagation(); 
                 isExpanded = false; 
                 render(); 
+                window._cfStandaloneMode = true;
+                detectedAmount = 0;
+                detectedDiscounts = 0;
                 showFidelidadPanel(); 
             };
             ui.querySelector('#tab-pending').onclick = () => { activeTab = 'pending'; render(); };
@@ -655,6 +658,7 @@ window.addEventListener('focus', () => {
 
 // Función para buscar el monto en el sitio
 function detectAmount() {
+    if (window._cfStandaloneMode) return;
     const selectors = [
         '#cpbtc_total',
         'input[name="cpbtc_total"]',
@@ -1102,6 +1106,12 @@ function showFidelidadPanel() {
     window.addEventListener('keypress', killEvent, true);
 
     document.getElementById('fidelidad-close').onclick = () => {
+        if (window._cfStandaloneMode) {
+            panel.remove();
+            window._cfStandaloneMode = false;
+            processedAmount = null;
+            return;
+        }
         // En lugar de remover (y pelear con el observer), MINIMIZAMOS el panel
         const body = panel.querySelector('.fidelidad-body');
         if (body.style.display === 'none') {

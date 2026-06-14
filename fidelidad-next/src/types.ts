@@ -13,6 +13,8 @@ export interface Pet {
     createdAt: any;
     foodBrand?: string;
     birthDate?: any;
+    litterFrequencyDays?: number;
+    lastLitterPurchaseDate?: any;
 }
 
 export interface Client {

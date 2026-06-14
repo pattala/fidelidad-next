@@ -240,17 +240,20 @@ export const ClientProfilePage = () => {
                 type: (petFormData.type as any) || 'perro',
                 breed: petFormData.breed || 'Mestizo / Sin Raza',
                 age: petFormData.age || '',
-                birthDate: calculatedBirthDate,
+                birthDate: calculatedBirthDate || null,
                 brand: petFormData.brand || '',
                 variant: petFormData.variant || '',
                 frequencyDays: Number(petFormData.frequencyDays) || 30,
-                litterFrequencyDays: petFormData.type === 'gato' ? (Number(petFormData.litterFrequencyDays) || 15) : undefined,
-                lastLitterPurchaseDate: petFormData.type === 'gato' ? (editingPet?.lastLitterPurchaseDate || null) : undefined,
                 receiveAlerts: !!petFormData.receiveAlerts,
                 photoUrl: petPhotoBase64 || editingPet?.photoUrl || '',
                 createdAt: editingPet?.createdAt || TimeService.now(),
                 lastPurchaseDate: editingPet?.lastPurchaseDate || null
             };
+
+            if (petFormData.type === 'gato') {
+                petPayload.litterFrequencyDays = Number(petFormData.litterFrequencyDays) || 15;
+                petPayload.lastLitterPurchaseDate = editingPet?.lastLitterPurchaseDate || null;
+            }
 
             const userRef = doc(db, 'users', userAuth.uid);
             

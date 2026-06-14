@@ -243,7 +243,7 @@ export const ClientProfilePage = () => {
                 birthDate: calculatedBirthDate || null,
                 brand: petFormData.brand || '',
                 variant: petFormData.variant || '',
-                frequencyDays: Number(petFormData.frequencyDays) || 30,
+                frequencyDays: petFormData.frequencyDays === 0 ? 0 : (Number(petFormData.frequencyDays) || 30),
                 receiveAlerts: !!petFormData.receiveAlerts,
                 photoUrl: petPhotoBase64 || editingPet?.photoUrl || '',
                 createdAt: editingPet?.createdAt || TimeService.now(),
@@ -251,7 +251,7 @@ export const ClientProfilePage = () => {
             };
 
             if (petFormData.type === 'gato') {
-                petPayload.litterFrequencyDays = Number(petFormData.litterFrequencyDays) || 15;
+                petPayload.litterFrequencyDays = petFormData.litterFrequencyDays === 0 ? 0 : (Number(petFormData.litterFrequencyDays) || 15);
                 petPayload.lastLitterPurchaseDate = editingPet?.lastLitterPurchaseDate || null;
             }
 
@@ -567,7 +567,7 @@ export const ClientProfilePage = () => {
                                                     <span className="px-2 py-0.5 bg-white border border-gray-200 rounded text-[9px] font-bold text-gray-600">
                                                         {pet.brand || pet.foodBrand}
                                                     </span>
-                                                    {pet.lastPurchaseDate && pet.frequencyDays && (
+                                                    {pet.lastPurchaseDate && pet.frequencyDays > 0 && (
                                                         <span className="text-[9px] font-black text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full flex items-center gap-1">
                                                             ⏳ Alimento: {(() => {
                                                                 const last = pet.lastPurchaseDate.toDate ? pet.lastPurchaseDate.toDate() : new Date(pet.lastPurchaseDate);
@@ -577,7 +577,7 @@ export const ClientProfilePage = () => {
                                                             })()}
                                                         </span>
                                                     )}
-                                                    {(pet.type || '').toLowerCase().trim() === 'gato' && pet.lastLitterPurchaseDate && pet.litterFrequencyDays && (
+                                                    {(pet.type || '').toLowerCase().trim() === 'gato' && pet.lastLitterPurchaseDate && pet.litterFrequencyDays > 0 && (
                                                         <span className="text-[9px] font-black text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full flex items-center gap-1">
                                                             🧹 Piedras: {(() => {
                                                                 const last = pet.lastLitterPurchaseDate.toDate ? pet.lastLitterPurchaseDate.toDate() : new Date(pet.lastLitterPurchaseDate);

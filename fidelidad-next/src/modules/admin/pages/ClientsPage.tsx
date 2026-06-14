@@ -1737,7 +1737,7 @@ export const ClientsPage = () => {
                                                                     value={pet.frequencyDays || 30}
                                                                     onChange={e => {
                                                                         const newPets = [...formData.pets];
-                                                                        newPets[idx].frequencyDays = Math.max(1, parseInt(e.target.value) || 30);
+                                                                        newPets[idx].frequencyDays = Math.max(0, parseInt(e.target.value) || 0);
                                                                         setFormData({ ...formData, pets: newPets });
                                                                     }}
                                                                     className="w-full p-2 bg-white rounded-lg border border-orange-100 text-sm font-bold outline-none focus:ring-2 focus:ring-orange-200"
@@ -1757,9 +1757,9 @@ export const ClientsPage = () => {
                                                                         <span className="text-xs font-bold text-orange-600 underline">
                                                                             {(() => {
                                                                                 if (!pet.lastPurchaseDate) return '-';
-                                                                        const last = pet.lastPurchaseDate instanceof Date ? pet.lastPurchaseDate : (pet.lastPurchaseDate.toDate ? pet.lastPurchaseDate.toDate() : new Date(pet.lastPurchaseDate));
+                                                                                const last = pet.lastPurchaseDate instanceof Date ? pet.lastPurchaseDate : (pet.lastPurchaseDate.toDate ? pet.lastPurchaseDate.toDate() : new Date(pet.lastPurchaseDate));
                                                                                 const next = new Date(last);
-                                                                                next.setDate(next.getDate() + (pet.frequencyDays || 30));
+                                                                                next.setDate(next.getDate() + (pet.frequencyDays || 0));
                                                                                 return next.toLocaleDateString();
                                                                             })()}
                                                                         </span>
@@ -1782,7 +1782,7 @@ export const ClientsPage = () => {
                                                                                     value={pet.litterFrequencyDays || 15}
                                                                                     onChange={e => {
                                                                                         const newPets = [...formData.pets];
-                                                                                        newPets[idx].litterFrequencyDays = Math.max(1, parseInt(e.target.value) || 15);
+                                                                                        newPets[idx].litterFrequencyDays = Math.max(0, parseInt(e.target.value) || 0);
                                                                                         setFormData({ ...formData, pets: newPets });
                                                                                     }}
                                                                                     className="w-full p-2 bg-white rounded-lg border border-gray-300 text-sm font-bold outline-none focus:ring-2 focus:ring-gray-400"
@@ -1801,7 +1801,7 @@ export const ClientsPage = () => {
                                                                                             if (!pet.lastLitterPurchaseDate) return '-';
                                                                                               const last = pet.lastLitterPurchaseDate instanceof Date ? pet.lastLitterPurchaseDate : (pet.lastLitterPurchaseDate.toDate ? pet.lastLitterPurchaseDate.toDate() : new Date(pet.lastLitterPurchaseDate));
                                                                                             const next = new Date(last);
-                                                                                            next.setDate(next.getDate() + (pet.litterFrequencyDays || 15));
+                                                                                            next.setDate(next.getDate() + (pet.litterFrequencyDays || 0));
                                                                                             return next.toLocaleDateString();
                                                                                         })()}
                                                                                     </span>
@@ -2163,7 +2163,7 @@ export const ClientsPage = () => {
                                                     const raw = pet.lastPurchaseDate;
                                                     let parsedDate = raw instanceof Date ? new Date(raw) : (raw._seconds ? new Date(raw._seconds * 1000) : new Date(raw + 'T12:00:00'));
                                                     if (isNaN(parsedDate.getTime())) parsedDate = new Date();
-                                                    parsedDate.setDate(parsedDate.getDate() + (Number(pet.frequencyDays) || 30));
+                                                    parsedDate.setDate(parsedDate.getDate() + (pet.frequencyDays === 0 ? 0 : (Number(pet.frequencyDays) || 30)));
                                                     
                                                     const today = new Date();
                                                     today.setHours(0,0,0,0);
@@ -2181,7 +2181,7 @@ export const ClientsPage = () => {
                                                     const raw = pet.lastLitterPurchaseDate;
                                                     let parsedDate = raw instanceof Date ? new Date(raw) : (raw._seconds ? new Date(raw._seconds * 1000) : new Date(raw + 'T12:00:00'));
                                                     if (isNaN(parsedDate.getTime())) parsedDate = new Date();
-                                                    parsedDate.setDate(parsedDate.getDate() + (Number(pet.litterFrequencyDays) || 15));
+                                                    parsedDate.setDate(parsedDate.getDate() + (pet.litterFrequencyDays === 0 ? 0 : (Number(pet.litterFrequencyDays) || 15)));
                                                     
                                                     const today = new Date();
                                                     today.setHours(0,0,0,0);

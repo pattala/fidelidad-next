@@ -131,7 +131,7 @@ export const GlobalAlerts = () => {
                             const pId = `pet-${userIdentifier}-${p.name}-${p.nextFoodAlertDate || 'today'}`;
                             const lastPurchase = p.lastPurchaseDate?.toDate ? p.lastPurchaseDate.toDate() : (p.lastPurchaseDate ? new Date(p.lastPurchaseDate + 'T12:00:00') : null);
                             if (lastPurchase) {
-                                const cycleDays = Number(p.foodCycleDays || p.frequencyDays || 30);
+                                const cycleDays = p.frequencyDays === 0 ? 0 : Number(p.foodCycleDays || p.frequencyDays || 30);
                                 // Fallbacks in case config is not fully loaded here
                                 const warningDays = Number(config?.messaging?.petFoodWarningDays || config?.petFoodAlertLeadDays || 3);
                                 
@@ -147,7 +147,7 @@ export const GlobalAlerts = () => {
                                 const lastWa = p.lastWhatsAppDate ? new Date(p.lastWhatsAppDate + 'T12:00:00') : null;
                                 const waSent = lastWa && lastWa >= lastPurchase;
 
-                                if (isAlertWindow && !waSent) {
+                                if (cycleDays > 0 && isAlertWindow && !waSent) {
                                     pets.push({ ...data, petName: p.name, foodBrand: p.foodBrand || p.brand || '', alertId: pId, id: d.id, alertType: 'food' });
                                 }
                                 
@@ -155,7 +155,7 @@ export const GlobalAlerts = () => {
                                 if ((p.type || '').toLowerCase().trim() === 'gato') {
                                     const lastLitterPurchase = p.lastLitterPurchaseDate?.toDate ? p.lastLitterPurchaseDate.toDate() : (p.lastLitterPurchaseDate ? new Date(p.lastLitterPurchaseDate + 'T12:00:00') : null);
                                     if (lastLitterPurchase) {
-                                        const litterCycleDays = Number(p.litterFrequencyDays || 15);
+                                        const litterCycleDays = p.litterFrequencyDays === 0 ? 0 : Number(p.litterFrequencyDays || 15);
                                         const warningDays = Number(config?.petLitterAlertLeadDays ?? config?.messaging?.petFoodWarningDays ?? config?.petFoodAlertLeadDays ?? 3);
                                         
                                         const litterExhaustionDate = new Date(lastLitterPurchase);
@@ -170,9 +170,9 @@ export const GlobalAlerts = () => {
                                         const lastLitterWa = p.lastLitterWhatsAppDate ? new Date(p.lastLitterWhatsAppDate + 'T12:00:00') : null;
                                         const litterWaSent = lastLitterWa && lastLitterWa >= lastLitterPurchase;
                                         
-                                        if (isLitterAlertWindow && !litterWaSent) {
-                                            const litterPId = `litter-${userIdentifier}-${p.name}-${p.nextLitterAlertDate || 'today'}`;
-                                            pets.push({ ...data, petName: p.name, alertId: litterPId, id: d.id, alertType: 'litter' });
+                                        if (litterCycleDays > 0 && isLitterAlertWindow && !litterWaSent) {
+                                            const pLitterId = `pet-litter-${userIdentifier}-${p.name}-${p.nextLitterAlertDate || 'today'}`;
+                                            pets.push({ ...data, petName: p.name, foodBrand: 'Piedras Sanitarias', alertId: pLitterId, id: d.id, alertType: 'litter' });
                                         }
                                     }
                                 }

@@ -217,8 +217,8 @@ export const ClientProfilePage = () => {
         }
     };
 
-    const handleSavePet = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSavePet = async (e: React.FormEvent, addAnother: boolean = false) => {
+        if (e && e.preventDefault) e.preventDefault();
         if (!userAuth || !userData) return;
         setLoadingPet(true);
 
@@ -261,16 +261,19 @@ export const ClientProfilePage = () => {
                 const updatedPets = (userData.pets || []).map((p: Pet) => p.id === editingPet.id ? petPayload : p);
                 await updateDoc(userRef, { pets: updatedPets });
                 toast.success("Mascota actualizada");
+                setIsPetModalOpen(false);
             } else {
                 await updateDoc(userRef, { pets: arrayUnion(petPayload) });
                 toast.success("¡Mascota registrada! 🐾");
-                // Rule: Return to Home after registration
-                navigate('/');
+                
+                if (!addAnother) {
+                    setIsPetModalOpen(false);
+                    navigate('/');
+                }
             }
 
-            setIsPetModalOpen(false);
             setEditingPet(null);
-            setPetFormData({ name: '', type: 'perro', breed: 'Mestizo / Sin Raza', age: '', brand: 'Royal Canin', variant: '', frequencyDays: 30, litterFrequencyDays: 15, receiveAlerts: true });
+            setPetFormData({ name: '', type: 'perro', breed: 'Mestizo / Sin Raza', age: '', brand: 'Royal Canin', variant: '', frequencyDays: 30, receiveAlerts: true });
             setPetPhotoBase64(null);
             setIsCustomBreed(false);
             setIsCustomBrand(false);
@@ -1199,20 +1202,40 @@ export const ClientProfilePage = () => {
                                 </div>
                             </div>
 
-                            <button
-                                type="submit"
-                                disabled={loadingPet}
-                                className="w-full py-4 bg-orange-600 text-white rounded-2xl font-bold shadow-lg shadow-orange-600/20 hover:bg-orange-700 active:scale-[0.98] transition-all disabled:opacity-50 mt-4 flex items-center justify-center gap-2"
-                            >
-                                {loadingPet ? (
-                                    <>
-                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                        Guardando...
-                                    </>
-                                ) : (
-                                    editingPet ? 'Actualizar Mascota' : 'Registrar Mascota'
-                                )}
-                            </button>
+                            {!editingPet ? (
+                                <div className="grid grid-cols-2 gap-3 mt-4">
+                                    <button
+                                        type="submit"
+                                        disabled={loadingPet}
+                                        className="w-full py-4 bg-orange-100 text-orange-700 border border-orange-200 rounded-2xl font-bold hover:bg-orange-200 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                                    >
+                                        Guardar y Salir
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={loadingPet}
+                                        onClick={(e) => handleSavePet(e, true)}
+                                        className="w-full py-4 bg-orange-600 text-white rounded-2xl font-bold shadow-lg shadow-orange-600/20 hover:bg-orange-700 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                                    >
+                                        {loadingPet ? (
+                                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        ) : 'Guardar y Otra'}
+                                    </button>
+                                </div>
+                            ) : (
+                                <button
+                                    type="submit"
+                                    disabled={loadingPet}
+                                    className="w-full py-4 bg-orange-600 text-white rounded-2xl font-bold shadow-lg shadow-orange-600/20 hover:bg-orange-700 active:scale-[0.98] transition-all disabled:opacity-50 mt-4 flex items-center justify-center gap-2"
+                                >
+                                    {loadingPet ? (
+                                        <>
+                                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            Guardando...
+                                        </>
+                                    ) : 'Actualizar Mascota'}
+                                </button>
+                            )}
 
                             {editingPet && (
                                 <button

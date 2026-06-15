@@ -484,8 +484,8 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
             </div>
             ${type === 'campaign' ? `
             <div style="margin-top:10px;">
-                <button class="cf-v35-btn-wa" data-id="${id}" data-type="campaign" style="${mode === 'processed' ? 'background:rgba(255,255,255,0.1);' : ''}">
-                    ${mode === 'pending' ? '📥 Ir a Campañas' : '🔄 Ver Campañas'}
+                <button class="cf-v35-btn-wa" data-id="${id}" data-campid="${item.campId || item.id}" data-type="campaign" style="${mode === 'processed' ? 'background:rgba(255,255,255,0.1);' : ''}">
+                    ${mode === 'pending' ? '📥 DESCARGAR CSV' : '📥 VOLVER A DESCARGAR'}
                 </button>
             </div>
             ` : showWaBtn ? `
@@ -562,7 +562,36 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
         ui.querySelectorAll('.cf-v35-card-delete').forEach(btn => btn.onclick = () => updateStorage(btn.dataset.id, null));
         ui.querySelectorAll('.cf-v35-btn-wa').forEach(btn => btn.onclick = () => {
             if (btn.dataset.type === 'campaign') {
-                window.open(`${config.apiUrl}/admin/campaigns`, '_blank');
+                const campId = btn.dataset.campid;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '⏳ Generando...';
+                btn.style.opacity = '0.5';
+                btn.disabled = true;
+                apiBridge({
+                    url: `${config.apiUrl}/api/download-campaign-csv?campId=${campId}`,
+                    method: 'GET',
+                    headers: { 'x-api-key': config.apiKey }
+                }).then(res => {
+                    btn.innerHTML = '✅ Descargado';
+                    btn.style.opacity = '1';
+                    setTimeout(() => { btn.innerHTML = '📥 VOLVER A DESCARGAR'; btn.disabled = false; updateStorage(btn.dataset.id, 'dismissed'); }, 2000);
+                    if (res && res.ok && res.csvContent) {
+                        const blob = new Blob(["\\uFEFF" + res.csvContent], { type: 'text/csv;charset=utf-8;' });
+                        const link = document.createElement("a");
+                        const url = URL.createObjectURL(blob);
+                        link.setAttribute("href", url);
+                        link.setAttribute("download", `Campaña_${campId}_${new Date().toISOString().split('T')[0]}.csv`);
+                        link.style.visibility = 'hidden';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    }
+                }).catch(e => {
+                    console.error(e);
+                    btn.innerHTML = '❌ Error';
+                    btn.style.opacity = '1';
+                    setTimeout(() => { btn.innerHTML = originalText; btn.disabled = false; }, 2000);
+                });
             } else {
                 const url = generateWhatsAppToken(btn.dataset.type, btn.dataset.phone, btn.dataset.name, btn.dataset.extra, config, btn.dataset.socio, btn.dataset.date);
                 if (url) window.open(url, '_blank');

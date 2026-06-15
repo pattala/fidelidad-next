@@ -1,4 +1,4 @@
-import admin from "firebase-admin";
+﻿import admin from "firebase-admin";
 import nodemailer from 'nodemailer';
 import { buildHtmlLayout } from "../utils/emailLayout.js";
 import { getEffectiveDate } from "../utils/timeUtils.js";
@@ -271,8 +271,13 @@ export default async function handler(req, res) {
                         const msg = template.replace(/{nombre}/g, (userData.nombre || userData.name || '').split(' ')[0]).replace(/{puntos}/g, birthdayPoints.toString());
                         const title = "¡Feliz Cumpleaños! 🎂";
 
-                        // 1. PWA PUSH
-                        if (userData.fcmTokens?.length && config.messaging?.pushEnabled !== false) {
+                        const evChannelsExp = config.messaging?.eventConfigs?.expirationWarning?.channels || ['push', 'email'];
+                    const canPushExp = config.messaging?.pushEnabled !== false && evChannelsExp.includes('push');
+                    const canEmailExp = config.messaging?.emailEnabled !== false && evChannelsExp.includes('email');
+                    const canInboxExp = config.messaging?.inboxEnabled !== false;
+
+                    // 1. PWA PUSH
+                    if (userData.fcmTokens?.length && canPushExp) {
                             const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
                             const iconUrl = config.logoUrl ? getAbsoluteUrl(config.logoUrl, PWA_URL) : "";
                             await app.messaging().sendEachForMulticast({
@@ -471,8 +476,13 @@ export default async function handler(req, res) {
                         .replace(/{puntos}/g, nextAmt.toString())
                         .replace(/{fecha}/g, dateStr);
 
-                    // 1. PWA PUSH
-                    if (userData.fcmTokens?.length && config.messaging?.pushEnabled !== false) {
+                    const evChannelsBday = config.messaging?.eventConfigs?.birthday?.channels || ['push', 'email'];
+                          const canPushBday = config.messaging?.pushEnabled !== false && evChannelsBday.includes('push');
+                          const canEmailBday = config.messaging?.emailEnabled !== false && evChannelsBday.includes('email');
+                          const canInboxBday = config.messaging?.inboxEnabled !== false;
+                          
+                          // 1. PWA PUSH
+                          if (userData.fcmTokens?.length && canPushBday) {
                         const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
                         const iconUrl = config.logoUrl ? getAbsoluteUrl(config.logoUrl, PWA_URL) : "";
                         await app.messaging().sendEachForMulticast({
@@ -491,7 +501,7 @@ export default async function handler(req, res) {
                     }
 
                     // 2. INBOX
-                    if (config.messaging?.inboxEnabled !== false) {
+                    if (canInboxExp) {
                         await doc.ref.collection('inbox').add({
                             title, body: msg, url: "/perfil", type: "expiration_warning", read: false,
                             date: recordTimestamp
@@ -499,7 +509,7 @@ export default async function handler(req, res) {
                     }
 
                     // 3. EMAIL
-                    if (userData.email && process.env.SMTP_USER && config.messaging?.emailEnabled !== false) {
+                    if (userData.email && process.env.SMTP_USER && canEmailExp) {
                         const innerHtml = `<div style="color: #333;"><h2 style="color: #f59e0b; margin-top: 0;">${title}</h2><p style="font-size: 16px; line-height: 1.6;">${msg}</p></div>`;
                         await transporter.sendMail({
                             from: `"${config.siteName || 'Club Fidelidad'}" <${process.env.SMTP_USER}>`,
@@ -624,7 +634,12 @@ export default async function handler(req, res) {
                                 if (!userData.fcmTokens?.length) results.errors.push(`Pet ${userDoc.id}: Sin tokens FCM`);
                                 if (config.messaging?.pushEnabled === false) results.errors.push(`Pet ${userDoc.id}: Push desactivado en config`);
 
-                                if (cleanTokens.length > 0 && config.messaging?.pushEnabled !== false) {
+                                const evChannelsFood = config.messaging?.eventConfigs?.petFoodAlert?.channels || ['push', 'email', 'whatsapp'];
+                                const canPushFood = config.messaging?.pushEnabled !== false && evChannelsFood.includes('push');
+                                const canEmailFood = config.messaging?.emailEnabled !== false && evChannelsFood.includes('email');
+                                const canInboxFood = config.messaging?.inboxEnabled !== false;
+
+                                if (cleanTokens.length > 0 && canPushFood) {
                                     const PWA_URL = process.env.PWA_URL || `https://${req.headers.host}`;
                                     const iconUrl = config.logoUrl ? getAbsoluteUrl(config.logoUrl, PWA_URL) : "";
                                     const title = "🐾 Aviso de Alimento";
@@ -649,9 +664,9 @@ export default async function handler(req, res) {
                                     }
                                 }
 
-                                if (config.messaging?.inboxEnabled !== false) {
+                                if (canInboxFood) {
                                     await userDoc.ref.collection('inbox').add({
-                                        title: "🐾 Aviso de Alimento", body: msg, url: "/perfil", type: "pet_alert",
+                                        title: "✅ Aviso de Alimento", body: msg, url: "/perfil", type: "pet_alert",
                                         read: false, date: recordTimestamp
                                     });
                                 }
@@ -661,7 +676,7 @@ export default async function handler(req, res) {
                                 if (!process.env.SMTP_USER) results.errors.push(`Pet ${userDoc.id}: SMTP no configurado en servidor`);
                                 if (config.messaging?.emailEnabled === false) results.errors.push(`Pet ${userDoc.id}: Email desactivado en config`);
 
-                                if (userData.email && process.env.SMTP_USER && config.messaging?.emailEnabled !== false) {
+                                if (userData.email && process.env.SMTP_USER && canEmailFood) {
                                     const title = "🐾 Aviso de Alimento";
                                     const innerHtml = `<div style="color: #333;"><h2 style="color: #6366f1; margin-top: 0;">${title}</h2><p style="font-size: 16px; line-height: 1.6;">${msg}</p></div>`;
                                     try {
@@ -744,14 +759,14 @@ export default async function handler(req, res) {
                                             }
                                         }
 
-                                        if (config.messaging?.inboxEnabled !== false) {
+                                        if (canInboxLitter) {
                                             await userDoc.ref.collection('inbox').add({
                                                 title: "🐾 Aviso de Piedras Sanitarias", body: msg, url: "/perfil", type: "pet_litter_alert",
                                                 read: false, date: recordTimestamp
                                             });
                                         }
 
-                                        if (userData.email && process.env.SMTP_USER && config.messaging?.emailEnabled !== false) {
+                                        if (userData.email && process.env.SMTP_USER && canEmailLitter) {
                                             const title = "🐾 Aviso de Piedras Sanitarias";
                                             const innerHtml = `<div style="color: #333;"><h2 style="color: #f97316; margin-top: 0;">${title}</h2><p style="font-size: 16px; line-height: 1.6;">${msg}</p></div>`;
                                             try {

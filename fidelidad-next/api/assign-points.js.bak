@@ -1,4 +1,4 @@
-﻿
+
 // api/assign-points.js
 // Asigna puntos a un cliente de forma segura.
 // Soporta modo ADMIN (x-api-key) y modo USUARIO (Token Firebase).
@@ -904,8 +904,8 @@ export default async function handler(req, res) {
                 const eventConfig = messagingCfg.eventConfigs?.[event];
                 const channels = eventConfig?.channels || ['push', 'email'];
 
-                const isPushConfigured = messagingCfg.pushEnabled !== false && channels.includes('push');
-                const isEmailConfigured = messagingCfg.emailEnabled !== false && channels.includes('email');
+                const isPushConfigured = messagingCfg.pushEnabled && channels.includes('push');
+                const isEmailConfigured = messagingCfg.emailEnabled && channels.includes('email');
 
                 if (isPushConfigured) {
                     notifications.push(
@@ -1007,8 +1007,8 @@ export default async function handler(req, res) {
                     .replace(/{vencimiento}/g, rInfo.expirationDateStr || '')
                     .replace(/{siteName}/g, config.siteName || 'Club Fidelidad');
 
-                const isPushEnabled = messagingCfg.pushEnabled !== false && channels.includes('push');
-                const isEmailEnabled = messagingCfg.emailEnabled !== false && channels.includes('email');
+                const isPushEnabled = messagingCfg.pushEnabled && channels.includes('push');
+                const isEmailEnabled = messagingCfg.emailEnabled && channels.includes('email');
 
                 if (isPushEnabled) {
                     notifications.push(

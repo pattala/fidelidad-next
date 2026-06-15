@@ -1,4 +1,4 @@
-// /api/engine-campaigns.js
+﻿// /api/engine-campaigns.js
 // Gestor de campañas: Maneja el auto-despacho (broadcast) y mantenimiento de campañas activas.
 
 import admin from "firebase-admin";

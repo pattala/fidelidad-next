@@ -915,6 +915,16 @@ export default async function handler(req, res) {
                 if (campStartDate && campStartDate > todayStr) {
                     return; // Excluir campañas futuras
                 }
+                
+                if (camp.isFlash && campStartDate === todayStr && camp.startTime) {
+                    const [startH, startM] = camp.startTime.split(':');
+                    const startTimeDate = new Date(referenceDate);
+                    startTimeDate.setHours(Number(startH), Number(startM), 0, 0);
+                    const leadMins = camp.broadcastLeadMins || 0;
+                    startTimeDate.setMinutes(startTimeDate.getMinutes() - leadMins);
+                    if (referenceDate < startTimeDate) return;
+                }
+
                 const alertId = `campaign-${doc.id}-${todayStr}`;
                 campaignsList.push({
                     ...camp,

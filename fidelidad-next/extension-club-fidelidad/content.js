@@ -482,13 +482,13 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                 </div>
                 ${mode === 'pending' ? `<button class="cf-v35-card-close" data-id="${id}">×</button>` : `<button class="cf-v35-card-delete" data-id="${id}" style="background:none; border:none; color:white; opacity:0.4; cursor:pointer;" title="Restaurar a Pendientes">🔄</button>`}
             </div>
-            ${type === 'campaign' ? `
+            ${type === 'campaign' ? (!item.channels || item.channels.includes('whatsapp') ? `
             <div style="margin-top:10px;">
                 <button class="cf-v35-btn-wa" data-id="${id}" data-campid="${item.campId || item.id}" data-type="campaign" style="${mode === 'processed' ? 'background:rgba(255,255,255,0.1);' : ''}">
                     ${mode === 'pending' ? '📥 DESCARGAR CSV' : '📥 VOLVER A DESCARGAR'}
                 </button>
             </div>
-            ` : showWaBtn ? `
+            ` : '') : showWaBtn ? `
             <div style="margin-top:10px;">
                 <button class="cf-v35-btn-wa" data-id="${id}" data-type="${type === 'pet' ? 'petAlerts' : type === 'redemption' ? 'redemptions' : type === 'pointsAssignment' ? 'pointsAssignments' : type + 's'}" data-phone="${item.phone}" data-name="${item.name}" data-socio="${type === 'redemption' ? (item.redemptionCode || '') : (item.socioNumber || '')}" data-extra="${type === 'pet' ? item.petName : type === 'redemption' ? item.prizeName : item.points || ''}" data-date="${item.nextExpirationDate || ''}" style="${mode === 'processed' ? 'background:rgba(255,255,255,0.1);' : ''}">
                     ${mode === 'pending' ? '📳 Enviar WhatsApp' : '🔄 Re-enviar'}

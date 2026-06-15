@@ -568,7 +568,7 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
                 btn.style.opacity = '0.5';
                 btn.disabled = true;
                 apiBridge({
-                    url: `${config.apiUrl}/api/download-campaign-csv?campId=${campId}`,
+                    url: `${config.apiUrl}/api/engine-campaigns?mode=downloadCSV&campId=${campId}`,
                     method: 'GET',
                     headers: { 'x-api-key': config.apiKey }
                 }).then(res => {

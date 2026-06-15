@@ -78,6 +78,60 @@ export default async function handler(req, res) {
 
     const app = initFirebaseAdmin();
     const db = app.firestore();
+
+    if (req.query.mode === 'downloadCSV') {
+        try {
+            const campId = req.query.campId || req.body?.campId;
+            if (!campId) return res.status(400).json({ ok: false, error: "campId is required" });
+            const campDoc = await db.collection('campanas').doc(campId).get();
+            if (!campDoc.exists) return res.status(404).json({ ok: false, error: "Campaign not found" });
+            const bonus = campDoc.data();
+            const configDoc = await db.collection('config').doc('global').get();
+            const configObj = configDoc.exists ? configDoc.data() : {};
+            let template = "";
+            if (bonus.isFlash) {
+                template = configObj?.messaging?.templates?.flashOffer || DEFAULT_TEMPLATES.flashOffer;
+            } else if (bonus.rewardType === 'INFO' || bonus.rewardType === 'TEXT') {
+                template = configObj?.messaging?.templates?.offer || DEFAULT_TEMPLATES.offer;
+            } else {
+                template = configObj?.messaging?.templates?.campaign || DEFAULT_TEMPLATES.campaign;
+            }
+            const usersSnap = await db.collection('users').get();
+            let csvContent = "Nombre,Telefono,Mensaje\\n";
+            usersSnap.forEach(doc => {
+                const data = doc.data();
+                if (data.role === 'admin' || !data.phone) return;
+                let phoneNum = data.phone.replace(/\\D/g, '');
+                if (!phoneNum.startsWith('54') && phoneNum.length === 10) phoneNum = '549' + phoneNum;
+                const userName = data.name || data.nombre || '';
+                const firstName = userName.split(' ')[0];
+                let msg = template.replace(/{nombre}/g, firstName).replace(/{nombre_completo}/g, userName);
+                if (bonus.isFlash) {
+                    const horario = bonus.endTime || '23:59';
+                    const hora_inicio = bonus.startTime || '00:00';
+                    msg = msg.replace(/{titulo}/g, bonus.flashTitle || bonus.title || bonus.name)
+                                .replace(/{detalle}/g, bonus.flashDescription || bonus.description || (bonus.rewardText ? `¡${bonus.rewardText}!` : ''))
+                                .replace(/{horario}/g, horario)
+                                .replace(/{hora_inicio}/g, hora_inicio);
+                } else if (bonus.rewardType === 'INFO' || bonus.rewardType === 'TEXT') {
+                    const vencimiento = bonus.endDate ? new Date(bonus.endDate + 'T00:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : 'agotar stock';
+                    msg = msg.replace(/{titulo}/g, bonus.title || bonus.name)
+                                .replace(/{detalle}/g, bonus.description || (bonus.rewardText ? `¡${bonus.rewardText}!` : ''))
+                                .replace(/{vencimiento}/g, vencimiento);
+                } else {
+                    msg = msg.replace(/{titulo}/g, bonus.title || bonus.name)
+                                .replace(/{descripcion}/g, bonus.description || '');
+                }
+                const escapeCSV = (str) => `"${str.replace(/"/g, '""')}"`;
+                csvContent += `${escapeCSV(userName)},${phoneNum},${escapeCSV(msg)}\\n`;
+            });
+            return res.status(200).json({ ok: true, csvContent });
+        } catch (error) {
+            console.error("Error generating CSV:", error);
+            return res.status(500).json({ ok: false, error: error.message });
+        }
+    }
+
     let auditLogRef = null;
 
     try {

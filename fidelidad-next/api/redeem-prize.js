@@ -5,7 +5,7 @@
 import admin from "firebase-admin";
 import { sendNotificationInternal } from "./notifications.js";
 import { updateNextExpirationDate } from "../utils/_expiration-utils.js";
-import { getEffectiveDate } from "../utils/timeUtils.js";
+import { getEffectiveDate, isInsideTimeWindow } from "../utils/timeUtils.js";
 
 // ---------- Firebase Admin ----------
 function initFirebaseAdmin() {
@@ -80,17 +80,9 @@ export default async function handler(req, res) {
 
         // 2.5 Validación de Ventana Horaria Operativa
         const nowTime = new Date();
-        const ch = nowTime.getHours();
-        const startH = Number(config.messaging?.engineAllowedStartHour ?? 6);
-        const endH = Number(config.messaging?.engineAllowedEndHour ?? 6);
-        let isInsideWindow = true;
-        if (startH !== endH) {
-            if (startH < endH) {
-                isInsideWindow = (ch >= startH && ch < endH);
-            } else {
-                isInsideWindow = (ch >= startH || ch < endH);
-            }
-        }
+        const startConfig = config.messaging?.engineAllowedStartHour ?? 6;
+        const endConfig = config.messaging?.engineAllowedEndHour ?? 6;
+        const isInsideWindow = isInsideTimeWindow(startConfig, endConfig, nowTime);
 
         if (!isInsideWindow) {
             return res.status(400).json({ ok: false, error: "El sistema está fuera del horario operativo. No se pueden realizar canjes en este momento." });

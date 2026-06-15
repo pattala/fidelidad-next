@@ -1,7 +1,7 @@
 import admin from "firebase-admin";
 import nodemailer from 'nodemailer';
 import { buildHtmlLayout } from "../utils/emailLayout.js";
-import { getEffectiveDate } from "../utils/timeUtils.js";
+import { getEffectiveDate, isInsideTimeWindow } from "../utils/timeUtils.js";
 import { updateNextExpirationDate } from "../utils/_expiration-utils.js";
 
 // ---------- Inicialización Firebase Admin ----------
@@ -113,19 +113,11 @@ export default async function handler(req, res) {
         const todayStr = `${y}-${m}-${d}`;
         
         // Validaciones de Ventana Horaria y Gatillos (Master Control)
-        const currentHour = referenceDate.getHours();
-        const startHour = Number(config.messaging?.engineAllowedStartHour ?? 6);
-        const endHour = Number(config.messaging?.engineAllowedEndHour ?? 6);
+        const startConfig = config.messaging?.engineAllowedStartHour ?? 6;
+        const endConfig = config.messaging?.engineAllowedEndHour ?? 6;
         
         // 1. Validar Ventana Horaria (Si start === end, es 24hs según el usuario)
-        let isInsideWindow = true;
-        if (startHour !== endHour) {
-            if (startHour < endHour) {
-                isInsideWindow = (currentHour >= startHour && currentHour < endHour);
-            } else {
-                isInsideWindow = (currentHour >= startHour || currentHour < endHour);
-            }
-        }
+        const isInsideWindow = isInsideTimeWindow(startConfig, endConfig, referenceDate);
 
         // 3. Validar si el gatillo está habilitado en Config
         let isTriggerEnabled = true;

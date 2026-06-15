@@ -5,7 +5,7 @@
 
 import admin from "firebase-admin";
 import { updateNextExpirationDate, getValidityDays } from "../utils/_expiration-utils.js";
-import { getEffectiveDate, getTrueEffectiveDate } from "../utils/timeUtils.js";
+import { getEffectiveDate, getTrueEffectiveDate, isInsideTimeWindow } from "../utils/timeUtils.js";
 
 // ---------- Firebase Admin ----------
 function initFirebaseAdmin() {
@@ -684,17 +684,9 @@ export default async function handler(req, res) {
             });
 
             // 5.4.5 Validación de Ventana Horaria Operativa
-            const ch = now.getHours();
-            const startH = Number(config.messaging?.engineAllowedStartHour ?? 6);
-            const endH = Number(config.messaging?.engineAllowedEndHour ?? 6);
-            let isInsideWindow = true;
-            if (startH !== endH) {
-                if (startH < endH) {
-                    isInsideWindow = (ch >= startH && ch < endH);
-                } else {
-                    isInsideWindow = (ch >= startH || ch < endH);
-                }
-            }
+            const startConfig = config.messaging?.engineAllowedStartHour ?? 6;
+            const endConfig = config.messaging?.engineAllowedEndHour ?? 6;
+            const isInsideWindow = isInsideTimeWindow(startConfig, endConfig, now);
 
             // 5.5 GENERACIÓN DE CAJA SORPRESA
             const isMysteryBoxEligible = finalAmount >= (config.mysteryBox?.minAmount || 0);

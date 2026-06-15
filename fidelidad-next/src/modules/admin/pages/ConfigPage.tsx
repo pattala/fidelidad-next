@@ -966,7 +966,7 @@ export const ConfigPage = () => {
                                                     </p>
                                                 </div>
                                                 <a 
-                                                    href="/download/Integrador_Beneficios_V1.88.zip" 
+                                                    href="/download/Integrador_Beneficios_V1.89.zip" 
                                                     download 
                                                     className="flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-xl font-bold shadow-lg shadow-purple-200 hover:bg-purple-700 hover:scale-105 transition-all active:scale-95 shrink-0"
                                                 >
@@ -3133,12 +3133,11 @@ export const ConfigPage = () => {
                                                 <span className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Empieza a las</span>
                                                 <div className="relative">
                                                     <input
-                                                        type="number" min="0" max="23"
-                                                        value={config.messaging?.engineAllowedStartHour ?? 9}
-                                                        onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, engineAllowedStartHour: parseInt(e.target.value) || 0 } })}
-                                                        className="w-full pl-3 pr-8 py-2 text-xl font-black text-gray-800 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+                                                        type="time"
+                                                        value={config.messaging?.engineAllowedStartHour ?? "09:00"}
+                                                        onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, engineAllowedStartHour: e.target.value || "00:00" } })}
+                                                        className="w-full pl-3 pr-3 py-2 text-xl font-black text-gray-800 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
                                                     />
-                                                    <span className="absolute right-3 top-2.5 font-bold text-gray-400">hs</span>
                                                 </div>
                                             </label>
                                             <span className="text-gray-300 font-black">—</span>
@@ -3146,12 +3145,11 @@ export const ConfigPage = () => {
                                                 <span className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Corta a las</span>
                                                 <div className="relative">
                                                     <input
-                                                        type="number" min="0" max="23"
-                                                        value={config.messaging?.engineAllowedEndHour ?? 22}
-                                                        onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, engineAllowedEndHour: parseInt(e.target.value) || 0 } })}
-                                                        className="w-full pl-3 pr-8 py-2 text-xl font-black text-gray-800 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+                                                        type="time"
+                                                        value={config.messaging?.engineAllowedEndHour ?? "22:00"}
+                                                        onChange={e => setConfig({ ...config, messaging: { ...config.messaging!, engineAllowedEndHour: e.target.value || "00:00" } })}
+                                                        className="w-full pl-3 pr-3 py-2 text-xl font-black text-gray-800 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
                                                     />
-                                                    <span className="absolute right-3 top-2.5 font-bold text-gray-400">hs</span>
                                                 </div>
                                             </label>
                                         </div>

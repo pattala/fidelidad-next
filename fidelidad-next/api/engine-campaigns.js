@@ -1,10 +1,10 @@
-﻿// /api/engine-campaigns.js
+// /api/engine-campaigns.js
 // Gestor de campañas: Maneja el auto-despacho (broadcast) y mantenimiento de campañas activas.
 
 import admin from "firebase-admin";
 import nodemailer from 'nodemailer';
 import { buildHtmlLayout } from "../utils/emailLayout.js";
-import { getEffectiveDate } from "../utils/timeUtils.js";
+import { getEffectiveDate, isInsideTimeWindow } from "../utils/timeUtils.js";
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -156,21 +156,10 @@ export default async function handler(req, res) {
         const d = String(now.getDate()).padStart(2, '0');
         const todayStr = `${y}-${m}-${d}`;
         const todayDay = now.getDay();
-        const currentH = now.getHours();
-
-        const allowedStart = config.messaging?.engineAllowedStartHour ?? 9;
-        const allowedEnd = config.messaging?.engineAllowedEndHour ?? 21;
+        const startConfig = config.messaging?.engineAllowedStartHour ?? 9;
+        const endConfig = config.messaging?.engineAllowedEndHour ?? 21;
         // Soporta rangos nocturnos que cruzan la medianoche
-        let isWithinNotificationWindow = true;
-        if (allowedStart !== allowedEnd) {
-            if (allowedStart < allowedEnd) {
-                // Rango normal
-                isWithinNotificationWindow = (currentH >= allowedStart && currentH < allowedEnd);
-            } else {
-                // Rango nocturno
-                isWithinNotificationWindow = (currentH >= allowedStart || currentH < allowedEnd);
-            }
-        }
+        const isWithinNotificationWindow = isInsideTimeWindow(startConfig, endConfig, now);
 
         const triggerSourceParam = req.query?.trigger || req.body?.trigger || "unknown";
 

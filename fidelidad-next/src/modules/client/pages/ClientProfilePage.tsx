@@ -1253,27 +1253,26 @@ export const ClientProfilePage = () => {
                             </div>
 
                             {!editingPet ? (
-                                <div className="grid grid-cols-2 gap-3 mt-4">
-                                    <button
-                                        type="submit"
-                                        disabled={loadingPet}
-                                        className="w-full py-4 bg-orange-100 text-orange-700 border border-orange-200 rounded-2xl font-bold hover:bg-orange-200 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                                    >
-                                        Guardar y Salir
-                                    </button>
-                                    <button
-                                        type="button"
-                                        disabled={loadingPet}
-                                        onClick={(e) => handleSavePet(e, true)}
-                                        className="w-full py-4 bg-orange-600 text-white rounded-2xl font-bold shadow-lg shadow-orange-600/20 hover:bg-orange-700 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                                    >
-                                        {loadingPet ? (
-                                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                        ) : 'Guardar y Otra'}
-                                    </button>
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-2 gap-3 mt-4">
+                                <div className="flex flex-col gap-3 mt-4">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <button
+                                            type="submit"
+                                            disabled={loadingPet}
+                                            className="w-full py-4 bg-orange-100 text-orange-700 border border-orange-200 rounded-2xl font-bold hover:bg-orange-200 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                                        >
+                                            Guardar y Salir
+                                        </button>
+                                        <button
+                                            type="button"
+                                            disabled={loadingPet}
+                                            onClick={(e) => handleSavePet(e, true)}
+                                            className="w-full py-4 bg-orange-600 text-white rounded-2xl font-bold shadow-lg shadow-orange-600/20 hover:bg-orange-700 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                                        >
+                                            {loadingPet ? (
+                                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            ) : 'Guardar y Otra'}
+                                        </button>
+                                    </div>
                                     <button
                                         type="button"
                                         disabled={loadingPet}
@@ -1282,6 +1281,9 @@ export const ClientProfilePage = () => {
                                     >
                                         Cancelar
                                     </button>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col gap-3 mt-4">
                                     <button
                                         type="submit"
                                         disabled={loadingPet}
@@ -1290,9 +1292,17 @@ export const ClientProfilePage = () => {
                                         {loadingPet ? (
                                             <>
                                                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                                Guardando...
+                                                Actualizando...
                                             </>
                                         ) : 'Actualizar Mascota'}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={loadingPet}
+                                        onClick={() => setIsPetModalOpen(false)}
+                                        className="w-full py-4 bg-gray-100 text-gray-600 border border-gray-200 rounded-2xl font-bold hover:bg-gray-200 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                                    >
+                                        Cancelar
                                     </button>
                                 </div>
                             )}

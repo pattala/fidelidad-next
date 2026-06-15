@@ -1,4 +1,4 @@
-﻿export interface Pet {
+export interface Pet {
     id: string;
     name: string;
     type: 'perro' | 'gato' | 'otro';
@@ -254,8 +254,8 @@ export interface AppConfig {
         expirationWarningDays?: number;
         automaticCheckHour?: number; // 0-23
         expirationReminderIntervalDays?: number; // Motor Automático Diario
-        engineAllowedStartHour?: number; // Default 9
-        engineAllowedEndHour?: number;
+        engineAllowedStartHour?: number | string; // Default 9
+        engineAllowedEndHour?: number | string;
         enableDashboardTrigger?: boolean;
         enableClientTrigger?: boolean;
         enableExtensionTrigger?: boolean;

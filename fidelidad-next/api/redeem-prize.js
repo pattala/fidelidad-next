@@ -78,6 +78,24 @@ export default async function handler(req, res) {
         const pointsNeeded = Number(prizeData.pointsRequired) || 0;
         const currentPoints = Number((clientData.points !== undefined) ? clientData.points : (clientData.puntos ?? 0));
 
+        // 2.5 Validación de Ventana Horaria Operativa
+        const nowTime = new Date();
+        const ch = nowTime.getHours();
+        const startH = Number(config.messaging?.engineAllowedStartHour ?? 6);
+        const endH = Number(config.messaging?.engineAllowedEndHour ?? 6);
+        let isInsideWindow = true;
+        if (startH !== endH) {
+            if (startH < endH) {
+                isInsideWindow = (ch >= startH && ch < endH);
+            } else {
+                isInsideWindow = (ch >= startH || ch < endH);
+            }
+        }
+
+        if (!isInsideWindow) {
+            return res.status(400).json({ ok: false, error: "El sistema está fuera del horario operativo. No se pueden realizar canjes en este momento." });
+        }
+
         if (currentPoints < pointsNeeded) return res.status(400).json({ ok: false, error: "Insufficient points" });
         if ((Number(prizeData.stock) || 0) <= 0) return res.status(400).json({ ok: false, error: "No stock available" });
 

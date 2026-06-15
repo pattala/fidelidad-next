@@ -683,12 +683,25 @@ export default async function handler(req, res) {
                 timestamp: trueNow.toISOString()
             });
 
+            // 5.4.5 Validación de Ventana Horaria Operativa
+            const ch = now.getHours();
+            const startH = Number(config.messaging?.engineAllowedStartHour ?? 6);
+            const endH = Number(config.messaging?.engineAllowedEndHour ?? 6);
+            let isInsideWindow = true;
+            if (startH !== endH) {
+                if (startH < endH) {
+                    isInsideWindow = (ch >= startH && ch < endH);
+                } else {
+                    isInsideWindow = (ch >= startH || ch < endH);
+                }
+            }
+
             // 5.5 GENERACIÓN DE CAJA SORPRESA
             const isMysteryBoxEligible = finalAmount >= (config.mysteryBox?.minAmount || 0);
             const forcedByAdmin = config.mysteryBox?.cashierDecision === false;
             const shouldGenerateMB = forcedByAdmin ? true : generateMysteryBox;
 
-            if (shouldGenerateMB && config.mysteryBox?.enabled && isMysteryBoxEligible) {
+            if (shouldGenerateMB && config.mysteryBox?.enabled && isMysteryBoxEligible && isInsideWindow) {
                 const mbId = 'MBX-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
                 const realNowTime = Date.now();
                 const mbExpiresAt = new Date(realNowTime + ((config.mysteryBox.chanceDeadlineMinutes || 60) * 60 * 1000));

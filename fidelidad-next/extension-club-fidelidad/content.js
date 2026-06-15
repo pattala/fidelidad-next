@@ -1,8 +1,8 @@
-// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V1.87 - RESCUE STABLE)
+// Club Fidelidad - Content Script (VERSIÓN EMPLEADO V1.88 - RESCUE STABLE)
 if (window.location.href.includes('fidelidad-next.vercel.app') || window.location.href.includes('/admin') || window.location.href.includes('pattala.com')) {
     console.log("🛑 [Club Fidelidad] Extensión desactivada en el Dashboard.");
 } else {
-    console.log("🚀 [Club Fidelidad] V1.87: Iniciando extensión.");
+    console.log("🚀 [Club Fidelidad] V1.88: Iniciando extensión.");
 
 let config = { apiUrl: '', apiKey: '' };
 let detectedAmount = 0;
@@ -1045,15 +1045,32 @@ function showFidelidadPanel() {
             if (val >= (window._cfFullData.config.mysteryBox.minAmount || 0)) {
                 mbxContainer.style.display = 'block';
                 if (mbCheckbox) {
-                    if (window._cfFullData.config.mysteryBox.cashierDecision === false) {
+                    if (window._cfFullData.skipped) {
+                        mbCheckbox.checked = false;
+                        mbCheckbox.disabled = true;
+                        mbCheckbox.style.opacity = '0.5';
+                        mbCheckbox.style.cursor = 'not-allowed';
+                        const labelDiv = mbxContainer.querySelector('div[style*="font-size:12px"]');
+                        if (labelDiv && !labelDiv.innerHTML.includes('Fuera de horario')) {
+                            labelDiv.innerHTML += ' <span style="color:#ef4444; font-size:10px;">(Fuera de horario)</span>';
+                        }
+                    } else if (window._cfFullData.config.mysteryBox.cashierDecision === false) {
                         mbCheckbox.checked = true;
                         mbCheckbox.disabled = true;
                         mbCheckbox.style.opacity = '0.5';
                         mbCheckbox.style.cursor = 'not-allowed';
+                        const labelDiv = mbxContainer.querySelector('div[style*="font-size:12px"]');
+                        if (labelDiv && labelDiv.innerHTML.includes('Fuera de horario')) {
+                            labelDiv.innerHTML = labelDiv.innerHTML.replace(/<span.*Fuera de horario.*<\/span>/g, '');
+                        }
                     } else {
                         mbCheckbox.disabled = false;
                         mbCheckbox.style.opacity = '1';
                         mbCheckbox.style.cursor = 'pointer';
+                        const labelDiv = mbxContainer.querySelector('div[style*="font-size:12px"]');
+                        if (labelDiv && labelDiv.innerHTML.includes('Fuera de horario')) {
+                            labelDiv.innerHTML = labelDiv.innerHTML.replace(/<span.*Fuera de horario.*<\/span>/g, '');
+                        }
                     }
                 }
             } else {
@@ -1604,6 +1621,12 @@ function showFidelidadPanel() {
         if (!prizesList) return;
 
         prizesList.innerHTML = '';
+        
+        if (window._cfFullData?.skipped) {
+            prizesList.innerHTML = '<div style="grid-column: 1 / span 2; text-align: center; color: #ef4444; font-size: 12px; font-weight: bold; padding: 20px;">🚫 Fuera de horario operativo. No se pueden realizar canjes.</div>';
+            return;
+        }
+
         if (prizes.length === 0) {
             prizesList.innerHTML = '<div style="grid-column: 1 / span 2; text-align: center; color: #9ca3af; font-size: 12px; padding: 20px;">No hay premios disponibles</div>';
             return;

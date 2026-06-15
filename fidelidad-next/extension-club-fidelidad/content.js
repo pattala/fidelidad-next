@@ -1011,11 +1011,7 @@ function showFidelidadPanel() {
         let ptsBase = 0;
         if (isPesos) {
             const curAcc = selectedClient.accumulated_balance || 0;
-            // SI EL MONTO COINCIDE CON EL DETECTADO, RESTAMOS DESCUENTOS
             let effectiveVal = val;
-            if (val === detectedAmount) {
-                effectiveVal = val - detectedDiscounts;
-            }
             const total = effectiveVal + curAcc;
             ptsBase = Math.floor((total / (apiRatios.base || 100)) * (apiRatios.perPeso || 1));
         } else {

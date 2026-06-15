@@ -1,4 +1,4 @@
-export interface Pet {
+﻿export interface Pet {
     id: string;
     name: string;
     type: 'perro' | 'gato' | 'otro';
@@ -303,6 +303,7 @@ export interface AppConfig {
         chanceDeadlineMinutes: number;
         resendDeadlineMinutes: number;
         enableCashierAlert: boolean;
+        cashierDecision?: boolean;
         cashierMessage: string;
         prizeScales: MysteryBoxPrizeScale[];
     };

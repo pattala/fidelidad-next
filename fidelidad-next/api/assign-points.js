@@ -712,7 +712,7 @@ export default async function handler(req, res) {
                 });
                 result.mysteryBoxGenerated = true;
                 result.mysteryBoxId = mbId;
-                result.showMysteryBoxAlert = config.mysteryBox?.enableCashierAlert !== false;
+                result.showMysteryBoxAlert = true;
             }
         });
 

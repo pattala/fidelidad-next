@@ -1,4 +1,4 @@
-﻿import admin from "firebase-admin";
+import admin from "firebase-admin";
 import nodemailer from 'nodemailer';
 import { buildHtmlLayout } from "../utils/emailLayout.js";
 import { getEffectiveDate } from "../utils/timeUtils.js";
@@ -162,7 +162,7 @@ export default async function handler(req, res) {
         
 
         return res.status(200).json({
-            ok: true, skipped: true, reason });
+            ok: true, skipped: true, reason, config });
         }
 
         // Restaurar variables de estado necesarias para el resto del motor

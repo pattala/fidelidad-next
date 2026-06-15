@@ -1024,12 +1024,27 @@ function showFidelidadPanel() {
 
         // Auto-show mystery box si esta encendido y val >= minAmount
         const mbxContainer = document.getElementById('cf-mystery-box-container');
+        const mbCheckbox = document.getElementById('cf-generate-mystery-box');
         if (mbxContainer && window._cfFullData && window._cfFullData.config?.mysteryBox && window._cfFullData.config.mysteryBox.enabled) {
             if (val >= (window._cfFullData.config.mysteryBox.minAmount || 0)) {
                 mbxContainer.style.display = 'block';
+                if (mbCheckbox) {
+                    if (window._cfFullData.config.mysteryBox.cashierDecision === false) {
+                        mbCheckbox.checked = true;
+                        mbCheckbox.disabled = true;
+                        mbCheckbox.style.opacity = '0.5';
+                        mbCheckbox.style.cursor = 'not-allowed';
+                    } else {
+                        mbCheckbox.disabled = false;
+                        mbCheckbox.style.opacity = '1';
+                        mbCheckbox.style.cursor = 'pointer';
+                    }
+                }
             } else {
                 mbxContainer.style.display = 'none';
             }
+        } else if (mbxContainer) {
+            mbxContainer.style.display = 'none';
         }
 
         if (isNaN(val) || val <= 0 || !selectedClient) {

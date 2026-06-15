@@ -1,4 +1,4 @@
-﻿
+
 // api/assign-points.js
 // Asigna puntos a un cliente de forma segura.
 // Soporta modo ADMIN (x-api-key) y modo USUARIO (Token Firebase).
@@ -499,7 +499,12 @@ export default async function handler(req, res) {
 
                 if (!skipNotifications) {
                     let inboxMsg = `¡Has sumado ${points} puntos! (${finalConcept})`;
-                    if (generateMysteryBox && config.mysteryBox && config.mysteryBox.enabled && finalAmount >= config.mysteryBox.minAmount) {
+                    const localFinalAmount = amountOverride ? Number(amountOverride) : Number(amount);
+                    const isEligible = localFinalAmount >= (config.mysteryBox?.minAmount || 0);
+                    const forcedByAdmin = config.mysteryBox?.cashierDecision === false;
+                    const shouldGenMB = forcedByAdmin ? true : generateMysteryBox;
+
+                    if (shouldGenMB && config.mysteryBox?.enabled && isEligible) {
                         inboxMsg += "\n\n🎁 ¡Has ganado una Caja Sorpresa! Ingresá a la app para jugar.";
                     }
                     tx.set(clientRef.collection('inbox').doc(), {
@@ -679,7 +684,11 @@ export default async function handler(req, res) {
             });
 
             // 5.5 GENERACIÓN DE CAJA SORPRESA
-            if (generateMysteryBox && config.mysteryBox && config.mysteryBox.enabled && finalAmount >= config.mysteryBox.minAmount) {
+            const isMysteryBoxEligible = finalAmount >= (config.mysteryBox?.minAmount || 0);
+            const forcedByAdmin = config.mysteryBox?.cashierDecision === false;
+            const shouldGenerateMB = forcedByAdmin ? true : generateMysteryBox;
+
+            if (shouldGenerateMB && config.mysteryBox?.enabled && isMysteryBoxEligible) {
                 const mbId = 'MBX-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
                 const realNowTime = Date.now();
                 const mbExpiresAt = new Date(realNowTime + ((config.mysteryBox.chanceDeadlineMinutes || 60) * 60 * 1000));

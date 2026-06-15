@@ -135,6 +135,14 @@ chrome.storage.local.get(['appName', 'apiUrl', 'apiKey', 'dismissedAlerts'], (re
 
                         window._cfFullData = processedData;
                         showGlobalAlert(processedData, config);
+                        
+                        // Force a refresh of the points preview to reveal elements that depend on the config (like Mystery Box)
+                        if (typeof updatePointsPreview === 'function') {
+                            updatePointsPreview();
+                        } else {
+                            // If it's not globally available, dispatch an event
+                            window.dispatchEvent(new Event('cf-data-ready'));
+                        }
                     });
                 });
             }).catch(e => console.error("❌ [Club Fidelidad] Error:", e.message));
@@ -1016,6 +1024,11 @@ function showFidelidadPanel() {
     let isPesos = true;
 
     inputMonto.oninput = () => updatePointsPreview();
+
+    // Listen for late-arriving data to update the preview
+    window.addEventListener('cf-data-ready', () => {
+        updatePointsPreview();
+    });
 
     function updatePointsPreview() {
         const val = parseFloat(inputMonto.value);

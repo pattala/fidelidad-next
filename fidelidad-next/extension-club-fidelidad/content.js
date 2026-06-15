@@ -790,10 +790,10 @@ function showFidelidadPanel() {
     if (document.getElementById('fidelidad-panel')) {
         const amountEl = document.getElementById('cf-display-amount');
         const inputMonto = document.getElementById('cf-input-amount');
-        const baseActual = detectedAmount - detectedDiscounts;
+        const baseActual = detectedAmount;
 
         if (amountEl) {
-            amountEl.innerHTML = `$ ${detectedAmount.toLocaleString('es-AR')} ${detectedDiscounts > 0 ? `<span style="font-size: 10px; color: #ef4444; font-weight: normal; margin-left:8px;">(Base: $${baseActual.toLocaleString('es-AR')})</span>` : ''}`;
+            amountEl.innerHTML = `$ ${detectedAmount.toLocaleString('es-AR')} ${detectedDiscounts > 0 ? `<span style="font-size: 10px; color: #10b981; font-weight: normal; margin-left:8px;">(Incluye $${detectedDiscounts.toLocaleString('es-AR')} en desc.)</span>` : ''}`;
         }
         
         // Solo actualizar si el input está vacío o aún no tiene el monto detectado (para no pisar cambios manuales)
@@ -859,10 +859,10 @@ function showFidelidadPanel() {
                         <label id="cf-amount-label" class="cf-label font-bold">Monto de la Compra ($)</label>
                         <div class="cf-input-group">
                             <span id="cf-currency-symbol" class="cf-addon">$</span>
-                            <input type="number" id="cf-input-amount" class="fidelidad-input cf-input-big" value="${detectedAmount - detectedDiscounts}" data-auto-filled="true">
+                            <input type="number" id="cf-input-amount" class="fidelidad-input cf-input-big" value="${detectedAmount}" data-auto-filled="true">
                         </div>
                         <div id="cf-display-amount" style="font-size: 11px; margin-top: 4px; color: #6b7280;">
-                            $ ${detectedAmount.toLocaleString('es-AR')} ${detectedDiscounts > 0 ? `<span style="color:#ef4444;">(-$${detectedDiscounts.toLocaleString('es-AR')} desc.)</span>` : ''}
+                            $ ${detectedAmount.toLocaleString('es-AR')} ${detectedDiscounts > 0 ? `<span style="color:#10b981; font-weight: bold;">(Incluye $${detectedDiscounts.toLocaleString('es-AR')} en desc.)</span>` : ''}
                         </div>
                         <div id="cf-preview-container" class="cf-preview-box" style="margin-top: 8px; font-size: 12px; color: #6b7280; display: none;">
                             <!-- Preview text will be injected here -->
@@ -1196,7 +1196,8 @@ function showFidelidadPanel() {
                 selectedClient = { id: c.id, name: c.name, accumulated_balance: c.accumulated_balance || 0, pets: c.pets || [] };
 
                 // UI Update
-                clientHeader.innerText = `Socio: ${selectedClient.name}`;
+                const ptsBalance = c.accumulated_points ?? (c.points ?? (c.puntos ?? 0));
+                clientHeader.innerHTML = `Socio: ${selectedClient.name} <span style="margin-left: 8px; font-size: 11px; background: #d1fae5; color: #059669; padding: 2px 6px; border-radius: 12px; font-weight: bold; border: 1px solid #34d399;">⭐ ${ptsBalance} pts</span>`;
                 searchInput.value = selectedClient.name;
                 resultsDiv.style.display = 'none';
 
